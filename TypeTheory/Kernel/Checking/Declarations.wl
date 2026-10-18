@@ -126,6 +126,14 @@ addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPatt
 	declareAxiom[environment, HoldComplete[name], universeParameters, elaborateClosedType[environment, HoldComplete[type], universeParameters]]
 ]
 
+(* a definition keeps the type it is given, implicit binders included, and its value only has to have
+   that type: Lean's projections, for one, take their parameters explicitly in the value *)
+addDeclaration[environment_, TypeTheoryDefinition[name_, Typed[value_, type_], options : OptionsPattern[]]] := With[
+	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[Typed[value, type]]}]},
+	{typeCore = elaborateClosedType[environment, HoldComplete[type], universeParameters]},
+	declareDefinition[environment, HoldComplete[name], universeParameters, typeCore, First[elaborateClosedTerm[environment, HoldComplete[value], typeCore, universeParameters]]]
+]
+
 addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[value]}]},
 	{elaborated = elaborateClosedTerm[environment, HoldComplete[value], None, universeParameters]},

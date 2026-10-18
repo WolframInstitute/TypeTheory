@@ -49,6 +49,29 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[
+		{
+			identity = Append[prelude, TypeTheoryDefinition[
+				ExplicitIdentity,
+				Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, A]]
+			]]
+		},
+		{
+			identity[ExplicitIdentity],
+			TypeOf[TypeTheoryTerm[ExplicitIdentity[3], identity]] === TypeTheoryTerm[NonNegativeIntegers, identity]
+		}
+	],
+	{
+		TypeTheoryDefinition[
+			ExplicitIdentity,
+			Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"]}, TypeSpecifier[{A} -> A]]]
+		],
+		True
+	},
+	TestID -> "A-definition-keeps-the-implicit-binders-of-the-type-it-is-given"
+]
+
+VerificationTest[
 	With[{arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]},
 		TypeOf[TypeTheoryTerm[TwoPlusTwo, arithmetic]] === TypeTheoryTerm[2 + 2 == 4, arithmetic]
 	],
