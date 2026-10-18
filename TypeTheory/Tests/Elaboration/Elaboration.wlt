@@ -96,3 +96,47 @@ VerificationTest[
 	True,
 	TestID -> "An-implicit-argument-solved-by-the-expected-type-stays-inside-its-binder"
 ]
+
+VerificationTest[
+	TypeTheoryCheck[
+		TypeTheoryTerm[
+			Function[
+				{
+					Typed[f, ForAll[{Typed[h, Exists[Function[{Typed[x, TypeUniverse[0]]}, x]]]}, NonNegativeIntegers]],
+					Typed[e1, Exists[Function[{Typed[x, TypeUniverse[0]]}, x]]],
+					Typed[e2, Exists[Function[{Typed[x, TypeUniverse[0]]}, x]]]
+				},
+				Typed[EqualityReflexivity[f[e1]], f[e1] == f[e2]]
+			],
+			prelude
+		],
+		TypeTheoryTerm[ForAll[
+			{
+				Typed[f, ForAll[{Typed[h, Exists[Function[{Typed[x, TypeUniverse[0]]}, x]]]}, NonNegativeIntegers]],
+				Typed[e1, Exists[Function[{Typed[x, TypeUniverse[0]]}, x]]],
+				Typed[e2, Exists[Function[{Typed[x, TypeUniverse[0]]}, x]]]
+			},
+			f[e1] == f[e2]
+		]]
+	],
+	True,
+	TestID -> "A-binder-type-enters-the-context-with-the-implicit-arguments-solved-in-it"
+]
+
+VerificationTest[
+	TypeTheoryCheck[
+		TypeTheoryTerm[
+			Function[{Annotation[Typed[A, TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
+				InductiveRecursor[Exists][
+					Function[{Typed[t, Exists[P]]}, And[True, Exists[P]]],
+					Function[{Typed[w, A], Typed[k, P[w]]}, AndIntroduction[TrueIntroduction, ExistsIntroduction[w, k]]],
+					h
+				][[2]]
+			],
+			prelude
+		],
+		TypeTheoryTerm[ForAll[{Annotation[Typed[A, TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]}, Exists[P]]]
+	],
+	True,
+	TestID -> "A-projection-from-a-term-with-solved-implicit-arguments"
+]

@@ -334,7 +334,9 @@ elaborateProjection[structureSyntax_, index_Integer] := With[{elaborated = elabo
 				}
 			]
 		},
-		{projected = projection[structure, index - 1, First[elaborated]]},
+		(* the solutions found so far go in first: the kernel infers the projection's type, and would see a
+		   solved universe level metavariable as an unknown *)
+		{projected = projection[structure, index - 1, instantiateMetavariables[First[elaborated]]]},
 		{projected, inferType[$elaborationEnvironment, $elaborationContext, projected]}
 	]
 ]
@@ -353,7 +355,9 @@ openBinder[state_Association, binder_] := Block[{$elaborationContext = state["Co
 		With[
 			{
 				id = freshFreeVariable[],
-				type = Replace[parsed["Type"], {None :> expectedDomain[state["Expected"], binder], typeSyntax_ :> elaborateTypeSyntax[typeSyntax]}]
+				(* with the solutions found while elaborating it: the kernel, inferring types in this context,
+				   would not see that a universe level metavariable in it is solved *)
+				type = instantiateMetavariables[Replace[parsed["Type"], {None :> expectedDomain[state["Expected"], binder], typeSyntax_ :> elaborateTypeSyntax[typeSyntax]}]]
 			},
 			<|
 				"Context" -> extendContext[state["Context"], id, parsed["Name"], type, parsed["Binder"]],
