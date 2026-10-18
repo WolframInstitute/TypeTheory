@@ -85,7 +85,7 @@ Declarations, such as [TypeTheoryTheorem](), are inert until [TypeTheoryEnvironm
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 90 constants -->
+<!-- => TypeTheoryEnvironment summary box: 103 constants -->
 
 ```wl
 arithmetic[TwoPlusTwo]

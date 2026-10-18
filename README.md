@@ -127,8 +127,9 @@ evaluates inside a term.
 
 `TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the prelude, which is also the
 environment of any term or proof that names none. `TypeTheoryEnvironment[env, {declaration, ...}]` adds
-them to `env`, `Append[env, declaration]` adds one, `TypeTheoryEnvironment[]` is empty, and
-`TypeTheoryEnvironment["Prelude"]` is the prelude itself. An environment behaves like an association of
+them to `env`, `Append[env, declaration]` adds one, `TypeTheoryEnvironment[]` is empty,
+`TypeTheoryEnvironment["Prelude"]` is the prelude itself, and `TypeTheoryEnvironment["Constructive"]` is
+the prelude without its axioms. An environment behaves like an association of
 its constants: `env[name]` gives the declaration that introduced `name`, and `Keys`, `Length`,
 `KeyExistsQ`, `Normal` and `Information` work as expected. `Normal[env]` gives the declarations, the
 prelude's included, written out exactly, so `TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[env]]`
@@ -141,8 +142,11 @@ store is never changed once built, and it lasts for the session.
 ## The prelude
 
 The prelude is the environment of every term, proof and declaration list that names none. Each of its
-89 constants is checked by the kernel when the paclet loads, and none is an axiom. The tutorial *The
-TypeTheory Prelude* on the documentation site goes through all of it.
+102 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+three constants are axioms, propositional extensionality, function extensionality and choice, and the
+excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
+axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
+*The TypeTheory Prelude* on the documentation site goes through all of it.
 
 - **Logic:** `True` (`TrueIntroduction`), `False` (`FalseElimination`), `Not`, `And` (`AndIntroduction`,
   `AndEliminationLeft`, `AndEliminationRight`), `Or` (`OrIntroductionLeft`, `OrIntroductionRight`),
@@ -159,6 +163,10 @@ TypeTheory Prelude* on the documentation site goes through all of it.
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
   multiplication, the zero, one and successor laws, cancellation of subtraction, the laws of powers,
   injectivity of the successor, and the order's transitivity, antisymmetry and irreflexivity.
+- **Classical logic:** `Nonempty` (`NonemptyIntroduction`) and `Subtype` (`SubtypeIntroduction`); the
+  axioms `PropositionalExtensionality`, `FunctionExtensionality` (which Lean proves from quotients) and
+  `Choice`; `ChosenWitness` with `ChosenWitnessProperty`; and the theorems `ExcludedMiddle`, proved by
+  Diaconescu's argument, and `DoubleNegationElimination`.
 
 The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)`.
 
@@ -213,7 +221,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 120 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 126 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records.
 

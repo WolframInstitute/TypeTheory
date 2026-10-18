@@ -5,30 +5,30 @@ Title: The TypeTheory Prelude
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/ThePrelude
-Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual]
+Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, classical logic, axioms, choice, excluded middle, constructive]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction]
 ---
 
-The prelude is the environment of every term, proof and list of declarations that names no other. It declares the propositions of logic and their proofs, equality, a few functions, and the natural numbers with their arithmetic, their order and the theorems about them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
+The prelude is the environment of every term, proof and list of declarations that names no other. It declares the propositions of logic and their proofs, equality, a few functions, and the natural numbers with their arithmetic, their order and the theorems about them. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
 
 ## What the Prelude Declares
 
-The prelude has inductive types, with their constructors and recursors, definitions and theorems:
+The prelude has inductive types, with their constructors and recursors, definitions, theorems and axioms:
 
 ```wl
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 9, "Constructor" -> 11, "Recursor" -> 9, "Definition" -> 12, "Theorem" -> 48|> -->
+<!-- => <|"InductiveType" -> 11, "Constructor" -> 13, "Recursor" -> 11, "Definition" -> 13, "Theorem" -> 51, "Axiom" -> 3|> -->
 
-It is built when the paclet loads, and every declaration in it is checked by the kernel; nothing in it is an axiom:
+It is built when the paclet loads, and every declaration in it is checked by the kernel. Three of its constants are axioms, assumed and not proved:
 
 ```wl
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
 ```
 
-<!-- => {} -->
+<!-- => {PropositionalExtensionality, FunctionExtensionality, Choice} -->
 
 ## Propositions
 
@@ -232,6 +232,85 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAntisymmetry]]
 
 The other theorems are [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualTransitivity](), [LessIrreflexivity](), [SuccessorNotLessEqualZero]() and [PredecessorLessEqual]().
 
+## Classical Logic
+
+The prelude's three axioms are those of Lean's library. [PropositionalExtensionality]() makes equivalent propositions equal:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, True]}, AndIntroduction[h, h]], Function[{Typed[h, True && True]}, AndEliminationLeft[h]]]]]]
+```
+
+<!-- => True == (True ∧ True) -->
+
+[FunctionExtensionality]() makes functions equal that agree on every argument. Lean proves it from quotients, which the kernel does not have, so here it is an axiom:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]]]
+```
+
+<!-- => ((n∶ℕ) ↦ 0 + n) == ((n∶ℕ) ↦ n) -->
+
+[Choice]() takes a proof that a type has an element, a proof of [Nonempty](), to an element of it. Being an axiom, it does not compute:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Choice[NonemptyIntroduction[3]]]]
+```
+
+<!-- => Choice[NonemptyIntroduction[3]] -->
+
+A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and [ChosenWitnessProperty]() proves that the witness has the property:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitnessProperty[h]]]]
+```
+
+<!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->
+
+From the three axioms the prelude proves the excluded middle, by Diaconescu's argument, as Lean does:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]
+```
+
+<!-- => ∀_p∶Prop (p ∨ ¬p) -->
+
+So every proposition is [True]() or [False](), by cases on the excluded middle and propositional extensionality:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
+    InductiveRecursor[Or][
+        Function[{Typed[t, p || Not[p]]}, p == True || p == False],
+        Function[{Typed[h, p]}, OrIntroductionLeft[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[k, p]}, TrueIntroduction], Function[{Typed[k, True]}, h]]]]],
+        Function[{Typed[h, Not[p]]}, OrIntroductionRight[PropositionalExtensionality[EquivalentIntroduction[h, Function[{Typed[k, False]}, FalseElimination[k]]]]]],
+        ExcludedMiddle[p]
+    ]
+]]]
+```
+
+<!-- => ∀_p∶Prop (p == True ∨ p == False) -->
+
+[DoubleNegationElimination]() is proved from the excluded middle too.
+
+## The Constructive Environment
+
+<code>[TypeTheoryEnvironment]()["Constructive"]</code> is the prelude without its axioms and the declarations that need them:
+
+```wl
+constructive = TypeTheoryEnvironment["Constructive"];
+{Information[constructive, "Axioms"], KeyExistsQ[constructive, ExcludedMiddle]}
+```
+
+<!-- => {{}, False} -->
+
+Whatever is proved in it uses no axiom. Other axioms can be assumed there with [TypeTheoryAxiom](), such as the excluded middle without choice:
+
+```wl
+excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}];
+Information[excludedMiddle, "Axioms"]
+```
+
+<!-- => {ExcludedMiddle} -->
+
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. Booleans and decidability, pairs, sums, options and lists, and type classes are not here yet, and the kernel does not yet have mutual and nested inductive types or quotients, which parts of Lean's library need. Lean's axioms of propositional extensionality and choice are not assumed: everything here is proved.
+Lean's library is much larger than this prelude. Booleans and decidability, pairs, sums, options and lists, and type classes are not here yet, and the kernel does not yet have mutual and nested inductive types or quotients, which parts of Lean's library need.
