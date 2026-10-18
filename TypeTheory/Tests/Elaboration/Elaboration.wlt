@@ -174,3 +174,16 @@ VerificationTest[
 	{"Ambiguous", "Ambiguous", "Ambiguous", "Ambiguous"},
 	TestID -> "A-name-both-meanings-fit-is-ambiguous"
 ]
+
+VerificationTest[
+	TypeOf[TypeTheoryTerm[
+		Function[{Typed[B, TypeUniverse[v + 1]]}, Wrapped[B]],
+		TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+			TypeTheoryInductiveType[Wrapped, ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, TypeUniverse[u + 1]], {
+				WrappedIntroduction -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, Wrapped[x]]
+			}]
+		}]
+	]][[1]],
+	TypeSpecifier[{TypeUniverse[v + 1]} -> TypeUniverse[v + 2]],
+	TestID -> "A-universe-level-unifies-with-a-larger-successor"
+]

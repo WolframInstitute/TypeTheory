@@ -772,8 +772,9 @@ unifyLevels[a_, b_] := With[{first = normalizeLevel[instantiateLevels[a]], secon
 			assignLevel[first, second],
 		MatchQ[second, _levelMetavariable],
 			assignLevel[second, first],
-		MatchQ[{first, second}, {levelSuccessor[_, k_], levelSuccessor[_, k_]}],
-			unifyLevels[First[first], First[second]],
+		(* the successor is injective: u + 2 = ?w + 1 is u + 1 = ?w *)
+		MatchQ[{first, second}, {levelSuccessor[_, _], levelSuccessor[_, _]}],
+			With[{common = Min[Last[first], Last[second]]}, unifyLevels[lowerLevel[first, common], lowerLevel[second, common]]],
 		MatchQ[first, levelSuccessor[_levelMetavariable, _]] && IntegerQ[second] && second >= Last[first],
 			unifyLevels[First[first], second - Last[first]],
 		MatchQ[second, levelSuccessor[_levelMetavariable, _]] && IntegerQ[first] && first >= Last[second],
@@ -782,6 +783,9 @@ unifyLevels[a_, b_] := With[{first = normalizeLevel[instantiateLevels[a]], secon
 			levelEquivalentQ[first, second]
 	]
 ]
+
+lowerLevel[levelSuccessor[level_, k_], k_] := level
+lowerLevel[levelSuccessor[level_, k_], j_] := levelSuccessor[level, k - j]
 
 assignLevel[levelMetavariable[id_], level_] := (
 	$levelAssignments[id] = level;
