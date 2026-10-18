@@ -16,6 +16,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	RightTee[{h1, h2}, T]               h1, h2 ⊢ T
 	TypeUniverse[0], [1], [u + 1], [u]  Prop, Type, Type u, Sort u
 	TypeUniverse[Max[1, u]]             Sort (max 1 u)
+	TypeUniverse[Max[u + 1, v + 1]]     Type (max u v)
 	NonNegativeIntegers                 ℕ
 	InductiveRecursor[I]                I_rec
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
@@ -30,7 +31,8 @@ boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display
 the prelude and of generated recursors are symbols of the paclet's private contexts, shown by their names.
 
 A TypeTheoryProof shows its open goals as a list of hypotheses over the goal, as in a proof assistant's
-goal view. A declaration shows as its keyword, its name and its type, as in a proof assistant's source.
+goal view. A declaration shows as its keyword, its name and its type, as in a proof assistant's source;
+a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of function types.
 *)
 
 
@@ -181,7 +183,18 @@ universeDisplay[syntaxInteger[n_Integer]] := sortDisplay["Type", syntaxInteger[n
 universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[1]}]] := sortDisplay["Type", level]
 universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[n_Integer]}]] :=
 	sortDisplay["Type", syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level, syntaxInteger[n - 1]}]]
+(* a maximum of successors is a successor: Type (max u v), as Lean writes it *)
+universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Max]], levels_List]] /; AllTrue[levels, successorSyntaxQ] :=
+	sortDisplay["Type", syntaxHead[Max, predecessorSyntax /@ levels]]
 universeDisplay[level_] := sortDisplay["Sort", level]
+
+successorSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {_, syntaxInteger[_Integer?Positive]}]] := True
+successorSyntaxQ[syntaxInteger[_Integer?Positive]] := True
+successorSyntaxQ[_] := False
+
+predecessorSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[1]}]] := level
+predecessorSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[n_Integer]}]] := syntaxHead[Plus, {level, syntaxInteger[n - 1]}]
+predecessorSyntax[syntaxInteger[n_Integer]] := syntaxInteger[n - 1]
 
 (* a level that is a sum or a maximum is parenthesized, as Lean writes it: Type (u + 1), Sort (max 1 u) *)
 sortDisplay[keyword_String, level : syntaxApplication[syntaxSymbol[HoldComplete[Plus | Max | ImpredicativeMaximum]], _]] :=
@@ -242,7 +255,12 @@ TypeTheoryTheorem /: MakeBoxes[declaration : TypeTheoryTheorem[name_, statement_
 	declarationBoxes[declaration, "theorem", {{toSyntax[name], toSyntax[statement]}}, form]
 
 TypeTheoryRewriteRule /: MakeBoxes[declaration : TypeTheoryRewriteRule[name_, rule_, ___], form : StandardForm | TraditionalForm] :=
-	declarationBoxes[declaration, "rewrite", {{toSyntax[name], toSyntax[rule]}}, form]
+	declarationBoxes[declaration, "rewrite", {{toSyntax[name], rewriteSyntax[toSyntax[rule]]}}, form]
+
+(* the two sides of a rewrite rule show as lhs ⟶ rhs, an arrow apart from that of function types *)
+rewriteSyntax[syntaxApplication[forAll : syntaxSymbol[HoldComplete[ForAll]], {binders_, body_}]] := syntaxApplication[forAll, {binders, rewriteSyntax[body]}]
+rewriteSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {left_, right_}]] := syntaxHead[LongRightArrow, {left, right}]
+rewriteSyntax[syntax_] := syntax
 
 TypeTheoryInductiveType /: MakeBoxes[declaration : TypeTheoryInductiveType[name_, type_, constructors_List, ___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[

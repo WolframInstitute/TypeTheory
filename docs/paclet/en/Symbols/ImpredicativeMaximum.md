@@ -47,7 +47,7 @@ A level whose second argument is never 0 is a maximum:
 TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v + 1]]]]
 ```
 
-<!-- => Sort (max (u + 1) (v + 2)) -->
+<!-- => Type (max u (v + 1)) -->
 
 ---
 

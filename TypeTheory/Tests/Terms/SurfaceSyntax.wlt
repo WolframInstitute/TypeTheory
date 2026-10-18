@@ -98,6 +98,24 @@ VerificationTest[
 ]
 
 VerificationTest[
+	MatchQ[
+		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[u + 1, v + 1]]]],
+		InterpretationBox[TemplateBox[{_, _, "\"Type\"", TemplateBox[{"\"(\"", TemplateBox[{_, _, "\"max\"", "u", "v"}, "RowWithSeparators"], "\")\""}, "RowDefault"]}, "RowWithSeparators"], _]
+	],
+	True,
+	TestID -> "A-universe-at-a-maximum-of-successors-shows-as-Type-of-the-maximum"
+]
+
+VerificationTest[
+	MatchQ[
+		ToBoxes[TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne]],
+		InterpretationBox[GridBox[{{_, "FlipZero", ":", RowBox[{_, "\[LongRightArrow]", "BitOne"}]}}, ___], _TypeTheoryRewriteRule]
+	],
+	True,
+	TestID -> "A-rewrite-rule-shows-its-sides-with-a-long-arrow"
+]
+
+VerificationTest[
 	MatchQ[ToBoxes[prelude[EqualityCongruence]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
 	True,
 	TestID -> "A-declaration-displays-as-a-keyword-a-name-and-a-type"
