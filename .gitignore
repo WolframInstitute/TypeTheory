@@ -1,0 +1,16 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Wolfram
+*.mx
+*.wl.bak
+build/
+
+# Agent tooling
+.claude/settings.local.json
+
+# Temp / scratch
+*.tmp
+*.swp
+*~
