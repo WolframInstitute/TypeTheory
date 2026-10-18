@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
-(* Tests for Library/Prelude.wl: the declarations of the prelude and the theorems proved from the
-   recursors. *)
+(* Tests for Library/Prelude.wl: the declarations of the prelude, the theorems proved from the
+   recursors, the classical axioms and the constructive environment without them. *)
 
 PacletDirectoryLoad[Directory[]]
 
@@ -111,4 +111,53 @@ VerificationTest[
 	TypeTheoryCheck[prelude],
 	True,
 	TestID -> "The-expanded-prelude-replays"
+]
+
+
+(* === the classical part === *)
+
+VerificationTest[
+	With[{constructive = TypeTheoryEnvironment["Constructive"]},
+		{
+			Length[constructive],
+			Information[constructive, "Axioms"],
+			Take[Keys[prelude], Length[constructive]] === Keys[constructive],
+			KeyExistsQ[constructive, ExcludedMiddle],
+			Information[prelude, "Axioms"]
+		}
+	],
+	{89, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
+	TestID -> "The-constructive-environment-is-the-prelude-without-its-classical-part"
+]
+
+VerificationTest[
+	{
+		Head[prelude[ExcludedMiddle]],
+		TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle[2 + 2 == 5]], TypeTheoryTerm[Or[2 + 2 == 5, Not[2 + 2 == 5]]]],
+		TypeTheoryCheck[
+			TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, Not[Not[p]]]}, DoubleNegationElimination[p][h]]],
+			TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[Not[Not[p]], p]]]
+		]
+	},
+	{TypeTheoryTheorem, True, True},
+	TestID -> "The-excluded-middle-is-a-theorem"
+]
+
+VerificationTest[
+	{
+		TypeTheoryCheck[
+			TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, True]}, AndIntroduction[h, h]], Function[{Typed[h, True && True]}, AndEliminationLeft[h]]]]],
+			TypeTheoryTerm[True == (True && True)]
+		],
+		TypeTheoryCheck[
+			TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]],
+			TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n] == Function[{Typed[n, NonNegativeIntegers]}, n]]
+		],
+		TypeTheoryCheck[
+			TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitnessProperty[h]]],
+			TypeTheoryTerm[ForAll[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitness[h] + ChosenWitness[h] == 6]]
+		]
+	},
+	{True, True, True},
+	TestID -> "Extensionality-and-choice"
 ]

@@ -113,6 +113,7 @@ declarationQ[_] := False
 (* without an environment to extend, declarations extend the prelude; TypeTheoryEnvironment[] has none *)
 TypeTheoryEnvironment[] := $emptyEnvironment
 TypeTheoryEnvironment["Prelude"] := preludeEnvironment[]
+TypeTheoryEnvironment["Constructive"] := constructiveEnvironment[]
 TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[preludeEnvironment[], declarations]
 TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[preludeEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]

@@ -1,9 +1,10 @@
 (* ::Package:: *)
 
 (*
-The prelude: logic, equality and the natural numbers, written as a list of declarations in the surface
-syntax, so it doubles as an example of them. TypeTheoryEnvironment["Prelude"] gives its environment,
-built and checked when the paclet loads.
+The prelude: classical logic, equality and the natural numbers, written as lists of declarations in the
+surface syntax, so it doubles as an example of them. TypeTheoryEnvironment["Prelude"] gives its
+environment, built and checked when the paclet loads; TypeTheoryEnvironment["Constructive"] gives the
+environment of the constructive declarations alone, without the axioms and what is proved from them.
 
 The connectives are built-in symbols, so terms read as ordinary mathematics:
 
@@ -22,11 +23,17 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	m * n, m^n, Subtract[m, n] Times, Power and Subtract, the last stopping at 0, all by recursion on n
 	m <= n                     LessEqual, inductive as in Lean, with Less, GreaterEqual and Greater
 
+	Nonempty[a], Subtype[P]    with NonemptyIntroduction, and SubtypeIntroduction, an element and its proof
+
 The theorems are proved by terms, mostly with the recursors: FalseElimination, AndEliminationLeft,
 AndEliminationRight, EqualitySymmetry, EqualityTransitivity, EqualityCongruence and
 EqualitySubstitution for logic and equality; the Equivalent theorems; and the laws of arithmetic and
 order: commutativity, associativity and distributivity of addition and multiplication, cancellation,
 injectivity of the successor, and the order's reflexivity, transitivity and antisymmetry.
+
+The classical declarations come last: the axioms PropositionalExtensionality, FunctionExtensionality and
+Choice, ChosenWitness defined from Choice, and ExcludedMiddle and DoubleNegationElimination proved from
+the axioms.
 
 Bound variables are plain symbols: a binder scopes its variable, so no value can reach it, and the
 display shows each by its name.
@@ -97,6 +104,17 @@ PackageExported[SuccessorNotLessEqualZero]
 PackageExported[LessEqualPredecessor]
 PackageExported[LessIrreflexivity]
 PackageExported[LessEqualAntisymmetry]
+PackageExported[NonemptyIntroduction]
+PackageExported[SubtypeIntroduction]
+PackageExported[Nonempty]
+PackageExported[Subtype]
+PackageExported[PropositionalExtensionality]
+PackageExported[FunctionExtensionality]
+PackageExported[Choice]
+PackageExported[ChosenWitness]
+PackageExported[ChosenWitnessProperty]
+PackageExported[ExcludedMiddle]
+PackageExported[DoubleNegationElimination]
 
 
 (* ::Section:: *)
@@ -104,7 +122,10 @@ PackageExported[LessEqualAntisymmetry]
 
 
 PackageScoped[preludeEnvironment]
-PackageScoped[$preludeDeclarations]
+PackageScoped[$constructiveDeclarations]
+PackageScoped[$classicalDeclarations]
+PackageScoped[constructiveEnvironment]
+PackageScoped[$constructiveEnvironment]
 PackageScoped[$preludeEnvironment]
 
 
@@ -172,9 +193,23 @@ SuccessorNotLessEqualZero::usage = "SuccessorNotLessEqualZero[n] proves Not[n + 
 LessEqualPredecessor::usage = "LessEqualPredecessor[h] proves n <= m from a proof h of n + 1 <= m + 1."
 LessIrreflexivity::usage = "LessIrreflexivity[n] proves Not[n < n]."
 LessEqualAntisymmetry::usage = "LessEqualAntisymmetry[h1, h2] proves a == b from proofs h1 of a <= b and h2 of b <= a."
+Nonempty::usage = "Nonempty[a] is the proposition that the type a has an element."
+NonemptyIntroduction::usage = "NonemptyIntroduction[x] proves Nonempty[a] from an element x of a."
+Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]."
+SubtypeIntroduction::usage = "SubtypeIntroduction[x, h] is the element x of Subtype[P], with h a proof of P[x]."
+PropositionalExtensionality::usage = "PropositionalExtensionality[h] proves a == b from a proof h of Equivalent[a, b]: equivalent propositions are equal. It is an axiom of the prelude."
+FunctionExtensionality::usage = "FunctionExtensionality[h] proves f == g from a proof h that f[x] == g[x] for every x. It is an axiom of the prelude."
+Choice::usage = "Choice[h] is an element of the type a, chosen given a proof h of Nonempty[a]. It is an axiom of the prelude, so it does not compute."
+ChosenWitness::usage = "ChosenWitness[h] is an element x with P[x], chosen from a proof h of Exists[P]."
+ChosenWitnessProperty::usage = "ChosenWitnessProperty[h] proves P[ChosenWitness[h]] from a proof h of Exists[P]."
+ExcludedMiddle::usage = "ExcludedMiddle[p] proves Or[p, Not[p]]. It is a theorem of the prelude, proved from its axioms."
+DoubleNegationElimination::usage = "DoubleNegationElimination[p] proves Implies[Not[Not[p]], p]."
 
 preludeEnvironment::usage = "preludeEnvironment[] gives the environment of the prelude, built and checked when the paclet loads."
-$preludeDeclarations::usage = "$preludeDeclarations is the list of the prelude's declarations, in order."
+$constructiveDeclarations::usage = "$constructiveDeclarations is the list of the declarations of the constructive environment, in order."
+$classicalDeclarations::usage = "$classicalDeclarations is the list of the classical declarations the prelude adds to the constructive environment."
+constructiveEnvironment::usage = "constructiveEnvironment[] gives the constructive environment: the prelude without its axioms and the theorems proved from them."
+$constructiveEnvironment::usage = "$constructiveEnvironment is the constructive environment."
 $preludeEnvironment::usage = "$preludeEnvironment is the environment of the prelude."
 
 
@@ -182,7 +217,7 @@ $preludeEnvironment::usage = "$preludeEnvironment is the environment of the prel
 (*Function Definitions*)
 
 
-$preludeDeclarations = {
+$constructiveDeclarations = {
 	TypeTheoryInductiveType[True, TypeUniverse[0], {TrueIntroduction -> True}],
 	TypeTheoryInductiveType[False, TypeUniverse[0], {}],
 	TypeTheoryDefinition[Not, Function[{Typed[a, TypeUniverse[0]]}, Implies[a, False]]],
@@ -708,4 +743,141 @@ $preludeDeclarations = {
 	]
 }
 
+(* The classical part of the prelude: Lean's axioms, propositional extensionality, choice and, since
+   there are no quotients, function extensionality, with the excluded middle proved from them as Lean
+   proves it, by Diaconescu's argument. TypeTheoryEnvironment["Constructive"] is the prelude without it. *)
+$classicalDeclarations = {
+	TypeTheoryInductiveType[
+		Nonempty,
+		ForAll[{Typed[\[Alpha], TypeUniverse[u]]}, TypeUniverse[0]],
+		{NonemptyIntroduction -> ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]]}, Nonempty[\[Alpha]]]}
+	],
+	TypeTheoryInductiveType[
+		Subtype,
+		ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]}, TypeUniverse[Max[1, u]]],
+		{SubtypeIntroduction -> ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[x, \[Alpha]], Typed[h, P[x]]}, Subtype[P]]}
+	],
+	TypeTheoryAxiom[
+		PropositionalExtensionality,
+		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[Equivalent[a, b], a == b]]
+	],
+	TypeTheoryAxiom[
+		FunctionExtensionality,
+		ForAll[
+			{
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[\[Beta], TypeSpecifier[{\[Alpha]} -> TypeUniverse[v]]], "Implicit"],
+				Annotation[Typed[f, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]], "Implicit"],
+				Annotation[Typed[g, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]], "Implicit"]
+			},
+			Implies[ForAll[{Typed[x, \[Alpha]]}, f[x] == g[x]], f == g]
+		]
+	],
+	TypeTheoryAxiom[Choice, ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[h, Nonempty[\[Alpha]]]}, \[Alpha]]],
+	TypeTheoryDefinition[
+		ChosenWitness,
+		Function[
+			{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[h, Exists[P]]},
+			Choice[InductiveRecursor[Exists][
+				Function[{Typed[t, Exists[P]]}, Nonempty[Subtype[P]]],
+				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, NonemptyIntroduction[SubtypeIntroduction[w, k]]],
+				h
+			]][[1]]
+		]
+	],
+	TypeTheoryTheorem[
+		ChosenWitnessProperty,
+		ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[h, Exists[P]]}, P[ChosenWitness[h]]],
+		Function[
+			{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[h, Exists[P]]},
+			Choice[InductiveRecursor[Exists][
+				Function[{Typed[t, Exists[P]]}, Nonempty[Subtype[P]]],
+				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, NonemptyIntroduction[SubtypeIntroduction[w, k]]],
+				h
+			]][[2]]
+		]
+	],
+	TypeTheoryTheorem[
+		ExcludedMiddle,
+		ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]],
+		Function[{Typed[p, TypeUniverse[0]]},
+			With[
+				{
+					existsTrue = Typed[ExistsIntroduction[True, OrIntroductionLeft[EqualityReflexivity[True]]], Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]]]],
+					existsFalse = Typed[ExistsIntroduction[False, OrIntroductionLeft[EqualityReflexivity[False]]], Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == False, p]]]]
+				},
+				With[
+					{
+						chosenTrue = ChosenWitness[existsTrue],
+						chosenFalse = ChosenWitness[existsFalse],
+						trueProperty = ChosenWitnessProperty[existsTrue],
+						falseProperty = ChosenWitnessProperty[existsFalse]
+					},
+					With[
+						{
+							(* the two choices differ, unless p holds *)
+							differentOrP = InductiveRecursor[Or][
+								Function[{Typed[t, Or[chosenTrue == True, p]]}, Or[Not[chosenTrue == chosenFalse], p]],
+								Function[{Typed[isTrue, chosenTrue == True]},
+									InductiveRecursor[Or][
+										Function[{Typed[t, Or[chosenFalse == False, p]]}, Or[Not[chosenTrue == chosenFalse], p]],
+										Function[{Typed[isFalse, chosenFalse == False]},
+											OrIntroductionLeft[Function[{Typed[e, chosenTrue == chosenFalse]},
+												Construct[EqualitySubstitution, TypeUniverse[0], Function[{Typed[x, TypeUniverse[0]]}, x], True, False,
+													EqualityTransitivity[EqualitySymmetry[isTrue], EqualityTransitivity[e, isFalse]],
+													TrueIntroduction
+												]
+											]]
+										],
+										Function[{Typed[holds, p]}, OrIntroductionRight[holds]],
+										falseProperty
+									]
+								],
+								Function[{Typed[holds, p]}, OrIntroductionRight[holds]],
+								trueProperty
+							],
+							(* if p holds, the two predicates are equal, and so are the choices *)
+							sameIfP = Function[{Typed[holds, p]},
+								Construct[EqualitySubstitution,
+									TypeSpecifier[{TypeUniverse[0]} -> TypeUniverse[0]],
+									Function[{Typed[W, TypeSpecifier[{TypeUniverse[0]} -> TypeUniverse[0]]]}, ForAll[{Typed[e, Exists[W]]}, chosenTrue == ChosenWitness[e]]],
+									Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]],
+									Function[{Typed[x, TypeUniverse[0]]}, Or[x == False, p]],
+									FunctionExtensionality[Function[{Typed[x, TypeUniverse[0]]},
+										PropositionalExtensionality[EquivalentIntroduction[
+											Function[{Typed[k, Or[x == True, p]]}, OrIntroductionRight[holds]],
+											Function[{Typed[k, Or[x == False, p]]}, OrIntroductionRight[holds]]
+										]]
+									]],
+									Function[{Typed[e, Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]]]]}, EqualityReflexivity[chosenTrue]]
+								][existsFalse]
+							]
+						},
+						InductiveRecursor[Or][
+							Function[{Typed[t, Or[Not[chosenTrue == chosenFalse], p]]}, Or[p, Not[p]]],
+							Function[{Typed[different, Not[chosenTrue == chosenFalse]]}, OrIntroductionRight[Function[{Typed[holds, p]}, different[sameIfP[holds]]]]],
+							Function[{Typed[holds, p]}, OrIntroductionLeft[holds]],
+							differentOrP
+						]
+					]
+				]
+			]
+		]
+	],
+	TypeTheoryTheorem[
+		DoubleNegationElimination,
+		ForAll[{Typed[p, TypeUniverse[0]]}, Implies[Not[Not[p]], p]],
+		Function[{Typed[p, TypeUniverse[0]], Typed[h, Not[Not[p]]]},
+			InductiveRecursor[Or][
+				Function[{Typed[t, Or[p, Not[p]]]}, p],
+				Function[{Typed[k, p]}, k],
+				Function[{Typed[k, Not[p]]}, FalseElimination[h[k]]],
+				ExcludedMiddle[p]
+			]
+		]
+	]
+}
+
 preludeEnvironment[] := $preludeEnvironment
+
+constructiveEnvironment[] := $constructiveEnvironment

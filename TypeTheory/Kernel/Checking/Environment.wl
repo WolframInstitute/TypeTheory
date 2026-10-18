@@ -69,7 +69,8 @@ PackageScoped[$kernelFailureTag]
 
 
 TypeTheoryEnvironment::usage = "TypeTheoryEnvironment[] gives the environment with no constants.\n\
-TypeTheoryEnvironment[\"Prelude\"] gives the prelude: logic, equality and the natural numbers.\n\
+TypeTheoryEnvironment[\"Prelude\"] gives the prelude: classical logic, equality and the natural numbers.\n\
+TypeTheoryEnvironment[\"Constructive\"] gives the prelude without its axioms and the theorems proved from them.\n\
 TypeTheoryEnvironment[{declaration1, declaration2, ...}] checks the declarations in turn and gives the prelude extended with them.\n\
 TypeTheoryEnvironment[environment, {declaration1, ...}] gives environment extended with the declarations; Append[environment, declaration] adds one.\n\
 environment[name] gives the declaration that introduced the constant name. Keys, Length, KeyExistsQ, Normal and Information[environment, property] also work."
