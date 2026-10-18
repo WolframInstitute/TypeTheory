@@ -94,7 +94,11 @@ declareInductiveType[environment_, name_HoldComplete, universeParameters_List, n
 	checkedConstructors = Function[constructor,
 		checkConstructor[provisional, typeContext, name, inductiveConstant, parameterIds, Length[indexIds], resultLevel, constructor]
 	] /@ constructors;
-	addInductiveRecords[environment, name, universeParameters, type, typeContext, parameterIds, indexIds, resultLevel, inductiveConstant, checkedConstructors]
+	(* a recursive field's sort mentions the type itself, as Acc's does, so the type must be declared to find it *)
+	addInductiveRecords[
+		environment, name, universeParameters, type, typeContext, parameterIds, indexIds, resultLevel, inductiveConstant, checkedConstructors,
+		largeEliminationQ[provisional, resultLevel, checkedConstructors]
+	]
 ]
 
 
@@ -204,13 +208,12 @@ eliminationUniverseName[universeParameters_List] := With[{taken = displayedName 
 	SelectFirst[{HoldComplete[u], HoldComplete[v], HoldComplete[w], HoldComplete[U]}, Function[candidate, ! MemberQ[taken, displayedName[candidate]]]]
 ]
 
-addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext_, parameterIds_, indexIds_, resultLevel_, inductiveConstant_, checkedConstructors_] := Module[
+addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext_, parameterIds_, indexIds_, resultLevel_, inductiveConstant_, checkedConstructors_, largeElimination_] := Module[
 	{
-		largeElimination, eliminationName, recursorUniverseParameters, eliminationLevel, recursorConstant,
+		eliminationName, recursorUniverseParameters, eliminationLevel, recursorConstant,
 		majorId = freshFreeVariable[], motiveId = freshFreeVariable[], minorIds, inductiveRecord, constructorRecords,
 		baseContext, motiveType, minorContext, minorTypes, ihIds, recursorContext, recursorType, rules, recursorRecord, extended
 	},
-	largeElimination = largeEliminationQ[environment, resultLevel, checkedConstructors];
 	eliminationName = eliminationUniverseName[universeParameters];
 	recursorUniverseParameters = If[largeElimination, Prepend[universeParameters, eliminationName], universeParameters];
 	(* without Prop, the motive's universe is Type u, which is never Prop *)

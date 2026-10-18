@@ -148,6 +148,25 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[
+		{
+			accessible = TypeTheoryEnvironment[TypeTheoryEnvironment[], {TypeTheoryInductiveType[
+				Accessible,
+				ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[x, A]}, TypeUniverse[0]],
+				{AccessibleIntroduction -> ForAll[
+					{TypedImplicit[A, TypeUniverse[u]], TypedImplicit[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[x, A], Typed[h, ForAll[{Typed[y, A]}, Implies[r[y, x], Accessible[r, y]]]]},
+					Accessible[r, x]
+				]},
+				"Parameters" -> 2
+			]}]
+		},
+		{Head[accessible], Length[DeleteDuplicates[Cases[TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Accessible], accessible]], TypeUniverse[level_Symbol] :> SymbolName[Unevaluated[level]], Infinity, Heads -> True]]]}
+	],
+	{TypeTheoryEnvironment, 2},
+	TestID -> "A-proposition-with-a-recursive-field-under-binders-eliminates-into-any-universe"
+]
+
+VerificationTest[
 	Keys[TypeTheoryEnvironment[TypeTheoryEnvironment[], {TypeTheoryInductiveType[
 		Composable,
 		ForAll[{TypedImplicit[A, TypeUniverse[a]], TypedImplicit[B, TypeUniverse[b]], Typed[r, TypeSpecifier[{A, B} -> TypeUniverse[c]]]}, TypeUniverse[Max[1, a, b, c]]],
