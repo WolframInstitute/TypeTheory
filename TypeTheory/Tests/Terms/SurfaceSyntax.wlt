@@ -32,9 +32,21 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]],
-	TypeTheoryTerm[ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"]}, TypeSpecifier[{A} -> A]], prelude],
+	TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]],
+	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]], prelude],
 	TestID -> "Types-read-back-with-binder-names-and-implicit-binders"
+]
+
+VerificationTest[
+	TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]],
+	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]], prelude],
+	TestID -> "An-implicit-Annotation-is-the-same-binder-as-TypedImplicit"
+]
+
+VerificationTest[
+	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]]]], TemplateBox[{"\"{\"", _, "\"}\""}, "RowDefault"]],
+	False,
+	TestID -> "An-implicit-binder-shows-in-braces"
 ]
 
 VerificationTest[
@@ -140,7 +152,7 @@ VerificationTest[
 VerificationTest[
 	Cases[
 		TypeOf[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[h, a]}, Construct[AndIntroduction]], prelude]],
-		Typed[name_Symbol, _] :> SymbolName[Unevaluated[name]],
+		(Typed | TypedImplicit)[name_Symbol, _] :> SymbolName[Unevaluated[name]],
 		Infinity,
 		Heads -> True
 	],

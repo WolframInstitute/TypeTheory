@@ -126,7 +126,7 @@ VerificationTest[
 VerificationTest[
 	TypeTheoryCheck[
 		TypeTheoryTerm[
-			Function[{Annotation[Typed[A, TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
+			Function[{TypedImplicit[A, TypeUniverse[u]], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
 				InductiveRecursor[Exists][
 					Function[{Typed[t, Exists[P]]}, And[True, Exists[P]]],
 					Function[{Typed[w, A], Typed[k, P[w]]}, AndIntroduction[TrueIntroduction, ExistsIntroduction[w, k]]],
@@ -179,8 +179,8 @@ VerificationTest[
 	TypeOf[TypeTheoryTerm[
 		Function[{Typed[B, TypeUniverse[v + 1]]}, Wrapped[B]],
 		TypeTheoryEnvironment[TypeTheoryEnvironment[], {
-			TypeTheoryInductiveType[Wrapped, ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, TypeUniverse[u + 1]], {
-				WrappedIntroduction -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, Wrapped[x]]
+			TypeTheoryInductiveType[Wrapped, ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, TypeUniverse[u + 1]], {
+				WrappedIntroduction -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, Wrapped[x]]
 			}]
 		}]
 	]][[1]],

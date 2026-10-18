@@ -239,8 +239,8 @@ $constructiveDeclarations = {
 		{
 			AndIntroduction -> ForAll[
 				{
-					Annotation[Typed[a, TypeUniverse[0]], "Implicit"],
-					Annotation[Typed[b, TypeUniverse[0]], "Implicit"],
+					TypedImplicit[a, TypeUniverse[0]],
+					TypedImplicit[b, TypeUniverse[0]],
 					Typed[p, a],
 					Typed[q, b]
 				},
@@ -253,11 +253,11 @@ $constructiveDeclarations = {
 		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
 			OrIntroductionLeft -> ForAll[
-				{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[p, a]},
+				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[p, a]},
 				Or[a, b]
 			],
 			OrIntroductionRight -> ForAll[
-				{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[q, b]},
+				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[q, b]},
 				Or[a, b]
 			]
 		}
@@ -267,17 +267,17 @@ $constructiveDeclarations = {
 		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
 			EquivalentIntroduction -> ForAll[
-				{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[f, Implies[a, b]], Typed[g, Implies[b, a]]},
+				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[f, Implies[a, b]], Typed[g, Implies[b, a]]},
 				Equivalent[a, b]
 			]
 		}
 	],
 	TypeTheoryInductiveType[
 		Equal,
-		ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, TypeUniverse[0]],
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, TypeUniverse[0]],
 		{
 			EqualityReflexivity -> ForAll[
-				{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]]},
+				{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]},
 				x == x
 			]
 		}
@@ -285,14 +285,14 @@ $constructiveDeclarations = {
 	TypeTheoryInductiveType[
 		Exists,
 		ForAll[
-			{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]},
+			{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]},
 			TypeUniverse[0]
 		],
 		{
 			ExistsIntroduction -> ForAll[
 				{
-					Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-					Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"],
+					TypedImplicit[\[Alpha], TypeUniverse[u]],
+					TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]],
 					Typed[w, \[Alpha]],
 					Typed[h, P[w]]
 				},
@@ -300,15 +300,15 @@ $constructiveDeclarations = {
 			]
 		}
 	],
-	TypeTheoryDefinition[Unequal, Function[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, Not[x == y]]],
-	TypeTheoryDefinition[Identity, Function[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]]}, x]],
+	TypeTheoryDefinition[Unequal, Function[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, Not[x == y]]],
+	TypeTheoryDefinition[Identity, Function[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]}, x]],
 	TypeTheoryDefinition[
 		Composition,
 		Function[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[\[Beta], TypeUniverse[v]], "Implicit"],
-				Annotation[Typed[\[Gamma], TypeUniverse[w]], "Implicit"],
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[\[Beta], TypeUniverse[v]],
+				TypedImplicit[\[Gamma], TypeUniverse[w]],
 				Typed[f, TypeSpecifier[{\[Beta]} -> \[Gamma]]],
 				Typed[g, TypeSpecifier[{\[Alpha]} -> \[Beta]]]
 			},
@@ -398,8 +398,8 @@ $constructiveDeclarations = {
 		LessEqual,
 		TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> TypeUniverse[0]],
 		{
-			LessEqualReflexivity -> ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"]}, n <= n],
-			LessEqualStep -> ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Annotation[Typed[m, NonNegativeIntegers], "Implicit"], Typed[h, n <= m]}, n <= NaturalNumberSuccessor[m]]
+			LessEqualReflexivity -> ForAll[{TypedImplicit[n, NonNegativeIntegers]}, n <= n],
+			LessEqualStep -> ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n <= m]}, n <= NaturalNumberSuccessor[m]]
 		}
 	],
 	TypeTheoryDefinition[Less, Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m + 1 <= n]],
@@ -407,19 +407,19 @@ $constructiveDeclarations = {
 	TypeTheoryDefinition[Greater, Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, n < m]],
 	TypeTheoryTheorem[
 		FalseElimination,
-		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"]}, Implies[False, a]],
-		Function[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Typed[h, False]},
+		ForAll[{TypedImplicit[a, TypeUniverse[0]]}, Implies[False, a]],
+		Function[{TypedImplicit[a, TypeUniverse[0]], Typed[h, False]},
 			InductiveRecursor[False][Function[{Typed[t, False]}, a], h]
 		]
 	],
 	TypeTheoryTheorem[
 		AndEliminationLeft,
 		ForAll[
-			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]},
+			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]},
 			Implies[And[a, b], a]
 		],
 		Function[
-			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, And[a, b]]},
+			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, And[a, b]]},
 			InductiveRecursor[And][
 				Function[{Typed[t, And[a, b]]}, a],
 				Function[{Typed[p, a], Typed[q, b]}, p],
@@ -430,11 +430,11 @@ $constructiveDeclarations = {
 	TypeTheoryTheorem[
 		AndEliminationRight,
 		ForAll[
-			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]},
+			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]},
 			Implies[And[a, b], b]
 		],
 		Function[
-			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, And[a, b]]},
+			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, And[a, b]]},
 			InductiveRecursor[And][
 				Function[{Typed[t, And[a, b]]}, b],
 				Function[{Typed[p, a], Typed[q, b]}, q],
@@ -446,17 +446,17 @@ $constructiveDeclarations = {
 		EqualitySymmetry,
 		ForAll[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"]
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]]
 			},
 			Implies[x == y, y == x]
 		],
 		Function[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]],
 				Typed[h, x == y]
 			},
 			InductiveRecursor[Equal][
@@ -470,19 +470,19 @@ $constructiveDeclarations = {
 		EqualityTransitivity,
 		ForAll[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"],
-				Annotation[Typed[z, \[Alpha]], "Implicit"]
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]],
+				TypedImplicit[z, \[Alpha]]
 			},
 			Implies[x == y, Implies[y == z, x == z]]
 		],
 		Function[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"],
-				Annotation[Typed[z, \[Alpha]], "Implicit"],
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]],
+				TypedImplicit[z, \[Alpha]],
 				Typed[h, x == y],
 				Typed[k, y == z]
 			},
@@ -497,20 +497,20 @@ $constructiveDeclarations = {
 		EqualityCongruence,
 		ForAll[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[\[Beta], TypeUniverse[v]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[\[Beta], TypeUniverse[v]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]],
 				Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]]
 			},
 			Implies[x == y, f[x] == f[y]]
 		],
 		Function[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[\[Beta], TypeUniverse[v]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[\[Beta], TypeUniverse[v]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]],
 				Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]],
 				Typed[h, x == y]
 			},
@@ -525,19 +525,19 @@ $constructiveDeclarations = {
 		EqualitySubstitution,
 		ForAll[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"]
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]]
 			},
 			Implies[x == y, Implies[P[x], P[y]]]
 		],
 		Function[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"],
-				Annotation[Typed[x, \[Alpha]], "Implicit"],
-				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]],
+				TypedImplicit[x, \[Alpha]],
+				TypedImplicit[y, \[Alpha]],
 				Typed[h, x == y],
 				Typed[p, P[x]]
 			},
@@ -550,13 +550,13 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryTheorem[
 		EquivalentForward,
-		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[Equivalent[a, b], Implies[a, b]]],
-		Function[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, Equivalent[a, b]]}, h[[1]]]
+		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], Implies[a, b]]],
+		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, h[[1]]]
 	],
 	TypeTheoryTheorem[
 		EquivalentBackward,
-		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[Equivalent[a, b], Implies[b, a]]],
-		Function[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, Equivalent[a, b]]}, h[[2]]]
+		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], Implies[b, a]]],
+		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, h[[2]]]
 	],
 	TypeTheoryTheorem[
 		EquivalentReflexivity,
@@ -565,13 +565,13 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryTheorem[
 		EquivalentSymmetry,
-		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[Equivalent[a, b], Equivalent[b, a]]],
-		Function[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, Equivalent[a, b]]}, EquivalentIntroduction[h[[2]], h[[1]]]]
+		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], Equivalent[b, a]]],
+		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, EquivalentIntroduction[h[[2]], h[[1]]]]
 	],
 	TypeTheoryTheorem[
 		EquivalentTransitivity,
-		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Annotation[Typed[c, TypeUniverse[0]], "Implicit"]}, Implies[Equivalent[a, b], Implies[Equivalent[b, c], Equivalent[a, c]]]],
-		Function[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Annotation[Typed[c, TypeUniverse[0]], "Implicit"], Typed[h, Equivalent[a, b]], Typed[k, Equivalent[b, c]]}, EquivalentIntroduction[Function[{Typed[p, a]}, k[[1]][h[[1]][p]]], Function[{Typed[r, c]}, h[[2]][k[[2]][r]]]]]
+		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], TypedImplicit[c, TypeUniverse[0]]}, Implies[Equivalent[a, b], Implies[Equivalent[b, c], Equivalent[a, c]]]],
+		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], TypedImplicit[c, TypeUniverse[0]], Typed[h, Equivalent[a, b]], Typed[k, Equivalent[b, c]]}, EquivalentIntroduction[Function[{Typed[p, a]}, k[[1]][h[[1]][p]]], Function[{Typed[r, c]}, h[[2]][k[[2]][r]]]]]
 	],
 	TypeTheoryTheorem[
 		AdditionZeroRight,
@@ -655,8 +655,8 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryTheorem[
 		SuccessorInjectivity,
-		ForAll[{Annotation[Typed[m, NonNegativeIntegers], "Implicit"], Annotation[Typed[n, NonNegativeIntegers], "Implicit"]}, Implies[m + 1 == n + 1, m == n]],
-		Function[{Annotation[Typed[m, NonNegativeIntegers], "Implicit"], Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Typed[h, m + 1 == n + 1]}, EqualityCongruence[NaturalNumberPredecessor, h]]
+		ForAll[{TypedImplicit[m, NonNegativeIntegers], TypedImplicit[n, NonNegativeIntegers]}, Implies[m + 1 == n + 1, m == n]],
+		Function[{TypedImplicit[m, NonNegativeIntegers], TypedImplicit[n, NonNegativeIntegers], Typed[h, m + 1 == n + 1]}, EqualityCongruence[NaturalNumberPredecessor, h]]
 	],
 	TypeTheoryTheorem[
 		SuccessorNotZero,
@@ -720,13 +720,13 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryTheorem[
 		LessEqualSuccessor,
-		ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Annotation[Typed[m, NonNegativeIntegers], "Implicit"]}, Implies[n <= m, n + 1 <= m + 1]],
-		Function[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Annotation[Typed[m, NonNegativeIntegers], "Implicit"], Typed[h, n <= m]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j]}, n + 1 <= j + 1], LessEqualReflexivity, Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j], Typed[ih, n + 1 <= j + 1]}, LessEqualStep[ih]], h]]
+		ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers]}, Implies[n <= m, n + 1 <= m + 1]],
+		Function[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n <= m]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j]}, n + 1 <= j + 1], LessEqualReflexivity, Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j], Typed[ih, n + 1 <= j + 1]}, LessEqualStep[ih]], h]]
 	],
 	TypeTheoryTheorem[
 		LessEqualTransitivity,
-		ForAll[{Annotation[Typed[a, NonNegativeIntegers], "Implicit"], Annotation[Typed[b, NonNegativeIntegers], "Implicit"], Annotation[Typed[c, NonNegativeIntegers], "Implicit"]}, Implies[a <= b, Implies[b <= c, a <= c]]],
-		Function[{Annotation[Typed[a, NonNegativeIntegers], "Implicit"], Annotation[Typed[b, NonNegativeIntegers], "Implicit"], Annotation[Typed[c, NonNegativeIntegers], "Implicit"], Typed[h, a <= b], Typed[k, b <= c]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j]}, a <= j], h, Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j], Typed[ih, a <= j]}, LessEqualStep[ih]], k]]
+		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers]}, Implies[a <= b, Implies[b <= c, a <= c]]],
+		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= c]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j]}, a <= j], h, Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j], Typed[ih, a <= j]}, LessEqualStep[ih]], k]]
 	],
 	TypeTheoryTheorem[
 		LessEqualAddition,
@@ -740,8 +740,8 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryTheorem[
 		LessEqualPredecessor,
-		ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Annotation[Typed[m, NonNegativeIntegers], "Implicit"]}, Implies[n + 1 <= m + 1, n <= m]],
-		Function[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Annotation[Typed[m, NonNegativeIntegers], "Implicit"], Typed[h, n + 1 <= m + 1]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j]}, n <= NaturalNumberPredecessor[j]], LessEqualReflexivity, Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j], Typed[ih, n <= NaturalNumberPredecessor[j]]}, LessEqualTransitivity[ih, PredecessorLessEqual[j]]], h]]
+		ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers]}, Implies[n + 1 <= m + 1, n <= m]],
+		Function[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n + 1 <= m + 1]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j]}, n <= NaturalNumberPredecessor[j]], LessEqualReflexivity, Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j], Typed[ih, n <= NaturalNumberPredecessor[j]]}, LessEqualTransitivity[ih, PredecessorLessEqual[j]]], h]]
 	],
 	TypeTheoryTheorem[
 		LessIrreflexivity,
@@ -750,8 +750,8 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryTheorem[
 		LessEqualAntisymmetry,
-		ForAll[{Annotation[Typed[a, NonNegativeIntegers], "Implicit"], Annotation[Typed[b, NonNegativeIntegers], "Implicit"]}, Implies[a <= b, Implies[b <= a, a == b]]],
-		Function[{Annotation[Typed[a, NonNegativeIntegers], "Implicit"], Annotation[Typed[b, NonNegativeIntegers], "Implicit"], Typed[h, a <= b], Typed[k, b <= a]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j]}, Implies[j <= a, a == j]], Function[{Typed[r, a <= a]}, EqualityReflexivity[a]], Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j], Typed[ih, Implies[j <= a, a == j]], Typed[r, NaturalNumberSuccessor[j] <= a]}, FalseElimination[LessIrreflexivity[j][LessEqualTransitivity[r, t]]]], h][k]]
+		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers]}, Implies[a <= b, Implies[b <= a, a == b]]],
+		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= a]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j]}, Implies[j <= a, a == j]], Function[{Typed[r, a <= a]}, EqualityReflexivity[a]], Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j], Typed[ih, Implies[j <= a, a == j]], Typed[r, NaturalNumberSuccessor[j] <= a]}, FalseElimination[LessIrreflexivity[j][LessEqualTransitivity[r, t]]]], h][k]]
 	],
 
 	(* the Booleans, with false before true and the operations by cases on the first argument, as Lean's
@@ -769,34 +769,34 @@ $classicalDeclarations = {
 	TypeTheoryInductiveType[
 		Nonempty,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u]]}, TypeUniverse[0]],
-		{NonemptyIntroduction -> ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]]}, Nonempty[\[Alpha]]]}
+		{NonemptyIntroduction -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]}, Nonempty[\[Alpha]]]}
 	],
 	TypeTheoryInductiveType[
 		Subtype,
-		ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]}, TypeUniverse[Max[1, u]]],
-		{SubtypeIntroduction -> ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[x, \[Alpha]], Typed[h, P[x]]}, Subtype[P]]}
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]}, TypeUniverse[Max[1, u]]],
+		{SubtypeIntroduction -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[x, \[Alpha]], Typed[h, P[x]]}, Subtype[P]]}
 	],
 	TypeTheoryAxiom[
 		PropositionalExtensionality,
-		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[Equivalent[a, b], a == b]]
+		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], a == b]]
 	],
 	TypeTheoryAxiom[
 		FunctionExtensionality,
 		ForAll[
 			{
-				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
-				Annotation[Typed[\[Beta], TypeSpecifier[{\[Alpha]} -> TypeUniverse[v]]], "Implicit"],
-				Annotation[Typed[f, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]], "Implicit"],
-				Annotation[Typed[g, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]], "Implicit"]
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[\[Beta], TypeSpecifier[{\[Alpha]} -> TypeUniverse[v]]],
+				TypedImplicit[f, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]],
+				TypedImplicit[g, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]]
 			},
 			Implies[ForAll[{Typed[x, \[Alpha]]}, f[x] == g[x]], f == g]
 		]
 	],
-	TypeTheoryAxiom[Choice, ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[h, Nonempty[\[Alpha]]]}, \[Alpha]]],
+	TypeTheoryAxiom[Choice, ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[h, Nonempty[\[Alpha]]]}, \[Alpha]]],
 	TypeTheoryDefinition[
 		ChosenWitness,
 		Function[
-			{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[h, Exists[P]]},
+			{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
 			Choice[InductiveRecursor[Exists][
 				Function[{Typed[t, Exists[P]]}, Nonempty[Subtype[P]]],
 				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, NonemptyIntroduction[SubtypeIntroduction[w, k]]],
@@ -806,9 +806,9 @@ $classicalDeclarations = {
 	],
 	TypeTheoryTheorem[
 		ChosenWitnessProperty,
-		ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[h, Exists[P]]}, P[ChosenWitness[h]]],
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[h, Exists[P]]}, P[ChosenWitness[h]]],
 		Function[
-			{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"], Typed[h, Exists[P]]},
+			{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
 			Choice[InductiveRecursor[Exists][
 				Function[{Typed[t, Exists[P]]}, Nonempty[Subtype[P]]],
 				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, NonemptyIntroduction[SubtypeIntroduction[w, k]]],

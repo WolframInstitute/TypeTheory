@@ -122,19 +122,19 @@ $univalentDeclarations = {
 	TypeTheoryDefinition[Not, Function[{Typed[a, TypeUniverse[u + 1]]}, Implies[a, False]]],
 	TypeTheoryDefinition[
 		FalseElimination,
-		Function[{Annotation[Typed[a, TypeUniverse[u + 1]], "Implicit"], Typed[h, False]}, InductiveRecursor[False][Function[{Typed[t, False]}, a], h]]
+		Function[{TypedImplicit[a, TypeUniverse[u + 1]], Typed[h, False]}, InductiveRecursor[False][Function[{Typed[t, False]}, a], h]]
 	],
 
 	(* paths: the type of equalities, whose recursor is path induction *)
 	TypeTheoryInductiveType[
 		Equal,
-		ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A], Typed[y, A]}, TypeUniverse[u + 1]],
-		{EqualityReflexivity -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, x == x]}
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A], Typed[y, A]}, TypeUniverse[u + 1]],
+		{EqualityReflexivity -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, x == x]}
 	],
 	TypeTheoryDefinition[
 		EqualitySymmetry,
 		Function[
-			{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[x, A], "Implicit"], Annotation[Typed[y, A], "Implicit"], Typed[p, x == y]},
+			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y]},
 			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, z == x], EqualityReflexivity[x], p]
 		]
 	],
@@ -142,8 +142,8 @@ $univalentDeclarations = {
 		EqualityTransitivity,
 		Function[
 			{
-				Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[x, A], "Implicit"], Annotation[Typed[y, A], "Implicit"],
-				Annotation[Typed[z, A], "Implicit"], Typed[p, x == y], Typed[q, y == z]
+				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[x, A], TypedImplicit[y, A],
+				TypedImplicit[z, A], Typed[p, x == y], Typed[q, y == z]
 			},
 			InductiveRecursor[Equal][Function[{Typed[w, A], Typed[r, y == w]}, x == w], p, q]
 		]
@@ -152,8 +152,8 @@ $univalentDeclarations = {
 		EqualityCongruence,
 		Function[
 			{
-				Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[v + 1]], "Implicit"], Typed[f, TypeSpecifier[{A} -> B]],
-				Annotation[Typed[x, A], "Implicit"], Annotation[Typed[y, A], "Implicit"], Typed[p, x == y]
+				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{A} -> B]],
+				TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y]
 			},
 			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, f[x] == f[z]], EqualityReflexivity[f[x]], p]
 		]
@@ -162,8 +162,8 @@ $univalentDeclarations = {
 		Transport,
 		Function[
 			{
-				Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[P, TypeSpecifier[{A} -> TypeUniverse[v + 1]]],
-				Annotation[Typed[x, A], "Implicit"], Annotation[Typed[y, A], "Implicit"], Typed[p, x == y], Typed[b, P[x]]
+				TypedImplicit[A, TypeUniverse[u + 1]], Typed[P, TypeSpecifier[{A} -> TypeUniverse[v + 1]]],
+				TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y], Typed[b, P[x]]
 			},
 			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, P[z]], b, p]
 		]
@@ -172,8 +172,8 @@ $univalentDeclarations = {
 		DependentCongruence,
 		Function[
 			{
-				Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[P, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], "Implicit"],
-				Typed[f, ForAll[{Typed[z, A]}, P[z]]], Annotation[Typed[x, A], "Implicit"], Annotation[Typed[y, A], "Implicit"], Typed[p, x == y]
+				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[P, TypeSpecifier[{A} -> TypeUniverse[v + 1]]],
+				Typed[f, ForAll[{Typed[z, A]}, P[z]]], TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y]
 			},
 			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, Transport[P, q, f[x]] == f[z]], EqualityReflexivity[f[x]], p]
 		]
@@ -182,8 +182,8 @@ $univalentDeclarations = {
 		TransportConstant,
 		Function[
 			{
-				Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[v + 1]], "Implicit"],
-				Annotation[Typed[x, A], "Implicit"], Annotation[Typed[y, A], "Implicit"], Typed[p, x == y], Typed[b, B]
+				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
+				TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y], Typed[b, B]
 			},
 			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, Transport[Function[{Typed[w, A]}, B], q, b] == b], EqualityReflexivity[b], p]
 		]
@@ -197,14 +197,14 @@ $univalentDeclarations = {
 	TypeTheoryInductiveType[
 		IsEquivalence,
 		ForAll[
-			{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[v + 1]], "Implicit"], Typed[f, TypeSpecifier[{A} -> B]]},
+			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{A} -> B]]},
 			TypeUniverse[Max[u, v] + 1]
 		],
 		{
 			EquivalenceProof -> ForAll[
 				{
-					Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[v + 1]], "Implicit"],
-					Annotation[Typed[f, TypeSpecifier[{A} -> B]], "Implicit"],
+					TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
+					TypedImplicit[f, TypeSpecifier[{A} -> B]],
 					Typed[g, TypeSpecifier[{B} -> A]], Typed[retraction, ForAll[{Typed[x, A]}, g[f[x]] == x]],
 					Typed[h, TypeSpecifier[{B} -> A]], Typed[section, ForAll[{Typed[y, B]}, f[h[y]] == y]]
 				},
@@ -218,7 +218,7 @@ $univalentDeclarations = {
 		{
 			EquivalenceIntroduction -> ForAll[
 				{
-					Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[v + 1]], "Implicit"],
+					TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
 					Typed[f, TypeSpecifier[{A} -> B]], Typed[e, IsEquivalence[f]]
 				},
 				Equivalence[A, B]
@@ -237,7 +237,7 @@ $univalentDeclarations = {
 	TypeTheoryDefinition[
 		EqualityToEquivalence,
 		Function[
-			{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[u + 1]], "Implicit"], Typed[p, A == B]},
+			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[p, A == B]},
 			InductiveRecursor[Equal][Function[{Typed[C, TypeUniverse[u + 1]], Typed[q, A == C]}, Equivalence[A, C]], IdentityEquivalence[A], p]
 		]
 	],
@@ -250,18 +250,18 @@ $univalentDeclarations = {
 	TypeTheoryDefinition[
 		EquivalenceToEquality,
 		Function[
-			{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[u + 1]], "Implicit"], Typed[e, Equivalence[A, B]]},
+			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[e, Equivalence[A, B]]},
 			Univalence[A, B][[3]][e]
 		]
 	],
 	TypeTheoryTheorem[
 		UnivalenceComputation,
 		ForAll[
-			{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[u + 1]], "Implicit"], Typed[e, Equivalence[A, B]]},
+			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[e, Equivalence[A, B]]},
 			EqualityToEquivalence[EquivalenceToEquality[e]] == e
 		],
 		Function[
-			{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Annotation[Typed[B, TypeUniverse[u + 1]], "Implicit"], Typed[e, Equivalence[A, B]]},
+			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[e, Equivalence[A, B]]},
 			Univalence[A, B][[4]][e]
 		]
 	],

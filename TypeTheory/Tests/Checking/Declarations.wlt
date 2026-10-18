@@ -37,7 +37,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{identity = Append[prelude, TypeTheoryDefinition[PolymorphicIdentity, Function[{Annotation[Typed[A, TypeUniverse[u]], "Implicit"], Typed[x, A]}, x]]]},
+	With[{identity = Append[prelude, TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]]},
 		First /@ {
 			TypeOf[TypeTheoryTerm[PolymorphicIdentity[3], identity]],
 			TypeOf[TypeTheoryTerm[PolymorphicIdentity[TrueIntroduction], identity]],
@@ -53,7 +53,7 @@ VerificationTest[
 		{
 			identity = Append[prelude, TypeTheoryDefinition[
 				ExplicitIdentity,
-				Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, A]]
+				Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, A]]
 			]]
 		},
 		{
@@ -64,7 +64,7 @@ VerificationTest[
 	{
 		TypeTheoryDefinition[
 			ExplicitIdentity,
-			Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"]}, TypeSpecifier[{A} -> A]]]
+			Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]]]
 		],
 		True
 	},

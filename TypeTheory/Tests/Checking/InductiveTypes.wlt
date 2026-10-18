@@ -46,8 +46,8 @@ VerificationTest[
 				PolymorphicList,
 				ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
 				{
-					PolymorphicEmpty -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"]}, PolymorphicList[A]],
-					PolymorphicCons -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[h, A], Typed[t, PolymorphicList[A]]}, PolymorphicList[A]]
+					PolymorphicEmpty -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, PolymorphicList[A]],
+					PolymorphicCons -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[h, A], Typed[t, PolymorphicList[A]]}, PolymorphicList[A]]
 				}
 			]]
 		},
@@ -65,7 +65,7 @@ VerificationTest[
 				ForAll[{Typed[n, NonNegativeIntegers]}, TypeUniverse[1]],
 				{
 					VectorEmpty -> NaturalVector[0],
-					VectorCons -> ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Typed[h, NonNegativeIntegers], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
+					VectorCons -> ForAll[{TypedImplicit[n, NonNegativeIntegers], Typed[h, NonNegativeIntegers], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
 				}
 			]]
 		},

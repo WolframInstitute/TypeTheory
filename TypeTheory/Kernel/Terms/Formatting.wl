@@ -7,6 +7,7 @@ A TypeTheoryTerm shows its term in mathematical notation. The display is built f
 so the Wolfram Language's own typesetting decides where parentheses go:
 
 	Typed[x, A]                         x ∶ A                Colon
+	TypedImplicit[x, A]                 {x ∶ A}
 	Annotation[Typed[x, A], kind]       {x ∶ A}, ⦃x ∶ A⦄, [x ∶ A]
 	ForAll[{b1, b2}, B]                 ∀_b1 ∀_b2 B          ForAll, one binder at a time
 	Exists[{b}, B]                      ∃_b B
@@ -123,6 +124,7 @@ displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol]
 displaySyntax[syntax_] := syntax
 
 displayApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] := syntaxHead[Colon, {term, type}]
+displayApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {term_, type_}] := delimited["{", syntaxHead[Colon, {term, type}], "}"]
 displayApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, syntaxString[kind : "Implicit" | "StrictImplicit" | "InstanceImplicit"]}] :=
 	Replace[kind, {
 		"Implicit" :> delimited["{", binder, "}"],

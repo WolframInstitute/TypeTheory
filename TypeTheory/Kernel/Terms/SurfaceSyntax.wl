@@ -9,7 +9,8 @@ A surface term is an ordinary Wolfram Language expression, kept unevaluated:
 	ForAll[{Typed[x, A], ...}, B]                     a dependent function type, or a universal statement
 	Implies[A, B], TypeSpecifier[{A, ...} -> B]       a function type whose result does not depend on the argument;
 	A -> B, {A, ...} -> B                             the same, written as a rule
-	Annotation[Typed[x, A], "Implicit"]               an implicit binder ("StrictImplicit", "InstanceImplicit" too)
+	TypedImplicit[x, A]                               an implicit binder, the same as Annotation[Typed[x, A], "Implicit"]
+	Annotation[Typed[x, A], kind]                     a binder of kind "StrictImplicit" or "InstanceImplicit"
 	Exists[{Typed[x, A]}, p]                          Exists applied to Function[{Typed[x, A]}, p]
 	Typed[e, A]                                       e, checked against A
 	With[{x = v}, b]                                  b with x standing for v
@@ -56,6 +57,7 @@ PackageExported[TypeTheoryTerm]
 PackageExported[TypeUniverse]
 PackageExported[ImpredicativeMaximum]
 PackageExported[InductiveRecursor]
+PackageExported[TypedImplicit]
 
 
 (* ::Section:: *)
@@ -92,6 +94,8 @@ ImpredicativeMaximum::usage = "ImpredicativeMaximum[level1, level2] is the unive
 level of a function type from TypeUniverse[level1] to TypeUniverse[level2]."
 InductiveRecursor::usage = "InductiveRecursor[type] is the recursor of the inductive type type, generated when the type is declared. Its arguments \
 are the type's parameters (implicit), a motive, one minor premise per constructor, the indices (implicit) and the major premise."
+TypedImplicit::usage = "TypedImplicit[x, type] is an implicit binder: a variable x of type type that is found from the other arguments rather than \
+written. It is the same as Annotation[Typed[x, type], \"Implicit\"]."
 
 syntaxSymbol::usage = "syntaxSymbol[HoldComplete[symbol]] is a symbol in a syntax tree."
 syntaxInteger::usage = "syntaxInteger[n] is an integer in a syntax tree."
@@ -204,6 +208,7 @@ arrowBinderQ[dependentFunctionType[_, _, codomain_, "Explicit"]] := ! boundVaria
 arrowBinderQ[_] := False
 
 binderSyntax[name_, domainSyntax_, "Explicit"] := syntaxHead[Typed, {nameSyntax[name], domainSyntax}]
+binderSyntax[name_, domainSyntax_, "Implicit"] := syntaxHead[TypedImplicit, {nameSyntax[name], domainSyntax}]
 binderSyntax[name_, domainSyntax_, binder_String] := syntaxHead[Annotation, {syntaxHead[Typed, {nameSyntax[name], domainSyntax}], syntaxString[binder]}]
 
 nameSyntax[HoldComplete[name_String]] := syntaxString[name]

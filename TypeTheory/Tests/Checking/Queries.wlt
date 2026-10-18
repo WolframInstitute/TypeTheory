@@ -28,7 +28,7 @@ VerificationTest[
 	TypeOf[TypeTheoryTerm[AndIntroduction, prelude]],
 	With[{a = WolframInstitute`TypeTheory`Library`Prelude`Private`a, b = WolframInstitute`TypeTheory`Library`Prelude`Private`b},
 		TypeTheoryTerm[
-			ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[a, Implies[b, a && b]]],
+			ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[a, Implies[b, a && b]]],
 			prelude
 		]
 	],

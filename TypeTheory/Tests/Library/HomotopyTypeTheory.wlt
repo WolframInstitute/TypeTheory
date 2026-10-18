@@ -13,8 +13,8 @@ univalent = Select[Symbol["WolframInstitute`TypeTheory`PackageScope`$univalentDe
 
 strictEqual = TypeTheoryInductiveType[
 	StrictEqual,
-	ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A], Typed[y, A]}, TypeUniverse[0]],
-	{StrictEqualReflexivity -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, StrictEqual[x, x]]}
+	ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A], Typed[y, A]}, TypeUniverse[0]],
+	{StrictEqualReflexivity -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, StrictEqual[x, x]]}
 ]
 
 

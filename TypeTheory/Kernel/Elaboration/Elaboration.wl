@@ -396,9 +396,11 @@ parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[n
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString[name_], type_}]] := <|"Name" -> HoldComplete[name], "Type" -> type, "Binder" -> "Explicit"|>
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, syntaxString[kind : "Implicit" | "StrictImplicit" | "InstanceImplicit"]}]] :=
 	Append[parseBinder[binder], "Binder" -> kind]
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {name_, type_}]] :=
+	Append[parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {name, type}]], "Binder" -> "Implicit"]
 parseBinder[syntaxSymbol[name_]] := <|"Name" -> name, "Type" -> None, "Binder" -> "Explicit"|>
 parseBinder[syntaxString[name_]] := <|"Name" -> HoldComplete[name], "Type" -> None, "Binder" -> "Explicit"|>
-parseBinder[other_] := elaborationFailure["`1` is not a binder: write Typed[x, type] or Annotation[Typed[x, type], \"Implicit\"].", other]
+parseBinder[other_] := elaborationFailure["`1` is not a binder: write Typed[x, type] or TypedImplicit[x, type].", other]
 
 expectedDomain[expected_, binder_] := Replace[
 	If[expected === None, None, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]],
