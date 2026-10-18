@@ -24,6 +24,13 @@ TypeTheoryProof stands for its proof, so terms and proofs can be built up in a n
 
 While a tactic elaborates a term for a goal, $goalMetavariableTypes gives the types of the proof's open
 goals, which may occur in the goal's type.
+
+True, False, Not, And and Or are overloaded: they stand for the propositions or, in an environment that
+declares them, for the Booleans BooleanTrue, BooleanFalse, BooleanNot, BooleanAnd and BooleanOr. The
+type decides: where a type or Prop is expected they are the propositions, where Booleans is expected
+the Booleans; elsewhere each meaning is tried, and the one that fits is taken. A name both meanings fit
+waits, in $pendingOverloads, until its type is known. A name still undecided when the binders around
+it close, or when the term is finished, is ambiguous, and Typed must say which it is.
 *)
 
 
@@ -50,6 +57,8 @@ PackageScoped[$elaborationEnvironment]
 PackageScoped[$elaborationContext]
 PackageScoped[$elaborationScope]
 PackageScoped[$universeParameterNames]
+PackageScoped[overloadedNameQ]
+PackageScoped[settleOverloads]
 
 
 (* ::Section:: *)
@@ -76,6 +85,8 @@ $elaborationEnvironment::usage = "$elaborationEnvironment is the environment whi
 $elaborationContext::usage = "$elaborationContext is the local context while elaborating."
 $elaborationScope::usage = "$elaborationScope gives the term and type each variable name stands for while elaborating."
 $universeParameterNames::usage = "$universeParameterNames is the list of universe parameters a term may mention while elaborating."
+overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
+settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
 
 
 (* ::Section:: *)
@@ -90,6 +101,7 @@ $elaborationContext = <||>
 $elaborationScope = <||>
 $universeParameterNames = {}
 $goalMetavariableTypes = <||>
+$pendingOverloads = {}
 
 
 SetAttributes[withElaborationState, HoldRest]
@@ -98,6 +110,7 @@ withElaborationState[{environment_, context_, scope_, universeParameters_}, body
 		$metavariableTypes = $goalMetavariableTypes,
 		$metavariableAssignments = <||>,
 		$levelAssignments = <||>,
+		$pendingOverloads = {},
 		$elaborationEnvironment = environment,
 		$elaborationContext = context,
 		$elaborationScope = scope,
@@ -109,8 +122,14 @@ withElaborationState[{environment_, context_, scope_, universeParameters_}, body
 
 elaborateClosedTerm[environment_, held_HoldComplete, expected_, universeParameters_List] := elaborateInContext[environment, <||>, <||>, held, expected, universeParameters]
 
+(* a type is expected, which makes True, And and the other overloaded names propositions *)
 elaborateClosedType[environment_, held_HoldComplete, universeParameters_List] := With[
-	{result = elaborateClosedTerm[environment, held, None, universeParameters]},
+	{
+		result = withElaborationState[
+			{environment, <||>, <||>, universeParameters},
+			finishElaboration[environment, <||>, elaborateSyntax[toSyntax @@ held, universeSort[newLevelMetavariable[]]], None]
+		]
+	},
 	sortLevel[environment, <||>, First[result]];
 	First[result]
 ]
@@ -126,7 +145,7 @@ elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_,
 	]
 ]
 
-finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = instantiateMetavariables[term]},
+finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = settleOverloads[term]},
 	If[ unsolvedMetavariables[finalTerm] =!= {},
 		kernelFailure["UnsolvedImplicitArgument", "Could not infer every implicit argument and universe level of `1`.", {displayCoreTerm[environment, context, finalTerm]}]
 	];
@@ -166,6 +185,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[syntaxHead[Subtract, {first, second}], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxInteger[k_Integer?Negative]}] :>
 		elaborateSyntax[syntaxHead[Subtract, {first, syntaxInteger[-k]}], expected],
+	syntaxApplication[syntaxSymbol[name_], arguments_List] /; ! KeyExistsQ[$elaborationScope, name] && overloadedNameQ[$elaborationEnvironment, name] :>
+		elaborateOverloaded[name, arguments, syntax, expected],
 	(* a && b && c is a && (b && c), as in Lean *)
 	syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[rightFold[head, arguments], expected],
@@ -174,6 +195,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
+	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[heldFromSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
 	syntaxInteger[n_Integer?NonNegative] :> {naturalLiteral[n], naturalNumberTypeForElaboration[syntax]},
@@ -394,10 +416,12 @@ expectedBody[expected_, id_] := Replace[
 (* The body's type is unified with its expected type inside the binders, before the function is closed:
    an implicit argument of the body solved by the expected type is then solved in terms of the bound
    variables, and abstracted with them, instead of naming a variable outside its binder. *)
-elaborateFunction[binders_List, body_, expected_] := With[{opened = openBinders[binders, expected]},
+elaborateFunction[binders_List, body_, expected_] := With[{start = Length[$pendingOverloads], opened = openBinders[binders, expected]},
 	Block[{$elaborationContext = opened["Context"], $elaborationScope = opened["Scope"]},
 		With[{result = elaborateSyntax[body, opened["Expected"]]},
 			If[opened["Expected"] =!= None, attemptOrRestore[unify[Last[result], opened["Expected"]]]];
+			(* an overloaded name inside may mention the bound variables, so it is decided before they go out of scope *)
+			resolvePendingOverloads[start, True];
 			{
 				makeLambda[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[First[result]]],
 				makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[Last[result]]]
@@ -406,11 +430,14 @@ elaborateFunction[binders_List, body_, expected_] := With[{opened = openBinders[
 	]
 ]
 
-elaborateForAll[binders_List, body_] := With[{opened = openBinders[binders, None], outerContext = $elaborationContext},
+elaborateForAll[binders_List, body_] := With[{start = Length[$pendingOverloads], opened = openBinders[binders, None], outerContext = $elaborationContext},
 	With[
 		{
 			term = Block[{$elaborationContext = opened["Context"], $elaborationScope = opened["Scope"]},
-				makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[elaborateTypeSyntax[body]]]
+				With[{bodyType = elaborateTypeSyntax[body]},
+					resolvePendingOverloads[start, True];
+					makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[bodyType]]
+				]
 			]
 		},
 		{term, inferType[$elaborationEnvironment, outerContext, term]}
@@ -427,7 +454,7 @@ elaborateArrow[domains_List, codomain_] := With[
 	{term, inferType[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[term]]}
 ]
 
-elaborateTypeSyntax[syntax_] := With[{result = elaborateSyntax[syntax, None]},
+elaborateTypeSyntax[syntax_] := With[{result = elaborateSyntax[syntax, universeSort[newLevelMetavariable[]]]},
 	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[result]]], {
 		_universeSort :> First[result],
 		_metavariable :> (unify[Last[result], universeSort[newLevelMetavariable[]]]; First[result]),
@@ -449,6 +476,134 @@ elaborateWith[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {syntaxSymbol[
 		]
 	]
 elaborateWith[{other_, ___}, _, _] := elaborationFailure["`1` is not a binding: write With[{x = value}, body].", other]
+
+
+(* ::Subsection:: *)
+(*Overloaded names*)
+
+
+(* each overloaded name, with the proposition it stands for first and the Boolean second *)
+$overloadedNames = <|
+	HoldComplete[True] -> {HoldComplete[True], HoldComplete[BooleanTrue]},
+	HoldComplete[False] -> {HoldComplete[False], HoldComplete[BooleanFalse]},
+	HoldComplete[Not] -> {HoldComplete[Not], HoldComplete[BooleanNot]},
+	HoldComplete[And] -> {HoldComplete[And], HoldComplete[BooleanAnd]},
+	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete[BooleanOr]}
+|>
+
+overloadedNameQ[environment_, name_HoldComplete] := Length[declaredMeanings[environment, name]] > 1
+
+declaredMeanings[environment_, name_HoldComplete] := Select[Lookup[$overloadedNames, name, {}], Function[meaning, constantDeclaredQ[environment, meaning]]]
+
+elaborateOverloaded[name_HoldComplete, arguments_List, syntax_, expected_] := Replace[
+	chosenMeaning[declaredMeanings[$elaborationEnvironment, name], arguments, expected],
+	{
+		meaning_HoldComplete :> elaborateMeaning[meaning, arguments, expected],
+		None :> postponeOverload[name, arguments, syntax, expected]
+	}
+]
+
+(* the meaning the expected type allows, or the one meaning that fits, or None if both fit; if neither
+   fits, the proposition, whose elaboration then says why *)
+chosenMeaning[{proposition_, boolean_}, arguments_List, expected_] := Replace[
+	expectedMeaning[{proposition, boolean}, arguments, expected],
+	None :> With[{fitting = Select[{proposition, boolean}, Function[meaning, meaningFitsQ[meaning, arguments, expected]]]},
+		Replace[fitting, {{only_} :> only, {} :> proposition, _ :> None}]
+	]
+]
+chosenMeaning[{only_}, _, _] := only
+
+(* a type or Prop is expected only of the proposition, and Booleans only of the Boolean; a connective
+   with no arguments is a function, which the expected type does not decide this way *)
+expectedMeaning[{proposition_, boolean_}, arguments_List, expected_] /; expected =!= None && (arguments =!= {} || MatchQ[proposition, HoldComplete[True | False]]) :=
+	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], {
+		_universeSort :> proposition,
+		constantReference[HoldComplete[Booleans], {}] :> boolean,
+		_ :> None
+	}]
+expectedMeaning[_, _, _] := None
+
+(* a trial, with the elaboration state restored after *)
+meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
+	{
+		$metavariableAssignments = $metavariableAssignments,
+		$levelAssignments = $levelAssignments,
+		$metavariableTypes = $metavariableTypes,
+		$pendingOverloads = $pendingOverloads
+	},
+	TrueQ @ Quiet @ catchKernelFailure[
+		With[{result = elaborateMeaning[meaning, arguments, expected]}, expected === None || unify[Last[result], expected]]
+	]
+]
+
+(* the constant itself, applied to the arguments; a && b && c is a && (b && c) for propositions, as Lean's
+   ∧, and (a && b) && c for Booleans, as Lean's && *)
+elaborateMeaning[meaning_HoldComplete, {}, _] := insertImplicitArguments[constantWithFreshLevels[meaning]]
+elaborateMeaning[meaning : HoldComplete[head : And | Or], arguments_List, expected_] /; Length[arguments] > 2 :=
+	applyArguments[constantWithFreshLevels[meaning], {First[arguments], rightFold[head, Rest[arguments]]}, syntaxSymbol[meaning], expected]
+elaborateMeaning[meaning : HoldComplete[head : BooleanAnd | BooleanOr], arguments_List, expected_] /; Length[arguments] > 2 :=
+	applyArguments[constantWithFreshLevels[meaning], {leftFold[head, Most[arguments]], Last[arguments]}, syntaxSymbol[meaning], expected]
+elaborateMeaning[meaning_HoldComplete, arguments_List, expected_] := applyArguments[constantWithFreshLevels[meaning], arguments, syntaxSymbol[meaning], expected]
+
+(* a name both meanings fit is a metavariable of the expected type until that type decides *)
+postponeOverload[name_HoldComplete, arguments_List, syntax_, expected_] := With[
+	{type = Replace[expected, None :> newMetavariable[universeSort[newLevelMetavariable[]]]]},
+	With[{placeholder = newMetavariable[type]},
+		AppendTo[$pendingOverloads, <|"Placeholder" -> placeholder, "Name" -> name, "Arguments" -> arguments, "Syntax" -> syntax|>];
+		{placeholder, type}
+	]
+]
+
+(* Decides the waiting names from position start + 1 on, one whose type now decides it at a time, since
+   deciding one can decide others. With final, a name nothing decides is ambiguous. *)
+resolvePendingOverloads[start_Integer, final_] := With[
+	{
+		decided = SelectFirst[
+			Function[entry, {entry, chosenMeaning[declaredMeanings[$elaborationEnvironment, entry["Name"]], entry["Arguments"], pendingType[entry]]}] /@ Drop[$pendingOverloads, start],
+			Function[pair, Last[pair] =!= None],
+			None
+		]
+	},
+	Which[
+		decided =!= None,
+			$pendingOverloads = DeleteCases[$pendingOverloads, First[decided], {1}, 1];
+			decideOverload @@ decided;
+			resolvePendingOverloads[start, final],
+		final && Length[$pendingOverloads] > start,
+			ambiguityFailure[$pendingOverloads[[start + 1]]],
+		True,
+			Null
+	]
+]
+
+pendingType[entry_Association] := instantiateMetavariables[$metavariableTypes[First[entry["Placeholder"]]]]
+
+decideOverload[entry_Association, meaning_HoldComplete] := With[{type = pendingType[entry]},
+	With[{result = elaborateMeaning[meaning, entry["Arguments"], type]},
+		unifyOrFail[Last[result], type, entry["Syntax"]];
+		If[ ! unify[entry["Placeholder"], First[result]],
+			elaborationFailure["`1` is not the term its use requires.", entry["Syntax"]]
+		]
+	]
+]
+
+ambiguityFailure[entry_Association] := If[ entry["Arguments"] === {} && MatchQ[entry["Name"], HoldComplete[Not | And | Or]],
+	kernelFailure[
+		"Ambiguous",
+		"`1` could be the operation on propositions or on Booleans here: write `2` for the one on Booleans, or give its type with Typed.",
+		{HoldForm @@ entry["Name"], HoldForm @@ Last[$overloadedNames[entry["Name"]]]}
+	],
+	kernelFailure[
+		"Ambiguous",
+		"`1` could be a proposition or a Boolean here: say which with Typed[`1`, TypeUniverse[0]] or Typed[`1`, Booleans].",
+		{HoldForm @@ heldFromSyntax[entry["Syntax"]]}
+	]
+]
+
+settleOverloads[term_] := (
+	resolvePendingOverloads[0, True];
+	instantiateMetavariables[term]
+)
 
 
 (* ::Subsection:: *)

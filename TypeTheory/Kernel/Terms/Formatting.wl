@@ -19,6 +19,8 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	NonNegativeIntegers                 ℕ
 	InductiveRecursor[I]                I_rec
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
+	Booleans, BooleanTrue, BooleanFalse  𝔹, true, false
+	BooleanAnd, BooleanOr, BooleanNot   a && b, a || b, !a   as Lean writes them for its Bool
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
 
@@ -76,13 +78,22 @@ naturalNumberConstantQ[syntaxString[name_String], key_String] := Lookup[displaye
 naturalNumberConstantQ[_, _] := False
 
 (* And, Or and Not show as ∧, ∨ and ¬, with the parentheses MakeBoxes chose for &&, || and !; deeper boxes
-   are replaced first *)
+   are replaced first. The operations on Booleans are shown as Nand, Nor and PlusMinus, which have the
+   precedences of && and || and bind tighter than !, and then take the symbols &&, || and !. *)
 logicalOperatorBoxes[boxes_] := Replace[
-	boxes,
+	Replace[
+		boxes,
+		{
+			RowBox[{"!", operand_}] :> RowBox[{"\[Not]", operand}],
+			RowBox[operands : {_, "&&", __}] :> RowBox[Replace[operands, "&&" -> "\[And]", {1}]],
+			RowBox[operands : {_, "||", __}] :> RowBox[Replace[operands, "||" -> "\[Or]", {1}]]
+		},
+		{0, Infinity}
+	],
 	{
-		RowBox[{"!", operand_}] :> RowBox[{"\[Not]", operand}],
-		RowBox[operands : {_, "&&", __}] :> RowBox[Replace[operands, "&&" -> "\[And]", {1}]],
-		RowBox[operands : {_, "||", __}] :> RowBox[Replace[operands, "||" -> "\[Or]", {1}]]
+		RowBox[{"\[PlusMinus]", operand_}] :> RowBox[{"!", operand}],
+		RowBox[operands : {_, "\[Nand]", __}] :> RowBox[Replace[operands, "\[Nand]" -> "&&", {1}]],
+		RowBox[operands : {_, "\[Nor]", __}] :> RowBox[Replace[operands, "\[Nor]" -> "||", {1}]]
 	},
 	{0, Infinity}
 ]
@@ -100,6 +111,9 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 (* the arguments are rewritten first, so each rule sees displayed arguments *)
 displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[head, displaySyntax /@ arguments]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
+displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
+displaySyntax[syntaxSymbol[HoldComplete[BooleanTrue]]] := syntaxString["true"]
+displaySyntax[syntaxSymbol[HoldComplete[BooleanFalse]]] := syntaxString["false"]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
 displaySyntax[syntax_] := syntax
@@ -128,6 +142,12 @@ displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := univer
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
 (* the predecessor shows as n - 1, which it is by computation *)
 displayApplication[syntaxSymbol[HoldComplete[NaturalNumberPredecessor]], {argument_}] := syntaxHead[Subtract, {argument, syntaxInteger[1]}]
+(* (a && b) && c shows as a && b && c, the way Lean reads it *)
+displayApplication[syntaxSymbol[HoldComplete[BooleanNot]], {argument_}] := syntaxHead[PlusMinus, {argument}]
+displayApplication[syntaxSymbol[HoldComplete[BooleanAnd]], {syntaxApplication[syntaxSymbol[HoldComplete[Nand]], rest_List], last_}] := syntaxHead[Nand, Append[rest, last]]
+displayApplication[syntaxSymbol[HoldComplete[BooleanAnd]], arguments_List] := syntaxHead[Nand, arguments]
+displayApplication[syntaxSymbol[HoldComplete[BooleanOr]], {syntaxApplication[syntaxSymbol[HoldComplete[Nor]], rest_List], last_}] := syntaxHead[Nor, Append[rest, last]]
+displayApplication[syntaxSymbol[HoldComplete[BooleanOr]], arguments_List] := syntaxHead[Nor, arguments]
 (* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
 displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
 	syntaxHead[head, Prepend[rest, first]]

@@ -135,3 +135,17 @@ VerificationTest[
 	False,
 	TestID -> "Successors-of-successors-add-up-from-the-left"
 ]
+
+VerificationTest[
+	With[{boxes = ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, Not[a && b] || (a && b && a)]]]]},
+		{! FreeQ[boxes, "&&"], ! FreeQ[boxes, "||"], ! FreeQ[boxes, RowBox[{"!", _}]], FreeQ[boxes, "\[And]" | "\[Or]" | "\[Not]"], ! FreeQ[boxes, "\"\[DoubleStruckCapitalB]\""]}
+	],
+	{True, True, True, True, True},
+	TestID -> "The-Booleans-show-as-Lean-shows-them"
+]
+
+VerificationTest[
+	Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]]], "\"false\"", Infinity],
+	{"\"false\""},
+	TestID -> "A-Boolean-value-shows-in-lower-case"
+]

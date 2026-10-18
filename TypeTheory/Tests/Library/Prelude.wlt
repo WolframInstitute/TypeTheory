@@ -126,7 +126,7 @@ VerificationTest[
 			Information[prelude, "Axioms"]
 		}
 	],
-	{89, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
+	{96, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
 	TestID -> "The-constructive-environment-is-the-prelude-without-its-classical-part"
 ]
 
@@ -147,7 +147,7 @@ VerificationTest[
 	{
 		TypeTheoryCheck[
 			TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, True]}, AndIntroduction[h, h]], Function[{Typed[h, True && True]}, AndEliminationLeft[h]]]]],
-			TypeTheoryTerm[True == (True && True)]
+			TypeTheoryTerm[Typed[True, TypeUniverse[0]] == (True && True)]
 		],
 		TypeTheoryCheck[
 			TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]],
@@ -160,4 +160,27 @@ VerificationTest[
 	},
 	{True, True, True},
 	TestID -> "Extensionality-and-choice"
+]
+
+
+(* === the Booleans === *)
+
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]],
+		WeakHeadNormalForm[TypeTheoryTerm[Typed[Not[False] || False, Booleans]]],
+		WeakHeadNormalForm[TypeTheoryTerm[Typed[True && True && False, Booleans]]],
+		TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[BooleanTrue]], TypeTheoryTerm[Not[Not[Typed[True, Booleans]]] == True]]
+	},
+	{TypeTheoryTerm[BooleanFalse, prelude], TypeTheoryTerm[BooleanTrue, prelude], TypeTheoryTerm[BooleanFalse, prelude], True},
+	TestID -> "The-Booleans-compute"
+]
+
+VerificationTest[
+	TypeTheoryCheck[
+		TypeTheoryTerm[Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity[BooleanFalse], EqualityReflexivity[BooleanTrue], b]]],
+		TypeTheoryTerm[ForAll[{Typed[b, Booleans]}, Not[Not[b]] == b]]
+	],
+	True,
+	TestID -> "A-statement-about-every-Boolean-proved-by-cases"
 ]

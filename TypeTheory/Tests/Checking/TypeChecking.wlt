@@ -18,7 +18,7 @@ pairs = TypeTheoryEnvironment[prelude, {
 (* === inference === *)
 
 VerificationTest[
-	{TypeOf[TypeTheoryTerm[TypeUniverse[0]]], TypeOf[TypeTheoryTerm[TypeUniverse[1]]], TypeOf[TypeTheoryTerm[True, prelude]]},
+	{TypeOf[TypeTheoryTerm[TypeUniverse[0]]], TypeOf[TypeTheoryTerm[TypeUniverse[1]]], TypeOf[TypeTheoryTerm[1 == 1, prelude]]},
 	{TypeTheoryTerm[TypeUniverse[1], prelude], TypeTheoryTerm[TypeUniverse[2], prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
 	TestID -> "Prop-is-in-Type-and-Type-is-in-the-next-universe"
 ]
@@ -69,8 +69,8 @@ VerificationTest[
 ]
 
 VerificationTest[
-	WeakHeadNormalForm[TypeTheoryTerm[Not[True], prelude]],
-	TypeTheoryTerm[Implies[True, False], prelude],
+	WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2], prelude]],
+	TypeTheoryTerm[Implies[1 == 2, False], prelude],
 	TestID -> "Definitions-unfold"
 ]
 

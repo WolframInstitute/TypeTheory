@@ -140,3 +140,37 @@ VerificationTest[
 	True,
 	TestID -> "A-projection-from-a-term-with-solved-implicit-arguments"
 ]
+
+
+(* === overloaded names === *)
+
+VerificationTest[
+	{
+		TypeOf[TypeTheoryTerm[Typed[True, Booleans]]],
+		TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction], TypeTheoryTerm[True]],
+		TypeOf[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b && True]]],
+		TypeOf[TypeTheoryTerm[Not[1 == 2]]]
+	},
+	{TypeTheoryTerm[Booleans, prelude], True, TypeTheoryTerm[TypeSpecifier[{Booleans} -> Booleans], prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
+	TestID -> "True-and-the-connectives-take-the-meaning-their-type-or-arguments-give"
+]
+
+VerificationTest[
+	{
+		TypeOf[TypeTheoryTerm[Typed[True, Booleans] == False]],
+		TypeOf[TypeTheoryTerm[Typed[Identity[Not[False]], Booleans]]],
+		TypeOf[TypeTheoryTerm[With[{t = True}, Typed[t, Booleans]]]],
+		TypeTheoryCheck[
+			TypeTheoryTerm[Function[{Typed[x, TypeUniverse[0]]}, EqualityReflexivity[True]]],
+			TypeTheoryTerm[ForAll[{Typed[x, TypeUniverse[0]]}, Typed[True, TypeUniverse[0]] == True]]
+		]
+	},
+	{TypeTheoryTerm[TypeUniverse[0], prelude], TypeTheoryTerm[Booleans, prelude], TypeTheoryTerm[Booleans, prelude], True},
+	TestID -> "A-name-waits-until-a-later-type-decides-it"
+]
+
+VerificationTest[
+	First /@ {TypeOf[TypeTheoryTerm[True]], TypeOf[TypeTheoryTerm[True == False]], TypeOf[TypeTheoryTerm[Identity[Not[False]]]], TypeOf[TypeTheoryTerm[And]]},
+	{"Ambiguous", "Ambiguous", "Ambiguous", "Ambiguous"},
+	TestID -> "A-name-both-meanings-fit-is-ambiguous"
+]

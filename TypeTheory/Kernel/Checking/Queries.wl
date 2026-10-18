@@ -92,7 +92,7 @@ TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := Ty
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
 TypeTheoryCheck[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[heldFromSyntax[termSyntax[term]], {
-		name_ /; constantDeclaredQ[environment, name] :> constantRecord[environment, name]["Type"],
+		name_ /; constantDeclaredQ[environment, name] && ! overloadedNameQ[environment, name] :> constantRecord[environment, name]["Type"],
 		_ :> Last @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]
 ]

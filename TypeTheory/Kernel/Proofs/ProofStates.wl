@@ -294,7 +294,7 @@ applyTerm[data_, goal_, held_HoldComplete] := With[
 	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
 		With[{syntax = toSyntax @@ held},
 			{elaborated = elaborateSyntax[syntax, None]},
-			{applied = applyUntilUnified[data, goal, First[elaborated], Last[elaborated], current["Type"]]},
+			{applied = settleOverloads[applyUntilUnified[data, goal, First[elaborated], Last[elaborated], current["Type"]]]},
 			{
 				newIds = DeleteDuplicates @ Cases[applied, metavariable[id_] /; ! KeyExistsQ[goalTypes, id] :> id, {0, Infinity}],
 				updated = keepSolvedGoals[data, goalTypes]
