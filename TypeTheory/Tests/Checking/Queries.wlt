@@ -72,21 +72,21 @@ VerificationTest[
 (* === environments as associations === *)
 
 VerificationTest[
-	{Length[prelude], Take[Keys[prelude], 3], KeyExistsQ[prelude, Plus], KeyExistsQ[prelude, Times]},
-	{31, {True, TrueIntroduction, InductiveRecursor[True]}, True, False},
+	{Length[prelude], Take[Keys[prelude], 3], KeyExistsQ[prelude, Plus], KeyExistsQ[prelude, Divide]},
+	{89, {True, TrueIntroduction, InductiveRecursor[True]}, True, False},
 	TestID -> "Keys-Length-and-KeyExistsQ"
 ]
 
 VerificationTest[
-	{prelude[NaturalNumberSuccessor] === prelude[NonNegativeIntegers], Head[prelude[Plus]], prelude[Times]},
-	{True, TypeTheoryDefinition, Missing["KeyAbsent", Times]},
+	{prelude[NaturalNumberSuccessor] === prelude[NonNegativeIntegers], Head[prelude[Plus]], prelude[Divide]},
+	{True, TypeTheoryDefinition, Missing["KeyAbsent", Divide]},
 	TestID -> "Indexing-gives-the-declaration-of-a-constant"
 ]
 
 VerificationTest[
 	{Information[prelude, "Kinds"], Information[prelude, "Axioms"], Information[prelude, "NaturalNumbers"]},
 	{
-		<|"InductiveType" -> 7, "Constructor" -> 8, "Recursor" -> 7, "Definition" -> 2, "Theorem" -> 7|>,
+		<|"InductiveType" -> 9, "Constructor" -> 11, "Recursor" -> 9, "Definition" -> 12, "Theorem" -> 48|>,
 		{},
 		<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Addition" -> Plus|>
 	},

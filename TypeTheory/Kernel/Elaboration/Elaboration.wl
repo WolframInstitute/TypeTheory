@@ -161,6 +161,14 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[With]], {bindings_, body_}] :> elaborateWith[listElements[bindings], body, expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[leftFold[head, arguments], expected],
+	(* a - b is read as Plus[a, Times[-1, b]], and a - 3 as Plus[a, -3]: both are Subtract *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}]}] :>
+		elaborateSyntax[syntaxHead[Subtract, {first, second}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxInteger[k_Integer?Negative]}] :>
+		elaborateSyntax[syntaxHead[Subtract, {first, syntaxInteger[-k]}], expected],
+	(* a && b && c is a && (b && c), as in Lean *)
+	syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], arguments_List] /; Length[arguments] > 2 :>
+		elaborateSyntax[rightFold[head, arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
 	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] :> applyExplicitly[elaborateHead[head], {arguments}, head],
 	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
@@ -175,6 +183,12 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 
 listElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
 listElements[single_] := {single}
+
+rightFold[head_, arguments_List] := Fold[
+	Function[{accumulated, previous}, syntaxApplication[syntaxSymbol[HoldComplete[head]], {previous, accumulated}]],
+	Last[arguments],
+	Reverse[Most[arguments]]
+]
 
 leftFold[head_, arguments_List] := Fold[
 	Function[{accumulated, next}, syntaxApplication[syntaxSymbol[HoldComplete[head]], {accumulated, next}]],

@@ -124,6 +124,9 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :
 	syntaxHead[RightTee, {syntaxHead[Row, {syntaxHead[List, listElements[hypotheses]], syntaxString[", "]}], goal}]
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
+(* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
+displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
+	syntaxHead[head, Prepend[rest, first]]
 (* successors of successors add up from the left, n + 1 + 1, as Lean writes them *)
 displayApplication[head_, {syntaxApplication[syntaxSymbol[HoldComplete[Plus]], summands_List]}] /; naturalNumberConstantQ[head, "Successor"] :=
 	syntaxHead[Plus, Append[summands, syntaxInteger[1]]]

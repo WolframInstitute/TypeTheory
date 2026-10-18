@@ -40,11 +40,11 @@ VerificationTest[
 	With[
 		{
 			proved = Append[prelude, TypeTheoryTheorem[
-				AdditionZeroRight,
+				ZeroRightIdentity,
 				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}]
 			]]
 		},
-		TypeOf[TypeTheoryTerm[AdditionZeroRight, proved]] === TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], proved]
+		TypeOf[TypeTheoryTerm[ZeroRightIdentity, proved]] === TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], proved]
 	],
 	True,
 	TestID -> "n-plus-zero-is-n-by-computation"
@@ -83,13 +83,13 @@ VerificationTest[
 	With[
 		{
 			proved = TypeTheoryEnvironment[prelude, {
-				TypeTheoryTheorem[AdditionZeroLeft, zeroLeft],
-				TypeTheoryTheorem[AdditionZeroLeftAgain, ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], zeroLeft]
+				TypeTheoryTheorem[ZeroLeftIdentity, zeroLeft],
+				TypeTheoryTheorem[ZeroLeftIdentityAgain, ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], zeroLeft]
 			}]
 		},
 		{
-			TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 7 == 7]],
-			TypeOf[TypeTheoryTerm[AdditionZeroLeftAgain, proved]] === TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], proved],
+			TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]],
+			TypeOf[TypeTheoryTerm[ZeroLeftIdentityAgain, proved]] === TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], proved],
 			TypeTheoryCheck[proved]
 		}
 	],
