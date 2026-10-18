@@ -19,6 +19,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	InductiveRecursor[I]                I_rec
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
+	NaturalNumberPredecessor[n]         n - 1
 
 The display rewrites the syntax tree of the term with these operators, rebuilds it held, and takes its
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
@@ -124,6 +125,8 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :
 	syntaxHead[RightTee, {syntaxHead[Row, {syntaxHead[List, listElements[hypotheses]], syntaxString[", "]}], goal}]
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
+(* the predecessor shows as n - 1, which it is by computation *)
+displayApplication[syntaxSymbol[HoldComplete[NaturalNumberPredecessor]], {argument_}] := syntaxHead[Subtract, {argument, syntaxInteger[1]}]
 (* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
 displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
 	syntaxHead[head, Prepend[rest, first]]
