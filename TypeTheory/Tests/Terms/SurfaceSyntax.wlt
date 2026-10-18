@@ -50,6 +50,23 @@ VerificationTest[
 ]
 
 VerificationTest[
+	Map[
+		Function[term, With[{boxes = ToBoxes[term]}, {
+			Count[boxes, RowBox[{"(", RowBox[{SubscriptBox["\[ForAll]" | "\[Exists]", _], _}] | RowBox[{"\[Not]", _}], ")"}], Infinity],
+			Count[boxes, RowBox[{SubscriptBox["\[ForAll]" | "\[Exists]", _], _}], Infinity]
+		}]],
+		{
+			TypeTheoryTerm[Equivalent[ForAll[{Typed[n, Naturals]}, n == n], ForAll[{Typed[m, Naturals]}, m == m]]],
+			TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n == n] && True && Exists[{Typed[m, Naturals]}, m == m]],
+			TypeTheoryTerm[Not[ForAll[{Typed[n, Naturals]}, n == n]] || True],
+			TypeTheoryTerm[True && ForAll[{Typed[n, Naturals]}, n == n]]
+		}
+	],
+	{{1, 2}, {1, 2}, {1, 1}, {0, 1}},
+	TestID -> "A-quantifier-before-a-connective-is-parenthesized"
+]
+
+VerificationTest[
 	TypeOf[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, h]]],
 	TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], prelude],
 	TestID -> "A-function-type-between-propositions-reads-back-as-Implies"

@@ -63,7 +63,7 @@ typeTheoryBoxes[syntax_, form_] := Block[
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], _}]]
 	},
-	logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
+	quantifiedOperandBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
 
 TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, ___], form : StandardForm | TraditionalForm] := With[
@@ -106,6 +106,26 @@ logicalOperatorBoxes[boxes_] := Replace[
 	},
 	{0, Infinity}
 ]
+
+(* A quantifier reaches as far right as it can, as Lean reads it, but for MakeBoxes ∀ binds tighter than
+   ∧, ∨ and ⧦, so (∀x, p) ∧ q would show as ∀_x p ∧ q. An operand of those that ends with a quantifier,
+   other than the last, is parenthesized, as MakeBoxes already does before ⇒ and ==; a notation given
+   with MakeBoxes is parenthesized too. *)
+quantifiedOperandBoxes[boxes_] := Replace[
+	boxes,
+	RowBox[operands : {_, _String, __}] /; OddQ[Length[operands]] && SubsetQ[$looseOperators, operands[[2 ;; ;; 2]]] :> RowBox[MapIndexed[
+		Function[{operand, position}, If[OddQ[First[position]] && First[position] < Length[operands] && quantifierEndedQ[operand], RowBox[{"(", operand, ")"}], operand]],
+		operands
+	]],
+	{0, Infinity}
+]
+
+$looseOperators = {"\[And]", "\[Or]", "\[Xor]", "\[Equivalent]", "\[Implies]"}
+
+quantifierEndedQ[RowBox[{SubscriptBox["\[ForAll]" | "\[Exists]", _], _}]] := True
+quantifierEndedQ[RowBox[{"\[Not]", operand_}]] := quantifierEndedQ[operand]
+quantifierEndedQ[RowBox[{__, operator_String, last_}]] /; MemberQ[$looseOperators, operator] := quantifierEndedQ[last]
+quantifierEndedQ[_] := False
 
 SetAttributes[privateNameQ, HoldAllComplete]
 privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
