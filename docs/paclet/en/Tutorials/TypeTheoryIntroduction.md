@@ -118,6 +118,34 @@ KeyExistsQ[arithmetic, Doubled]
 
 <!-- => False -->
 
+## Notation
+
+A constant shows as its name, applied to its arguments that are not implicit:
+
+```wl
+TypeTheoryTerm[Doubled[Doubled[5]], doubled]
+```
+
+<!-- => Doubled[Doubled[5]] -->
+
+To show a term, TypeTheory builds that expression, with its parts already shown, and gives it to [MakeBoxes](), so definitions of [MakeBoxes]() give a constant a notation, in terms, declarations and proofs alike. This one shows `Doubled[n]` as [CenterDot]() does `2·n`:
+
+```wl
+MakeBoxes[Doubled[n_], form_] := MakeBoxes[CenterDot[2, n], form];
+TypeTheoryTerm[Function[{Typed[n, Naturals]}, Doubled[n + 1] == n + n + 2], doubled]
+```
+
+<!-- => (n ∶ ℕ) ↦ 2·(n + 1) == n + n + 2 -->
+
+[Format]() gives the constant on its own a display, as here in its declaration:
+
+```wl
+Format[Doubled] := "\[Delta]";
+doubled[Doubled]
+```
+
+<!-- => definition δ : ℕ → ℕ := (n ∶ ℕ) ↦ n + n -->
+
 ## Inductive Types
 
 [TypeTheoryInductiveType]() declares a type by its constructors. Binary trees are either a leaf or a node with two subtrees:

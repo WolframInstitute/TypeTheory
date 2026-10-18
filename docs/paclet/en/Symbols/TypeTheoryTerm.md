@@ -42,6 +42,7 @@ RelatedGuides: [TypeTheory]
 - Any other symbol or string is a bound variable or a declared constant. A symbol whose value is a [TypeTheoryTerm]() stands for that term, and one whose value is a finished [TypeTheoryProof]() stands for its proof.
 - [True](), [False](), [Not](), [And]() and [Or](), and so `!`, `&&` and `||`, stand for the propositions or, in an environment that declares the Booleans, for its constants `"true"`, `"false"`, `"not"`, `"and"` and `"or"`, as the type allows: a proposition where a type or Prop is expected, a Boolean where [Booleans]() is. Elsewhere the arguments decide, or how the term is used. A term that nothing decides is ambiguous, and <code>[Typed]()[*e*, [TypeUniverse]()[0]]</code> or <code>[Typed]()[*e*, [Booleans]()]</code> says which it is, as the string `"true"` or `"not"` does for a Boolean.
 - In a notebook a term shows in mathematical notation, with the term itself behind the display.
+- A constant shows as its symbol or string, applied to its arguments that are not implicit. TypeTheory builds that expression, with its parts already shown, and gives it to [MakeBoxes](), so [MakeBoxes]() definitions give a constant a notation and [Format]() definitions give its symbol a display, in terms, declarations and proofs alike.
 
 ## Basic Examples
 
@@ -161,3 +162,29 @@ TypeOf[TypeTheoryTerm[Typed[True, Booleans]]]
 ```
 
 <!-- => 𝔹 -->
+
+---
+
+[Format]() evaluates the arguments of what it formats, so a bound variable whose symbol has a value shows that value:
+
+```wl
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]];
+Format[Double[a_]] := CenterDot[2, a];
+k = 7;
+TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
+```
+
+<!-- => (k ∶ ℕ) ↦ 2·7 -->
+
+---
+
+[MakeBoxes]() holds them, so a notation for a constant applied to arguments is a definition of [MakeBoxes]():
+
+```wl
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]];
+MakeBoxes[Double[a_], form_] := MakeBoxes[CenterDot[2, a], form];
+k = 7;
+TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
+```
+
+<!-- => (k ∶ ℕ) ↦ 2·k -->

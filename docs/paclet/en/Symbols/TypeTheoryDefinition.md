@@ -59,6 +59,20 @@ TypeOf[TypeTheoryTerm[PolymorphicIdentity[Naturals], identity]]
 
 <!-- => Type -->
 
+---
+
+[MakeBoxes]() definitions give a definition a notation. A term shows the arguments that are not implicit, so the rule matches those:
+
+```wl
+composite = TypeTheoryEnvironment[TypeTheoryDefinition[Composite,
+    Function[{TypedImplicit[A, TypeUniverse[u]], TypedImplicit[B, TypeUniverse[v]], TypedImplicit[C, TypeUniverse[w]], Typed[g, TypeSpecifier[{B} -> C]], Typed[f, TypeSpecifier[{A} -> B]], Typed[x, A]}, g[f[x]]]
+]];
+MakeBoxes[Composite[g_, f_, x_], form_] := MakeBoxes[SmallCircle[g, f][x], form];
+TypeTheoryTerm[Function[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[n, Naturals]}, Composite[f, f, n]], composite]
+```
+
+<!-- => (f ∶ ℕ → ℕ) (n ∶ ℕ) ↦ (f∘f)[n] -->
+
 ## Possible Issues
 
 A definition cannot refer to itself:

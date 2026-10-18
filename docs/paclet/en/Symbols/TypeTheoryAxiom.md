@@ -51,6 +51,24 @@ Information[excludedMiddle, "Axioms"]
 
 <!-- => {ExcludedMiddle} -->
 
+## Scope
+
+[Format]() gives an axiom's symbol a display, which its declaration and every term use:
+
+```wl
+measured = TypeTheoryEnvironment[TypeTheoryAxiom[Measure, TypeSpecifier[{Naturals} -> Naturals]]];
+Format[Measure] := "\[Mu]";
+measured[Measure]
+```
+
+<!-- => axiom μ : ℕ → ℕ -->
+
+```wl
+TypeTheoryTerm[Function[{Typed[n, Naturals]}, Measure[Measure[n]]], measured]
+```
+
+<!-- => (n ∶ ℕ) ↦ μ[μ[n]] -->
+
 ## Possible Issues
 
 An axiom's type must be a type:
