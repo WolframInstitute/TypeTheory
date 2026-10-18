@@ -19,3 +19,6 @@ build/
 *.nb
 *.paclet
 TypeTheory/Documentation/
+
+# PacletPage build output
+TypeTheory/build/
