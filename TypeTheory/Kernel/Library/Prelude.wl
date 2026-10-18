@@ -1,8 +1,9 @@
 (* ::Package:: *)
 
 (*
-The prelude: logic, equality and the natural numbers. It is declared with the Declare functions in the
-surface syntax, so it doubles as an example of them, and $TypeTheoryEnvironment starts as the prelude.
+The prelude: logic, equality and the natural numbers, written as a list of declarations in the surface
+syntax, so it doubles as an example of them. TypeTheoryEnvironment["Prelude"] gives its environment,
+built and checked when the paclet loads.
 
 The connectives are built-in symbols, so terms read as ordinary mathematics:
 
@@ -48,6 +49,8 @@ PackageExported[EqualitySubstitution]
 
 
 PackageScoped[preludeEnvironment]
+PackageScoped[$preludeDeclarations]
+PackageScoped[$preludeEnvironment]
 
 
 (* ::Section:: *)
@@ -70,18 +73,20 @@ EqualityTransitivity::usage = "EqualityTransitivity[h1, h2] proves x == z from p
 EqualityCongruence::usage = "EqualityCongruence[f, h] proves f[x] == f[y] from a proof h of x == y."
 EqualitySubstitution::usage = "EqualitySubstitution[h, p] proves P[y] from a proof h of x == y and a proof p of P[x]."
 
-preludeEnvironment::usage = "preludeEnvironment[] gives the environment of the prelude, built and checked from scratch."
+preludeEnvironment::usage = "preludeEnvironment[] gives the environment of the prelude, built and checked when the paclet loads."
+$preludeDeclarations::usage = "$preludeDeclarations is the list of the prelude's declarations, in order."
+$preludeEnvironment::usage = "$preludeEnvironment is the environment of the prelude."
 
 
 (* ::Section:: *)
 (*Function Definitions*)
 
 
-preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironment[]},
-	Confirm @ DeclareInductiveType[True, TypeUniverse[0], {TrueIntroduction -> True}];
-	Confirm @ DeclareInductiveType[False, TypeUniverse[0], {}];
-	Confirm @ DeclareDefinition[Not, Function[{Typed[\[FormalA], TypeUniverse[0]]}, Implies[\[FormalA], False]]];
-	Confirm @ DeclareInductiveType[
+$preludeDeclarations = {
+	TypeTheoryInductiveType[True, TypeUniverse[0], {TrueIntroduction -> True}],
+	TypeTheoryInductiveType[False, TypeUniverse[0], {}],
+	TypeTheoryDefinition[Not, Function[{Typed[\[FormalA], TypeUniverse[0]]}, Implies[\[FormalA], False]]],
+	TypeTheoryInductiveType[
 		And,
 		ForAll[{Typed[\[FormalA], TypeUniverse[0]], Typed[\[FormalB], TypeUniverse[0]]}, TypeUniverse[0]],
 		{
@@ -95,8 +100,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				And[\[FormalA], \[FormalB]]
 			]
 		}
-	];
-	Confirm @ DeclareInductiveType[
+	],
+	TypeTheoryInductiveType[
 		Or,
 		ForAll[{Typed[\[FormalA], TypeUniverse[0]], Typed[\[FormalB], TypeUniverse[0]]}, TypeUniverse[0]],
 		{
@@ -109,8 +114,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				Or[\[FormalA], \[FormalB]]
 			]
 		}
-	];
-	Confirm @ DeclareInductiveType[
+	],
+	TypeTheoryInductiveType[
 		Equal,
 		ForAll[{Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"], Typed[\[FormalX], \[FormalAlpha]], Typed[\[FormalY], \[FormalAlpha]]}, TypeUniverse[0]],
 		{
@@ -119,8 +124,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalX] == \[FormalX]
 			]
 		}
-	];
-	Confirm @ DeclareInductiveType[
+	],
+	TypeTheoryInductiveType[
 		Exists,
 		ForAll[
 			{Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"], Typed[\[FormalCapitalP], TypeSpecifier[{\[FormalAlpha]} -> TypeUniverse[0]]]},
@@ -137,17 +142,17 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				Exists[\[FormalCapitalP]]
 			]
 		}
-	];
-	Confirm @ DeclareInductiveType[
+	],
+	TypeTheoryInductiveType[
 		NonNegativeIntegers,
 		TypeUniverse[1],
 		{
 			NaturalNumberZero -> NonNegativeIntegers,
 			NaturalNumberSuccessor -> ForAll[{Typed[\[FormalN], NonNegativeIntegers]}, NonNegativeIntegers]
 		}
-	];
+	],
 	(* addition by recursion on the second argument, the form registerNaturalNumbers requires *)
-	Confirm @ DeclareDefinition[
+	TypeTheoryDefinition[
 		Plus,
 		Typed[
 			Function[{Typed[\[FormalM], NonNegativeIntegers], Typed[\[FormalN], NonNegativeIntegers]},
@@ -160,21 +165,16 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 			],
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
 		]
-	];
-	$TypeTheoryEnvironment = Confirm @ catchKernelFailure @ registerNaturalNumbers[$TypeTheoryEnvironment, <|
-		"Type" -> HoldComplete[NonNegativeIntegers],
-		"Zero" -> HoldComplete[NaturalNumberZero],
-		"Successor" -> HoldComplete[NaturalNumberSuccessor],
-		"Addition" -> HoldComplete[Plus]
-	|>];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, Plus],
+	TypeTheoryTheorem[
 		FalseElimination,
 		ForAll[{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"]}, Implies[False, \[FormalA]]],
 		Function[{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Typed[\[FormalH], False]},
 			InductiveRecursor[False][Function[{Typed[\[FormalT], False]}, \[FormalA]], \[FormalH]]
 		]
-	];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryTheorem[
 		AndEliminationLeft,
 		ForAll[
 			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"]},
@@ -188,8 +188,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalH]
 			]
 		]
-	];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryTheorem[
 		AndEliminationRight,
 		ForAll[
 			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"]},
@@ -203,8 +203,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalH]
 			]
 		]
-	];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryTheorem[
 		EqualitySymmetry,
 		ForAll[
 			{
@@ -227,8 +227,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalH]
 			]
 		]
-	];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryTheorem[
 		EqualityTransitivity,
 		ForAll[
 			{
@@ -254,8 +254,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalK]
 			]
 		]
-	];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryTheorem[
 		EqualityCongruence,
 		ForAll[
 			{
@@ -282,8 +282,8 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalH]
 			]
 		]
-	];
-	Confirm @ DeclareTheorem[
+	],
+	TypeTheoryTheorem[
 		EqualitySubstitution,
 		ForAll[
 			{
@@ -309,6 +309,7 @@ preludeEnvironment[] := Enclose @ Block[{$TypeTheoryEnvironment = emptyEnvironme
 				\[FormalH]
 			]
 		]
-	];
-	$TypeTheoryEnvironment
-]
+	]
+}
+
+preludeEnvironment[] := $preludeEnvironment

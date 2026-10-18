@@ -22,7 +22,7 @@ The display rewrites the syntax tree of the term with these operators, rebuilds 
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display.
 
 A TypeTheoryProof shows its open goals as a list of hypotheses over the goal, as in a proof assistant's
-goal view.
+goal view. A declaration shows as its keyword, its name and its type, as in a proof assistant's source.
 *)
 
 
@@ -48,7 +48,7 @@ displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term
 
 typeTheoryBoxes[syntax_, form_] := Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 
-TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_], form : StandardForm | TraditionalForm] := With[
+TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, ___], form : StandardForm | TraditionalForm] := With[
 	{boxes = typeTheoryBoxes[toSyntax[expression], form]},
 	InterpretationBox[boxes, term]
 ]
@@ -137,3 +137,45 @@ goalPanel[data_, goal_, form_] := Replace[Quiet @ catchKernelFailure[goalDisplay
 	]],
 	_ :> Style["The goal " <> ToString[goal] <> " cannot be displayed.", StandardRed]
 }]
+
+
+(* ::Subsection:: *)
+(*Declarations*)
+
+
+TypeTheoryAxiom /: MakeBoxes[declaration : TypeTheoryAxiom[name_, type_, ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, "axiom", {{toSyntax[name], toSyntax[type]}}, form]
+
+TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, Typed[value_, type_], ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, "definition", {{toSyntax[name], toSyntax[type], toSyntax[value]}}, form]
+TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, value_, ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, "definition", {{toSyntax[name], None, toSyntax[value]}}, form]
+
+TypeTheoryTheorem /: MakeBoxes[declaration : TypeTheoryTheorem[name_, statement_, Except[_Rule | _RuleDelayed], ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, "theorem", {{toSyntax[name], toSyntax[statement]}}, form]
+
+TypeTheoryInductiveType /: MakeBoxes[declaration : TypeTheoryInductiveType[name_, type_, constructors_List, ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[
+		declaration,
+		"inductive",
+		Prepend[
+			Cases[Unevaluated[constructors], (Rule | RuleDelayed)[constructor_, constructorType_] :> {toSyntax[constructor], toSyntax[constructorType]}],
+			{toSyntax[name], toSyntax[type]}
+		],
+		form
+	]
+
+(* the keyword, then name : type (:= value), with each constructor of an inductive type on a line of its own *)
+declarationBoxes[declaration_, keyword_String, {first_, constructors___}, form_] := With[
+	{
+		rows = Join[
+			{Join[{StyleBox[keyword, FontWeight -> Bold, FontColor -> StandardBlue]}, declarationRow[first, form]]},
+			Function[constructor, Join[{"|"}, declarationRow[constructor, form]]] /@ {constructors}
+		]
+	},
+	InterpretationBox[GridBox[rows, GridBoxAlignment -> {"Columns" -> {{Left}}}, GridBoxSpacings -> {"Columns" -> {{0.6}}}], declaration]
+]
+
+declarationRow[{name_, type_}, form_] := {typeTheoryBoxes[name, form], ":", typeTheoryBoxes[type, form]}
+declarationRow[{name_, None, value_}, form_] := {typeTheoryBoxes[name, form], ":=", typeTheoryBoxes[value, form]}
+declarationRow[{name_, type_, value_}, form_] := {typeTheoryBoxes[name, form], ":", RowBox[{typeTheoryBoxes[type, form], " := ", typeTheoryBoxes[value, form]}]}

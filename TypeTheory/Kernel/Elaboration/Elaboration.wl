@@ -162,7 +162,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[leftFold[head, arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
+	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] :> applyExplicitly[elaborateHead[head], {arguments}, head],
+	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
+	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[heldFromSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
 	syntaxInteger[n_Integer?NonNegative] :> {naturalLiteral[n], naturalNumberTypeForElaboration[syntax]},
@@ -179,7 +182,7 @@ leftFold[head_, arguments_List] := Fold[
 	Rest[arguments]
 ]
 
-declaredConstantSyntaxQ[syntax : (_syntaxSymbol | _syntaxApplication)] := constantDeclaredQ[$elaborationEnvironment, heldFromSyntax[syntax]]
+declaredConstantSyntaxQ[syntax : (_syntaxSymbol | _syntaxString | _syntaxApplication)] := constantDeclaredQ[$elaborationEnvironment, heldFromSyntax[syntax]]
 declaredConstantSyntaxQ[_] := False
 
 SetAttributes[{storedValueQ, elaborateStoredValue}, HoldFirst]
@@ -187,7 +190,7 @@ storedValueQ[symbol_Symbol] := MatchQ[OwnValues[symbol], {Verbatim[RuleDelayed][
 
 (* a finished proof is already a core term, which finishElaboration checks again like any other *)
 elaborateStoredValue[symbol_Symbol, expected_] := Replace[First[OwnValues[symbol]], {
-	Verbatim[RuleDelayed][_, term_TypeTheoryTerm] :> elaborateSyntax[toSyntax @@ term, expected],
+	Verbatim[RuleDelayed][_, term_TypeTheoryTerm] :> elaborateSyntax[termSyntax[term], expected],
 	Verbatim[RuleDelayed][_, proof : TypeTheoryProof[_Association]] :> {completedProofTerm[proof], proofStatement[proof]}
 }]
 
@@ -233,6 +236,8 @@ insertImplicitArguments[{term_, type_}] := Replace[
 ]
 
 elaborateHead[syntax : syntaxSymbol[held_]] /; ! KeyExistsQ[$elaborationScope, held] && declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[held]
+elaborateHead[syntax : syntaxString[name_]] /; ! KeyExistsQ[$elaborationScope, HoldComplete[name]] && declaredConstantSyntaxQ[syntax] :=
+	constantWithFreshLevels[HoldComplete[name]]
 elaborateHead[syntax_syntaxApplication] /; declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[heldFromSyntax[syntax]]
 elaborateHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}]] := constantWithLevels[constant, {levels}]
 elaborateHead[syntax_] := elaborateSyntax[syntax, None]
@@ -291,6 +296,35 @@ checkAgainst[syntax_, expected_] := With[{result = elaborateSyntax[syntax, expec
 	First[result]
 ]
 
+(* Construct[f, a, ...]: each argument fills the next binder, implicit or not, and nothing is filled in *)
+applyExplicitly[{function_, functionType_}, {}, _] := {function, functionType}
+applyExplicitly[{function_, functionType_}, {argument_, rest___}, headSyntax_] := Replace[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[functionType]],
+	{
+		dependentFunctionType[_, domain_, codomain_, _] :> With[{value = checkAgainst[argument, domain]},
+			applyExplicitly[{application[function, value], instantiateBoundVariable[codomain, value]}, {rest}, headSyntax]
+		],
+		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
+	}
+]
+
+(* t[[i]]: the field i of t, whose type must be a structure *)
+elaborateProjection[structureSyntax_, index_Integer] := With[{elaborated = elaborateSyntax[structureSyntax, None]},
+	With[
+		{
+			structure = Replace[
+				First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[elaborated]]]],
+				{
+					constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name,
+					_ :> elaborationFailure["The type of `1` is not a structure, so it has no fields.", structureSyntax]
+				}
+			]
+		},
+		{projected = projection[structure, index - 1, First[elaborated]]},
+		{projected, inferType[$elaborationEnvironment, $elaborationContext, projected]}
+	]
+]
+
 
 (* ::Subsection:: *)
 (*Binders*)
@@ -318,9 +352,11 @@ openBinder[state_Association, binder_] := Block[{$elaborationContext = state["Co
 ]
 
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[name_], type_}]] := <|"Name" -> name, "Type" -> type, "Binder" -> "Explicit"|>
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString[name_], type_}]] := <|"Name" -> HoldComplete[name], "Type" -> type, "Binder" -> "Explicit"|>
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, syntaxString[kind : "Implicit" | "StrictImplicit" | "InstanceImplicit"]}]] :=
 	Append[parseBinder[binder], "Binder" -> kind]
 parseBinder[syntaxSymbol[name_]] := <|"Name" -> name, "Type" -> None, "Binder" -> "Explicit"|>
+parseBinder[syntaxString[name_]] := <|"Name" -> HoldComplete[name], "Type" -> None, "Binder" -> "Explicit"|>
 parseBinder[other_] := elaborationFailure["`1` is not a binder: write Typed[x, type] or Annotation[Typed[x, type], \"Implicit\"].", other]
 
 expectedDomain[expected_, binder_] := Replace[
@@ -382,6 +418,8 @@ elaborateAscription[term_, type_] := With[{elaboratedType = elaborateTypeSyntax[
 ]
 
 elaborateWith[{}, body_, expected_] := elaborateSyntax[body, expected]
+elaborateWith[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {syntaxString[name_], value_}], rest___}, body_, expected_] :=
+	elaborateWith[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {syntaxSymbol[HoldComplete[name]], value}], rest}, body, expected]
 elaborateWith[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {syntaxSymbol[name_], value_}], rest___}, body_, expected_] :=
 	With[{definition = elaborateSyntax[value, None]},
 		Block[{$elaborationScope = Append[$elaborationScope, name -> definition]},
@@ -397,6 +435,7 @@ elaborateWith[{other_, ___}, _, _] := elaborationFailure["`1` is not a binding: 
 
 elaborateLevel[syntaxInteger[n_Integer?NonNegative]] := n
 elaborateLevel[syntaxSymbol[held_]] /; MemberQ[$universeParameterNames, held] := levelParameter[held]
+elaborateLevel[syntaxString[name_]] /; MemberQ[$universeParameterNames, HoldComplete[name]] := levelParameter[HoldComplete[name]]
 elaborateLevel[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[k_Integer?NonNegative]}]] := normalizeLevel[levelSuccessor[elaborateLevel[level], k]]
 elaborateLevel[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {syntaxInteger[k_Integer?NonNegative], level_}]] := normalizeLevel[levelSuccessor[elaborateLevel[level], k]]
 elaborateLevel[syntaxApplication[syntaxSymbol[HoldComplete[Max]], levels_List]] := normalizeLevel[levelMaximum @@ (elaborateLevel /@ levels)]

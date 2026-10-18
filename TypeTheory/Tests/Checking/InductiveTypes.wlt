@@ -1,70 +1,77 @@
 (* ::Package:: *)
 
 (* Tests for Checking/InductiveTypes.wl: declaring inductive families, the checks that reject unsound
-   ones, and the generated recursors. Each test declares into its own copy of the environment. *)
+   ones, and the generated recursors. *)
 
 PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
-SetAttributes[withPrelude, HoldAll]
-withPrelude[body_] := Block[{$TypeTheoryEnvironment = $TypeTheoryEnvironment}, body]
+prelude = TypeTheoryEnvironment["Prelude"]
 
 
 (* === accepted declarations === *)
 
 VerificationTest[
-	withPrelude[
-		DeclareInductiveType[NaturalList, TypeUniverse[1], {EmptyList -> NaturalList, ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]}];
-		DeclareDefinition[
-			ListLength,
-			Typed[
-				Function[{Typed[l, NaturalList]},
-					InductiveRecursor[NaturalList][
-						Function[{Typed[x, NaturalList]}, NonNegativeIntegers],
-						0,
-						Function[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList], Typed[r, NonNegativeIntegers]}, r + 1],
-						l
+	With[
+		{
+			lists = TypeTheoryEnvironment[prelude, {
+				TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {EmptyList -> NaturalList, ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]}],
+				TypeTheoryDefinition[
+					ListLength,
+					Typed[
+						Function[{Typed[l, NaturalList]},
+							InductiveRecursor[NaturalList][
+								Function[{Typed[x, NaturalList]}, NonNegativeIntegers],
+								0,
+								Function[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList], Typed[r, NonNegativeIntegers]}, r + 1],
+								l
+							]
+						],
+						TypeSpecifier[{NaturalList} -> NonNegativeIntegers]
 					]
-				],
-				TypeSpecifier[{NaturalList} -> NonNegativeIntegers]
-			]
-		];
-		WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]]]]
+				]
+			}]
+		},
+		WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]] === TypeTheoryTerm[3, lists]
 	],
-	TypeTheoryTerm[3],
+	True,
 	TestID -> "A-recursor-computes-on-constructors"
 ]
 
 VerificationTest[
-	withPrelude[
-		DeclareInductiveType[
-			PolymorphicList,
-			ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
-			{
-				PolymorphicEmpty -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"]}, PolymorphicList[A]],
-				PolymorphicCons -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[h, A], Typed[t, PolymorphicList[A]]}, PolymorphicList[A]]
-			}
-		];
-		TypeOf[TypeTheoryTerm[PolymorphicCons[1, PolymorphicEmpty]]]
+	With[
+		{
+			lists = Append[prelude, TypeTheoryInductiveType[
+				PolymorphicList,
+				ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+				{
+					PolymorphicEmpty -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"]}, PolymorphicList[A]],
+					PolymorphicCons -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[h, A], Typed[t, PolymorphicList[A]]}, PolymorphicList[A]]
+				}
+			]]
+		},
+		TypeOf[TypeTheoryTerm[PolymorphicCons[1, PolymorphicEmpty], lists]] === TypeTheoryTerm[PolymorphicList[NonNegativeIntegers], lists]
 	],
-	TypeTheoryTerm[PolymorphicList[NonNegativeIntegers]],
+	True,
 	TestID -> "A-parameter-is-found-and-inferred-at-each-use"
 ]
 
 VerificationTest[
-	withPrelude[
-		DeclareInductiveType[
-			NaturalVector,
-			ForAll[{Typed[n, NonNegativeIntegers]}, TypeUniverse[1]],
-			{
-				VectorEmpty -> NaturalVector[0],
-				VectorCons -> ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Typed[h, NonNegativeIntegers], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
-			}
-		];
+	With[
 		{
-			TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]]], TypeTheoryTerm[NaturalVector[2]]],
-			FailureQ @ TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorEmpty]], TypeTheoryTerm[NaturalVector[2]]]
+			vectors = Append[prelude, TypeTheoryInductiveType[
+				NaturalVector,
+				ForAll[{Typed[n, NonNegativeIntegers]}, TypeUniverse[1]],
+				{
+					VectorEmpty -> NaturalVector[0],
+					VectorCons -> ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Typed[h, NonNegativeIntegers], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
+				}
+			]]
+		},
+		{
+			TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vectors], TypeTheoryTerm[NaturalVector[2]]],
+			FailureQ @ TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorEmpty], vectors], TypeTheoryTerm[NaturalVector[2]]]
 		}
 	],
 	{True, True},
@@ -75,25 +82,25 @@ VerificationTest[
 (* === rejected declarations === *)
 
 VerificationTest[
-	withPrelude[First @ DeclareInductiveType[Bad, TypeUniverse[1], {BadIntroduction -> ForAll[{Typed[f, TypeSpecifier[{Bad} -> False]]}, Bad]}]],
+	First @ Append[prelude, TypeTheoryInductiveType[Bad, TypeUniverse[1], {BadIntroduction -> ForAll[{Typed[f, TypeSpecifier[{Bad} -> False]]}, Bad]}]],
 	"NonPositiveOccurrence",
 	TestID -> "A-negative-occurrence-is-rejected"
 ]
 
 VerificationTest[
-	withPrelude[First @ DeclareInductiveType[Big, TypeUniverse[1], {BigIntroduction -> ForAll[{Typed[t, TypeUniverse[1]]}, Big]}]],
+	First @ Append[prelude, TypeTheoryInductiveType[Big, TypeUniverse[1], {BigIntroduction -> ForAll[{Typed[t, TypeUniverse[1]]}, Big]}]],
 	"UniverseTooLarge",
 	TestID -> "A-field-in-a-larger-universe-is-rejected"
 ]
 
 VerificationTest[
-	withPrelude[First @ DeclareInductiveType[Odd, TypeUniverse[1], {OddIntroduction -> NonNegativeIntegers}]],
+	First @ Append[prelude, TypeTheoryInductiveType[Odd, TypeUniverse[1], {OddIntroduction -> NonNegativeIntegers}]],
 	"ConstructorResult",
 	TestID -> "A-constructor-must-build-its-own-type"
 ]
 
 VerificationTest[
-	withPrelude[First @ DeclareInductiveType[Twice, TypeUniverse[1], {TwiceIntroduction -> Twice, TwiceIntroduction -> Twice}]],
+	First @ Append[prelude, TypeTheoryInductiveType[Twice, TypeUniverse[1], {TwiceIntroduction -> Twice, TwiceIntroduction -> Twice}]],
 	"DuplicateConstructor",
 	TestID -> "Constructor-names-must-be-distinct"
 ]
@@ -107,7 +114,7 @@ VerificationTest[
 		Function[{Typed[p, True]}, 0],
 		Function[{Typed[q, True]}, 1],
 		OrIntroductionLeft[TrueIntroduction]
-	]]],
+	], prelude]],
 	"TypeMismatch",
 	TestID -> "A-proof-of-a-disjunction-cannot-choose-a-number"
 ]
@@ -117,14 +124,14 @@ VerificationTest[
 		Function[{Typed[t, And[True, True]]}, NonNegativeIntegers],
 		Function[{Typed[p, True], Typed[q, True]}, 7],
 		AndIntroduction[TrueIntroduction, TrueIntroduction]
-	]]],
-	TypeTheoryTerm[7],
+	], prelude]],
+	TypeTheoryTerm[7, prelude],
 	TestID -> "A-conjunction-eliminates-into-any-universe"
 ]
 
 VerificationTest[
 	TypeTheoryCheck[
-		TypeTheoryTerm[Function[{Typed[h, 2 + 2 == 4]}, InductiveRecursor[Equal][Function[{Typed[y, NonNegativeIntegers], Typed[e, 4 == y]}, NonNegativeIntegers], 7, h]]],
+		TypeTheoryTerm[Function[{Typed[h, 2 + 2 == 4]}, InductiveRecursor[Equal][Function[{Typed[y, NonNegativeIntegers], Typed[e, 4 == y]}, NonNegativeIntegers], 7, h]], prelude],
 		TypeTheoryTerm[TypeSpecifier[{2 + 2 == 4} -> NonNegativeIntegers]]
 	],
 	True,
@@ -133,7 +140,7 @@ VerificationTest[
 
 VerificationTest[
 	DefinitionallyEqualQ[
-		TypeTheoryTerm[Function[{Typed[h, 4 == 4]}, InductiveRecursor[Equal][Function[{Typed[y, NonNegativeIntegers], Typed[e, 4 == y]}, NonNegativeIntegers], 7, h]]],
+		TypeTheoryTerm[Function[{Typed[h, 4 == 4]}, InductiveRecursor[Equal][Function[{Typed[y, NonNegativeIntegers], Typed[e, 4 == y]}, NonNegativeIntegers], 7, h]], prelude],
 		TypeTheoryTerm[Function[{Typed[h, 4 == 4]}, 7]]
 	],
 	True,

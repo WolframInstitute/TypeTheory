@@ -36,6 +36,7 @@ PackageScoped[extendContext]
 PackageScoped[makeLambda]
 PackageScoped[makeDependentFunctionType]
 PackageScoped[toConstructorForm]
+PackageScoped[structureLikeQ]
 PackageScoped[$metavariableTypes]
 PackageScoped[$metavariableAssignments]
 
@@ -54,6 +55,8 @@ extendContext::usage = "extendContext[context, id, HoldComplete[name], type, bin
 makeLambda::usage = "makeLambda[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into functions."
 makeDependentFunctionType::usage = "makeDependentFunctionType[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into a function type."
 toConstructorForm::usage = "toConstructorForm[environment, term] writes a natural literal as a constructor application, and gives any other term unchanged."
+structureLikeQ::usage = "structureLikeQ[environment, HoldComplete[name]] gives True if name is a structure: an inductive type with one constructor, \
+no indices and no recursive fields, whose fields projections read."
 $metavariableTypes::usage = "$metavariableTypes is the Association from metavariable identifiers to their types while elaborating."
 $metavariableAssignments::usage = "$metavariableAssignments is the Association from metavariable identifiers to their solutions while elaborating."
 
@@ -98,6 +101,7 @@ inferType[environment_, context_, term_] := Replace[term, {
 	lambdaAbstraction[name_, domain_, body_, binder_] :> lambdaType[environment, context, name, domain, body, binder],
 	dependentFunctionType[name_, domain_, codomain_, binder_] :> functionTypeSort[environment, context, name, domain, codomain, binder],
 	localDefinition[name_, type_, value_, body_] :> localDefinitionType[environment, context, type, value, body],
+	projection[structure_, index_Integer?NonNegative, structureTerm_] :> projectionType[environment, context, structure, index, structureTerm],
 	_ :> kernelFailure["IllFormedTerm", "`1` is not a term.", {term}]
 }]
 
@@ -175,6 +179,75 @@ sortLevel[environment_, context_, type_] := Replace[
 
 
 (* ::Subsection:: *)
+(*Projections*)
+
+
+structureLikeQ[environment_, name_HoldComplete] := And[
+	constantDeclaredQ[environment, name],
+	MatchQ[
+		constantRecord[environment, name],
+		KeyValuePattern[{"Kind" -> "InductiveType", "Constructors" -> {_}, "NumberOfIndices" -> 0, "Recursive" -> False}]
+	]
+]
+
+(* The type of field index of a term of a structure: the constructor's type with the structure's
+   parameters and the earlier fields, as projections of the term, filled in. A proof of a proposition
+   only yields proofs, nor a proof whose type depends on a field that is data: projecting data out of a
+   proof would contradict proof irrelevance. These are the rules of Lean 4's kernel. *)
+projectionType[environment_, context_, structure_, index_, structureTerm_] := Module[
+	{structureType, head, parameters, record, fieldsType, fieldType, propositionQ},
+	structureType = weakHeadNormalForm[environment, context, inferType[environment, context, structureTerm]];
+	{head, parameters} = applicationSpine[structureType];
+	If[ ! MatchQ[head, constantReference[structure, _]] || ! structureLikeQ[environment, structure],
+		kernelFailure["ProjectionType", "The type of `1` is not the structure `2`.", {displayCoreTerm[environment, context, structureTerm], HoldForm @@ structure}]
+	];
+	record = constantRecord[environment, structure];
+	fieldsType = Fold[
+		Function[{type, value}, instantiateLeadingBinder[environment, context, type, value]],
+		instantiateUniverseParameters[constantRecord[environment, First[record["Constructors"]]]["Type"], record["UniverseParameters"], Last[head]],
+		parameters
+	];
+	propositionQ = levelEquivalentQ[sortLevel[environment, context, structureType], 0];
+	fieldType = Fold[
+		Function[{type, earlier}, instantiateEarlierField[environment, context, structure, structureTerm, propositionQ, type, earlier]],
+		fieldsType,
+		Range[0, index - 1]
+	];
+	Replace[weakHeadNormalForm[environment, context, fieldType], {
+		dependentFunctionType[_, domain_, _, _] :> (
+			If[ propositionQ && ! levelEquivalentQ[sortLevel[environment, context, domain], 0],
+				projectionFromProofFailure[environment, context, structureTerm]
+			];
+			domain
+		),
+		_ :> kernelFailure["ProjectionIndex", "The structure `1` has no field `2`.", {HoldForm @@ structure, index + 1}]
+	}]
+]
+
+instantiateEarlierField[environment_, context_, structure_, structureTerm_, propositionQ_, type_, earlier_Integer] := Replace[
+	weakHeadNormalForm[environment, context, type],
+	{
+		dependentFunctionType[_, domain_, codomain_, _] /; boundVariableOccursQ[codomain, 0] :> (
+			If[ propositionQ && ! levelEquivalentQ[sortLevel[environment, context, domain], 0],
+				projectionFromProofFailure[environment, context, structureTerm]
+			];
+			instantiateBoundVariable[codomain, projection[structure, earlier, structureTerm]]
+		),
+		dependentFunctionType[_, _, codomain_, _] :> instantiateBoundVariable[codomain, projection[structure, earlier, structureTerm]],
+		other_ :> kernelFailure["FunctionExpected", "`1` is not a function type.", {displayCoreTerm[environment, context, other]}]
+	}
+]
+
+projectionFromProofFailure[environment_, context_, structureTerm_] :=
+	kernelFailure["ProjectionFromProof", "`1` is a proof, so only proofs that do not depend on data can be projected out of it.", {displayCoreTerm[environment, context, structureTerm]}]
+
+instantiateLeadingBinder[environment_, context_, type_, value_] := Replace[weakHeadNormalForm[environment, context, type], {
+	dependentFunctionType[_, _, codomain_, _] :> instantiateBoundVariable[codomain, value],
+	other_ :> kernelFailure["FunctionExpected", "`1` is not a function type.", {displayCoreTerm[environment, context, other]}]
+}]
+
+
+(* ::Subsection:: *)
 (*Reduction*)
 
 
@@ -190,6 +263,8 @@ reduceSpine[_, _, _, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, i
 	makeApplication[$metavariableAssignments[id], arguments]
 reduceSpine[environment_, context_, term_, constantReference[name_, levels_List], arguments_List] :=
 	reduceConstant[environment, context, term, name, levels, arguments]
+reduceSpine[environment_, context_, term_, projection[structure_, index_, structureTerm_], arguments_List] :=
+	reduceProjection[environment, context, term, structure, index, structureTerm, arguments]
 reduceSpine[_, _, term_, _, _] := term
 
 reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := With[{record = constantRecord[environment, name]},
@@ -207,6 +282,18 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Wit
 
 unfoldDefinition[record_, levels_, arguments_] :=
 	makeApplication[instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels], arguments]
+
+(* a projection of the constructor applied to its parameters and fields is that field *)
+reduceProjection[environment_, context_, term_, structure_, index_, structureTerm_, arguments_List] := With[
+	{record = constantRecord[environment, structure]},
+	Replace[applicationSpine[weakHeadNormalForm[environment, context, structureTerm]], {
+		{constantReference[constructor_, _], constructorArguments_List} /; And[
+			record["Constructors"] === {constructor},
+			Length[constructorArguments] == record["NumberOfParameters"] + constantRecord[environment, constructor]["NumberOfFields"]
+		] :> makeApplication[First @ Drop[constructorArguments, record["NumberOfParameters"] + index], arguments],
+		_ :> term
+	}]
+]
 
 additionQ[environment_, name_] := MatchQ[naturalNumberSettings[environment], KeyValuePattern["Addition" -> name]]
 
@@ -338,8 +425,47 @@ normalFormsEqualQ[environment_, context_, a_, b_] := Which[
 	MatchQ[a, _naturalLiteral] || MatchQ[b, _naturalLiteral],
 		literalEqualQ[environment, context, a, b],
 	True,
-		spinesEqualQ[environment, context, a, b]
+		spinesEqualQ[environment, context, a, b] || structureEtaQ[environment, context, a, b] || structureEtaQ[environment, context, b, a] || unitEqualQ[environment, context, a, b]
 ]
+
+(* eta for structures: S.mk[params, fields] equals t of the same type when each field equals that projection of t *)
+structureEtaQ[environment_, context_, constructorApplication_, other_] := With[{spine = applicationSpine[constructorApplication]},
+	Replace[First[spine], {
+		constantReference[constructor_, _] /; structureConstructorQ[environment, constructor, Length[Last[spine]]] :> With[
+			{
+				structure = constantRecord[environment, constructor]["InductiveType"],
+				fields = Drop[Last[spine], constantRecord[environment, constructor]["NumberOfParameters"]]
+			},
+			And[
+				definitionallyEqualQ[environment, context, inferType[environment, context, constructorApplication], inferType[environment, context, other]],
+				AllTrue[
+					Transpose[{Range[0, Length[fields] - 1], fields}],
+					Function[pair, definitionallyEqualQ[environment, context, Last[pair], projection[structure, First[pair], other]]]
+				]
+			]
+		],
+		_ :> False
+	}]
+]
+
+structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := With[{record = constantRecord[environment, constructor]},
+	And[
+		record["Kind"] === "Constructor",
+		structureLikeQ[environment, record["InductiveType"]],
+		numberOfArguments == record["NumberOfParameters"] + record["NumberOfFields"]
+	]
+]
+
+(* any two terms of a structure with no fields are equal, unless it is a proposition, where proof irrelevance decides *)
+unitEqualQ[environment_, context_, a_, b_] := With[{type = weakHeadNormalForm[environment, context, inferType[environment, context, a]]},
+	Replace[First @ applicationSpine[type], {
+		constantReference[structure_, _] /; structureLikeQ[environment, structure] && unitStructureQ[environment, structure] :>
+			definitionallyEqualQ[environment, context, type, inferType[environment, context, b]],
+		_ :> False
+	}]
+]
+
+unitStructureQ[environment_, structure_] := constantRecord[environment, First[constantRecord[environment, structure]["Constructors"]]]["NumberOfFields"] === 0
 
 etaEqualQ[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_], other_] := With[{id = freshFreeVariable[]},
 	definitionallyEqualQ[
@@ -369,6 +495,8 @@ headsEqualQ[_, _, constantReference[name_, levels_List], constantReference[name_
 	Length[levels] == Length[otherLevels] && AllTrue[Transpose[{levels, otherLevels}], Apply[levelEquivalentQ]]
 headsEqualQ[_, _, freeVariable[id_], freeVariable[id_]] := True
 headsEqualQ[_, _, metavariable[id_], metavariable[id_]] := True
+headsEqualQ[environment_, context_, projection[structure_, index_, first_], projection[structure_, index_, second_]] :=
+	definitionallyEqualQ[environment, context, first, second]
 headsEqualQ[_, _, _, _] := False
 
 proofIrrelevantEqualQ[environment_, context_, a_, b_] := With[{typeA = inferType[environment, context, a]},

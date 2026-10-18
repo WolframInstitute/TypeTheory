@@ -1,5 +1,8 @@
 (* ::Package:: *)
 
-(* Runs after every other file: the default environment is the prelude, built and checked on loading. *)
+(* Runs after every other file: the empty environment, and the prelude, built and checked on loading.
+   Both are kept for the session, so their stores are not reported to any cleanup. *)
 
-$TypeTheoryEnvironment = preludeEnvironment[]
+$emptyEnvironment = withoutStoreTracking[emptyEnvironment[]]
+
+$preludeEnvironment = withoutStoreTracking[TypeTheoryEnvironment[$emptyEnvironment, $preludeDeclarations]]

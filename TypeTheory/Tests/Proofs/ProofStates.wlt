@@ -7,10 +7,9 @@ PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
-SetAttributes[withPrelude, HoldAll]
-withPrelude[body_] := Block[{$TypeTheoryEnvironment = $TypeTheoryEnvironment}, body]
+prelude = TypeTheoryEnvironment["Prelude"]
 
-zeroLeft = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {
+zeroLeft = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {
 	TypeTheoryTactic["Introduce", n],
 	TypeTheoryTactic["Induction", n],
 	TypeTheoryTactic["Reflexivity"],
@@ -20,37 +19,51 @@ zeroLeft = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], 
 
 
 VerificationTest[
-	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]["Goals"],
-	{TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]},
+	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]["Goals"],
+	{TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]], prelude]},
 	TestID -> "A-proof-starts-with-its-statement-as-the-goal"
 ]
 
 VerificationTest[
-	TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]["Goals"],
-	{TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]},
+	TypeTheoryProof[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]]["Goals"],
+	{TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]], prelude]},
+	TestID -> "A-proof-of-a-TypeTheoryTerm-takes-its-environment"
+]
+
+VerificationTest[
+	TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]]["Goals"],
+	{TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]},
 	TestID -> "Introduce-moves-a-variable-into-the-hypotheses"
 ]
 
 VerificationTest[
-	withPrelude[
-		DeclareTheorem[AdditionZeroRight, TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}]];
-		TypeOf[TypeTheoryTerm[AdditionZeroRight]]
+	With[
+		{
+			proved = Append[prelude, TypeTheoryTheorem[
+				AdditionZeroRight,
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}]
+			]]
+		},
+		TypeOf[TypeTheoryTerm[AdditionZeroRight, proved]] === TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], proved]
 	],
-	TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]],
+	True,
 	TestID -> "n-plus-zero-is-n-by-computation"
 ]
 
 VerificationTest[
-	TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]]] // TypeTheoryTactic["Reflexivity"] // First,
+	First @ TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}],
 	"NotReflexive",
 	TestID -> "zero-plus-n-is-not-n-by-computation"
 ]
 
 VerificationTest[
-	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Induction", n]}]["Goals"],
+	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Induction", n]}]["Goals"],
 	{
-		TypeTheoryTerm[RightTee[{}, 0 + NaturalNumberZero == NaturalNumberZero]],
-		TypeTheoryTerm[RightTee[{}, ForAll[{Typed[\[FormalN], NonNegativeIntegers]}, Implies[0 + \[FormalN] == \[FormalN], 0 + NaturalNumberSuccessor[\[FormalN]] == NaturalNumberSuccessor[\[FormalN]]]]]]
+		TypeTheoryTerm[RightTee[{}, 0 + NaturalNumberZero == NaturalNumberZero], prelude],
+		TypeTheoryTerm[
+			RightTee[{}, ForAll[{Typed[\[FormalN], NonNegativeIntegers]}, Implies[0 + \[FormalN] == \[FormalN], 0 + NaturalNumberSuccessor[\[FormalN]] == NaturalNumberSuccessor[\[FormalN]]]]],
+			prelude
+		]
 	},
 	TestID -> "Induction-gives-a-goal-per-constructor"
 ]
@@ -62,36 +75,36 @@ VerificationTest[
 ]
 
 VerificationTest[
-	withPrelude[
-		DeclareTheorem[AdditionZeroLeft, zeroLeft];
-		{TypeOf[TypeTheoryTerm[AdditionZeroLeft]], TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7]], TypeTheoryTerm[0 + 7 == 7]], TypeTheoryCheck[$TypeTheoryEnvironment]}
+	With[
+		{
+			proved = TypeTheoryEnvironment[prelude, {
+				TypeTheoryTheorem[AdditionZeroLeft, zeroLeft],
+				TypeTheoryTheorem[AdditionZeroLeftAgain, ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], zeroLeft]
+			}]
+		},
+		{
+			TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 7 == 7]],
+			TypeOf[TypeTheoryTerm[AdditionZeroLeftAgain, proved]] === TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], proved],
+			TypeTheoryCheck[proved]
+		}
 	],
-	{TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]], True, True},
+	{True, True, True},
 	TestID -> "A-finished-proof-is-declared-and-used"
 ]
 
 VerificationTest[
-	withPrelude[
-		DeclareTheorem[AdditionZeroLeftAgain, ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], zeroLeft];
-		TypeOf[TypeTheoryTerm[AdditionZeroLeftAgain]]
-	],
-	TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m]],
-	TestID -> "A-proof-stored-in-a-symbol-proves-a-stated-theorem"
-]
-
-VerificationTest[
-	TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
+	TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], prelude, {
 		TypeTheoryTactic["Introduce", a, b, ha, hb],
 		TypeTheoryTactic["Apply", AndIntroduction],
 		TypeTheoryTactic["Assumption"],
 		TypeTheoryTactic["Exact", hb]
 	}]["Term"],
-	TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[ha, a], Typed[hb, b]}, AndIntroduction[ha, hb]]],
+	TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[ha, a], Typed[hb, b]}, AndIntroduction[ha, hb]], prelude],
 	TestID -> "Apply-leaves-a-goal-per-argument"
 ]
 
 VerificationTest[
-	TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], {
+	TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], prelude, {
 		TypeTheoryTactic["Introduce", x, y, z, h1, h2],
 		TypeTheoryTactic["Apply", EqualityTransitivity],
 		TypeTheoryTactic["Exact", h1],
@@ -102,7 +115,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, Not[Not[p]]]], {
+	TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, Not[Not[p]]]], prelude, {
 		TypeTheoryTactic["Introduce", p, hp, hnp],
 		TypeTheoryTactic["Exact", hnp[hp]]
 	}]["Goals"],
@@ -112,24 +125,24 @@ VerificationTest[
 
 VerificationTest[
 	First /@ {
-		TypeTheoryTactic["Introduce", x][TypeTheoryProof[2 + 2 == 4]],
-		TypeTheoryTactic["Bogus"][TypeTheoryProof[2 + 2 == 4]],
-		TypeTheoryTactic["Exact", EqualityReflexivity[5]][TypeTheoryProof[2 + 2 == 4]],
-		TypeTheoryTactic["Reflexivity"][TypeTheoryProof[2 + 2 == 5]],
-		TypeTheoryTactic["Reflexivity"][TypeTheoryTactic["Reflexivity"][TypeTheoryProof[2 + 2 == 4]]]
+		TypeTheoryTactic["Introduce", x][TypeTheoryProof[2 + 2 == 4, prelude]],
+		TypeTheoryTactic["Bogus"][TypeTheoryProof[2 + 2 == 4, prelude]],
+		TypeTheoryTactic["Exact", EqualityReflexivity[5]][TypeTheoryProof[2 + 2 == 4, prelude]],
+		TypeTheoryTactic["Reflexivity"][TypeTheoryProof[2 + 2 == 5, prelude]],
+		TypeTheoryTactic["Reflexivity"][TypeTheoryTactic["Reflexivity"][TypeTheoryProof[2 + 2 == 4, prelude]]]
 	},
 	{"NothingToIntroduce", "UnknownTactic", "TypeMismatch", "NotReflexive", "NoGoals"},
 	TestID -> "A-tactic-that-does-not-apply-gives-a-Failure"
 ]
 
 VerificationTest[
-	withPrelude[First @ DeclareTheorem[Absurd, TypeTheoryProof[False]]],
+	First @ Append[prelude, TypeTheoryTheorem[Absurd, TypeTheoryProof[False, prelude]]],
 	"ProofIncomplete",
 	TestID -> "An-unfinished-proof-cannot-be-declared"
 ]
 
 VerificationTest[
-	MatchQ[ToBoxes[zeroLeft], _FrameBox] && MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4]], _FrameBox],
+	MatchQ[ToBoxes[zeroLeft], _FrameBox] && MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], _FrameBox],
 	True,
 	TestID -> "A-proof-displays-its-goals"
 ]

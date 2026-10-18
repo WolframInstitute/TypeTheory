@@ -88,7 +88,8 @@ declareInductiveType[environment_, name_HoldComplete, universeParameters_List, n
 		"NumberOfParameters" -> numberOfParameters,
 		"NumberOfIndices" -> Length[indexIds],
 		"Constructors" -> {},
-		"LargeElimination" -> False
+		"LargeElimination" -> False,
+		"Recursive" -> False
 	|>|>];
 	checkedConstructors = Function[constructor,
 		checkConstructor[provisional, typeContext, name, inductiveConstant, parameterIds, Length[indexIds], resultLevel, constructor]
@@ -269,7 +270,8 @@ addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext
 		"NumberOfParameters" -> Length[parameterIds],
 		"NumberOfIndices" -> Length[indexIds],
 		"Constructors" -> Function[constructor, constructor["Name"]] /@ checkedConstructors,
-		"LargeElimination" -> largeElimination
+		"LargeElimination" -> largeElimination,
+		"Recursive" -> AnyTrue[checkedConstructors, Function[constructor, constructor["RecursiveFields"] =!= {}]]
 	|>;
 	constructorRecords = Association @ MapIndexed[
 		Function[{constructor, position}, constructor["Name"] -> <|

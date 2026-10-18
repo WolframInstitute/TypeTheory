@@ -24,9 +24,14 @@ built-in symbols True, False, Not, And, Or, Equal, Exists, NonNegativeIntegers a
 like ordinary mathematics. Plus and Times are Flat, so a sum of more than two terms is read as a left
 fold.
 
-TypeTheoryTerm holds a surface term (it has the HoldAll attribute), so built-in functions never
-evaluate it: ForAll[Typed[x, A], B] on its own evaluates to B, because a quantifier whose variable does
-not occur is dropped.
+TypeTheoryTerm[term, environment] holds a surface term (it has the HoldFirst attribute), so built-in
+functions never evaluate it: ForAll[Typed[x, A], B] on its own evaluates to B, because a quantifier whose
+variable does not occur is dropped. The environment, evaluated, says where its constants come from.
+
+Two more forms make a term exact, as the Lean bridge and Normal[environment] need:
+
+	Construct[f, a, b]                                f applied to a and b with no implicit arguments filled in
+	t[[i]]                                            field i of t, of a structure type
 
 Held terms are turned into syntax trees first, so the rest of the code never risks evaluating them:
 
@@ -35,7 +40,10 @@ Held terms are turned into syntax trees first, so the rest of the code never ris
 	syntaxApplication[headSyntax, {argumentSyntax, ...}]
 
 Delaboration turns a core term back into a syntax tree, opening each binder with a fresh free variable
-and naming it with its binder's name, or a Formal symbol when that name is taken.
+and naming it with its binder's name, or a Formal symbol when that name is taken. For display it drops
+implicit arguments; with $exactReadBack it writes every argument, using Construct where an implicit one
+would otherwise be filled in again, and every universe level with Subscript, so the term elaborates back
+to itself.
 *)
 
 
@@ -64,15 +72,18 @@ PackageScoped[syntaxHead]
 PackageScoped[delaborate]
 PackageScoped[displayCoreTerm]
 PackageScoped[coreToTypeTheoryTerm]
+PackageScoped[$exactReadBack]
+PackageScoped[nameSyntax]
 
 
 (* ::Section:: *)
 (*Usage Messages*)
 
 
-TypeTheoryTerm::usage = "TypeTheoryTerm[term] represents a term of the type theory, written with built-in symbols such as Function, Typed, ForAll, Implies, Equal and Plus, and kept unevaluated.\n\
-TypeOf[TypeTheoryTerm[term]] gives its type in $TypeTheoryEnvironment.\n\
-TypeOf[TypeTheoryTerm[term], environment] gives its type in the TypeTheoryEnvironment environment."
+TypeTheoryTerm::usage = "TypeTheoryTerm[term, environment] represents a term of the type theory in the TypeTheoryEnvironment environment, \
+written with built-in symbols such as Function, Typed, ForAll, Implies, Equal and Plus, and kept unevaluated.\n\
+TypeTheoryTerm[term] is a term in the empty environment.\n\
+TypeOf[TypeTheoryTerm[term, environment]] gives its type; TypeOf[TypeTheoryTerm[term], environment] gives its type in environment."
 TypeUniverse::usage = "TypeUniverse[level] is the universe at level: TypeUniverse[0] is Prop, the universe of propositions, and TypeUniverse[1] is \
 Type. level is a non-negative integer, a universe parameter, level + k, Max[level1, level2] or ImpredicativeMaximum[level1, level2]."
 ImpredicativeMaximum::usage = "ImpredicativeMaximum[level1, level2] is the universe level 0 when level2 is 0 and Max[level1, level2] otherwise: the \
@@ -90,14 +101,18 @@ heldFromSyntax::usage = "heldFromSyntax[syntax] gives HoldComplete[expr] for the
 syntaxHead::usage = "syntaxHead[symbol, {argument, ...}] gives the syntax tree of symbol applied to the argument syntax trees."
 delaborate::usage = "delaborate[environment, context, term] gives a syntax tree for the core term in the local context."
 displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the core term as a TypeTheoryTerm, or the core term itself if it cannot be displayed."
-coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm."
+coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm in environment."
+$exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
+nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
 
 
 (* ::Section:: *)
 (*Function Definitions*)
 
 
-SetAttributes[TypeTheoryTerm, HoldAll]
+SetAttributes[TypeTheoryTerm, HoldFirst]
+
+$exactReadBack = False
 
 
 (* ::Subsection:: *)
@@ -105,7 +120,7 @@ SetAttributes[TypeTheoryTerm, HoldAll]
 
 
 SetAttributes[toSyntax, HoldAllComplete]
-toSyntax[TypeTheoryTerm[term_]] := toSyntax[term]
+toSyntax[TypeTheoryTerm[term_, ___]] := toSyntax[term]
 toSyntax[symbol_Symbol] := syntaxSymbol[HoldComplete[symbol]]
 toSyntax[n_Integer] := syntaxInteger[n]
 toSyntax[text_String] := syntaxString[text]
@@ -132,7 +147,7 @@ syntaxHead[symbol_Symbol, arguments_List] := syntaxApplication[syntaxSymbol[Hold
 (*Delaboration*)
 
 
-coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ heldFromSyntax[delaborate[environment, context, term]]
+coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ Append[heldFromSyntax[delaborate[environment, context, term]], environment]
 
 displayCoreTerm[environment_, context_, term_] := Replace[
 	Quiet @ catchKernelFailure[coreToTypeTheoryTerm[environment, context, term]],
@@ -141,11 +156,12 @@ displayCoreTerm[environment_, context_, term_] := Replace[
 
 
 delaborate[environment_, context_, term_] := Replace[term, {
-	freeVariable[id_] :> syntaxSymbol[Lookup[Lookup[context, id, <||>], "Name", HoldComplete[\[FormalQ]]]],
+	freeVariable[id_] :> nameSyntax[Lookup[Lookup[context, id, <||>], "Name", HoldComplete[\[FormalQ]]]],
 	boundVariable[index_] :> syntaxHead[Placeholder, {syntaxString["bound " <> ToString[index]]}],
 	metavariable[id_] :> syntaxHead[Placeholder, {syntaxString["?" <> ToString[id]]}],
 	universeSort[level_] :> syntaxHead[TypeUniverse, {levelSyntax[level]}],
 	naturalLiteral[n_] :> syntaxInteger[n],
+	projection[_, index_, structureTerm_] :> syntaxHead[Part, {delaborate[environment, context, structureTerm], syntaxInteger[index + 1]}],
 	localDefinition[name_, type_, value_, body_] :> delaborate[environment, context, instantiateBoundVariable[body, value]],
 	lambdaAbstraction[___] :> delaborateBinders[environment, context, term, lambdaAbstraction, Function],
 	dependentFunctionType[_, domain_, codomain_, "Explicit"] /; ! boundVariableOccursQ[codomain, 0] :>
@@ -156,7 +172,7 @@ delaborate[environment_, context_, term_] := Replace[term, {
 }]
 
 levelSyntax[n_Integer] := syntaxInteger[n]
-levelSyntax[levelParameter[held_]] := syntaxSymbol[held]
+levelSyntax[levelParameter[held_]] := nameSyntax[held]
 levelSyntax[levelMetavariable[id_]] := syntaxHead[Placeholder, {syntaxString["?u" <> ToString[id]]}]
 levelSyntax[levelSuccessor[level_, k_]] := syntaxHead[Plus, {levelSyntax[level], syntaxInteger[k]}]
 levelSyntax[levelMaximum[levels___]] := syntaxHead[Max, levelSyntax /@ {levels}]
@@ -184,8 +200,11 @@ collectBinders[environment_, context_, current_, _, displayHead_, binders_List] 
 arrowBinderQ[dependentFunctionType[_, _, codomain_, "Explicit"]] := ! boundVariableOccursQ[codomain, 0]
 arrowBinderQ[_] := False
 
-binderSyntax[name_, domainSyntax_, "Explicit"] := syntaxHead[Typed, {syntaxSymbol[name], domainSyntax}]
-binderSyntax[name_, domainSyntax_, binder_String] := syntaxHead[Annotation, {syntaxHead[Typed, {syntaxSymbol[name], domainSyntax}], syntaxString[binder]}]
+binderSyntax[name_, domainSyntax_, "Explicit"] := syntaxHead[Typed, {nameSyntax[name], domainSyntax}]
+binderSyntax[name_, domainSyntax_, binder_String] := syntaxHead[Annotation, {syntaxHead[Typed, {nameSyntax[name], domainSyntax}], syntaxString[binder]}]
+
+nameSyntax[HoldComplete[name_String]] := syntaxString[name]
+nameSyntax[name_HoldComplete] := syntaxSymbol[name]
 
 (* the binder's own name, unless a variable in the context already has it *)
 displayName[context_, name_] := With[{taken = Lookup[Values[context], "Name", {}]},
@@ -219,7 +238,11 @@ propositionTermQ[environment_, context_, type_] := TrueQ[Quiet @ catchKernelFail
 ]]
 
 
-(* an application, with its implicit arguments dropped, and Exists written with a binder *)
+(* an application, with its implicit arguments dropped, and Exists written with a binder; read back
+   exactly, every argument and level is written out *)
+delaborateApplication[environment_, context_, term_] /; TrueQ[$exactReadBack] := With[{spine = applicationSpine[term]},
+	exactApplication[environment, context, First[spine], Last[spine]]
+]
 delaborateApplication[environment_, context_, term_] := With[{spine = applicationSpine[term]},
 	Replace[{First[spine], explicitArguments[environment, context, First[spine], Last[spine]]}, {
 		{constantReference[HoldComplete[Exists], _], {lambdaAbstraction[name_, domain_, body_, binder_]}} :> Replace[
@@ -233,6 +256,32 @@ delaborateApplication[environment_, context_, term_] := With[{spine = applicatio
 
 headSyntax[environment_, context_, constantReference[HoldComplete[name_], _]] := toSyntax[name]
 headSyntax[environment_, context_, head_] := delaborate[environment, context, head]
+
+(* Construct keeps elaboration from filling in implicit arguments again, which it would do for any
+   implicit binder among the arguments given, or before a constant on its own *)
+exactApplication[environment_, context_, head_, arguments_List] := With[
+	{
+		headSyntax = exactHeadSyntax[environment, context, head],
+		argumentSyntax = Function[argument, delaborate[environment, context, argument]] /@ arguments
+	},
+	Which[
+		implicitBinderAmongQ[environment, context, head, Max[Length[arguments], 1]],
+			syntaxHead[Construct, Prepend[argumentSyntax, headSyntax]],
+		arguments === {},
+			headSyntax,
+		True,
+			syntaxApplication[headSyntax, argumentSyntax]
+	]
+]
+
+exactHeadSyntax[environment_, context_, constantReference[HoldComplete[name_], {}]] := toSyntax[name]
+exactHeadSyntax[environment_, context_, constantReference[HoldComplete[name_], levels_List]] := syntaxHead[Subscript, Prepend[levelSyntax /@ levels, toSyntax[name]]]
+exactHeadSyntax[environment_, context_, head_] := delaborate[environment, context, head]
+
+implicitBinderAmongQ[environment_, context_, head_, n_Integer] := With[
+	{binders = Quiet @ catchKernelFailure[binderKinds[environment, context, head, n]]},
+	ListQ[binders] && ! MatchQ[binders, {"Explicit" ...}]
+]
 
 explicitArguments[environment_, context_, head_, arguments_List] := With[
 	{binders = Quiet @ catchKernelFailure[binderKinds[environment, context, head, Length[arguments]]]},

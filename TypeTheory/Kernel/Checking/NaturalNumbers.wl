@@ -42,9 +42,13 @@ and gives environment with them registered; it throws a kernel failure otherwise
 registerNaturalNumbers[
 	environment_TypeTheoryEnvironment,
 	settings : KeyValuePattern[{"Type" -> type_HoldComplete, "Zero" -> zero_HoldComplete, "Successor" -> successor_HoldComplete, "Addition" -> addition_}]
-] := If[ naturalNumbersValidQ[environment, type, zero, successor] && (addition === None || additionValidQ[environment, type, successor, addition]),
-	setNaturalNumberSettings[environment, settings],
-	kernelFailure["InvalidNaturalNumbers", "`1` cannot be registered as the natural numbers.", {HoldForm @@ type}]
+] := Which[
+	naturalNumberSettings[environment] =!= None,
+		kernelFailure["NaturalNumbersRegistered", "The environment already has natural numbers.", {}],
+	naturalNumbersValidQ[environment, type, zero, successor] && (addition === None || additionValidQ[environment, type, successor, addition]),
+		setNaturalNumberSettings[environment, settings],
+	True,
+		kernelFailure["InvalidNaturalNumbers", "`1` cannot be registered as the natural numbers.", {HoldForm @@ type}]
 ]
 
 naturalNumbersValidQ[environment_, type_, zero_, successor_] := With[{natural = constantReference[type, {}]},

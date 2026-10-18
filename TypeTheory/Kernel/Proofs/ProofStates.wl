@@ -61,10 +61,14 @@ PackageScoped[instantiateProofTerm]
 (*Usage Messages*)
 
 
-TypeTheoryProof::usage = "TypeTheoryProof[statement] starts a proof of statement in $TypeTheoryEnvironment, with statement itself as its one goal.\n\
-TypeTheoryProof[statement, {tactic1, tactic2, ...}] applies the TypeTheoryTactic tactics in turn.\n\
-proof[\"Goals\"] gives the open goals as TypeTheoryTerm[RightTee[{Typed[x, type], ...}, goal]]; proof[\"Term\"] gives the proof term; proof[\"Statement\"] gives the statement. \
-The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols in universe levels in the order they appear."
+TypeTheoryProof::usage = "TypeTheoryProof[statement, environment] starts a proof of statement in the TypeTheoryEnvironment environment, \
+with statement itself as its one goal.\n\
+TypeTheoryProof[TypeTheoryTerm[statement, environment]] does the same.\n\
+TypeTheoryProof[statement, environment, {tactic1, tactic2, ...}] and TypeTheoryProof[TypeTheoryTerm[statement, environment], {tactic1, ...}] \
+apply the TypeTheoryTactic tactics in turn.\n\
+proof[\"Goals\"] gives the open goals as TypeTheoryTerm[RightTee[{Typed[x, type], ...}, goal], environment]; proof[\"Term\"] gives the proof term; \
+proof[\"Statement\"] gives the statement; proof[\"Environment\"] gives the environment. \
+The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
 TypeTheoryTactic::usage = "TypeTheoryTactic[name, arguments...] is a tactic: TypeTheoryTactic[name, arguments...][proof] applies it to the first goal of the TypeTheoryProof proof.\n\
 TypeTheoryTactic[\"Introduce\", x, ...] introduces the variables or hypotheses of a universal statement or implication.\n\
 TypeTheoryTactic[\"Exact\", term] solves the goal with term.\n\
@@ -86,28 +90,40 @@ instantiateProofTerm::usage = "instantiateProofTerm[data, term] replaces the sol
 
 Options[TypeTheoryProof] = {"UniverseParameters" -> Automatic}
 
-SetAttributes[TypeTheoryProof, HoldAll]
+SetAttributes[TypeTheoryProof, HoldFirst]
 SetAttributes[TypeTheoryTactic, HoldRest]
 
 
 (* A proof state holds an Association, and patterns such as TypeTheoryProof[_Association] must not start
    a proof either, so a statement that is an Association or contains a pattern is not one. *)
-TypeTheoryProof[statement_, options : OptionsPattern[]] /; statementQ[Unevaluated[statement]] := catchKernelFailure @ With[
-	{
-		environment = $TypeTheoryEnvironment,
-		universeParameters = declarationUniverseParameters[TypeTheoryProof, Hold[options], {toSyntax[statement]}]
-	},
-	newProofState[environment, elaborateClosedType[environment, HoldComplete[statement], universeParameters], universeParameters]
+TypeTheoryProof[statement_, environment_?environmentQ, options : OptionsPattern[]] /; statementQ[Unevaluated[statement]] :=
+	startProof[environment, HoldComplete[statement], Hold[options]]
+
+TypeTheoryProof[statement_, environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; statementQ[Unevaluated[statement]] :=
+	runTactics[TypeTheoryProof[statement, environment, options], tactics]
+
+(* a TypeTheoryTerm, written out or held in a symbol, carries its own environment *)
+TypeTheoryProof[term_, options : OptionsPattern[]] /; termExpressionQ[Unevaluated[term]] := With[{evaluated = term},
+	startProof[termEnvironment[evaluated], heldTerm[evaluated], Hold[options]]
 ]
 
-TypeTheoryProof[statement_, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] := Enclose @ Fold[
-	Function[{state, tactic}, Confirm[tactic[state]]],
-	Confirm @ TypeTheoryProof[statement, options],
-	tactics
+TypeTheoryProof[term_, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; termExpressionQ[Unevaluated[term]] :=
+	runTactics[TypeTheoryProof[term, options], tactics]
+
+startProof[environment_, held_HoldComplete, Hold[options___]] := catchKernelFailure @ With[
+	{universeParameters = declarationUniverseParameters[TypeTheoryProof, Hold[options], {toSyntax @@ held}]},
+	newProofState[environment, elaborateClosedType[environment, held, universeParameters], universeParameters]
 ]
+
+(* the tactics in turn, stopping at the first one that fails *)
+runTactics[state_, tactics_List] := Fold[Function[{current, tactic}, If[FailureQ[current], current, tactic[current]]], state, tactics]
 
 statementQ[Unevaluated[_Association]] := False
 statementQ[Unevaluated[statement_]] := FreeQ[Unevaluated[statement], _Pattern | _Blank | _BlankSequence | _BlankNullSequence]
+
+termExpressionQ[Unevaluated[_TypeTheoryTerm]] := True
+termExpressionQ[Unevaluated[symbol_Symbol]] := MatchQ[OwnValues[symbol], {Verbatim[RuleDelayed][_, _TypeTheoryTerm]}]
+termExpressionQ[_] := False
 
 proofState[data_Association] := TypeTheoryProof[data]
 
@@ -184,14 +200,14 @@ keepSolvedGoals[data_, goalTypes_Association] := With[
 ]
 
 goalTerm[data_, goal_] := Replace[goalDisplaySyntax[data, goal], {_, hypotheses_, target_} :>
-	TypeTheoryTerm @@ heldFromSyntax[syntaxHead[RightTee, {syntaxHead[List, hypotheses], target}]]
+	TypeTheoryTerm @@ Append[heldFromSyntax[syntaxHead[RightTee, {syntaxHead[List, hypotheses], target}]], data["Environment"]]
 ]
 
 goalDisplaySyntax[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	{
 		data["Metavariables"][goal]["Case"],
 		KeyValueMap[
-			Function[{id, entry}, syntaxHead[Typed, {syntaxSymbol[entry["Name"]], delaborate[environment, current["Context"], entry["Type"]]}]],
+			Function[{id, entry}, syntaxHead[Typed, {nameSyntax[entry["Name"]], delaborate[environment, current["Context"], entry["Type"]]}]],
 			current["Context"]
 		],
 		delaborate[environment, current["Context"], current["Type"]]
@@ -215,7 +231,7 @@ TypeTheoryTactic[name_String, arguments___][TypeTheoryProof[data_Association]] :
 }]
 
 runTactic["Introduce", Hold[], data_, goal_] := introduceVariable[data, goal, Automatic]
-runTactic["Introduce", Hold[names__Symbol], data_, goal_] := Fold[
+runTactic["Introduce", Hold[names : (_Symbol | _String) ..], data_, goal_] := Fold[
 	Function[{state, name}, introduceVariable[state, First[state["Goals"]], name]],
 	data,
 	HoldComplete /@ Unevaluated[{names}]
@@ -223,7 +239,7 @@ runTactic["Introduce", Hold[names__Symbol], data_, goal_] := Fold[
 runTactic["Exact", Hold[term_], data_, goal_] := exactTerm[data, goal, HoldComplete[term]]
 runTactic["Apply", Hold[term_], data_, goal_] := applyTerm[data, goal, HoldComplete[term]]
 runTactic["Reflexivity", Hold[], data_, goal_] := reflexivity[data, goal]
-runTactic["Induction", Hold[variable_Symbol], data_, goal_] := induction[data, goal, HoldComplete[variable]]
+runTactic["Induction", Hold[variable : _Symbol | _String], data_, goal_] := induction[data, goal, HoldComplete[variable]]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic[name_, _, _, _] := kernelFailure["UnknownTactic", "`1` is not a tactic, or is not given the arguments it takes.", {name}]
 

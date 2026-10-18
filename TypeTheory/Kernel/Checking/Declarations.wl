@@ -1,26 +1,31 @@
 (* ::Package:: *)
 
 (*
-Declarations: axioms, definitions, theorems and inductive types.
+Declarations: the constructors TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem,
+TypeTheoryInductiveType and TypeTheoryNaturalNumbers, and the environments built from them.
 
-Each Declare function elaborates its surface terms and has the kernel check the result. If the check
-succeeds it sets $TypeTheoryEnvironment to the extended environment and gives it; if anything fails it
-gives a Failure and leaves $TypeTheoryEnvironment as it was. To declare into another environment
-without touching the default, bind it:
+A declaration is inert data. Its arguments are held, so it reads like mathematics and nothing in it
+evaluates, and it means nothing until it is added to an environment:
 
-	Block[{$TypeTheoryEnvironment = environment}, DeclareAxiom[name, type]]
+	TypeTheoryAxiom[name, type]
+	TypeTheoryDefinition[name, value]                           value may be Typed[v, type]
+	TypeTheoryTheorem[name, statement, proof]
+	TypeTheoryTheorem[name, proof]                              proof a finished TypeTheoryProof
+	TypeTheoryInductiveType[name, type, {constructor -> type, ...}]
+	TypeTheoryNaturalNumbers[type, zero, successor]            the literals 0, 1, 2, ... become elements of type
+	TypeTheoryNaturalNumbers[type, zero, successor, addition]   and adding two literals computes
 
-gives environment extended with the axiom.
+TypeTheoryEnvironment[environment, {declaration, ...}] elaborates each declaration's terms in the
+environment so far, has the kernel check them, and gives the extended environment, or a Failure for the
+first declaration that does not check. Append[environment, declaration] adds one declaration.
 
-The arguments are held, so a declaration reads like mathematics and nothing in it evaluates. A name is
-any expression, usually a symbol; the prelude's names are built-in symbols such as Equal and Plus.
-
-Universe parameters are the symbols in universe levels, such as u in TypeUniverse[u], in the order
-they first appear; the option "UniverseParameters" lists them explicitly instead.
+A name is any expression: a symbol, or a string for a constant imported from elsewhere. Universe
+parameters are the symbols and strings in universe levels, in the order they first appear; the option
+"UniverseParameters" lists them explicitly.
 
 The core functions declareAxiom, declareDefinition and declareTheorem take core terms. Like
-declareInductiveType they check everything themselves and throw a kernel failure when a check fails, so
-an environment built only through them holds only checked constants.
+declareInductiveType and registerNaturalNumbers, they check everything themselves and throw a kernel
+failure when a check fails.
 *)
 
 
@@ -28,10 +33,11 @@ an environment built only through them holds only checked constants.
 (*PackageExported*)
 
 
-PackageExported[DeclareAxiom]
-PackageExported[DeclareDefinition]
-PackageExported[DeclareTheorem]
-PackageExported[DeclareInductiveType]
+PackageExported[TypeTheoryAxiom]
+PackageExported[TypeTheoryDefinition]
+PackageExported[TypeTheoryTheorem]
+PackageExported[TypeTheoryInductiveType]
+PackageExported[TypeTheoryNaturalNumbers]
 
 
 (* ::Section:: *)
@@ -41,100 +47,110 @@ PackageExported[DeclareInductiveType]
 PackageScoped[declareAxiom]
 PackageScoped[declareDefinition]
 PackageScoped[declareTheorem]
+PackageScoped[addDeclaration]
+PackageScoped[declarationQ]
 PackageScoped[declarationUniverseParameters]
 PackageScoped[universeParameterNames]
 PackageScoped[heldOptionValue]
-PackageScoped[updateEnvironment]
+PackageScoped[$emptyEnvironment]
 
 
 (* ::Section:: *)
 (*Usage Messages*)
 
 
-DeclareAxiom::usage = "DeclareAxiom[name, type] declares name as an axiom of the given type in $TypeTheoryEnvironment and gives the new environment.\n\
-The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols in universe levels in the order they appear."
-DeclareDefinition::usage = "DeclareDefinition[name, value] declares name as a definition with the given value in $TypeTheoryEnvironment and gives the new environment.\n\
-DeclareDefinition[name, Typed[value, type]] declares name with the given type.\n\
-The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols in universe levels in the order they appear."
-DeclareTheorem::usage = "DeclareTheorem[name, statement, proof] checks that proof proves statement and declares name as a theorem in $TypeTheoryEnvironment, giving the new environment.\n\
-DeclareTheorem[name, proof] declares the statement of the finished TypeTheoryProof proof.\n\
-proof is a term, a TypeTheoryTerm or a finished TypeTheoryProof. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; \
-Automatic takes the symbols in universe levels in the order they appear."
-DeclareInductiveType::usage = "DeclareInductiveType[name, type, {constructor1 -> type1, ...}] declares the inductive type name with the given \
-constructors, and its recursor InductiveRecursor[name], in $TypeTheoryEnvironment and gives the new environment.\n\
-The option \"Parameters\" -> n makes the first n arguments of name parameters, which every constructor takes first and passes on unchanged; Automatic takes as many as every constructor allows. \
-The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols in universe levels in the order they appear."
+TypeTheoryAxiom::usage = "TypeTheoryAxiom[name, type] declares name as an axiom of the given type, when added to a TypeTheoryEnvironment.\n\
+The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
+TypeTheoryDefinition::usage = "TypeTheoryDefinition[name, value] declares name as a definition with the given value, when added to a TypeTheoryEnvironment.\n\
+TypeTheoryDefinition[name, Typed[value, type]] gives the definition the given type.\n\
+The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
+TypeTheoryTheorem::usage = "TypeTheoryTheorem[name, statement, proof] declares name as a theorem: proof must prove statement when it is added to a TypeTheoryEnvironment.\n\
+TypeTheoryTheorem[name, proof] declares the statement of the finished TypeTheoryProof proof.\n\
+proof is a term, a TypeTheoryTerm or a finished TypeTheoryProof. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
+TypeTheoryInductiveType::usage = "TypeTheoryInductiveType[name, type, {constructor1 -> type1, ...}] declares the inductive type name with the given constructors, \
+and its recursor InductiveRecursor[name], when added to a TypeTheoryEnvironment.\n\
+The option \"Parameters\" -> n makes the first n arguments of name parameters, which every constructor takes first and passes on unchanged; \
+Automatic takes as many as every constructor allows. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
+TypeTheoryNaturalNumbers::usage = "TypeTheoryNaturalNumbers[type, zero, successor] registers the inductive type type, with the constructors zero and successor, \
+as the natural numbers, so the literals 0, 1, 2, ... are elements of type.\n\
+TypeTheoryNaturalNumbers[type, zero, successor, addition] also adds two literals by integer addition; addition must be defined by recursion on its second argument."
 
 declareAxiom::usage = "declareAxiom[environment, HoldComplete[name], {HoldComplete[u], ...}, type] checks the core type and gives environment with the axiom name added."
-declareDefinition::usage = "declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value] checks the core value against the \
-core type and gives environment with the definition name added."
-declareTheorem::usage = "declareTheorem[environment, HoldComplete[name], {HoldComplete[u], ...}, statement, proof] checks that statement is a \
-proposition and proof proves it, and gives environment with the theorem name added."
-declarationUniverseParameters::usage = "declarationUniverseParameters[function, Hold[options], {syntax, ...}] gives the universe parameters \
-{HoldComplete[u], ...} of a declaration from its \"UniverseParameters\" option, or from the universe levels in the syntax trees."
-universeParameterNames::usage = "universeParameterNames[{syntax, ...}] gives the symbols in universe levels of the syntax trees, as {HoldComplete[u], ...} in the order they first appear."
-heldOptionValue::usage = "heldOptionValue[function, Hold[options], name] gives HoldComplete[value] for the option name among the held options, or among the defaults Options[function]."
-updateEnvironment::usage = "updateEnvironment[environment] sets $TypeTheoryEnvironment to environment and gives it; updateEnvironment[failure] gives failure."
+declareDefinition::usage = "declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value] checks the core value against the core type \
+and gives environment with the definition name added."
+declareTheorem::usage = "declareTheorem[environment, HoldComplete[name], {HoldComplete[u], ...}, statement, proof] checks that statement is a proposition and \
+proof proves it, and gives environment with the theorem name added."
+addDeclaration::usage = "addDeclaration[environment, declaration] elaborates and checks the declaration and gives the extended environment, or throws a kernel failure."
+declarationQ::usage = "declarationQ[expr] gives True if expr is a declaration: TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType \
+or TypeTheoryNaturalNumbers."
+declarationUniverseParameters::usage = "declarationUniverseParameters[head, Hold[options], {syntax, ...}] gives the universe parameters {HoldComplete[u], ...} \
+of a declaration from its \"UniverseParameters\" option, or from the universe levels in the syntax trees."
+universeParameterNames::usage = "universeParameterNames[{syntax, ...}] gives the symbols and strings in universe levels of the syntax trees, \
+as {HoldComplete[u], ...} in the order they first appear."
+heldOptionValue::usage = "heldOptionValue[head, Hold[options], name] gives HoldComplete[value] for the option name among the held options, or among the defaults Options[head]."
+$emptyEnvironment::usage = "$emptyEnvironment is the environment with no constants, in which a TypeTheoryTerm without an environment is checked."
 
 
 (* ::Section:: *)
 (*Function Definitions*)
 
 
-Options[DeclareAxiom] = {"UniverseParameters" -> Automatic}
-Options[DeclareDefinition] = {"UniverseParameters" -> Automatic}
-Options[DeclareTheorem] = {"UniverseParameters" -> Automatic}
-Options[DeclareInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
+Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic}
+Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic}
+Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
+Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 
-SetAttributes[{DeclareAxiom, DeclareDefinition, DeclareTheorem, DeclareInductiveType}, HoldAll]
+SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers}, HoldAll]
+
+declarationQ[_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryInductiveType | _TypeTheoryNaturalNumbers] := True
+declarationQ[_] := False
 
 
-updateEnvironment[environment_TypeTheoryEnvironment] := ($TypeTheoryEnvironment = environment)
-updateEnvironment[failure_Failure] := failure
+(* ::Subsection:: *)
+(*Environments from declarations*)
 
 
-DeclareAxiom[name_, type_, options : OptionsPattern[]] := updateEnvironment @ catchKernelFailure @ With[
-	{environment = $TypeTheoryEnvironment, universeParameters = declarationUniverseParameters[DeclareAxiom, Hold[options], {toSyntax[type]}]},
+TypeTheoryEnvironment[] := $emptyEnvironment
+TypeTheoryEnvironment["Prelude"] := preludeEnvironment[]
+TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[$emptyEnvironment, declarations]
+TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]
+
+(* the stores of the steps in between are removed, and so are all of them when a declaration fails *)
+TypeTheoryEnvironment[environment_?environmentQ, declarations_List] := withStoreCleanup @ catchKernelFailure @ Fold[addDeclaration, environment, declarations]
+
+TypeTheoryEnvironment /: Append[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, declaration_] := TypeTheoryEnvironment[environment, {declaration}]
+
+
+addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
+	{universeParameters = declarationUniverseParameters[TypeTheoryAxiom, Hold[options], {toSyntax[type]}]},
 	declareAxiom[environment, HoldComplete[name], universeParameters, elaborateClosedType[environment, HoldComplete[type], universeParameters]]
 ]
 
-DeclareDefinition[name_, value_, options : OptionsPattern[]] := updateEnvironment @ catchKernelFailure @ With[
-	{environment = $TypeTheoryEnvironment, universeParameters = declarationUniverseParameters[DeclareDefinition, Hold[options], {toSyntax[value]}]},
+addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : OptionsPattern[]]] := With[
+	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[value]}]},
 	{elaborated = elaborateClosedTerm[environment, HoldComplete[value], None, universeParameters]},
 	declareDefinition[environment, HoldComplete[name], universeParameters, betaNormalize[Last[elaborated]], First[elaborated]]
 ]
 
-DeclareTheorem[name_, statement_, proof_, options : OptionsPattern[]] := updateEnvironment @ catchKernelFailure @ With[
-	{
-		environment = $TypeTheoryEnvironment,
-		universeParameters = declarationUniverseParameters[DeclareTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]
-	},
+addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, options : OptionsPattern[]]] := With[
+	{universeParameters = declarationUniverseParameters[TypeTheoryTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]},
 	{type = elaborateClosedType[environment, HoldComplete[statement], universeParameters]},
 	declareTheorem[environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters]]
 ]
 
-(* the statement and universe parameters come from the proof *)
-DeclareTheorem[name_, proof_, options : OptionsPattern[]] := updateEnvironment @ catchKernelFailure @ Replace[proof, {
+(* the statement and universe parameters come from the proof, which is evaluated *)
+addDeclaration[environment_, TypeTheoryTheorem[name_, proof_, options : OptionsPattern[]]] := Replace[proof, {
 	state : TypeTheoryProof[_Association] :>
-		declareTheorem[$TypeTheoryEnvironment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state]],
+		declareTheorem[environment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state]],
 	failure_Failure :> throwFailure[failure],
 	other_ :> kernelFailure["ProofExpected", "`1` is not a TypeTheoryProof.", {Short[other]}]
 }]
 
-(* A proof written as TypeTheoryProof[statement, tactics] runs here; any other proof is a term, which may
-   also name a finished proof stored in a symbol. *)
-theoremValue[environment_, HoldComplete[proof_TypeTheoryProof], _, _] := Replace[proof, {
-	state : TypeTheoryProof[_Association] :> completedProofTerm[state],
-	failure_Failure :> throwFailure[failure]
-}]
-theoremValue[environment_, held_HoldComplete, type_, universeParameters_List] := First[elaborateClosedTerm[environment, held, type, universeParameters]]
-
-
-DeclareInductiveType[name_, type_, constructors_List, options : OptionsPattern[]] := updateEnvironment @ catchKernelFailure @ Module[
-	{environment = $TypeTheoryEnvironment, parsedConstructors, universeParameters, typeCore, provisional, constructorCores},
+addDeclaration[environment_, TypeTheoryInductiveType[name_, type_, constructors_List, options : OptionsPattern[]]] := Module[
+	{parsedConstructors, universeParameters, typeCore, provisional, constructorCores},
 	parsedConstructors = constructorSpecifications[constructors];
 	universeParameters = declarationUniverseParameters[
-		DeclareInductiveType,
+		TypeTheoryInductiveType,
 		Hold[options],
 		Prepend[Function[pair, toSyntax @@ Last[pair]] /@ parsedConstructors, toSyntax[type]]
 	];
@@ -147,14 +163,15 @@ DeclareInductiveType[name_, type_, constructors_List, options : OptionsPattern[]
 		"NumberOfParameters" -> 0,
 		"NumberOfIndices" -> 0,
 		"Constructors" -> {},
-		"LargeElimination" -> False
+		"LargeElimination" -> False,
+		"Recursive" -> False
 	|>|>];
 	constructorCores = Function[pair, First[pair] -> elaborateClosedType[provisional, Last[pair], universeParameters]] /@ parsedConstructors;
 	declareInductiveType[
 		environment,
 		HoldComplete[name],
 		universeParameters,
-		Replace[heldOptionValue[DeclareInductiveType, Hold[options], "Parameters"], {
+		Replace[heldOptionValue[TypeTheoryInductiveType, Hold[options], "Parameters"], {
 			HoldComplete[Automatic] :> sharedParameterCount[provisional, typeCore, Last /@ constructorCores],
 			HoldComplete[n_Integer?NonNegative] :> n,
 			HoldComplete[other_] :> kernelFailure["InvalidOption", "The value of the option \"Parameters\" must be a non-negative integer or Automatic, not `1`.", {HoldForm[other]}]
@@ -163,6 +180,25 @@ DeclareInductiveType[name_, type_, constructors_List, options : OptionsPattern[]
 		constructorCores
 	]
 ]
+
+addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_]] :=
+	registerNaturalNumbers[environment, <|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero], "Successor" -> HoldComplete[successor], "Addition" -> None|>]
+
+addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_, addition_]] := registerNaturalNumbers[
+	environment,
+	<|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero], "Successor" -> HoldComplete[successor], "Addition" -> HoldComplete[addition]|>
+]
+
+addDeclaration[_, other_] := kernelFailure["DeclarationExpected", "`1` is not a declaration.", {Short[other]}]
+
+
+(* A proof written as TypeTheoryProof[...] runs here; any other proof is a term, which may also name a
+   finished proof stored in a symbol. *)
+theoremValue[environment_, HoldComplete[proof_TypeTheoryProof], _, _] := Replace[proof, {
+	state : TypeTheoryProof[_Association] :> completedProofTerm[state],
+	failure_Failure :> throwFailure[failure]
+}]
+theoremValue[environment_, held_HoldComplete, type_, universeParameters_List] := First[elaborateClosedTerm[environment, held, type, universeParameters]]
 
 (* {constructor -> type, ...}, held, as {{HoldComplete[constructor], HoldComplete[type]}, ...} *)
 SetAttributes[constructorSpecifications, HoldFirst]
@@ -211,16 +247,21 @@ commonPrefixLength[first_List, second_List] := With[{length = Min[Length[first],
 (*Options and universe parameters*)
 
 
-heldOptionValue[function_Symbol, Hold[options___], name_String] := First[Cases[
-	Join[Hold[options], Hold @@ Options[function]],
+heldOptionValue[head_Symbol, Hold[options___], name_String] := First[Cases[
+	Join[Hold[options], Hold @@ Options[head]],
 	(Rule | RuleDelayed)[name, value_] :> HoldComplete[value],
 	{1, 2}
 ]]
 
-declarationUniverseParameters[function_Symbol, heldOptions_Hold, syntaxes_List] := Replace[heldOptionValue[function, heldOptions, "UniverseParameters"], {
+declarationUniverseParameters[head_Symbol, heldOptions_Hold, syntaxes_List] := Replace[heldOptionValue[head, heldOptions, "UniverseParameters"], {
 	HoldComplete[Automatic] :> universeParameterNames[syntaxes],
-	HoldComplete[{parameters___Symbol}] :> HoldComplete /@ Unevaluated[{parameters}],
-	HoldComplete[other_] :> kernelFailure["InvalidOption", "The value of the option \"UniverseParameters\" must be a list of symbols or Automatic, not `1`.", {HoldForm[other]}]
+	HoldComplete[{parameters___}] /; AllTrue[Unevaluated[{parameters}], Function[parameter, MatchQ[Unevaluated[parameter], _Symbol | _String], HoldAll]] :>
+		HoldComplete /@ Unevaluated[{parameters}],
+	HoldComplete[other_] :> kernelFailure[
+		"InvalidOption",
+		"The value of the option \"UniverseParameters\" must be a list of symbols or strings, or Automatic, not `1`.",
+		{HoldForm[other]}
+	]
 }]
 
 universeParameterNames[syntaxes_List] := DeleteDuplicates @ Catenate[levelParameterNames /@ Join[
@@ -228,8 +269,9 @@ universeParameterNames[syntaxes_List] := DeleteDuplicates @ Catenate[levelParame
 	Catenate @ Cases[syntaxes, syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {_, levels__}] :> {levels}, {0, Infinity}]
 ]]
 
-(* the symbols of a level, leaving out the heads Plus, Max and ImpredicativeMaximum *)
+(* the symbols and strings of a level, leaving out the heads Plus, Max and ImpredicativeMaximum *)
 levelParameterNames[syntaxSymbol[held_]] := {held}
+levelParameterNames[syntaxString[name_]] := {HoldComplete[name]}
 levelParameterNames[syntaxApplication[_, arguments_List]] := Catenate[levelParameterNames /@ arguments]
 levelParameterNames[_] := {}
 

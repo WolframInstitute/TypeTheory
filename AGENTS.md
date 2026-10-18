@@ -31,6 +31,9 @@ umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and e
   start a proof; `statementQ` in `Proofs/ProofStates.wl` guards against it.
 - Kernel functions report failure with `kernelFailure`, a tagged `Throw` that `catchKernelFailure` turns
   into a `Failure` at each exported function.
+- An environment is a handle to a store, a symbol whose DownValues hold the constants. Stores are never
+  mutated after they are built; code that builds environments in steps runs inside `withStoreCleanup`,
+  which removes the stores of the steps in between.
 - This paclet does not depend on Lean or LeanLink, and no symbol here is named after Lean. A Lean bridge
   belongs in LeanLink.
 
@@ -41,9 +44,9 @@ wolframscript -f scripts/run_tests.wls                                   # every
 wolframscript -f scripts/run_tests.wls TypeTheory/Tests/Proofs/ProofStates.wlt
 ```
 
-Run from the repository root: each `.wlt` file starts with `PacletDirectoryLoad[Directory[]]`. A test
-that declares something does so inside `Block[{$TypeTheoryEnvironment = $TypeTheoryEnvironment}, ...]`,
-so files do not depend on one another.
+Run from the repository root: each `.wlt` file starts with `PacletDirectoryLoad[Directory[]]`. There is
+no global environment: a test builds the environments it needs, usually from `TypeTheoryEnvironment["Prelude"]`,
+and environments never change, so files do not depend on one another.
 
 ### Writing Wolfram context names in Markdown
 

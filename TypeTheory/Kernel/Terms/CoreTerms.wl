@@ -18,6 +18,7 @@ carries its name and type.
 	dependentFunctionType[HoldComplete[name], domain, codomain, binder]
 	localDefinition[HoldComplete[name], type, value, body]
 	naturalLiteral[n]                                   n a non-negative Integer
+	projection[HoldComplete[structure], index, term]    field index, counting from 0, of a term of a structure type
 
 Names are held, so a constant or variable whose symbol has a value never evaluates inside a term.
 binder is one of "Explicit", "Implicit", "StrictImplicit", "InstanceImplicit".
@@ -43,6 +44,7 @@ PackageScoped[lambdaAbstraction]
 PackageScoped[dependentFunctionType]
 PackageScoped[localDefinition]
 PackageScoped[naturalLiteral]
+PackageScoped[projection]
 
 PackageScoped[levelParameter]
 PackageScoped[levelMetavariable]
@@ -79,6 +81,8 @@ dependentFunctionType::usage = "dependentFunctionType[HoldComplete[name], domain
 which may refer to the argument as boundVariable[0]."
 localDefinition::usage = "localDefinition[HoldComplete[name], type, value, body] binds value of type type in body, which refers to it as boundVariable[0]."
 naturalLiteral::usage = "naturalLiteral[n] is the natural number n."
+projection::usage = "projection[HoldComplete[structure], index, term] is the field index, counting from 0, of term, whose type is the structure structure: \
+an inductive type with one constructor and no indices."
 
 levelParameter::usage = "levelParameter[HoldComplete[u]] is the universe parameter u."
 levelMetavariable::usage = "levelMetavariable[id] is an unknown universe level, solved by unification."
@@ -119,6 +123,7 @@ liftBoundVariables[dependentFunctionType[name_, domain_, codomain_, binder_], am
 	dependentFunctionType[name, liftBoundVariables[domain, amount, cutoff], liftBoundVariables[codomain, amount, cutoff + 1], binder]
 liftBoundVariables[localDefinition[name_, type_, value_, body_], amount_, cutoff_] :=
 	localDefinition[name, liftBoundVariables[type, amount, cutoff], liftBoundVariables[value, amount, cutoff], liftBoundVariables[body, amount, cutoff + 1]]
+liftBoundVariables[projection[structure_, index_, term_], amount_, cutoff_] := projection[structure, index, liftBoundVariables[term, amount, cutoff]]
 liftBoundVariables[term_, _, _] := term
 
 
@@ -140,6 +145,7 @@ substituteBoundVariable[dependentFunctionType[name_, domain_, codomain_, binder_
 	dependentFunctionType[name, substituteBoundVariable[domain, value, depth], substituteBoundVariable[codomain, value, depth + 1], binder]
 substituteBoundVariable[localDefinition[name_, type_, definedValue_, body_], value_, depth_] :=
 	localDefinition[name, substituteBoundVariable[type, value, depth], substituteBoundVariable[definedValue, value, depth], substituteBoundVariable[body, value, depth + 1]]
+substituteBoundVariable[projection[structure_, index_, term_], value_, depth_] := projection[structure, index, substituteBoundVariable[term, value, depth]]
 substituteBoundVariable[term_, _, _] := term
 
 
@@ -153,6 +159,7 @@ abstractAt[dependentFunctionType[name_, domain_, codomain_, binder_], id_, depth
 	dependentFunctionType[name, abstractAt[domain, id, depth], abstractAt[codomain, id, depth + 1], binder]
 abstractAt[localDefinition[name_, type_, value_, body_], id_, depth_] :=
 	localDefinition[name, abstractAt[type, id, depth], abstractAt[value, id, depth], abstractAt[body, id, depth + 1]]
+abstractAt[projection[structure_, index_, term_], id_, depth_] := projection[structure, index, abstractAt[term, id, depth]]
 abstractAt[term_, _, _] := term
 
 
@@ -162,6 +169,7 @@ boundVariableOccursQ[(lambdaAbstraction | dependentFunctionType)[_, domain_, bod
 	boundVariableOccursQ[domain, target] || boundVariableOccursQ[body, target + 1]
 boundVariableOccursQ[localDefinition[_, type_, value_, body_], target_] :=
 	boundVariableOccursQ[type, target] || boundVariableOccursQ[value, target] || boundVariableOccursQ[body, target + 1]
+boundVariableOccursQ[projection[_, _, term_], target_] := boundVariableOccursQ[term, target]
 boundVariableOccursQ[_, _] := False
 
 
@@ -180,6 +188,7 @@ makeApplication[head_, arguments_List] := Fold[application, head, arguments]
 betaNormalize[application[function_, argument_]] := betaApply[betaNormalize[function], betaNormalize[argument]]
 betaNormalize[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := head[name, betaNormalize[domain], betaNormalize[body], binder]
 betaNormalize[localDefinition[name_, type_, value_, body_]] := localDefinition[name, betaNormalize[type], betaNormalize[value], betaNormalize[body]]
+betaNormalize[projection[structure_, index_, term_]] := projection[structure, index, betaNormalize[term]]
 betaNormalize[term_] := term
 
 betaApply[lambdaAbstraction[_, _, body_, _], argument_] := betaNormalize[instantiateBoundVariable[body, argument]]

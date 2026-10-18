@@ -1,17 +1,21 @@
 (* ::Package:: *)
 
 (*
-Questions about terms and environments: type checking, definitional equality, reduction, and checking a
-whole environment again from scratch.
+Questions about terms and environments.
 
-A TypeTheoryTerm is elaborated in $TypeTheoryEnvironment, or in an environment given as the first
-argument, with the symbols in its universe levels as universe parameters. Answers are TypeTheoryTerm
-expressions again, read back from the core terms.
+TypeTheoryTerm[term, environment] carries the environment its constants come from; TypeTheoryTerm[term]
+without one is read in the empty environment. A term's universe parameters are the symbols and strings
+in its universe levels. Answers are TypeTheoryTerm expressions in the same environment, read back from
+core terms.
 
-An environment is an ordinary expression, which anyone can write by hand. TypeTheoryCheck[environment]
-is how to trust one that did not come from the Declare functions: it replays every declaration in
-order on an empty environment with the core declaration functions, and compares each record with the
-one the replay produces. Axioms are taken on trust, as their name says.
+An environment behaves like an Association of its constants: environment[name] gives the declaration
+that introduced name, Keys gives the names in the order they were declared, and Length, KeyExistsQ and
+Normal work as for an Association, Normal giving the declarations themselves, in order. Information
+gives "Constants", "Kinds", "Axioms" and "NaturalNumbers".
+
+An environment's store can be changed by hand. TypeTheoryCheck[environment] is how to trust it anyway:
+it replays every declaration in order on an empty environment with the core declaration functions, and
+compares each record with the one the replay produces. Axioms are taken on trust, as their name says.
 *)
 
 
@@ -25,58 +29,79 @@ PackageExported[WeakHeadNormalForm]
 
 
 (* ::Section:: *)
+(*PackageScoped*)
+
+
+PackageScoped[termEnvironment]
+PackageScoped[heldTerm]
+PackageScoped[termSyntax]
+PackageScoped[declarationOf]
+
+
+(* ::Section:: *)
 (*Usage Messages*)
 
 
-TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in $TypeTheoryEnvironment, or a Failure if it does not type-check.\n\
+TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
 TypeTheoryCheck[term, type] gives True if term has the given type, and a Failure otherwise.\n\
-TypeTheoryCheck[environment, term] and TypeTheoryCheck[environment, term, type] use the TypeTheoryEnvironment environment.\n\
-TypeTheoryCheck[environment] checks every declaration of environment again from scratch and gives True, or a Failure for the first declaration that does not check."
-DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by \
-computation in $TypeTheoryEnvironment, and False otherwise.\n\
-DefinitionallyEqualQ[environment, term1, term2] uses the TypeTheoryEnvironment environment."
-WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term in $TypeTheoryEnvironment until its head can no longer reduce.\n\
-WeakHeadNormalForm[environment, term] uses the TypeTheoryEnvironment environment."
+TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives True, \
+or a Failure for the first declaration that does not check."
+DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
+in their environment, and False otherwise."
+WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
+
+termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the empty environment if it has none."
+heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
+termSyntax::usage = "termSyntax[term] gives the syntax tree of the TypeTheoryTerm term."
+declarationOf::usage = "declarationOf[environment, HoldComplete[name], mode] gives the declaration that introduced the constant name, \
+its terms read back for display (mode \"Display\") or exactly (mode \"Exact\")."
 
 
 (* ::Section:: *)
 (*Function Definitions*)
 
 
-TypeTheoryTerm /: TypeOf[term_TypeTheoryTerm] := TypeTheoryCheck[term]
-TypeTheoryTerm /: TypeOf[term_TypeTheoryTerm, environment_TypeTheoryEnvironment] := TypeTheoryCheck[environment, term]
+termEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
+termEnvironment[TypeTheoryTerm[_]] := $emptyEnvironment
 
+heldTerm[TypeTheoryTerm[term_, ___]] := HoldComplete[term]
 
-queryUniverseParameters[terms_List] := universeParameterNames[Function[term, toSyntax @@ term] /@ terms]
+termSyntax[TypeTheoryTerm[term_, ___]] := toSyntax[term]
+
+(* the environment two terms share; a term without one takes the other's *)
+sharedEnvironment[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[{termEnvironment[first], termEnvironment[second]}, {
+	{environment_, environment_} :> environment,
+	{environment_, other_} /; other === $emptyEnvironment :> environment,
+	{other_, environment_} /; other === $emptyEnvironment :> environment,
+	_ :> kernelFailure["DifferentEnvironments", "The terms carry different environments.", {}]
+}]
 
 elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] :=
-	elaborateClosedTerm[environment, HoldComplete @@ term, expected, universeParameters]
+	elaborateClosedTerm[environment, heldTerm[term], expected, universeParameters]
 
 
-TypeTheoryCheck[term_TypeTheoryTerm] := TypeTheoryCheck[$TypeTheoryEnvironment, term]
-TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := TypeTheoryCheck[$TypeTheoryEnvironment, term, type]
+TypeTheoryTerm /: TypeOf[term : TypeTheoryTerm[_, ___]] := TypeTheoryCheck[term]
+TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryCheck[TypeTheoryTerm[term, environment]]
+
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
-TypeTheoryCheck[environment_TypeTheoryEnvironment, term_TypeTheoryTerm] := catchKernelFailure @ coreToTypeTheoryTerm[
-	environment,
-	<||>,
-	betaNormalize @ Replace[heldFromSyntax[toSyntax @@ term], {
+TypeTheoryCheck[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
+	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[heldFromSyntax[termSyntax[term]], {
 		name_ /; constantDeclaredQ[environment, name] :> constantRecord[environment, name]["Type"],
-		_ :> Last @ elaborateQueryTerm[environment, term, None, queryUniverseParameters[{term}]]
-	}]
+		_ :> Last @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
+	}]]
 ]
 
-TypeTheoryCheck[environment_TypeTheoryEnvironment, term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure @ With[
-	{universeParameters = queryUniverseParameters[{term, type}]},
-	{expected = elaborateClosedType[environment, HoldComplete @@ type, universeParameters]},
+TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure @ With[
+	{environment = sharedEnvironment[term, type], universeParameters = universeParameterNames[{termSyntax[term], termSyntax[type]}]},
+	{expected = elaborateClosedType[environment, heldTerm[type], universeParameters]},
 	elaborateQueryTerm[environment, term, expected, universeParameters];
 	True
 ]
 
 
-DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := DefinitionallyEqualQ[$TypeTheoryEnvironment, first, second]
-DefinitionallyEqualQ[environment_TypeTheoryEnvironment, first_TypeTheoryTerm, second_TypeTheoryTerm] := TrueQ @ catchKernelFailure @ With[
-	{universeParameters = queryUniverseParameters[{first, second}]},
+DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := TrueQ @ catchKernelFailure @ With[
+	{environment = sharedEnvironment[first, second], universeParameters = universeParameterNames[{termSyntax[first], termSyntax[second]}]},
 	definitionallyEqualQ[
 		environment,
 		<||>,
@@ -86,24 +111,113 @@ DefinitionallyEqualQ[environment_TypeTheoryEnvironment, first_TypeTheoryTerm, se
 ]
 
 
-WeakHeadNormalForm[term_TypeTheoryTerm] := WeakHeadNormalForm[$TypeTheoryEnvironment, term]
-WeakHeadNormalForm[environment_TypeTheoryEnvironment, term_TypeTheoryTerm] := catchKernelFailure @ coreToTypeTheoryTerm[
-	environment,
-	<||>,
-	weakHeadNormalForm[environment, <||>, First @ elaborateQueryTerm[environment, term, None, queryUniverseParameters[{term}]]]
+WeakHeadNormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
+	coreToTypeTheoryTerm[
+		environment,
+		<||>,
+		weakHeadNormalForm[environment, <||>, First @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]
+	]
 ]
+
+
+(* ::Subsection:: *)
+(*Environments as associations*)
+
+
+(environment : TypeTheoryEnvironment[_Symbol])[name_] /; environmentQ[environment] := declarationOf[environment, HoldComplete[name], "Display"]
+
+TypeTheoryEnvironment /: Keys[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := ReleaseHold /@ environmentNames[environment]
+TypeTheoryEnvironment /: Length[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := Length[environmentNames[environment]]
+TypeTheoryEnvironment /: KeyExistsQ[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, name_] := constantDeclaredQ[environment, HoldComplete[name]]
+
+(* the declarations, in order; constructors and recursors come with their inductive type *)
+TypeTheoryEnvironment /: Normal[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := catchKernelFailure @ With[
+	{declarations = Function[name, declarationOf[environment, name, "Exact"]] /@ primaryNames[environment]},
+	If[ naturalNumberSettings[environment] === None,
+		declarations,
+		Insert[declarations, naturalNumbersDeclaration[naturalNumberSettings[environment]], naturalNumbersPosition[environment]]
+	]
+]
+
+primaryNames[environment_] := Select[
+	environmentNames[environment],
+	Function[name, ! MatchQ[constantRecord[environment, name]["Kind"], "Constructor" | "Recursor"]]
+]
+
+(* the natural numbers are registered right after the last constant they name *)
+naturalNumbersPosition[environment_] := With[
+	{named = DeleteCases[Values[naturalNumberSettings[environment]], None], primary = primaryNames[environment]},
+	Max[Flatten[Position[primary, Alternatives @@ named, {1}]]] + 1
+]
+
+naturalNumbersDeclaration[settings_Association] := ReleaseHold @ heldFromSyntax @ syntaxHead[
+	TypeTheoryNaturalNumbers,
+	toSyntax @@@ DeleteCases[Lookup[settings, {"Type", "Zero", "Successor", "Addition"}], None]
+]
+
+TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
+
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Axioms", "NaturalNumbers"}
+environmentInformation[environment_, "Constants"] := Keys[environment]
+environmentInformation[environment_, "Kinds"] := Counts[Function[name, constantRecord[environment, name]["Kind"]] /@ environmentNames[environment]]
+environmentInformation[environment_, "Axioms"] :=
+	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Axiom"]]
+environmentInformation[environment_, "NaturalNumbers"] := Replace[naturalNumberSettings[environment], settings_Association :> Map[ReleaseHold, settings]]
+
+
+(* ::Subsection:: *)
+(*Declarations read back*)
+
+
+declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDeclaredQ[environment, name],
+	Missing["KeyAbsent", ReleaseHold[name]],
+	Replace[constantRecord[environment, name], {
+		record : KeyValuePattern["Kind" -> "Constructor" | "Recursor"] :> declarationOf[environment, record["InductiveType"], mode],
+		record_ :> ReleaseHold @ heldFromSyntax @ declarationSyntax[environment, name, record, mode]
+	}]
+]
+
+declarationSyntax[environment_, name_, record_, mode_] := With[
+	{
+		nameSyntax = toSyntax @@ name,
+		typeSyntax = readBack[environment, record["Type"], mode],
+		universeOption = Replace[record["UniverseParameters"], {
+			{} -> {},
+			parameters_List :> {syntaxHead[Rule, {syntaxString["UniverseParameters"], syntaxHead[List, toSyntax @@@ parameters]}]}
+		}]
+	},
+	Replace[record["Kind"], {
+		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption]],
+		"Definition" :> syntaxHead[TypeTheoryDefinition, Join[{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]}, universeOption]],
+		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, readBack[environment, record["Value"], mode]}, universeOption]],
+		"InductiveType" :> syntaxHead[TypeTheoryInductiveType, Join[
+			{
+				nameSyntax,
+				typeSyntax,
+				syntaxHead[List, Function[constructor,
+					syntaxHead[Rule, {toSyntax @@ constructor, readBack[environment, constantRecord[environment, constructor]["Type"], mode]}]
+				] /@ record["Constructors"]],
+				syntaxHead[Rule, {syntaxString["Parameters"], syntaxInteger[record["NumberOfParameters"]]}]
+			},
+			universeOption
+		]]
+	}]
+]
+
+readBack[environment_, term_, "Display"] := delaborate[environment, <||>, term]
+readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delaborate[environment, <||>, term]]
 
 
 (* ::Subsection:: *)
 (*Checking an environment*)
 
 
-TypeTheoryCheck[environment : TypeTheoryEnvironment[data_Association]] := catchKernelFailure @ With[
+TypeTheoryCheck[environment_?environmentQ] := withStoreCleanup @ catchKernelFailure @ With[
 	{
 		replayed = Fold[
-			Function[{partial, declaration}, replayDeclaration[environment, partial, declaration]],
-			emptyEnvironment[],
-			Normal[data["Constants"]]
+			Function[{partial, name}, replayDeclaration[environment, partial, name -> constantRecord[environment, name]]],
+			$emptyEnvironment,
+			environmentNames[environment]
 		]
 	},
 	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],

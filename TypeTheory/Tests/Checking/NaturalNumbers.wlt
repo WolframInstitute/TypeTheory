@@ -7,50 +7,53 @@ PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
-registerNaturalNumbers = Symbol["WolframInstitute`TypeTheory`PackageScope`registerNaturalNumbers"]
-catchKernelFailure = Symbol["WolframInstitute`TypeTheory`PackageScope`catchKernelFailure"]
+prelude = TypeTheoryEnvironment["Prelude"]
 
-settings[type_, zero_, successor_, addition_] := <|"Type" -> type, "Zero" -> zero, "Successor" -> successor, "Addition" -> addition|>
+(* the prelude up to, and without, its natural numbers *)
+beforeNaturalNumbers = TypeTheoryEnvironment[TakeWhile[Normal[prelude], Function[declaration, Head[declaration] =!= TypeTheoryNaturalNumbers]]]
 
 
 VerificationTest[
-	Head @ catchKernelFailure @ registerNaturalNumbers[
-		$TypeTheoryEnvironment,
-		settings[HoldComplete[NonNegativeIntegers], HoldComplete[NaturalNumberZero], HoldComplete[NaturalNumberSuccessor], HoldComplete[Plus]]
-	],
-	TypeTheoryEnvironment,
-	TestID -> "The-prelude-natural-numbers-register"
+	Information[Append[beforeNaturalNumbers, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor]], "NaturalNumbers"],
+	<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Addition" -> None|>,
+	TestID -> "The-natural-numbers-register-without-addition"
 ]
 
 VerificationTest[
-	First @ catchKernelFailure @ registerNaturalNumbers[
-		$TypeTheoryEnvironment,
-		settings[HoldComplete[NonNegativeIntegers], HoldComplete[NaturalNumberSuccessor], HoldComplete[NaturalNumberZero], HoldComplete[Plus]]
-	],
+	First @ Append[beforeNaturalNumbers, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberSuccessor, NaturalNumberZero]],
 	"InvalidNaturalNumbers",
 	TestID -> "Zero-and-successor-cannot-be-swapped"
 ]
 
 VerificationTest[
-	Block[{$TypeTheoryEnvironment = $TypeTheoryEnvironment},
-		DeclareDefinition[
+	First @ TypeTheoryEnvironment[beforeNaturalNumbers, {
+		TypeTheoryDefinition[
 			FirstNumber,
 			Typed[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]
-		];
-		First @ catchKernelFailure @ registerNaturalNumbers[
-			$TypeTheoryEnvironment,
-			settings[HoldComplete[NonNegativeIntegers], HoldComplete[NaturalNumberZero], HoldComplete[NaturalNumberSuccessor], HoldComplete[FirstNumber]]
-		]
-	],
+		],
+		TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, FirstNumber]
+	}],
 	"InvalidNaturalNumbers",
 	TestID -> "Only-recursive-addition-can-be-registered"
 ]
 
 VerificationTest[
-	Block[{$TypeTheoryEnvironment = $TypeTheoryEnvironment},
-		DeclareInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}];
-		First @ catchKernelFailure @ registerNaturalNumbers[$TypeTheoryEnvironment, settings[HoldComplete[Bit], HoldComplete[BitZero], HoldComplete[BitOne], None]]
-	],
+	First @ TypeTheoryEnvironment[{
+		TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
+		TypeTheoryNaturalNumbers[Bit, BitZero, BitOne]
+	}],
 	"InvalidNaturalNumbers",
 	TestID -> "A-type-without-a-successor-cannot-be-registered"
+]
+
+VerificationTest[
+	First @ Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor]],
+	"NaturalNumbersRegistered",
+	TestID -> "The-natural-numbers-are-registered-once"
+]
+
+VerificationTest[
+	First @ TypeOf[TypeTheoryTerm[3, beforeNaturalNumbers]],
+	"ElaborationFailed",
+	TestID -> "Literals-need-natural-numbers"
 ]
