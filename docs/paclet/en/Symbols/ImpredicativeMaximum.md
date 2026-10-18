@@ -17,6 +17,7 @@ RelatedGuides: [TypeTheory]
 
 - A function type into propositions is itself a proposition, whatever its domain: this is what makes Prop impredicative.
 - A level written with [ImpredicativeMaximum]() simplifies when its second argument is known to be 0, or known never to be.
+- A universe shows its level as Lean writes it: <code>[ImpredicativeMaximum]()[*u*, *v*]</code> as `imax u v` and <code>[Max]()[*u*, *v*]</code> as `max u v`.
 
 ## Basic Examples
 
@@ -36,7 +37,7 @@ A universe at that level, for parameters `u` and `v`:
 TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v]]]]
 ```
 
-<!-- => Type ImpredicativeMaximum[u, v] -->
+<!-- => Type (imax u v) -->
 
 ## Scope
 
@@ -46,7 +47,7 @@ A level whose second argument is never 0 is a maximum:
 TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v + 1]]]]
 ```
 
-<!-- => Sort Max[u + 1, v + 2] -->
+<!-- => Sort (max (u + 1) (v + 2)) -->
 
 ---
 
@@ -66,4 +67,4 @@ A function type over a universe parameter has an impredicative level:
 TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[u]]}, A]]]
 ```
 
-<!-- => Sort ImpredicativeMaximum[u + 1, u] -->
+<!-- => Sort (imax (u + 1) u) -->

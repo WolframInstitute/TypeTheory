@@ -15,6 +15,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	TypeSpecifier[{A, B} -> C]          A → B → C            RightArrow
 	RightTee[{h1, h2}, T]               h1, h2 ⊢ T
 	TypeUniverse[0], [1], [u + 1], [u]  Prop, Type, Type u, Sort u
+	TypeUniverse[Max[1, u]]             Sort (max 1 u)
 	NonNegativeIntegers                 ℕ
 	InductiveRecursor[I]                I_rec
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
@@ -160,9 +161,18 @@ universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syn
 	sortDisplay["Type", syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level, syntaxInteger[n - 1]}]]
 universeDisplay[level_] := sortDisplay["Sort", level]
 
-(* a level that is a sum is parenthesized, as Lean writes it: Type (u + 1) *)
-sortDisplay[keyword_String, level : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], _]] := sortDisplay[keyword, delimited["(", level, ")"]]
+(* a level that is a sum or a maximum is parenthesized, as Lean writes it: Type (u + 1), Sort (max 1 u) *)
+sortDisplay[keyword_String, level : syntaxApplication[syntaxSymbol[HoldComplete[Plus | Max | ImpredicativeMaximum]], _]] :=
+	sortDisplay[keyword, levelArgumentDisplay[level]]
 sortDisplay[keyword_String, level_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[keyword], level}], syntaxString[" "]}]
+
+levelArgumentDisplay[level : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], _]] := delimited["(", level, ")"]
+levelArgumentDisplay[syntaxApplication[syntaxSymbol[HoldComplete[head : Max | ImpredicativeMaximum]], levels_List]] := delimited[
+	"(",
+	syntaxHead[Row, {syntaxHead[List, Prepend[levelArgumentDisplay /@ levels, syntaxString[Replace[head, {Max -> "max", ImpredicativeMaximum -> "imax"}]]]], syntaxString[" "]}],
+	")"
+]
+levelArgumentDisplay[level_] := level
 
 
 (* ::Subsection:: *)

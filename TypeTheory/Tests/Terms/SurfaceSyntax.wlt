@@ -89,6 +89,15 @@ VerificationTest[
 ]
 
 VerificationTest[
+	MatchQ[
+		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[1, u]]]],
+		InterpretationBox[TemplateBox[{_, _, "\"Sort\"", TemplateBox[{"\"(\"", TemplateBox[{_, _, "\"max\"", "1", "u"}, "RowWithSeparators"], "\")\""}, "RowDefault"]}, "RowWithSeparators"], _]
+	],
+	True,
+	TestID -> "A-universe-at-a-maximum-of-levels-shows-max-in-parentheses"
+]
+
+VerificationTest[
 	MatchQ[ToBoxes[prelude[EqualityCongruence]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
 	True,
 	TestID -> "A-declaration-displays-as-a-keyword-a-name-and-a-type"
