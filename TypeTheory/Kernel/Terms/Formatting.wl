@@ -21,9 +21,9 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	NonNegativeIntegers                 ℕ
 	InductiveRecursor[I]                I_rec
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
-	Booleans, BooleanTrue, BooleanFalse  𝔹, true, false
+	Booleans, "true", "false"          𝔹, true, false       a constant named by a string shows as the string
 	Circle                              𝕊¹                   the circle of the HoTT environment
-	BooleanAnd, BooleanOr, BooleanNot   a && b, a || b, !a   as Lean writes them for its Bool
+	"and", "or", "not"                  a && b, a || b, !a   as Lean writes them for its Bool
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
 
@@ -123,8 +123,6 @@ displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
 displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruckCapitalS]\:00b9"]
-displaySyntax[syntaxSymbol[HoldComplete[BooleanTrue]]] := syntaxString["true"]
-displaySyntax[syntaxSymbol[HoldComplete[BooleanFalse]]] := syntaxString["false"]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
 displaySyntax[syntax_] := syntax
@@ -155,11 +153,11 @@ displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := sy
 (* the predecessor shows as n - 1, which it is by computation *)
 displayApplication[syntaxSymbol[HoldComplete[NaturalNumberPredecessor]], {argument_}] := syntaxHead[Subtract, {argument, syntaxInteger[1]}]
 (* (a && b) && c shows as a && b && c, the way Lean reads it *)
-displayApplication[syntaxSymbol[HoldComplete[BooleanNot]], {argument_}] := syntaxHead[PlusMinus, {argument}]
-displayApplication[syntaxSymbol[HoldComplete[BooleanAnd]], {syntaxApplication[syntaxSymbol[HoldComplete[Nand]], rest_List], last_}] := syntaxHead[Nand, Append[rest, last]]
-displayApplication[syntaxSymbol[HoldComplete[BooleanAnd]], arguments_List] := syntaxHead[Nand, arguments]
-displayApplication[syntaxSymbol[HoldComplete[BooleanOr]], {syntaxApplication[syntaxSymbol[HoldComplete[Nor]], rest_List], last_}] := syntaxHead[Nor, Append[rest, last]]
-displayApplication[syntaxSymbol[HoldComplete[BooleanOr]], arguments_List] := syntaxHead[Nor, arguments]
+displayApplication[syntaxString["not"], {argument_}] := syntaxHead[PlusMinus, {argument}]
+displayApplication[syntaxString["and"], {syntaxApplication[syntaxSymbol[HoldComplete[Nand]], rest_List], last_}] := syntaxHead[Nand, Append[rest, last]]
+displayApplication[syntaxString["and"], arguments_List] := syntaxHead[Nand, arguments]
+displayApplication[syntaxString["or"], {syntaxApplication[syntaxSymbol[HoldComplete[Nor]], rest_List], last_}] := syntaxHead[Nor, Append[rest, last]]
+displayApplication[syntaxString["or"], arguments_List] := syntaxHead[Nor, arguments]
 (* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
 displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
 	syntaxHead[head, Prepend[rest, first]]

@@ -226,7 +226,19 @@ VerificationTest[
 ]
 
 VerificationTest[
-	FreeQ[TypeOf[TypeTheoryTerm[FunctionExtensionality[Function[{Typed[b, Booleans]}, EqualityReflexivity[BooleanNot[b]]]]]], Function],
+	FreeQ[TypeOf[TypeTheoryTerm[FunctionExtensionality[Function[{Typed[b, Booleans]}, EqualityReflexivity["not"[b]]]]]], Function],
 	True,
 	TestID -> "A-constant-applied-to-the-pattern-variables-solves-as-the-constant"
+]
+
+VerificationTest[
+	{
+		Sort[Select[Keys[prelude], StringQ]],
+		Names["WolframInstitute`TypeTheory`Boolean*"],
+		WeakHeadNormalForm[TypeTheoryTerm["not"["true"]]] === WeakHeadNormalForm[TypeTheoryTerm[Typed[False, Booleans]]],
+		Last[TypeOf[TypeTheoryTerm[True]]["MessageParameters"]],
+		Last[TypeOf[TypeTheoryTerm[Not]]["MessageParameters"]]
+	},
+	{{"and", "false", "not", "or", "true"}, {}, True, "true", "not"},
+	TestID -> "The-constants-of-the-Booleans-are-named-by-strings"
 ]

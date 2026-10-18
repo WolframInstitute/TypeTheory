@@ -87,7 +87,7 @@ they are equivalent. It is the axiom of the HoTT environment."
 EquivalenceToEquality::usage = "EquivalenceToEquality[e] is the path A == B that univalence gives for the equivalence e from A to B."
 UnivalenceComputation::usage = "UnivalenceComputation[e] proves EqualityToEquivalence[EquivalenceToEquality[e]] == e: carrying along the path of an \
 equivalence is that equivalence."
-NegationEquivalence::usage = "NegationEquivalence is BooleanNot as an equivalence from Booleans to Booleans, its own inverse."
+NegationEquivalence::usage = "NegationEquivalence is the negation of Booleans, \"not\", as an equivalence from Booleans to Booleans, its own inverse."
 IsSet::usage = "IsSet[A] is the type of proofs that any two paths between the same elements of A are equal."
 UniverseNotSet::usage = "UniverseNotSet proves Not[IsSet[TypeUniverse[1]]]: by univalence, NegationEquivalence gives a path Booleans == Booleans that is not \
 reflexivity, as the HoTT book shows."
@@ -190,8 +190,8 @@ $univalentDeclarations = {
 	],
 
 	(* the Booleans *)
-	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {BooleanFalse -> Booleans, BooleanTrue -> Booleans}],
-	TypeTheoryDefinition[BooleanNot, Function[{Typed[a, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], BooleanTrue, BooleanFalse, a]]],
+	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {"false" -> Booleans, "true" -> Booleans}],
+	TypeTheoryDefinition["not", Function[{Typed[a, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "true", "false", a]]],
 
 	(* equivalences, bi-invertible *)
 	TypeTheoryInductiveType[
@@ -277,10 +277,10 @@ $univalentDeclarations = {
 			With[
 				{
 					involution = Function[{Typed[b, Booleans]},
-						InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, BooleanNot[BooleanNot[t]] == t], EqualityReflexivity[BooleanFalse], EqualityReflexivity[BooleanTrue], b]
+						InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "not"["not"[t]] == t], EqualityReflexivity["false"], EqualityReflexivity["true"], b]
 					]
 				},
-				EquivalenceIntroduction[BooleanNot, EquivalenceProof[BooleanNot, involution, BooleanNot, involution]]
+				EquivalenceIntroduction["not", EquivalenceProof["not", involution, "not", involution]]
 			],
 			Equivalence[Booleans, Booleans]
 		]
@@ -292,7 +292,7 @@ $univalentDeclarations = {
 			With[
 				{
 					negationPath = EquivalenceToEquality[NegationEquivalence],
-					onTrue = Function[{Typed[e, Equivalence[Booleans, Booleans]]}, e[[1]][BooleanTrue]]
+					onTrue = Function[{Typed[e, Equivalence[Booleans, Booleans]]}, e[[1]]["true"]]
 				},
 				With[
 					{

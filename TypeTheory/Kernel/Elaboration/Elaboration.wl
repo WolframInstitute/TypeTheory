@@ -28,7 +28,7 @@ While a tactic elaborates a term for a goal, $goalMetavariableTypes gives the ty
 goals, which may occur in the goal's type.
 
 True, False, Not, And and Or are overloaded: they stand for the propositions or, in an environment that
-declares them, for the Booleans BooleanTrue, BooleanFalse, BooleanNot, BooleanAnd and BooleanOr. The
+declares them, for the Booleans' constants "true", "false", "not", "and" and "or", named by strings. The
 type decides: where a type or Prop is expected they are the propositions, where Booleans is expected
 the Booleans; elsewhere each meaning is tried, and the one that fits is taken. A name both meanings fit
 waits, in $pendingOverloads, until its type is known. A name still undecided when the binders around
@@ -510,11 +510,11 @@ elaborateWith[{other_, ___}, _, _] := elaborationFailure["`1` is not a binding: 
 
 (* each overloaded name, with the proposition it stands for first and the Boolean second *)
 $overloadedNames = <|
-	HoldComplete[True] -> {HoldComplete[True], HoldComplete[BooleanTrue]},
-	HoldComplete[False] -> {HoldComplete[False], HoldComplete[BooleanFalse]},
-	HoldComplete[Not] -> {HoldComplete[Not], HoldComplete[BooleanNot]},
-	HoldComplete[And] -> {HoldComplete[And], HoldComplete[BooleanAnd]},
-	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete[BooleanOr]}
+	HoldComplete[True] -> {HoldComplete[True], HoldComplete["true"]},
+	HoldComplete[False] -> {HoldComplete[False], HoldComplete["false"]},
+	HoldComplete[Not] -> {HoldComplete[Not], HoldComplete["not"]},
+	HoldComplete[And] -> {HoldComplete[And], HoldComplete["and"]},
+	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete["or"]}
 |>
 
 overloadedNameQ[environment_, name_HoldComplete] := Length[declaredMeanings[environment, name]] > 1
@@ -566,10 +566,15 @@ meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
    ∧, and (a && b) && c for Booleans, as Lean's && *)
 elaborateMeaning[meaning_HoldComplete, {}, _] := insertImplicitArguments[constantWithFreshLevels[meaning]]
 elaborateMeaning[meaning : HoldComplete[head : And | Or], arguments_List, expected_] /; Length[arguments] > 2 :=
-	applyArguments[constantWithFreshLevels[meaning], {First[arguments], rightFold[head, Rest[arguments]]}, syntaxSymbol[meaning], expected]
-elaborateMeaning[meaning : HoldComplete[head : BooleanAnd | BooleanOr], arguments_List, expected_] /; Length[arguments] > 2 :=
-	applyArguments[constantWithFreshLevels[meaning], {leftFold[head, Most[arguments]], Last[arguments]}, syntaxSymbol[meaning], expected]
-elaborateMeaning[meaning_HoldComplete, arguments_List, expected_] := applyArguments[constantWithFreshLevels[meaning], arguments, syntaxSymbol[meaning], expected]
+	applyArguments[constantWithFreshLevels[meaning], {First[arguments], rightFold[head, Rest[arguments]]}, nameSyntax[meaning], expected]
+elaborateMeaning[meaning : HoldComplete["and" | "or"], arguments_List, expected_] /; Length[arguments] > 2 :=
+	applyArguments[
+		constantWithFreshLevels[meaning],
+		{Fold[Function[{accumulated, next}, syntaxApplication[nameSyntax[meaning], {accumulated, next}]], First[arguments], Rest[Most[arguments]]], Last[arguments]},
+		nameSyntax[meaning],
+		expected
+	]
+elaborateMeaning[meaning_HoldComplete, arguments_List, expected_] := applyArguments[constantWithFreshLevels[meaning], arguments, nameSyntax[meaning], expected]
 
 (* a name both meanings fit is a metavariable of the expected type until that type decides *)
 postponeOverload[name_HoldComplete, arguments_List, syntax_, expected_] := With[
@@ -613,17 +618,26 @@ decideOverload[entry_Association, meaning_HoldComplete] := With[{type = pendingT
 	]
 ]
 
-ambiguityFailure[entry_Association] := If[ entry["Arguments"] === {} && MatchQ[entry["Name"], HoldComplete[Not | And | Or]],
-	kernelFailure[
-		"Ambiguous",
-		"`1` could be the operation on propositions or on Booleans here: write `2` for the one on Booleans, or give its type with Typed.",
-		{HoldForm @@ entry["Name"], HoldForm @@ Last[$overloadedNames[entry["Name"]]]}
-	],
-	kernelFailure[
-		"Ambiguous",
-		"`1` could be a proposition or a Boolean here: say which with Typed[`1`, TypeUniverse[0]] or Typed[`1`, Booleans].",
-		{HoldForm @@ heldFromSyntax[entry["Syntax"]]}
-	]
+(* the Boolean meaning is named by a string, which says which of the two is meant where nothing else does *)
+ambiguityFailure[entry_Association] := Which[
+	entry["Arguments"] === {} && MatchQ[entry["Name"], HoldComplete[Not | And | Or]],
+		kernelFailure[
+			"Ambiguous",
+			"`1` could be the operation on propositions or on Booleans here: write `2` for the one on Booleans, or give its type with Typed.",
+			{HoldForm @@ entry["Name"], First[Last[$overloadedNames[entry["Name"]]]]}
+		],
+	entry["Arguments"] === {},
+		kernelFailure[
+			"Ambiguous",
+			"`1` could be a proposition or a Boolean here: write `2` for the Boolean, or Typed[`1`, TypeUniverse[0]] for the proposition.",
+			{HoldForm @@ entry["Name"], First[Last[$overloadedNames[entry["Name"]]]]}
+		],
+	True,
+		kernelFailure[
+			"Ambiguous",
+			"`1` could be a proposition or a Boolean here: say which with Typed[`1`, TypeUniverse[0]] or Typed[`1`, Booleans].",
+			{HoldForm @@ heldFromSyntax[entry["Syntax"]]}
+		]
 ]
 
 settleOverloads[term_] := (
@@ -705,7 +719,7 @@ unassignedMetavariableQ[_] := False
 (* A metavariable applied to distinct variables of the context, ?f[x, y], unifies with a term t by
    ?f = Function[{x, y}, t]: the most general solution, as in higher-order pattern unification. A
    variable applied to the pattern's variables is that variable: ?f[x, y] against g[x, y], with g a
-   variable, gives ?f = g, and so is a constant applied to exactly them, as BooleanNot[a]. A constant
+   variable, gives ?f = g, and so is a constant applied to exactly them, as "not"[a]. A constant
    applied to more keeps its function, so the solution reads (n) ↦ 0 + n rather than Plus[0]. *)
 patternApplicationQ[term_] := With[{spine = applicationSpine[term]},
 	And[

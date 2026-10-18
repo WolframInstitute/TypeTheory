@@ -26,10 +26,10 @@ VerificationTest[
 
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity[BooleanTrue], BooleanFalse], hott]],
-		WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Function[{Typed[x, Circle]}, Booleans], BooleanTrue, TransportConstant[CircleLoop, BooleanTrue], CircleBase], hott]]
+		WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity["true"], "false"], hott]],
+		WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Function[{Typed[x, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"], CircleBase], hott]]
 	},
-	{TypeTheoryTerm[BooleanFalse, hott], TypeTheoryTerm[BooleanTrue, hott]},
+	{TypeTheoryTerm["false", hott], TypeTheoryTerm["true", hott]},
 	TestID -> "Transport-computes-on-reflexivity-and-the-circle-on-its-base"
 ]
 
@@ -67,7 +67,7 @@ VerificationTest[
 							cast = Function[{Typed[C, TypeUniverse[1]], Typed[e, StrictEqual[Booleans, C]], Typed[b, Booleans]},
 								InductiveRecursor[StrictEqual][Function[{Typed[D, TypeUniverse[1]], Typed[k, StrictEqual[Booleans, D]]}, D], b, e]
 							],
-							onTrue = Function[{Typed[e, Equivalence[Booleans, Booleans]]}, e[[1]][BooleanTrue]]
+							onTrue = Function[{Typed[e, Equivalence[Booleans, Booleans]]}, e[[1]]["true"]]
 						},
 						With[
 							{
@@ -80,7 +80,7 @@ VerificationTest[
 							},
 							Transport[
 								Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, TypeUniverse[1]], True, False, b]],
-								EqualityTransitivity[EqualitySymmetry[viaUnivalence], agree[BooleanTrue]],
+								EqualityTransitivity[EqualitySymmetry[viaUnivalence], agree["true"]],
 								TrueIntroduction
 							]
 						]

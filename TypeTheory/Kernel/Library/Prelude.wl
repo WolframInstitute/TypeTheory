@@ -22,7 +22,7 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Identity, Composition      the identity function and composition of functions
 	m * n, m^n, Subtract[m, n] Times, Power and Subtract, the last stopping at 0, all by recursion on n
 	m <= n                     LessEqual, inductive as in Lean, with Less, GreaterEqual and Greater
-	Booleans                   with BooleanFalse and BooleanTrue, and BooleanNot, BooleanAnd and BooleanOr;
+	Booleans                   with the constants "false" and "true", "not", "and" and "or", named by strings;
 	                           True, False, Not, And and Or stand for these where a Boolean is expected
 
 	Nonempty[a], Subtype[P]    with NonemptyIntroduction, and SubtypeIntroduction, an element and its proof
@@ -107,11 +107,6 @@ PackageExported[SuccessorNotLessEqualZero]
 PackageExported[LessEqualPredecessor]
 PackageExported[LessIrreflexivity]
 PackageExported[LessEqualAntisymmetry]
-PackageExported[BooleanFalse]
-PackageExported[BooleanTrue]
-PackageExported[BooleanNot]
-PackageExported[BooleanAnd]
-PackageExported[BooleanOr]
 PackageExported[NonemptyIntroduction]
 PackageExported[SubtypeIntroduction]
 PackageExported[Nonempty]
@@ -203,11 +198,6 @@ SuccessorNotLessEqualZero::usage = "SuccessorNotLessEqualZero[n] proves Not[n + 
 LessEqualPredecessor::usage = "LessEqualPredecessor[h] proves n <= m from a proof h of n + 1 <= m + 1."
 LessIrreflexivity::usage = "LessIrreflexivity[n] proves Not[n < n]."
 LessEqualAntisymmetry::usage = "LessEqualAntisymmetry[h1, h2] proves a == b from proofs h1 of a <= b and h2 of b <= a."
-BooleanFalse::usage = "BooleanFalse is the Boolean false, which False stands for where a Boolean is expected."
-BooleanTrue::usage = "BooleanTrue is the Boolean true, which True stands for where a Boolean is expected."
-BooleanNot::usage = "BooleanNot[a] is the negation of the Boolean a, which Not[a] and !a stand for when a is a Boolean."
-BooleanAnd::usage = "BooleanAnd[a, b] is the conjunction of the Booleans a and b, which And[a, b] and a && b stand for when they are Booleans."
-BooleanOr::usage = "BooleanOr[a, b] is the disjunction of the Booleans a and b, which Or[a, b] and a || b stand for when they are Booleans."
 Nonempty::usage = "Nonempty[a] is the proposition that the type a has an element."
 NonemptyIntroduction::usage = "NonemptyIntroduction[x] proves Nonempty[a] from an element x of a."
 Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]."
@@ -760,11 +750,12 @@ $constructiveDeclarations = {
 	],
 
 	(* the Booleans, with false before true and the operations by cases on the first argument, as Lean's
-	   Bool; once they are declared, True, False, And, Or and Not stand for them where a Boolean is expected *)
-	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {BooleanFalse -> Booleans, BooleanTrue -> Booleans}],
-	TypeTheoryDefinition[BooleanNot, Function[{Typed[a, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], BooleanTrue, BooleanFalse, a]]],
-	TypeTheoryDefinition[BooleanAnd, Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], BooleanFalse, b, a]]],
-	TypeTheoryDefinition[BooleanOr, Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], b, BooleanTrue, a]]]
+	   Bool; the constants are named by strings, and once they are declared, True, False, And, Or and Not
+	   stand for them where a Boolean is expected *)
+	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {"false" -> Booleans, "true" -> Booleans}],
+	TypeTheoryDefinition["not", Function[{Typed[a, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "true", "false", a]]],
+	TypeTheoryDefinition["and", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "false", b, a]]],
+	TypeTheoryDefinition["or", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], b, "true", a]]]
 }
 
 (* The classical part of the prelude: Lean's axioms, propositional extensionality, choice and, since

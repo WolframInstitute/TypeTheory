@@ -170,15 +170,15 @@ VerificationTest[
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]],
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[Not[False] || False, Booleans]]],
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[True && True && False, Booleans]]],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[BooleanTrue]], TypeTheoryTerm[Not[Not[Typed[True, Booleans]]] == True]], _Success]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity["true"]], TypeTheoryTerm[Not[Not[Typed[True, Booleans]]] == True]], _Success]
 	},
-	{TypeTheoryTerm[BooleanFalse, prelude], TypeTheoryTerm[BooleanTrue, prelude], TypeTheoryTerm[BooleanFalse, prelude], True},
+	{TypeTheoryTerm["false", prelude], TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude], True},
 	TestID -> "The-Booleans-compute"
 ]
 
 VerificationTest[
 	MatchQ[TypeTheoryCheck[
-		TypeTheoryTerm[Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity[BooleanFalse], EqualityReflexivity[BooleanTrue], b]]],
+		TypeTheoryTerm[Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity["false"], EqualityReflexivity["true"], b]]],
 		TypeTheoryTerm[ForAll[{Typed[b, Booleans]}, Not[Not[b]] == b]]
 	], _Success],
 	True,
