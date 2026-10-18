@@ -20,6 +20,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	InductiveRecursor[I]                I_rec
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
 	Booleans, BooleanTrue, BooleanFalse  𝔹, true, false
+	Circle                              𝕊¹                   the circle of the HoTT environment
 	BooleanAnd, BooleanOr, BooleanNot   a && b, a || b, !a   as Lean writes them for its Bool
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
@@ -112,6 +113,7 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[head, displaySyntax /@ arguments]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
+displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruckCapitalS]\:00b9"]
 displaySyntax[syntaxSymbol[HoldComplete[BooleanTrue]]] := syntaxString["true"]
 displaySyntax[syntaxSymbol[HoldComplete[BooleanFalse]]] := syntaxString["false"]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
