@@ -220,13 +220,14 @@ levelComponents[levelSuccessor[level_, k_Integer]] := Replace[levelComponents[le
 levelComponents[levelMaximum[levels___]] := mergeComponents[Join @@ (levelComponents /@ {levels})]
 levelComponents[levelImpredicativeMaximum[a_, b_]] := impredicativeComponents[levelComponents[a], levelComponents[b]]
 
-(* imax a b is max a b when b is never 0, and b when b is 0 or a is 0 *)
+(* imax a b is max a b when b is never 0, and b when b is 0 or a <= max 1 b, as for a = 0, a = 1 or a = b:
+   then b = 0 gives 0, and b >= 1 gives max a b = b. Lean's kernel reads imax 1 u as u the same way. *)
 impredicativeComponents[a_, b_] := Which[
 	b === {0},
 		{0},
 	componentsNeverZeroQ[b],
 		mergeComponents[Join[a, b]],
-	a === {0} || a === b,
+	componentsLessEqualQ[a, mergeComponents[Append[b, 1]]],
 		b,
 	True,
 		{{levelImpredicativeMaximum[fromComponents[a], fromComponents[b]], 0}}
@@ -259,7 +260,11 @@ levelNeverZeroQ[level_] := componentsNeverZeroQ[levelComponents[level]]
 
 levelLessEqualQ[a_, b_] := componentsLessEqualQ[levelComponents[a], levelComponents[b]]
 
-(* every component of a is below some component of b, or below b's least value *)
+(* every component of a is below some component of b, or below b's least value; imax x y is at most
+   max x y, so it is below b when x and y are *)
 componentsLessEqualQ[a_List, b_List] := AllTrue[a, Function[component, componentLessEqualQ[component, b]]]
 componentLessEqualQ[n_Integer, b_List] := n <= Max[Replace[b, {m_Integer :> m, {_, offset_} :> offset}, {1}]]
-componentLessEqualQ[{base_, offset_}, b_List] := MemberQ[b, {base, other_ /; other >= offset}]
+componentLessEqualQ[{base_, offset_}, b_List] /; MemberQ[b, {base, other_ /; other >= offset}] := True
+componentLessEqualQ[{levelImpredicativeMaximum[x_, y_], offset_}, b_List] :=
+	componentsLessEqualQ[levelComponents[levelSuccessor[x, offset]], b] && componentsLessEqualQ[levelComponents[levelSuccessor[y, offset]], b]
+componentLessEqualQ[{_, _}, _List] := False

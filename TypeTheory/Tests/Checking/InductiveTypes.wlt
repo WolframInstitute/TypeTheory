@@ -146,3 +146,17 @@ VerificationTest[
 	True,
 	TestID -> "The-equality-recursor-reduces-on-any-proof"
 ]
+
+VerificationTest[
+	Keys[TypeTheoryEnvironment[TypeTheoryEnvironment[], {TypeTheoryInductiveType[
+		Composable,
+		ForAll[{TypedImplicit[A, TypeUniverse[a]], TypedImplicit[B, TypeUniverse[b]], Typed[r, TypeSpecifier[{A, B} -> TypeUniverse[c]]]}, TypeUniverse[Max[1, a, b, c]]],
+		{ComposableIntroduction -> ForAll[
+			{TypedImplicit[A, TypeUniverse[a]], TypedImplicit[B, TypeUniverse[b]], TypedImplicit[r, TypeSpecifier[{A, B} -> TypeUniverse[c]]], Typed[f, ForAll[{TypedImplicit[x, A], TypedImplicit[y, B]}, TypeSpecifier[{r[x, y]} -> r[x, y]]]]},
+			Composable[r]
+		]},
+		"Parameters" -> 3
+	]}]],
+	{Composable, ComposableIntroduction, InductiveRecursor[Composable]},
+	TestID -> "A-field-whose-universe-is-an-impredicative-maximum-fits-a-maximum"
+]

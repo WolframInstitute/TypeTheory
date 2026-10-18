@@ -140,3 +140,12 @@ VerificationTest[
 	"ElaborationFailed",
 	TestID -> "Only-a-structure-has-fields"
 ]
+
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[1, u]]], TypeTheoryTerm[TypeUniverse[u]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v]]], TypeTheoryTerm[TypeUniverse[v]]]
+	},
+	{True, False},
+	TestID -> "The-impredicative-maximum-of-1-and-u-is-u"
+]
