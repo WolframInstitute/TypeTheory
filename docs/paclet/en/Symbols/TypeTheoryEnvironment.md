@@ -37,7 +37,7 @@ Add a theorem to the prelude, proved by computation:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 32 constants -->
+<!-- => TypeTheoryEnvironment summary box: 90 constants -->
 
 The declaration of the new constant:
 
@@ -53,7 +53,7 @@ Add a definition to that environment:
 doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 33 constants -->
+<!-- => TypeTheoryEnvironment summary box: 91 constants -->
 
 ## Scope
 
@@ -76,7 +76,7 @@ How many constants of each kind the prelude has:
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 7, "Constructor" -> 8, "Recursor" -> 7, "Definition" -> 2, "Theorem" -> 7|> -->
+<!-- => <|"InductiveType" -> 9, "Constructor" -> 11, "Recursor" -> 9, "Definition" -> 12, "Theorem" -> 48|> -->
 
 ---
 

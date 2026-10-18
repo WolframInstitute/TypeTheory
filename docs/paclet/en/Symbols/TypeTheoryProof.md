@@ -94,11 +94,11 @@ A finished proof is declared with [TypeTheoryTheorem]():
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}];
-proved = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionZeroRight, proof]];
-proved[AdditionZeroRight]
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]];
+proved[ZeroRightIdentity]
 ```
 
-<!-- => theorem AdditionZeroRight : ∀_n∶ℕ n + 0 == n -->
+<!-- => theorem ZeroRightIdentity : ∀_n∶ℕ n + 0 == n -->
 
 ## Possible Issues
 

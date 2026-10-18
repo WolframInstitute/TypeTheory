@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, Lean]
-RelatedTutorials: [TypeTheoryIntroduction]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
@@ -44,12 +44,30 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryProof]() a proof in progress, with its open goals
 - [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Assumption"`
 
-### The prelude
+### The prelude: logic and equality
 
-- [TrueIntroduction]() the proof of [True]()
+- [TrueIntroduction]() the proof of [True](); [FalseElimination]() anything follows from [False]()
 - [AndIntroduction](), [AndEliminationLeft](), [AndEliminationRight]() proving and using [And]()
 - [OrIntroductionLeft](), [OrIntroductionRight]() proving [Or]()
-- [FalseElimination]() anything follows from [False]()
-- [EqualityReflexivity](), [EqualitySymmetry](), [EqualityTransitivity](), [EqualityCongruence](), [EqualitySubstitution]() equality
+- [EquivalentIntroduction](), [EquivalentForward](), [EquivalentBackward]() proving and using [Equivalent]()
+- [EquivalentReflexivity](), [EquivalentSymmetry](), [EquivalentTransitivity]() the laws of [Equivalent]()
 - [ExistsIntroduction]() proving [Exists]() with a witness
-- [NaturalNumberZero](), [NaturalNumberSuccessor]() the constructors of the natural numbers [NonNegativeIntegers]()
+- [EqualityReflexivity](), [EqualitySymmetry](), [EqualityTransitivity](), [EqualityCongruence](), [EqualitySubstitution]() equality, with [Unequal]() its negation
+- [Identity](), [Composition]() the identity function and composition
+
+### The prelude: natural numbers
+
+- [NaturalNumberZero](), [NaturalNumberSuccessor](), [NaturalNumberPredecessor]() the constructors of [NonNegativeIntegers](), and the number before
+- [Plus](), [Times](), [Power](), [Subtract]() arithmetic, each by recursion on its second argument
+- [LessEqualReflexivity](), [LessEqualStep]() the constructors of [LessEqual](), with [Less](), [GreaterEqual]() and [Greater]() defined from it
+
+### The prelude: theorems about the natural numbers
+
+- [AdditionZeroRight](), [AdditionZeroLeft](), [AdditionSuccessorRight](), [AdditionSuccessorLeft](), [AdditionCommutativity](), [AdditionAssociativity]() addition
+- [MultiplicationZeroRight](), [MultiplicationZeroLeft](), [MultiplicationSuccessorRight](), [MultiplicationSuccessorLeft](), [MultiplicationOneRight](), [MultiplicationOneLeft]() multiplication by small numbers
+- [MultiplicationCommutativity](), [MultiplicationAssociativity](), [MultiplicationDistributivityLeft](), [MultiplicationDistributivityRight]() the laws of multiplication
+- [SubtractionZeroRight](), [SubtractionZeroLeft](), [SubtractionSuccessor](), [SubtractionSelf](), [AdditionSubtractionCancellation]() subtraction
+- [PowerZero](), [PowerSuccessor](), [PowerOne](), [PowerAddition]() powers
+- [SuccessorInjectivity](), [SuccessorNotZero]() the successor
+- [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualAddition](), [PredecessorLessEqual]() the order and the successor
+- [LessEqualTransitivity](), [LessEqualAntisymmetry](), [LessIrreflexivity](), [SuccessorNotLessEqualZero]() the laws of the order

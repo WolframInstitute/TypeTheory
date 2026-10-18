@@ -85,7 +85,7 @@ Declarations, such as [TypeTheoryTheorem](), are inert until [TypeTheoryEnvironm
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 32 constants -->
+<!-- => TypeTheoryEnvironment summary box: 90 constants -->
 
 ```wl
 arithmetic[TwoPlusTwo]
@@ -199,19 +199,19 @@ proof["Term"]
 
 <!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, EqualityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
 
-Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term:
+Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term. The prelude has this theorem already, as [AdditionZeroLeft](), so it is declared here under a name of its own:
 
 ```wl
-proved = TypeTheoryEnvironment[{TypeTheoryTheorem[AdditionZeroLeft, proof]}];
-proved[AdditionZeroLeft]
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}];
+proved[ZeroLeftIdentity]
 ```
 
-<!-- => theorem AdditionZeroLeft : ∀_n∶ℕ 0 + n == n -->
+<!-- => theorem ZeroLeftIdentity : ∀_n∶ℕ 0 + n == n -->
 
 A theorem applies like a function, here to `7`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved]]
+TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved]]
 ```
 
 <!-- => 0 + 7 == 7 -->
@@ -230,10 +230,10 @@ TypeTheoryCheck[proved]
 
 ```wl
 rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[proved]];
-rebuilt[AdditionZeroLeft]
+rebuilt[ZeroLeftIdentity]
 ```
 
-<!-- => theorem AdditionZeroLeft : ∀_n∶ℕ 0 + n == n -->
+<!-- => theorem ZeroLeftIdentity : ∀_n∶ℕ 0 + n == n -->
 
 ## Lean
 

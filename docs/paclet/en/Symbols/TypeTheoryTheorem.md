@@ -41,8 +41,8 @@ proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }];
-proved = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionZeroRight, proof]];
-TypeOf[TypeTheoryTerm[AdditionZeroRight, proved]]
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]];
+TypeOf[TypeTheoryTerm[ZeroRightIdentity, proved]]
 ```
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
@@ -50,7 +50,7 @@ TypeOf[TypeTheoryTerm[AdditionZeroRight, proved]]
 A theorem applies like a function:
 
 ```wl
-TypeOf[TypeTheoryTerm[AdditionZeroRight[7], proved]]
+TypeOf[TypeTheoryTerm[ZeroRightIdentity[7], proved]]
 ```
 
 <!-- => 7 + 0 == 7 -->

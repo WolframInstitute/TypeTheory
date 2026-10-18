@@ -78,8 +78,8 @@ proof = TypeTheoryTactic["Reflexivity"][proof];         (* 0 + 0 == 0 by computa
 proof = TypeTheoryTactic["Introduce", k, ih][proof];    (* ih : 0 + k == k *)
 proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][proof];
 
-proved = TypeTheoryEnvironment[{TypeTheoryTheorem[AdditionZeroLeft, proof]}];
-TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 7 == 7]]
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}];
+TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]]
 (* True *)
 ```
 
@@ -140,11 +140,27 @@ store is never changed once built, and it lasts for the session.
 
 ## The prelude
 
-- **Logic:** `True` (`TrueIntroduction`), `False`, `Not`, `And` (`AndIntroduction`) and `Or` (`OrIntroductionLeft`, `OrIntroductionRight`).
-- **Equality:** `Equal` (`EqualityReflexivity`), and `Exists` (`ExistsIntroduction`).
-- **Natural numbers:** `NonNegativeIntegers`, with `NaturalNumberZero` and `NaturalNumberSuccessor`, registered so that literals are natural numbers.
-- **Addition:** `Plus`, defined by recursion on its second argument.
-- **Theorems:** `FalseElimination`, `AndEliminationLeft`, `AndEliminationRight`, `EqualitySymmetry`, `EqualityTransitivity`, `EqualityCongruence` and `EqualitySubstitution`, proved with the recursors.
+The prelude is the environment of every term, proof and declaration list that names none. Each of its
+89 constants is checked by the kernel when the paclet loads, and none is an axiom. The tutorial *The
+TypeTheory Prelude* on the documentation site goes through all of it.
+
+- **Logic:** `True` (`TrueIntroduction`), `False` (`FalseElimination`), `Not`, `And` (`AndIntroduction`,
+  `AndEliminationLeft`, `AndEliminationRight`), `Or` (`OrIntroductionLeft`, `OrIntroductionRight`),
+  `Equivalent` (`EquivalentIntroduction`, `EquivalentForward`, `EquivalentBackward`, with reflexivity,
+  symmetry and transitivity) and `Exists` (`ExistsIntroduction`).
+- **Equality:** `Equal` (`EqualityReflexivity`, `EqualitySymmetry`, `EqualityTransitivity`,
+  `EqualityCongruence`, `EqualitySubstitution`) and `Unequal`, `x != y`.
+- **Functions:** `Identity` and `Composition`.
+- **Natural numbers:** `NonNegativeIntegers`, with `NaturalNumberZero`, `NaturalNumberSuccessor` and
+  `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
+  and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean; `LessEqual`,
+  inductive as Lean's `Nat.le` (`LessEqualReflexivity`, `LessEqualStep`), with `Less`, `GreaterEqual`
+  and `Greater`.
+- **Theorems about them:** commutativity, associativity and distributivity of addition and
+  multiplication, the zero, one and successor laws, cancellation of subtraction, the laws of powers,
+  injectivity of the successor, and the order's transitivity, antisymmetry and irreflexivity.
+
+The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)`.
 
 ## Tactics
 
@@ -197,12 +213,14 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 114 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 120 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records.
 
 ## Not yet
 
+- Booleans and decidability, pairs, sums, options and lists, and the theory around them.
 - Mutual and nested inductive types; quotients; induction on indexed families in the tactic.
 - Higher-order unification beyond patterns; no type classes.
-- A compiled kernel (`FunctionCompile` over an array encoding of terms).
+- A compiled kernel (`FunctionCompile` over an array encoding of terms), and computing products and
+  powers of literals with integers, as sums already are.
