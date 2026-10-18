@@ -196,7 +196,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 106 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 108 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records.
 
