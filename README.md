@@ -142,7 +142,7 @@ store is never changed once built, and it lasts for the session.
 ## The prelude
 
 The prelude is the environment of every term, proof and declaration list that names none. Each of its
-102 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+109 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
 three constants are axioms, propositional extensionality, function extensionality and choice, and the
 excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
@@ -163,12 +163,19 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
   multiplication, the zero, one and successor laws, cancellation of subtraction, the laws of powers,
   injectivity of the successor, and the order's transitivity, antisymmetry and irreflexivity.
+- **Booleans:** `Booleans`, with `BooleanFalse` and `BooleanTrue`, and `BooleanNot`, `BooleanAnd` and
+  `BooleanOr`, by cases on the first argument as Lean's `Bool`. They show as `true`, `false`, `!`, `&&` and
+  `||`.
 - **Classical logic:** `Nonempty` (`NonemptyIntroduction`) and `Subtype` (`SubtypeIntroduction`); the
   axioms `PropositionalExtensionality`, `FunctionExtensionality` (which Lean proves from quotients) and
   `Choice`; `ChosenWitness` with `ChosenWitnessProperty`; and the theorems `ExcludedMiddle`, proved by
   Diaconescu's argument, and `DoubleNegationElimination`.
 
-The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)`.
+The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)` for propositions
+and `(a && b) && c` for Booleans. `True`, `False`, `Not`, `And` and `Or` are propositions or Booleans, as
+the type decides: propositions where a type or `Prop` is expected, Booleans where `Booleans` is, and
+otherwise whatever the arguments or the term's use allow. A term nothing decides, such as
+`True == False`, is ambiguous and gives a `Failure`, and `Typed[True, Booleans]` says which it is.
 
 ## Tactics
 
@@ -221,13 +228,13 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 126 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 133 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records.
 
 ## Not yet
 
-- Booleans and decidability, pairs, sums, options and lists, and the theory around them.
+- Decidability, pairs, sums, options and lists, and the theory around them.
 - Mutual and nested inductive types; quotients; induction on indexed families in the tactic.
 - Higher-order unification beyond patterns; no type classes.
 - A compiled kernel (`FunctionCompile` over an array encoding of terms), and computing products and

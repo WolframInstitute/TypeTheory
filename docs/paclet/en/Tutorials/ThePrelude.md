@@ -5,12 +5,12 @@ Title: The TypeTheory Prelude
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/ThePrelude
-Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, classical logic, axioms, choice, excluded middle, constructive]
+Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, classical logic, axioms, choice, excluded middle, constructive]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction]
 ---
 
-The prelude is the environment of every term, proof and list of declarations that names no other. It declares the propositions of logic and their proofs, equality, a few functions, and the natural numbers with their arithmetic, their order and the theorems about them. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
+The prelude is the environment of every term, proof and list of declarations that names no other. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, and the Booleans. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
 
 ## What the Prelude Declares
 
@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 11, "Constructor" -> 13, "Recursor" -> 11, "Definition" -> 13, "Theorem" -> 51, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 12, "Constructor" -> 15, "Recursor" -> 12, "Definition" -> 16, "Theorem" -> 51, "Axiom" -> 3|> -->
 
 It is built when the paclet loads, and every declaration in it is checked by the kernel. Three of its constants are axioms, assumed and not proved:
 
@@ -232,6 +232,50 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAntisymmetry]]
 
 The other theorems are [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualTransitivity](), [LessIrreflexivity](), [SuccessorNotLessEqualZero]() and [PredecessorLessEqual]().
 
+## Booleans
+
+[Booleans]() has two values, [BooleanFalse]() and [BooleanTrue](), and [BooleanNot](), [BooleanAnd]() and [BooleanOr]() compute with them by cases on their first argument, as with Lean's `Bool`. Where a Boolean is expected, [True](), [False](), [Not](), [And]() and [Or]() stand for them, and so do `!`, `&&` and `||`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Typed[True && Not[False], Booleans]]]
+```
+
+<!-- => true -->
+
+A Boolean shows in lower case, and its operations as Lean writes them, which tells them apart from the propositions. The arguments decide too: on Booleans, `||` is the operation on Booleans, and on propositions it is the disjunction:
+
+```wl
+TypeOf[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b || False]]]
+```
+
+<!-- => 𝔹 → 𝔹 -->
+
+When nothing decides, a term is ambiguous: here both sides could be propositions, or both Booleans:
+
+```wl
+TypeOf[TypeTheoryTerm[True == False]]
+```
+
+<!-- => Failure["Ambiguous", ...] -->
+
+[Typed]() says which it is, and the other side follows:
+
+```wl
+TypeOf[TypeTheoryTerm[Typed[True, Booleans] == False]]
+```
+
+<!-- => Prop -->
+
+A statement about every Boolean is proved by cases, with the recursor of [Booleans]():
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
+    InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity[BooleanFalse], EqualityReflexivity[BooleanTrue], b]
+]]]
+```
+
+<!-- => ∀_b∶𝔹 !!b == b -->
+
 ## Classical Logic
 
 The prelude's three axioms are those of Lean's library. [PropositionalExtensionality]() makes equivalent propositions equal:
@@ -313,4 +357,4 @@ Information[excludedMiddle, "Axioms"]
 
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. Booleans and decidability, pairs, sums, options and lists, and type classes are not here yet, and the kernel does not yet have mutual and nested inductive types or quotients, which parts of Lean's library need.
+Lean's library is much larger than this prelude. Decidability, pairs, sums, options and lists, and type classes are not here yet, and the kernel does not yet have mutual and nested inductive types or quotients, which parts of Lean's library need.

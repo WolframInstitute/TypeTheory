@@ -43,10 +43,10 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, x + 
 A definition unfolds:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Not[True]]]
+WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
 ```
 
-<!-- => True ⇒ False -->
+<!-- => 1 == 2 ⇒ False -->
 
 ---
 

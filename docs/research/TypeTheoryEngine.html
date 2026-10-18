@@ -114,7 +114,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <h1>TypeTheory Engine</h1>
   <p class="lede">A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in pure Wolfram Language. Its terms are written with the symbols the language already has: <code>Function</code>, <code>Typed</code>, <code>TypeOf</code>, <code>ForAll</code>, <code>Implies</code>, <code>Exists</code>, <code>Equal</code>, <code>Plus</code>, <code>NonNegativeIntegers</code>. A small kernel checks every proof, and tactics build proofs step by step in a notebook.</p>
   <div class="meta">
-    <span><b>Status</b> Prototype 0.5.0, October 2026</span>
+    <span><b>Status</b> Prototype 0.6.0, October 2026</span>
     <span><b>Kernel</b> Pure Wolfram Language, no native library</span>
     <span><b>Tests</b> 120 passing</span>
     <span><b>Lean</b> Bridge in LeanLink</span>
@@ -177,7 +177,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 
 <section id="prototype">
 <h2>The prototype</h2>
-<p>Version 0.5.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
+<p>Version 0.6.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
 <div class="scroll"><table>
   <thead><tr><th>Component</th><th>Status</th><th>File</th></tr></thead>
   <tbody>
@@ -191,9 +191,9 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <tr><td>Quotients</td><td><span class="tag planned">planned</span></td><td></td></tr>
     <tr><td>Checking an environment from scratch</td><td><span class="tag built">built</span></td><td><code>Checking/Queries.wl</code></td></tr>
     <tr><td>Surface syntax, reading core terms back, notebook display</td><td><span class="tag built">built</span></td><td><code>Terms/SurfaceSyntax.wl</code>, <code>Terms/Formatting.wl</code></td></tr>
-    <tr><td>Elaboration: implicit arguments, universe levels, unification</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> instances and coercions</td><td><code>Elaboration/Elaboration.wl</code></td></tr>
+    <tr><td>Elaboration: implicit arguments, universe levels, unification, names overloaded by type</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> instances and coercions</td><td><code>Elaboration/Elaboration.wl</code></td></tr>
     <tr><td>Proof states and six tactics</td><td><span class="tag built">built</span></td><td><code>Proofs/ProofStates.wl</code></td></tr>
-    <tr><td>Prelude: classical logic from three axioms, equality, natural numbers with arithmetic and order, 51 theorems; a constructive environment without the axioms</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> booleans, decidability, lists</td><td><code>Library/Prelude.wl</code></td></tr>
+    <tr><td>Prelude: classical logic from three axioms, equality, natural numbers with arithmetic and order, Booleans, 51 theorems; a constructive environment without the axioms</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> decidability, lists</td><td><code>Library/Prelude.wl</code></td></tr>
     <tr><td>Lean bridge: import with dependency cones, export as Lean source</td><td><span class="tag bridge">LeanLink</span> <span class="tag built">built</span> a first version</td><td>LeanLink's <code>TypeTheoryTranslation.wl</code></td></tr>
     <tr><td>Documentation: a page for every symbol, a guide, a tutorial</td><td><span class="tag built">built</span></td><td><code>docs/paclet/en</code></td></tr>
     <tr><td>Compiled kernel</td><td><span class="tag planned">planned</span></td><td></td></tr>
@@ -353,6 +353,7 @@ TypeTheoryCheck[lists]                                           <span class="c"
   <li><b>Unification.</b> First-order unification with a fallback to weak head normal form, and higher-order pattern unification: <code>?P[x] =?= t</code>, with <code>x</code> a variable, solves <code>?P = Function[{x}, t]</code>.</li>
   <li><b>Expected types first.</b> An argument whose type is still an unknown applied to arguments, such as the proof of <code>P[w]</code> in <code>ExistsIntroduction[2, EqualityReflexivity[4]]</code>, waits until the type of the whole application has been unified with the expected type. That is what determines <code>P</code>.</li>
   <li><b>Binder types</b> come from the expected type when they are left out: <code>Typed[Function[{x}, x + 1], TypeSpecifier[{NonNegativeIntegers} -&gt; NonNegativeIntegers]]</code>.</li>
+  <li><b>Names overloaded by type.</b> <code>True</code>, <code>False</code>, <code>Not</code>, <code>And</code> and <code>Or</code> stand for the propositions or for the Booleans <code>BooleanTrue</code>, <code>BooleanFalse</code>, <code>BooleanNot</code>, <code>BooleanAnd</code> and <code>BooleanOr</code>. The expected type decides when it can: a type or <code>Prop</code> takes the proposition, <code>Booleans</code> the Boolean. Otherwise each meaning is tried with the elaboration state restored after, as Lean tries the meanings of ambiguous notation, and the one that fits is taken. A name both meanings fit becomes a metavariable of its expected type and waits until that type is known, at the latest when the binders around it close or the term is finished; a name still undecided then is ambiguous, and <code>Typed</code> must say which it is. Agda resolves overloaded constructors the same way.</li>
 </ul>
 <p>Metavariables do not yet carry their own local contexts, as they do in Lean. A solution that names a variable outside its scope is caught by the kernel's final check, not prevented, and shows up as an elaboration failure. Instances and coercions are not implemented.</p>
 </section>
@@ -481,7 +482,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 <div class="phase done"><div class="n">1</div><div>
   <h3>Prototype</h3>
   <div class="when">Done, October 2026</div>
-  <p>Core terms, the kernel, single inductive families, natural number literals, elaboration, six tactics, the prelude and environment replay; then explicit environments built from declaration constructors, structures with projections and η, a documentation site, and 120 tests; then a prelude of 89 constants with the laws of arithmetic and order; then a classical prelude of 102 constants, with Lean's axioms of propositional extensionality and choice, function extensionality as a third, the excluded middle proved from them, and a constructive environment without them.</p>
+  <p>Core terms, the kernel, single inductive families, natural number literals, elaboration, six tactics, the prelude and environment replay; then explicit environments built from declaration constructors, structures with projections and η, a documentation site, and 120 tests; then a prelude of 89 constants with the laws of arithmetic and order; then a classical prelude of 102 constants, with Lean's axioms of propositional extensionality and choice, function extensionality as a third, the excluded middle proved from them, and a constructive environment without them; then the Booleans, with <code>True</code>, <code>And</code> and the other connectives standing for propositions or Booleans as the type decides.</p>
   <p class="milestone"><b>Milestone</b> <code>0 + n == n</code> is proved by induction in a notebook, declared, used, and replayed from scratch.</p>
 </div></div>
 <div class="phase"><div class="n">2</div><div>
@@ -536,7 +537,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 </ul>
 </section>
 
-<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.5.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.6.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>

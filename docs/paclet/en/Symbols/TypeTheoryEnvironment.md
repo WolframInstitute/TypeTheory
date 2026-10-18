@@ -17,7 +17,7 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryEnvironment]()[]</code> gives the environment with no constants.
 
-<code>[TypeTheoryEnvironment]()["Prelude"]</code> gives the prelude: classical logic, equality and the natural numbers.
+<code>[TypeTheoryEnvironment]()["Prelude"]</code> gives the prelude: classical logic, equality, the natural numbers and the Booleans.
 
 <code>[TypeTheoryEnvironment]()["Constructive"]</code> gives the prelude without its axioms and the theorems proved from them.
 
@@ -40,7 +40,7 @@ Add a theorem to the prelude, proved by computation:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 103 constants -->
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
 
 The declaration of the new constant:
 
@@ -56,7 +56,7 @@ Add a definition to that environment:
 doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 104 constants -->
+<!-- => TypeTheoryEnvironment summary box: 111 constants -->
 
 ## Scope
 
@@ -79,7 +79,7 @@ How many constants of each kind the prelude has:
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 11, "Constructor" -> 13, "Recursor" -> 11, "Definition" -> 13, "Theorem" -> 51, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 12, "Constructor" -> 15, "Recursor" -> 12, "Definition" -> 16, "Theorem" -> 51, "Axiom" -> 3|> -->
 
 ---
 

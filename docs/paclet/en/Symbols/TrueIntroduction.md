@@ -43,10 +43,10 @@ TypeTheoryProof[True, {TypeTheoryTactic["Exact", TrueIntroduction]}]
 [True]() is a proposition:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[True]]
+TypeTheoryCheck[TypeTheoryTerm[True], TypeTheoryTerm[TypeUniverse[0]]]
 ```
 
-<!-- => Prop -->
+<!-- => True -->
 
 ## Possible Issues
 
@@ -57,3 +57,13 @@ TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction, TypeTheoryEnvironment[]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...]: TrueIntroduction is neither a variable in scope nor a declared constant -->
+
+---
+
+On its own, [True]() could also be the Boolean [BooleanTrue](), so its type is ambiguous:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[True]]
+```
+
+<!-- => Failure["Ambiguous", ...] -->

@@ -4,7 +4,7 @@ Name: TypeTheoryTerm
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTerm
-Keywords: [term, type, surface syntax, Function, Typed, ForAll, Implies, dependent type, held]
+Keywords: [term, type, surface syntax, Function, Typed, ForAll, Implies, dependent type, held, Booleans, overloading, ambiguous]
 SeeAlso: [TypeTheoryEnvironment, TypeTheoryCheck, TypeUniverse, WeakHeadNormalForm, DefinitionallyEqualQ]
 RelatedGuides: [TypeTheory]
 ---
@@ -13,7 +13,7 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryTerm]()[*term*, *env*]</code> represents a term of the type theory in the [TypeTheoryEnvironment]() *env*, written with built-in symbols such as [Function](), [Typed](), [ForAll](), [Implies](), [Equal]() and [Plus](), and kept unevaluated.
 
-<code>[TypeTheoryTerm]()[*term*]</code> is a term in the prelude, the environment of logic, equality and the natural numbers.
+<code>[TypeTheoryTerm]()[*term*]</code> is a term in the prelude, the environment of logic, equality, the natural numbers and the Booleans.
 
 ## Details & Options
 
@@ -40,6 +40,7 @@ RelatedGuides: [TypeTheory]
 | <code>[RightTee]()[{[Typed]()[x, A], ...}, B]</code> | a goal: hypotheses and a conclusion, read as [ForAll]() |
 
 - Any other symbol or string is a bound variable or a declared constant. A symbol whose value is a [TypeTheoryTerm]() stands for that term, and one whose value is a finished [TypeTheoryProof]() stands for its proof.
+- [True](), [False](), [Not](), [And]() and [Or](), and so `!`, `&&` and `||`, stand for the propositions or, in an environment that declares the Booleans, for [BooleanTrue](), [BooleanFalse](), [BooleanNot](), [BooleanAnd]() and [BooleanOr](), as the type allows: a proposition where a type or Prop is expected, a Boolean where [Booleans]() is. Elsewhere the arguments decide, or how the term is used. A term that nothing decides is ambiguous, and <code>[Typed]()[*e*, [TypeUniverse]()[0]]</code> or <code>[Typed]()[*e*, [Booleans]()]</code> says which it is.
 - In a notebook a term shows in mathematical notation, with the term itself behind the display.
 
 ## Basic Examples
@@ -101,6 +102,16 @@ TypeOf[TypeTheoryTerm[Implies[equation, equation]]]
 
 <!-- => Prop -->
 
+---
+
+Where a Boolean is expected, `&&` and [True]() are Booleans:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]]
+```
+
+<!-- => false -->
+
 ## Properties and Relations
 
 A term in an environment of its own, here the empty one, [TypeTheoryEnvironment]()[], which declares no constants:
@@ -132,3 +143,21 @@ TypeTheoryCheck[term]
 ```
 
 <!-- => ℕ -->
+
+---
+
+On its own, [True]() could be the proposition or the Boolean, so its type is ambiguous:
+
+```wl
+TypeOf[TypeTheoryTerm[True]]
+```
+
+<!-- => Failure["Ambiguous", ...] -->
+
+[Typed]() says which it is:
+
+```wl
+TypeOf[TypeTheoryTerm[Typed[True, Booleans]]]
+```
+
+<!-- => 𝔹 -->
