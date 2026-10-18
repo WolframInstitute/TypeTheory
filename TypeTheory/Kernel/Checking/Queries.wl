@@ -146,10 +146,10 @@ TypeTheoryEnvironment /: Normal[environment : TypeTheoryEnvironment[_Symbol]?env
 	}]
 ]
 
-primaryNames[environment_] := Select[
-	environmentNames[environment],
-	Function[name, ! MatchQ[constantRecord[environment, name]["Kind"], "Constructor" | "Recursor"]]
-]
+(* constructors and recursors come with their type, and the types of a block with its first *)
+primaryNames[environment_] := Select[environmentNames[environment], Function[name, ! generatedQ[constantRecord[environment, name], name]]]
+
+generatedQ[record_, name_] := MatchQ[record["Kind"], "Constructor" | "Recursor"] || (record["Kind"] === "InductiveType" && First[record["Block"]] =!= name)
 
 (* each registration of the natural numbers, or of operations on them, comes right after the last constant
    it names, and after the registration before it *)
@@ -231,6 +231,18 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 		universeOption = universeOptionSyntax[record]
 	},
 	Replace[record["Kind"], {
+		"InductiveType" /; Length[record["Block"]] > 1 :> syntaxHead[TypeTheoryInductiveType, Join[
+			{
+				syntaxHead[List, Function[member,
+					syntaxHead[Rule, {toSyntax @@ member, readBack[environment, constantRecord[environment, member]["Type"], mode]}]
+				] /@ record["Block"]],
+				syntaxHead[List, Function[constructor,
+					syntaxHead[Rule, {toSyntax @@ constructor, readBack[environment, constantRecord[environment, constructor]["Type"], mode]}]
+				] /@ Catenate[Function[member, constantRecord[environment, member]["Constructors"]] /@ record["Block"]]],
+				syntaxHead[Rule, {syntaxString["Parameters"], syntaxInteger[record["NumberOfParameters"]]}]
+			},
+			universeOption
+		]],
 		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption]],
 		"Definition" :> syntaxHead[TypeTheoryDefinition, Join[{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]}, universeOption]],
 		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, readBack[environment, record["Value"], mode]}, universeOption]],
@@ -286,7 +298,7 @@ TypeTheoryCheck[environment_?environmentQ] := withStoreCleanup @ catchKernelFail
 (* Constructors and recursors are generated with their inductive type, which comes before them; every
    record must come out of the replay exactly as it is in the environment. *)
 replayDeclaration[original_, replayed_, name_ -> record_] := With[
-	{extended = If[MatchQ[record["Kind"], "Constructor" | "Recursor"], replayed, redeclare[original, replayed, name, record]]},
+	{extended = If[generatedQ[record, name], replayed, redeclare[original, replayed, name, record]]},
 	If[ ! constantDeclaredQ[extended, name] || constantRecord[extended, name] =!= record,
 		kernelFailure["DeclarationMismatch", "The record of `1` does not match the record that checking its declaration gives.", {HoldForm @@ name}]
 	];
@@ -298,13 +310,12 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	"Definition" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
-	"InductiveType" :> declareInductiveType[
+	"InductiveType" :> declareInductiveTypes[
 		replayed,
-		name,
 		record["UniverseParameters"],
 		record["NumberOfParameters"],
-		record["Type"],
-		Function[constructor, constructor -> constantRecord[original, constructor]["Type"]] /@ record["Constructors"]
+		Function[member, member -> constantRecord[original, member]["Type"]] /@ record["Block"],
+		Function[constructor, constructor -> constantRecord[original, constructor]["Type"]] /@ Catenate[Function[member, constantRecord[original, member]["Constructors"]] /@ record["Block"]]
 	],
 	kind_ :> kernelFailure["UnknownDeclaration", "The record of `1` has the unknown kind `2`.", {HoldForm @@ name, kind}]
 }]

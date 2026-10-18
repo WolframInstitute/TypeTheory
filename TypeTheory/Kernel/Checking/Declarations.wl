@@ -12,6 +12,8 @@ evaluates, and it means nothing until it is added to an environment:
 	TypeTheoryTheorem[name, statement, proof]
 	TypeTheoryTheorem[name, proof]                              proof a finished TypeTheoryProof
 	TypeTheoryInductiveType[name, type, {constructor -> type, ...}]
+	TypeTheoryInductiveType[{name -> type, ...}, {constructor -> type, ...}]
+	                                                            mutually inductive types
 	TypeTheoryNaturalNumbers[type, zero, successor]            the literals 0, 1, 2, ... become elements of type
 	TypeTheoryNaturalNumbers[type, zero, successor, <|role -> operation, ...|>]
 	                                                            and the operations compute on literals
@@ -189,37 +191,39 @@ addDeclaration[environment_, TypeTheoryTheorem[name_, proof_, options : OptionsP
 	other_ :> kernelFailure["ProofExpected", "`1` is not a TypeTheoryProof.", {Short[other]}]
 }]
 
-addDeclaration[environment_, TypeTheoryInductiveType[name_, type_, constructors_List, options : OptionsPattern[]]] := Module[
-	{parsedConstructors, universeParameters, typeCore, provisional, constructorCores},
-	parsedConstructors = constructorSpecifications[constructors];
-	universeParameters = declarationUniverseParameters[
-		TypeTheoryInductiveType,
-		Hold[options],
-		Prepend[Function[pair, toSyntax @@ Last[pair]] /@ parsedConstructors, toSyntax[type]]
-	];
-	typeCore = elaborateClosedType[environment, HoldComplete[type], universeParameters];
-	(* the constructor types may mention the type being declared *)
-	provisional = addConstantRecords[environment, <|HoldComplete[name] -> <|
+addDeclaration[environment_, TypeTheoryInductiveType[name_, type_, constructors_List, options : OptionsPattern[]]] :=
+	inductiveBlock[environment, {{HoldComplete[name], HoldComplete[type]}}, constructorSpecifications[constructors], Hold[options]]
+
+(* mutually inductive types: their types, then the constructors of all of them *)
+addDeclaration[environment_, TypeTheoryInductiveType[types : {(_Rule | _RuleDelayed) ..}, constructors_List, options : OptionsPattern[]]] :=
+	inductiveBlock[environment, constructorSpecifications[types], constructorSpecifications[constructors], Hold[options]]
+
+inductiveBlock[environment_, parsedTypes_List, parsedConstructors_List, heldOptions_Hold] := Module[
+	{universeParameters, typeCores, provisional, constructorCores},
+	universeParameters = declarationUniverseParameters[TypeTheoryInductiveType, heldOptions, Function[pair, toSyntax @@ Last[pair]] /@ Join[parsedTypes, parsedConstructors]];
+	typeCores = Function[pair, First[pair] -> elaborateClosedType[environment, Last[pair], universeParameters]] /@ parsedTypes;
+	(* the constructor types may mention the types being declared *)
+	provisional = addConstantRecords[environment, Association[Function[typeCore, First[typeCore] -> <|
 		"Kind" -> "InductiveType",
-		"Type" -> typeCore,
+		"Type" -> Last[typeCore],
 		"UniverseParameters" -> universeParameters,
 		"NumberOfParameters" -> 0,
 		"NumberOfIndices" -> 0,
 		"Constructors" -> {},
 		"LargeElimination" -> False,
-		"Recursive" -> False
-	|>|>];
+		"Recursive" -> False,
+		"Block" -> Keys[typeCores]
+	|>] /@ typeCores]];
 	constructorCores = Function[pair, First[pair] -> elaborateClosedType[provisional, Last[pair], universeParameters]] /@ parsedConstructors;
-	declareInductiveType[
+	declareInductiveTypes[
 		environment,
-		HoldComplete[name],
 		universeParameters,
-		Replace[heldOptionValue[TypeTheoryInductiveType, Hold[options], "Parameters"], {
-			HoldComplete[Automatic] :> sharedParameterCount[provisional, typeCore, Last /@ constructorCores],
+		Replace[heldOptionValue[TypeTheoryInductiveType, heldOptions, "Parameters"], {
+			HoldComplete[Automatic] :> sharedParameterCount[provisional, Values[typeCores], Values[constructorCores]],
 			HoldComplete[n_Integer?NonNegative] :> n,
 			HoldComplete[other_] :> kernelFailure["InvalidOption", "The value of the option \"Parameters\" must be a non-negative integer or Automatic, not `1`.", {HoldForm[other]}]
 		}],
-		typeCore,
+		typeCores,
 		constructorCores
 	]
 ]
@@ -303,11 +307,15 @@ constructorSpecifications[constructors_] := With[
 (*Parameters*)
 
 
-(* The largest n such that every constructor takes the type's first n binders first, with the same
-   types, and passes them on unchanged to its result. *)
-sharedParameterCount[environment_, typeCore_, constructorTypes_List] := Module[{typeContext, typeIds, resultType},
-	{typeContext, typeIds, resultType} = typeTelescope[environment, <||>, typeCore];
-	Min[Length[typeIds], Function[constructorType, constructorParameterCount[environment, typeContext, typeIds, constructorType]] /@ constructorTypes]
+(* The largest n such that every type of the block takes the first type's first n binders first, and every
+   constructor takes them first, with the same types, and passes them on unchanged to its result. *)
+sharedParameterCount[environment_, typeCores_List, constructorTypes_List] := Module[{typeContext, typeIds, resultType},
+	{typeContext, typeIds, resultType} = typeTelescope[environment, <||>, First[typeCores]];
+	Min[
+		Length[typeIds],
+		Function[typeCore, First[matchLeadingBinders[environment, typeContext, typeIds, typeCore, 0]]] /@ Rest[typeCores],
+		Function[constructorType, constructorParameterCount[environment, typeContext, typeIds, constructorType]] /@ constructorTypes
+	]
 ]
 
 constructorParameterCount[environment_, typeContext_, typeIds_List, constructorType_] := Module[{matched, remaining, conclusion},

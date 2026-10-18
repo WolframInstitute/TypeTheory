@@ -20,6 +20,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	TypeUniverse[Max[u + 1, v + 1]]     Type (max u v)
 	NonNegativeIntegers                 ℕ
 	InductiveRecursor[I]                I_rec
+	InductiveRecursor[I, k]             I_rec_k              the recursor on the k-th type I's block nests
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
 	Booleans, "true", "false"          𝔹, true, false       a constant named by a string shows as the string
 	Circle                              𝕊¹                   the circle of the HoTT environment
@@ -170,6 +171,7 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :
 	syntaxHead[RightTee, {syntaxHead[Row, {syntaxHead[List, listElements[hypotheses]], syntaxString[", "]}], goal}]
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
+displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_, syntaxInteger[index_Integer]}] := syntaxHead[Subscript, {type, syntaxString["rec_" <> ToString[index]]}]
 (* the predecessor shows as n - 1, which it is by computation *)
 displayApplication[syntaxSymbol[HoldComplete[NaturalNumberPredecessor]], {argument_}] := syntaxHead[Subtract, {argument, syntaxInteger[1]}]
 (* (a && b) && c shows as a && b && c, the way Lean reads it *)
@@ -301,12 +303,24 @@ TypeTheoryInductiveType /: MakeBoxes[declaration : TypeTheoryInductiveType[name_
 		form
 	]
 
+(* mutually inductive types: each type on a line of its own, then the constructors of all of them *)
+TypeTheoryInductiveType /: MakeBoxes[declaration : TypeTheoryInductiveType[types : {(_Rule | _RuleDelayed) ..}, constructors_List, ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[
+		declaration,
+		"inductive",
+		Cases[Unevaluated[types], (Rule | RuleDelayed)[name_, type_] :> {toSyntax[name], toSyntax[type]}],
+		Cases[Unevaluated[constructors], (Rule | RuleDelayed)[constructor_, constructorType_] :> {toSyntax[constructor], toSyntax[constructorType]}],
+		form
+	]
+
 (* the keyword, then name : type (:= value), with each constructor of an inductive type on a line of its own *)
-declarationBoxes[declaration_, keyword_String, {first_, constructors___}, form_] := With[
+declarationBoxes[declaration_, keyword_String, {first_, constructors___}, form_] := declarationBoxes[declaration, keyword, {first}, {constructors}, form]
+
+declarationBoxes[declaration_, keyword_String, headings_List, constructors_List, form_] := With[
 	{
 		rows = Join[
-			{Join[{StyleBox[keyword, FontWeight -> Bold, FontColor -> StandardBlue]}, declarationRow[first, form]]},
-			Function[constructor, Join[{"|"}, declarationRow[constructor, form]]] /@ {constructors}
+			Function[heading, Join[{StyleBox[keyword, FontWeight -> Bold, FontColor -> StandardBlue]}, declarationRow[heading, form]]] /@ headings,
+			Function[constructor, Join[{"|"}, declarationRow[constructor, form]]] /@ constructors
 		]
 	},
 	InterpretationBox[GridBox[rows, GridBoxAlignment -> {"Columns" -> {{Left}}}, GridBoxSpacings -> {"Columns" -> {{0.6}}}], declaration]

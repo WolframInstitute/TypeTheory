@@ -25,10 +25,12 @@ A record is an Association with "Kind" (one of "Axiom", "Definition", "Theorem",
 "Constructor", "Recursor", "RewriteRule"), "Type" (a core term, or None for a rewrite rule, which is not a
 term), "UniverseParameters" ({HoldComplete[u], ...}) and the fields of its kind:
 	Definition, Theorem    "Value"
-	InductiveType          "NumberOfParameters", "NumberOfIndices", "Constructors", "LargeElimination", "Recursive"
+	InductiveType          "NumberOfParameters", "NumberOfIndices", "Constructors", "LargeElimination", "Recursive",
+	                       "Block" (the types declared together with it, itself among them, in order)
 	Constructor            "InductiveType", "ConstructorIndex", "NumberOfParameters", "NumberOfFields"
-	Recursor               "InductiveType", "NumberOfParameters", "NumberOfIndices", "NumberOfMinors",
-	                       "Rules" (<|HoldComplete[constructor] -> <|"NumberOfFields", "RightHandSide"|>|>),
+	Recursor               "InductiveType" (the type of its major premise), "NumberOfParameters", "NumberOfMotives",
+	                       "NumberOfIndices", "NumberOfMinors",
+	                       "Rules" (<|HoldComplete[constructor] -> <|"NumberOfParameters", "NumberOfFields", "RightHandSide"|>|>),
 	                       "EliminationUniverse", "KLike"
 	RewriteRule            "Head", "NumberOfVariables", "LeftHandSide", "RightHandSide": the two sides as
 	                       functions of the rule's variables

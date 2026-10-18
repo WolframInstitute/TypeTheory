@@ -407,15 +407,16 @@ toConstructorForm[environment_, naturalLiteral[n_Integer]] := Replace[naturalNum
 toConstructorForm[_, term_] := term
 
 
-(* A recursor applied to all its arguments up to the major premise: parameters, motive, minor premises,
-   indices, major premise, then any further arguments. *)
+(* A recursor applied to all its arguments up to the major premise: parameters, motives, one for each type
+   of its block, minor premises, indices, major premise, then any further arguments. *)
 reduceRecursor[environment_, context_, term_, record_, levels_, arguments_] := With[
 	{
 		numberOfParameters = record["NumberOfParameters"],
+		numberOfMotives = record["NumberOfMotives"],
 		numberOfMinors = record["NumberOfMinors"],
 		numberOfIndices = record["NumberOfIndices"]
 	},
-	If[ Length[arguments] < numberOfParameters + numberOfMinors + numberOfIndices + 2,
+	If[ Length[arguments] < numberOfParameters + numberOfMotives + numberOfMinors + numberOfIndices + 1,
 		term,
 		reduceRecursorApplication[
 			environment,
@@ -423,20 +424,22 @@ reduceRecursor[environment_, context_, term_, record_, levels_, arguments_] := W
 			term,
 			record,
 			levels,
-			TakeList[arguments, {numberOfParameters, 1, numberOfMinors, numberOfIndices, 1, All}]
+			TakeList[arguments, {numberOfParameters, numberOfMotives, numberOfMinors, numberOfIndices, 1, All}]
 		]
 	]
 ]
 
-reduceRecursorApplication[environment_, context_, term_, record_, levels_, {parameters_, {motive_}, minors_, indices_, {major_}, rest_}] := Replace[
+(* the constructor's own parameters come before its fields: those of the block, or of the nested type
+   whose recursor this is *)
+reduceRecursorApplication[environment_, context_, term_, record_, levels_, {parameters_, motives_, minors_, indices_, {major_}, rest_}] := Replace[
 	applicationSpine[toConstructorForm[environment, weakHeadNormalForm[environment, context, major]]],
 	{
 		{constantReference[constructor_, _], constructorArguments_} /; constructorApplicationQ[record, constructor, constructorArguments] :>
-			applyRecursorRule[record, levels, parameters, motive, minors, constructor, Drop[constructorArguments, record["NumberOfParameters"]], rest],
+			applyRecursorRule[record, levels, parameters, motives, minors, constructor, Drop[constructorArguments, record["Rules"][constructor]["NumberOfParameters"]], rest],
 		_ /; TrueQ[record["KLike"]] :>
-			reduceKLike[environment, context, term, record, levels, parameters, motive, minors, major, rest],
+			reduceKLike[environment, context, term, record, levels, parameters, motives, minors, major, rest],
 		_ :> Replace[structureFields[environment, context, record, major], {
-			fields_List :> applyRecursorRule[record, levels, parameters, motive, minors, First[Keys[record["Rules"]]], fields, rest],
+			fields_List :> applyRecursorRule[record, levels, parameters, motives, minors, First[Keys[record["Rules"]]], fields, rest],
 			None :> term
 		}]
 	}
@@ -461,24 +464,24 @@ propositionTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[env
 
 constructorApplicationQ[record_, constructor_, constructorArguments_] := And[
 	KeyExistsQ[record["Rules"], constructor],
-	Length[constructorArguments] == record["NumberOfParameters"] + record["Rules"][constructor]["NumberOfFields"]
+	Length[constructorArguments] == record["Rules"][constructor]["NumberOfParameters"] + record["Rules"][constructor]["NumberOfFields"]
 ]
 
-applyRecursorRule[record_, levels_, parameters_, motive_, minors_, constructor_, fields_, rest_] := makeApplication[
+applyRecursorRule[record_, levels_, parameters_, motives_List, minors_, constructor_, fields_, rest_] := makeApplication[
 	instantiateUniverseParameters[record["Rules"][constructor]["RightHandSide"], record["UniverseParameters"], levels],
-	Join[parameters, {motive}, minors, fields, rest]
+	Join[parameters, motives, minors, fields, rest]
 ]
 
 (* K-like: the inductive is a proposition with one constructor and no fields, so its recursor reduces
    on any major premise whose type matches the constructor's, not only on the constructor itself. *)
-reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motive_, minors_, major_, rest_] := With[
+reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_] := With[
 	{
 		constructor = First[Keys[record["Rules"]]],
 		inductiveLevels = If[TrueQ[record["EliminationUniverse"]], Rest[levels], levels]
 	},
 	With[{constructorApplication = makeApplication[constantReference[constructor, inductiveLevels], parameters]},
 		If[ definitionallyEqualQ[environment, context, inferType[environment, context, major], inferType[environment, context, constructorApplication]],
-			applyRecursorRule[record, levels, parameters, motive, minors, constructor, {}, rest],
+			applyRecursorRule[record, levels, parameters, motives, minors, constructor, {}, rest],
 			term
 		]
 	]

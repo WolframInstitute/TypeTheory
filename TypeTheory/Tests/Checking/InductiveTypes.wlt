@@ -179,3 +179,150 @@ VerificationTest[
 	{Composable, ComposableIntroduction, InductiveRecursor[Composable]},
 	TestID -> "A-field-whose-universe-is-an-impredicative-maximum-fits-a-maximum"
 ]
+
+
+(* === mutual and nested types === *)
+
+evenOdd = TypeTheoryEnvironment[prelude, {
+	TypeTheoryInductiveType[
+		{Even -> TypeSpecifier[{NonNegativeIntegers} -> TypeUniverse[0]], Odd -> TypeSpecifier[{NonNegativeIntegers} -> TypeUniverse[0]]},
+		{
+			EvenZero -> Even[0],
+			EvenSuccessor -> ForAll[{TypedImplicit[n, NonNegativeIntegers], Typed[h, Odd[n]]}, Even[n + 1]],
+			OddSuccessor -> ForAll[{TypedImplicit[n, NonNegativeIntegers], Typed[h, Even[n]]}, Odd[n + 1]]
+		}
+	]
+}]
+
+VerificationTest[
+	{
+		Information[evenOdd, "Kinds"] - Information[prelude, "Kinds"],
+		DefinitionallyEqualQ[TypeOf[TypeTheoryTerm[EvenSuccessor[OddSuccessor[EvenZero]], evenOdd]], TypeTheoryTerm[Even[2], evenOdd]],
+		Count[Normal[evenOdd], TypeTheoryInductiveType[{_, _}, ___]],
+		MatchQ[TypeTheoryCheck[evenOdd], _Success]
+	},
+	{<|"InductiveType" -> 2, "Constructor" -> 3, "Recursor" -> 2, "Definition" -> 0, "Theorem" -> 0, "Axiom" -> 0|>, True, 1, True},
+	TestID -> "Mutually-inductive-types-are-declared-together"
+]
+
+(* the recursor of each type of a block takes a motive for each, and the minor premises of all constructors *)
+VerificationTest[
+	With[{recursor = TypeOf[TypeTheoryTerm[InductiveRecursor[Odd], evenOdd]]},
+		DefinitionallyEqualQ[recursor, TypeTheoryTerm[
+			ForAll[
+				{
+					Typed[m1, ForAll[{Typed[x, NonNegativeIntegers]}, TypeSpecifier[{Even[x]} -> TypeUniverse[0]]]],
+					Typed[m2, ForAll[{Typed[x, NonNegativeIntegers]}, TypeSpecifier[{Odd[x]} -> TypeUniverse[0]]]],
+					Typed[zero, m1[0, EvenZero]],
+					Typed[even, ForAll[{TypedImplicit[n, NonNegativeIntegers], Typed[h, Odd[n]]}, Implies[m2[n, h], m1[n + 1, EvenSuccessor[h]]]]],
+					Typed[odd, ForAll[{TypedImplicit[n, NonNegativeIntegers], Typed[h, Even[n]]}, Implies[m1[n, h], m2[n + 1, OddSuccessor[h]]]]],
+					TypedImplicit[x, NonNegativeIntegers],
+					Typed[t, Odd[x]]
+				},
+				m2[x, t]
+			],
+			evenOdd
+		]]
+	],
+	True,
+	TestID -> "A-mutual-recursor-has-a-motive-for-each-type"
+]
+
+forest = TypeTheoryEnvironment[prelude, {
+	TypeTheoryInductiveType[
+		{Tree -> TypeUniverse[1], Forest -> TypeUniverse[1]},
+		{
+			TreeNode -> ForAll[{Typed[label, NonNegativeIntegers], Typed[children, Forest]}, Tree],
+			ForestEmpty -> Forest,
+			ForestCons -> ForAll[{Typed[first, Tree], Typed[rest, Forest]}, Forest]
+		}
+	],
+	TypeTheoryDefinition[TreeSize, Function[{Typed[tree, Tree]},
+		InductiveRecursor[Tree][
+			Function[{Typed[x, Tree]}, NonNegativeIntegers],
+			Function[{Typed[y, Forest]}, NonNegativeIntegers],
+			Function[{Typed[label, NonNegativeIntegers], Typed[children, Forest], Typed[size, NonNegativeIntegers]}, size + 1],
+			0,
+			Function[{Typed[first, Tree], Typed[rest, Forest], Typed[firstSize, NonNegativeIntegers], Typed[restSize, NonNegativeIntegers]}, firstSize + restSize],
+			tree
+		]
+	]]
+}]
+
+VerificationTest[
+	First @ WeakHeadNormalForm[TypeTheoryTerm[TreeSize[TreeNode[1, ForestCons[TreeNode[2, ForestEmpty], ForestCons[TreeNode[3, ForestEmpty], ForestEmpty]]]], forest]],
+	3,
+	TestID -> "A-mutual-recursor-computes-through-both-types"
+]
+
+chains = TypeTheoryEnvironment[prelude, {
+	TypeTheoryInductiveType[Chain, TypeSpecifier[{TypeUniverse[1]} -> TypeUniverse[1]], {
+		ChainEmpty -> ForAll[{TypedImplicit[A, TypeUniverse[1]]}, Chain[A]],
+		ChainLink -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[head, A], Typed[tail, Chain[A]]}, Chain[A]]
+	}]
+}]
+
+rose = TypeTheoryEnvironment[chains, {
+	TypeTheoryInductiveType[Rose, TypeUniverse[1], {RoseNode -> ForAll[{Typed[label, NonNegativeIntegers], Typed[children, Chain[Rose]]}, Rose]}],
+	TypeTheoryDefinition[RoseSize, Function[{Typed[tree, Rose]},
+		InductiveRecursor[Rose][
+			Function[{Typed[x, Rose]}, NonNegativeIntegers],
+			Function[{Typed[y, Chain[Rose]]}, NonNegativeIntegers],
+			Function[{Typed[label, NonNegativeIntegers], Typed[children, Chain[Rose]], Typed[size, NonNegativeIntegers]}, size + 1],
+			0,
+			Function[{Typed[first, Rose], Typed[rest, Chain[Rose]], Typed[firstSize, NonNegativeIntegers], Typed[restSize, NonNegativeIntegers]}, firstSize + restSize],
+			tree
+		]
+	]]
+}]
+
+(* a nested occurrence, Chain[Rose], gets a motive and a recursor of its own, InductiveRecursor[Rose, 1] *)
+VerificationTest[
+	{
+		Select[Keys[rose], Function[key, ! FreeQ[key, Rose]]],
+		First @ WeakHeadNormalForm[TypeTheoryTerm[RoseSize[RoseNode[1, ChainLink[RoseNode[2, ChainEmpty], ChainLink[RoseNode[3, ChainLink[RoseNode[4, ChainEmpty], ChainEmpty]], ChainEmpty]]]], rose]],
+		MatchQ[TypeTheoryCheck[rose], _Success]
+	},
+	{{Rose, InductiveRecursor[Rose], InductiveRecursor[Rose, 1]}, 4, True},
+	TestID -> "A-nested-type-computes-through-its-container"
+]
+
+(* Chain[Chain[Deep]] is the first container and Chain[Deep], inside it, the second, as Lean numbers them *)
+VerificationTest[
+	With[{deep = TypeTheoryEnvironment[chains, {TypeTheoryInductiveType[Deep, TypeUniverse[1], {DeepNode -> ForAll[{Typed[children, Chain[Chain[Deep]]]}, Deep]}]}]},
+		{
+			Select[Keys[deep], Function[key, ! FreeQ[key, Deep]]],
+			MatchQ[TypeTheoryCheck[deep], _Success]
+		}
+	],
+	{{Deep, InductiveRecursor[Deep], InductiveRecursor[Deep, 1], InductiveRecursor[Deep, 2]}, True},
+	TestID -> "A-type-nested-twice-has-a-recursor-for-each-container"
+]
+
+VerificationTest[
+	First @ TypeTheoryProof[ForAll[{Typed[tree, Tree]}, TreeSize[tree] == TreeSize[tree]], forest, {TypeTheoryTactic["Introduce", tree], TypeTheoryTactic["Induction", tree]}],
+	"MutualInduction",
+	TestID -> "Induction-on-a-mutual-type-is-not-handled-yet"
+]
+
+VerificationTest[
+	First @ TypeTheoryEnvironment[prelude, {
+		TypeTheoryInductiveType[Arrowy, TypeSpecifier[{TypeUniverse[1]} -> TypeUniverse[1]], {
+			ArrowyMake -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[f, TypeSpecifier[{A} -> NonNegativeIntegers]]}, Arrowy[A]]
+		}],
+		TypeTheoryInductiveType[Loopy, TypeUniverse[1], {LoopyMake -> ForAll[{Typed[a, Arrowy[Loopy]]}, Loopy]}]
+	}],
+	"NonPositiveOccurrence",
+	TestID -> "A-type-nested-in-a-negative-parameter-is-rejected"
+]
+
+VerificationTest[
+	First @ TypeTheoryEnvironment[prelude, {
+		TypeTheoryInductiveType[
+			{Small -> TypeUniverse[1], Large -> TypeUniverse[2]},
+			{SmallMake -> TypeSpecifier[{Large} -> Small], LargeMake -> Large}
+		]
+	}],
+	"InductiveUniverse",
+	TestID -> "The-types-of-a-block-live-in-one-universe"
+]

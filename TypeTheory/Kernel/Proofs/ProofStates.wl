@@ -382,6 +382,9 @@ induction[data_, goal_, variableName_HoldComplete] := Module[
 	}];
 	inductiveRecord = constantRecord[environment, inductiveName];
 	recursorRecord = constantRecord[environment, recursorName[inductiveName]];
+	If[ recursorRecord["NumberOfMotives"] > 1,
+		tacticFailure["MutualInduction", "In the goal `1`, `2` is one of a block of mutually inductive or nested types, which induction does not handle yet.", data, goal, {HoldForm @@ inductiveName}]
+	];
 	If[ inductiveRecord["NumberOfIndices"] > 0,
 		tacticFailure["IndexedInduction", "In the goal `1`, `2` belongs to an inductive family with indices, which induction does not handle yet.", data, goal, {HoldForm @@ variableName}]
 	];
