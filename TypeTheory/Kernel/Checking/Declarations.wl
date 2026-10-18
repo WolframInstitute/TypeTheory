@@ -14,10 +14,15 @@ evaluates, and it means nothing until it is added to an environment:
 	TypeTheoryInductiveType[name, type, {constructor -> type, ...}]
 	TypeTheoryNaturalNumbers[type, zero, successor]            the literals 0, 1, 2, ... become elements of type
 	TypeTheoryNaturalNumbers[type, zero, successor, addition]   and adding two literals computes
+	TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]    lhs, an axiom applied to arguments, computes to rhs
 
 TypeTheoryEnvironment[environment, {declaration, ...}] elaborates each declaration's terms in the
 environment so far, has the kernel check them, and gives the extended environment, or a Failure for the
 first declaration that does not check. Append[environment, declaration] adds one declaration.
+
+TypeTheoryEnvironment[rules] starts an environment with no constants that follows the TypeTheoryRules
+rules; every environment made from it follows them too. Rewrite rules may only be declared where the
+rules allow them, and under rules without Prop a theorem may state any type.
 
 A name is any expression: a symbol, or a string for a constant imported from elsewhere. Universe
 parameters are the symbols and strings in universe levels, in the order they first appear; the option
@@ -38,6 +43,7 @@ PackageExported[TypeTheoryDefinition]
 PackageExported[TypeTheoryTheorem]
 PackageExported[TypeTheoryInductiveType]
 PackageExported[TypeTheoryNaturalNumbers]
+PackageExported[TypeTheoryRewriteRule]
 
 
 (* ::Section:: *)
@@ -47,6 +53,8 @@ PackageExported[TypeTheoryNaturalNumbers]
 PackageScoped[declareAxiom]
 PackageScoped[declareDefinition]
 PackageScoped[declareTheorem]
+PackageScoped[declareRewriteRule]
+PackageScoped[emptyEnvironmentOf]
 PackageScoped[addDeclaration]
 PackageScoped[declarationQ]
 PackageScoped[declarationUniverseParameters]
@@ -64,13 +72,18 @@ The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Aut
 TypeTheoryDefinition::usage = "TypeTheoryDefinition[name, value] declares name as a definition with the given value, when added to a TypeTheoryEnvironment.\n\
 TypeTheoryDefinition[name, Typed[value, type]] gives the definition the given type.\n\
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
-TypeTheoryTheorem::usage = "TypeTheoryTheorem[name, statement, proof] declares name as a theorem: proof must prove statement when it is added to a TypeTheoryEnvironment.\n\
+TypeTheoryTheorem::usage = "TypeTheoryTheorem[name, statement, proof] declares name as a theorem: proof must prove statement when it is added to a TypeTheoryEnvironment. \
+statement must be a proposition, or under rules without Prop any type; a theorem is never unfolded.\n\
 TypeTheoryTheorem[name, proof] declares the statement of the finished TypeTheoryProof proof.\n\
 proof is a term, a TypeTheoryTerm or a finished TypeTheoryProof. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
 TypeTheoryInductiveType::usage = "TypeTheoryInductiveType[name, type, {constructor1 -> type1, ...}] declares the inductive type name with the given constructors, \
 and its recursor InductiveRecursor[name], when added to a TypeTheoryEnvironment.\n\
 The option \"Parameters\" -> n makes the first n arguments of name parameters, which every constructor takes first and passes on unchanged; \
 Automatic takes as many as every constructor allows. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
+TypeTheoryRewriteRule::usage = "TypeTheoryRewriteRule[name, ForAll[{Typed[x, type], ...}, lhs -> rhs]] declares that lhs computes to rhs for every \
+x, ..., when added to a TypeTheoryEnvironment whose rules allow rewrite rules.\n\
+lhs must be an axiom applied to arguments in which each variable occurs, and rhs must have the type of lhs. Like an axiom, a rewrite rule is \
+trusted: it may make the theory inconsistent, or computation endless. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
 TypeTheoryNaturalNumbers::usage = "TypeTheoryNaturalNumbers[type, zero, successor] registers the inductive type type, with the constructors zero and successor, \
 as the natural numbers, so the literals 0, 1, 2, ... are elements of type.\n\
 TypeTheoryNaturalNumbers[type, zero, successor, addition] also adds two literals by integer addition; addition must be defined by recursion on its second argument."
@@ -78,11 +91,14 @@ TypeTheoryNaturalNumbers[type, zero, successor, addition] also adds two literals
 declareAxiom::usage = "declareAxiom[environment, HoldComplete[name], {HoldComplete[u], ...}, type] checks the core type and gives environment with the axiom name added."
 declareDefinition::usage = "declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value] checks the core value against the core type \
 and gives environment with the definition name added."
-declareTheorem::usage = "declareTheorem[environment, HoldComplete[name], {HoldComplete[u], ...}, statement, proof] checks that statement is a proposition and \
-proof proves it, and gives environment with the theorem name added."
+declareTheorem::usage = "declareTheorem[environment, HoldComplete[name], {HoldComplete[u], ...}, statement, proof] checks that statement is a proposition, or \
+under rules without Prop a type, and that proof proves it, and gives environment with the theorem name added."
+declareRewriteRule::usage = "declareRewriteRule[environment, HoldComplete[name], {HoldComplete[u], ...}, numberOfVariables, left, right] checks the rewrite rule \
+whose sides are the core functions left and right of its variables, and gives environment with it added."
+emptyEnvironmentOf::usage = "emptyEnvironmentOf[rules] gives the environment with no constants that follows rules, the same one each time."
 addDeclaration::usage = "addDeclaration[environment, declaration] elaborates and checks the declaration and gives the extended environment, or throws a kernel failure."
-declarationQ::usage = "declarationQ[expr] gives True if expr is a declaration: TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType \
-or TypeTheoryNaturalNumbers."
+declarationQ::usage = "declarationQ[expr] gives True if expr is a declaration: TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, \
+TypeTheoryNaturalNumbers or TypeTheoryRewriteRule."
 declarationUniverseParameters::usage = "declarationUniverseParameters[head, Hold[options], {syntax, ...}] gives the universe parameters {HoldComplete[u], ...} \
 of a declaration from its \"UniverseParameters\" option, or from the universe levels in the syntax trees."
 universeParameterNames::usage = "universeParameterNames[{syntax, ...}] gives the symbols and strings in universe levels of the syntax trees, \
@@ -99,10 +115,11 @@ Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
+Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
 
-SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers}, HoldAll]
+SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule}, HoldAll]
 
-declarationQ[_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryInductiveType | _TypeTheoryNaturalNumbers] := True
+declarationQ[_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryInductiveType | _TypeTheoryNaturalNumbers | _TypeTheoryRewriteRule] := True
 declarationQ[_] := False
 
 
@@ -112,6 +129,8 @@ declarationQ[_] := False
 
 (* without an environment to extend, declarations extend the prelude; TypeTheoryEnvironment[] has none *)
 TypeTheoryEnvironment[] := $emptyEnvironment
+TypeTheoryEnvironment[rules_TypeTheoryRules?rulesQ] := emptyEnvironmentOf[rules]
+TypeTheoryEnvironment[rules_TypeTheoryRules?rulesQ, declarations : (_List | _?declarationQ)] := TypeTheoryEnvironment[emptyEnvironmentOf[rules], declarations]
 TypeTheoryEnvironment["Prelude"] := preludeEnvironment[]
 TypeTheoryEnvironment["Constructive"] := constructiveEnvironment[]
 TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[preludeEnvironment[], declarations]
@@ -122,6 +141,12 @@ TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := T
 TypeTheoryEnvironment[environment_?environmentQ, declarations_List] := withStoreCleanup @ catchKernelFailure @ Fold[addDeclaration, environment, declarations]
 
 TypeTheoryEnvironment /: Append[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, declaration_] := TypeTheoryEnvironment[environment, {declaration}]
+
+(* one empty environment per rules, kept for the session *)
+emptyEnvironmentOf[rules_] /; rules === $defaultRules := $emptyEnvironment
+emptyEnvironmentOf[rules_] := Lookup[$emptyEnvironments, Key[rules], $emptyEnvironments[rules] = withoutStoreTracking[emptyEnvironment[rules]]]
+
+$emptyEnvironments = <||>
 
 
 addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
@@ -200,7 +225,36 @@ addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_, 
 	<|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero], "Successor" -> HoldComplete[successor], "Addition" -> HoldComplete[addition]|>
 ]
 
+(* the two sides are elaborated as functions of the rule's variables, the right one against the type of the left *)
+addDeclaration[environment_, TypeTheoryRewriteRule[name_, rule_, options : OptionsPattern[]]] := With[
+	{
+		universeParameters = declarationUniverseParameters[TypeTheoryRewriteRule, Hold[options], {toSyntax[rule]}],
+		sides = rewriteRuleSides[HoldComplete[rule]]
+	},
+	If[ ! rulesSetting[environment, "RewriteRules"],
+		kernelFailure["RewriteRulesNotAllowed", "The rules of the environment do not allow the rewrite rule `1`.", {HoldForm[name]}]
+	];
+	With[{left = elaborateClosedTerm[environment, sides["Left"], None, universeParameters]},
+		declareRewriteRule[
+			environment,
+			HoldComplete[name],
+			universeParameters,
+			sides["NumberOfVariables"],
+			First[left],
+			First[elaborateClosedTerm[environment, sides["Right"], Last[left], universeParameters]]
+		]
+	]
+]
+
 addDeclaration[_, other_] := kernelFailure["DeclarationExpected", "`1` is not a declaration.", {Short[other]}]
+
+rewriteRuleSides[HoldComplete[ForAll[binders_, Rule[left_, right_]]]] :=
+	<|"Left" -> HoldComplete[Function[binders, left]], "Right" -> HoldComplete[Function[binders, right]], "NumberOfVariables" -> Length[listElements[toSyntax[binders]]]|>
+rewriteRuleSides[HoldComplete[Rule[left_, right_]]] := <|"Left" -> HoldComplete[left], "Right" -> HoldComplete[right], "NumberOfVariables" -> 0|>
+rewriteRuleSides[HoldComplete[other_]] := kernelFailure["RewriteRuleSpecification", "`1` is not a rewrite rule: write ForAll[{Typed[x, type], ...}, lhs -> rhs].", {HoldForm[other]}]
+
+listElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
+listElements[single_] := {single}
 
 
 (* A proof written as TypeTheoryProof[...] runs here; any other proof is a term, which may also name a
@@ -304,12 +358,54 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
 )
 
-(* a theorem is a proposition, and its proof is never unfolded *)
+(* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
 declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_] := (
 	checkUniverseParameters[name, universeParameters, {type, value}];
-	If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0],
+	If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
 		kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
 	];
 	checkHasType[environment, <||>, value, type];
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
 )
+
+(* The left side is an axiom applied to a pattern: each argument is a variable of the rule, a term
+   without variables, or a constant applied to such arguments. Every variable occurs in it, and every
+   universe parameter is a level of the axiom, so a match determines the right side. *)
+declareRewriteRule[environment_, name_HoldComplete, universeParameters_List, numberOfVariables_Integer, left_, right_] := Module[
+	{body, head, headLevels},
+	checkUniverseParameters[name, universeParameters, {left, right}];
+	checkHasType[environment, <||>, right, inferType[environment, <||>, left]];
+	body = functionBody[left, numberOfVariables];
+	{head, headLevels} = Replace[First @ applicationSpine[body], {
+		constantReference[axiom_, levels_List] /; constantRecord[environment, axiom]["Kind"] === "Axiom" :> {axiom, levels},
+		_ :> kernelFailure["RewriteRuleHead", "The left side of the rewrite rule `1` must be an axiom applied to arguments.", {HoldForm @@ name}]
+	}];
+	If[ ! AllTrue[Last @ applicationSpine[body], Function[argument, patternQ[argument, numberOfVariables]]],
+		kernelFailure["RewriteRulePattern", "The left side of the rewrite rule `1` is not a pattern: a variable occurs inside a function or under a head that is not a constant.", {HoldForm @@ name}]
+	];
+	If[ ! AllTrue[Range[0, numberOfVariables - 1], Function[index, boundVariableOccursQ[body, index]]],
+		kernelFailure["RewriteRuleVariable", "Every variable of the rewrite rule `1` must occur in its left side.", {HoldForm @@ name}]
+	];
+	If[ ! SubsetQ[Cases[headLevels, levelParameter[parameter_] :> parameter], universeParameters],
+		kernelFailure["RewriteRuleUniverse", "Every universe parameter of the rewrite rule `1` must be a universe level of its head.", {HoldForm @@ name}]
+	];
+	addRewriteRuleRecord[environment, name, <|
+		"Kind" -> "RewriteRule",
+		"Type" -> None,
+		"UniverseParameters" -> universeParameters,
+		"Head" -> head,
+		"NumberOfVariables" -> numberOfVariables,
+		"LeftHandSide" -> left,
+		"RightHandSide" -> right
+	|>]
+]
+
+functionBody[term_, 0] := term
+functionBody[lambdaAbstraction[_, _, body_, _], n_Integer?Positive] := functionBody[body, n - 1]
+functionBody[_, _] := kernelFailure["RewriteRuleSpecification", "The sides of a rewrite rule must be functions of its variables.", {}]
+
+patternQ[boundVariable[index_], numberOfVariables_] := index < numberOfVariables
+patternQ[term_, numberOfVariables_] /; NoneTrue[Range[0, numberOfVariables - 1], Function[index, boundVariableOccursQ[term, index]]] := True
+patternQ[term_, numberOfVariables_] := With[{spine = applicationSpine[term]},
+	MatchQ[First[spine], _constantReference] && Last[spine] =!= {} && AllTrue[Last[spine], Function[argument, patternQ[argument, numberOfVariables]]]
+]

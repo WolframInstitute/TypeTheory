@@ -239,6 +239,9 @@ TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, valu
 TypeTheoryTheorem /: MakeBoxes[declaration : TypeTheoryTheorem[name_, statement_, Except[_Rule | _RuleDelayed], ___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[declaration, "theorem", {{toSyntax[name], toSyntax[statement]}}, form]
 
+TypeTheoryRewriteRule /: MakeBoxes[declaration : TypeTheoryRewriteRule[name_, rule_, ___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, "rewrite", {{toSyntax[name], toSyntax[rule]}}, form]
+
 TypeTheoryInductiveType /: MakeBoxes[declaration : TypeTheoryInductiveType[name_, type_, constructors_List, ___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[
 		declaration,

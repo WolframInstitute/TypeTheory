@@ -213,7 +213,12 @@ addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext
 	largeElimination = largeEliminationQ[environment, resultLevel, checkedConstructors];
 	eliminationName = eliminationUniverseName[universeParameters];
 	recursorUniverseParameters = If[largeElimination, Prepend[universeParameters, eliminationName], universeParameters];
-	eliminationLevel = If[largeElimination, levelParameter[eliminationName], 0];
+	(* without Prop, the motive's universe is Type u, which is never Prop *)
+	eliminationLevel = Which[
+		! largeElimination, 0,
+		rulesSetting[environment, "Prop"], levelParameter[eliminationName],
+		True, normalizeLevel[levelSuccessor[levelParameter[eliminationName], 1]]
+	];
 	recursorConstant = constantReference[recursorName[name], levelParameter /@ recursorUniverseParameters];
 	baseContext = extendContext[typeContext, majorId, HoldComplete[t], makeApplication[inductiveConstant, freeVariable /@ Join[parameterIds, indexIds]], "Explicit"];
 	motiveType = makeDependentFunctionType[baseContext, Append[indexIds, majorId], universeSort[eliminationLevel]];

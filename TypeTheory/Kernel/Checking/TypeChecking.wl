@@ -14,8 +14,12 @@ inferType always checks: an application checks its argument against the domain, 
 its domain is a type. Reduction implements beta, zeta (local definitions), delta (unfolding
 definitions; theorems are never unfolded), iota (a recursor applied to a constructor, natural literals
 read as constructors, and K-like recursors such as that of Equal), and addition of natural literals
-on Wolfram Language integers when the environment registers an addition. Definitional equality adds
-eta for functions and proof irrelevance: two proofs of the same proposition are equal.
+on Wolfram Language integers when the environment registers an addition, and the rewrite rules of an
+axiom where the environment's rules allow them. Definitional equality adds eta for functions and proof
+irrelevance: two proofs of the same proposition are equal.
+
+Under rules without Prop, every universe level must be at least 1 whatever its universe parameters are,
+so no type is a proposition, and proof irrelevance and K-like reduction never apply.
 
 Metavariables only appear while elaborating; their types and assignments are read from
 $metavariableTypes and $metavariableAssignments, which the elaborator binds.
@@ -94,7 +98,10 @@ inferType[environment_, context_, term_] := Replace[term, {
 	boundVariable[index_] :> kernelFailure["LooseBoundVariable", "A bound variable with index `1` occurs outside its binder.", {index}],
 	freeVariable[id_] :> Lookup[context, id, kernelFailure["UnknownVariable", "The free variable `1` is not in the local context.", {id}]]["Type"],
 	metavariable[id_] :> Lookup[$metavariableTypes, id, kernelFailure["Metavariable", "The term contains an unsolved metavariable.", {}]],
-	universeSort[level_] :> universeSort[normalizeLevel[levelSuccessor[level, 1]]],
+	universeSort[level_] :> (
+		If[ ! rulesSetting[environment, "Prop"] && FreeQ[level, _levelMetavariable] && ! levelNeverZeroQ[level], noPropFailure[environment, level]];
+		universeSort[normalizeLevel[levelSuccessor[level, 1]]]
+	),
 	constantReference[name_, levels_List] :> constantType[environment, name, levels],
 	naturalLiteral[_Integer?NonNegative] :> naturalNumberType[environment],
 	application[function_, argument_] :> applicationType[environment, context, function, argument],
@@ -106,10 +113,21 @@ inferType[environment_, context_, term_] := Replace[term, {
 }]
 
 constantType[environment_, name_, levels_List] := With[{record = constantRecord[environment, name]},
-	If[ Length[levels] =!= Length[record["UniverseParameters"]],
-		kernelFailure["UniverseArity", "`1` takes `2` universe levels, not `3`.", {HoldForm @@ name, Length[record["UniverseParameters"]], Length[levels]}],
-		instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]
+	Which[
+		record["Kind"] === "RewriteRule",
+			kernelFailure["RewriteRuleTerm", "`1` is a rewrite rule, not a term.", {HoldForm @@ name}],
+		Length[levels] =!= Length[record["UniverseParameters"]],
+			kernelFailure["UniverseArity", "`1` takes `2` universe levels, not `3`.", {HoldForm @@ name, Length[record["UniverseParameters"]], Length[levels]}],
+		True,
+			instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]
 	]
+]
+
+noPropFailure[_, 0] := kernelFailure["NoProp", "TypeUniverse[0] is Prop, which the rules of this environment do not have.", {}]
+noPropFailure[environment_, level_] := kernelFailure[
+	"NoProp",
+	"`1` would be Prop for some universe parameters, which the rules of this environment do not have; a level such as u + 1 is never 0.",
+	{displayCoreTerm[environment, <||>, universeSort[level]]}
 ]
 
 naturalNumberType[environment_] := Replace[naturalNumberSettings[environment], {
@@ -275,9 +293,93 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Wit
 			unfoldDefinition[record, levels, arguments],
 		record["Kind"] === "Recursor",
 			reduceRecursor[environment, context, term, record, levels, arguments],
+		record["Kind"] === "Axiom",
+			rewriteAxiom[environment, context, term, name, levels, arguments],
 		True,
 			term
 	]
+]
+
+(* An axiom applied to arguments that match the left side of one of its rewrite rules gives the right
+   side: a variable of the rule takes the argument at its place, a part without variables must equal the
+   argument there, and a constant applied to patterns must be the argument's head after reduction. The
+   first rule that matches is taken. *)
+rewriteAxiom[environment_, context_, term_, name_, levels_, arguments_] :=
+	firstRewrite[environment, context, term, levels, arguments, rewriteRuleRecords[environment, name]]
+
+firstRewrite[_, _, term_, _, _, {}] := term
+firstRewrite[environment_, context_, term_, levels_, arguments_, {record_, rest___}] := Replace[
+	matchRewriteRule[environment, context, record, levels, arguments],
+	None :> firstRewrite[environment, context, term, levels, arguments, {rest}]
+]
+
+matchRewriteRule[environment_, context_, record_, levels_, arguments_] := Module[
+	{numberOfVariables = record["NumberOfVariables"], patternHead, patterns, levelValues, substitution},
+	{patternHead, patterns} = applicationSpine[ruleBody[record["LeftHandSide"], numberOfVariables]];
+	levelValues = matchLevels[Last[patternHead], levels, record["UniverseParameters"]];
+	If[ Length[arguments] < Length[patterns] || levelValues === None,
+		Return[None, Module]
+	];
+	substitution = Fold[
+		Function[{accumulated, pair}, If[ accumulated === None,
+			None,
+			matchPattern[environment, context, numberOfVariables, record["UniverseParameters"], levelValues, First[pair], Last[pair], accumulated]
+		]],
+		<||>,
+		Transpose[{patterns, Take[arguments, Length[patterns]]}]
+	];
+	If[ substitution === None,
+		None,
+		makeApplication[
+			instantiateUniverseParameters[record["RightHandSide"], record["UniverseParameters"], levelValues],
+			Join[Function[index, substitution[index]] /@ Range[numberOfVariables - 1, 0, -1], Drop[arguments, Length[patterns]]]
+		]
+	]
+]
+
+ruleBody[term_, 0] := term
+ruleBody[lambdaAbstraction[_, _, body_, _], n_Integer?Positive] := ruleBody[body, n - 1]
+
+(* the rule's universe parameters are levels of its head, so the head's levels give them all *)
+matchLevels[patternLevels_List, levels_List, universeParameters_List] := With[
+	{bound = Association @ Cases[Transpose[{patternLevels, levels}], {levelParameter[parameter_], level_} :> (parameter -> level)]},
+	If[ Length[patternLevels] == Length[levels] && AllTrue[
+			Transpose[{patternLevels, levels}],
+			Function[pair, levelEquivalentQ[ReplaceAll[First[pair], levelParameter[parameter_] /; KeyExistsQ[bound, parameter] :> bound[parameter]], Last[pair]]]
+		],
+		Lookup[bound, universeParameters],
+		None
+	]
+]
+
+matchPattern[environment_, context_, numberOfVariables_, universeParameters_, levelValues_, pattern_, argument_, substitution_] := Which[
+	MatchQ[pattern, boundVariable[_]],
+		With[{index = First[pattern]},
+			Which[
+				! KeyExistsQ[substitution, index], Append[substitution, index -> argument],
+				definitionallyEqualQ[environment, context, substitution[index], argument], substitution,
+				True, None
+			]
+		],
+	NoneTrue[Range[0, numberOfVariables - 1], Function[index, boundVariableOccursQ[pattern, index]]],
+		If[ definitionallyEqualQ[environment, context, instantiateUniverseParameters[pattern, universeParameters, levelValues], argument], substitution, None],
+	True,
+		With[{patternSpine = applicationSpine[pattern], argumentSpine = applicationSpine[weakHeadNormalForm[environment, context, argument]]},
+			If[ And[
+					Length[Last[patternSpine]] == Length[Last[argumentSpine]],
+					headsEqualQ[environment, context, instantiateUniverseParameters[First[patternSpine], universeParameters, levelValues], First[argumentSpine]]
+				],
+				Fold[
+					Function[{accumulated, pair}, If[ accumulated === None,
+						None,
+						matchPattern[environment, context, numberOfVariables, universeParameters, levelValues, First[pair], Last[pair], accumulated]
+					]],
+					substitution,
+					Transpose[{Last[patternSpine], Last[argumentSpine]}]
+				],
+				None
+			]
+		]
 ]
 
 unfoldDefinition[record_, levels_, arguments_] :=

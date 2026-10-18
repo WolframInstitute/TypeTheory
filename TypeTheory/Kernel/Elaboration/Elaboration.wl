@@ -243,6 +243,7 @@ naturalNumberTypeForElaboration[syntax_] := Replace[naturalNumberSettings[$elabo
 
 
 constantWithFreshLevels[held_HoldComplete] := With[{record = constantRecord[$elaborationEnvironment, held]},
+	If[record["Kind"] === "RewriteRule", elaborationFailure["`1` is a rewrite rule, not a term.", toSyntax @@ held]];
 	With[{levels = Table[newLevelMetavariable[], Length[record["UniverseParameters"]]]},
 		{constantReference[held, levels], instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]}
 	]

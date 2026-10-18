@@ -11,6 +11,8 @@ the environment's contents. That is the Wolfram Language's own way of storing na
 	store["NaturalNumbers"]      None | <|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero],
 	                                "Successor" -> HoldComplete[successor], "Addition" -> None | HoldComplete[addition]|>
 	store["Identifier"]          a positive integer, marking store as an environment's store
+	store["Rules"]               the TypeTheoryRules the environment follows, set when it is started
+	store["RewriteRuleIndex"]    <|HoldComplete[axiom] -> {HoldComplete[rule], ...}|>: the rewrite rules of each axiom
 
 An environment never changes. Adding constants gives a new environment, whose store holds a copy of the
 old definitions and the new ones, and leaves the old environment as it was, so a proof can branch or be
@@ -18,14 +20,16 @@ undone without bookkeeping. The handle is small, so terms and proofs carry their
 A store lives for the session: Normal[environment] gives the declarations to rebuild it from.
 
 A record is an Association with "Kind" (one of "Axiom", "Definition", "Theorem", "InductiveType",
-"Constructor", "Recursor"), "Type" (a core term), "UniverseParameters" ({HoldComplete[u], ...}) and the
-fields of its kind:
+"Constructor", "Recursor", "RewriteRule"), "Type" (a core term, or None for a rewrite rule, which is not a
+term), "UniverseParameters" ({HoldComplete[u], ...}) and the fields of its kind:
 	Definition, Theorem    "Value"
 	InductiveType          "NumberOfParameters", "NumberOfIndices", "Constructors", "LargeElimination", "Recursive"
 	Constructor            "InductiveType", "ConstructorIndex", "NumberOfParameters", "NumberOfFields"
 	Recursor               "InductiveType", "NumberOfParameters", "NumberOfIndices", "NumberOfMinors",
 	                       "Rules" (<|HoldComplete[constructor] -> <|"NumberOfFields", "RightHandSide"|>|>),
 	                       "EliminationUniverse", "KLike"
+	RewriteRule            "Head", "NumberOfVariables", "LeftHandSide", "RightHandSide": the two sides as
+	                       functions of the rule's variables
 
 A symbol with definitions outlives its last reference, so stores are never collected by themselves. A
 batch of declarations therefore runs inside withStoreCleanup, which removes the stores the batch created
@@ -48,6 +52,9 @@ PackageExported[TypeTheoryEnvironment]
 
 
 PackageScoped[emptyEnvironment]
+PackageScoped[environmentRules]
+PackageScoped[addRewriteRuleRecord]
+PackageScoped[rewriteRuleRecords]
 PackageScoped[environmentQ]
 PackageScoped[constantRecord]
 PackageScoped[constantDeclaredQ]
@@ -69,13 +76,17 @@ PackageScoped[$kernelFailureTag]
 
 
 TypeTheoryEnvironment::usage = "TypeTheoryEnvironment[] gives the environment with no constants.\n\
-TypeTheoryEnvironment[\"Prelude\"] gives the prelude: classical logic, equality and the natural numbers.\n\
+TypeTheoryEnvironment[\"Prelude\"] gives the prelude: classical logic, equality, the natural numbers and the Booleans.\n\
 TypeTheoryEnvironment[\"Constructive\"] gives the prelude without its axioms and the theorems proved from them.\n\
 TypeTheoryEnvironment[{declaration1, declaration2, ...}] checks the declarations in turn and gives the prelude extended with them.\n\
 TypeTheoryEnvironment[environment, {declaration1, ...}] gives environment extended with the declarations; Append[environment, declaration] adds one.\n\
+TypeTheoryEnvironment[rules] gives the environment with no constants that follows the TypeTheoryRules rules, and TypeTheoryEnvironment[rules, {declaration1, ...}] extends it.\n\
 environment[name] gives the declaration that introduced the constant name. Keys, Length, KeyExistsQ, Normal and Information[environment, property] also work."
 
-emptyEnvironment::usage = "emptyEnvironment[] gives an environment with no constants."
+emptyEnvironment::usage = "emptyEnvironment[] gives an environment with no constants and the default rules; emptyEnvironment[rules] gives one with the given rules."
+environmentRules::usage = "environmentRules[environment] gives the TypeTheoryRules environment follows."
+addRewriteRuleRecord::usage = "addRewriteRuleRecord[environment, HoldComplete[name], record] gives a new environment with the rewrite rule name added to the rules of its head."
+rewriteRuleRecords::usage = "rewriteRuleRecords[environment, HoldComplete[axiom]] gives the records of the rewrite rules of axiom, in the order they were declared."
 environmentQ::usage = "environmentQ[expr] gives True if expr is a TypeTheoryEnvironment handle to a store."
 constantRecord::usage = "constantRecord[environment, HoldComplete[name]] gives the record of the constant name, or throws a kernel failure if it is not declared."
 constantDeclaredQ::usage = "constantDeclaredQ[environment, HoldComplete[name]] gives True if name is declared in environment."
@@ -122,7 +133,18 @@ $emptyDownValues = {HoldPattern[$storePlaceholder[_HoldComplete]] :> None}
 
 storeDownValues[store_Symbol] := ReplaceAll[DownValues[store], store -> $storePlaceholder]
 
-emptyEnvironment[] := newEnvironment[$emptyDownValues, {}, <||>, None]
+emptyEnvironment[] := emptyEnvironment[$defaultRules]
+
+(* a new store is filled in before anyone sees it, and the environments made from it copy these entries *)
+emptyEnvironment[rules_TypeTheoryRules] := With[{environment = newEnvironment[$emptyDownValues, {}, <||>, None]},
+	With[{store = First[environment]},
+		store["Rules"] = rules;
+		store["RewriteRuleIndex"] = <||>
+	];
+	environment
+]
+
+environmentRules[TypeTheoryEnvironment[store_Symbol]] := store["Rules"]
 
 
 constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := Replace[
@@ -142,6 +164,18 @@ addConstantRecords[environment : TypeTheoryEnvironment[store_Symbol], records_As
 		newEnvironment[storeDownValues[store], Join[store["Names"], Keys[records]], records, store["NaturalNumbers"]]
 	]
 ]
+
+
+(* a rewrite rule is a record of its own, in the order of declarations, and listed under its head *)
+addRewriteRuleRecord[environment : TypeTheoryEnvironment[store_Symbol], name_HoldComplete, record_Association] := With[
+	{extended = addConstantRecords[environment, <|name -> record|>]},
+	With[{newStore = First[extended]},
+		newStore["RewriteRuleIndex"] = Merge[{store["RewriteRuleIndex"], <|record["Head"] -> {name}|>}, Apply[Join]]
+	];
+	extended
+]
+
+rewriteRuleRecords[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name, store[name]] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
 
 
 naturalNumberSettings[TypeTheoryEnvironment[store_Symbol]] := store["NaturalNumbers"]
@@ -197,7 +231,8 @@ TypeTheoryEnvironment /: MakeBoxes[environment : TypeTheoryEnvironment[store_Sym
 		{
 			BoxForm`SummaryItem[{"Inductive types: ", Count[records, KeyValuePattern["Kind" -> "InductiveType"]]}],
 			BoxForm`SummaryItem[{"Axioms: ", Count[records, KeyValuePattern["Kind" -> "Axiom"]]}],
-			BoxForm`SummaryItem[{"Natural numbers: ", If[naturalNumbers === None, "none", HoldForm @@ naturalNumbers["Type"]]}]
+			BoxForm`SummaryItem[{"Natural numbers: ", If[naturalNumbers === None, "none", HoldForm @@ naturalNumbers["Type"]]}],
+			BoxForm`SummaryItem[{"Rules: ", First[store["Rules"]]["Name"]}]
 		},
 		format,
 		"Interpretable" -> Automatic

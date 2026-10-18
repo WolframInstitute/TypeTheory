@@ -11,11 +11,12 @@ core terms.
 An environment behaves like an Association of its constants: environment[name] gives the declaration
 that introduced name, Keys gives the names in the order they were declared, and Length, KeyExistsQ and
 Normal work as for an Association, Normal giving the declarations themselves, in order. Information
-gives "Constants", "Kinds", "Axioms" and "NaturalNumbers".
+gives "Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers" and "Rules".
 
 An environment's store can be changed by hand. TypeTheoryCheck[environment] is how to trust it anyway:
-it replays every declaration in order on an empty environment with the core declaration functions, and
-compares each record with the one the replay produces. Axioms are taken on trust, as their name says.
+it replays every declaration in order on the empty environment of the same rules with the core
+declaration functions, and compares each record with the one the replay produces. Axioms and rewrite
+rules are taken on trust, as their name says.
 *)
 
 
@@ -92,7 +93,8 @@ TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := Ty
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
 TypeTheoryCheck[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[heldFromSyntax[termSyntax[term]], {
-		name_ /; constantDeclaredQ[environment, name] && ! overloadedNameQ[environment, name] :> constantRecord[environment, name]["Type"],
+		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
+			constantRecord[environment, name]["Type"],
 		_ :> Last @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]
 ]
@@ -162,12 +164,15 @@ naturalNumbersDeclaration[settings_Association] := ReleaseHold @ heldFromSyntax 
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
-environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Axioms", "NaturalNumbers"}
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers", "Rules"}
 environmentInformation[environment_, "Constants"] := Keys[environment]
 environmentInformation[environment_, "Kinds"] := Counts[Function[name, constantRecord[environment, name]["Kind"]] /@ environmentNames[environment]]
 environmentInformation[environment_, "Axioms"] :=
 	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Axiom"]]
+environmentInformation[environment_, "RewriteRules"] :=
+	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "RewriteRule"]]
 environmentInformation[environment_, "NaturalNumbers"] := Replace[naturalNumberSettings[environment], settings_Association :> Map[ReleaseHold, settings]]
+environmentInformation[environment_, "Rules"] := environmentRules[environment]
 
 
 (* ::Subsection:: *)
@@ -182,14 +187,20 @@ declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDec
 	}]
 ]
 
+(* a rewrite rule reads back as ForAll[binders, lhs -> rhs], with the binders its two sides share *)
+declarationSyntax[environment_, name_, record : KeyValuePattern["Kind" -> "RewriteRule"], mode_] := syntaxHead[TypeTheoryRewriteRule, Join[
+	{
+		toSyntax @@ name,
+		ruleSyntax[readBack[environment, record["LeftHandSide"], mode], readBack[environment, record["RightHandSide"], mode], record["NumberOfVariables"]]
+	},
+	universeOptionSyntax[record]
+]]
+
 declarationSyntax[environment_, name_, record_, mode_] := With[
 	{
 		nameSyntax = toSyntax @@ name,
 		typeSyntax = readBack[environment, record["Type"], mode],
-		universeOption = Replace[record["UniverseParameters"], {
-			{} -> {},
-			parameters_List :> {syntaxHead[Rule, {syntaxString["UniverseParameters"], syntaxHead[List, toSyntax @@@ parameters]}]}
-		}]
+		universeOption = universeOptionSyntax[record]
 	},
 	Replace[record["Kind"], {
 		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption]],
@@ -209,6 +220,15 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 	}]
 ]
 
+universeOptionSyntax[record_] := Replace[record["UniverseParameters"], {
+	{} -> {},
+	parameters_List :> {syntaxHead[Rule, {syntaxString["UniverseParameters"], syntaxHead[List, toSyntax @@@ parameters]}]}
+}]
+
+ruleSyntax[left_, right_, 0] := syntaxHead[Rule, {left, right}]
+ruleSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, leftBody_}], syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_, rightBody_}], _] :=
+	syntaxHead[ForAll, {binders, syntaxHead[Rule, {leftBody, rightBody}]}]
+
 readBack[environment_, term_, "Display"] := delaborate[environment, <||>, term]
 readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delaborate[environment, <||>, term]]
 
@@ -221,7 +241,7 @@ TypeTheoryCheck[environment_?environmentQ] := withStoreCleanup @ catchKernelFail
 	{
 		replayed = Fold[
 			Function[{partial, name}, replayDeclaration[environment, partial, name -> constantRecord[environment, name]]],
-			$emptyEnvironment,
+			emptyEnvironmentOf[environmentRules[environment]],
 			environmentNames[environment]
 		]
 	},
@@ -245,6 +265,7 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"]],
 	"Definition" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
+	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
 	"InductiveType" :> declareInductiveType[
 		replayed,
 		name,
