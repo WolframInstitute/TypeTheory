@@ -33,13 +33,13 @@ VerificationTest[
 
 VerificationTest[
 	TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]],
-	TypeTheoryTerm[ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"]}, TypeSpecifier[{A} -> A]], TypeTheoryEnvironment[]],
+	TypeTheoryTerm[ForAll[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"]}, TypeSpecifier[{A} -> A]], prelude],
 	TestID -> "Types-read-back-with-binder-names-and-implicit-binders"
 ]
 
 VerificationTest[
 	TypeOf[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, h]]],
-	TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], TypeTheoryEnvironment[]],
+	TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], prelude],
 	TestID -> "A-function-type-between-propositions-reads-back-as-Implies"
 ]
 
@@ -92,4 +92,31 @@ VerificationTest[
 	MatchQ[ToBoxes[prelude[EqualityCongruence]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
 	True,
 	TestID -> "A-declaration-displays-as-a-keyword-a-name-and-a-type"
+]
+
+VerificationTest[
+	With[{boxes = ToBoxes[TypeOf[TypeTheoryTerm[AndIntroduction, prelude]]]},
+		{FreeQ[boxes, "&&"], ! FreeQ[boxes, "\[And]"], StringFreeQ[ToString[boxes, InputForm, CharacterEncoding -> "ASCII"], "Formal"]}
+	],
+	{True, True, True},
+	TestID -> "The-prelude-binders-show-as-plain-names-and-And-as-a-wedge"
+]
+
+VerificationTest[
+	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[NaturalNumberZero]], prelude]]},
+		{FreeQ[boxes, "NaturalNumberZero" | "NaturalNumberSuccessor"], ! FreeQ[boxes, RowBox[{"k", "+", "1"}]], ! FreeQ[boxes, RowBox[{"0", "+", "1"}]]}
+	],
+	{True, True, True},
+	TestID -> "The-natural-numbers-show-as-zero-and-n-plus-one"
+]
+
+VerificationTest[
+	Cases[
+		TypeOf[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[h, a]}, Construct[AndIntroduction]], prelude]],
+		Typed[name_Symbol, _] :> SymbolName[Unevaluated[name]],
+		Infinity,
+		Heads -> True
+	],
+	{"a", "a1", "b"},
+	TestID -> "A-binder-showing-a-taken-name-gets-a-numbered-one"
 ]

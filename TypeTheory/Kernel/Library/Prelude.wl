@@ -19,7 +19,8 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 The theorems FalseElimination, AndEliminationLeft, AndEliminationRight, EqualitySymmetry,
 EqualityTransitivity, EqualityCongruence and EqualitySubstitution are proved with the recursors.
 
-Bound variables are Formal symbols, which have no values and cannot clash with a user's symbols.
+Bound variables are plain symbols: a binder scopes its variable, so no value can reach it, and the
+display shows each by its name.
 *)
 
 
@@ -85,61 +86,61 @@ $preludeEnvironment::usage = "$preludeEnvironment is the environment of the prel
 $preludeDeclarations = {
 	TypeTheoryInductiveType[True, TypeUniverse[0], {TrueIntroduction -> True}],
 	TypeTheoryInductiveType[False, TypeUniverse[0], {}],
-	TypeTheoryDefinition[Not, Function[{Typed[\[FormalA], TypeUniverse[0]]}, Implies[\[FormalA], False]]],
+	TypeTheoryDefinition[Not, Function[{Typed[a, TypeUniverse[0]]}, Implies[a, False]]],
 	TypeTheoryInductiveType[
 		And,
-		ForAll[{Typed[\[FormalA], TypeUniverse[0]], Typed[\[FormalB], TypeUniverse[0]]}, TypeUniverse[0]],
+		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
 			AndIntroduction -> ForAll[
 				{
-					Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"],
-					Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"],
-					Typed[\[FormalP], \[FormalA]],
-					Typed[\[FormalQ], \[FormalB]]
+					Annotation[Typed[a, TypeUniverse[0]], "Implicit"],
+					Annotation[Typed[b, TypeUniverse[0]], "Implicit"],
+					Typed[p, a],
+					Typed[q, b]
 				},
-				And[\[FormalA], \[FormalB]]
+				And[a, b]
 			]
 		}
 	],
 	TypeTheoryInductiveType[
 		Or,
-		ForAll[{Typed[\[FormalA], TypeUniverse[0]], Typed[\[FormalB], TypeUniverse[0]]}, TypeUniverse[0]],
+		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
 			OrIntroductionLeft -> ForAll[
-				{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"], Typed[\[FormalP], \[FormalA]]},
-				Or[\[FormalA], \[FormalB]]
+				{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[p, a]},
+				Or[a, b]
 			],
 			OrIntroductionRight -> ForAll[
-				{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"], Typed[\[FormalQ], \[FormalB]]},
-				Or[\[FormalA], \[FormalB]]
+				{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[q, b]},
+				Or[a, b]
 			]
 		}
 	],
 	TypeTheoryInductiveType[
 		Equal,
-		ForAll[{Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"], Typed[\[FormalX], \[FormalAlpha]], Typed[\[FormalY], \[FormalAlpha]]}, TypeUniverse[0]],
+		ForAll[{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, TypeUniverse[0]],
 		{
 			EqualityReflexivity -> ForAll[
-				{Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"], Typed[\[FormalX], \[FormalAlpha]]},
-				\[FormalX] == \[FormalX]
+				{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[x, \[Alpha]]},
+				x == x
 			]
 		}
 	],
 	TypeTheoryInductiveType[
 		Exists,
 		ForAll[
-			{Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"], Typed[\[FormalCapitalP], TypeSpecifier[{\[FormalAlpha]} -> TypeUniverse[0]]]},
+			{Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]},
 			TypeUniverse[0]
 		],
 		{
 			ExistsIntroduction -> ForAll[
 				{
-					Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-					Annotation[Typed[\[FormalCapitalP], TypeSpecifier[{\[FormalAlpha]} -> TypeUniverse[0]]], "Implicit"],
-					Typed[\[FormalW], \[FormalAlpha]],
-					Typed[\[FormalH], \[FormalCapitalP][\[FormalW]]]
+					Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+					Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"],
+					Typed[w, \[Alpha]],
+					Typed[h, P[w]]
 				},
-				Exists[\[FormalCapitalP]]
+				Exists[P]
 			]
 		}
 	],
@@ -148,19 +149,19 @@ $preludeDeclarations = {
 		TypeUniverse[1],
 		{
 			NaturalNumberZero -> NonNegativeIntegers,
-			NaturalNumberSuccessor -> ForAll[{Typed[\[FormalN], NonNegativeIntegers]}, NonNegativeIntegers]
+			NaturalNumberSuccessor -> ForAll[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers]
 		}
 	],
 	(* addition by recursion on the second argument, the form registerNaturalNumbers requires *)
 	TypeTheoryDefinition[
 		Plus,
 		Typed[
-			Function[{Typed[\[FormalM], NonNegativeIntegers], Typed[\[FormalN], NonNegativeIntegers]},
+			Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
 				InductiveRecursor[NonNegativeIntegers][
-					Function[{Typed[\[FormalT], NonNegativeIntegers]}, NonNegativeIntegers],
-					\[FormalM],
-					Function[{Typed[\[FormalK], NonNegativeIntegers], Typed[\[FormalR], NonNegativeIntegers]}, NaturalNumberSuccessor[\[FormalR]]],
-					\[FormalN]
+					Function[{Typed[t, NonNegativeIntegers]}, NonNegativeIntegers],
+					m,
+					Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, NaturalNumberSuccessor[r]],
+					n
 				]
 			],
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
@@ -169,38 +170,38 @@ $preludeDeclarations = {
 	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, Plus],
 	TypeTheoryTheorem[
 		FalseElimination,
-		ForAll[{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"]}, Implies[False, \[FormalA]]],
-		Function[{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Typed[\[FormalH], False]},
-			InductiveRecursor[False][Function[{Typed[\[FormalT], False]}, \[FormalA]], \[FormalH]]
+		ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"]}, Implies[False, a]],
+		Function[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Typed[h, False]},
+			InductiveRecursor[False][Function[{Typed[t, False]}, a], h]
 		]
 	],
 	TypeTheoryTheorem[
 		AndEliminationLeft,
 		ForAll[
-			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"]},
-			Implies[And[\[FormalA], \[FormalB]], \[FormalA]]
+			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]},
+			Implies[And[a, b], a]
 		],
 		Function[
-			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"], Typed[\[FormalH], And[\[FormalA], \[FormalB]]]},
+			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, And[a, b]]},
 			InductiveRecursor[And][
-				Function[{Typed[\[FormalT], And[\[FormalA], \[FormalB]]]}, \[FormalA]],
-				Function[{Typed[\[FormalP], \[FormalA]], Typed[\[FormalQ], \[FormalB]]}, \[FormalP]],
-				\[FormalH]
+				Function[{Typed[t, And[a, b]]}, a],
+				Function[{Typed[p, a], Typed[q, b]}, p],
+				h
 			]
 		]
 	],
 	TypeTheoryTheorem[
 		AndEliminationRight,
 		ForAll[
-			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"]},
-			Implies[And[\[FormalA], \[FormalB]], \[FormalB]]
+			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]},
+			Implies[And[a, b], b]
 		],
 		Function[
-			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"], Typed[\[FormalH], And[\[FormalA], \[FormalB]]]},
+			{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"], Typed[h, And[a, b]]},
 			InductiveRecursor[And][
-				Function[{Typed[\[FormalT], And[\[FormalA], \[FormalB]]]}, \[FormalB]],
-				Function[{Typed[\[FormalP], \[FormalA]], Typed[\[FormalQ], \[FormalB]]}, \[FormalQ]],
-				\[FormalH]
+				Function[{Typed[t, And[a, b]]}, b],
+				Function[{Typed[p, a], Typed[q, b]}, q],
+				h
 			]
 		]
 	],
@@ -208,23 +209,23 @@ $preludeDeclarations = {
 		EqualitySymmetry,
 		ForAll[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"]
 			},
-			Implies[\[FormalX] == \[FormalY], \[FormalY] == \[FormalX]]
+			Implies[x == y, y == x]
 		],
 		Function[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"],
-				Typed[\[FormalH], \[FormalX] == \[FormalY]]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				Typed[h, x == y]
 			},
 			InductiveRecursor[Equal][
-				Function[{Typed[\[FormalZ], \[FormalAlpha]], Typed[\[FormalE], \[FormalX] == \[FormalZ]]}, \[FormalZ] == \[FormalX]],
-				EqualityReflexivity[\[FormalX]],
-				\[FormalH]
+				Function[{Typed[z, \[Alpha]], Typed[e, x == z]}, z == x],
+				EqualityReflexivity[x],
+				h
 			]
 		]
 	],
@@ -232,26 +233,26 @@ $preludeDeclarations = {
 		EqualityTransitivity,
 		ForAll[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalZ], \[FormalAlpha]], "Implicit"]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				Annotation[Typed[z, \[Alpha]], "Implicit"]
 			},
-			Implies[\[FormalX] == \[FormalY], Implies[\[FormalY] == \[FormalZ], \[FormalX] == \[FormalZ]]]
+			Implies[x == y, Implies[y == z, x == z]]
 		],
 		Function[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalZ], \[FormalAlpha]], "Implicit"],
-				Typed[\[FormalH], \[FormalX] == \[FormalY]],
-				Typed[\[FormalK], \[FormalY] == \[FormalZ]]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				Annotation[Typed[z, \[Alpha]], "Implicit"],
+				Typed[h, x == y],
+				Typed[k, y == z]
 			},
 			InductiveRecursor[Equal][
-				Function[{Typed[\[FormalW], \[FormalAlpha]], Typed[\[FormalE], \[FormalY] == \[FormalW]]}, \[FormalX] == \[FormalW]],
-				\[FormalH],
-				\[FormalK]
+				Function[{Typed[w, \[Alpha]], Typed[e, y == w]}, x == w],
+				h,
+				k
 			]
 		]
 	],
@@ -259,27 +260,27 @@ $preludeDeclarations = {
 		EqualityCongruence,
 		ForAll[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalBeta], TypeUniverse[\[FormalV]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"],
-				Typed[\[FormalF], TypeSpecifier[{\[FormalAlpha]} -> \[FormalBeta]]]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[\[Beta], TypeUniverse[v]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]]
 			},
-			Implies[\[FormalX] == \[FormalY], \[FormalF][\[FormalX]] == \[FormalF][\[FormalY]]]
+			Implies[x == y, f[x] == f[y]]
 		],
 		Function[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalBeta], TypeUniverse[\[FormalV]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"],
-				Typed[\[FormalF], TypeSpecifier[{\[FormalAlpha]} -> \[FormalBeta]]],
-				Typed[\[FormalH], \[FormalX] == \[FormalY]]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[\[Beta], TypeUniverse[v]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]],
+				Typed[h, x == y]
 			},
 			InductiveRecursor[Equal][
-				Function[{Typed[\[FormalZ], \[FormalAlpha]], Typed[\[FormalE], \[FormalX] == \[FormalZ]]}, \[FormalF][\[FormalX]] == \[FormalF][\[FormalZ]]],
-				EqualityReflexivity[\[FormalF][\[FormalX]]],
-				\[FormalH]
+				Function[{Typed[z, \[Alpha]], Typed[e, x == z]}, f[x] == f[z]],
+				EqualityReflexivity[f[x]],
+				h
 			]
 		]
 	],
@@ -287,26 +288,26 @@ $preludeDeclarations = {
 		EqualitySubstitution,
 		ForAll[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalCapitalP], TypeSpecifier[{\[FormalAlpha]} -> TypeUniverse[0]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"]
 			},
-			Implies[\[FormalX] == \[FormalY], Implies[\[FormalCapitalP][\[FormalX]], \[FormalCapitalP][\[FormalY]]]]
+			Implies[x == y, Implies[P[x], P[y]]]
 		],
 		Function[
 			{
-				Annotation[Typed[\[FormalAlpha], TypeUniverse[\[FormalU]]], "Implicit"],
-				Annotation[Typed[\[FormalCapitalP], TypeSpecifier[{\[FormalAlpha]} -> TypeUniverse[0]]], "Implicit"],
-				Annotation[Typed[\[FormalX], \[FormalAlpha]], "Implicit"],
-				Annotation[Typed[\[FormalY], \[FormalAlpha]], "Implicit"],
-				Typed[\[FormalH], \[FormalX] == \[FormalY]],
-				Typed[\[FormalP], \[FormalCapitalP][\[FormalX]]]
+				Annotation[Typed[\[Alpha], TypeUniverse[u]], "Implicit"],
+				Annotation[Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], "Implicit"],
+				Annotation[Typed[x, \[Alpha]], "Implicit"],
+				Annotation[Typed[y, \[Alpha]], "Implicit"],
+				Typed[h, x == y],
+				Typed[p, P[x]]
 			},
 			InductiveRecursor[Equal][
-				Function[{Typed[\[FormalZ], \[FormalAlpha]], Typed[\[FormalE], \[FormalX] == \[FormalZ]]}, \[FormalCapitalP][\[FormalZ]]],
-				\[FormalP],
-				\[FormalH]
+				Function[{Typed[z, \[Alpha]], Typed[e, x == z]}, P[z]],
+				p,
+				h
 			]
 		]
 	]

@@ -40,7 +40,8 @@ Held terms are turned into syntax trees first, so the rest of the code never ris
 	syntaxApplication[headSyntax, {argumentSyntax, ...}]
 
 Delaboration turns a core term back into a syntax tree, opening each binder with a fresh free variable
-and naming it with its binder's name, or a Formal symbol when that name is taken. For display it drops
+and naming it with its binder's name, or a numbered variant of that name, as a1, when a variable in
+scope already shows it; a binder with no name is called x. For display it drops
 implicit arguments; with $exactReadBack it writes every argument, using Construct where an implicit one
 would otherwise be filled in again, and every universe level with Subscript, so the term elaborates back
 to itself.
@@ -74,6 +75,7 @@ PackageScoped[displayCoreTerm]
 PackageScoped[coreToTypeTheoryTerm]
 PackageScoped[$exactReadBack]
 PackageScoped[nameSyntax]
+PackageScoped[displayedName]
 
 
 (* ::Section:: *)
@@ -82,7 +84,7 @@ PackageScoped[nameSyntax]
 
 TypeTheoryTerm::usage = "TypeTheoryTerm[term, environment] represents a term of the type theory in the TypeTheoryEnvironment environment, \
 written with built-in symbols such as Function, Typed, ForAll, Implies, Equal and Plus, and kept unevaluated.\n\
-TypeTheoryTerm[term] is a term in the empty environment.\n\
+TypeTheoryTerm[term] is a term in the prelude, TypeTheoryEnvironment[\"Prelude\"].\n\
 TypeOf[TypeTheoryTerm[term, environment]] gives its type; TypeOf[TypeTheoryTerm[term], environment] gives its type in environment."
 TypeUniverse::usage = "TypeUniverse[level] is the universe at level: TypeUniverse[0] is Prop, the universe of propositions, and TypeUniverse[1] is \
 Type. level is a non-negative integer, a universe parameter, level + k, Max[level1, level2] or ImpredicativeMaximum[level1, level2]."
@@ -104,6 +106,7 @@ displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the 
 coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm in environment."
 $exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
 nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
+displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbol or string shows as, without its context."
 
 
 (* ::Section:: *)
@@ -156,7 +159,7 @@ displayCoreTerm[environment_, context_, term_] := Replace[
 
 
 delaborate[environment_, context_, term_] := Replace[term, {
-	freeVariable[id_] :> nameSyntax[Lookup[Lookup[context, id, <||>], "Name", HoldComplete[\[FormalQ]]]],
+	freeVariable[id_] :> nameSyntax[Lookup[Lookup[context, id, <||>], "Name", HoldComplete[x]]],
 	boundVariable[index_] :> syntaxHead[Placeholder, {syntaxString["bound " <> ToString[index]]}],
 	metavariable[id_] :> syntaxHead[Placeholder, {syntaxString["?" <> ToString[id]]}],
 	universeSort[level_] :> syntaxHead[TypeUniverse, {levelSyntax[level]}],
@@ -206,21 +209,27 @@ binderSyntax[name_, domainSyntax_, binder_String] := syntaxHead[Annotation, {syn
 nameSyntax[HoldComplete[name_String]] := syntaxString[name]
 nameSyntax[name_HoldComplete] := syntaxSymbol[name]
 
-(* the binder's own name, unless a variable in the context already has it *)
-displayName[context_, name_] := With[{taken = Lookup[Values[context], "Name", {}]},
-	If[ MemberQ[taken, name] || name === HoldComplete[Null],
-		First[Complement[$formalNames, taken], HoldComplete[\[FormalQ]]],
-		name
+(* the binder's own name, unless a variable in the context already shows the same name, as a variable
+   of the prelude and a user's variable can: then the first numbered variant of it that no variable shows *)
+displayName[context_, name_] := With[
+	{
+		taken = displayedName /@ Lookup[Values[context], "Name", {}],
+		base = Replace[name, HoldComplete[Null] -> HoldComplete[x]]
+	},
+	SelectFirst[
+		Prepend[Function[index, numberedName[base, index]] /@ Range[Length[taken] + 1], base],
+		Function[candidate, ! MemberQ[taken, displayedName[candidate]]]
 	]
 ]
 
-$formalNames = {
-	HoldComplete[\[FormalA]], HoldComplete[\[FormalB]], HoldComplete[\[FormalC]], HoldComplete[\[FormalD]], HoldComplete[\[FormalE]],
-	HoldComplete[\[FormalF]], HoldComplete[\[FormalG]], HoldComplete[\[FormalH]], HoldComplete[\[FormalI]], HoldComplete[\[FormalJ]],
-	HoldComplete[\[FormalK]], HoldComplete[\[FormalL]], HoldComplete[\[FormalM]], HoldComplete[\[FormalN]], HoldComplete[\[FormalP]],
-	HoldComplete[\[FormalR]], HoldComplete[\[FormalS]], HoldComplete[\[FormalT]], HoldComplete[\[FormalU]], HoldComplete[\[FormalV]],
-	HoldComplete[\[FormalW]], HoldComplete[\[FormalX]], HoldComplete[\[FormalY]], HoldComplete[\[FormalZ]]
-}
+displayedName[HoldComplete[name_String]] := name
+displayedName[HoldComplete[symbol_Symbol]] := SymbolName[Unevaluated[symbol]]
+displayedName[_] := None
+
+(* a variant of a symbol lives in the symbol's own context *)
+numberedName[HoldComplete[name_String], index_Integer] := HoldComplete @@ {name <> ToString[index]}
+numberedName[HoldComplete[symbol_Symbol], index_Integer] :=
+	ToExpression[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]] <> ToString[index], InputForm, HoldComplete]
 
 (* A -> B: Implies between propositions, TypeSpecifier otherwise *)
 delaborateArrow[environment_, context_, domain_, codomain_] := With[{result = liftedCodomain[codomain]},

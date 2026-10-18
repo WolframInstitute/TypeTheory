@@ -101,9 +101,17 @@ VerificationTest[
 ]
 
 VerificationTest[
-	Keys[TypeTheoryEnvironment[{TypeTheoryInductiveType[Unit, TypeUniverse[1], {UnitIntroduction -> Unit}], TypeTheoryAxiom[Point, Unit]}]],
+	Keys[TypeTheoryEnvironment[TypeTheoryEnvironment[], {TypeTheoryInductiveType[Unit, TypeUniverse[1], {UnitIntroduction -> Unit}], TypeTheoryAxiom[Point, Unit]}]],
 	{Unit, UnitIntroduction, InductiveRecursor[Unit], Point},
 	TestID -> "An-environment-from-declarations-alone"
+]
+
+VerificationTest[
+	With[{extended = TypeTheoryEnvironment[{TypeTheoryAxiom[Point, NonNegativeIntegers]}]},
+		{Keys[extended] === Append[Keys[prelude], Point], Keys[TypeTheoryEnvironment[TypeTheoryAxiom[Point, NonNegativeIntegers]]] === Keys[extended]}
+	],
+	{True, True},
+	TestID -> "Declarations-without-an-environment-extend-the-prelude"
 ]
 
 VerificationTest[

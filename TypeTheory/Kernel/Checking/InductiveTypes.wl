@@ -198,8 +198,10 @@ largeEliminationQ[environment_, resultLevel_, checkedConstructors_List] := Which
 		False
 ]
 
-eliminationUniverseName[universeParameters_List] := First[
-	Complement[{HoldComplete[\[FormalU]], HoldComplete[\[FormalV]], HoldComplete[\[FormalW]], HoldComplete[\[FormalCapitalU]]}, universeParameters]
+(* the universe the recursor eliminates into is named apart from the type's own universe parameters, so
+   the two never show the same name *)
+eliminationUniverseName[universeParameters_List] := With[{taken = displayedName /@ universeParameters},
+	SelectFirst[{HoldComplete[u], HoldComplete[v], HoldComplete[w], HoldComplete[U]}, Function[candidate, ! MemberQ[taken, displayedName[candidate]]]]
 ]
 
 addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext_, parameterIds_, indexIds_, resultLevel_, inductiveConstant_, checkedConstructors_] := Module[
@@ -213,13 +215,13 @@ addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext
 	recursorUniverseParameters = If[largeElimination, Prepend[universeParameters, eliminationName], universeParameters];
 	eliminationLevel = If[largeElimination, levelParameter[eliminationName], 0];
 	recursorConstant = constantReference[recursorName[name], levelParameter /@ recursorUniverseParameters];
-	baseContext = extendContext[typeContext, majorId, HoldComplete[\[FormalT]], makeApplication[inductiveConstant, freeVariable /@ Join[parameterIds, indexIds]], "Explicit"];
+	baseContext = extendContext[typeContext, majorId, HoldComplete[t], makeApplication[inductiveConstant, freeVariable /@ Join[parameterIds, indexIds]], "Explicit"];
 	motiveType = makeDependentFunctionType[baseContext, Append[indexIds, majorId], universeSort[eliminationLevel]];
 	minorIds = Table[freshFreeVariable[], Length[checkedConstructors]];
 	ihIds = Function[constructor, Table[freshFreeVariable[], Length[constructor["RecursiveFields"]]]] /@ checkedConstructors;
 	minorContext = Fold[
 		Function[{context, triple}, inductionHypothesisContext[context, motiveId, Sequence @@ triple]],
-		extendContext[Join @@ Prepend[Function[constructor, constructor["FieldContext"]] /@ checkedConstructors, baseContext], motiveId, HoldComplete[\[FormalM]], motiveType, "Explicit"],
+		extendContext[Join @@ Prepend[Function[constructor, constructor["FieldContext"]] /@ checkedConstructors, baseContext], motiveId, HoldComplete[m], motiveType, "Explicit"],
 		Transpose[{checkedConstructors, ihIds}]
 	];
 	minorTypes = MapThread[
@@ -307,7 +309,7 @@ addInductiveRecords[environment_, name_, universeParameters_, type_, typeContext
 (* the induction hypotheses of a constructor, one per recursive field: (ys) -> motive indices (field ys) *)
 inductionHypothesisContext[context_, motiveId_, constructor_, constructorIhIds_] := Fold[
 	Function[{accumulated, pair}, With[{recursive = First[pair], ihId = Last[pair]},
-		extendContext[accumulated, ihId, HoldComplete[\[FormalH]], makeDependentFunctionType[
+		extendContext[accumulated, ihId, HoldComplete[h], makeDependentFunctionType[
 			Join[accumulated, recursive["Context"]],
 			recursive["Binders"],
 			makeApplication[freeVariable[motiveId], Append[recursive["Indices"], makeApplication[freeVariable[recursive["Id"]], freeVariable /@ recursive["Binders"]]]]

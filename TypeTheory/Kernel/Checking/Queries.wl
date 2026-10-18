@@ -4,7 +4,7 @@
 Questions about terms and environments.
 
 TypeTheoryTerm[term, environment] carries the environment its constants come from; TypeTheoryTerm[term]
-without one is read in the empty environment. A term's universe parameters are the symbols and strings
+without one is read in the prelude, or, beside a term that has one, in that term's. A term's universe parameters are the symbols and strings
 in its universe levels. Answers are TypeTheoryTerm expressions in the same environment, read back from
 core terms.
 
@@ -50,7 +50,7 @@ DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if 
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
 
-termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the empty environment if it has none."
+termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the prelude if it has none."
 heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
 termSyntax::usage = "termSyntax[term] gives the syntax tree of the TypeTheoryTerm term."
 declarationOf::usage = "declarationOf[environment, HoldComplete[name], mode] gives the declaration that introduced the constant name, \
@@ -61,20 +61,25 @@ its terms read back for display (mode \"Display\") or exactly (mode \"Exact\")."
 (*Function Definitions*)
 
 
+(* a term without an environment is in the prelude *)
 termEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
-termEnvironment[TypeTheoryTerm[_]] := $emptyEnvironment
+termEnvironment[TypeTheoryTerm[_]] := preludeEnvironment[]
 
 heldTerm[TypeTheoryTerm[term_, ___]] := HoldComplete[term]
 
 termSyntax[TypeTheoryTerm[term_, ___]] := toSyntax[term]
 
-(* the environment two terms share; a term without one takes the other's *)
-sharedEnvironment[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[{termEnvironment[first], termEnvironment[second]}, {
+(* the environment two terms share: a term without one takes the other's, and two without one are in
+   the prelude *)
+sharedEnvironment[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[{givenEnvironment[first], givenEnvironment[second]}, {
+	{None, None} :> preludeEnvironment[],
+	{environment_, None} | {None, environment_} :> environment,
 	{environment_, environment_} :> environment,
-	{environment_, other_} /; other === $emptyEnvironment :> environment,
-	{other_, environment_} /; other === $emptyEnvironment :> environment,
 	_ :> kernelFailure["DifferentEnvironments", "The terms carry different environments.", {}]
 }]
+
+givenEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
+givenEnvironment[TypeTheoryTerm[_]] := None
 
 elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] :=
 	elaborateClosedTerm[environment, heldTerm[term], expected, universeParameters]

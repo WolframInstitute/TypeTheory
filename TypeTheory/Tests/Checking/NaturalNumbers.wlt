@@ -10,7 +10,7 @@ Needs["WolframInstitute`TypeTheory`"]
 prelude = TypeTheoryEnvironment["Prelude"]
 
 (* the prelude up to, and without, its natural numbers *)
-beforeNaturalNumbers = TypeTheoryEnvironment[TakeWhile[Normal[prelude], Function[declaration, Head[declaration] =!= TypeTheoryNaturalNumbers]]]
+beforeNaturalNumbers = TypeTheoryEnvironment[TypeTheoryEnvironment[], TakeWhile[Normal[prelude], Function[declaration, Head[declaration] =!= TypeTheoryNaturalNumbers]]]
 
 
 VerificationTest[
@@ -38,7 +38,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeTheoryEnvironment[{
+	First @ TypeTheoryEnvironment[TypeTheoryEnvironment[], {
 		TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
 		TypeTheoryNaturalNumbers[Bit, BitZero, BitOne]
 	}],

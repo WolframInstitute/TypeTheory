@@ -26,12 +26,11 @@ forge[TypeTheoryEnvironment[store_Symbol], name_HoldComplete, change_] := Module
 
 VerificationTest[
 	TypeOf[TypeTheoryTerm[AndIntroduction, prelude]],
-	TypeTheoryTerm[
-		ForAll[
-			{Annotation[Typed[\[FormalA], TypeUniverse[0]], "Implicit"], Annotation[Typed[\[FormalB], TypeUniverse[0]], "Implicit"]},
-			Implies[\[FormalA], Implies[\[FormalB], \[FormalA] && \[FormalB]]]
-		],
-		prelude
+	With[{a = WolframInstitute`TypeTheory`Library`Prelude`Private`a, b = WolframInstitute`TypeTheory`Library`Prelude`Private`b},
+		TypeTheoryTerm[
+			ForAll[{Annotation[Typed[a, TypeUniverse[0]], "Implicit"], Annotation[Typed[b, TypeUniverse[0]], "Implicit"]}, Implies[a, Implies[b, a && b]]],
+			prelude
+		]
 	],
 	TestID -> "A-constant-has-its-declared-type"
 ]
@@ -95,7 +94,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{rebuilt = TypeTheoryEnvironment[Normal[prelude]]}, {Keys[rebuilt] === Keys[prelude], TypeTheoryCheck[rebuilt]}],
+	With[{rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[prelude]]}, {Keys[rebuilt] === Keys[prelude], TypeTheoryCheck[rebuilt]}],
 	{True, True},
 	TestID -> "Normal-gives-the-declarations-to-rebuild-an-environment-from"
 ]

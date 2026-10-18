@@ -19,13 +19,13 @@ pairs = TypeTheoryEnvironment[prelude, {
 
 VerificationTest[
 	{TypeOf[TypeTheoryTerm[TypeUniverse[0]]], TypeOf[TypeTheoryTerm[TypeUniverse[1]]], TypeOf[TypeTheoryTerm[True, prelude]]},
-	{TypeTheoryTerm[TypeUniverse[1], TypeTheoryEnvironment[]], TypeTheoryTerm[TypeUniverse[2], TypeTheoryEnvironment[]], TypeTheoryTerm[TypeUniverse[0], prelude]},
+	{TypeTheoryTerm[TypeUniverse[1], prelude], TypeTheoryTerm[TypeUniverse[2], prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
 	TestID -> "Prop-is-in-Type-and-Type-is-in-the-next-universe"
 ]
 
 VerificationTest[
 	TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]]]],
-	TypeTheoryTerm[TypeUniverse[2], TypeTheoryEnvironment[]],
+	TypeTheoryTerm[TypeUniverse[2], prelude],
 	TestID -> "A-dependent-function-type-lives-in-the-larger-universe"
 ]
 
@@ -48,9 +48,9 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeOf[TypeTheoryTerm[2 + 3]],
-	"ElaborationFailed",
-	TestID -> "A-term-without-an-environment-has-no-constants"
+	{TypeOf[TypeTheoryTerm[2 + 3]] === TypeTheoryTerm[NonNegativeIntegers, prelude], First @ TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment[]]]},
+	{True, "ElaborationFailed"},
+	TestID -> "A-term-without-an-environment-is-in-the-prelude"
 ]
 
 

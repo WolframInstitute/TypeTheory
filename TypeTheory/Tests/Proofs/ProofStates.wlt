@@ -51,6 +51,12 @@ VerificationTest[
 ]
 
 VerificationTest[
+	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}]["Goals"],
+	{},
+	TestID -> "A-proof-without-an-environment-is-in-the-prelude"
+]
+
+VerificationTest[
 	First @ TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}],
 	"NotReflexive",
 	TestID -> "zero-plus-n-is-not-n-by-computation"
@@ -58,13 +64,12 @@ VerificationTest[
 
 VerificationTest[
 	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Induction", n]}]["Goals"],
-	{
-		TypeTheoryTerm[RightTee[{}, 0 + NaturalNumberZero == NaturalNumberZero], prelude],
-		TypeTheoryTerm[
-			RightTee[{}, ForAll[{Typed[\[FormalN], NonNegativeIntegers]}, Implies[0 + \[FormalN] == \[FormalN], 0 + NaturalNumberSuccessor[\[FormalN]] == NaturalNumberSuccessor[\[FormalN]]]]],
-			prelude
-		]
-	},
+	With[{n = WolframInstitute`TypeTheory`Library`Prelude`Private`n},
+		{
+			TypeTheoryTerm[RightTee[{}, 0 + NaturalNumberZero == NaturalNumberZero], prelude],
+			TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies[0 + n == n, 0 + NaturalNumberSuccessor[n] == NaturalNumberSuccessor[n]]]], prelude]
+		}
+	],
 	TestID -> "Induction-gives-a-goal-per-constructor"
 ]
 
