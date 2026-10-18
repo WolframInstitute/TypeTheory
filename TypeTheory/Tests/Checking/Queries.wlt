@@ -88,7 +88,7 @@ VerificationTest[
 	{
 		<|"InductiveType" -> 12, "Constructor" -> 15, "Recursor" -> 12, "Definition" -> 16, "Theorem" -> 51, "Axiom" -> 3|>,
 		{PropositionalExtensionality, FunctionExtensionality, Choice},
-		<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Addition" -> Plus|>
+		<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>|>
 	},
 	TestID -> "Information-about-an-environment"
 ]
@@ -120,9 +120,9 @@ VerificationTest[
 	TestID -> "A-forged-recursor-is-caught"
 ]
 
-(* addition forged as the first projection: well typed, so only the natural number check can catch it *)
+(* addition forged as the first projection: well typed, and trusted on literals, so a theorem about it catches it *)
 VerificationTest[
 	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, "Value" -> firstProjection]]]],
-	"InvalidNaturalNumbers",
+	"TypeMismatch",
 	TestID -> "A-forged-addition-is-caught"
 ]

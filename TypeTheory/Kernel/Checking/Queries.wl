@@ -139,11 +139,11 @@ TypeTheoryEnvironment /: KeyExistsQ[environment : TypeTheoryEnvironment[_Symbol]
 
 (* the declarations, in order; constructors and recursors come with their inductive type *)
 TypeTheoryEnvironment /: Normal[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := catchKernelFailure @ With[
-	{declarations = Function[name, declarationOf[environment, name, "Exact"]] /@ primaryNames[environment]},
-	If[ naturalNumberSettings[environment] === None,
-		declarations,
-		Insert[declarations, naturalNumbersDeclaration[naturalNumberSettings[environment]], naturalNumbersPosition[environment]]
-	]
+	{primary = primaryNames[environment]},
+	Replace[naturalNumberSettings[environment], {
+		settings_Association :> withRegistrations[Function[name, declarationOf[environment, name, "Exact"]] /@ primary, primary, settings],
+		None :> Function[name, declarationOf[environment, name, "Exact"]] /@ primary
+	}]
 ]
 
 primaryNames[environment_] := Select[
@@ -151,15 +151,40 @@ primaryNames[environment_] := Select[
 	Function[name, ! MatchQ[constantRecord[environment, name]["Kind"], "Constructor" | "Recursor"]]
 ]
 
-(* the natural numbers are registered right after the last constant they name *)
-naturalNumbersPosition[environment_] := With[
-	{named = DeleteCases[Values[naturalNumberSettings[environment]], None], primary = primaryNames[environment]},
-	Max[Flatten[Position[primary, Alternatives @@ named, {1}]]] + 1
+(* each registration of the natural numbers, or of operations on them, comes right after the last constant
+   it names, and after the registration before it *)
+withRegistrations[declarations_List, primary_List, settings_Association] := With[
+	{positions = Rest @ FoldList[Max, 0, MapIndexed[
+		Function[{roles, index}, Max[Flatten[Position[primary, Alternatives @@ registrationNames[settings, First[index]], {1}]]]],
+		settings["Registrations"]
+	]]},
+	Catenate @ MapIndexed[
+		Function[{declaration, index}, Prepend[
+			Function[registration, registrationDeclaration[settings, registration]] /@ Flatten[Position[positions, First[index]]],
+			declaration
+		]],
+		declarations
+	]
 ]
 
-naturalNumbersDeclaration[settings_Association] := ReleaseHold @ heldFromSyntax @ syntaxHead[
+(* the constants a registration names: the first also names the natural numbers themselves *)
+registrationNames[settings_Association, 1] := Join[Lookup[settings, {"Type", "Zero", "Successor"}], Lookup[settings["Operations"], First[settings["Registrations"]]]]
+registrationNames[settings_Association, index_Integer] := Lookup[settings["Operations"], settings["Registrations"][[index]]]
+
+registrationOf[settings_Association, index_Integer] := <|
+	KeyTake[settings, {"Type", "Zero", "Successor"}],
+	"Operations" -> KeyTake[settings["Operations"], settings["Registrations"][[index]]]
+|>
+
+registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ heldFromSyntax @ syntaxHead[
 	TypeTheoryNaturalNumbers,
-	toSyntax @@@ DeleteCases[Lookup[settings, {"Type", "Zero", "Successor", "Addition"}], None]
+	Join[
+		toSyntax @@@ Lookup[settings, {"Type", "Zero", "Successor"}],
+		Replace[KeyTake[settings["Operations"], settings["Registrations"][[index]]], {
+			<||> -> {},
+			operations_ :> {syntaxHead[Association, KeyValueMap[Function[{role, name}, syntaxHead[Rule, {syntaxString[role], toSyntax @@ name}]], operations]]}
+		}]
+	]
 ]
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
@@ -171,7 +196,10 @@ environmentInformation[environment_, "Axioms"] :=
 	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Axiom"]]
 environmentInformation[environment_, "RewriteRules"] :=
 	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "RewriteRule"]]
-environmentInformation[environment_, "NaturalNumbers"] := Replace[naturalNumberSettings[environment], settings_Association :> Map[ReleaseHold, settings]]
+environmentInformation[environment_, "NaturalNumbers"] := Replace[
+	naturalNumberSettings[environment],
+	settings_Association :> <|Map[ReleaseHold, KeyTake[settings, {"Type", "Zero", "Successor"}]], "Operations" -> Map[ReleaseHold, settings["Operations"]]|>
+]
 environmentInformation[environment_, "Rules"] := environmentRules[environment]
 
 
@@ -281,9 +309,12 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	kind_ :> kernelFailure["UnknownDeclaration", "The record of `1` has the unknown kind `2`.", {HoldForm @@ name, kind}]
 }]
 
-(* the natural numbers are registered as soon as the constants they name are declared *)
-registerWhenDeclared[replayed_, settings_Association] /; naturalNumberSettings[replayed] === None && AllTrue[
-	DeleteCases[Values[settings], None],
-	Function[name, constantDeclaredQ[replayed, name]]
-] := registerNaturalNumbers[replayed, settings]
-registerWhenDeclared[replayed_, _] := replayed
+(* each registration of the natural numbers is replayed as soon as the constants it names are declared *)
+registerWhenDeclared[replayed_, settings_Association] := With[
+	{next = Replace[naturalNumberSettings[replayed], {registered_Association :> Length[registered["Registrations"]] + 1, None -> 1}]},
+	If[ next <= Length[settings["Registrations"]] && AllTrue[registrationNames[settings, next], Function[name, constantDeclaredQ[replayed, name]]],
+		registerWhenDeclared[registerNaturalNumbers[replayed, registrationOf[settings, next]], settings],
+		replayed
+	]
+]
+registerWhenDeclared[replayed_, None] := replayed

@@ -9,7 +9,9 @@ the environment's contents. That is the Wolfram Language's own way of storing na
 	store[HoldComplete[name]]    the record of the constant name, or None if name is not declared
 	store["Names"]               {HoldComplete[name], ...}, in the order the constants were declared
 	store["NaturalNumbers"]      None | <|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero],
-	                                "Successor" -> HoldComplete[successor], "Addition" -> None | HoldComplete[addition]|>
+	                                "Successor" -> HoldComplete[successor], "Operations" -> <|role -> HoldComplete[operation]|>,
+	                                "Roles" -> <|HoldComplete[operation] -> role|>, "Registrations" -> {{role, ...}, ...}|>,
+	                                as Checking/NaturalNumbers.wl describes
 	store["Identifier"]          a positive integer, marking store as an environment's store
 	store["Rules"]               the TypeTheoryRules the environment follows, set when it is started
 	store["RewriteRuleIndex"]    <|HoldComplete[axiom] -> {HoldComplete[rule], ...}|>: the rewrite rules of each axiom

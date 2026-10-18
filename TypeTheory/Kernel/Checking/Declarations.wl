@@ -13,7 +13,9 @@ evaluates, and it means nothing until it is added to an environment:
 	TypeTheoryTheorem[name, proof]                              proof a finished TypeTheoryProof
 	TypeTheoryInductiveType[name, type, {constructor -> type, ...}]
 	TypeTheoryNaturalNumbers[type, zero, successor]            the literals 0, 1, 2, ... become elements of type
-	TypeTheoryNaturalNumbers[type, zero, successor, addition]   and adding two literals computes
+	TypeTheoryNaturalNumbers[type, zero, successor, <|role -> operation, ...|>]
+	                                                            and the operations compute on literals
+	TypeTheoryNaturalNumbers[type, zero, successor, addition]   the same, with addition the only operation
 	TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]    lhs, an axiom applied to arguments, computes to rhs
 
 TypeTheoryEnvironment[environment, {declaration, ...}] elaborates each declaration's terms in the
@@ -86,7 +88,11 @@ lhs must be an axiom applied to arguments in which each variable occurs, and rhs
 trusted: it may make the theory inconsistent, or computation endless. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
 TypeTheoryNaturalNumbers::usage = "TypeTheoryNaturalNumbers[type, zero, successor] registers the inductive type type, with the constructors zero and successor, \
 as the natural numbers, so the literals 0, 1, 2, ... are elements of type.\n\
-TypeTheoryNaturalNumbers[type, zero, successor, addition] also adds two literals by integer addition; addition must be defined by recursion on its second argument."
+TypeTheoryNaturalNumbers[type, zero, successor, <|role -> operation, ...|>] also registers operations that the kernel computes on literals with integers, \
+trusting that each computes what its role names: \"Addition\", \"Subtraction\", \"Multiplication\", \"Power\", \"Quotient\", \"Remainder\", \"GCD\", \"Log2\", \
+\"BitAnd\", \"BitOr\", \"BitXor\", \"ShiftLeft\", \"ShiftRight\", and \"Equal\" and \"LessEqual\", which give Booleans. A later registration of the same \
+natural numbers adds operations.\n\
+TypeTheoryNaturalNumbers[type, zero, successor, addition] registers addition as the only operation."
 
 declareAxiom::usage = "declareAxiom[environment, HoldComplete[name], {HoldComplete[u], ...}, type] checks the core type and gives environment with the axiom name added."
 declareDefinition::usage = "declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value] checks the core value against the core type \
@@ -219,11 +225,27 @@ addDeclaration[environment_, TypeTheoryInductiveType[name_, type_, constructors_
 ]
 
 addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_]] :=
-	registerNaturalNumbers[environment, <|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero], "Successor" -> HoldComplete[successor], "Addition" -> None|>]
+	naturalNumbersRegistration[environment, HoldComplete[type], HoldComplete[zero], HoldComplete[successor], <||>]
 
-addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_, addition_]] := registerNaturalNumbers[
+addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_, operations_Association]] :=
+	naturalNumbersRegistration[environment, HoldComplete[type], HoldComplete[zero], HoldComplete[successor], heldOperations[operations]]
+
+addDeclaration[environment_, TypeTheoryNaturalNumbers[type_, zero_, successor_, addition_]] :=
+	naturalNumbersRegistration[environment, HoldComplete[type], HoldComplete[zero], HoldComplete[successor], <|"Addition" -> HoldComplete[addition]|>]
+
+(* the operations' names stay held, as every name in a declaration does *)
+SetAttributes[heldOperations, HoldAllComplete]
+heldOperations[Association[rules___]] := Association @ Cases[HoldComplete[rules], (Rule | RuleDelayed)[role_, name_] :> (role -> HoldComplete[name])]
+
+(* an alias names its constant here too, as Naturals does NonNegativeIntegers *)
+naturalNumbersRegistration[environment_, type_, zero_, successor_, operations_] := registerNaturalNumbers[
 	environment,
-	<|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero], "Successor" -> HoldComplete[successor], "Addition" -> HoldComplete[addition]|>
+	<|
+		"Type" -> aliasResolvedName[environment, type],
+		"Zero" -> aliasResolvedName[environment, zero],
+		"Successor" -> aliasResolvedName[environment, successor],
+		"Operations" -> Map[Function[name, aliasResolvedName[environment, name]], operations]
+	|>
 ]
 
 (* the two sides are elaborated as functions of the rule's variables, the right one against the type of the left *)

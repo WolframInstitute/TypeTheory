@@ -285,18 +285,20 @@ reduceSpine[environment_, context_, term_, projection[structure_, index_, struct
 	reduceProjection[environment, context, term, structure, index, structureTerm, arguments]
 reduceSpine[_, _, term_, _, _] := term
 
-reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := With[{record = constantRecord[environment, name]},
-	Which[
-		additionQ[environment, name] && Length[arguments] == 2,
-			reduceAddition[environment, context, record, levels, arguments],
-		record["Kind"] === "Definition",
-			unfoldDefinition[record, levels, arguments],
-		record["Kind"] === "Recursor",
-			reduceRecursor[environment, context, term, record, levels, arguments],
-		record["Kind"] === "Axiom",
-			rewriteAxiom[environment, context, term, name, levels, arguments],
-		True,
-			term
+(* a registered operation on natural numbers computes on literals before it unfolds *)
+reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Replace[
+	literalOperationResult[environment, context, name, arguments],
+	None :> With[{record = constantRecord[environment, name]},
+		Which[
+			record["Kind"] === "Definition",
+				unfoldDefinition[record, levels, arguments],
+			record["Kind"] === "Recursor",
+				reduceRecursor[environment, context, term, record, levels, arguments],
+			record["Kind"] === "Axiom",
+				rewriteAxiom[environment, context, term, name, levels, arguments],
+			True,
+				term
+		]
 	]
 ]
 
@@ -395,18 +397,6 @@ reduceProjection[environment_, context_, term_, structure_, index_, structureTer
 		] :> makeApplication[First @ Drop[constructorArguments, record["NumberOfParameters"] + index], arguments],
 		_ :> term
 	}]
-]
-
-additionQ[environment_, name_] := MatchQ[naturalNumberSettings[environment], KeyValuePattern["Addition" -> name]]
-
-(* The trusted literal extension: the sum of two literals is computed, not unfolded. It agrees with
-   the registered addition, which the prelude defines by recursion on its second argument. *)
-reduceAddition[environment_, context_, record_, levels_, {first_, second_}] := Replace[
-	{weakHeadNormalForm[environment, context, first], weakHeadNormalForm[environment, context, second]},
-	{
-		{naturalLiteral[m_], naturalLiteral[n_]} :> naturalLiteral[m + n],
-		_ :> unfoldDefinition[record, levels, {first, second}]
-	}
 ]
 
 toConstructorForm[environment_, naturalLiteral[n_Integer]] := Replace[naturalNumberSettings[environment], {

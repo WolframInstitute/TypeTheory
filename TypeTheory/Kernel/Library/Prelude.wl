@@ -318,7 +318,7 @@ $constructiveDeclarations = {
 			NaturalNumberSuccessor -> ForAll[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers]
 		}
 	],
-	(* addition by recursion on the second argument, the form registerNaturalNumbers requires *)
+	(* addition by recursion on the second argument, as Lean's *)
 	TypeTheoryDefinition[
 		Plus,
 		Typed[
@@ -388,6 +388,8 @@ $constructiveDeclarations = {
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
 		]
 	],
+	(* the kernel computes these on literals with integers, as Lean's kernel computes its own *)
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>],
 	(* m <= n as Lean defines it: n is m, or the successor of a number m is at most *)
 	TypeTheoryInductiveType[
 		LessEqual,
