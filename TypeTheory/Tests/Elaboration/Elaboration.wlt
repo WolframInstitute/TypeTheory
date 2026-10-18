@@ -56,7 +56,7 @@ VerificationTest[
 VerificationTest[
 	{
 		TypeOf[TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4], prelude]],
-		TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction[2, EqualityReflexivity[4]], prelude], TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction[2, EqualityReflexivity[4]], prelude], TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]], _Success]
 	},
 	{TypeTheoryTerm[TypeUniverse[0], prelude], True},
 	TestID -> "A-witness-proves-an-existential-statement"
@@ -82,7 +82,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeTheoryCheck[
+	MatchQ[TypeTheoryCheck[
 		TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]},
 			InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[k, NonNegativeIntegers]}, Or[True, k == k]],
@@ -92,13 +92,13 @@ VerificationTest[
 			]
 		], prelude],
 		TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, Or[True, n == n]]]
-	],
+	], _Success],
 	True,
 	TestID -> "An-implicit-argument-solved-by-the-expected-type-stays-inside-its-binder"
 ]
 
 VerificationTest[
-	TypeTheoryCheck[
+	MatchQ[TypeTheoryCheck[
 		TypeTheoryTerm[
 			Function[
 				{
@@ -118,13 +118,13 @@ VerificationTest[
 			},
 			f[e1] == f[e2]
 		]]
-	],
+	], _Success],
 	True,
 	TestID -> "A-binder-type-enters-the-context-with-the-implicit-arguments-solved-in-it"
 ]
 
 VerificationTest[
-	TypeTheoryCheck[
+	MatchQ[TypeTheoryCheck[
 		TypeTheoryTerm[
 			Function[{TypedImplicit[A, TypeUniverse[u]], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
 				InductiveRecursor[Exists][
@@ -135,8 +135,8 @@ VerificationTest[
 			],
 			prelude
 		],
-		TypeTheoryTerm[ForAll[{Annotation[Typed[A, TypeUniverse[u]], "Implicit"], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]}, Exists[P]]]
-	],
+		TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[h, Exists[P]]}, Exists[P]]]
+	], _Success],
 	True,
 	TestID -> "A-projection-from-a-term-with-solved-implicit-arguments"
 ]
@@ -147,7 +147,7 @@ VerificationTest[
 VerificationTest[
 	{
 		TypeOf[TypeTheoryTerm[Typed[True, Booleans]]],
-		TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction], TypeTheoryTerm[True]],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction], TypeTheoryTerm[True]], _Success],
 		TypeOf[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b && True]]],
 		TypeOf[TypeTheoryTerm[Not[1 == 2]]]
 	},
@@ -160,10 +160,10 @@ VerificationTest[
 		TypeOf[TypeTheoryTerm[Typed[True, Booleans] == False]],
 		TypeOf[TypeTheoryTerm[Typed[Identity[Not[False]], Booleans]]],
 		TypeOf[TypeTheoryTerm[With[{t = True}, Typed[t, Booleans]]]],
-		TypeTheoryCheck[
+		MatchQ[TypeTheoryCheck[
 			TypeTheoryTerm[Function[{Typed[x, TypeUniverse[0]]}, EqualityReflexivity[True]]],
 			TypeTheoryTerm[ForAll[{Typed[x, TypeUniverse[0]]}, Typed[True, TypeUniverse[0]] == True]]
-		]
+		], _Success]
 	},
 	{TypeTheoryTerm[TypeUniverse[0], prelude], TypeTheoryTerm[Booleans, prelude], TypeTheoryTerm[Booleans, prelude], True},
 	TestID -> "A-name-waits-until-a-later-type-decides-it"

@@ -19,7 +19,7 @@ strictEqual = TypeTheoryInductiveType[
 
 
 VerificationTest[
-	{Information[hott, "Rules"]["Name"], Information[hott, "Axioms"], Information[hott, "RewriteRules"], TypeTheoryCheck[hott]},
+	{Information[hott, "Rules"]["Name"], Information[hott, "Axioms"], Information[hott, "RewriteRules"], MatchQ[TypeTheoryCheck[hott], _Success]},
 	{"MartinLofTypeTheory", {Univalence, Circle, CircleBase, CircleLoop, CircleInduction, CircleInductionLoop}, {CircleInductionBase}, True},
 	TestID -> "The-HoTT-environment-and-its-assumptions"
 ]
@@ -35,7 +35,7 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryCheck[TypeTheoryTerm[UniverseNotSet, hott], TypeTheoryTerm[Not[IsSet[TypeUniverse[1]]], hott]],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[UniverseNotSet, hott], TypeTheoryTerm[Not[IsSet[TypeUniverse[1]]], hott]], _Success],
 		TypeOf[TypeTheoryTerm[Typed[True, Booleans], hott]],
 		TypeOf[TypeTheoryTerm[TrueIntroduction, hott]]
 	},

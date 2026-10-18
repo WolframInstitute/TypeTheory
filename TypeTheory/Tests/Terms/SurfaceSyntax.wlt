@@ -62,7 +62,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	Module[{statement = TypeTheoryTerm[2 + 2 == 4]}, TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[statement]]],
+	Module[{statement = TypeTheoryTerm[2 + 2 == 4]}, MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[statement]], _Success]],
 	True,
 	TestID -> "A-symbol-whose-value-is-a-TypeTheoryTerm-stands-for-it"
 ]

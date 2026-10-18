@@ -64,7 +64,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	{TypeTheoryCheck[unit], Information[TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[unit]], "Rules"] === martinLof},
+	{MatchQ[TypeTheoryCheck[unit], _Success], Information[TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[unit]], "Rules"] === martinLof},
 	{True, False},
 	TestID -> "Replay-uses-the-rules-of-the-environment"
 ]

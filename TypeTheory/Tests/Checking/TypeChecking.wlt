@@ -99,10 +99,10 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeTheoryCheck[
+	MatchQ[TypeTheoryCheck[
 		TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p], Typed[k, p]}, EqualityReflexivity[h]], prelude],
 		TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]], Typed[h, p], Typed[k, p]}, h == k]]
-	],
+	], _Success],
 	True,
 	TestID -> "Two-proofs-of-a-proposition-are-equal"
 ]

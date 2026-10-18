@@ -222,9 +222,11 @@ levelArgumentDisplay[level_] := level
 (*Proofs*)
 
 
-(* the display is not interpretable: a proof holds its environment, which a notebook should not store in every output *)
-TypeTheoryProof /: MakeBoxes[TypeTheoryProof[data_Association], form : StandardForm | TraditionalForm] :=
-	withDisplayEnvironment[data["Environment"], ToBoxes[proofPanel[data, form], form]]
+(* the display is interpretable, as a term's is: copied or evaluated again it is the proof, which holds only a handle to its environment *)
+TypeTheoryProof /: MakeBoxes[proof : TypeTheoryProof[data_Association], form : StandardForm | TraditionalForm] := With[
+	{boxes = withDisplayEnvironment[data["Environment"], ToBoxes[proofPanel[data, form], form]]},
+	InterpretationBox[boxes, proof]
+]
 
 proofPanel[data_, form_] := Framed[
 	Column[Prepend[Function[goal, goalPanel[data, goal, form]] /@ data["Goals"], proofHeader[Length[data["Goals"]]]], Spacings -> 1.2],

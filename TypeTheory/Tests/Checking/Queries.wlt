@@ -43,7 +43,7 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]], _Success],
 		First @ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 5]]
 	},
 	{True, "TypeMismatch"},
@@ -94,7 +94,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[prelude]]}, {Keys[rebuilt] === Keys[prelude], TypeTheoryCheck[rebuilt]}],
+	With[{rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[prelude]]}, {Keys[rebuilt] === Keys[prelude], MatchQ[TypeTheoryCheck[rebuilt], _Success]}],
 	{True, True},
 	TestID -> "Normal-gives-the-declarations-to-rebuild-an-environment-from"
 ]
@@ -103,7 +103,7 @@ VerificationTest[
 (* === checking an environment === *)
 
 VerificationTest[
-	TypeTheoryCheck[prelude],
+	MatchQ[TypeTheoryCheck[prelude], _Success],
 	True,
 	TestID -> "The-prelude-checks-from-scratch"
 ]

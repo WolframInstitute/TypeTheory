@@ -44,7 +44,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	{TypeTheoryCheck[bits], Last[Normal[bits]], Information[bits, "RewriteRules"]},
+	{MatchQ[TypeTheoryCheck[bits], _Success], Last[Normal[bits]], Information[bits, "RewriteRules"]},
 	{
 		True,
 		TypeTheoryRewriteRule[TwiceRule, ForAll[{Typed[h, TypeSpecifier[{Bit} -> Bit]], Typed[x, Bit]}, Twice[h, x] -> h[h[x]]]],

@@ -88,9 +88,9 @@ VerificationTest[
 			}]
 		},
 		{
-			TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]],
+			MatchQ[TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]], _Success],
 			TypeOf[TypeTheoryTerm[ZeroLeftIdentityAgain, proved]] === TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers]}, 0 + m == m], proved],
-			TypeTheoryCheck[proved]
+			MatchQ[TypeTheoryCheck[proved], _Success]
 		}
 	],
 	{True, True, True},
@@ -147,7 +147,22 @@ VerificationTest[
 ]
 
 VerificationTest[
-	MatchQ[ToBoxes[zeroLeft], _FrameBox] && MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], _FrameBox],
+	MatchQ[ToBoxes[zeroLeft], InterpretationBox[_FrameBox, _TypeTheoryProof]] && MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], InterpretationBox[_FrameBox, _TypeTheoryProof]],
 	True,
 	TestID -> "A-proof-displays-its-goals"
+]
+
+VerificationTest[
+	ToExpression[ToBoxes[zeroLeft]] === zeroLeft,
+	True,
+	TestID -> "A-proof-display-is-interpreted-as-the-proof"
+]
+
+VerificationTest[
+	{
+		TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]][[1]],
+		TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]][[1]]
+	},
+	{"TypeChecked", "EnvironmentChecked"},
+	TestID -> "A-check-that-passes-gives-a-Success"
 ]

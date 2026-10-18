@@ -70,7 +70,7 @@ VerificationTest[
 			]]
 		},
 		{
-			TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vectors], TypeTheoryTerm[NaturalVector[2]]],
+			MatchQ[TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vectors], TypeTheoryTerm[NaturalVector[2]]], _Success],
 			FailureQ @ TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorEmpty], vectors], TypeTheoryTerm[NaturalVector[2]]]
 		}
 	],
@@ -130,10 +130,10 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeTheoryCheck[
+	MatchQ[TypeTheoryCheck[
 		TypeTheoryTerm[Function[{Typed[h, 2 + 2 == 4]}, InductiveRecursor[Equal][Function[{Typed[y, NonNegativeIntegers], Typed[e, 4 == y]}, NonNegativeIntegers], 7, h]], prelude],
 		TypeTheoryTerm[TypeSpecifier[{2 + 2 == 4} -> NonNegativeIntegers]]
-	],
+	], _Success],
 	True,
 	TestID -> "Equality-eliminates-into-any-universe"
 ]

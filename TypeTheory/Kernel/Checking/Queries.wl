@@ -44,8 +44,8 @@ PackageScoped[declarationOf]
 
 
 TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
-TypeTheoryCheck[term, type] gives True if term has the given type, and a Failure otherwise.\n\
-TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives True, \
+TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
+TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
 or a Failure for the first declaration that does not check."
 DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
 in their environment, and False otherwise."
@@ -103,7 +103,7 @@ TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure 
 	{environment = sharedEnvironment[term, type], universeParameters = universeParameterNames[{termSyntax[term], termSyntax[type]}]},
 	{expected = elaborateClosedType[environment, heldTerm[type], universeParameters]},
 	elaborateQueryTerm[environment, term, expected, universeParameters];
-	True
+	Success["TypeChecked", <|"MessageTemplate" -> "`1` has type `2`.", "MessageParameters" -> {term, type}, "Term" -> term, "Type" -> type|>]
 ]
 
 
@@ -248,7 +248,11 @@ TypeTheoryCheck[environment_?environmentQ] := withStoreCleanup @ catchKernelFail
 	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],
 		kernelFailure["DeclarationMismatch", "The natural numbers of the environment do not match its declarations.", {}]
 	];
-	True
+	Success["EnvironmentChecked", <|
+		"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
+		"MessageParameters" -> {Length[environmentNames[environment]]},
+		"Constants" -> Length[environmentNames[environment]]
+	|>]
 ]
 
 (* Constructors and recursors are generated with their inductive type, which comes before them; every
