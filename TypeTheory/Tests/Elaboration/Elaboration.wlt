@@ -80,3 +80,19 @@ VerificationTest[
 	{"ElaborationFailed", "ElaborationFailed", "UnsolvedImplicitArgument", "ElaborationFailed"},
 	TestID -> "Elaboration-errors-are-Failures"
 ]
+
+VerificationTest[
+	TypeTheoryCheck[
+		TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, Or[True, k == k]],
+				OrIntroductionLeft[TrueIntroduction],
+				Function[{Typed[k, NonNegativeIntegers], Typed[ih, Or[True, k == k]]}, OrIntroductionLeft[TrueIntroduction]],
+				n
+			]
+		], prelude],
+		TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, Or[True, n == n]]]
+	],
+	True,
+	TestID -> "An-implicit-argument-solved-by-the-expected-type-stays-inside-its-binder"
+]

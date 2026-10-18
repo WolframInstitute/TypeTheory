@@ -373,9 +373,13 @@ expectedBody[expected_, id_] := Replace[
 	{dependentFunctionType[_, _, codomain_, _] :> instantiateBoundVariable[codomain, freeVariable[id]], _ :> None}
 ]
 
+(* The body's type is unified with its expected type inside the binders, before the function is closed:
+   an implicit argument of the body solved by the expected type is then solved in terms of the bound
+   variables, and abstracted with them, instead of naming a variable outside its binder. *)
 elaborateFunction[binders_List, body_, expected_] := With[{opened = openBinders[binders, expected]},
 	Block[{$elaborationContext = opened["Context"], $elaborationScope = opened["Scope"]},
 		With[{result = elaborateSyntax[body, opened["Expected"]]},
+			If[opened["Expected"] =!= None, attemptOrRestore[unify[Last[result], opened["Expected"]]]];
 			{
 				makeLambda[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[First[result]]],
 				makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[Last[result]]]
