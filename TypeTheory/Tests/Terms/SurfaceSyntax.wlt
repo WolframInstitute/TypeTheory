@@ -120,3 +120,9 @@ VerificationTest[
 	{"a", "a1", "b"},
 	TestID -> "A-binder-showing-a-taken-name-gets-a-numbered-one"
 ]
+
+VerificationTest[
+	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[NaturalNumberSuccessor[k]] == k + 2]]], RowBox[{"k", "+", "1", "+", "1"}]],
+	False,
+	TestID -> "Successors-of-successors-add-up-from-the-left"
+]
