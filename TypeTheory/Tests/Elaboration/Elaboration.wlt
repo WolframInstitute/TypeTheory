@@ -224,3 +224,9 @@ VerificationTest[
 	False,
 	TestID -> "A-pattern-solution-is-eta-reduced"
 ]
+
+VerificationTest[
+	FreeQ[TypeOf[TypeTheoryTerm[FunctionExtensionality[Function[{Typed[b, Booleans]}, EqualityReflexivity[BooleanNot[b]]]]]], Function],
+	True,
+	TestID -> "A-constant-applied-to-the-pattern-variables-solves-as-the-constant"
+]

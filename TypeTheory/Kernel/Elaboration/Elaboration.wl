@@ -705,7 +705,8 @@ unassignedMetavariableQ[_] := False
 (* A metavariable applied to distinct variables of the context, ?f[x, y], unifies with a term t by
    ?f = Function[{x, y}, t]: the most general solution, as in higher-order pattern unification. A
    variable applied to the pattern's variables is that variable: ?f[x, y] against g[x, y], with g a
-   variable, gives ?f = g. A constant keeps its function, so the solution still reads (n) ↦ 0 + n. *)
+   variable, gives ?f = g, and so is a constant applied to exactly them, as BooleanNot[a]. A constant
+   applied to more keeps its function, so the solution reads (n) ↦ 0 + n rather than Plus[0]. *)
 patternApplicationQ[term_] := With[{spine = applicationSpine[term]},
 	And[
 		unassignedMetavariableQ[First[spine]],
@@ -723,15 +724,17 @@ assignPattern[term_, value_] := With[{spine = applicationSpine[term]},
 etaReducedSolution[ids_List, value_] := With[{valueSpine = applicationSpine[value]},
 	With[
 		{
-			dropped = LengthWhile[
-				Range[If[MatchQ[First[valueSpine], _freeVariable], Min[Length[ids], Length[Last[valueSpine]]], 0]],
+			droppable = LengthWhile[
+				Range[Min[Length[ids], Length[Last[valueSpine]]]],
 				Function[k, And[
 					Last[valueSpine][[-k]] === freeVariable[ids[[-k]]],
 					FreeQ[Fold[application, First[valueSpine], Drop[Last[valueSpine], -k]], freeVariable[ids[[-k]]]]
 				]]
 			]
 		},
-		makeLambda[instantiateContext[$elaborationContext], Drop[ids, -dropped], Fold[application, First[valueSpine], Drop[Last[valueSpine], -dropped]]]
+		With[{dropped = If[MatchQ[First[valueSpine], _freeVariable] || droppable === Length[Last[valueSpine]], droppable, 0]},
+			makeLambda[instantiateContext[$elaborationContext], Drop[ids, -dropped], Fold[application, First[valueSpine], Drop[Last[valueSpine], -dropped]]]
+		]
 	]
 ]
 
