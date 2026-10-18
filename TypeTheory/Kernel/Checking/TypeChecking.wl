@@ -445,9 +445,29 @@ reduceRecursorApplication[environment_, context_, term_, record_, levels_, {para
 			applyRecursorRule[record, levels, parameters, motive, minors, constructor, Drop[constructorArguments, record["NumberOfParameters"]], rest],
 		_ /; TrueQ[record["KLike"]] :>
 			reduceKLike[environment, context, term, record, levels, parameters, motive, minors, major, rest],
-		_ :> term
+		_ :> Replace[structureFields[environment, context, record, major], {
+			fields_List :> applyRecursorRule[record, levels, parameters, motive, minors, First[Keys[record["Rules"]]], fields, rest],
+			None :> term
+		}]
 	}
 ]
+
+(* Eta for structures, as Lean's kernel reduces a recursor: a major premise of a structure type that is
+   not a constructor application is the constructor applied to its projections, so a match on a pair p
+   computes with p.1 and p.2. A proposition is left alone, since data cannot be projected out of a proof. *)
+structureFields[environment_, context_, record_, major_] := With[{name = record["InductiveType"]},
+	If[ ! structureLikeQ[environment, name],
+		None,
+		With[{majorType = weakHeadNormalForm[environment, context, inferType[environment, context, major]]},
+			If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || propositionTypeQ[environment, context, majorType],
+				None,
+				Table[projection[name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
+			]
+		]
+	]
+]
+
+propositionTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, inferType[environment, context, type]], universeSort[level_] /; levelEquivalentQ[level, 0]]
 
 constructorApplicationQ[record_, constructor_, constructorArguments_] := And[
 	KeyExistsQ[record["Rules"], constructor],

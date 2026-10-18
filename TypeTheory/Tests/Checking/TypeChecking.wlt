@@ -149,3 +149,21 @@ VerificationTest[
 	{True, False},
 	TestID -> "The-impredicative-maximum-of-1-and-u-is-u"
 ]
+
+VerificationTest[
+	With[
+		{
+			pairs = TypeTheoryEnvironment[{
+				TypeTheoryInductiveType[NaturalPair, TypeUniverse[1], {NaturalPairIntroduction -> TypeSpecifier[{Naturals, Naturals} -> NaturalPair]}],
+				TypeTheoryDefinition[Swap, Function[{Typed[p, NaturalPair]}, InductiveRecursor[NaturalPair][
+					Function[{Typed[q, NaturalPair]}, NaturalPair],
+					Function[{Typed[a, Naturals], Typed[b, Naturals]}, NaturalPairIntroduction[b, a]],
+					p
+				]]]
+			}]
+		},
+		DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[p, NaturalPair]}, Swap[Swap[p]]], pairs], TypeTheoryTerm[Function[{Typed[p, NaturalPair]}, p], pairs]]
+	],
+	True,
+	TestID -> "A-structure-recursor-computes-on-a-variable-by-eta"
+]
