@@ -88,13 +88,13 @@ Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 
 ---
 
-Its natural numbers, which literals belong to:
+Its natural numbers, which literals belong to, and the operations the kernel computes on literals:
 
 ```wl
 Information[TypeTheoryEnvironment["Prelude"], "NaturalNumbers"]
 ```
 
-<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Addition" -> Plus|> -->
+<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>|> -->
 
 ---
 

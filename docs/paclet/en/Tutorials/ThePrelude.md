@@ -147,7 +147,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[0]]]
 
 <!-- => 0 -->
 
-[Plus](), [Times](), [Power]() and [Subtract]() are defined by recursion on their second argument, as in Lean. They compute; addition of literals is done with Wolfram integers:
+[Plus](), [Times](), [Power]() and [Subtract]() are defined by recursion on their second argument, as in Lean. They compute, and on literals the kernel computes them with Wolfram integers, as Lean's kernel does with GMP:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[3 * 4 + 2^3 - 5]]

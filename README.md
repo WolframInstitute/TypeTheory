@@ -125,7 +125,7 @@ evaluates inside a term.
 | `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]` |
 | `TypeTheoryTheorem[name, statement, proof]` | a theorem; `TypeTheoryTheorem[name, proof]` takes the statement of a finished proof |
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]` |
-| `TypeTheoryNaturalNumbers[type, zero, successor, addition]` | the natural numbers that literals belong to |
+| `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
 | `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
 
 `TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the prelude, which is also the
@@ -161,7 +161,8 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Functions:** `Identity` and `Composition`.
 - **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `NaturalNumberZero`, `NaturalNumberSuccessor` and
   `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
-  and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean; `LessEqual`,
+  and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean, and computed
+  on literals with integers, as Lean's kernel computes them with GMP; `LessEqual`,
   inductive as Lean's `Nat.le` (`LessEqualReflexivity`, `LessEqualStep`), with `Less`, `GreaterEqual`
   and `Greater`.
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
@@ -263,6 +264,4 @@ prelude's rules, the HoTT library proving False with an equality in Prop.
   Lean's; induction on indexed families in the tactic.
 - Cubical type theory, where univalence computes; truncations; translations between rules.
 - Higher-order unification beyond patterns; no type classes.
-- A compiled kernel (`FunctionCompile` over an array encoding of terms), and computing products,
-  powers, comparisons and the other operations on literals with integers, as sums already are; Lean's
-  kernel computes them with GMP, so a proof about 2^64 checks there and does not finish here.
+- A compiled kernel (`FunctionCompile` over an array encoding of terms).

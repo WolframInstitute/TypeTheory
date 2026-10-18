@@ -57,13 +57,13 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Function[{Typed[b,
 
 <!-- => 1 -->
 
-The literals of the natural numbers add with the Wolfram Language's own integers, as Lean's kernel adds its literals with GMP:
+The arithmetic of the natural numbers computes on literals with the Wolfram Language's own integers, as Lean's kernel computes on its literals with GMP. [TypeTheoryNaturalNumbers]() registers the operations, which the kernel trusts:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[123456789 + 987654321]]
+WeakHeadNormalForm[TypeTheoryTerm[123456789 * 987654321 + 2^64]]
 ```
 
-<!-- => 1111111110 -->
+<!-- => 18568676704822186885 -->
 
 An axiom never unfolds: it has no value. Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stops at the recursor, waiting for a constructor the axiom never gives:
 

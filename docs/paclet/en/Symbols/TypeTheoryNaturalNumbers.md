@@ -4,7 +4,7 @@ Name: TypeTheoryNaturalNumbers
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryNaturalNumbers
-Keywords: [natural numbers, literals, addition, integers, declaration, environment]
+Keywords: [natural numbers, literals, addition, multiplication, arithmetic, integers, GMP, trusted, declaration, environment]
 SeeAlso: [TypeTheoryInductiveType, TypeTheoryEnvironment, NaturalNumberZero, NaturalNumberSuccessor]
 RelatedGuides: [TypeTheory]
 ---
@@ -13,14 +13,35 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryNaturalNumbers]()[*type*, *zero*, *successor*]</code> registers the inductive type *type*, with the constructors *zero* and *successor*, as the natural numbers, so the literals `0`, `1`, `2`, ... are elements of *type*.
 
-<code>[TypeTheoryNaturalNumbers]()[*type*, *zero*, *successor*, *addition*]</code> also adds two literals by integer addition.
+<code>[TypeTheoryNaturalNumbers]()[*type*, *zero*, *successor*, &lt;|*role* -> *operation*, ...|&gt;]</code> also registers operations that the kernel computes on literals with integers.
+
+<code>[TypeTheoryNaturalNumbers]()[*type*, *zero*, *successor*, *addition*]</code> registers addition as the only operation.
 
 ## Details & Options
 
-- The kernel trusts what it computes on literals, so the registration is checked strictly: *type* must be an inductive type in <code>[TypeUniverse]()[1]</code> with no parameters, indices or universe parameters, whose constructors are exactly *zero* and *successor*.
-- *addition* must be defined, up to the names of its variables, by recursion on its second argument, as the prelude's [Plus]() is. Then adding two literals as integers agrees with unfolding *addition*.
+- The registration is checked strictly: *type* must be an inductive type in <code>[TypeUniverse]()[1]</code> with no parameters, indices or universe parameters, whose constructors are exactly *zero* and *successor*.
 - A literal is its constructor form by computation: `2` is `successor[successor[zero]]`.
-- An environment registers natural numbers once. The prelude registers [NonNegativeIntegers](), so natural numbers of your own go in an environment built on the empty one, <code>[TypeTheoryEnvironment]()[]</code>.
+- An operation is registered for a role, which says what it computes on two literals *m* and *n*, or on one for `"Log2"`:
+
+| role | computes |
+| --- | --- |
+| `"Addition"` | *m* + *n* |
+| `"Subtraction"` | *m* - *n*, or 0 when *n* is larger |
+| `"Multiplication"` | *m* *n* |
+| `"Power"` | *m*^*n*, with 0^0 = 1 |
+| `"Quotient"` | <code>[Quotient]()[*m*, *n*]</code>, or 0 when *n* is 0 |
+| `"Remainder"` | <code>[Mod]()[*m*, *n*]</code>, or *m* when *n* is 0 |
+| `"GCD"` | <code>[GCD]()[*m*, *n*]</code> |
+| `"Log2"` | the largest *k* with 2^*k* ≤ *n*, or 0 when *n* is 0 |
+| `"BitAnd"`, `"BitOr"`, `"BitXor"` | <code>[BitAnd]()[*m*, *n*]</code>, <code>[BitOr]()[*m*, *n*]</code>, <code>[BitXor]()[*m*, *n*]</code> |
+| `"ShiftLeft"`, `"ShiftRight"` | *m* 2^*n*, and <code>[Quotient]()[*m*, 2^*n*]</code> |
+| `"Equal"`, `"LessEqual"` | whether *m* = *n*, and whether *m* ≤ *n*, as a Boolean |
+
+- These are the operations Lean's kernel computes on its literals with GMP, with the same values at 0. An operation of a role must be a definition or an axiom of type <code>*type* → *type* → *type*</code>, <code>*type* → *type*</code> for `"Log2"`, and <code>*type* → *type* → *B*</code> for `"Equal"` and `"LessEqual"`, where *B* is an inductive type with two constructors without fields, false and then true, as [Booleans]() is.
+- The kernel trusts that an operation computes what its role says, as Lean's kernel trusts GMP: an operation that computes something else makes the environment inconsistent. It checks the operation's type, not its definition.
+- An operation computes on arguments that compute to literals, and unfolds otherwise. Powers and left shifts by 2^24 or more unfold, as in Lean.
+- An environment registers its natural numbers once. A later registration of the same *type*, *zero* and *successor* adds operations. The prelude registers [NonNegativeIntegers]() with [Plus](), [Subtract](), [Times]() and [Power](), and <code>[Information]()[*env*, "NaturalNumbers"]</code> lists the operations of an environment.
+- Natural numbers of your own go in an environment built on the empty one, <code>[TypeTheoryEnvironment]()[]</code>.
 - In a notebook, the zero of the registered natural numbers shows as `0`, and the successor of *n* as <code>*n* + 1</code>, as Lean shows them.
 
 ## Basic Examples
@@ -32,6 +53,14 @@ TypeOf[TypeTheoryTerm[3]]
 ```
 
 <!-- => ℕ -->
+
+Its arithmetic computes on literals with integers, at once even for large numbers:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[2^64 - 1]]
+```
+
+<!-- => 18446744073709551615 -->
 
 ---
 
@@ -63,6 +92,28 @@ TypeTheoryTerm[UnarySuccessor[UnarySuccessor[UnaryZero]], unary]
 
 <!-- => 0 + 1 + 1 -->
 
+## Scope
+
+A later registration adds an operation: here the equality of natural numbers as a Boolean, registered by the alias [Naturals]():
+
+```wl
+equality = TypeTheoryEnvironment[TypeTheoryEnvironment["Prelude"], {
+    TypeTheoryDefinition[NaturalNumberEqual, Function[{Typed[m, Naturals], Typed[n, Naturals]},
+        InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], True, Function[{Typed[k, Naturals], Typed[r, Booleans]}, False], (m - n) + (n - m)]
+    ]],
+    TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"Equal" -> NaturalNumberEqual|>]
+}];
+WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberEqual[2^70, 2^70], equality]]
+```
+
+<!-- => true -->
+
+```wl
+Information[equality, "NaturalNumbers"]
+```
+
+<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> NaturalNumberEqual|>|> -->
+
 ## Possible Issues
 
 A type with two constructors that are not a zero and a successor cannot be registered:
@@ -75,3 +126,28 @@ TypeTheoryEnvironment[TypeTheoryEnvironment[], {
 ```
 
 <!-- => Failure["InvalidNaturalNumbers", ...] -->
+
+---
+
+The kernel trusts a registered operation. A projection registered as addition computes as addition on literals, though its definition gives its first argument:
+
+```wl
+trusted = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+    TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
+    TypeTheoryDefinition[FirstNumber, Function[{Typed[m, Unary], Typed[n, Unary]}, m]],
+    TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor, <|"Addition" -> FirstNumber|>]
+}];
+WeakHeadNormalForm[TypeTheoryTerm[FirstNumber[2, 3], trusted]]
+```
+
+<!-- => 5 -->
+
+---
+
+An operation must have the type of its role:
+
+```wl
+Append[TypeTheoryEnvironment["Prelude"], TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Quotient" -> NaturalNumberPredecessor|>]]
+```
+
+<!-- => Failure["InvalidNaturalNumberOperation", ...] -->
