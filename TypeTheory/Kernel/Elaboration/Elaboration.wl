@@ -703,7 +703,9 @@ unassignedMetavariableQ[metavariable[id_]] := ! KeyExistsQ[$metavariableAssignme
 unassignedMetavariableQ[_] := False
 
 (* A metavariable applied to distinct variables of the context, ?f[x, y], unifies with a term t by
-   ?f = Function[{x, y}, t]: the most general solution, as in higher-order pattern unification. *)
+   ?f = Function[{x, y}, t]: the most general solution, as in higher-order pattern unification. A
+   variable applied to the pattern's variables is that variable: ?f[x, y] against g[x, y], with g a
+   variable, gives ?f = g. A constant keeps its function, so the solution still reads (n) ↦ 0 + n. *)
 patternApplicationQ[term_] := With[{spine = applicationSpine[term]},
 	And[
 		unassignedMetavariableQ[First[spine]],
@@ -714,7 +716,23 @@ patternApplicationQ[term_] := With[{spine = applicationSpine[term]},
 ]
 
 assignPattern[term_, value_] := With[{spine = applicationSpine[term]},
-	assignMetavariable[First[spine], makeLambda[instantiateContext[$elaborationContext], First /@ Last[spine], value]]
+	assignMetavariable[First[spine], etaReducedSolution[First /@ Last[spine], value]]
+]
+
+(* the trailing arguments of value that are the trailing pattern variables, in order and nowhere else, are dropped with their binders *)
+etaReducedSolution[ids_List, value_] := With[{valueSpine = applicationSpine[value]},
+	With[
+		{
+			dropped = LengthWhile[
+				Range[If[MatchQ[First[valueSpine], _freeVariable], Min[Length[ids], Length[Last[valueSpine]]], 0]],
+				Function[k, And[
+					Last[valueSpine][[-k]] === freeVariable[ids[[-k]]],
+					FreeQ[Fold[application, First[valueSpine], Drop[Last[valueSpine], -k]], freeVariable[ids[[-k]]]]
+				]]
+			]
+		},
+		makeLambda[instantiateContext[$elaborationContext], Drop[ids, -dropped], Fold[application, First[valueSpine], Drop[Last[valueSpine], -dropped]]]
+	]
 ]
 
 (* A solution must have the metavariable's type; unifying the two types is what solves universe levels,

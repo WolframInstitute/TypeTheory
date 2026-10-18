@@ -210,3 +210,17 @@ VerificationTest[
 	{True, "ElaborationFailed", True},
 	TestID -> "A-symbol-whose-value-is-a-constant-stands-for-it-unless-bound"
 ]
+
+VerificationTest[
+	With[
+		{
+			environment = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+				TypeTheoryAxiom[Symmetric, ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], r[b, a]]]]}, TypeUniverse[0]]],
+				TypeTheoryDefinition[SymmetricOf, Function[{Typed[A, TypeUniverse[1]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], r[b, a]]]]}, Symmetric[h]]]
+			}]
+		},
+		FreeQ[Last[Normal[environment]], HoldPattern[Construct[Symmetric, A, r, h]]]
+	],
+	False,
+	TestID -> "A-pattern-solution-is-eta-reduced"
+]
