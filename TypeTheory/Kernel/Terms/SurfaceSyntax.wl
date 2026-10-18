@@ -1,0 +1,251 @@
+(* ::Package:: *)
+
+(*
+Surface terms: the type theory written with built-in symbols, and its conversion to and from core terms.
+
+A surface term is an ordinary Wolfram Language expression, kept unevaluated:
+
+	Function[{Typed[x, A], ...}, b]                   a function
+	ForAll[{Typed[x, A], ...}, B]                     a dependent function type, or a universal statement
+	Implies[A, B], TypeSpecifier[{A, ...} -> B]       a function type whose result does not depend on the argument;
+	A -> B, {A, ...} -> B                             the same, written as a rule
+	Annotation[Typed[x, A], "Implicit"]               an implicit binder ("StrictImplicit", "InstanceImplicit" too)
+	Exists[{Typed[x, A]}, p]                          Exists applied to Function[{Typed[x, A]}, p]
+	Typed[e, A]                                       e, checked against A
+	With[{x = v}, b]                                  b with x standing for v
+	RightTee[{Typed[x, A], ...}, B]                   the same as ForAll: a goal, its hypotheses and its conclusion
+	TypeUniverse[level]                               Sort level: TypeUniverse[0] is Prop, TypeUniverse[1] is Type
+	f[a, b]                                           application, curried
+	Subscript[c, level, ...]                          the constant c at explicit universe levels
+	n                                                 a natural number literal
+
+Every other symbol is a bound variable or a declared constant; the prelude's constants include the
+built-in symbols True, False, Not, And, Or, Equal, Exists, NonNegativeIntegers and Plus, so a term reads
+like ordinary mathematics. Plus and Times are Flat, so a sum of more than two terms is read as a left
+fold.
+
+TypeTheoryTerm holds a surface term (it has the HoldAll attribute), so built-in functions never
+evaluate it: ForAll[Typed[x, A], B] on its own evaluates to B, because a quantifier whose variable does
+not occur is dropped.
+
+Held terms are turned into syntax trees first, so the rest of the code never risks evaluating them:
+
+	syntaxSymbol[HoldComplete[symbol]]
+	syntaxInteger[n], syntaxString[text], syntaxOther[HoldComplete[expr]]
+	syntaxApplication[headSyntax, {argumentSyntax, ...}]
+
+Delaboration turns a core term back into a syntax tree, opening each binder with a fresh free variable
+and naming it with its binder's name, or a Formal symbol when that name is taken.
+*)
+
+
+(* ::Section:: *)
+(*PackageExported*)
+
+
+PackageExported[TypeTheoryTerm]
+PackageExported[TypeUniverse]
+PackageExported[ImpredicativeMaximum]
+PackageExported[InductiveRecursor]
+
+
+(* ::Section:: *)
+(*PackageScoped*)
+
+
+PackageScoped[syntaxSymbol]
+PackageScoped[syntaxInteger]
+PackageScoped[syntaxString]
+PackageScoped[syntaxOther]
+PackageScoped[syntaxApplication]
+PackageScoped[toSyntax]
+PackageScoped[heldFromSyntax]
+PackageScoped[syntaxHead]
+PackageScoped[delaborate]
+PackageScoped[displayCoreTerm]
+PackageScoped[coreToTypeTheoryTerm]
+
+
+(* ::Section:: *)
+(*Usage Messages*)
+
+
+TypeTheoryTerm::usage = "TypeTheoryTerm[term] represents a term of the type theory, written with built-in symbols such as Function, Typed, ForAll, Implies, Equal and Plus, and kept unevaluated.\n\
+TypeOf[TypeTheoryTerm[term]] gives its type in $TypeTheoryEnvironment.\n\
+TypeOf[TypeTheoryTerm[term], environment] gives its type in the TypeTheoryEnvironment environment."
+TypeUniverse::usage = "TypeUniverse[level] is the universe at level: TypeUniverse[0] is Prop, the universe of propositions, and TypeUniverse[1] is \
+Type. level is a non-negative integer, a universe parameter, level + k, Max[level1, level2] or ImpredicativeMaximum[level1, level2]."
+ImpredicativeMaximum::usage = "ImpredicativeMaximum[level1, level2] is the universe level 0 when level2 is 0 and Max[level1, level2] otherwise: the \
+level of a function type from TypeUniverse[level1] to TypeUniverse[level2]."
+InductiveRecursor::usage = "InductiveRecursor[type] is the recursor of the inductive type type, generated when the type is declared. Its arguments \
+are the type's parameters (implicit), a motive, one minor premise per constructor, the indices (implicit) and the major premise."
+
+syntaxSymbol::usage = "syntaxSymbol[HoldComplete[symbol]] is a symbol in a syntax tree."
+syntaxInteger::usage = "syntaxInteger[n] is an integer in a syntax tree."
+syntaxString::usage = "syntaxString[text] is a string in a syntax tree."
+syntaxOther::usage = "syntaxOther[HoldComplete[expr]] is any other atom in a syntax tree."
+syntaxApplication::usage = "syntaxApplication[head, {argument, ...}] is a compound expression in a syntax tree."
+toSyntax::usage = "toSyntax[expr] gives the syntax tree of expr without evaluating it."
+heldFromSyntax::usage = "heldFromSyntax[syntax] gives HoldComplete[expr] for the expression syntax describes."
+syntaxHead::usage = "syntaxHead[symbol, {argument, ...}] gives the syntax tree of symbol applied to the argument syntax trees."
+delaborate::usage = "delaborate[environment, context, term] gives a syntax tree for the core term in the local context."
+displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the core term as a TypeTheoryTerm, or the core term itself if it cannot be displayed."
+coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm."
+
+
+(* ::Section:: *)
+(*Function Definitions*)
+
+
+SetAttributes[TypeTheoryTerm, HoldAll]
+
+
+(* ::Subsection:: *)
+(*Syntax trees*)
+
+
+SetAttributes[toSyntax, HoldAllComplete]
+toSyntax[TypeTheoryTerm[term_]] := toSyntax[term]
+toSyntax[symbol_Symbol] := syntaxSymbol[HoldComplete[symbol]]
+toSyntax[n_Integer] := syntaxInteger[n]
+toSyntax[text_String] := syntaxString[text]
+toSyntax[head_[arguments___]] := syntaxApplication[toSyntax[head], toSyntax /@ Unevaluated[{arguments}]]
+toSyntax[other_] := syntaxOther[HoldComplete[other]]
+
+heldFromSyntax[syntaxSymbol[held_HoldComplete]] := held
+heldFromSyntax[syntaxInteger[n_]] := HoldComplete[n]
+heldFromSyntax[syntaxString[text_]] := HoldComplete[text]
+heldFromSyntax[syntaxOther[held_HoldComplete]] := held
+heldFromSyntax[syntaxApplication[head_, arguments_List]] := joinHeld[heldFromSyntax[head], heldFromSyntax /@ arguments]
+
+joinHeld[HoldComplete[head_], {}] := HoldComplete[head[]]
+joinHeld[HoldComplete[head_], heldArguments_List] := Replace[
+	Join[HoldComplete[head], Join @@ heldArguments],
+	HoldComplete[function_, arguments___] :> HoldComplete[function[arguments]]
+]
+
+SetAttributes[syntaxHead, HoldFirst]
+syntaxHead[symbol_Symbol, arguments_List] := syntaxApplication[syntaxSymbol[HoldComplete[symbol]], arguments]
+
+
+(* ::Subsection:: *)
+(*Delaboration*)
+
+
+coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ heldFromSyntax[delaborate[environment, context, term]]
+
+displayCoreTerm[environment_, context_, term_] := Replace[
+	Quiet @ catchKernelFailure[coreToTypeTheoryTerm[environment, context, term]],
+	{display_TypeTheoryTerm :> display, _ :> term}
+]
+
+
+delaborate[environment_, context_, term_] := Replace[term, {
+	freeVariable[id_] :> syntaxSymbol[Lookup[Lookup[context, id, <||>], "Name", HoldComplete[\[FormalQ]]]],
+	boundVariable[index_] :> syntaxHead[Placeholder, {syntaxString["bound " <> ToString[index]]}],
+	metavariable[id_] :> syntaxHead[Placeholder, {syntaxString["?" <> ToString[id]]}],
+	universeSort[level_] :> syntaxHead[TypeUniverse, {levelSyntax[level]}],
+	naturalLiteral[n_] :> syntaxInteger[n],
+	localDefinition[name_, type_, value_, body_] :> delaborate[environment, context, instantiateBoundVariable[body, value]],
+	lambdaAbstraction[___] :> delaborateBinders[environment, context, term, lambdaAbstraction, Function],
+	dependentFunctionType[_, domain_, codomain_, "Explicit"] /; ! boundVariableOccursQ[codomain, 0] :>
+		delaborateArrow[environment, context, domain, codomain],
+	dependentFunctionType[___] :> delaborateBinders[environment, context, term, dependentFunctionType, ForAll],
+	_application | _constantReference :> delaborateApplication[environment, context, term],
+	_ :> syntaxOther[HoldComplete[term]]
+}]
+
+levelSyntax[n_Integer] := syntaxInteger[n]
+levelSyntax[levelParameter[held_]] := syntaxSymbol[held]
+levelSyntax[levelMetavariable[id_]] := syntaxHead[Placeholder, {syntaxString["?u" <> ToString[id]]}]
+levelSyntax[levelSuccessor[level_, k_]] := syntaxHead[Plus, {levelSyntax[level], syntaxInteger[k]}]
+levelSyntax[levelMaximum[levels___]] := syntaxHead[Max, levelSyntax /@ {levels}]
+levelSyntax[levelImpredicativeMaximum[a_, b_]] := syntaxHead[ImpredicativeMaximum, {levelSyntax[a], levelSyntax[b]}]
+
+
+(* a run of binders of the same kind becomes one Function or ForAll with a list of typed variables *)
+delaborateBinders[environment_, context_, term_, head_, displayHead_] := collectBinders[environment, context, term, head, displayHead, {}]
+
+collectBinders[environment_, context_, current : head_[binderName_, domain_, body_, binder_], head_, displayHead_, binders_List] /;
+	! (head === dependentFunctionType && arrowBinderQ[current]) := With[
+	{id = freshFreeVariable[], name = displayName[context, binderName]},
+	collectBinders[
+		environment,
+		extendContext[context, id, name, domain, binder],
+		instantiateBoundVariable[body, freeVariable[id]],
+		head,
+		displayHead,
+		Append[binders, binderSyntax[name, delaborate[environment, context, domain], binder]]
+	]
+]
+collectBinders[environment_, context_, current_, _, displayHead_, binders_List] :=
+	syntaxApplication[syntaxSymbol[HoldComplete[displayHead]], {syntaxHead[List, binders], delaborate[environment, context, current]}]
+
+arrowBinderQ[dependentFunctionType[_, _, codomain_, "Explicit"]] := ! boundVariableOccursQ[codomain, 0]
+arrowBinderQ[_] := False
+
+binderSyntax[name_, domainSyntax_, "Explicit"] := syntaxHead[Typed, {syntaxSymbol[name], domainSyntax}]
+binderSyntax[name_, domainSyntax_, binder_String] := syntaxHead[Annotation, {syntaxHead[Typed, {syntaxSymbol[name], domainSyntax}], syntaxString[binder]}]
+
+(* the binder's own name, unless a variable in the context already has it *)
+displayName[context_, name_] := With[{taken = Lookup[Values[context], "Name", {}]},
+	If[ MemberQ[taken, name] || name === HoldComplete[Null],
+		First[Complement[$formalNames, taken], HoldComplete[\[FormalQ]]],
+		name
+	]
+]
+
+$formalNames = {
+	HoldComplete[\[FormalA]], HoldComplete[\[FormalB]], HoldComplete[\[FormalC]], HoldComplete[\[FormalD]], HoldComplete[\[FormalE]],
+	HoldComplete[\[FormalF]], HoldComplete[\[FormalG]], HoldComplete[\[FormalH]], HoldComplete[\[FormalI]], HoldComplete[\[FormalJ]],
+	HoldComplete[\[FormalK]], HoldComplete[\[FormalL]], HoldComplete[\[FormalM]], HoldComplete[\[FormalN]], HoldComplete[\[FormalP]],
+	HoldComplete[\[FormalR]], HoldComplete[\[FormalS]], HoldComplete[\[FormalT]], HoldComplete[\[FormalU]], HoldComplete[\[FormalV]],
+	HoldComplete[\[FormalW]], HoldComplete[\[FormalX]], HoldComplete[\[FormalY]], HoldComplete[\[FormalZ]]
+}
+
+(* A -> B: Implies between propositions, TypeSpecifier otherwise *)
+delaborateArrow[environment_, context_, domain_, codomain_] := With[{result = liftedCodomain[codomain]},
+	If[ propositionTermQ[environment, context, domain] && propositionTermQ[environment, context, result],
+		syntaxHead[Implies, {delaborate[environment, context, domain], delaborate[environment, context, result]}],
+		syntaxHead[TypeSpecifier, {syntaxHead[Rule, {syntaxHead[List, {delaborate[environment, context, domain]}], delaborate[environment, context, result]}]}]
+	]
+]
+
+(* the codomain of a non-dependent function type, with its unused bound variable removed *)
+liftedCodomain[codomain_] := instantiateBoundVariable[codomain, metavariable[0]]
+
+propositionTermQ[environment_, context_, type_] := TrueQ[Quiet @ catchKernelFailure[
+	MatchQ[weakHeadNormalForm[environment, context, inferType[environment, context, type]], universeSort[0]]
+]]
+
+
+(* an application, with its implicit arguments dropped, and Exists written with a binder *)
+delaborateApplication[environment_, context_, term_] := With[{spine = applicationSpine[term]},
+	Replace[{First[spine], explicitArguments[environment, context, First[spine], Last[spine]]}, {
+		{constantReference[HoldComplete[Exists], _], {lambdaAbstraction[name_, domain_, body_, binder_]}} :> Replace[
+			delaborateBinders[environment, context, lambdaAbstraction[name, domain, body, binder], lambdaAbstraction, Function],
+			syntaxApplication[_, {binders_, bodySyntax_}] :> syntaxHead[Exists, {binders, bodySyntax}]
+		],
+		{head_, {}} :> headSyntax[environment, context, head],
+		{head_, arguments_List} :> syntaxApplication[headSyntax[environment, context, head], Function[argument, delaborate[environment, context, argument]] /@ arguments]
+	}]
+]
+
+headSyntax[environment_, context_, constantReference[HoldComplete[name_], _]] := toSyntax[name]
+headSyntax[environment_, context_, head_] := delaborate[environment, context, head]
+
+explicitArguments[environment_, context_, head_, arguments_List] := With[
+	{binders = Quiet @ catchKernelFailure[binderKinds[environment, context, head, Length[arguments]]]},
+	If[ ListQ[binders] && Length[binders] == Length[arguments],
+		Pick[arguments, binders, "Explicit"],
+		arguments
+	]
+]
+
+(* the binder kinds of the first n arguments of head, read off its type *)
+binderKinds[environment_, context_, head_, n_Integer] := binderKindsFrom[environment, context, inferType[environment, context, head], n]
+binderKindsFrom[_, _, _, 0] := {}
+binderKindsFrom[environment_, context_, type_, n_Integer] := Replace[weakHeadNormalForm[environment, context, type], {
+	dependentFunctionType[_, _, codomain_, binder_] :> Prepend[binderKindsFrom[environment, context, instantiateBoundVariable[codomain, metavariable[0]], n - 1], binder],
+	_ :> {}
+}]
