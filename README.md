@@ -124,7 +124,7 @@ evaluates inside a term.
 | `TypeTheoryAxiom[name, type]` | an axiom |
 | `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]` |
 | `TypeTheoryTheorem[name, statement, proof]` | a theorem; `TypeTheoryTheorem[name, proof]` takes the statement of a finished proof |
-| `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]` |
+| `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]`; `{name -> type, ...}` declares mutually inductive types |
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
 | `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
 
@@ -258,10 +258,8 @@ prelude's rules, the HoTT library proving False with an equality in Prop.
 ## Not yet
 
 - Decidability, pairs, sums, options and lists, and the theory around them.
-- Mutual and nested inductive types, and string literals: through LeanLink, these are what keeps
-  Lean's syntax and macros, most of what TypeTheory does not check of Lean's `Init.Prelude`, from
-  importing. Quotients are declared with a rewrite rule for their computation, as LeanLink imports
-  Lean's; induction on indexed families in the tactic.
+- Quotients are declared with a rewrite rule for their computation, as LeanLink imports Lean's;
+  induction on indexed families and on mutual or nested types in the tactic.
 - Cubical type theory, where univalence computes; truncations; translations between rules.
 - Higher-order unification beyond patterns; no type classes.
 - A compiled kernel (`FunctionCompile` over an array encoding of terms).

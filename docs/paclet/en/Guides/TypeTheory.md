@@ -31,7 +31,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryAxiom]() declares an axiom
 - [TypeTheoryDefinition]() declares a definition
 - [TypeTheoryTheorem]() declares a theorem with its proof
-- [TypeTheoryInductiveType]() declares an inductive type with its constructors
+- [TypeTheoryInductiveType]() declares an inductive type with its constructors, or mutually inductive types
 - [TypeTheoryNaturalNumbers]() registers the natural numbers that literals belong to, and the operations the kernel computes on them
 - [TypeTheoryRewriteRule]() makes an axiom compute, where the rules allow it
 - [TypeTheoryRules]() the rules an environment follows: the calculus of inductive constructions, or Martin-Löf type theory without Prop
