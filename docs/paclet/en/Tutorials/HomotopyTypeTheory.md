@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/HomotopyTypeTheory
 Keywords: [HoTT, homotopy type theory, univalence, paths, equivalence, circle, higher inductive type, rewrite rules, Martin-Löf, rules]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude]
+RelatedTutorials: [TypeTheoryIntroduction, RulesAndComputation, ThePrelude]
 ---
 
 <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code> is homotopy type theory as the HoTT book presents it: an equality is a path, equivalent types are equal by univalence, and the circle is a higher inductive type. It follows other rules than the prelude, given by [TypeTheoryRules](). This tutorial says why, and then goes through the environment.
@@ -36,8 +36,8 @@ The prelude's rules have a universe of propositions in which any two proofs of a
 ```wl
 TypeTheoryEnvironment[hott, {TypeTheoryInductiveType[
     StrictEqual,
-    ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A], Typed[y, A]}, TypeUniverse[0]],
-    {StrictEqualReflexivity -> ForAll[{Annotation[Typed[A, TypeUniverse[u + 1]], "Implicit"], Typed[x, A]}, StrictEqual[x, x]]}
+    ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A], Typed[y, A]}, TypeUniverse[0]],
+    {StrictEqualReflexivity -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, StrictEqual[x, x]]}
 ]}]
 ```
 

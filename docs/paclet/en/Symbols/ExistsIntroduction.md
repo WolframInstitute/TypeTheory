@@ -37,11 +37,11 @@ There is a number that doubles to 4:
 ```wl
 TypeTheoryCheck[
     TypeTheoryTerm[ExistsIntroduction[2, EqualityReflexivity[4]]],
-    TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]
+    TypeTheoryTerm[Exists[{Typed[n, Naturals]}, n + n == 4]]
 ]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ## Scope
 
@@ -49,7 +49,7 @@ TypeTheoryCheck[
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    Typed[ExistsIntroduction[2, EqualityReflexivity[4]], Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]
+    Typed[ExistsIntroduction[2, EqualityReflexivity[4]], Exists[{Typed[n, Naturals]}, n + n == 4]]
 ]]
 ```
 

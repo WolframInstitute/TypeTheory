@@ -37,4 +37,4 @@ From `0 <= 2` and `2 <= 5`, `0 <= 5`:
 TypeTheoryCheck[TypeTheoryTerm[LessEqualTransitivity[LessEqualZero[2], LessEqualAddition[2, 3]]], TypeTheoryTerm[0 <= 5]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

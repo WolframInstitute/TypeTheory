@@ -29,16 +29,16 @@ Lists of natural numbers, and their length by recursion:
 lists = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
         EmptyList -> NaturalList,
-        ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]
+        ConsList -> ForAll[{Typed[h, Naturals], Typed[t, NaturalList]}, NaturalList]
     }],
     TypeTheoryDefinition[ListLength, Typed[
         Function[{Typed[l, NaturalList]}, InductiveRecursor[NaturalList][
-            Function[{Typed[x, NaturalList]}, NonNegativeIntegers],
+            Function[{Typed[x, NaturalList]}, Naturals],
             0,
-            Function[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList], Typed[r, NonNegativeIntegers]}, r + 1],
+            Function[{Typed[h, Naturals], Typed[t, NaturalList], Typed[r, Naturals]}, r + 1],
             l
         ]],
-        TypeSpecifier[{NaturalList} -> NonNegativeIntegers]
+        TypeSpecifier[{NaturalList} -> Naturals]
     ]]
 }];
 WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]]
@@ -53,16 +53,16 @@ Vectors: an inductive family indexed by its length, which is checked by computat
 ```wl
 vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
     NaturalVector,
-    ForAll[{Typed[n, NonNegativeIntegers]}, TypeUniverse[1]],
+    ForAll[{Typed[n, Naturals]}, TypeUniverse[1]],
     {
         VectorEmpty -> NaturalVector[0],
-        VectorCons -> ForAll[{Annotation[Typed[n, NonNegativeIntegers], "Implicit"], Typed[h, NonNegativeIntegers], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
+        VectorCons -> ForAll[{TypedImplicit[n, Naturals], Typed[h, Naturals], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
     }
 ]];
 TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vectors], TypeTheoryTerm[NaturalVector[2]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ---
 
@@ -72,7 +72,7 @@ A structure, whose fields are projections:
 pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
     NaturalPair,
     TypeUniverse[1],
-    {NaturalPairIntroduction -> ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, NaturalPair]}
+    {NaturalPairIntroduction -> ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, NaturalPair]}
 ]];
 WeakHeadNormalForm[TypeTheoryTerm[NaturalPairIntroduction[3, 4][[2]], pairs]]
 ```

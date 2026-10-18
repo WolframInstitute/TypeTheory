@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationOneRight]]
 For a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, MultiplicationOneRight[n]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, MultiplicationOneRight[n]]]]
 ```
 
 <!-- => ∀_n∶ℕ n 1 == n -->

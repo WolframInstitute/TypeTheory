@@ -36,4 +36,4 @@ A proof of `False || 1 + 2 == 3`, whose right side holds by computation:
 TypeTheoryCheck[TypeTheoryTerm[OrIntroductionRight[EqualityReflexivity[3]]], TypeTheoryTerm[Or[False, 1 + 2 == 3]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

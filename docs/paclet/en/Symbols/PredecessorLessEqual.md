@@ -36,4 +36,4 @@ So `5 <= 6`:
 TypeTheoryCheck[TypeTheoryTerm[PredecessorLessEqual[6]], TypeTheoryTerm[5 <= 6]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

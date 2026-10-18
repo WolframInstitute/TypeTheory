@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[Nonempty]]
 The natural numbers are not empty:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[0]], TypeTheoryTerm[Nonempty[NonNegativeIntegers]]]
+TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[0]], TypeTheoryTerm[Nonempty[Naturals]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

@@ -37,4 +37,4 @@ So `5 != 0`:
 TypeTheoryCheck[TypeTheoryTerm[SuccessorNotZero[4]], TypeTheoryTerm[5 != 0]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

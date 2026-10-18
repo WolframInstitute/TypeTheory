@@ -37,14 +37,14 @@ A proof of `2 + 2 == 4` by computation:
 TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ## Scope
 
 Types are terms too, and can be equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[NonNegativeIntegers]]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[Naturals]]]
 ```
 
 <!-- => ℕ == ℕ -->
@@ -54,7 +54,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[NonNegativeIntegers]]]
 [Construct]() gives the implicit type argument explicitly:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3]]]
+TypeTheoryCheck[TypeTheoryTerm[Construct[EqualityReflexivity, Naturals, 3]]]
 ```
 
 <!-- => 3 == 3 -->

@@ -34,7 +34,7 @@ Equal numbers have equal successors:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x == y]}, EqualityCongruence[NaturalNumberSuccessor, h]]
+    Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x == y]}, EqualityCongruence[NaturalNumberSuccessor, h]]
 ]]
 ```
 
@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[
 The step of a proof by induction that `0 + n == n`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Induction", n],
     TypeTheoryTactic["Reflexivity"],

@@ -27,7 +27,7 @@ RelatedGuides: [TypeTheory]
 | <code>[Function]()[{[Typed]()[x, A], ...}, b]</code> | a function |
 | <code>[ForAll]()[{[Typed]()[x, A], ...}, B]</code> | a dependent function type, or a universal statement |
 | <code>[Implies]()[A, B]</code>, <code>[TypeSpecifier]()[{A, ...} -> B]</code>, `A -> B` | a function type whose result does not depend on the argument |
-| <code>[Annotation]()[[Typed]()[x, A], "Implicit"]</code> | an implicit binder, filled in by elaboration (also `"StrictImplicit"`, `"InstanceImplicit"`) |
+| <code>[TypedImplicit]()[x, A]</code> | an implicit binder, filled in by elaboration; <code>[Annotation]()[[Typed]()[x, A], *kind*]</code> with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds |
 | <code>[Exists]()[{[Typed]()[x, A]}, p]</code> | an existential statement |
 | <code>[Typed]()[e, A]</code> | `e`, checked against `A` |
 | <code>[With]()[{x = v}, b]</code> | `b` with `x` standing for `v` |
@@ -58,7 +58,7 @@ TypeOf[TypeTheoryTerm[2 + 3]]
 A universal statement, kept unevaluated:
 
 ```wl
-statement = TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
+statement = TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]
 ```
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
@@ -76,7 +76,7 @@ TypeTheoryCheck[statement]
 A polymorphic function with an implicit type argument:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]]
+TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]]
 ```
 
 <!-- => ∀_{A ∶ Type} A → A -->
@@ -86,7 +86,7 @@ TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"
 Implicit arguments are filled in; [Construct]() gives them explicitly:
 
 ```wl
-TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3]]]
+TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, Naturals, 3]]]
 ```
 
 <!-- => 3 == 3 -->

@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]]]
 The two functions are not equal by computation, since `0 + n` does not compute for a variable `n`:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
 ```
 
 <!-- => False -->

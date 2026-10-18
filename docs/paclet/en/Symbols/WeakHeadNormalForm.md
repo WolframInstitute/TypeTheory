@@ -33,7 +33,7 @@ WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]
 A function applied to an argument:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, x + 1][41]]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, Naturals]}, x + 1][41]]]
 ```
 
 <!-- => 42 -->
@@ -54,7 +54,7 @@ A recursor applied to a constructor:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[And][
-    Function[{Typed[t, And[True, True]]}, NonNegativeIntegers],
+    Function[{Typed[t, And[True, True]]}, Naturals],
     Function[{Typed[p, True], Typed[q, True]}, 7],
     AndIntroduction[TrueIntroduction, TrueIntroduction]
 ]]]

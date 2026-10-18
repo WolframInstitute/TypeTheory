@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[SubtractionSelf]]
 For a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, SubtractionSelf[n]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, SubtractionSelf[n]]]]
 ```
 
 <!-- => ∀_n∶ℕ n - n == 0 -->

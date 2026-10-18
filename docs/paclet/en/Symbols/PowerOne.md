@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[PowerOne]]
 For a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, NonNegativeIntegers]}, PowerOne[m]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals]}, PowerOne[m]]]]
 ```
 
 <!-- => ∀_m∶ℕ m^1 == m -->

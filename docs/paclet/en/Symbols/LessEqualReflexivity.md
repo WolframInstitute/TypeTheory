@@ -37,4 +37,4 @@ A proof of `3 <= 3`:
 TypeTheoryCheck[TypeTheoryTerm[LessEqualReflexivity], TypeTheoryTerm[3 <= 3]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

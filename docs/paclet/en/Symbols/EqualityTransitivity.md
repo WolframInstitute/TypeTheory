@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityTransitivity]]
 Chain two equations:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], {
+proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
     TypeTheoryTactic["Exact", EqualityTransitivity[h1, h2]]
 }];

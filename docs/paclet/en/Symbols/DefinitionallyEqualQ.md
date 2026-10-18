@@ -51,7 +51,7 @@ Eta: a function equals the function that applies it:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, NaturalNumberSuccessor[n]]],
+    TypeTheoryTerm[Function[{Typed[n, Naturals]}, NaturalNumberSuccessor[n]]],
     TypeTheoryTerm[NaturalNumberSuccessor]
 ]
 ```
@@ -64,8 +64,8 @@ DefinitionallyEqualQ[
 
 ```wl
 {
-    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 0]], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]],
-    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]]
+    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]],
+    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
 }
 ```
 

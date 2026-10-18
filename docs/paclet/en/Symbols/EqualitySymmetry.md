@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualitySymmetry]]
 Turn an equation around:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h, x + 0 == x]}, EqualitySymmetry[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 0 == x]}, EqualitySymmetry[h]]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 0 == x ⇒ x == x + 0 -->

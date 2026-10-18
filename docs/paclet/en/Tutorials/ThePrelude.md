@@ -62,7 +62,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, Typ
 TypeTheoryCheck[TypeTheoryTerm[AndIntroduction[TrueIntroduction, AndIntroduction[TrueIntroduction, TrueIntroduction]]], TypeTheoryTerm[True && True && True]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 [Or]() is proved by [OrIntroductionLeft]() or [OrIntroductionRight](), and used by its recursor, one case for each side. Disjunction is commutative too:
 
@@ -90,10 +90,10 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalentTransitivity]]
 [Exists]() is proved by [ExistsIntroduction]() from a witness and a proof about it:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction[3, EqualityReflexivity[6]]], TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]
+TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction[3, EqualityReflexivity[6]]], TypeTheoryTerm[Exists[{Typed[n, Naturals]}, n + n == 6]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ## Equality
 
@@ -131,7 +131,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity
 
 ## The Natural Numbers
 
-[NonNegativeIntegers](), shown as ℕ, is an inductive type with the constructors [NaturalNumberZero]() and [NaturalNumberSuccessor](). It is registered as the natural numbers, so the literals `0`, `1`, `2`, ... are its elements, and the constructors show as `0` and `n + 1`:
+[NonNegativeIntegers](), shown as ℕ and written [Naturals]() for short, is an inductive type with the constructors [NaturalNumberZero]() and [NaturalNumberSuccessor](). It is registered as the natural numbers, so the literals `0`, `1`, `2`, ... are its elements, and the constructors show as `0` and `n + 1`:
 
 ```wl
 TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[NaturalNumberZero]]]
@@ -196,9 +196,9 @@ The others are [AdditionZeroRight](), [AdditionZeroLeft](), [AdditionSuccessorRi
 A theorem applies like a function. Here `n * 2` computes to `0 + n + n`, and [AdditionZeroLeft]() under [EqualityCongruence]() finishes a proof that doubling is adding:
 
 ```wl
-doubling = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n * 2 == n + n], {
+doubling = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n * 2 == n + n], {
     TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Exact", EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x + n], AdditionZeroLeft[n]]]
+    TypeTheoryTactic["Exact", EqualityCongruence[Function[{Typed[x, Naturals]}, x + n], AdditionZeroLeft[n]]]
 }]
 ```
 
@@ -212,7 +212,7 @@ doubling = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n * 2 == n + 
 TypeTheoryCheck[TypeTheoryTerm[LessEqualStep[LessEqualStep[LessEqualReflexivity]]], TypeTheoryTerm[2 <= 4]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 [Less](), [GreaterEqual]() and [Greater]() are defined from it: `m < n` is `m + 1 <= n`. So [LessEqualAddition]() proves strict inequalities too:
 
@@ -220,7 +220,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualStep[LessEqualStep[LessEqualReflexivity]
 TypeTheoryCheck[TypeTheoryTerm[LessEqualAddition[4, 2]], TypeTheoryTerm[3 < 6]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 The order is reflexive, transitive and antisymmetric, and `n < n` never holds:
 
@@ -305,7 +305,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Choice[NonemptyIntroduction[3]]]]
 A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and [ChosenWitnessProperty]() proves that the witness has the property:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitnessProperty[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]}, ChosenWitnessProperty[h]]]]
 ```
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->

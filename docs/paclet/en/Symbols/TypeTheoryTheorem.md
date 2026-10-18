@@ -37,7 +37,7 @@ arithmetic[TwoPlusTwo]
 The statement of a finished proof:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }];
@@ -70,7 +70,7 @@ TypeTheoryEnvironment[TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4
 A theorem's statement must be a proposition:
 
 ```wl
-TypeTheoryEnvironment[TypeTheoryTheorem[Three, NonNegativeIntegers, 3]]
+TypeTheoryEnvironment[TypeTheoryTheorem[Three, Naturals, 3]]
 ```
 
 <!-- => Failure["PropositionExpected", ...] -->

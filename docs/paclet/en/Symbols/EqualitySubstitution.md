@@ -34,7 +34,7 @@ Rewrite `x` to `y` in a statement:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x == y], Typed[p, x + 0 == x]}, Typed[EqualitySubstitution[h, p], y + 0 == y]]
+    Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x == y], Typed[p, x + 0 == x]}, Typed[EqualitySubstitution[h, p], y + 0 == y]]
 ]]
 ```
 
@@ -46,8 +46,8 @@ Give the predicate explicitly with [Construct]():
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x == y], Typed[p, x + 0 == x]},
-        Construct[EqualitySubstitution, NonNegativeIntegers, Function[{Typed[t, NonNegativeIntegers]}, t + 0 == t], x, y, h, p]
+    Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x == y], Typed[p, x + 0 == x]},
+        Construct[EqualitySubstitution, Naturals, Function[{Typed[t, Naturals]}, t + 0 == t], x, y, h, p]
     ]
 ]]
 ```

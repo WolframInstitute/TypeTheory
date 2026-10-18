@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAntisymmetry]]
 From `x <= 3` and `3 <= x`, `x == 3`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h1, x <= 3], Typed[h2, 3 <= x]}, LessEqualAntisymmetry[h1, h2]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h1, x <= 3], Typed[h2, 3 <= x]}, LessEqualAntisymmetry[h1, h2]]]]
 ```
 
 <!-- => ∀_x∶ℕ x ≤ 3 ⇒ 3 ≤ x ⇒ x == 3 -->

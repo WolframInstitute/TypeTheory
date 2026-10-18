@@ -114,7 +114,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <h1>TypeTheory Engine</h1>
   <p class="lede">A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in pure Wolfram Language. Its terms are written with the symbols the language already has: <code>Function</code>, <code>Typed</code>, <code>TypeOf</code>, <code>ForAll</code>, <code>Implies</code>, <code>Exists</code>, <code>Equal</code>, <code>Plus</code>, <code>NonNegativeIntegers</code>. A small kernel checks every proof, and tactics build proofs step by step in a notebook.</p>
   <div class="meta">
-    <span><b>Status</b> Prototype 0.7.0, October 2026</span>
+    <span><b>Status</b> Prototype 0.8.0, October 2026</span>
     <span><b>Kernel</b> Pure Wolfram Language, no native library</span>
     <span><b>Tests</b> 120 passing</span>
     <span><b>Lean</b> Bridge in LeanLink</span>
@@ -178,7 +178,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 
 <section id="prototype">
 <h2>The prototype</h2>
-<p>Version 0.7.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
+<p>Version 0.8.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
 <div class="scroll"><table>
   <thead><tr><th>Component</th><th>Status</th><th>File</th></tr></thead>
   <tbody>
@@ -244,7 +244,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <tr><td><code>Function[{Typed[x, A]}, b]</code></td><td>A function</td><td>Already a working function, and <code>TypeOf</code> already infers its type for machine types.</td></tr>
     <tr><td><code>ForAll[{Typed[x, A]}, B]</code></td><td>A dependent function type, or a universal statement</td><td>One binder form for every Π-type, as in the kernel.</td></tr>
     <tr><td><code>Implies[p, q]</code>, <code>TypeSpecifier[{A} -&gt; B]</code>, <code>A -&gt; B</code></td><td>A function type whose result does not depend on the argument</td><td><code>Implies</code> between propositions, and <code>TypeSpecifier</code> for types, the form <code>TypeOf</code> returns. Reading back chooses between them by the universe.</td></tr>
-    <tr><td><code>Annotation[Typed[x, A], "Implicit"]</code></td><td>An implicit binder</td><td><code>Annotation</code> is the built-in for metadata on an expression.</td></tr>
+    <tr><td><code>TypedImplicit[x, A]</code>, or <code>Annotation[Typed[x, A], "Implicit"]</code></td><td>An implicit binder</td><td><code>Annotation</code> is the built-in for metadata on an expression; <code>TypedImplicit</code> is its short form, which read-back writes.</td></tr>
     <tr><td><code>Exists[{Typed[x, A]}, p]</code></td><td>An existential statement</td><td>The same binder form as <code>ForAll</code>.</td></tr>
     <tr><td><code>Typed[e, A]</code></td><td><code>e</code>, checked against <code>A</code></td><td><code>Typed</code>'s own meaning.</td></tr>
     <tr><td><code>With[{x = v}, b]</code></td><td><code>b</code> with <code>x</code> standing for <code>v</code></td><td>The built-in for local values.</td></tr>
@@ -353,7 +353,8 @@ TypeTheoryCheck[lists]                                           <span class="c"
 <ul>
   <li><b>Implicit arguments.</b> An implicit binder gets a metavariable: <code>a == b</code> stands for <code>Equal[A, a, b]</code>, and <code>EqualityReflexivity[4]</code> finds its type argument.</li>
   <li><b>Universe levels.</b> A constant gets a level metavariable for each universe parameter. When a metavariable is solved, its type is unified with its solution's type, which is what solves the levels.</li>
-  <li><b>Unification.</b> First-order unification with a fallback to weak head normal form, and higher-order pattern unification: <code>?P[x] =?= t</code>, with <code>x</code> a variable, solves <code>?P = Function[{x}, t]</code>.</li>
+  <li><b>Unification.</b> First-order unification with a fallback to weak head normal form, and higher-order pattern unification: <code>?P[x] =?= t</code>, with <code>x</code> a variable, solves <code>?P = Function[{x}, t]</code>, and a variable applied to the pattern's variables solves as that variable.</li>
+  <li><b>Aliases.</b> A symbol whose value is a declared constant stands for it, as <code>Naturals = NonNegativeIntegers</code> does, unless a binder of the same name is in scope.</li>
   <li><b>Expected types first.</b> An argument whose type is still an unknown applied to arguments, such as the proof of <code>P[w]</code> in <code>ExistsIntroduction[2, EqualityReflexivity[4]]</code>, waits until the type of the whole application has been unified with the expected type. That is what determines <code>P</code>.</li>
   <li><b>Binder types</b> come from the expected type when they are left out: <code>Typed[Function[{x}, x + 1], TypeSpecifier[{NonNegativeIntegers} -&gt; NonNegativeIntegers]]</code>.</li>
   <li><b>Names overloaded by type.</b> <code>True</code>, <code>False</code>, <code>Not</code>, <code>And</code> and <code>Or</code> stand for the propositions or for the Booleans <code>BooleanTrue</code>, <code>BooleanFalse</code>, <code>BooleanNot</code>, <code>BooleanAnd</code> and <code>BooleanOr</code>. The expected type decides when it can: a type or <code>Prop</code> takes the proposition, <code>Booleans</code> the Boolean. Otherwise each meaning is tried with the elaboration state restored after, as Lean tries the meanings of ambiguous notation, and the one that fits is taken. A name both meanings fit becomes a metavariable of its expected type and waits until that type is known, at the latest when the binders around it close or the term is finished; a name still undecided then is ambiguous, and <code>Typed</code> must say which it is. Agda resolves overloaded constructors the same way.</li>
@@ -366,7 +367,7 @@ TypeTheoryCheck[lists]                                           <span class="c"
 <p>The rules of a type theory, what the kernel allows and computes, are a value apart from the declarations an environment assumes. <code>TypeTheoryRules</code> holds them, every environment carries the rules it was started with, and the kernel checks each declaration and term by the rules of its environment. Terms carry their environment, so switching theory means choosing an environment. Elaboration, display and tactics are shared, since they only produce terms that the environment's kernel checks.</p>
 <ul>
   <li><b>Prop.</b> <code>"CalculusOfInductiveConstructions"</code>, the prelude's rules, has an impredicative universe of propositions with proof irrelevance, K-like reduction and elimination of subsingletons. <code>"MartinLofTypeTheory"</code> has none: every universe level must be at least 1 whatever its parameters are, recursors eliminate into <code>Type u</code>, and a theorem may state any type.</li>
-  <li><b>Rewrite rules.</b> Where the rules allow them, <code>TypeTheoryRewriteRule[name, ForAll[binders, lhs -&gt; rhs]]</code> makes an axiom compute, as Dedukti's rewriting and Agda's <code>--rewriting</code> do: the left side is the axiom applied to a pattern, the right side has its type, and weak head normalization rewrites a match. A rule is trusted like an axiom.</li>
+  <li><b>Rewrite rules.</b> Where the rules allow them, <code>TypeTheoryRewriteRule[name, ForAll[binders, lhs -&gt; rhs]]</code> makes an axiom compute, as Dedukti's rewriting and Agda's <code>--rewriting</code> do: the left side is the axiom applied to a pattern, the right side has its type, and weak head normalization rewrites a match. A rule is trusted like an axiom. Lean's quotient types, whose computation rule Lean's kernel builds in, are axioms with one such rule; the tutorial <i>Rules and Computation</i> declares them.</li>
   <li><b>Homotopy type theory.</b> <code>TypeTheoryEnvironment["HomotopyTypeTheory"]</code> follows Martin-Löf rules with rewrite rules, with paths, univalence as an axiom, and the circle, whose induction computes on its base point by a rewrite rule. Univalence needs the rules, not only the axiom: on the prelude's rules, an equality in Prop eliminates into types and has all its proofs equal, so transport along any path would be the identity, and the same declarations prove False. A test checks exactly that.</li>
 </ul>
 <p>Recursors are generated by the rules, so declarations read back by <code>Normal</code> rebuild an environment under its own rules but need not check under others. Moving content between rules is the work of translations, which the target kernel checks again like any other declaration.</p>
@@ -556,7 +557,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 </ul>
 </section>
 
-<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.7.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.8.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>

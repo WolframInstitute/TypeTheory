@@ -58,7 +58,7 @@ arithmetic[TwoPlusTwo]
 Add a definition to that environment:
 
 ```wl
-doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]]
+doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 111 constants -->
@@ -123,7 +123,7 @@ Adding a declaration leaves the old environment as it was:
 
 ```wl
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}];
-extended = Append[arithmetic, TypeTheoryAxiom[Origin, NonNegativeIntegers]];
+extended = Append[arithmetic, TypeTheoryAxiom[Origin, Naturals]];
 {KeyExistsQ[extended, Origin], KeyExistsQ[arithmetic, Origin]}
 ```
 

@@ -13,15 +13,16 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryCheck]()[*term*]</code> gives the type of the [TypeTheoryTerm]() *term* in its environment, or a [Failure]() if it does not type-check.
 
-<code>[TypeTheoryCheck]()[*term*, *type*]</code> gives [True]() if *term* has the given *type*, and a [Failure]() otherwise.
+<code>[TypeTheoryCheck]()[*term*, *type*]</code> gives a [Success]() if *term* has the given *type*, and a [Failure]() otherwise.
 
-<code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of the [TypeTheoryEnvironment]() *env* again from scratch and gives [True](), or a [Failure]() for the first declaration that does not check.
+<code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of the [TypeTheoryEnvironment]() *env* again from scratch and gives a [Success](), or a [Failure]() for the first declaration that does not check.
 
 ## Details & Options
 
 - <code>[TypeTheoryCheck]()[*term*]</code> is [TypeOf]() without holding its argument.
 - A constant on its own has its declared type, with its implicit arguments and universe parameters.
 - In <code>[TypeTheoryCheck]()[*term*, *type*]</code>, a term or type without an environment takes the other's, and both without one are in the prelude.
+- A check that passes gives a [Success]() whose message says what was checked: the tag `"TypeChecked"` with the term and the type under `"Term"` and `"Type"`, or `"EnvironmentChecked"` with the number of constants under `"Constants"`. A check that does not pass gives a [Failure](), so <code>[FailureQ]()[[TypeTheoryCheck]()[...]]</code> tells the two apart.
 - An environment's store could be changed by hand. <code>[TypeTheoryCheck]()[*env*]</code> replays every declaration on an empty environment and compares each record with the one the replay produces, which catches a forged theorem or recursor. Axioms are taken on trust.
 
 ## Basic Examples
@@ -42,7 +43,7 @@ A proof of `2 + 2 == 4` by computation:
 TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ## Scope
 
@@ -52,7 +53,7 @@ Check an environment again from scratch, the prelude's declarations included:
 TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]]
 ```
 
-<!-- => True -->
+<!-- => Success["EnvironmentChecked", ...] -->
 
 ---
 

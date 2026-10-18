@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[SubtractionZeroLeft]]
 For a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, SubtractionZeroLeft[n]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, SubtractionZeroLeft[n]]]]
 ```
 
 <!-- => ∀_n∶ℕ 0 - n == 0 -->

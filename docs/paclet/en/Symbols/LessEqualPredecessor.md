@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualPredecessor]]
 From `x + 1 <= 5`, `x <= 4`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h, x + 1 <= 5]}, LessEqualPredecessor[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 1 <= 5]}, LessEqualPredecessor[h]]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 1 ≤ 5 ⇒ x ≤ 4 -->

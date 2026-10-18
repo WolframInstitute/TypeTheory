@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, Lean]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, HomotopyTypeTheory]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, RulesAndComputation, HomotopyTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
@@ -20,6 +20,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Terms
 
 - [TypeTheoryTerm]() a term of the type theory, held, in the environment its constants come from
+- [TypedImplicit]() an implicit binder, whose argument is found from the others
 - [TypeUniverse]() a universe: <code>[TypeUniverse]()[0]</code> is Prop, <code>[TypeUniverse]()[1]</code> is Type
 - [ImpredicativeMaximum]() the universe level of a function type into a universe
 - [InductiveRecursor]() the recursor of an inductive type, generated with it
@@ -67,6 +68,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: natural numbers
 
+- [Naturals]() the natural numbers, [NonNegativeIntegers](), by a shorter name
 - [NaturalNumberZero](), [NaturalNumberSuccessor](), [NaturalNumberPredecessor]() the constructors of [NonNegativeIntegers](), and the number before
 - [Plus](), [Times](), [Power](), [Subtract]() arithmetic, each by recursion on its second argument
 - [LessEqualReflexivity](), [LessEqualStep]() the constructors of [LessEqual](), with [Less](), [GreaterEqual]() and [Greater]() defined from it

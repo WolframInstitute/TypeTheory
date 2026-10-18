@@ -32,7 +32,8 @@ Loading takes about a second, and most of that is building the prelude through t
 ## Documentation
 
 The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
-page for every symbol, a guide, and the tutorial *Getting Started with TypeTheory*. The pages are
+page for every symbol, a guide, and the tutorials *Getting Started with TypeTheory*, *The Prelude*,
+*Rules and Computation* and *Homotopy Type Theory*. The pages are
 literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
 [PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
@@ -71,7 +72,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[
 A proof by induction, one tactic at a time:
 
 ```wolfram
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]];
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n]];
 proof = TypeTheoryTactic["Introduce", n][proof];
 proof = TypeTheoryTactic["Induction", n][proof];        (* goals 0 + 0 == 0 and 0 + n == n ⇒ 0 + (n + 1) == n + 1 *)
 proof = TypeTheoryTactic["Reflexivity"][proof];         (* 0 + 0 == 0 by computation *)
@@ -94,7 +95,7 @@ them; a declaration shows as its keyword, its name and its type.
 | `Function[{Typed[x, A], ...}, b]` | a function |
 | `ForAll[{Typed[x, A], ...}, B]` | a dependent function type, or a universal statement |
 | `Implies[A, B]`, `TypeSpecifier[{A, ...} -> B]`, `A -> B` | a function type whose result does not depend on the argument |
-| `Annotation[Typed[x, A], "Implicit"]` | an implicit binder, filled in by elaboration (also `"StrictImplicit"`, `"InstanceImplicit"`) |
+| `TypedImplicit[x, A]` | an implicit binder, filled in by elaboration; `Annotation[Typed[x, A], kind]` with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds |
 | `Exists[{Typed[x, A]}, p]` | an existential statement |
 | `Typed[e, A]` | `e`, checked against `A` |
 | `With[{x = v}, b]` | `b` with `x` standing for `v` |
@@ -107,8 +108,9 @@ them; a declaration shows as its keyword, its name and its type.
 | `RightTee[{Typed[x, A], ...}, B]` | a goal, read as `ForAll` |
 
 Any other symbol or string is a bound variable or a declared constant. A symbol whose value is a
-`TypeTheoryTerm` stands for that term, and one whose value is a finished `TypeTheoryProof` stands for
-its proof.
+`TypeTheoryTerm` stands for that term, one whose value is a finished `TypeTheoryProof` stands for its
+proof, and one whose value is a declared constant stands for it, as `Naturals = NonNegativeIntegers`
+does.
 
 `TypeTheoryTerm` has the `HoldFirst` attribute. It has to: `ForAll[Typed[x, A], B]` on its own evaluates
 to `B`, and `n + 0 == n` to `True`. The declaration constructors and `TypeTheoryProof` hold their terms
@@ -157,7 +159,7 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Equality:** `Equal` (`EqualityReflexivity`, `EqualitySymmetry`, `EqualityTransitivity`,
   `EqualityCongruence`, `EqualitySubstitution`) and `Unequal`, `x != y`.
 - **Functions:** `Identity` and `Composition`.
-- **Natural numbers:** `NonNegativeIntegers`, with `NaturalNumberZero`, `NaturalNumberSuccessor` and
+- **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `NaturalNumberZero`, `NaturalNumberSuccessor` and
   `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
   and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean; `LessEqual`,
   inductive as Lean's `Nat.le` (`LessEqualReflexivity`, `LessEqualStep`), with `Less`, `GreaterEqual`
@@ -247,7 +249,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 152 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 164 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.
@@ -255,8 +257,12 @@ prelude's rules, the HoTT library proving False with an equality in Prop.
 ## Not yet
 
 - Decidability, pairs, sums, options and lists, and the theory around them.
-- Mutual and nested inductive types; quotients; induction on indexed families in the tactic.
+- Mutual and nested inductive types, and string literals: through LeanLink, these are what keeps
+  Lean's syntax and macros, most of what TypeTheory does not check of Lean's `Init.Prelude`, from
+  importing. Quotients are declared with a rewrite rule for their computation, as LeanLink imports
+  Lean's; induction on indexed families in the tactic.
 - Cubical type theory, where univalence computes; truncations; translations between rules.
 - Higher-order unification beyond patterns; no type classes.
-- A compiled kernel (`FunctionCompile` over an array encoding of terms), and computing products and
-  powers of literals with integers, as sums already are.
+- A compiled kernel (`FunctionCompile` over an array encoding of terms), and computing products,
+  powers, comparisons and the other operations on literals with integers, as sums already are; Lean's
+  kernel computes them with GMP, so a proof about 2^64 checks there and does not finish here.

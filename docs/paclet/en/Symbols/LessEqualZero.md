@@ -36,4 +36,4 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualZero]]
 TypeTheoryCheck[TypeTheoryTerm[LessEqualZero[7]], TypeTheoryTerm[7 >= 0]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

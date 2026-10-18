@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[ChosenWitnessProperty]]
 The double of the chosen number is 6:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitnessProperty[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]}, ChosenWitnessProperty[h]]]]
 ```
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->

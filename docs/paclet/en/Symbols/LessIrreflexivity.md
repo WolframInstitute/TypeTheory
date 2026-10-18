@@ -36,4 +36,4 @@ With it, `3 <= 2` is false: it would make `2 < 2`:
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, 3 <= 2]}, LessIrreflexivity[2][LessEqualTransitivity[h, LessEqualReflexivity]]]], TypeTheoryTerm[Not[3 <= 2]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

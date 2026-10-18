@@ -37,4 +37,4 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualStep]]
 TypeTheoryCheck[TypeTheoryTerm[LessEqualStep[LessEqualStep[LessEqualReflexivity]]], TypeTheoryTerm[3 <= 5]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

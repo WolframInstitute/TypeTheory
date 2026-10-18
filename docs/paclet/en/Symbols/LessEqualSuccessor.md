@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualSuccessor]]
 For variables:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x <= y]}, LessEqualSuccessor[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualSuccessor[h]]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ x + 1 ≤ y + 1 -->

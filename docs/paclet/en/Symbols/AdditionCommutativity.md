@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity]]
 So `x + 1` and `1 + x` are equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, AdditionCommutativity[x, 1]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals]}, AdditionCommutativity[x, 1]]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 1 == 1 + x -->

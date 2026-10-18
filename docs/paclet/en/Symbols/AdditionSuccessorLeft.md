@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionSuccessorLeft]]
 For variables:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, AdditionSuccessorLeft[m, n]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, AdditionSuccessorLeft[m, n]]]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ (m + 1) + n == (m + n) + 1 -->

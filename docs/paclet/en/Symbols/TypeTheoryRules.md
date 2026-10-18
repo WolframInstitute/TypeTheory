@@ -7,7 +7,7 @@ URI: WolframInstitute/TypeTheory/ref/TypeTheoryRules
 Keywords: [rules, type theory, Prop, universes, rewrite rules, Martin-Löf, calculus of inductive constructions, HoTT]
 SeeAlso: [TypeTheoryEnvironment, TypeTheoryRewriteRule, TypeTheoryTheorem, TypeUniverse]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [HomotopyTypeTheory]
+RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory]
 ---
 
 ## Usage

@@ -37,7 +37,7 @@ A proof of `True || False`:
 TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction]], TypeTheoryTerm[Or[True, False]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ## Scope
 

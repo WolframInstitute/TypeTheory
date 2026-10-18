@@ -16,15 +16,15 @@ TypeTheory is a proof engine for the Calculus of Inductive Constructions, the ty
 A term is written with built-in symbols, and [TypeTheoryTerm]() holds it. Here is the statement that adding zero to any natural number gives it back:
 
 ```wl
-statement = TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
+statement = TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]
 ```
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
 
-The term has to be held, because the Wolfram Language evaluates the same expression to [True]() at once:
+[Naturals]() is [NonNegativeIntegers](), the natural numbers of the prelude, by a shorter name; both show as ℕ. The term has to be held, because the Wolfram Language evaluates the same expression to [True]() at once:
 
 ```wl
-ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]
+ForAll[{Typed[n, Naturals]}, n + 0 == n]
 ```
 
 <!-- => True -->
@@ -40,7 +40,7 @@ TypeTheoryCheck[statement]
 [TypeOf]() gives the type of a term written out, here a function from natural numbers to natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n]]]
+TypeOf[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -50,7 +50,7 @@ TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n]]]
 Terms compute. [WeakHeadNormalForm]() applies the function to its argument and adds the literals:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n][21]]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n][21]]]
 ```
 
 <!-- => 42 -->
@@ -59,8 +59,8 @@ Addition is defined by recursion on its second argument, so `n + 0` computes to 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 0]],
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]
+    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 0]],
+    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]
 ]
 ```
 
@@ -70,8 +70,8 @@ But `0 + n` is stuck: the recursion has nothing to work on until `n` is known. E
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n]],
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]
+    TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 + n]],
+    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]
 ]
 ```
 
@@ -104,7 +104,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[
 [Append]() adds a declaration to an environment. A [TypeTheoryDefinition]() unfolds when terms compute:
 
 ```wl
-doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]];
+doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]];
 WeakHeadNormalForm[TypeTheoryTerm[Doubled[Doubled[5]], doubled]]
 ```
 
@@ -138,19 +138,19 @@ Declaring the type also generated its recursor, [InductiveRecursor](), which is 
 TypeOf[TypeTheoryTerm[InductiveRecursor[BinaryTree], trees]]
 ```
 
-<!-- => ∀_m∶(BinaryTree → Sort u) m[BinaryLeaf] → (∀_left∶BinaryTree ∀_right∶BinaryTree m[left] → m[right] → m[BinaryNode[left, right]]) → ∀_t∶BinaryTree m[t] -->
+<!-- => ∀_m∶BinaryTree → Sort u m[BinaryLeaf] → (∀_left∶BinaryTree ∀_right∶BinaryTree m[left] → m[right] → m[BinaryNode[left, right]]) → ∀_t∶BinaryTree m[t] -->
 
 Counting the nodes of a tree: a leaf has one, and a node one more than its two subtrees together:
 
 ```wl
 trees = Append[trees, TypeTheoryDefinition[NodeCount, Typed[
     Function[{Typed[tree, BinaryTree]}, InductiveRecursor[BinaryTree][
-        Function[{Typed[t, BinaryTree]}, NonNegativeIntegers],
+        Function[{Typed[t, BinaryTree]}, Naturals],
         1,
-        Function[{Typed[left, BinaryTree], Typed[right, BinaryTree], Typed[l, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, l + r + 1],
+        Function[{Typed[left, BinaryTree], Typed[right, BinaryTree], Typed[l, Naturals], Typed[r, Naturals]}, l + r + 1],
         tree
     ]],
-    TypeSpecifier[{BinaryTree} -> NonNegativeIntegers]
+    TypeSpecifier[{BinaryTree} -> Naturals]
 ]]];
 WeakHeadNormalForm[TypeTheoryTerm[NodeCount[BinaryNode[BinaryLeaf, BinaryNode[BinaryLeaf, BinaryLeaf]]], trees]]
 ```
@@ -162,7 +162,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NodeCount[BinaryNode[BinaryLeaf, BinaryNode[Bi
 Now for `0 + n == n`. [TypeTheoryProof]() starts a proof with the statement as its one goal:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]]
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n]]
 ```
 
 <!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ 0 + n == n -->
@@ -224,7 +224,7 @@ An environment is a handle to a store of definitions, which could in principle b
 TypeTheoryCheck[proved]
 ```
 
-<!-- => True -->
+<!-- => Success["EnvironmentChecked", ...] -->
 
 [Normal]() gives the declarations themselves, the prelude's included, written out exactly, so an environment can be saved and rebuilt from them on the empty environment, checking every declaration again:
 
@@ -245,8 +245,8 @@ Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Rules"]["Name"]
 
 <!-- => "MartinLofTypeTheory" -->
 
-The tutorial *Homotopy Type Theory* goes through it.
+The tutorial *Rules and Computation* shows what the rules change, and *Homotopy Type Theory* goes through that environment.
 
 ## Lean
 
-The Calculus of Inductive Constructions is also the type theory of [Lean 4](https://lean-lang.org/). [LeanLink](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink), the Wolfram Language link to Lean, translates declarations both ways: Lean theorems such as `Nat.zero_add` import into a [TypeTheoryEnvironment](), where this kernel checks them again, and theorems proved here export as Lean source that Lean's kernel accepts.
+The Calculus of Inductive Constructions is also the type theory of [Lean 4](https://lean-lang.org/). [LeanLink](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink), the Wolfram Language link to Lean, translates declarations both ways: Lean theorems such as `Nat.zero_add` import into a [TypeTheoryEnvironment](), where this kernel checks them again, and theorems proved here export as Lean source that Lean's kernel accepts. Its tutorial [Checking Mathlib with TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#tutorial/CheckingMathlib) loads a module of Mathlib and has this kernel check every theorem and definition in it.

@@ -45,7 +45,7 @@ TypeOf[TypeTheoryTerm[2 + 3]]
 Terms compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n][21]]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n][21]]]
 ```
 
 <!-- => 42 -->
@@ -76,7 +76,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[
 Prove `0 + n == n` by induction:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Induction", n],
     TypeTheoryTactic["Reflexivity"],
@@ -103,16 +103,16 @@ Declare an inductive type, and compute with its recursor:
 lists = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
         EmptyList -> NaturalList,
-        ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]
+        ConsList -> ForAll[{Typed[h, Naturals], Typed[t, NaturalList]}, NaturalList]
     }],
     TypeTheoryDefinition[ListSum, Typed[
         Function[{Typed[l, NaturalList]}, InductiveRecursor[NaturalList][
-            Function[{Typed[x, NaturalList]}, NonNegativeIntegers],
+            Function[{Typed[x, NaturalList]}, Naturals],
             0,
-            Function[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList], Typed[r, NonNegativeIntegers]}, h + r],
+            Function[{Typed[h, Naturals], Typed[t, NaturalList], Typed[r, Naturals]}, h + r],
             l
         ]],
-        TypeSpecifier[{NaturalList} -> NonNegativeIntegers]
+        TypeSpecifier[{NaturalList} -> Naturals]
     ]]
 }];
 WeakHeadNormalForm[TypeTheoryTerm[ListSum[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]]
@@ -128,7 +128,7 @@ Check every declaration of an environment again from scratch, the prelude's incl
 TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]]
 ```
 
-<!-- => True -->
+<!-- => Success["EnvironmentChecked", ...] -->
 
 ## Possible Issues
 

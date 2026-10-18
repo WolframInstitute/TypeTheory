@@ -36,4 +36,4 @@ So `3 <= 0` is false:
 TypeTheoryCheck[TypeTheoryTerm[SuccessorNotLessEqualZero[2]], TypeTheoryTerm[Not[3 <= 0]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

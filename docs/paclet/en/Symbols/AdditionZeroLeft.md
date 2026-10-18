@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft]]
 An instance, at a successor:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, AdditionZeroLeft[n + 1]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, AdditionZeroLeft[n + 1]]]]
 ```
 
 <!-- => ∀_n∶ℕ 0 + (n + 1) == n + 1 -->

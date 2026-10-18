@@ -20,7 +20,7 @@ RelatedGuides: [TypeTheory]
 ## Details & Options
 
 - A proof holds a partial proof term with holes, its goals. A [TypeTheoryTactic]() works on the first goal and fills it with a term that may have new holes.
-- In a notebook a proof shows each open goal as its hypotheses over the goal, with the constructor's name on goals that come from induction.
+- In a notebook a proof shows each open goal as its hypotheses over the goal, with the constructor's name on goals that come from induction. The display stands for the proof itself: copied, or evaluated again, it gives the [TypeTheoryProof]().
 - <code>*proof*["Goals"]</code> gives the open goals as <code>[TypeTheoryTerm]()[[RightTee]()[{[Typed]()[*x*, *type*], ...}, *goal*], *env*]</code>, each a statement in its own right. <code>*proof*["Term"]</code> gives the proof term, <code>*proof*["Statement"]</code> the statement and <code>*proof*["Environment"]</code> the environment.
 - Nothing a tactic does is trusted: [TypeTheoryTheorem]() has the kernel check the finished proof term.
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear.
@@ -30,7 +30,7 @@ RelatedGuides: [TypeTheory]
 Start a proof:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]]
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n]]
 ```
 
 <!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ 0 + n == n -->
@@ -58,7 +58,7 @@ proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]
 All tactics at once:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }]
@@ -93,7 +93,7 @@ proof["Goals"]
 A finished proof is declared with [TypeTheoryTheorem]():
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}];
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}];
 proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]];
 proved[ZeroRightIdentity]
 ```

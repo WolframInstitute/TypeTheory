@@ -46,7 +46,7 @@ TypeTheoryProof[True, {TypeTheoryTactic["Exact", TrueIntroduction]}]
 TypeTheoryCheck[TypeTheoryTerm[True], TypeTheoryTerm[TypeUniverse[0]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
 
 ## Possible Issues
 

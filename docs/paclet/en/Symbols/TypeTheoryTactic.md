@@ -34,7 +34,7 @@ RelatedGuides: [TypeTheory]
 Introduce a variable:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]];
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n]];
 proof = TypeTheoryTactic["Introduce", n][proof];
 proof["Goals"]
 ```
@@ -70,7 +70,7 @@ proof["Term"]
 Solving one goal can solve another it mentions:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], {
+proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
     TypeTheoryTactic["Apply", EqualityTransitivity],
     TypeTheoryTactic["Exact", h1],
@@ -100,7 +100,7 @@ proof["Goals"]
 `"Reflexivity"` needs the sides to be equal by computation; `0 + n` is not `n` until induction:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }]

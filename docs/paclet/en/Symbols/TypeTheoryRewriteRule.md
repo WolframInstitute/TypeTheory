@@ -7,7 +7,7 @@ URI: WolframInstitute/TypeTheory/ref/TypeTheoryRewriteRule
 Keywords: [rewrite rule, computation, axiom, definitional equality, higher inductive type]
 SeeAlso: [TypeTheoryRules, TypeTheoryAxiom, TypeTheoryEnvironment, CircleInductionBase]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [HomotopyTypeTheory]
+RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory]
 ---
 
 ## Usage
@@ -98,7 +98,7 @@ bits[FlipZero]
 The rules of the prelude do not allow rewrite rules:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, NonNegativeIntegers], TypeTheoryRewriteRule[MysteryZero, Mystery -> 0]}]
+TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals], TypeTheoryRewriteRule[MysteryZero, Mystery -> 0]}]
 ```
 
 <!-- => Failure["RewriteRulesNotAllowed", ...] -->

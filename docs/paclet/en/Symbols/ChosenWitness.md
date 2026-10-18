@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[ChosenWitness]]
 A number whose double is 6, from a proof that there is one:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitness[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]}, ChosenWitness[h]]]]
 ```
 
 <!-- => (∃_n∶ℕ n + n == 6) → ℕ -->

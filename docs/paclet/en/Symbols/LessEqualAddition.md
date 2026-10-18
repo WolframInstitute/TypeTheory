@@ -37,4 +37,4 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAddition]]
 TypeTheoryCheck[TypeTheoryTerm[LessEqualAddition[4, 2]], TypeTheoryTerm[3 < 6]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->

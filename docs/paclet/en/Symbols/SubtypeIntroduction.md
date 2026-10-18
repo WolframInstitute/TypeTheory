@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction]]
 4 is a natural number of at least 2:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]], TypeTheoryTerm[Subtype[Function[{Typed[n, NonNegativeIntegers]}, 2 <= n]]]]
+TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]], TypeTheoryTerm[Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]]
 ```
 
-<!-- => True -->
+<!-- => Success["TypeChecked", ...] -->
