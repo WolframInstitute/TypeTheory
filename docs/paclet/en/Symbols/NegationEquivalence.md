@@ -5,14 +5,14 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/NegationEquivalence
 Keywords: [negation, Booleans, equivalence, HoTT]
-SeeAlso: [Equivalence, EquivalenceToEquality, UniverseNotSet, BooleanNot]
+SeeAlso: [Equivalence, EquivalenceToEquality, UniverseNotSet, Not]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [HomotopyTypeTheory]
 ---
 
 ## Usage
 
-[NegationEquivalence]() is [BooleanNot]() as an equivalence from the Booleans to themselves, its own inverse.
+[NegationEquivalence]() is the negation of Booleans, `"not"`, as an equivalence from the Booleans to themselves, its own inverse.
 
 ## Details & Options
 

@@ -37,7 +37,7 @@ Being an equivalence is a type:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-TypeOf[TypeTheoryTerm[IsEquivalence[BooleanNot], hott]]
+TypeOf[TypeTheoryTerm[IsEquivalence["not"], hott]]
 ```
 
 <!-- => Type -->

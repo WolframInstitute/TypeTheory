@@ -60,7 +60,7 @@ TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction, TypeTheoryEnvironment[]]]
 
 ---
 
-On its own, [True]() could also be the Boolean [BooleanTrue](), so its type is ambiguous:
+On its own, [True]() could also be the Boolean `"true"`, so its type is ambiguous:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[True]]

@@ -167,9 +167,9 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
   multiplication, the zero, one and successor laws, cancellation of subtraction, the laws of powers,
   injectivity of the successor, and the order's transitivity, antisymmetry and irreflexivity.
-- **Booleans:** `Booleans`, with `BooleanFalse` and `BooleanTrue`, and `BooleanNot`, `BooleanAnd` and
-  `BooleanOr`, by cases on the first argument as Lean's `Bool`. They show as `true`, `false`, `!`, `&&` and
-  `||`.
+- **Booleans:** `Booleans`, with the constants `"false"` and `"true"`, and `"not"`, `"and"` and `"or"`,
+  named by strings, by cases on the first argument as Lean's `Bool`. `True`, `False`, `Not`, `And` and
+  `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
 - **Classical logic:** `Nonempty` (`NonemptyIntroduction`) and `Subtype` (`SubtypeIntroduction`); the
   axioms `PropositionalExtensionality`, `FunctionExtensionality` (which Lean proves from quotients) and
   `Choice`; `ChosenWitness` with `ChosenWitnessProperty`; and the theorems `ExcludedMiddle`, proved by

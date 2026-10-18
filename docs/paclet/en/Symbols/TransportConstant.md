@@ -37,7 +37,7 @@ Around the loop of the circle:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-TypeTheoryCheck[TypeTheoryTerm[TransportConstant[CircleLoop, BooleanTrue], hott]]
+TypeTheoryCheck[TypeTheoryTerm[TransportConstant[CircleLoop, "true"], hott]]
 ```
 
 <!-- => Transport[(w∶𝕊¹) ↦ 𝔹, CircleLoop, true] == true -->

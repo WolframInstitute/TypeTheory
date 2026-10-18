@@ -234,7 +234,7 @@ The other theorems are [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPred
 
 ## Booleans
 
-[Booleans]() has two values, [BooleanFalse]() and [BooleanTrue](), and [BooleanNot](), [BooleanAnd]() and [BooleanOr]() compute with them by cases on their first argument, as with Lean's `Bool`. Where a Boolean is expected, [True](), [False](), [Not](), [And]() and [Or]() stand for them, and so do `!`, `&&` and `||`:
+[Booleans]() has two values, `"false"` and `"true"`, and `"not"`, `"and"` and `"or"` compute with them by cases on their first argument, as with Lean's `Bool`. These constants are named by strings, and you rarely write them: where a Boolean is expected, [True](), [False](), [Not](), [And]() and [Or]() stand for them, and so do `!`, `&&` and `||`:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Typed[True && Not[False], Booleans]]]

@@ -178,7 +178,7 @@ stuck = TypeTheoryEnvironment[quotientDeclarations];
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], stuck]]
 ```
 
-<!-- => QuotientLift[BooleanNot, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[BooleanNot, e], QuotientClass[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->
+<!-- => QuotientLift[not, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[not, e], QuotientClass[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->
 
 And the prelude's rules refuse the rule:
 

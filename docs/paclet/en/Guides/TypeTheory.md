@@ -75,8 +75,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: Booleans
 
-- [BooleanFalse](), [BooleanTrue]() the values of [Booleans](), which [False]() and [True]() stand for where a Boolean is expected
-- [BooleanNot](), [BooleanAnd](), [BooleanOr]() the operations on Booleans, which [Not](), [And]() and [Or]() stand for on Booleans
+- [Booleans]() with the values `"false"` and `"true"` and the operations `"not"`, `"and"` and `"or"`, constants named by strings, which [False](), [True](), [Not](), [And]() and [Or]() stand for where a Boolean is expected
 
 ### Homotopy type theory
 
