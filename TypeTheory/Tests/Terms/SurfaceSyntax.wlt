@@ -179,3 +179,12 @@ VerificationTest[
 	{"\"false\""},
 	TestID -> "A-Boolean-value-shows-in-lower-case"
 ]
+
+VerificationTest[
+	{
+		FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]], "\"\[DoubleStruckCapitalN]\""],
+		FreeQ[ToBoxes[TypeOf[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]]], "\"\[DoubleStruckCapitalN]\""]
+	},
+	{False, True},
+	TestID -> "Naturals-shows-as-the-natural-numbers-unless-a-binder-has-its-name"
+]

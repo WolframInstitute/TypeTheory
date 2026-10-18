@@ -20,7 +20,9 @@ State, bound with Block for one elaboration (see withElaborationState):
 
 A binder's variable stands for a fresh free variable; With[{x = v}, b] makes x stand for v itself. A
 symbol whose value is a TypeTheoryTerm stands for that term, and one whose value is a finished
-TypeTheoryProof stands for its proof, so terms and proofs can be built up in a notebook.
+TypeTheoryProof stands for its proof, so terms and proofs can be built up in a notebook. A symbol whose
+value is a declared constant stands for that constant, as Naturals = NonNegativeIntegers does, and so
+does InductiveRecursor[Naturals] for the recursor.
 
 While a tactic elaborates a term for a goal, $goalMetavariableTypes gives the types of the proof's open
 goals, which may occur in the goal's type.
@@ -58,6 +60,7 @@ PackageScoped[$elaborationContext]
 PackageScoped[$elaborationScope]
 PackageScoped[$universeParameterNames]
 PackageScoped[overloadedNameQ]
+PackageScoped[aliasResolvedName]
 PackageScoped[settleOverloads]
 
 
@@ -87,6 +90,7 @@ $elaborationScope::usage = "$elaborationScope gives the term and type each varia
 $universeParameterNames::usage = "$universeParameterNames is the list of universe parameters a term may mention while elaborating."
 overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
+aliasResolvedName::usage = "aliasResolvedName[environment, HoldComplete[name]] gives the held name of the constant name stands for: a symbol whose value is a declared constant of environment stands for that constant, as Naturals does for NonNegativeIntegers, also inside InductiveRecursor."
 
 
 (* ::Section:: *)
@@ -196,7 +200,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
-	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[heldFromSyntax[syntax]]],
+	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
 	syntaxInteger[n_Integer?NonNegative] :> {naturalLiteral[n], naturalNumberTypeForElaboration[syntax]},
 	syntaxSymbol[HoldComplete[symbol_Symbol]] /; storedValueQ[symbol] :> elaborateStoredValue[symbol, expected],
@@ -218,8 +222,27 @@ leftFold[head_, arguments_List] := Fold[
 	Rest[arguments]
 ]
 
-declaredConstantSyntaxQ[syntax : (_syntaxSymbol | _syntaxString | _syntaxApplication)] := constantDeclaredQ[$elaborationEnvironment, heldFromSyntax[syntax]]
+declaredConstantSyntaxQ[syntax : (_syntaxSymbol | _syntaxString | _syntaxApplication)] := constantDeclaredQ[$elaborationEnvironment, constantNameOfSyntax[syntax]]
 declaredConstantSyntaxQ[_] := False
+
+constantNameOfSyntax[syntax_] := aliasResolvedName[$elaborationEnvironment, heldFromSyntax[syntax]]
+
+(* the constant a held name names: a symbol whose value is a declared constant names that constant *)
+aliasResolvedName[environment_, held_HoldComplete] := Replace[held, {
+	HoldComplete[symbol_Symbol] :> Replace[aliasedConstant[environment, symbol], None :> HoldComplete[symbol]],
+	HoldComplete[InductiveRecursor[symbol_Symbol]] :> Replace[aliasedConstant[environment, symbol], {
+		HoldComplete[constant_] :> HoldComplete[InductiveRecursor[constant]],
+		None :> HoldComplete[InductiveRecursor[symbol]]
+	}]
+}]
+
+(* an overloaded name is left to its own rules, which decide between its meanings by type *)
+SetAttributes[aliasedConstant, HoldRest]
+aliasedConstant[environment_, symbol_Symbol] := Replace[OwnValues[symbol], {
+	{Verbatim[RuleDelayed][_, constant_Symbol]} /; constantDeclaredQ[environment, HoldComplete[constant]] && ! overloadedNameQ[environment, HoldComplete[constant]] :>
+		HoldComplete[constant],
+	_ :> None
+}]
 
 SetAttributes[{storedValueQ, elaborateStoredValue}, HoldFirst]
 storedValueQ[symbol_Symbol] := MatchQ[OwnValues[symbol], {Verbatim[RuleDelayed][_, _TypeTheoryTerm | TypeTheoryProof[_Association]]}]
@@ -249,7 +272,7 @@ constantWithFreshLevels[held_HoldComplete] := With[{record = constantRecord[$ela
 	]
 ]
 
-constantWithLevels[constantSyntax_, levelSyntaxes_List] := With[{held = heldFromSyntax[constantSyntax]},
+constantWithLevels[constantSyntax_, levelSyntaxes_List] := With[{held = constantNameOfSyntax[constantSyntax]},
 	If[ ! constantDeclaredQ[$elaborationEnvironment, held],
 		elaborationFailure["`1` is not a declared constant.", constantSyntax]
 	];
@@ -272,10 +295,10 @@ insertImplicitArguments[{term_, type_}] := Replace[
 	}
 ]
 
-elaborateHead[syntax : syntaxSymbol[held_]] /; ! KeyExistsQ[$elaborationScope, held] && declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[held]
+elaborateHead[syntax : syntaxSymbol[held_]] /; ! KeyExistsQ[$elaborationScope, held] && declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[constantNameOfSyntax[syntax]]
 elaborateHead[syntax : syntaxString[name_]] /; ! KeyExistsQ[$elaborationScope, HoldComplete[name]] && declaredConstantSyntaxQ[syntax] :=
 	constantWithFreshLevels[HoldComplete[name]]
-elaborateHead[syntax_syntaxApplication] /; declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[heldFromSyntax[syntax]]
+elaborateHead[syntax_syntaxApplication] /; declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[constantNameOfSyntax[syntax]]
 elaborateHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}]] := constantWithLevels[constant, {levels}]
 elaborateHead[syntax_] := elaborateSyntax[syntax, None]
 

@@ -57,7 +57,12 @@ displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term
 (*Function Definitions*)
 
 
-typeTheoryBoxes[syntax_, form_] := Block[{$displayedNaturalNumbers = displayedNaturalNumbers[]},
+(* Naturals, written for the natural numbers, shows as they do, unless the term binds a variable of that name *)
+typeTheoryBoxes[syntax_, form_] := Block[
+	{
+		$displayedNaturalNumbers = displayedNaturalNumbers[],
+		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], _}]]
+	},
 	logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
 
@@ -115,6 +120,7 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 (* the arguments are rewritten first, so each rule sees displayed arguments *)
 displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[head, displaySyntax /@ arguments]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
+displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
 displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruckCapitalS]\:00b9"]
 displaySyntax[syntaxSymbol[HoldComplete[BooleanTrue]]] := syntaxString["true"]

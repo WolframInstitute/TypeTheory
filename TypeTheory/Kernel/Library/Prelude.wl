@@ -52,6 +52,7 @@ PackageExported[OrIntroductionLeft]
 PackageExported[OrIntroductionRight]
 PackageExported[EqualityReflexivity]
 PackageExported[ExistsIntroduction]
+PackageExported[Naturals]
 PackageExported[NaturalNumberZero]
 PackageExported[NaturalNumberSuccessor]
 PackageExported[FalseElimination]
@@ -146,6 +147,8 @@ OrIntroductionLeft::usage = "OrIntroductionLeft[p] proves Or[a, b] from a proof 
 OrIntroductionRight::usage = "OrIntroductionRight[q] proves Or[a, b] from a proof q of b."
 EqualityReflexivity::usage = "EqualityReflexivity[x] proves x == x."
 ExistsIntroduction::usage = "ExistsIntroduction[w, h] proves Exists[p] from a witness w and a proof h of p[w]."
+Naturals::usage = "Naturals is NonNegativeIntegers, the natural numbers of the prelude, by a shorter name: in a term, a symbol whose \
+value is a declared constant stands for that constant."
 NaturalNumberZero::usage = "NaturalNumberZero is the natural number zero, written 0."
 NaturalNumberSuccessor::usage = "NaturalNumberSuccessor[n] is the natural number after n."
 FalseElimination::usage = "FalseElimination[h] proves any proposition from a proof h of False."
@@ -228,6 +231,8 @@ $preludeEnvironment::usage = "$preludeEnvironment is the environment of the prel
 (* ::Section:: *)
 (*Function Definitions*)
 
+
+Naturals = NonNegativeIntegers
 
 $constructiveDeclarations = {
 	TypeTheoryInductiveType[True, TypeUniverse[0], {TrueIntroduction -> True}],

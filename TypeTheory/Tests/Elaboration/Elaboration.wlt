@@ -187,3 +187,26 @@ VerificationTest[
 	TypeSpecifier[{TypeUniverse[v + 1]} -> TypeUniverse[v + 2]],
 	TestID -> "A-universe-level-unifies-with-a-larger-successor"
 ]
+
+VerificationTest[
+	{
+		Naturals,
+		TypeOf[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 1]]] === TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1]]],
+		TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Naturals]]] === TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers]]]
+	},
+	{NonNegativeIntegers, True, True},
+	TestID -> "Naturals-stands-for-NonNegativeIntegers"
+]
+
+VerificationTest[
+	{
+		Block[{Counting = NonNegativeIntegers}, TypeOf[TypeTheoryTerm[Function[{Typed[k, Counting]}, k]]]] === TypeOf[TypeTheoryTerm[Function[{Typed[k, NonNegativeIntegers]}, k]]],
+		Block[{x = 5}, First[TypeTheoryCheck[TypeTheoryTerm[x + 1]]]],
+		DefinitionallyEqualQ[
+			TypeOf[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]],
+			TypeOf[TypeTheoryTerm[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x]]]
+		]
+	},
+	{True, "ElaborationFailed", True},
+	TestID -> "A-symbol-whose-value-is-a-constant-stands-for-it-unless-bound"
+]
