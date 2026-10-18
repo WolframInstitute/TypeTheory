@@ -26,7 +26,7 @@ RelatedGuides: [TypeTheory]
 Lists of natural numbers, and their length by recursion:
 
 ```wl
-lists = TypeTheoryEnvironment[TypeTheoryEnvironment["Prelude"], {
+lists = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
         EmptyList -> NaturalList,
         ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]
@@ -51,7 +51,7 @@ WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7,
 Vectors: an inductive family indexed by its length, which is checked by computation:
 
 ```wl
-vectors = Append[TypeTheoryEnvironment["Prelude"], TypeTheoryInductiveType[
+vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
     NaturalVector,
     ForAll[{Typed[n, NonNegativeIntegers]}, TypeUniverse[1]],
     {
@@ -69,7 +69,7 @@ TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vector
 A structure, whose fields are projections:
 
 ```wl
-pairs = Append[TypeTheoryEnvironment["Prelude"], TypeTheoryInductiveType[
+pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
     NaturalPair,
     TypeUniverse[1],
     {NaturalPairIntroduction -> ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, NaturalPair]}
@@ -84,7 +84,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalPairIntroduction[3, 4][[2]], pairs]]
 A type that occurs negatively in its own constructor would make the theory inconsistent, and is rejected:
 
 ```wl
-Append[TypeTheoryEnvironment["Prelude"], TypeTheoryInductiveType[Bad, TypeUniverse[1], {
+TypeTheoryEnvironment[TypeTheoryInductiveType[Bad, TypeUniverse[1], {
     BadIntroduction -> ForAll[{Typed[f, TypeSpecifier[{Bad} -> False]]}, Bad]
 }]]
 ```

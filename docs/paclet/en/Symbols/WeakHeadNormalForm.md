@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 Addition of literals:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment["Prelude"]]]
+WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]
 ```
 
 <!-- => 5 -->
@@ -33,7 +33,7 @@ WeakHeadNormalForm[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment["Prelude"]]]
 A function applied to an argument:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, x + 1][41], TypeTheoryEnvironment["Prelude"]]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, x + 1][41]]]
 ```
 
 <!-- => 42 -->
@@ -43,7 +43,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, x + 
 A definition unfolds:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Not[True], TypeTheoryEnvironment["Prelude"]]]
+WeakHeadNormalForm[TypeTheoryTerm[Not[True]]]
 ```
 
 <!-- => True ⇒ False -->
@@ -57,7 +57,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[And][
     Function[{Typed[t, And[True, True]]}, NonNegativeIntegers],
     Function[{Typed[p, True], Typed[q, True]}, 7],
     AndIntroduction[TrueIntroduction, TrueIntroduction]
-], TypeTheoryEnvironment["Prelude"]]]
+]]]
 ```
 
 <!-- => 7 -->

@@ -1,6 +1,6 @@
 # TypeTheory
 
-A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Coq, written
+A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written
 in the Wolfram Language. Terms are ordinary Wolfram Language expressions built from built-in symbols
 (`Function`, `Typed`, `ForAll`, `Implies`, `Equal`, `Plus`, ...). A small trusted kernel checks them,
 and tactics build proofs step by step in a notebook.
@@ -45,48 +45,47 @@ wl -f release.wls                # publish the site and the paclet, as wolframin
 
 ## A first session
 
-There is no global environment. An environment is a value, and a term carries the environment its
-constants come from:
+A term carries the environment its constants come from. Without one, it is in the prelude, an
+environment of logic, equality and the natural numbers:
 
 ```wolfram
-prelude = TypeTheoryEnvironment["Prelude"];
+TypeOf[TypeTheoryTerm[2 + 3]]
+(* ℕ, that is TypeTheoryTerm[NonNegativeIntegers, prelude] *)
 
-TypeOf[TypeTheoryTerm[2 + 3, prelude]]
-(* TypeTheoryTerm[NonNegativeIntegers, prelude] *)
-
-WeakHeadNormalForm[TypeTheoryTerm[2 + 3, prelude]]
-(* TypeTheoryTerm[5, prelude] *)
+WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]
+(* 5 *)
 ```
 
-Declarations are inert constructors until they are added to an environment, which gives a new
-environment and leaves the old one as it was:
+Declarations are inert constructors until an environment checks them. `TypeTheoryEnvironment[{...}]`
+gives the prelude extended with them, and `Append` extends any environment; neither changes the old one:
 
 ```wolfram
-arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]];
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}];
 arithmetic[TwoPlusTwo]
-(* TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]] *)
+(* theorem TwoPlusTwo : 2 + 2 == 4 *)
 
-Append[prelude, TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]]
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
 (* Failure["TypeMismatch", ...]: EqualityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 *)
 ```
 
 A proof by induction, one tactic at a time:
 
 ```wolfram
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude];
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]];
 proof = TypeTheoryTactic["Introduce", n][proof];
-proof = TypeTheoryTactic["Induction", n][proof];        (* two goals: zero and successor *)
+proof = TypeTheoryTactic["Induction", n][proof];        (* goals 0 + 0 == 0 and 0 + n == n ⇒ 0 + (n + 1) == n + 1 *)
 proof = TypeTheoryTactic["Reflexivity"][proof];         (* 0 + 0 == 0 by computation *)
 proof = TypeTheoryTactic["Introduce", k, ih][proof];    (* ih : 0 + k == k *)
 proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][proof];
 
-proved = Append[prelude, TypeTheoryTheorem[AdditionZeroLeft, proof]];
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[AdditionZeroLeft, proof]}];
 TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 7 == 7]]
 (* True *)
 ```
 
 In a notebook a proof shows its open goals, each as a list of hypotheses over the goal. A term shows
-in mathematical notation, and a declaration as its keyword, its name and its type.
+in mathematical notation, with `∧`, `∨`, `¬`, and the natural numbers as `0` and `n + 1` as Lean shows
+them; a declaration shows as its keyword, its name and its type.
 
 ## The language
 
@@ -126,11 +125,13 @@ evaluates inside a term.
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]` |
 | `TypeTheoryNaturalNumbers[type, zero, successor, addition]` | the natural numbers that literals belong to |
 
-`TypeTheoryEnvironment[]` is empty, `TypeTheoryEnvironment["Prelude"]` is the prelude,
-`TypeTheoryEnvironment[env, {declaration, ...}]` adds declarations in turn, and `Append[env, declaration]`
-adds one. An environment behaves like an association of its constants: `env[name]` gives the declaration
-that introduced `name`, and `Keys`, `Length`, `KeyExistsQ`, `Normal` and `Information` work as expected.
-`Normal[env]` gives the declarations, written out exactly, so `TypeTheoryEnvironment[Normal[env]]`
+`TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the prelude, which is also the
+environment of any term or proof that names none. `TypeTheoryEnvironment[env, {declaration, ...}]` adds
+them to `env`, `Append[env, declaration]` adds one, `TypeTheoryEnvironment[]` is empty, and
+`TypeTheoryEnvironment["Prelude"]` is the prelude itself. An environment behaves like an association of
+its constants: `env[name]` gives the declaration that introduced `name`, and `Keys`, `Length`,
+`KeyExistsQ`, `Normal` and `Information` work as expected. `Normal[env]` gives the declarations, the
+prelude's included, written out exactly, so `TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[env]]`
 rebuilds it.
 
 An environment is a handle to a store: a symbol of its own whose DownValues hold the constants, the
@@ -196,7 +197,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 108 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 113 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records.
 

@@ -13,11 +13,12 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryTerm]()[*term*, *env*]</code> represents a term of the type theory in the [TypeTheoryEnvironment]() *env*, written with built-in symbols such as [Function](), [Typed](), [ForAll](), [Implies](), [Equal]() and [Plus](), and kept unevaluated.
 
-<code>[TypeTheoryTerm]()[*term*]</code> is a term in the empty environment.
+<code>[TypeTheoryTerm]()[*term*]</code> is a term in the prelude, the environment of logic, equality and the natural numbers.
 
 ## Details & Options
 
 - [TypeTheoryTerm]() has the [HoldFirst]() attribute. It has to: on its own, <code>[ForAll]()[[Typed]()[x, A], B]</code> evaluates to `B`, and `n + 0 == n` to [True](). The environment is evaluated.
+- A term without an environment is in the prelude, except beside a term that has one, as in <code>[TypeTheoryCheck]()[*term*, *type*]</code>, where it takes that term's.
 - <code>[TypeOf]()[[TypeTheoryTerm]()[*term*, *env*]]</code> gives the type of *term*, and <code>[TypeOf]()[[TypeTheoryTerm]()[*term*], *env*]</code> gives its type in *env*. [TypeOf]() holds its argument, so give it a [TypeTheoryTerm]() written out, or use [TypeTheoryCheck]().
 - The surface language:
 
@@ -43,11 +44,10 @@ RelatedGuides: [TypeTheory]
 
 ## Basic Examples
 
-A term in the prelude, and its type:
+A term and its type:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-TypeOf[TypeTheoryTerm[2 + 3, prelude]]
+TypeOf[TypeTheoryTerm[2 + 3]]
 ```
 
 <!-- => ℕ -->
@@ -57,8 +57,7 @@ TypeOf[TypeTheoryTerm[2 + 3, prelude]]
 A universal statement, kept unevaluated:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-statement = TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]
+statement = TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 ```
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
@@ -86,8 +85,7 @@ TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"
 Implicit arguments are filled in; [Construct]() gives them explicitly:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3], prelude]]
+TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3]]]
 ```
 
 <!-- => 3 == 3 -->
@@ -97,40 +95,39 @@ TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3], pr
 A term that holds another, spliced in:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
 equation = TypeTheoryTerm[1 + 1 == 2];
-TypeOf[TypeTheoryTerm[Implies[equation, equation], prelude]]
+TypeOf[TypeTheoryTerm[Implies[equation, equation]]]
 ```
 
 <!-- => Prop -->
 
 ## Properties and Relations
 
-A term without an environment is read in the empty environment, where no constant is declared:
+A term in an environment of its own, here the empty one, [TypeTheoryEnvironment]()[], which declares no constants:
 
 ```wl
-TypeOf[TypeTheoryTerm[2 + 3]]
+TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment[]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
 
 ---
 
-[TypeOf]() takes an environment as its second argument, as it takes a type environment for compiled types:
+[TypeOf]() also takes the environment as its second argument, as it takes a type environment for compiled types:
 
 ```wl
-TypeOf[TypeTheoryTerm[2 + 3], TypeTheoryEnvironment["Prelude"]]
+bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}];
+TypeOf[TypeTheoryTerm[BitOne], bits]
 ```
 
-<!-- => ℕ -->
+<!-- => Bit -->
 
 ## Possible Issues
 
 [TypeOf]() holds its argument, so it does not see the term a variable holds; [TypeTheoryCheck]() evaluates its argument:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-term = TypeTheoryTerm[2 + 3, prelude];
+term = TypeTheoryTerm[2 + 3];
 TypeTheoryCheck[term]
 ```
 

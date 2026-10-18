@@ -25,7 +25,7 @@ RelatedGuides: [TypeTheory]
 The type of [ExistsIntroduction]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction]]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{P ∶ α → Prop} ∀_w∶α P[w] ⇒ Exists[P] -->
@@ -36,7 +36,7 @@ There is a number that doubles to 4:
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[ExistsIntroduction[2, EqualityReflexivity[4]], TypeTheoryEnvironment["Prelude"]],
+    TypeTheoryTerm[ExistsIntroduction[2, EqualityReflexivity[4]]],
     TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]
 ]
 ```
@@ -49,8 +49,7 @@ TypeTheoryCheck[
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    Typed[ExistsIntroduction[2, EqualityReflexivity[4]], Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]],
-    TypeTheoryEnvironment["Prelude"]
+    Typed[ExistsIntroduction[2, EqualityReflexivity[4]], Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]
 ]]
 ```
 

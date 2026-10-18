@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [EqualityTransitivity]() is a theorem of the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, proved with the recursor of [Equal]().
+- [EqualityTransitivity]() is a theorem of the prelude, proved with the recursor of [Equal]().
 - The type of *x*, *y* and *z*, its universe level, and *x*, *y* and *z* themselves are implicit arguments.
 
 ## Basic Examples
@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 The type of [EqualityTransitivity]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityTransitivity, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityTransitivity]]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{x ∶ α} ∀_{y ∶ α} ∀_{z ∶ α} x == y ⇒ y == z ⇒ x == z -->
@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityTransitivity, TypeTheoryEnvironment["Prel
 Chain two equations:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
     TypeTheoryTactic["Exact", EqualityTransitivity[h1, h2]]
 }];

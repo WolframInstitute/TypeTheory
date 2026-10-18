@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [EqualitySubstitution]() is a theorem of the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, proved with the recursor of [Equal](): it rewrites with an equation.
+- [EqualitySubstitution]() is a theorem of the prelude, proved with the recursor of [Equal](): it rewrites with an equation.
 - The type of *x* and *y*, its universe level, the predicate *P*, and *x* and *y* are implicit arguments. *P* is found from the type the proof is expected to have, by abstracting *y* from it; [Construct]() gives it explicitly.
 
 ## Basic Examples
@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 The type of [EqualitySubstitution]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualitySubstitution, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[EqualitySubstitution]]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{P ∶ α → Prop} ∀_{x ∶ α} ∀_{y ∶ α} x == y ⇒ P[x] ⇒ P[y] -->
@@ -34,8 +34,7 @@ Rewrite `x` to `y` in a statement:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x == y], Typed[p, x + 0 == x]}, Typed[EqualitySubstitution[h, p], y + 0 == y]],
-    TypeTheoryEnvironment["Prelude"]
+    Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x == y], Typed[p, x + 0 == x]}, Typed[EqualitySubstitution[h, p], y + 0 == y]]
 ]]
 ```
 
@@ -49,8 +48,7 @@ Give the predicate explicitly with [Construct]():
 TypeTheoryCheck[TypeTheoryTerm[
     Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[h, x == y], Typed[p, x + 0 == x]},
         Construct[EqualitySubstitution, NonNegativeIntegers, Function[{Typed[t, NonNegativeIntegers]}, t + 0 == t], x, y, h, p]
-    ],
-    TypeTheoryEnvironment["Prelude"]
+    ]
 ]]
 ```
 

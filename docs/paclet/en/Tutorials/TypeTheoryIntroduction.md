@@ -9,22 +9,14 @@ Keywords: [type theory, getting started, terms, computation, environments, induc
 RelatedGuides: [TypeTheory]
 ---
 
-TypeTheory is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Coq, written in the Wolfram Language. This tutorial writes terms with built-in symbols, computes with them, declares theorems, definitions and inductive types, and proves a theorem by induction one tactic at a time. Everything starts from the prelude, an environment of logic, equality and natural numbers.
+TypeTheory is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. This tutorial writes terms with built-in symbols, computes with them, declares theorems, definitions and inductive types, and proves a theorem by induction one tactic at a time. Terms, proofs and declarations that name no environment are in the prelude, an environment of logic, equality and the natural numbers.
 
 ## Terms and Their Types
 
-[TypeTheoryEnvironment]() gives the prelude:
+A term is written with built-in symbols, and [TypeTheoryTerm]() holds it. Here is the statement that adding zero to any natural number gives it back:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"]
-```
-
-<!-- => TypeTheoryEnvironment summary box: 31 constants -->
-
-A term is written with built-in symbols, and [TypeTheoryTerm]() holds it together with the environment its constants come from. Here is the statement that adding zero to any natural number gives it back:
-
-```wl
-statement = TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]
+statement = TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 ```
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
@@ -48,7 +40,7 @@ TypeTheoryCheck[statement]
 [TypeOf]() gives the type of a term written out, here a function from natural numbers to natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n], prelude]]
+TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n]]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -58,7 +50,7 @@ TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n], prelude]
 Terms compute. [WeakHeadNormalForm]() applies the function to its argument and adds the literals:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n][21], prelude]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n][21]]]
 ```
 
 <!-- => 42 -->
@@ -67,7 +59,7 @@ Addition is defined by recursion on its second argument, so `n + 0` computes to 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 0], prelude],
+    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 0]],
     TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]
 ]
 ```
@@ -78,7 +70,7 @@ But `0 + n` is stuck: the recursion has nothing to work on until `n` is known. E
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n], prelude],
+    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n]],
     TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]
 ]
 ```
@@ -87,10 +79,10 @@ DefinitionallyEqualQ[
 
 ## Declaring Theorems and Definitions
 
-Declarations, such as [TypeTheoryTheorem](), are inert until they are added to an environment. Adding one checks it and gives a new environment. Here `2 + 2 == 4` is proved by computation, with [EqualityReflexivity]():
+Declarations, such as [TypeTheoryTheorem](), are inert until [TypeTheoryEnvironment]() checks them, which gives a new environment: the prelude extended with them. Here `2 + 2 == 4` is proved by computation, with [EqualityReflexivity]():
 
 ```wl
-arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 32 constants -->
@@ -101,23 +93,15 @@ arithmetic[TwoPlusTwo]
 
 <!-- => theorem TwoPlusTwo : 2 + 2 == 4 -->
 
-The prelude is unchanged:
-
-```wl
-KeyExistsQ[prelude, TwoPlusTwo]
-```
-
-<!-- => False -->
-
 A proof of the wrong statement is rejected, with the reason:
 
 ```wl
-Append[prelude, TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]]
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
 ```
 
 <!-- => Failure["TypeMismatch", ...]: EqualityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 -->
 
-A [TypeTheoryDefinition]() unfolds when terms compute:
+[Append]() adds a declaration to an environment. A [TypeTheoryDefinition]() unfolds when terms compute:
 
 ```wl
 doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]];
@@ -126,15 +110,23 @@ WeakHeadNormalForm[TypeTheoryTerm[Doubled[Doubled[5]], doubled]]
 
 <!-- => 20 -->
 
+Environments never change, so `arithmetic` is as it was:
+
+```wl
+KeyExistsQ[arithmetic, Doubled]
+```
+
+<!-- => False -->
+
 ## Inductive Types
 
 [TypeTheoryInductiveType]() declares a type by its constructors. Binary trees are either a leaf or a node with two subtrees:
 
 ```wl
-trees = Append[prelude, TypeTheoryInductiveType[BinaryTree, TypeUniverse[1], {
+trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[1], {
     BinaryLeaf -> BinaryTree,
     BinaryNode -> ForAll[{Typed[left, BinaryTree], Typed[right, BinaryTree]}, BinaryTree]
-}]];
+}]}];
 Keys[trees][[-4 ;;]]
 ```
 
@@ -170,7 +162,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NodeCount[BinaryNode[BinaryLeaf, BinaryNode[Bi
 Now for `0 + n == n`. [TypeTheoryProof]() starts a proof with the statement as its one goal:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude]
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]]
 ```
 
 <!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ 0 + n == n -->
@@ -181,7 +173,7 @@ A [TypeTheoryTactic]() works on the first goal. `"Introduce"` takes the variable
 proof = TypeTheoryTactic["Induction", n][TypeTheoryTactic["Introduce", n][proof]]
 ```
 
-<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 + NaturalNumberZero == NaturalNumberZero; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + NaturalNumberSuccessor[n] == NaturalNumberSuccessor[n] -->
+<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 + 0 == 0; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
 The first goal, `0 + 0 == 0`, holds by computation:
 
@@ -189,9 +181,9 @@ The first goal, `0 + 0 == 0`, holds by computation:
 proof = TypeTheoryTactic["Reflexivity"][proof]
 ```
 
-<!-- => Proof, 1 goal: case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + NaturalNumberSuccessor[n] == NaturalNumberSuccessor[n] -->
+<!-- => Proof, 1 goal: case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
-In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal `0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[k]` computes to `NaturalNumberSuccessor[0 + k] == NaturalNumberSuccessor[k]`, which [EqualityCongruence]() proves from `ih`:
+In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal reads `0 + (k + 1) == k + 1`, where `k + 1` is how <code>[NaturalNumberSuccessor]()[k]</code> shows. Addition recurses on its second argument, so the goal computes to `(0 + k) + 1 == k + 1`, which [EqualityCongruence]() proves from `ih`:
 
 ```wl
 proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][TypeTheoryTactic["Introduce", k, ih][proof]]
@@ -205,12 +197,12 @@ The tactics built a proof term, an application of the recursor of the natural nu
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(a ∶ ℕ) ↦ 0 + a == a, EqualityReflexivity[0 + NaturalNumberZero], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, EqualityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
 
 Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term:
 
 ```wl
-proved = Append[prelude, TypeTheoryTheorem[AdditionZeroLeft, proof]];
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[AdditionZeroLeft, proof]}];
 proved[AdditionZeroLeft]
 ```
 
@@ -234,10 +226,10 @@ TypeTheoryCheck[proved]
 
 <!-- => True -->
 
-[Normal]() gives the declarations themselves, written out exactly, so an environment can be saved and rebuilt from them, checking every declaration again:
+[Normal]() gives the declarations themselves, the prelude's included, written out exactly, so an environment can be saved and rebuilt from them on the empty environment, checking every declaration again:
 
 ```wl
-rebuilt = TypeTheoryEnvironment[Normal[proved]];
+rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[proved]];
 rebuilt[AdditionZeroLeft]
 ```
 

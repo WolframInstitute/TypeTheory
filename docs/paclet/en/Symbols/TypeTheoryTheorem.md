@@ -26,7 +26,7 @@ RelatedGuides: [TypeTheory]
 A theorem proved by computation:
 
 ```wl
-arithmetic = Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]];
+arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]];
 arithmetic[TwoPlusTwo]
 ```
 
@@ -37,12 +37,11 @@ arithmetic[TwoPlusTwo]
 The statement of a finished proof:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }];
-proved = Append[prelude, TypeTheoryTheorem[AdditionZeroRight, proof]];
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionZeroRight, proof]];
 TypeOf[TypeTheoryTerm[AdditionZeroRight, proved]]
 ```
 
@@ -61,7 +60,7 @@ TypeOf[TypeTheoryTerm[AdditionZeroRight[7], proved]]
 A proof of another statement is rejected:
 
 ```wl
-Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]]
+TypeTheoryEnvironment[TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -71,7 +70,7 @@ Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[Wrong, 2 + 2 == 5, Eq
 A theorem's statement must be a proposition:
 
 ```wl
-Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[Three, NonNegativeIntegers, 3]]
+TypeTheoryEnvironment[TypeTheoryTheorem[Three, NonNegativeIntegers, 3]]
 ```
 
 <!-- => Failure["PropositionExpected", ...] -->

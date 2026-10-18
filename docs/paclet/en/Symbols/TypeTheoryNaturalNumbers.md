@@ -20,24 +20,25 @@ RelatedGuides: [TypeTheory]
 - The kernel trusts what it computes on literals, so the registration is checked strictly: *type* must be an inductive type in <code>[TypeUniverse]()[1]</code> with no parameters, indices or universe parameters, whose constructors are exactly *zero* and *successor*.
 - *addition* must be defined, up to the names of its variables, by recursion on its second argument, as the prelude's [Plus]() is. Then adding two literals as integers agrees with unfolding *addition*.
 - A literal is its constructor form by computation: `2` is `successor[successor[zero]]`.
-- An environment registers natural numbers once.
+- An environment registers natural numbers once. The prelude registers [NonNegativeIntegers](), so natural numbers of your own go in an environment built on the empty one, <code>[TypeTheoryEnvironment]()[]</code>.
+- In a notebook, the zero of the registered natural numbers shows as `0`, and the successor of *n* as <code>*n* + 1</code>, as Lean shows them.
 
 ## Basic Examples
 
-The prelude's natural numbers:
+The prelude registers [NonNegativeIntegers]() as its natural numbers, so literals are natural numbers:
 
 ```wl
-Information[TypeTheoryEnvironment["Prelude"], "NaturalNumbers"]
+TypeOf[TypeTheoryTerm[3]]
 ```
 
-<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Addition" -> Plus|> -->
+<!-- => ℕ -->
 
 ---
 
 Natural numbers of your own:
 
 ```wl
-unary = TypeTheoryEnvironment[{
+unary = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor]
 }];
@@ -54,12 +55,20 @@ DefinitionallyEqualQ[TypeTheoryTerm[2, unary], TypeTheoryTerm[UnarySuccessor[Una
 
 <!-- => True -->
 
+The constructors show as numbers:
+
+```wl
+TypeTheoryTerm[UnarySuccessor[UnarySuccessor[UnaryZero]], unary]
+```
+
+<!-- => 0 + 1 + 1 -->
+
 ## Possible Issues
 
 A type with two constructors that are not a zero and a successor cannot be registered:
 
 ```wl
-TypeTheoryEnvironment[{
+TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
     TypeTheoryNaturalNumbers[Bit, BitZero, BitOne]
 }]

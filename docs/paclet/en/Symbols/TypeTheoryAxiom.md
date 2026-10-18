@@ -24,14 +24,13 @@ RelatedGuides: [TypeTheory]
 Assume the excluded middle:
 
 ```wl
-classical = Append[
-    TypeTheoryEnvironment["Prelude"],
+classical = TypeTheoryEnvironment[
     TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]
 ];
 TypeOf[TypeTheoryTerm[ExcludedMiddle[True], classical]]
 ```
 
-<!-- => True || !True -->
+<!-- => True ∨ ¬True -->
 
 The environment's axioms:
 
@@ -46,7 +45,7 @@ Information[classical, "Axioms"]
 An axiom's type must be a type:
 
 ```wl
-Append[TypeTheoryEnvironment["Prelude"], TypeTheoryAxiom[Five, 5]]
+TypeTheoryEnvironment[TypeTheoryAxiom[Five, 5]]
 ```
 
 <!-- => Failure["TypeExpected", ...] -->

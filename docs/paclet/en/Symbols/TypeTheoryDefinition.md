@@ -26,7 +26,7 @@ RelatedGuides: [TypeTheory]
 Define doubling, and compute with it:
 
 ```wl
-doubled = Append[TypeTheoryEnvironment["Prelude"], TypeTheoryDefinition[Double, Function[{Typed[n, NonNegativeIntegers]}, n + n]]];
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, NonNegativeIntegers]}, n + n]]];
 WeakHeadNormalForm[TypeTheoryTerm[Double[21], doubled]]
 ```
 
@@ -45,8 +45,7 @@ TypeOf[TypeTheoryTerm[Double, doubled]]
 A universe-polymorphic definition is used at each universe:
 
 ```wl
-identity = Append[
-    TypeTheoryEnvironment["Prelude"],
+identity = TypeTheoryEnvironment[
     TypeTheoryDefinition[PolymorphicIdentity, Function[{Annotation[Typed[A, TypeUniverse[u]], "Implicit"], Typed[x, A]}, x]]
 ];
 TypeOf[TypeTheoryTerm[PolymorphicIdentity[3], identity]]
@@ -65,8 +64,7 @@ TypeOf[TypeTheoryTerm[PolymorphicIdentity[NonNegativeIntegers], identity]]
 A definition cannot refer to itself:
 
 ```wl
-Append[
-    TypeTheoryEnvironment["Prelude"],
+TypeTheoryEnvironment[
     TypeTheoryDefinition[Loop, Typed[Function[{Typed[n, NonNegativeIntegers]}, Loop[n]], TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]]]
 ]
 ```

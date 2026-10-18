@@ -11,11 +11,11 @@ RelatedGuides: [TypeTheory]
 
 ## Usage
 
-<code>[TypeTheoryProof]()[*statement*, *env*]</code> starts a proof of *statement* in the [TypeTheoryEnvironment]() *env*, with *statement* itself as its one goal.
+<code>[TypeTheoryProof]()[*statement*]</code> starts a proof of *statement* in the prelude, with *statement* itself as its one goal.
 
-<code>[TypeTheoryProof]()[[TypeTheoryTerm]()[*statement*, *env*]]</code> does the same.
+<code>[TypeTheoryProof]()[*statement*, *env*]</code> starts it in the [TypeTheoryEnvironment]() *env*, and <code>[TypeTheoryProof]()[[TypeTheoryTerm]()[*statement*, *env*]]</code> does the same.
 
-<code>[TypeTheoryProof]()[*statement*, *env*, {*tactic1*, *tactic2*, ...}]</code> applies the [TypeTheoryTactic]() tactics in turn.
+<code>[TypeTheoryProof]()[*statement*, {*tactic1*, *tactic2*, ...}]</code> and <code>[TypeTheoryProof]()[*statement*, *env*, {*tactic1*, ...}]</code> apply the [TypeTheoryTactic]() tactics in turn.
 
 ## Details & Options
 
@@ -30,7 +30,7 @@ RelatedGuides: [TypeTheory]
 Start a proof:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], TypeTheoryEnvironment["Prelude"]]
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]]
 ```
 
 <!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ 0 + n == n -->
@@ -41,7 +41,7 @@ Induction on `n` gives a goal for each constructor:
 proof = TypeTheoryTactic["Induction", n][TypeTheoryTactic["Introduce", n][proof]]
 ```
 
-<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 + NaturalNumberZero == NaturalNumberZero; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + NaturalNumberSuccessor[n] == NaturalNumberSuccessor[n] -->
+<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 + 0 == 0; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
 The first is true by computation; the second follows from the induction hypothesis:
 
@@ -58,7 +58,7 @@ proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]
 All tactics at once:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }]
@@ -79,7 +79,7 @@ proof["Term"]
 The goals as statements:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
     TypeTheoryTactic["Introduce", a, b, ha, hb],
     TypeTheoryTactic["Apply", AndIntroduction]
 }];
@@ -93,9 +93,8 @@ proof["Goals"]
 A finished proof is declared with [TypeTheoryTheorem]():
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}];
-proved = Append[prelude, TypeTheoryTheorem[AdditionZeroRight, proof]];
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}];
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionZeroRight, proof]];
 proved[AdditionZeroRight]
 ```
 
@@ -106,8 +105,7 @@ proved[AdditionZeroRight]
 An unfinished proof cannot be declared:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-Append[prelude, TypeTheoryTheorem[Absurd, TypeTheoryProof[False, prelude]]]
+TypeTheoryEnvironment[TypeTheoryTheorem[Absurd, TypeTheoryProof[False]]]
 ```
 
 <!-- => Failure["ProofIncomplete", ...] -->

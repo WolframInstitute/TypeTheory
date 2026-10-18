@@ -24,14 +24,13 @@ RelatedGuides: [TypeTheory]
 Literals compute:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-DefinitionallyEqualQ[TypeTheoryTerm[2 + 3, prelude], TypeTheoryTerm[5]]
+DefinitionallyEqualQ[TypeTheoryTerm[2 + 3], TypeTheoryTerm[5]]
 ```
 
 <!-- => True -->
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[2 + 3, prelude], TypeTheoryTerm[6]]
+DefinitionallyEqualQ[TypeTheoryTerm[2 + 3], TypeTheoryTerm[6]]
 ```
 
 <!-- => False -->
@@ -41,7 +40,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[2 + 3, prelude], TypeTheoryTerm[6]]
 A literal is its constructor form:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[NaturalNumberZero]], TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[2]]
+DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[NaturalNumberZero]]], TypeTheoryTerm[2]]
 ```
 
 <!-- => True -->
@@ -52,7 +51,7 @@ Eta: a function equals the function that applies it:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, NaturalNumberSuccessor[n]], TypeTheoryEnvironment["Prelude"]],
+    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, NaturalNumberSuccessor[n]]],
     TypeTheoryTerm[NaturalNumberSuccessor]
 ]
 ```
@@ -64,10 +63,9 @@ DefinitionallyEqualQ[
 `n + 0` computes to `n`, because addition recurses on its second argument; `0 + n` does not:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
 {
-    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 0], prelude], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]],
-    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n], prelude], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]]
+    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 0]], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]],
+    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n]]]
 }
 ```
 

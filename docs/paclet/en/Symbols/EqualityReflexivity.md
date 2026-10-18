@@ -24,7 +24,7 @@ RelatedGuides: [TypeTheory]
 The type of [EqualityReflexivity]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity]]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_x∶α x == x -->
@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity, TypeTheoryEnvironment["Prelu
 A proof of `2 + 2 == 4` by computation:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[2 + 2 == 4]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]
 ```
 
 <!-- => True -->
@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], TypeTheoryEnvironment["Pr
 Types are terms too, and can be equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[NonNegativeIntegers], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[NonNegativeIntegers]]]
 ```
 
 <!-- => ℕ == ℕ -->
@@ -54,7 +54,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[NonNegativeIntegers], TypeThe
 [Construct]() gives the implicit type argument explicitly:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeIntegers, 3]]]
 ```
 
 <!-- => 3 == 3 -->
@@ -64,7 +64,7 @@ TypeTheoryCheck[TypeTheoryTerm[Construct[EqualityReflexivity, NonNegativeInteger
 Computation does not make `2 + 2` equal to `5`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[2 + 2 == 5]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 5]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

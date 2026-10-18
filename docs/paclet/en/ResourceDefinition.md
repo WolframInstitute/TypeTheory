@@ -6,7 +6,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language
 ContributedBy: Nik Murzin
-Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, theorem proving, formal mathematics, Lean, Coq]
+Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, theorem proving, formal mathematics, Lean, Rocq]
 MainGuide: Documentation/English/Guides/TypeTheory.nb
 License: MIT
 WolframVersion: 15.0+
@@ -18,12 +18,13 @@ Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarat
 
 ## Details & Options
 
-- TypeTheory is a proof engine for the **Calculus of Inductive Constructions**, the dependent type theory of Lean and Coq, written entirely in the Wolfram Language, with no native library and no dependency on Lean.
+- TypeTheory is a proof engine for the **Calculus of Inductive Constructions**, the dependent type theory of Lean and Rocq, written entirely in the Wolfram Language, with no native library and no dependency on Lean.
 - Terms are ordinary expressions built from built-in symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](), which displays them in mathematical notation.
-- Declarations are inert constructors - [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType]() and [TypeTheoryNaturalNumbers]() - that a small kernel checks when they are added to a [TypeTheoryEnvironment](). There is no global state: an environment is a value, a handle to a store of definitions, and every term and proof carries the environment it lives in.
+- Declarations are inert constructors - [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType]() and [TypeTheoryNaturalNumbers]() - that a small kernel checks when they are added to a [TypeTheoryEnvironment](). There is no global state: an environment is a value, a handle to a store of definitions, and every term and proof carries the environment it lives in, the prelude unless it names another.
 - The kernel infers types, reduces terms, decides definitional equality (with eta for functions and structures, and proof irrelevance), checks inductive families for strict positivity and universe constraints, and generates their recursors.
 - [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step. Nothing a tactic does is trusted: the kernel checks the finished proof term.
-- The prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, has logic ([True](), [False](), [Not](), [And](), [Or](), [Exists]()), equality ([Equal]()) and the natural numbers ([NonNegativeIntegers](), with [Plus]()), so that literals are natural numbers.
+- The prelude has logic ([True](), [False](), [Not](), [And](), [Or](), [Exists]()), equality ([Equal]()) and the natural numbers ([NonNegativeIntegers](), with [Plus]()), so that literals are natural numbers. It is the environment of every term, proof and list of declarations that names none.
+- Terms display as mathematics: `∀`, `∃`, `↦`, `⇒`, `∧`, `∨`, `¬`, universes as Prop, Type and Sort, and the natural numbers as `0` and `n + 1`, as Lean shows them.
 
 ## Usage
 
@@ -34,7 +35,7 @@ Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarat
 The type of a term in the prelude:
 
 ```wl
-TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment["Prelude"]]]
+TypeOf[TypeTheoryTerm[2 + 3]]
 ```
 
 <!-- => ℕ -->
@@ -44,7 +45,7 @@ TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment["Prelude"]]]
 Terms compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n][21], TypeTheoryEnvironment["Prelude"]]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + n][21]]]
 ```
 
 <!-- => 42 -->
@@ -54,7 +55,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 
 Add a theorem to the prelude, checked by the kernel:
 
 ```wl
-arithmetic = Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]];
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}];
 arithmetic[TwoPlusTwo]
 ```
 
@@ -65,7 +66,7 @@ arithmetic[TwoPlusTwo]
 A wrong proof is rejected:
 
 ```wl
-Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]]
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -75,7 +76,7 @@ Append[TypeTheoryEnvironment["Prelude"], TypeTheoryTheorem[Wrong, 2 + 2 == 5, Eq
 Prove `0 + n == n` by induction:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Induction", n],
     TypeTheoryTactic["Reflexivity"],
@@ -92,14 +93,14 @@ The proof term the tactics built:
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(a ∶ ℕ) ↦ 0 + a == a, EqualityReflexivity[0 + NaturalNumberZero], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, EqualityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
 
 ---
 
 Declare an inductive type, and compute with its recursor:
 
 ```wl
-lists = TypeTheoryEnvironment[TypeTheoryEnvironment["Prelude"], {
+lists = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
         EmptyList -> NaturalList,
         ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]
@@ -121,10 +122,10 @@ WeakHeadNormalForm[TypeTheoryTerm[ListSum[ConsList[5, ConsList[6, ConsList[7, Em
 
 ## Properties and Relations
 
-Check every declaration of an environment again from scratch:
+Check every declaration of an environment again from scratch, the prelude's included:
 
 ```wl
-TypeTheoryCheck[TypeTheoryEnvironment["Prelude"]]
+TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]]
 ```
 
 <!-- => True -->

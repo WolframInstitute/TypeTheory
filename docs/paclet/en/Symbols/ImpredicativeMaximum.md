@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 A statement about every type is still a proposition:
 
 ```wl
-TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]], TypeTheoryEnvironment["Prelude"]]]
+TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]]]]
 ```
 
 <!-- => Prop -->

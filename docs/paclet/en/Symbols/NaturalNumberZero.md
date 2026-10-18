@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [NonNegativeIntegers]() is the inductive type of natural numbers in the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, and [NaturalNumberZero]() and [NaturalNumberSuccessor]() are its constructors.
+- [NonNegativeIntegers]() is the inductive type of natural numbers in the prelude, and [NaturalNumberZero]() and [NaturalNumberSuccessor]() are its constructors.
 - The prelude registers them with [TypeTheoryNaturalNumbers](), so the literal `0` is [NaturalNumberZero]() by computation, and `n` is [NaturalNumberSuccessor]() applied `n` times.
 
 ## Basic Examples
@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 [NaturalNumberZero]() is a natural number:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NaturalNumberZero, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[NaturalNumberZero]]
 ```
 
 <!-- => ℕ -->
@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[NaturalNumberZero, TypeTheoryEnvironment["Prelude
 It is the literal `0`:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberZero, TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[0]]
+DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberZero], TypeTheoryTerm[0]]
 ```
 
 <!-- => True -->

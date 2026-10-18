@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [AndEliminationLeft]() is a theorem of the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, proved with the recursor of [And]().
+- [AndEliminationLeft]() is a theorem of the prelude, proved with the recursor of [And]().
 - *a* and *b* are implicit arguments, found from the type of *h*.
 - <code>[AndEliminationLeft]()[*h*]</code> proves what the field `h[[1]]` proves.
 
@@ -24,17 +24,17 @@ RelatedGuides: [TypeTheory]
 The type of [AndEliminationLeft]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndEliminationLeft, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[AndEliminationLeft]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} (a && b) ⇒ a -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} (a ∧ b) ⇒ a -->
 
 ---
 
 Conjunction is commutative:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[And[a, b], And[b, a]]], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[And[a, b], And[b, a]]], {
     TypeTheoryTactic["Introduce", a, b, h],
     TypeTheoryTactic["Exact", AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]]
 }]
@@ -48,4 +48,4 @@ The proof term:
 proof["Term"]
 ```
 
-<!-- => (a ∶ Prop) (b ∶ Prop) (h ∶ a && b) ↦ AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]] -->
+<!-- => (a ∶ Prop) (b ∶ Prop) (h ∶ a ∧ b) ↦ AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]] -->

@@ -28,18 +28,20 @@ section gave a value.
 
 ## Where state threads
 
-- The **tutorial** runs in one context: `prelude` and `proved`, defined once, are used section after
-  section.
+- The **tutorial** runs in one context: `arithmetic`, `proof` and `proved`, defined once, are used
+  section after section.
 - Every other page runs each section, and each example between `---` delimiters, in a clean context,
-  so each one defines what it uses. A symbol page's example writes
-  `TypeTheoryEnvironment["Prelude"]` where it needs the prelude, or binds `prelude` itself first.
+  so each one defines what it uses: an environment other than the prelude is built in the example
+  that needs it.
 
 ## TypeTheory's own rules
 
-- **Every term names its environment.** A term without one is read in the empty environment, where
-  [Plus]() and [EqualityReflexivity]() are not declared. Write
-  <code>[TypeTheoryTerm]()[*term*, [TypeTheoryEnvironment]()["Prelude"]]</code>, not
-  <code>[TypeTheoryTerm]()[*term*]</code>, unless the empty environment is the point.
+- **The prelude goes without saying.** A term, a proof or a list of declarations without an
+  environment is in the prelude, so examples never write `TypeTheoryEnvironment["Prelude"]` where it
+  could be left out: <code>[TypeTheoryTerm]()[2 + 3]</code>, <code>[TypeTheoryProof]()[*statement*, {...}]</code>,
+  <code>[TypeTheoryEnvironment]()[{*declaration*}]</code>. Name an environment only when it is not the
+  prelude, and build on <code>[TypeTheoryEnvironment]()[]</code> when the prelude must be left out, as
+  for natural numbers of your own.
 - **[TypeOf]() takes a term written out.** It holds its argument, so `TypeOf[statement]` with
   `statement` a variable does not reach TypeTheory and fails with a compiler message. Use
   <code>[TypeTheoryCheck]()[*statement*]</code> for a term in a variable.
@@ -55,11 +57,12 @@ section gave a value.
 Terms, declarations and proofs display in two dimensions. A hint writes the display on one line:
 
 - a quantifier with its binder below it as `∀_n∶ℕ` (explicit) or `∀_{a ∶ Prop}` (implicit);
+- the logical connectives as `∧`, `∨`, `¬`, and the natural numbers' constructors as `0` and `n + 1`;
 - a function as `(n ∶ ℕ) ↦ body`, and a function type as `ℕ → ℕ`, or `a ⇒ b` between propositions;
-- an equation as `2 + 2 == 4`, a conjunction as `a && b`;
+- an equation as `2 + 2 == 4`;
 - a declaration as `theorem TwoPlusTwo : 2 + 2 == 4`;
 - a proof as `Proof, 2 goals: ⊢ True; ⊢ 1 + 1 == 2`, or `Proof complete`;
-- an environment as `TypeTheoryEnvironment summary box: 31 constants`;
+- an environment as `TypeTheoryEnvironment summary box: 32 constants`;
 - a failure by its tag, `Failure["TypeMismatch", ...]`.
 
 ## Symbols are links

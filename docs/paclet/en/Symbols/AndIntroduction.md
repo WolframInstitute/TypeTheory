@@ -24,27 +24,27 @@ RelatedGuides: [TypeTheory]
 The type of [AndIntroduction]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndIntroduction, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[AndIntroduction]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ b ⇒ (a && b) -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ b ⇒ (a ∧ b) -->
 
 ---
 
 Prove two statements at once:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndIntroduction[TrueIntroduction, EqualityReflexivity[2]], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[AndIntroduction[TrueIntroduction, EqualityReflexivity[2]]]]
 ```
 
-<!-- => True && 2 == 2 -->
+<!-- => True ∧ 2 == 2 -->
 
 ## Scope
 
 The tactic `"Apply"` leaves a goal for each part:
 
 ```wl
-TypeTheoryProof[And[True, 1 + 1 == 2], TypeTheoryEnvironment["Prelude"], {TypeTheoryTactic["Apply", AndIntroduction]}]
+TypeTheoryProof[And[True, 1 + 1 == 2], {TypeTheoryTactic["Apply", AndIntroduction]}]
 ```
 
 <!-- => Proof, 2 goals: ⊢ True; ⊢ 1 + 1 == 2 -->
@@ -54,7 +54,7 @@ TypeTheoryProof[And[True, 1 + 1 == 2], TypeTheoryEnvironment["Prelude"], {TypeTh
 A proof of a conjunction is a structure whose fields are proofs:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, h[[2]]], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, h[[2]]]]]
 ```
 
-<!-- => (True && 1 == 1) ⇒ 1 == 1 -->
+<!-- => (True ∧ 1 == 1) ⇒ 1 == 1 -->

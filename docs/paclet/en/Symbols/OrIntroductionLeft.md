@@ -24,17 +24,17 @@ RelatedGuides: [TypeTheory]
 The type of [OrIntroductionLeft]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ (a || b) -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ (a ∨ b) -->
 
 ---
 
 A proof of `True || False`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction], TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[Or[True, False]]]
+TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction]], TypeTheoryTerm[Or[True, False]]]
 ```
 
 <!-- => True -->
@@ -44,17 +44,17 @@ TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction], TypeTheoryE
 [Typed]() gives the expected type inside the term:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[OrIntroductionLeft[TrueIntroduction], Or[True, False]], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[OrIntroductionLeft[TrueIntroduction], Or[True, False]]]]
 ```
 
-<!-- => True || False -->
+<!-- => True ∨ False -->
 
 ## Possible Issues
 
 Without an expected type, the right side of the disjunction is unknown:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction]]]
 ```
 
 <!-- => Failure["UnsolvedImplicitArgument", ...] -->

@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [EqualitySymmetry]() is a theorem of the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, proved with the recursor of [Equal]().
+- [EqualitySymmetry]() is a theorem of the prelude, proved with the recursor of [Equal]().
 - The type of *x* and *y*, its universe level, *x* and *y* are implicit arguments, found from the type of *h*.
 
 ## Basic Examples
@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 The type of [EqualitySymmetry]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualitySymmetry, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[EqualitySymmetry]]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{x ∶ α} ∀_{y ∶ α} x == y ⇒ y == x -->
@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualitySymmetry, TypeTheoryEnvironment["Prelude"
 Turn an equation around:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h, x + 0 == x]}, EqualitySymmetry[h]], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h, x + 0 == x]}, EqualitySymmetry[h]]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 0 == x ⇒ x == x + 0 -->

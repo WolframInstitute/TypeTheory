@@ -24,7 +24,7 @@ RelatedGuides: [TypeTheory]
 The type of [FalseElimination]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[FalseElimination, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[FalseElimination]]
 ```
 
 <!-- => ∀_{a ∶ Prop} False ⇒ a -->
@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[FalseElimination, TypeTheoryEnvironment["Prelude"
 From [False](), even `2 + 2 == 5` follows:
 
 ```wl
-TypeTheoryProof[Implies[False, 2 + 2 == 5], TypeTheoryEnvironment["Prelude"], {
+TypeTheoryProof[Implies[False, 2 + 2 == 5], {
     TypeTheoryTactic["Introduce", h],
     TypeTheoryTactic["Exact", FalseElimination[h]]
 }]
@@ -47,7 +47,7 @@ TypeTheoryProof[Implies[False, 2 + 2 == 5], TypeTheoryEnvironment["Prelude"], {
 A proposition and its negation prove anything:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[p, Implies[Not[p], q]]], TypeTheoryEnvironment["Prelude"], {
+TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[p, Implies[Not[p], q]]], {
     TypeTheoryTactic["Introduce", p, q, hp, hnp],
     TypeTheoryTactic["Exact", FalseElimination[hnp[hp]]]
 }]

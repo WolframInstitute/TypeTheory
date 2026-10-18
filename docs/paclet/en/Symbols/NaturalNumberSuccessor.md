@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [NonNegativeIntegers]() is the inductive type of natural numbers in the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, and [NaturalNumberZero]() and [NaturalNumberSuccessor]() are its constructors.
+- [NonNegativeIntegers]() is the inductive type of natural numbers in the prelude, and [NaturalNumberZero]() and [NaturalNumberSuccessor]() are its constructors.
 - The prelude registers them with [TypeTheoryNaturalNumbers](), so a literal `n + 1` is <code>[NaturalNumberSuccessor]()[*n*]</code> by computation.
 
 ## Basic Examples
@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 The type of [NaturalNumberSuccessor]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NaturalNumberSuccessor, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[NaturalNumberSuccessor]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[NaturalNumberSuccessor, TypeTheoryEnvironment["Pr
 The successor of `41` is `42`:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[41], TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[42]]
+DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[41]], TypeTheoryTerm[42]]
 ```
 
 <!-- => True -->
@@ -44,7 +44,7 @@ Adding one is taking the successor, since addition recurses on its second argume
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1], TypeTheoryEnvironment["Prelude"]],
+    TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1]],
     TypeTheoryTerm[NaturalNumberSuccessor]
 ]
 ```
@@ -56,7 +56,7 @@ DefinitionallyEqualQ[
 A constructor applied to an argument is already in weak head normal form:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberSuccessor[41], TypeTheoryEnvironment["Prelude"]]]
+WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberSuccessor[41]]]
 ```
 
-<!-- => NaturalNumberSuccessor[41] -->
+<!-- => 41 + 1 -->

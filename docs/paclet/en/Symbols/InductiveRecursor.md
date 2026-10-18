@@ -24,24 +24,23 @@ RelatedGuides: [TypeTheory]
 The recursor of the natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers], TypeTheoryEnvironment["Prelude"]]]
+TypeOf[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers]]]
 ```
 
-<!-- => ∀_m∶(ℕ → Sort u) m[NaturalNumberZero] → (∀_n∶ℕ m[n] → m[NaturalNumberSuccessor[n]]) → ∀_t∶ℕ m[t] -->
+<!-- => ∀_m∶(ℕ → Sort u) m[0] → (∀_n∶ℕ m[n] → m[n + 1]) → ∀_t∶ℕ m[t] -->
 
 ---
 
 Recursion: double a natural number, adding 2 for each successor:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
 double = TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
     Function[{Typed[t, NonNegativeIntegers]}, NonNegativeIntegers],
     0,
     Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, r + 2],
     n
-]], prelude];
-WeakHeadNormalForm[TypeTheoryTerm[double[5], prelude]]
+]]];
+WeakHeadNormalForm[TypeTheoryTerm[double[5]]]
 ```
 
 <!-- => 10 -->

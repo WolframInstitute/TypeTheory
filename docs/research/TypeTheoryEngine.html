@@ -112,11 +112,11 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 <header>
   <div class="eyebrow">WolframInstitute/TypeTheory · design</div>
   <h1>TypeTheory Engine</h1>
-  <p class="lede">A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Coq, written in pure Wolfram Language. Its terms are written with the symbols the language already has: <code>Function</code>, <code>Typed</code>, <code>TypeOf</code>, <code>ForAll</code>, <code>Implies</code>, <code>Exists</code>, <code>Equal</code>, <code>Plus</code>, <code>NonNegativeIntegers</code>. A small kernel checks every proof, and tactics build proofs step by step in a notebook.</p>
+  <p class="lede">A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in pure Wolfram Language. Its terms are written with the symbols the language already has: <code>Function</code>, <code>Typed</code>, <code>TypeOf</code>, <code>ForAll</code>, <code>Implies</code>, <code>Exists</code>, <code>Equal</code>, <code>Plus</code>, <code>NonNegativeIntegers</code>. A small kernel checks every proof, and tactics build proofs step by step in a notebook.</p>
   <div class="meta">
-    <span><b>Status</b> Prototype 0.2.1, October 2026</span>
+    <span><b>Status</b> Prototype 0.3.0, October 2026</span>
     <span><b>Kernel</b> Pure Wolfram Language, no native library</span>
-    <span><b>Tests</b> 108 passing</span>
+    <span><b>Tests</b> 113 passing</span>
     <span><b>Lean</b> Bridge in LeanLink</span>
     <span><b>Docs</b> <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">Documentation site</a></span>
   </div>
@@ -144,9 +144,9 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <li><span class="k">An independent engine</span><span>The paclet <code>WolframInstitute/TypeTheory</code> needs nothing but the Wolfram Language. No symbol in it is named after Lean, and it loads and checks proofs without Lean installed. A bridge in LeanLink translates declarations in both directions, so the two kernels can check each other's work.</span></li>
   <li><span class="k">Two layers of terms</span><span>Core terms are locally nameless, with internal heads named in plain words: <code>boundVariable</code>, <code>lambdaAbstraction</code>, <code>dependentFunctionType</code>, … Alpha-equivalence is <code>SameQ</code>. Surface terms are ordinary expressions built from built-in symbols, held inside <code>TypeTheoryTerm</code>, for reading and writing.</span></li>
   <li><span class="k">Built-in symbols are the constants</span><span>The prelude declares <code>Equal</code> as the inductive equality type, <code>NonNegativeIntegers</code> as the natural numbers, and <code>Plus</code> as addition. <code>n + 0 == n</code> is therefore literally a statement of the theory.</span></li>
-  <li><span class="k"><code>TypeOf</code> is the front door</span><span><code>TypeOf[TypeTheoryTerm[2 + 3, prelude]]</code> gives <code>TypeTheoryTerm[NonNegativeIntegers, prelude]</code>. The engine extends the built-in through an upvalue on <code>TypeTheoryTerm</code>, without modifying it.</span></li>
+  <li><span class="k"><code>TypeOf</code> is the front door</span><span><code>TypeOf[TypeTheoryTerm[2 + 3]]</code> gives <code>TypeTheoryTerm[NonNegativeIntegers, prelude]</code>, shown as ℕ. The engine extends the built-in through an upvalue on <code>TypeTheoryTerm</code>, without modifying it.</span></li>
   <li><span class="k">A small trusted kernel</span><span>Type inference, reduction and definitional equality; inductive families with generated recursors; natural number literals. Elaboration and tactics sit outside it: whatever they produce is checked again with no holes left.</span></li>
-  <li><span class="k">Explicit environments</span><span>There is no global environment. Declarations are inert constructors, such as <code>TypeTheoryTheorem[name, statement, proof]</code>, that <code>TypeTheoryEnvironment[env, {declaration, …}]</code> or <code>Append[env, declaration]</code> checks into a new environment, leaving the old one as it was. An environment is a handle to a store, a symbol whose DownValues hold the constants, so terms and proofs carry theirs: <code>TypeTheoryTerm[term, env]</code>, <code>TypeTheoryProof[statement, env]</code>. A store can be changed by hand, so <code>TypeTheoryCheck[env]</code> replays every declaration from scratch.</span></li>
+  <li><span class="k">Explicit environments</span><span>There is no global environment. Declarations are inert constructors, such as <code>TypeTheoryTheorem[name, statement, proof]</code>, that <code>TypeTheoryEnvironment[env, {declaration, …}]</code> or <code>Append[env, declaration]</code> checks into a new environment, leaving the old one as it was. An environment is a handle to a store, a symbol whose DownValues hold the constants, so terms and proofs carry theirs: <code>TypeTheoryTerm[term, env]</code>, <code>TypeTheoryProof[statement, env]</code>. Where none is given, the environment is the prelude. A store can be changed by hand, so <code>TypeTheoryCheck[env]</code> replays every declaration from scratch.</span></li>
 </ul>
 </section>
 
@@ -177,7 +177,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 
 <section id="prototype">
 <h2>The prototype</h2>
-<p>Version 0.2.1 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in about a second, most of which is building and checking the prelude.</p>
+<p>Version 0.3.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in about a second, most of which is building and checking the prelude.</p>
 <div class="scroll"><table>
   <thead><tr><th>Component</th><th>Status</th><th>File</th></tr></thead>
   <tbody>
@@ -245,7 +245,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <tr><td><code>Exists[{Typed[x, A]}, p]</code></td><td>An existential statement</td><td>The same binder form as <code>ForAll</code>.</td></tr>
     <tr><td><code>Typed[e, A]</code></td><td><code>e</code>, checked against <code>A</code></td><td><code>Typed</code>'s own meaning.</td></tr>
     <tr><td><code>With[{x = v}, b]</code></td><td><code>b</code> with <code>x</code> standing for <code>v</code></td><td>The built-in for local values.</td></tr>
-    <tr><td><code>TypeUniverse[level]</code></td><td>A universe, displayed as Prop, Type, Type u or Sort u</td><td><code>Sort</code> is the built-in sorting function, so universes get a head of their own.</td></tr>
+    <tr><td><code>TypeUniverse[level]</code></td><td>A universe, displayed as Prop, Type, Type u, Type (u + 1) or Sort u</td><td><code>Sort</code> is the built-in sorting function, so universes get a head of their own.</td></tr>
     <tr><td><code>Subscript[c, level]</code></td><td>A constant at an explicit universe level</td><td>Universe arguments read as indices.</td></tr>
     <tr><td><code>Construct[f, a, b]</code></td><td>Application with every argument given, implicit ones included</td><td>The built-in that applies a head to arguments. Elaboration leaves such an application as written, which makes exact terms possible.</td></tr>
     <tr><td><code>t[[i]]</code></td><td>Field <code>i</code> of a structure</td><td><code>Part</code>'s own meaning.</td></tr>
@@ -263,12 +263,12 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <li>The declaration constructors <code>TypeTheoryAxiom</code>, <code>TypeTheoryDefinition</code>, <code>TypeTheoryTheorem</code>, <code>TypeTheoryInductiveType</code> and <code>TypeTheoryNaturalNumbers</code> are inert and hold their arguments, as do <code>TypeTheoryProof</code> and the tactics.</li>
   <li>Internally a term becomes a syntax tree of inert nodes before anything inspects it. Names are kept as <code>HoldComplete[name]</code>.</li>
 </ul>
-<p>A symbol whose value is a <code>TypeTheoryTerm</code> stands for that term, and one whose value is a finished proof stands for the proof, so statements and proofs can be built up across cells.</p>
+<p>Bound variables are plain symbols: a binder scopes its variable, so no value reaches it, and Formal symbols would add nothing. A symbol whose value is a <code>TypeTheoryTerm</code> stands for that term, and one whose value is a finished proof stands for the proof, so statements and proofs can be built up across cells.</p>
 
 <h3>Moving between the layers</h3>
 <ul>
   <li><b>Surface to core</b> is elaboration. It inserts implicit arguments and universe levels and solves them by unification; see <a href="#elaboration">Elaboration</a>.</li>
-  <li><b>Core to surface</b> is reading back. Binders get their own names back, or Formal symbols where those names are taken; implicit arguments are dropped; and a non-dependent function type becomes <code>Implies</code> or <code>TypeSpecifier</code>. In a notebook the result shows in mathematical notation through an <code>InterpretationBox</code>, so copying a displayed term pastes the term itself.</li>
+  <li><b>Core to surface</b> is reading back. Binders get their own names back, or a numbered variant, as <code>a1</code>, where a variable in scope already shows the name; implicit arguments are dropped; and a non-dependent function type becomes <code>Implies</code> or <code>TypeSpecifier</code>. In a notebook the result shows in mathematical notation through an <code>InterpretationBox</code>, so copying a displayed term pastes the term itself. The connectives show as ∧, ∨ and ¬, and the natural numbers of the term's environment as <code>0</code> and <code>n + 1</code>, as Lean shows them.</li>
 </ul>
 </section>
 
@@ -320,15 +320,14 @@ flowchart LR
 <div class="note"><p class="label">The literal contract</p><p>Computing <code>2 + 3</code> on integers is trusted, so registering natural numbers is checked strictly. The type must live in Type with no parameters, indices or universe parameters, and its constructors must be exactly a zero and a successor. Addition must be defined, up to the names of bound variables, as recursion on the second argument. Then adding integers always agrees with unfolding the definition.</p></div>
 
 <h3>Interface</h3>
-<pre><code><span class="c">(* a term carries the environment its constants come from *)</span>
-prelude = TypeTheoryEnvironment["Prelude"];
-TypeOf[TypeTheoryTerm[2 + 3, prelude]]                           <span class="c">(* TypeTheoryTerm[NonNegativeIntegers, prelude] *)</span>
-WeakHeadNormalForm[TypeTheoryTerm[2 + 3, prelude]]               <span class="c">(* TypeTheoryTerm[5, prelude] *)</span>
-DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[2], prelude], TypeTheoryTerm[3]]   <span class="c">(* True *)</span>
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]]  <span class="c">(* True *)</span>
+<pre><code><span class="c">(* a term carries the environment its constants come from; without one, it is in the prelude *)</span>
+TypeOf[TypeTheoryTerm[2 + 3]]                                    <span class="c">(* TypeTheoryTerm[NonNegativeIntegers, prelude], shown as ℕ *)</span>
+WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]                        <span class="c">(* 5 *)</span>
+DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[2]], TypeTheoryTerm[3]]   <span class="c">(* True *)</span>
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]  <span class="c">(* True *)</span>
 
-<span class="c">(* declarations are inert until an environment checks them: the result is a new environment, or a Failure *)</span>
-lists = TypeTheoryEnvironment[prelude, {
+<span class="c">(* declarations are inert until an environment checks them: without one, they extend the prelude *)</span>
+lists = TypeTheoryEnvironment[{
   TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
     EmptyList -&gt; NaturalList,
     ConsList -&gt; ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]
@@ -336,11 +335,12 @@ lists = TypeTheoryEnvironment[prelude, {
   TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]],
   TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]
 }];
-classical = Append[prelude, TypeTheoryAxiom[Excluded, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]];
+classical = Append[lists, TypeTheoryAxiom[Excluded, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]];
+bits = TypeTheoryEnvironment[TypeTheoryEnvironment[], {TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -&gt; Bit, BitOne -&gt; Bit}]}];   <span class="c">(* without the prelude *)</span>
 
 <span class="c">(* an environment behaves like an association of its declarations *)</span>
-lists[TwoPlusTwo]                                                <span class="c">(* TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]] *)</span>
-TypeTheoryEnvironment[Normal[lists]]                             <span class="c">(* the same environment, rebuilt from its declarations *)</span>
+lists[TwoPlusTwo]                                                <span class="c">(* theorem TwoPlusTwo : 2 + 2 == 4 *)</span>
+TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[lists]]    <span class="c">(* the same environment, rebuilt from its declarations *)</span>
 TypeTheoryCheck[lists]                                           <span class="c">(* replays every declaration: True *)</span></code></pre>
 </section>
 
@@ -379,14 +379,14 @@ TypeTheoryCheck[lists]                                           <span class="c"
 </table></div>
 
 <h4>A session</h4>
-<pre><code>proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude];
+<pre><code>proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]];
 proof = TypeTheoryTactic["Introduce", n][proof];        <span class="c">(* n ∶ ℕ ⊢ 0 + n == n *)</span>
-proof = TypeTheoryTactic["Induction", n][proof];        <span class="c">(* case NaturalNumberZero, case NaturalNumberSuccessor *)</span>
+proof = TypeTheoryTactic["Induction", n][proof];        <span class="c">(* case NaturalNumberZero ⊢ 0 + 0 == 0, case NaturalNumberSuccessor ⊢ ∀ n, 0 + n == n ⇒ 0 + (n + 1) == n + 1 *)</span>
 proof = TypeTheoryTactic["Reflexivity"][proof];         <span class="c">(* 0 + 0 == 0 by computation *)</span>
-proof = TypeTheoryTactic["Introduce", k, ih][proof];    <span class="c">(* k ∶ ℕ, ih ∶ 0 + k == k ⊢ 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[k] *)</span>
+proof = TypeTheoryTactic["Introduce", k, ih][proof];    <span class="c">(* k ∶ ℕ, ih ∶ 0 + k == k ⊢ 0 + (k + 1) == k + 1 *)</span>
 proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][proof];
 
-proved = Append[prelude, TypeTheoryTheorem[AdditionZeroLeft, proof]];
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[AdditionZeroLeft, proof]}];
 TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 7 == 7]]   <span class="c">(* True *)</span></code></pre>
 <p>The last step works because <code>0 + NaturalNumberSuccessor[k]</code> reduces to <code>NaturalNumberSuccessor[0 + k]</code>, so the congruence proof's type matches the goal by computation.</p>
 
@@ -481,7 +481,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 
 <div class="phase done"><div class="n">1</div><div>
   <h3>Prototype</h3>
   <div class="when">Done, October 2026</div>
-  <p>Core terms, the kernel, single inductive families, natural number literals, elaboration, six tactics, the prelude and environment replay; then explicit environments built from declaration constructors, structures with projections and η, a documentation site, and 108 tests.</p>
+  <p>Core terms, the kernel, single inductive families, natural number literals, elaboration, six tactics, the prelude and environment replay; then explicit environments built from declaration constructors, structures with projections and η, a documentation site, and 113 tests.</p>
   <p class="milestone"><b>Milestone</b> <code>0 + n == n</code> is proved by induction in a notebook, declared, used, and replayed from scratch.</p>
 </div></div>
 <div class="phase"><div class="n">2</div><div>
@@ -536,7 +536,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7], proved], TypeTheoryTerm[0 + 
 </ul>
 </section>
 
-<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.2.1. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.3.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>

@@ -34,7 +34,7 @@ RelatedGuides: [TypeTheory]
 Introduce a variable:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], TypeTheoryEnvironment["Prelude"]];
+proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]];
 proof = TypeTheoryTactic["Introduce", n][proof];
 proof["Goals"]
 ```
@@ -54,7 +54,7 @@ TypeTheoryTactic["Reflexivity"][proof]["Goals"]
 `"Apply"` leaves a goal for each argument, and `"Assumption"` closes one with a hypothesis:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
     TypeTheoryTactic["Introduce", a, b, ha, hb],
     TypeTheoryTactic["Apply", AndIntroduction],
     TypeTheoryTactic["Assumption"],
@@ -70,7 +70,7 @@ proof["Term"]
 Solving one goal can solve another it mentions:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
     TypeTheoryTactic["Apply", EqualityTransitivity],
     TypeTheoryTactic["Exact", h1],
@@ -86,7 +86,7 @@ proof["Goals"]
 `"Introduce"` unfolds [Not]():
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, Not[Not[p]]]], TypeTheoryEnvironment["Prelude"], {
+proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, Not[Not[p]]]], {
     TypeTheoryTactic["Introduce", p, hp, hnp],
     TypeTheoryTactic["Exact", hnp[hp]]
 }];
@@ -100,7 +100,7 @@ proof["Goals"]
 `"Reflexivity"` needs the sides to be equal by computation; `0 + n` is not `n` until induction:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], TypeTheoryEnvironment["Prelude"], {
+TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
 }]

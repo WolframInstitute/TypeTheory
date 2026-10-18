@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [True]() is an inductive proposition of the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, and [TrueIntroduction]() is its one constructor.
+- [True]() is an inductive proposition of the prelude, and [TrueIntroduction]() is its one constructor.
 - Like every constant, [TrueIntroduction]() means something only in an environment that declares it.
 
 ## Basic Examples
@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 [TrueIntroduction]() proves [True]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction]]
 ```
 
 <!-- => True -->
@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction, TypeTheoryEnvironment["Prelude"
 Prove [True]() with a tactic:
 
 ```wl
-TypeTheoryProof[True, TypeTheoryEnvironment["Prelude"], {TypeTheoryTactic["Exact", TrueIntroduction]}]
+TypeTheoryProof[True, {TypeTheoryTactic["Exact", TrueIntroduction]}]
 ```
 
 <!-- => Proof complete -->
@@ -43,7 +43,7 @@ TypeTheoryProof[True, TypeTheoryEnvironment["Prelude"], {TypeTheoryTactic["Exact
 [True]() is a proposition:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[True, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[True]]
 ```
 
 <!-- => Prop -->
@@ -53,7 +53,7 @@ TypeTheoryCheck[TypeTheoryTerm[True, TypeTheoryEnvironment["Prelude"]]]
 The empty environment does not declare [TrueIntroduction]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction]]
+TypeTheoryCheck[TypeTheoryTerm[TrueIntroduction, TypeTheoryEnvironment[]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...]: TrueIntroduction is neither a variable in scope nor a declared constant -->

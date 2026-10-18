@@ -15,7 +15,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- [AndEliminationRight]() is a theorem of the prelude, <code>[TypeTheoryEnvironment]()["Prelude"]</code>, proved with the recursor of [And]().
+- [AndEliminationRight]() is a theorem of the prelude, proved with the recursor of [And]().
 - *a* and *b* are implicit arguments, found from the type of *h*.
 - <code>[AndEliminationRight]()[*h*]</code> proves what the field `h[[2]]` proves.
 
@@ -24,17 +24,17 @@ RelatedGuides: [TypeTheory]
 The type of [AndEliminationRight]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndEliminationRight, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[AndEliminationRight]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} (a && b) ⇒ b -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} (a ∧ b) ⇒ b -->
 
 ---
 
 Use it on a hypothesis:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, AndEliminationRight[h]], TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, AndEliminationRight[h]]]]
 ```
 
-<!-- => (True && 1 == 1) ⇒ 1 == 1 -->
+<!-- => (True ∧ 1 == 1) ⇒ 1 == 1 -->

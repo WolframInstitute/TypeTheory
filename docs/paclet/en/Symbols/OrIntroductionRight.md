@@ -23,17 +23,17 @@ RelatedGuides: [TypeTheory]
 The type of [OrIntroductionRight]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[OrIntroductionRight, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[OrIntroductionRight]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} b ⇒ (a || b) -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} b ⇒ (a ∨ b) -->
 
 ---
 
 A proof of `False || 1 + 2 == 3`, whose right side holds by computation:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[OrIntroductionRight[EqualityReflexivity[3]], TypeTheoryEnvironment["Prelude"]], TypeTheoryTerm[Or[False, 1 + 2 == 3]]]
+TypeTheoryCheck[TypeTheoryTerm[OrIntroductionRight[EqualityReflexivity[3]]], TypeTheoryTerm[Or[False, 1 + 2 == 3]]]
 ```
 
 <!-- => True -->

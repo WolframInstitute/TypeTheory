@@ -21,7 +21,7 @@ RelatedGuides: [TypeTheory]
 
 - <code>[TypeTheoryCheck]()[*term*]</code> is [TypeOf]() without holding its argument.
 - A constant on its own has its declared type, with its implicit arguments and universe parameters.
-- In <code>[TypeTheoryCheck]()[*term*, *type*]</code>, a term or type without an environment takes the other's.
+- In <code>[TypeTheoryCheck]()[*term*, *type*]</code>, a term or type without an environment takes the other's, and both without one are in the prelude.
 - An environment's store could be changed by hand. <code>[TypeTheoryCheck]()[*env*]</code> replays every declaration on an empty environment and compares each record with the one the replay produces, which catches a forged theorem or recursor. Axioms are taken on trust.
 
 ## Basic Examples
@@ -29,8 +29,7 @@ RelatedGuides: [TypeTheory]
 The type of a term:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]]]
 ```
 
 <!-- => 4 == 4 -->
@@ -40,18 +39,17 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude]]
 A proof of `2 + 2 == 4` by computation:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]
 ```
 
 <!-- => True -->
 
 ## Scope
 
-Check the prelude again from scratch:
+Check an environment again from scratch, the prelude's declarations included:
 
 ```wl
-TypeTheoryCheck[TypeTheoryEnvironment["Prelude"]]
+TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]]
 ```
 
 <!-- => True -->
@@ -61,18 +59,17 @@ TypeTheoryCheck[TypeTheoryEnvironment["Prelude"]]
 The declared type of a constant:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndIntroduction, TypeTheoryEnvironment["Prelude"]]]
+TypeTheoryCheck[TypeTheoryTerm[AndIntroduction]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ b ⇒ (a && b) -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ b ⇒ (a ∧ b) -->
 
 ## Possible Issues
 
 A term against a type it does not have:
 
 ```wl
-prelude = TypeTheoryEnvironment["Prelude"];
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 5]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 5]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
