@@ -128,6 +128,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
       <li><a href="#repr">Representation</a></li>
       <li><a href="#kernel">The kernel</a></li>
       <li><a href="#elaboration">Elaboration</a></li>
+      <li><a href="#rules">Rules</a></li>
       <li><a href="#proving">Proof assistance</a></li>
       <li><a href="#trust">What is trusted</a></li>
       <li><a href="#bridge">The Lean bridge</a></li>
@@ -448,7 +449,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 <p><code>Eq.symm</code>, <code>congrArg</code>, <code>And.comm</code>, <code>Nat.add_zero</code>, <code>Nat.zero_add</code> and <code>Nat.succ_add</code> import and check. The cone of <code>Nat.zero_add</code> has 43 declarations, Lean's structures and its compiled recursion among them. A constant that needs what TypeTheory lacks fails with the reason: string literals, mutual or nested inductive types, and the computation rule of quotients, which <code>funext</code> needs.</p>
 
 <h3>To Lean</h3>
-<p><code>TypeTheoryToLean[env, name]</code> writes TypeTheory declarations as Lean source, with every application explicit (<code>@f a b</code>) and every universe level given. The prelude's constants become Lean's <code>Init</code> constants: <code>NonNegativeIntegers</code> is <code>Nat</code>, <code>Equal</code> is <code>Eq</code>, and <code>Plus</code> is <code>Nat.add</code>, which computes the same on constructors. The prelude's axioms are Lean's own, <code>propext</code>, <code>funext</code> and <code>Classical.choice</code>. Everything else is declared in the namespace <code>TypeTheory</code>. <code>LeanImportString</code> compiles the source, so Lean's kernel checks the proof: the proof of <code>0 + n == n</code> by induction in <a href="#proving">Proof assistance</a> exports, and Lean accepts it, as it accepts the prelude's proof of the excluded middle with the axioms of its own <code>Classical.em</code>.</p>
+<p><code>TypeTheoryToLean[env, name]</code> writes TypeTheory declarations as Lean source, with every application explicit (<code>@f a b</code>) and every universe level given. The prelude's constants become Lean's <code>Init</code> constants: <code>NonNegativeIntegers</code> is <code>Nat</code>, <code>Equal</code> is <code>Eq</code>, and <code>Plus</code> is <code>Nat.add</code>, which computes the same on constructors. The prelude's axioms are Lean's own, <code>propext</code>, <code>funext</code> and <code>Classical.choice</code>. Everything else is declared in the namespace <code>TypeTheory</code>. <code>LeanImportString</code> compiles the source, so Lean's kernel checks the proof: the proof of <code>0 + n == n</code> by induction in <a href="#proving">Proof assistance</a> exports, and Lean accepts it, as it accepts the prelude's proof of the excluded middle with the axioms of its own <code>Classical.em</code>. Lean's kernel follows the calculus of inductive constructions, so an environment of other <a href="#rules">rules</a>, without Prop or with rewrite rules, is refused rather than written as source Lean would reject.</p>
 
 <h3>What must always hold</h3>
 <ul>
