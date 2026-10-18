@@ -1,0 +1,538 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- TypeTheory Engine: design of the WolframInstitute/TypeTheory paclet. Standalone copy of the published design page. -->
+<title>TypeTheory Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<style>
+/* Layout: one reading column of about 68 characters; tables, code and the diagram scroll inside their own frames. */
+:root {
+  --paper: #fbfcfd;
+  --panel: #f1f3f7;
+  --ink: #1b2230;
+  --muted: #586273;
+  --rule: #dde2ea;
+  --wl: #b23a20;
+  --bridge: #34498c;
+  --ok: #2c7349;
+  --plan: #8f6410;
+  --code: #f3f5f9;
+  --display: "IBM Plex Sans Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  --measure: 46rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #10141b; --panel: #171c25; --ink: #e3e7ee; --muted: #9ba5b6; --rule: #283040;
+    --wl: #ff8d6f; --bridge: #9fb3ff; --ok: #71c695; --plan: #e2b65c; --code: #151a23;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #10141b; --panel: #171c25; --ink: #e3e7ee; --muted: #9ba5b6; --rule: #283040;
+  --wl: #ff8d6f; --bridge: #9fb3ff; --ok: #71c695; --plan: #e2b65c; --code: #151a23;
+  color-scheme: dark;
+}
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: var(--body); font-size: 1.0625rem; line-height: 1.62;
+  padding-inline: 18px; padding-block: 2.5rem 4rem;
+}
+main { max-width: var(--measure); margin-inline: auto; }
+h1, h2, h3, h4 { font-family: var(--display); line-height: 1.15; text-wrap: balance; color: var(--ink); }
+h1 { font-size: clamp(2.1rem, 5vw, 2.9rem); font-weight: 700; letter-spacing: -0.01em; margin: 0.2rem 0 0.8rem; }
+h2 { font-size: 1.65rem; font-weight: 700; margin: 3.2rem 0 0.6rem; padding-top: 1.2rem; border-top: 1px solid var(--rule); }
+h3 { font-size: 1.22rem; font-weight: 600; margin: 2rem 0 0.4rem; }
+h4 { font-size: 1rem; font-weight: 600; margin: 1.4rem 0 0.3rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+p { margin: 0.55rem 0; }
+a { color: var(--bridge); text-underline-offset: 2px; }
+a:focus-visible { outline: 2px solid var(--wl); outline-offset: 2px; border-radius: 2px; }
+.eyebrow { font-family: var(--display); font-size: 0.82rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--wl); font-weight: 600; }
+.lede { font-size: 1.2rem; line-height: 1.5; margin: 0.4rem 0 1rem; }
+.meta { display: flex; flex-wrap: wrap; gap: 0.4rem 1.4rem; font-family: var(--display); font-size: 0.9rem; color: var(--muted); padding: 0.7rem 0; border-block: 1px solid var(--rule); }
+.meta b { color: var(--ink); font-weight: 600; }
+nav.toc { margin: 1.4rem 0 0.4rem; }
+nav.toc ol { margin: 0; padding-left: 1.3rem; columns: 2 16rem; column-gap: 2rem; font-family: var(--display); font-size: 0.98rem; }
+nav.toc li { break-inside: avoid; padding: 0.12rem 0; }
+code, kbd { font-family: var(--mono); font-size: 0.86em; background: var(--code); padding: 0.08em 0.32em; border-radius: 3px; overflow-wrap: anywhere; }
+pre { margin: 0.9rem 0; background: var(--code); border: 1px solid var(--rule); border-radius: 6px; padding: 0.9rem 1rem; overflow-x: auto; font-family: var(--mono); font-size: 0.84rem; line-height: 1.55; }
+pre code { background: none; padding: 0; font-size: inherit; overflow-wrap: normal; }
+pre .c { color: var(--muted); }
+.decisions { display: flex; flex-direction: column; gap: 0.7rem; margin: 1rem 0; padding: 0; list-style: none; }
+.decisions li { display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: 0.9rem; padding-bottom: 0.7rem; border-bottom: 1px solid var(--rule); margin: 0; }
+.decisions li:last-child { border-bottom: 0; }
+.decisions .k { font-family: var(--display); font-weight: 600; font-size: 1rem; color: var(--wl); line-height: 1.35; padding-top: 0.12rem; }
+@media (max-width: 560px) { .decisions li { grid-template-columns: minmax(0, 1fr); gap: 0.15rem; } }
+.scroll { overflow-x: auto; margin: 1rem 0; border: 1px solid var(--rule); border-radius: 6px; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; line-height: 1.45; }
+thead th { font-family: var(--display); font-weight: 600; text-align: left; font-size: 0.86rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); background: var(--panel); }
+th, td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+tbody tr:last-child td { border-bottom: 0; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td code { white-space: nowrap; }
+td.wrap code { white-space: normal; }
+.tag { display: inline-block; font-family: var(--display); font-size: 0.74rem; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0.05rem 0.45rem; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; }
+.tag.built { color: var(--ok); }
+.tag.partial { color: var(--plan); }
+.tag.planned { color: var(--muted); }
+.tag.bridge { color: var(--bridge); }
+.note { border-left: 3px solid var(--wl); background: var(--panel); padding: 0.7rem 1rem; border-radius: 0 6px 6px 0; margin: 1rem 0; }
+.note p:first-child { margin-top: 0; } .note p:last-child { margin-bottom: 0; }
+.note .label { font-family: var(--display); font-weight: 600; font-size: 0.85rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--wl); }
+.note.bridge { border-left-color: var(--bridge); }
+.note.bridge .label { color: var(--bridge); }
+.diagram { margin: 1.2rem 0; padding: 0.8rem; border: 1px solid var(--rule); border-radius: 6px; background: var(--panel); overflow-x: auto; }
+.diagram pre.mermaid { background: none; border: 0; margin: 0; padding: 0; text-align: center; font-family: var(--display); }
+ul, ol { padding-left: 1.3rem; }
+li { margin: 0.25rem 0; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.2rem; }
+.cols > div { min-width: 0; }
+.phase { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: 0.9rem; padding: 0.9rem 0; border-bottom: 1px solid var(--rule); }
+.phase:last-of-type { border-bottom: 0; }
+.phase > div { min-width: 0; }
+.phase .n { font-family: var(--display); font-weight: 700; font-size: 1.9rem; color: var(--wl); line-height: 1; }
+.phase.done .n { color: var(--ok); }
+.phase h3 { margin: 0 0 0.25rem; }
+.phase .when { font-family: var(--display); font-size: 0.88rem; color: var(--muted); }
+.milestone { margin-top: 0.4rem; font-size: 0.95rem; }
+.milestone b { font-family: var(--display); font-weight: 600; color: var(--ok); }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); font-family: var(--display); font-size: 0.88rem; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+</head>
+<body>
+<main>
+<header>
+  <div class="eyebrow">WolframInstitute/TypeTheory · design</div>
+  <h1>TypeTheory Engine</h1>
+  <p class="lede">A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Coq, written in pure Wolfram Language. Its terms are written with the symbols the language already has: <code>Function</code>, <code>Typed</code>, <code>TypeOf</code>, <code>ForAll</code>, <code>Implies</code>, <code>Exists</code>, <code>Equal</code>, <code>Plus</code>, <code>NonNegativeIntegers</code>. A small kernel checks every proof, and tactics build proofs step by step in a notebook.</p>
+  <div class="meta">
+    <span><b>Status</b> Prototype 0.1.0, October 2026</span>
+    <span><b>Kernel</b> Pure Wolfram Language, no native library</span>
+    <span><b>Tests</b> 95 passing</span>
+    <span><b>Lean</b> Optional bridge in LeanLink</span>
+  </div>
+  <nav class="toc" aria-label="Contents">
+    <ol>
+      <li><a href="#summary">Summary</a></li>
+      <li><a href="#scope">Goals and non-goals</a></li>
+      <li><a href="#prototype">The prototype</a></li>
+      <li><a href="#repr">Representation</a></li>
+      <li><a href="#kernel">The kernel</a></li>
+      <li><a href="#elaboration">Elaboration</a></li>
+      <li><a href="#proving">Proof assistance</a></li>
+      <li><a href="#trust">What is trusted</a></li>
+      <li><a href="#bridge">The Lean bridge</a></li>
+      <li><a href="#compiled">A compiled kernel</a></li>
+      <li><a href="#build">What to build next</a></li>
+      <li><a href="#risks">Risks and open questions</a></li>
+    </ol>
+  </nav>
+</header>
+
+<section id="summary">
+<h2>Summary</h2>
+<ul class="decisions">
+  <li><span class="k">An independent engine</span><span>The paclet <code>WolframInstitute/TypeTheory</code> needs nothing but the Wolfram Language. No symbol in it is named after Lean, and it loads and checks proofs without Lean installed. A bridge in LeanLink translates declarations in both directions, so the two kernels can check each other's work.</span></li>
+  <li><span class="k">Two layers of terms</span><span>Core terms are locally nameless, with internal heads named in plain words: <code>boundVariable</code>, <code>lambdaAbstraction</code>, <code>dependentFunctionType</code>, … Alpha-equivalence is <code>SameQ</code>. Surface terms are ordinary expressions built from built-in symbols, held inside <code>TypeTheoryTerm</code>, for reading and writing.</span></li>
+  <li><span class="k">Built-in symbols are the constants</span><span>The prelude declares <code>Equal</code> as the inductive equality type, <code>NonNegativeIntegers</code> as the natural numbers, and <code>Plus</code> as addition. <code>n + 0 == n</code> is therefore literally a statement of the theory.</span></li>
+  <li><span class="k"><code>TypeOf</code> is the front door</span><span><code>TypeOf[TypeTheoryTerm[2 + 3]]</code> gives <code>TypeTheoryTerm[NonNegativeIntegers]</code>. The engine extends the built-in through an upvalue on <code>TypeTheoryTerm</code>, without modifying it.</span></li>
+  <li><span class="k">A small trusted kernel</span><span>Type inference, reduction and definitional equality; inductive families with generated recursors; natural number literals. Elaboration and tactics sit outside it: whatever they produce is checked again with no holes left.</span></li>
+  <li><span class="k">Environments are values</span><span>Declaring a constant gives a new environment and leaves the old one as it was. Since anyone can write an environment by hand, <code>TypeTheoryCheck[environment]</code> replays every declaration from scratch.</span></li>
+</ul>
+</section>
+
+<section id="scope">
+<h2>Goals and non-goals</h2>
+<div class="cols">
+  <div>
+    <h4>Goals</h4>
+    <ol>
+      <li>Implement the Calculus of Inductive Constructions, as Lean 4's kernel defines it, in pure Wolfram Language, behind a small trusted kernel.</li>
+      <li>Write statements and proofs with the language's own symbols, and read them back in mathematical notation.</li>
+      <li>Build proofs interactively in a notebook, with the goals in view.</li>
+      <li>Exchange declarations with Lean through a separate bridge, reaching the same verdicts as Lean's kernel.</li>
+      <li>Use symbolic computation to find proofs, never to stand in for them.</li>
+    </ol>
+  </div>
+  <div>
+    <h4>Non-goals</h4>
+    <ul>
+      <li>Replacing Lean's elaborator, its tactic language or Mathlib.</li>
+      <li>Checking all of Mathlib in the Wolfram Language. Its 766,243 declarations stay with Lean's kernel, which LeanLink's <code>"KernelCheck"</code> already reaches.</li>
+      <li>A different type theory. The theory is Lean 4's, so that a proof checked here is a proof there.</li>
+      <li>Depending on Lean at run time.</li>
+    </ul>
+  </div>
+</div>
+</section>
+
+<section id="prototype">
+<h2>The prototype</h2>
+<p>Version 0.1.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory. It loads in about a second, most of which is building and checking the prelude.</p>
+<div class="scroll"><table>
+  <thead><tr><th>Component</th><th>Status</th><th>File</th></tr></thead>
+  <tbody>
+    <tr><td>Core terms, substitution, universe levels and their normal form</td><td><span class="tag built">built</span></td><td><code>Terms/CoreTerms.wl</code></td></tr>
+    <tr><td>Type inference, weak head normal form, definitional equality</td><td><span class="tag built">built</span></td><td><code>Checking/TypeChecking.wl</code></td></tr>
+    <tr><td>Inductive families: parameters, indices, positivity, universes, recursors, large elimination</td><td><span class="tag built">built</span> single families; <span class="tag planned">planned</span> mutual and nested</td><td><code>Checking/InductiveTypes.wl</code></td></tr>
+    <tr><td>Natural number literals, with addition on integers</td><td><span class="tag built">built</span> addition; <span class="tag planned">planned</span> the rest</td><td><code>Checking/NaturalNumbers.wl</code></td></tr>
+    <tr><td>Axioms, definitions, theorems; universe polymorphism</td><td><span class="tag built">built</span></td><td><code>Checking/Declarations.wl</code></td></tr>
+    <tr><td>Quotients, structure projections, eta for structures</td><td><span class="tag planned">planned</span></td><td></td></tr>
+    <tr><td>Checking an environment from scratch</td><td><span class="tag built">built</span></td><td><code>Checking/Queries.wl</code></td></tr>
+    <tr><td>Surface syntax, reading core terms back, notebook display</td><td><span class="tag built">built</span></td><td><code>Terms/SurfaceSyntax.wl</code>, <code>Terms/Formatting.wl</code></td></tr>
+    <tr><td>Elaboration: implicit arguments, universe levels, unification</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> instances and coercions</td><td><code>Elaboration/Elaboration.wl</code></td></tr>
+    <tr><td>Proof states and six tactics</td><td><span class="tag built">built</span></td><td><code>Proofs/ProofStates.wl</code></td></tr>
+    <tr><td>Prelude: logic, equality, natural numbers, seven theorems</td><td><span class="tag built">built</span></td><td><code>Library/Prelude.wl</code></td></tr>
+    <tr><td>Lean bridge</td><td><span class="tag bridge">LeanLink</span> <span class="tag planned">planned</span></td><td></td></tr>
+    <tr><td>Compiled kernel</td><td><span class="tag planned">planned</span></td><td></td></tr>
+  </tbody>
+</table></div>
+<p>The acceptance test is the classic pair. <code>n + 0 == n</code> holds by computation, because addition recurses on its second argument. <code>0 + n == n</code> needs induction. Both are proved with tactics and declared, and each of the following is rejected:</p>
+<ul>
+  <li>a wrong proof;</li>
+  <li>an inductive type that occurs negatively in its own constructor;</li>
+  <li>a constructor field in a larger universe than its type;</li>
+  <li>large elimination from <code>Or</code>;</li>
+  <li><code>Type : Type</code>;</li>
+  <li>an environment with a tampered record.</li>
+</ul>
+</section>
+
+<section id="repr">
+<h2>Representation</h2>
+
+<h3>Core terms</h3>
+<p>The kernel works on internal heads, one per term former. They are package-scoped: users never write them, and they carry no Lean names. Each corresponds to one constructor of Lean 4's <code>Expr</code>, which is what makes a faithful bridge possible.</p>
+<div class="scroll"><table>
+  <thead><tr><th>Core head</th><th>Meaning</th><th>Lean <code>Expr</code></th></tr></thead>
+  <tbody>
+    <tr><td><code>boundVariable[i]</code></td><td>A de Bruijn index, 0 for the innermost binder. Alpha-equivalent terms are identical expressions, so <code>SameQ</code>, <code>Association</code> keys and caches compare them structurally.</td><td><code>bvar</code></td></tr>
+    <tr><td><code>freeVariable[id]</code></td><td>A variable of a local context, which holds its name and type. Going under a binder opens it with a fresh one, so the kernel never handles loose indices.</td><td><code>fvar</code></td></tr>
+    <tr><td><code>metavariable[id]</code></td><td>A hole: an implicit argument while elaborating, or an open goal in a proof.</td><td><code>mvar</code></td></tr>
+    <tr><td><code>universeSort[level]</code></td><td>A universe. <code>universeSort[0]</code> is Prop.</td><td><code>sort</code></td></tr>
+    <tr><td><code>constantReference[HoldComplete[name], {level, …}]</code></td><td>A declared constant at universe levels. The name is held, so a symbol with a value never evaluates inside a term.</td><td><code>const</code></td></tr>
+    <tr><td><code>application[f, a]</code></td><td>Application, binary.</td><td><code>app</code></td></tr>
+    <tr><td><code>lambdaAbstraction[HoldComplete[x], A, b, binder]</code></td><td>A function. <code>binder</code> is <code>"Explicit"</code>, <code>"Implicit"</code>, <code>"StrictImplicit"</code> or <code>"InstanceImplicit"</code>.</td><td><code>lam</code></td></tr>
+    <tr><td><code>dependentFunctionType[HoldComplete[x], A, B, binder]</code></td><td>A dependent function type, which covers ∀ and →.</td><td><code>forallE</code></td></tr>
+    <tr><td><code>localDefinition[HoldComplete[x], A, v, b]</code></td><td>A local definition.</td><td><code>letE</code></td></tr>
+    <tr><td><code>naturalLiteral[n]</code></td><td>A natural number of any size, a Wolfram integer.</td><td><code>lit</code></td></tr>
+  </tbody>
+</table></div>
+<p>Levels are integers, <code>levelParameter</code>, <code>levelMetavariable</code>, <code>levelSuccessor[l, k]</code>, <code>levelMaximum</code> and <code>levelImpredicativeMaximum</code>. The last is 0 when its second argument is 0, which makes Prop impredicative. A normal form makes equal levels identical expressions. The order test is sound but incomplete: it may refuse a true inequality between levels with parameters, never accept a false one. Lean's <code>proj</code> and string literals have no core head yet.</p>
+
+<h3>Surface terms</h3>
+<p>A surface term is the expression a person types, held. Wherever a built-in symbol has the right meaning, the engine uses it.</p>
+<div class="scroll"><table>
+  <thead><tr><th>Surface term</th><th>Meaning</th><th>Why this symbol</th></tr></thead>
+  <tbody>
+    <tr><td><code>Function[{Typed[x, A]}, b]</code></td><td>A function</td><td>Already a working function, and <code>TypeOf</code> already infers its type for machine types.</td></tr>
+    <tr><td><code>ForAll[{Typed[x, A]}, B]</code></td><td>A dependent function type, or a universal statement</td><td>One binder form for every Π-type, as in the kernel.</td></tr>
+    <tr><td><code>Implies[p, q]</code>, <code>TypeSpecifier[{A} -&gt; B]</code>, <code>A -&gt; B</code></td><td>A function type whose result does not depend on the argument</td><td><code>Implies</code> between propositions, and <code>TypeSpecifier</code> for types, the form <code>TypeOf</code> returns. Reading back chooses between them by the universe.</td></tr>
+    <tr><td><code>Annotation[Typed[x, A], "Implicit"]</code></td><td>An implicit binder</td><td><code>Annotation</code> is the built-in for metadata on an expression.</td></tr>
+    <tr><td><code>Exists[{Typed[x, A]}, p]</code></td><td>An existential statement</td><td>The same binder form as <code>ForAll</code>.</td></tr>
+    <tr><td><code>Typed[e, A]</code></td><td><code>e</code>, checked against <code>A</code></td><td><code>Typed</code>'s own meaning.</td></tr>
+    <tr><td><code>With[{x = v}, b]</code></td><td><code>b</code> with <code>x</code> standing for <code>v</code></td><td>The built-in for local values.</td></tr>
+    <tr><td><code>TypeUniverse[level]</code></td><td>A universe, displayed as Prop, Type, Type u or Sort u</td><td><code>Sort</code> is the built-in sorting function, so universes get a head of their own.</td></tr>
+    <tr><td><code>Subscript[c, level]</code></td><td>A constant at an explicit universe level</td><td>Universe arguments read as indices.</td></tr>
+    <tr><td><code>True</code>, <code>False</code>, <code>Not</code>, <code>And</code>, <code>Or</code>, <code>Equal</code>, <code>Exists</code>, <code>NonNegativeIntegers</code>, <code>Plus</code></td><td>The prelude's constants</td><td>The built-ins with these meanings, declared in the theory, so <code>0 + n == n</code> is a statement as written.</td></tr>
+    <tr><td><code>0</code>, <code>1</code>, <code>2</code>, …</td><td>Natural number literals</td><td>Integers, read as constructor applications by the kernel.</td></tr>
+    <tr><td><code>RightTee[{Typed[x, A]}, B]</code></td><td>A goal: hypotheses ⊢ conclusion, read as <code>ForAll</code></td><td>The turnstile, an operator with no built-in meaning. A goal is itself a closed statement.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Keeping surface terms inert</h3>
+<p>The Wolfram Language evaluates whatever it is given. On the current version, <code>ForAll[Typed[x, A], x &gt;= 0]</code> evaluates to <code>x &gt;= 0</code>, because a quantifier whose variable does not occur is dropped. <code>Element[2, Integers]</code> evaluates to <code>True</code>, and <code>n + 0 == n</code> to <code>True</code>. So surface terms are always held:</p>
+<ul>
+  <li><code>TypeTheoryTerm</code> has the <code>HoldAll</code> attribute.</li>
+  <li><code>DeclareAxiom</code>, <code>DeclareDefinition</code>, <code>DeclareTheorem</code>, <code>DeclareInductiveType</code> and <code>TypeTheoryProof</code> hold their arguments. Tactics hold theirs too.</li>
+  <li>Internally a term becomes a syntax tree of inert nodes before anything inspects it. Names are kept as <code>HoldComplete[name]</code>.</li>
+</ul>
+<p>A symbol whose value is a <code>TypeTheoryTerm</code> stands for that term, and one whose value is a finished proof stands for the proof, so statements and proofs can be built up across cells.</p>
+
+<h3>Moving between the layers</h3>
+<ul>
+  <li><b>Surface to core</b> is elaboration. It inserts implicit arguments and universe levels and solves them by unification; see <a href="#elaboration">Elaboration</a>.</li>
+  <li><b>Core to surface</b> is reading back. Binders get their own names back, or Formal symbols where those names are taken; implicit arguments are dropped; and a non-dependent function type becomes <code>Implies</code> or <code>TypeSpecifier</code>. In a notebook the result shows in mathematical notation through an <code>InterpretationBox</code>, so copying a displayed term pastes the term itself.</li>
+</ul>
+</section>
+
+<section id="kernel">
+<h2>The kernel</h2>
+<p>The kernel is the part that decides what counts as a theorem. It implements Lean 4's theory: dependent types, non-cumulative universes with Prop impredicative, inductive families, proof irrelevance, and eta for functions. Kernel functions report a failure by throwing a tagged <code>Failure</code>, which each exported function returns; they never issue messages.</p>
+<div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  subgraph TT["WolframInstitute/TypeTheory"]
+    ST["Surface terms<br/>Function, Typed, ForAll, Equal"]
+    EL["Elaboration<br/>implicit arguments, unification"]
+    CT["Core terms"]
+    K["Kernel<br/>infer, whnf, defeq, inductive types"]
+    EN["Environment<br/>a value; replayable"]
+    PS["Proof states and tactics"]
+    NB["Notebook display"]
+  end
+  subgraph LL["LeanLink, optional"]
+    BR["Bridge<br/>records in both directions"]
+    LK["Lean kernel"]
+  end
+  ST --> EL --> CT
+  CT --> K
+  K --> EN
+  PS --> EL
+  PS -- "finished term" --> K
+  CT -- "read back" --> ST
+  ST --> NB
+  PS --> NB
+  EN <-.-> BR
+  BR <-.-> LK
+</pre>
+</div>
+
+<h3>Components</h3>
+<div class="scroll"><table>
+  <thead><tr><th>Component</th><th>What it does</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Type inference</td><td>One rule per term former: <code>Sort u : Sort (u+1)</code>; a function has a function type; a function type lives in <code>Sort (imax u v)</code>; an application checks its argument against the domain; a local definition checks its value; a literal is a natural number. Inference always checks.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> an infer-only mode for terms already checked</td></tr>
+    <tr><td>Weak head normal form</td><td>β; ζ for local definitions; δ for definitions, never theorems; ι for a recursor applied to a constructor, with a literal read as a constructor; K-like reduction for recursors of propositions with one constructor and no fields, such as equality's.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td>Definitional equality</td><td>Syntactic equality; universe equivalence; binders; the same constant on equal arguments before unfolding; reduction, then η for functions, literals against constructors, and spines; proof irrelevance.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> definitional heights, caches, structure η</td></tr>
+    <tr><td>Inductive families</td><td>The type and each constructor are types; constructors take the parameters first and end in the type applied to them; strict positivity; field universes no larger than the type's, unless it is a proposition.</td><td><span class="tag built">built</span> single families; <span class="tag planned">planned</span> mutual and nested</td></tr>
+    <tr><td>Recursors</td><td><code>InductiveRecursor[I]</code> takes the parameters, a motive, one minor premise per constructor with an induction hypothesis per recursive field, the indices and the major premise. A proposition eliminates only into Prop unless it has at most one constructor whose fields are proofs or indices. Every recursor type and reduction rule is type-checked before it is added.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td>Natural numbers</td><td>An inductive type registered as the natural numbers makes <code>0</code>, <code>1</code>, <code>2</code>, … its elements. Adding two literals computes on integers.</td><td><span class="tag built">built</span> addition; <span class="tag planned">planned</span> subtraction, multiplication, division, comparison</td></tr>
+    <tr><td>Declarations</td><td>Axioms; definitions, which may not refer to themselves; theorems, whose statement must be a proposition and whose proof is never unfolded. Universe parameters must be declared and distinct.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> opaque and mutual definitions, quotients</td></tr>
+  </tbody>
+</table></div>
+<div class="note"><p class="label">The literal contract</p><p>Computing <code>2 + 3</code> on integers is trusted, so registering natural numbers is checked strictly. The type must live in Type with no parameters, indices or universe parameters, and its constructors must be exactly a zero and a successor. Addition must be defined, up to the names of bound variables, as recursion on the second argument. Then adding integers always agrees with unfolding the definition.</p></div>
+
+<h3>Interface</h3>
+<pre><code><span class="c">(* questions about terms; each takes an optional environment first *)</span>
+TypeOf[TypeTheoryTerm[2 + 3]]                                    <span class="c">(* TypeTheoryTerm[NonNegativeIntegers] *)</span>
+WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]                        <span class="c">(* TypeTheoryTerm[5] *)</span>
+DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[2]], TypeTheoryTerm[3]]   <span class="c">(* True *)</span>
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]  <span class="c">(* True *)</span>
+
+<span class="c">(* declarations update $TypeTheoryEnvironment, or give a Failure and change nothing *)</span>
+DeclareInductiveType[NaturalList, TypeUniverse[1], {
+  EmptyList -&gt; NaturalList,
+  ConsList -&gt; ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]
+}]
+DeclareDefinition[Double, Function[{Typed[n, NonNegativeIntegers]}, n + n]]
+DeclareTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]
+
+<span class="c">(* another environment, without touching the default *)</span>
+Block[{$TypeTheoryEnvironment = environment}, DeclareAxiom[Excluded, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]]
+
+TypeTheoryCheck[$TypeTheoryEnvironment]                          <span class="c">(* replays every declaration: True *)</span></code></pre>
+</section>
+
+<section id="elaboration">
+<h2>Elaboration</h2>
+<p>Elaboration turns what a person writes into a core term. It is not trusted. Every term it produces is checked again by the kernel with no metavariables left, so a mistake here can make elaboration fail but cannot let an ill-typed term through.</p>
+<ul>
+  <li><b>Implicit arguments.</b> An implicit binder gets a metavariable: <code>a == b</code> stands for <code>Equal[A, a, b]</code>, and <code>EqualityReflexivity[4]</code> finds its type argument.</li>
+  <li><b>Universe levels.</b> A constant gets a level metavariable for each universe parameter. When a metavariable is solved, its type is unified with its solution's type, which is what solves the levels.</li>
+  <li><b>Unification.</b> First-order unification with a fallback to weak head normal form, and higher-order pattern unification: <code>?P[x] =?= t</code>, with <code>x</code> a variable, solves <code>?P = Function[{x}, t]</code>.</li>
+  <li><b>Expected types first.</b> An argument whose type is still an unknown applied to arguments, such as the proof of <code>P[w]</code> in <code>ExistsIntroduction[2, EqualityReflexivity[4]]</code>, waits until the type of the whole application has been unified with the expected type. That is what determines <code>P</code>.</li>
+  <li><b>Binder types</b> come from the expected type when they are left out: <code>Typed[Function[{x}, x + 1], TypeSpecifier[{NonNegativeIntegers} -&gt; NonNegativeIntegers]]</code>.</li>
+</ul>
+<p>Metavariables do not yet carry their own local contexts, as they do in Lean. A solution that names a variable outside its scope is caught by the kernel's final check, not prevented, and shows up as an elaboration failure. Instances and coercions are not implemented.</p>
+</section>
+
+<section id="proving">
+<h2>Proof assistance</h2>
+
+<h3>Proof states</h3>
+<p>A proof state holds a partial proof term with holes. Each hole is a metavariable, an open goal with its own hypotheses and type. A tactic works on the first goal and assigns its metavariable a term, which may contain new metavariables: the new goals. A proof state is immutable data, so undo and branching cost nothing. In a notebook a proof shows each goal as its hypotheses over the turnstile, with the constructor's name on goals that come from induction.</p>
+
+<h3>Tactics</h3>
+<div class="scroll"><table>
+  <thead><tr><th>Tactic</th><th>Effect</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td><code>"Introduce", x, …</code></td><td>Moves the variables or hypotheses of a universal statement or implication into the context, unfolding definitions such as <code>Not</code> to find them.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td><code>"Exact", term</code></td><td>Solves the goal with a term, elaborated in the goal's context.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td><code>"Apply", term</code></td><td>Applies a term to as many new goals as its conclusion needs. The goals that others depend on come last, and solving one goal can solve another it mentions.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td><code>"Reflexivity"</code></td><td>Solves <code>a == b</code> when the sides are equal by computation.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td><code>"Induction", x</code></td><td>One goal per constructor of the type of <code>x</code>, with an induction hypothesis per recursive field. Indexed families and dependent hypotheses are refused for now.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td><code>"Assumption"</code></td><td>Solves the goal with a hypothesis of the same type.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td><code>"Rewrite"</code>, <code>"Cases"</code>, <code>"Constructor"</code>, <code>"Generalize"</code></td><td>Rewriting with an equation through <code>EqualitySubstitution</code>; case analysis; the matching constructor; reverting dependent hypotheses before induction.</td><td><span class="tag planned">planned</span></td></tr>
+    <tr><td><code>"Decide"</code>, <code>"Simplify"</code></td><td>Kernel evaluation of a decision procedure; rewriting with lemmas, proofs assembled by congruence.</td><td><span class="tag planned">planned</span></td></tr>
+  </tbody>
+</table></div>
+
+<h4>A session</h4>
+<pre><code>proof = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n]];
+proof = TypeTheoryTactic["Introduce", n][proof];        <span class="c">(* n ∶ ℕ ⊢ 0 + n == n *)</span>
+proof = TypeTheoryTactic["Induction", n][proof];        <span class="c">(* case NaturalNumberZero, case NaturalNumberSuccessor *)</span>
+proof = TypeTheoryTactic["Reflexivity"][proof];         <span class="c">(* 0 + 0 == 0 by computation *)</span>
+proof = TypeTheoryTactic["Introduce", k, ih][proof];    <span class="c">(* k ∶ ℕ, ih ∶ 0 + k == k ⊢ 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[k] *)</span>
+proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][proof];
+
+DeclareTheorem[AdditionZeroLeft, proof]
+TypeTheoryCheck[TypeTheoryTerm[AdditionZeroLeft[7]], TypeTheoryTerm[0 + 7 == 7]]   <span class="c">(* True *)</span></code></pre>
+<p>The last step works because <code>0 + NaturalNumberSuccessor[k]</code> reduces to <code>NaturalNumberSuccessor[0 + k]</code>, so the congruence proof's type matches the goal by computation.</p>
+
+<h3>The Wolfram Language as an oracle</h3>
+<p>Symbolic computation is very good at finding the witness or certificate a proof needs, and checking a certificate is much easier than finding one. These tactics are planned; the kernel will only ever check the proof term they produce.</p>
+<div class="scroll"><table>
+  <thead><tr><th>Goal</th><th>Function that searches</th><th>What it hands the kernel</th></tr></thead>
+  <tbody>
+    <tr><td>An existential with a computable witness</td><td><code>FindInstance</code></td><td><code>ExistsIntroduction</code> with the witness, then the instance checked by computation</td></tr>
+    <tr><td>Linear arithmetic</td><td><code>LinearProgramming</code></td><td>Farkas coefficients, assembled into a combination of the hypotheses</td></tr>
+    <tr><td>Polynomial identities, ideal membership</td><td><code>PolynomialReduce</code>, <code>GroebnerBasis</code></td><td>Cofactors, checked by normalization</td></tr>
+    <tr><td>Equational theories</td><td><code>FindEquationalProof</code></td><td>The steps of its <code>ProofObject</code>, as a chain of <code>EqualityTransitivity</code> and <code>EqualityCongruence</code></td></tr>
+    <tr><td>Nonnegativity</td><td><code>SemidefiniteOptimization</code></td><td>A sum of squares</td></tr>
+  </tbody>
+</table></div>
+<div class="note"><p class="label">Rule</p><p><code>Simplify</code>, <code>Reduce</code> and their relatives make assumptions a proof may not, about branch cuts or generic parameters. Their output is a suggestion. It enters a proof only as a term the kernel accepts.</p></div>
+</section>
+
+<section id="trust">
+<h2>What is trusted</h2>
+<p>Five files and the core declaration functions decide what is a theorem:</p>
+<ul>
+  <li><code>CoreTerms.wl</code></li>
+  <li><code>TypeChecking.wl</code></li>
+  <li><code>InductiveTypes.wl</code></li>
+  <li><code>NaturalNumbers.wl</code></li>
+  <li><code>Environment.wl</code></li>
+</ul>
+<p>Together that is about 1,200 lines with comments and usage messages. Everything else, including the elaborator, the tactics and the display, can make a proof fail but cannot make a false statement pass.</p>
+<p>An environment is an ordinary expression, so a hand-written one could claim anything. <code>TypeTheoryCheck[environment]</code> replays the declarations in order on an empty environment with the core functions. It regenerates every constructor and recursor from its inductive type, registers the natural numbers again under the strict contract, and compares every record with the one in the environment. The tests forge a theorem's statement, a recursor's elimination universe and the definition of addition, and the replay catches each. Axioms are trusted by definition and stay visible as axioms.</p>
+</section>
+
+<section id="bridge">
+<h2>The Lean bridge</h2>
+<div class="note bridge"><p class="label">Lives in LeanLink</p><p>The engine never needs Lean. The bridge is a LeanLink component that maps Lean declarations to TypeTheory records and back, so that the dependency points from LeanLink to TypeTheory and never the other way.</p></div>
+
+<h3>From Lean</h3>
+<p>LeanLink 1.0.14 already moves Lean's terms into the Wolfram Language over WXF, as its own <code>Lean*</code> expression heads, and replays modules through Lean's kernel with <code>"KernelCheck"</code>. The bridge adds a translation from those heads and Lean's declaration records to core terms and TypeTheory records:</p>
+<div class="scroll"><table>
+  <thead><tr><th>Lean 4.30 declaration</th><th>TypeTheory record</th><th>Fields to carry</th></tr></thead>
+  <tbody>
+    <tr><td>Axiom</td><td><code>"Axiom"</code></td><td class="wrap">type, universe parameters</td></tr>
+    <tr><td>Definition</td><td><code>"Definition"</code></td><td class="wrap">value; <code>hints</code> and <code>safety</code> to add as fields, with definitional heights for lazy unfolding</td></tr>
+    <tr><td>Theorem</td><td><code>"Theorem"</code></td><td class="wrap">value</td></tr>
+    <tr><td>Inductive</td><td><code>"InductiveType"</code></td><td class="wrap"><code>numParams</code>, <code>numIndices</code>, constructors; mutual and nested families once the kernel has them</td></tr>
+    <tr><td>Constructor, Recursor</td><td>regenerated, never imported</td><td class="wrap">The kernel generates its own from the inductive declaration, and the bridge compares them with Lean's.</td></tr>
+    <tr><td>Quotient, Opaque</td><td>to be added</td><td class="wrap"><code>kind</code>; value</td></tr>
+  </tbody>
+</table></div>
+<p>Proof terms share subterms heavily and WXF does not, which is why LeanLink's export stops at depth 100 today. The bridge needs a table of distinct subterms sent once each, with references by index, rebuilt into ordinary expressions on arrival.</p>
+
+<h3>Names and notation</h3>
+<p>Lean's names become TypeTheory names. Each Lean constant needs either a symbol in a context per namespace, such as <code>Nat.succ</code> becoming a symbol in a Nat context, or a held string. A notation table maps a Lean constant to a built-in symbol only where the definitions agree. The prelude's <code>Plus</code> recurses on its second argument like Lean's <code>Nat.add</code>, but Lean compiles that recursion through auxiliary definitions. The bridge therefore relates the two by a proved equation rather than by renaming.</p>
+
+<h3>To Lean</h3>
+<ul>
+  <li><b>Declarations</b> go to Lean's <code>Environment.addDecl</code> through the LeanLink shim, so Lean's kernel checks what the Wolfram side built, and the result can be saved as a module.</li>
+  <li><b>Source</b> comes from Lean's own pretty-printer, in process.</li>
+</ul>
+
+<h3>What must always hold</h3>
+<ul>
+  <li><b>Round trip.</b> Lean to TypeTheory to Lean returns the identical expression for every constant in the test sample.</li>
+  <li><b>Agreement.</b> On every imported declaration, the two kernels give the same verdict, and forged declarations that Lean rejects are rejected here too.</li>
+</ul>
+
+<h3>Scale</h3>
+<p>The workload decides what is realistic for a kernel written in a symbolic language. Counted on Lean 4.30 and the Mathlib checkout LeanLink uses:</p>
+<div class="scroll"><table>
+  <thead><tr><th>Target</th><th class="num">Declarations</th><th>Expected home</th></tr></thead>
+  <tbody>
+    <tr><td><code>mul_comm</code>, with its dependency cone</td><td class="num">14</td><td>Interactive, in TypeTheory</td></tr>
+    <tr><td><code>Nat.add_comm</code>, with its cone</td><td class="num">27</td><td>Interactive</td></tr>
+    <tr><td><code>List.length_append</code>, with its cone</td><td class="num">55</td><td>Interactive</td></tr>
+    <tr><td><code>Real.sqrt_nonneg</code>, with its cone through the construction of the reals</td><td class="num">1,331</td><td>Seconds to minutes; needs the compiled kernel</td></tr>
+    <tr><td>All of <code>Init</code></td><td class="num">63,884</td><td>Batch, compiled; the stretch goal</td></tr>
+    <tr><td>All of Mathlib (517,591 theorems)</td><td class="num">766,243</td><td>Lean's kernel</td></tr>
+  </tbody>
+</table></div>
+</section>
+
+<section id="compiled">
+<h2>A compiled kernel</h2>
+<p>The symbolic kernel is right for a prototype and for interactive work: it is short, readable, and easy to test. For thousands of declarations, the hot paths of substitution, reduction and comparison need to run compiled. The plan is a second representation for the kernel only, with no native library and no change above it:</p>
+<ol>
+  <li><b>Arrays for terms.</b> Each core term becomes a node in a hash-consed table of packed integer arrays: an opcode, child indices and a payload. Equal subterms share one index, which also gives the shared-subterm encoding the bridge needs.</li>
+  <li><b>Compiled structure.</b> Substitution, lifting, abstraction and the loose-variable range of each node, written with <code>FunctionCompile</code> over the arrays.</li>
+  <li><b>Compiled reduction.</b> β, ζ, δ and ι, with the environment's definitions and recursor rules as tables of node indices.</li>
+  <li><b>Compiled comparison.</b> Definitional equality with a cache of pairs already shown equal, keyed by node index, and lazy unfolding by definitional height.</li>
+</ol>
+<p>Elaboration, tactics and display stay symbolic. The symbolic kernel stays as the reference, and each compiled function is tested against it on the same inputs.</p>
+</section>
+
+<section id="build">
+<h2>What to build next</h2>
+<div class="phase done"><div class="n">1</div><div>
+  <h3>Prototype</h3>
+  <div class="when">Done, October 2026</div>
+  <p>Core terms, the kernel, single inductive families, natural number literals, elaboration, six tactics, the prelude, environment replay, and 95 tests.</p>
+  <p class="milestone"><b>Milestone</b> <code>0 + n == n</code> is proved by induction in a notebook, declared, used, and replayed from scratch.</p>
+</div></div>
+<div class="phase"><div class="n">2</div><div>
+  <h3>The complete kernel</h3>
+  <div class="when">About 6 to 10 weeks</div>
+  <p>Mutual and then nested inductive families; quotients; structures with projections and η; an infer-only mode; definitional heights and caches; the rest of literal arithmetic.</p>
+  <p class="milestone"><b>Milestone</b> The test cases independent checkers collect for universes, nested inductives and η pass.</p>
+</div></div>
+<div class="phase"><div class="n">3</div><div>
+  <h3>The Lean bridge</h3>
+  <div class="when">About 4 to 6 weeks, in LeanLink</div>
+  <p>Declaration export with shared subterms; translation to TypeTheory records; recursors compared with Lean's; declarations back through <code>addDecl</code>.</p>
+  <p class="milestone"><b>Milestone</b> The cones of <code>mul_comm</code>, <code>Nat.add_comm</code> and <code>List.length_append</code> check in TypeTheory with the same verdicts as Lean's kernel.</p>
+</div></div>
+<div class="phase"><div class="n">4</div><div>
+  <h3>Proof assistance</h3>
+  <div class="when">About 4 to 6 weeks</div>
+  <p>Metavariable contexts; rewriting, case analysis and generalization; a goal view where clicking a hypothesis inserts its name; export to Lean source.</p>
+</div></div>
+<div class="phase"><div class="n">5</div><div>
+  <h3>The compiled kernel</h3>
+  <div class="when">About 6 to 8 weeks</div>
+  <p>The array representation and the compiled functions above, each tested against the symbolic kernel.</p>
+  <p class="milestone"><b>Milestone</b> The 1,331-declaration cone of <code>Real.sqrt_nonneg</code> checks.</p>
+</div></div>
+<div class="phase"><div class="n">6</div><div>
+  <h3>Automation</h3>
+  <div class="when">Ongoing</div>
+  <p>The oracle tactics, decision by computation, and simplification on the Wolfram rewriter.</p>
+</div></div>
+</section>
+
+<section id="risks">
+<h2>Risks and open questions</h2>
+<div class="scroll"><table>
+  <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
+  <tbody>
+    <tr><td>Speed on large proof terms</td><td>The compiled kernel, structural caches, and Lean's kernel for bulk checking through the bridge.</td></tr>
+    <tr><td>Nested and reflexive inductive types, where independent checkers most often go wrong</td><td>After mutual families, with Lean's own recursors to compare against.</td></tr>
+    <tr><td>Built-in symbols evaluating</td><td>Every entry point holds its arguments, and terms become inert syntax trees before anything looks at them. <code>TypeOf</code> also holds its argument, so a symbol holding a term needs <code>TypeOf[Evaluate[t]]</code>, or <code>TypeTheoryCheck[t]</code>.</td></tr>
+    <tr><td>Built-in names with another meaning, such as <code>Sort</code></td><td>Universes have their own head, <code>TypeUniverse</code>; only symbols whose meaning matches become constants.</td></tr>
+    <tr><td>Prop confused with <code>Booleans</code></td><td>Propositions are types in Prop and never booleans; a decision procedure will be the only bridge between them.</td></tr>
+    <tr><td>Escaping variables in elaboration</td><td>Caught by the kernel today; metavariable contexts will prevent them.</td></tr>
+    <tr><td>A proof state holds its environment</td><td>Its display is not interpretable and the environment's summary box stores no copy, so notebooks stay small.</td></tr>
+  </tbody>
+</table></div>
+<h4>Open questions</h4>
+<ul>
+  <li>Should Lean's names become symbols in contexts, or held strings?</li>
+  <li>Should the prelude grow toward Lean's <code>Init</code> by import through the bridge, or stay a small hand-written library with the bridge relating the two?</li>
+  <li>Which proofs elsewhere should be checked first: PureMath's statements, or the Rule 30 Prize verifier?</li>
+</ul>
+</section>
+
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.1.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: true, theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default" });
+</script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+# Kernel design notes
+
+Decisions behind the prototype's kernel and elaborator, and the gaps they leave. The full design,
+including the Lean bridge and the compiled kernel, is
+[docs/research/TypeTheoryEngine.html](../research/TypeTheoryEngine.html).
+
+## Representation
+
+Core terms are locally nameless. Bound variables are de Bruijn indices, free variables are integers
+naming entries of a local context (`<|id -> <|"Name", "Type", "Binder"|>|>`), and going under a binder
+opens it with a fresh free variable. The kernel never handles loose indices, and alpha-equivalent terms
+are identical expressions, so `SameQ` and `Association` keys compare them structurally.
+
+Every name is held, `HoldComplete[name]`, in binders and in constant references, because the prelude's
+constants are built-in symbols (`Equal`, `Plus`) and user names may have values.
+
+A universe level is normalized to a maximum of components, each an integer or a base with an offset.
+`levelEquivalentQ` compares normal forms. `levelLessEqualQ` is sound but incomplete: it can reject a
+true inequality between levels with parameters, which would reject a valid declaration, never accept a
+false one.
+
+## The kernel
+
+`inferType` always checks: an application checks its argument, a binder checks that its domain is a
+type. Proof irrelevance and K-like reduction call it too, so they re-check terms that were already
+checked. Lean has an infer-only mode for those calls; adding one is the first performance step, and is
+sound only where the term is known to be well typed.
+
+Reduction is β, ζ, δ for definitions (theorems are never unfolded), ι, K-like ι, and addition of two
+literals on integers. Definitional equality tries, in order: `SameQ`, sorts, binders, the same constant
+on equal arguments, reduction followed by η, literals against constructors and spines, and finally
+proof irrelevance. There are no definitional heights and no caches yet.
+
+A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
+with `catchKernelFailure`, so a user sees a `Failure` and never a message.
+
+## Inductive families
+
+`declareInductiveType` follows Lean 4's kernel for a single family without nesting:
+
+- the type is a telescope of parameters and indices ending in a sort;
+- each constructor takes the parameters first, with the same types, and ends in the type applied to
+  those parameters;
+- the type occurs strictly positively, and never in an index of a constructor's result;
+- fields live in universes no larger than the type's, unless the type is a proposition.
+
+The recursor eliminates into any universe unless the type may be a proposition and has more than one
+constructor, or a field that is neither a proof nor an index of the result. A proposition with one
+constructor and no fields, such as `Equal`, gets K-like reduction. The recursor type and its reduction
+rules are built with free variables and abstracted at the end, and both are type-checked before they
+are added.
+
+Mutual and nested families are rejected: nesting is caught as a non-positive occurrence.
+
+## Natural numbers
+
+The literal extension computes `m + n` on integers, so the kernel must know that this agrees with the
+registered addition. `registerNaturalNumbers` therefore checks the shape of the type and its two
+constructors, and requires addition to be, up to bound variable names, exactly
+`Function[{m, n}, InductiveRecursor[type][Function[t, type], m, Function[{k, r}, successor[r]], n]]`.
+Any other operation on literals (subtraction, multiplication, comparison) needs the same treatment: a
+canonical definition to compare against.
+
+## Environments
+
+An environment is a value. Declaring returns a new environment; `$TypeTheoryEnvironment` is just the
+default, which the `Declare` functions update on success. `TypeTheoryCheck[environment]` replays each
+record in order with the core declaration functions and requires the regenerated records to be
+identical. Constructors and recursors are regenerated with their inductive type, and the natural
+numbers are registered again as soon as the constants they name exist. This is the defense against a
+hand-written environment; the tests forge a theorem statement, a recursor and the addition.
+
+## Elaboration
+
+The elaborator is untrusted and its output is always re-checked. Its state is bound with `Block` for
+one elaboration: metavariable types and assignments, level assignments, the local context and the scope
+of names.
+
+- A metavariable has no local context of its own. A solution that names a variable from inside a
+  binder can therefore escape it. The two mitigations are filling solved metavariables into binder types
+  before abstracting (`instantiateContext`) and the kernel's final check, which reports any escape that
+  remains. Lean's delayed assignments are the real fix.
+- Unification is first-order with a fallback to weak head normal form, plus higher-order patterns:
+  `?f[x1, ..., xn] =?= t` with distinct context variables solves `?f` as a function.
+- Assigning a metavariable unifies its type with its solution's type, which solves universe levels.
+- In an application, an argument whose expected type has an unsolved metavariable at its head waits
+  until the application's type has been unified with the expected type.
+
+## Proof states
+
+A goal is a metavariable of the proof state, with a context, a type and, after induction, the
+constructor it came from. "Introduce" records its solution as `pendingAbstraction[context, ids, body]`,
+which becomes a function only once `body` is complete. This is the prototype's stand-in for delayed
+assignments. Goals may mention other goals; the elaborator sees their types through
+`$goalMetavariableTypes`, and a solution it finds for one of them is kept.
