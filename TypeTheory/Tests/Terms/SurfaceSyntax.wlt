@@ -83,6 +83,12 @@ VerificationTest[
 ]
 
 VerificationTest[
+	FreeQ[ToBoxes[TypeTheoryTerm[TypeUniverse[u + 2]]], TemplateBox[{"\"(\"", RowBox[{"u", "+", "1"}], "\")\""}, "RowDefault"]],
+	False,
+	TestID -> "A-universe-at-a-sum-of-levels-shows-the-sum-in-parentheses"
+]
+
+VerificationTest[
 	MatchQ[ToBoxes[prelude[EqualityCongruence]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
 	True,
 	TestID -> "A-declaration-displays-as-a-keyword-a-name-and-a-type"

@@ -14,3 +14,8 @@ build/
 *.tmp
 *.swp
 *~
+
+# Built documentation and archives
+*.nb
+*.paclet
+TypeTheory/Documentation/

@@ -3,7 +3,7 @@
 PacletObject[<|
 	"Name" -> "WolframInstitute/TypeTheory",
 	"PublisherID" -> "WolframInstitute",
-	"Version" -> "0.1.0",
+	"Version" -> "0.2.0",
 	"WolframVersion" -> "15.0+",
 	"Description" -> "A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language",
 	"Creator" -> "Nikolay Murzin",
@@ -17,6 +17,7 @@ PacletObject[<|
 			"Root" -> "Kernel",
 			"Context" -> {"WolframInstitute`TypeTheory`"}
 		},
+		{"Documentation", "Language" -> "English", "MainPage" -> "Guides/TypeTheory"},
 		{"Test", "Root" -> "Tests", "Method" -> "Experimental-v1"}
 	}
 |>]

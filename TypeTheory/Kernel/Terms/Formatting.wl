@@ -105,10 +105,15 @@ arrowChain[operator_Symbol, domains_List, codomain_] := syntaxHead[operator, App
 
 universeDisplay[syntaxInteger[0]] := syntaxString["Prop"]
 universeDisplay[syntaxInteger[1]] := syntaxString["Type"]
-universeDisplay[syntaxInteger[n_Integer]] := syntaxHead[Row, {syntaxHead[List, {syntaxString["Type"], syntaxInteger[n - 1]}], syntaxString[" "]}]
-universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[1]}]] :=
-	syntaxHead[Row, {syntaxHead[List, {syntaxString["Type"], level}], syntaxString[" "]}]
-universeDisplay[level_] := syntaxHead[Row, {syntaxHead[List, {syntaxString["Sort"], level}], syntaxString[" "]}]
+universeDisplay[syntaxInteger[n_Integer]] := sortDisplay["Type", syntaxInteger[n - 1]]
+universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[1]}]] := sortDisplay["Type", level]
+universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[n_Integer]}]] :=
+	sortDisplay["Type", syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level, syntaxInteger[n - 1]}]]
+universeDisplay[level_] := sortDisplay["Sort", level]
+
+(* a level that is a sum is parenthesized, as Lean writes it: Type (u + 1) *)
+sortDisplay[keyword_String, level : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], _]] := sortDisplay[keyword, delimited["(", level, ")"]]
+sortDisplay[keyword_String, level_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[keyword], level}], syntaxString[" "]}]
 
 
 (* ::Subsection:: *)

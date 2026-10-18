@@ -7,8 +7,9 @@ not specific to one tool.
 
 `WolframInstitute/TypeTheory` is a Wolfram Language paclet: a proof engine for the Calculus of
 Inductive Constructions in pure Wolfram Language. Kernel code lives in `TypeTheory/Kernel/<Area>/<File>.wl`,
-tests in `TypeTheory/Tests/<Area>/<File>.wlt` (the same layout), design notes in `docs/notes/`, and the
-design document in `docs/research/`. [README.md](README.md) is the overview.
+tests in `TypeTheory/Tests/<Area>/<File>.wlt` (the same layout), design notes in `docs/notes/`, the
+design document in `docs/research/`, and the documentation pages in `docs/paclet/en/`.
+[README.md](README.md) is the overview.
 
 The paclet has one context, `` WolframInstitute`TypeTheory` ``, through StructuredPackageFormat: the
 umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and each feature file declares
@@ -36,6 +37,14 @@ umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and e
   which removes the stores of the steps in between.
 - This paclet does not depend on Lean or LeanLink, and no symbol here is named after Lean. A Lean bridge
   belongs in LeanLink.
+
+## Documentation
+
+Every exported symbol has a page in `docs/paclet/en/Symbols/`, written to
+[docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md). A new exported symbol gets its page, and a
+change in behavior updates the examples it touches. `wl -f build_docs.wls` evaluates every page; read the
+outputs back and compare them with the `<!-- => ... -->` hints, which nothing checks automatically.
+`release.wls` publishes the site and the paclet resource as wolframinstitute.
 
 ## Testing
 

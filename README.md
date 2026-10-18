@@ -8,11 +8,19 @@ and tactics build proofs step by step in a notebook.
 > Status: **prototype.** The kernel, inductive families with generated recursors, structures with
 > projections, elaboration, a prelude of logic, equality and natural numbers, and six tactics work and
 > are tested. It is pure Wolfram Language, with no native library underneath, and it does not depend
-> on Lean. LeanLink has a bridge that translates declarations in both directions.
+> on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate declarations between Lean
+> and TypeTheory.
 
 ## Loading
 
-From a checkout:
+Install the published paclet:
+
+```wolfram
+PacletInstall[ResourceObject["https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/TypeTheory"]]
+Needs["WolframInstitute`TypeTheory`"]
+```
+
+Or from a checkout:
 
 ```wolfram
 PacletDirectoryLoad["path/to/TypeTheory/TypeTheory"]
@@ -20,6 +28,20 @@ Needs["WolframInstitute`TypeTheory`"]
 ```
 
 Loading takes about a second, and most of that is building the prelude through the kernel.
+
+## Documentation
+
+The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
+page for every symbol, a guide, and the tutorial *Getting Started with TypeTheory*. The pages are
+literate Markdown in [docs/paclet/en](docs/paclet/en), written to
+[docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
+[PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
+
+```bash
+wl -f build_docs.wls             # evaluate the pages into notebooks under TypeTheory/Documentation
+wl -f release.wls --dry-run      # build and check the site and the paclet archive, deploying nothing
+wl -f release.wls                # publish the site and the paclet, as wolframinstitute
+```
 
 ## A first session
 
