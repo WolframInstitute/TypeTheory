@@ -235,6 +235,18 @@ rebuilt[ZeroLeftIdentity]
 
 <!-- => theorem ZeroLeftIdentity : ∀_n∶ℕ 0 + n == n -->
 
+## Other Rules
+
+The rules the kernel checks by are a value, [TypeTheoryRules](), and every environment carries its own. The prelude follows the calculus of inductive constructions; the HoTT environment follows Martin-Löf type theory, which has no Prop, so that univalence holds there:
+
+```wl
+Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Rules"]["Name"]
+```
+
+<!-- => "MartinLofTypeTheory" -->
+
+The tutorial *Homotopy Type Theory* goes through it.
+
 ## Lean
 
 The Calculus of Inductive Constructions is also the type theory of [Lean 4](https://lean-lang.org/). [LeanLink](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink), the Wolfram Language link to Lean, translates declarations both ways: Lean theorems such as `Nat.zero_add` import into a [TypeTheoryEnvironment](), where this kernel checks them again, and theorems proved here export as Lean source that Lean's kernel accepts.

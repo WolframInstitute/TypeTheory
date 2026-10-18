@@ -7,13 +7,13 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, Lean]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, HomotopyTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
 ## Abstract
 
-<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the prelude, of classical logic, equality, the natural numbers and the Booleans. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
+<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the prelude, of classical logic, equality, the natural numbers and the Booleans. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
 
 ## Functions
 
@@ -32,6 +32,8 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryTheorem]() declares a theorem with its proof
 - [TypeTheoryInductiveType]() declares an inductive type with its constructors
 - [TypeTheoryNaturalNumbers]() registers the natural numbers that literals belong to
+- [TypeTheoryRewriteRule]() makes an axiom compute, where the rules allow it
+- [TypeTheoryRules]() the rules an environment follows: the calculus of inductive constructions, or Martin-Löf type theory without Prop
 
 ### Checking and computing
 
@@ -73,6 +75,14 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 - [BooleanFalse](), [BooleanTrue]() the values of [Booleans](), which [False]() and [True]() stand for where a Boolean is expected
 - [BooleanNot](), [BooleanAnd](), [BooleanOr]() the operations on Booleans, which [Not](), [And]() and [Or]() stand for on Booleans
+
+### Homotopy type theory
+
+- [Transport](), [DependentCongruence](), [TransportConstant]() carrying along paths, which compute on reflexivity
+- [IsEquivalence](), [EquivalenceProof](), [Equivalence](), [EquivalenceIntroduction](), [IdentityEquivalence]() equivalences
+- [EqualityToEquivalence](), [Univalence](), [EquivalenceToEquality](), [UnivalenceComputation]() univalence
+- [NegationEquivalence](), [IsSet](), [UniverseNotSet]() the universe is not a set
+- [CircleBase](), [CircleLoop](), [CircleInduction](), [CircleInductionBase](), [CircleInductionLoop]() the circle, a higher inductive type
 
 ### The prelude: theorems about the natural numbers
 

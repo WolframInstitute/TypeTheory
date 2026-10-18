@@ -124,12 +124,14 @@ evaluates inside a term.
 | `TypeTheoryTheorem[name, statement, proof]` | a theorem; `TypeTheoryTheorem[name, proof]` takes the statement of a finished proof |
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]` |
 | `TypeTheoryNaturalNumbers[type, zero, successor, addition]` | the natural numbers that literals belong to |
+| `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
 
 `TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the prelude, which is also the
 environment of any term or proof that names none. `TypeTheoryEnvironment[env, {declaration, ...}]` adds
 them to `env`, `Append[env, declaration]` adds one, `TypeTheoryEnvironment[]` is empty,
-`TypeTheoryEnvironment["Prelude"]` is the prelude itself, and `TypeTheoryEnvironment["Constructive"]` is
-the prelude without its axioms. An environment behaves like an association of
+`TypeTheoryEnvironment["Prelude"]` is the prelude itself, `TypeTheoryEnvironment["Constructive"]` is
+the prelude without its axioms, `TypeTheoryEnvironment["HomotopyTypeTheory"]` is homotopy type theory, and
+`TypeTheoryEnvironment[rules]` is the empty environment of the given `TypeTheoryRules`. An environment behaves like an association of
 its constants: `env[name]` gives the declaration that introduced `name`, and `Keys`, `Length`,
 `KeyExistsQ`, `Normal` and `Information` work as expected. `Normal[env]` gives the declarations, the
 prelude's included, written out exactly, so `TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[env]]`
@@ -176,6 +178,23 @@ and `(a && b) && c` for Booleans. `True`, `False`, `Not`, `And` and `Or` are pro
 the type decides: propositions where a type or `Prop` is expected, Booleans where `Booleans` is, and
 otherwise whatever the arguments or the term's use allow. A term nothing decides, such as
 `True == False`, is ambiguous and gives a `Failure`, and `Typed[True, Booleans]` says which it is.
+
+## Rules and homotopy type theory
+
+The rules the kernel checks by are a value, `TypeTheoryRules`, which every environment carries:
+`"CalculusOfInductiveConstructions"` for the prelude, and `"MartinLofTypeTheory"`, which has no Prop.
+Without Prop every universe is `Type u`, no two proofs of an equality are made equal, recursors
+eliminate into `Type u`, and a theorem may state any type. `TypeTheoryEnvironment[rules]` starts an
+environment of given rules, and the setting `"RewriteRules"` allows `TypeTheoryRewriteRule` declarations,
+which give an axiom computation rules that weak head normalization and definitional equality use.
+
+`TypeTheoryEnvironment["HomotopyTypeTheory"]` is homotopy type theory as in the HoTT book, on Martin-Löf
+rules with rewrite rules: `True`, `False` and `Not` as types; `Equal` as the type of paths, with path
+induction as its recursor; `Transport` and the operations on paths, which compute on reflexivity;
+bi-invertible equivalences and the axiom `Univalence`, with `UniverseNotSet` proved from it; and the
+circle, by axioms, with the rewrite rule `CircleInductionBase` making induction compute on its base
+point. On the prelude's rules the same declarations with an equality in Prop prove False, which is why
+the HoTT rules refuse one.
 
 ## Tactics
 
@@ -228,14 +247,16 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 133 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 152 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
-from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records.
+from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
+prelude's rules, the HoTT library proving False with an equality in Prop.
 
 ## Not yet
 
 - Decidability, pairs, sums, options and lists, and the theory around them.
 - Mutual and nested inductive types; quotients; induction on indexed families in the tactic.
+- Cubical type theory, where univalence computes; truncations; translations between rules.
 - Higher-order unification beyond patterns; no type classes.
 - A compiled kernel (`FunctionCompile` over an array encoding of terms), and computing products and
   powers of literals with integers, as sums already are.

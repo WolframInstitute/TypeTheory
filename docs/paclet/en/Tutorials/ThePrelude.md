@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/ThePrelude
 Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, classical logic, axioms, choice, excluded middle, constructive]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction]
+RelatedTutorials: [TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
 
 The prelude is the environment of every term, proof and list of declarations that names no other. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, and the Booleans. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
@@ -22,7 +22,7 @@ Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 
 <!-- => <|"InductiveType" -> 12, "Constructor" -> 15, "Recursor" -> 12, "Definition" -> 16, "Theorem" -> 51, "Axiom" -> 3|> -->
 
-It is built when the paclet loads, and every declaration in it is checked by the kernel. Three of its constants are axioms, assumed and not proved:
+It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
 ```wl
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]

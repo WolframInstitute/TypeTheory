@@ -114,7 +114,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <h1>TypeTheory Engine</h1>
   <p class="lede">A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in pure Wolfram Language. Its terms are written with the symbols the language already has: <code>Function</code>, <code>Typed</code>, <code>TypeOf</code>, <code>ForAll</code>, <code>Implies</code>, <code>Exists</code>, <code>Equal</code>, <code>Plus</code>, <code>NonNegativeIntegers</code>. A small kernel checks every proof, and tactics build proofs step by step in a notebook.</p>
   <div class="meta">
-    <span><b>Status</b> Prototype 0.6.0, October 2026</span>
+    <span><b>Status</b> Prototype 0.7.0, October 2026</span>
     <span><b>Kernel</b> Pure Wolfram Language, no native library</span>
     <span><b>Tests</b> 120 passing</span>
     <span><b>Lean</b> Bridge in LeanLink</span>
@@ -177,7 +177,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 
 <section id="prototype">
 <h2>The prototype</h2>
-<p>Version 0.6.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
+<p>Version 0.7.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
 <div class="scroll"><table>
   <thead><tr><th>Component</th><th>Status</th><th>File</th></tr></thead>
   <tbody>
@@ -188,6 +188,8 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <tr><td>Declaration constructors for axioms, definitions, theorems and inductive types; universe polymorphism</td><td><span class="tag built">built</span></td><td><code>Checking/Declarations.wl</code></td></tr>
     <tr><td>Environments as stores of definitions, carried by terms and proofs</td><td><span class="tag built">built</span></td><td><code>Checking/Environment.wl</code></td></tr>
     <tr><td>Structure projections; eta for structures and for types with one field-less constructor</td><td><span class="tag built">built</span></td><td><code>Checking/TypeChecking.wl</code></td></tr>
+    <tr><td>Rules as values: with or without Prop, and rewrite rules</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> affine and cubical rules, translations</td><td><code>Checking/Rules.wl</code></td></tr>
+    <tr><td>Homotopy type theory: paths, univalence, the circle</td><td><span class="tag built">built</span>, univalence and higher inductive types by axioms</td><td><code>Library/HomotopyTypeTheory.wl</code></td></tr>
     <tr><td>Quotients</td><td><span class="tag planned">planned</span></td><td></td></tr>
     <tr><td>Checking an environment from scratch</td><td><span class="tag built">built</span></td><td><code>Checking/Queries.wl</code></td></tr>
     <tr><td>Surface syntax, reading core terms back, notebook display</td><td><span class="tag built">built</span></td><td><code>Terms/SurfaceSyntax.wl</code>, <code>Terms/Formatting.wl</code></td></tr>
@@ -358,6 +360,17 @@ TypeTheoryCheck[lists]                                           <span class="c"
 <p>Metavariables do not yet carry their own local contexts, as they do in Lean. A solution that names a variable outside its scope is caught by the kernel's final check, not prevented, and shows up as an elaboration failure. Instances and coercions are not implemented.</p>
 </section>
 
+<section id="rules">
+<h2>Rules</h2>
+<p>The rules of a type theory, what the kernel allows and computes, are a value apart from the declarations an environment assumes. <code>TypeTheoryRules</code> holds them, every environment carries the rules it was started with, and the kernel checks each declaration and term by the rules of its environment. Terms carry their environment, so switching theory means choosing an environment. Elaboration, display and tactics are shared, since they only produce terms that the environment's kernel checks.</p>
+<ul>
+  <li><b>Prop.</b> <code>"CalculusOfInductiveConstructions"</code>, the prelude's rules, has an impredicative universe of propositions with proof irrelevance, K-like reduction and elimination of subsingletons. <code>"MartinLofTypeTheory"</code> has none: every universe level must be at least 1 whatever its parameters are, recursors eliminate into <code>Type u</code>, and a theorem may state any type.</li>
+  <li><b>Rewrite rules.</b> Where the rules allow them, <code>TypeTheoryRewriteRule[name, ForAll[binders, lhs -&gt; rhs]]</code> makes an axiom compute, as Dedukti's rewriting and Agda's <code>--rewriting</code> do: the left side is the axiom applied to a pattern, the right side has its type, and weak head normalization rewrites a match. A rule is trusted like an axiom.</li>
+  <li><b>Homotopy type theory.</b> <code>TypeTheoryEnvironment["HomotopyTypeTheory"]</code> follows Martin-Löf rules with rewrite rules, with paths, univalence as an axiom, and the circle, whose induction computes on its base point by a rewrite rule. Univalence needs the rules, not only the axiom: on the prelude's rules, an equality in Prop eliminates into types and has all its proofs equal, so transport along any path would be the identity, and the same declarations prove False. A test checks exactly that.</li>
+</ul>
+<p>Recursors are generated by the rules, so declarations read back by <code>Normal</code> rebuild an environment under its own rules but need not check under others. Moving content between rules is the work of translations, which the target kernel checks again like any other declaration.</p>
+</section>
+
 <section id="proving">
 <h2>Proof assistance</h2>
 
@@ -509,6 +522,11 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
   <p class="milestone"><b>Milestone</b> The 1,331-declaration cone of <code>Real.sqrt_nonneg</code> checks.</p>
 </div></div>
 <div class="phase"><div class="n">6</div><div>
+  <h3>Other rules</h3>
+  <div class="when">Started, October 2026</div>
+  <p>Done: rules as values, Martin-Löf rules without Prop, rewrite rules, and the HoTT environment. Next: an affine kernel after BendTT, a cubical kernel where univalence computes, and translations between rules.</p>
+</div></div>
+<div class="phase"><div class="n">7</div><div>
   <h3>Automation</h3>
   <div class="when">Ongoing</div>
   <p>The oracle tactics, decision by computation, and simplification on the Wolfram rewriter.</p>
@@ -537,7 +555,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 </ul>
 </section>
 
-<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.6.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.7.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>
