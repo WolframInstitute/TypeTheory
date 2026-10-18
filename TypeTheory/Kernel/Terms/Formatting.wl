@@ -180,6 +180,9 @@ displayApplication[syntaxString["and"], {syntaxApplication[syntaxSymbol[HoldComp
 displayApplication[syntaxString["and"], arguments_List] := syntaxHead[Nand, arguments]
 displayApplication[syntaxString["or"], {syntaxApplication[syntaxSymbol[HoldComplete[Nor]], rest_List], last_}] := syntaxHead[Nor, Append[rest, last]]
 displayApplication[syntaxString["or"], arguments_List] := syntaxHead[Nor, arguments]
+(* (a + b) + c shows as a + b + c, and (a b) c as a b c, the way Lean reads + and * *)
+displayApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], {syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List], last_}] :=
+	syntaxHead[head, Append[rest, last]]
 (* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
 displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
 	syntaxHead[head, Prepend[rest, first]]

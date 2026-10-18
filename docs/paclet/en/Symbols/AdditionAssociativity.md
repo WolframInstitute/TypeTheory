@@ -27,7 +27,7 @@ The statement of [AdditionAssociativity]():
 TypeTheoryCheck[TypeTheoryTerm[AdditionAssociativity]]
 ```
 
-<!-- => ∀_a∶ℕ ∀_b∶ℕ ∀_c∶ℕ (a + b) + c == a + (b + c) -->
+<!-- => ∀_a∶ℕ ∀_b∶ℕ ∀_c∶ℕ a + b + c == a + (b + c) -->
 
 ---
 
@@ -37,4 +37,4 @@ An instance:
 TypeTheoryCheck[TypeTheoryTerm[AdditionAssociativity[1, 2, 3]]]
 ```
 
-<!-- => (1 + 2) + 3 == 1 + (2 + 3) -->
+<!-- => 1 + 2 + 3 == 1 + (2 + 3) -->

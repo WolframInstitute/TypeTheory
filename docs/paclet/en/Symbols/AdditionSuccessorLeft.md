@@ -26,7 +26,7 @@ The statement of [AdditionSuccessorLeft]():
 TypeTheoryCheck[TypeTheoryTerm[AdditionSuccessorLeft]]
 ```
 
-<!-- => ∀_m∶ℕ ∀_n∶ℕ (m + 1) + n == (m + n) + 1 -->
+<!-- => ∀_m∶ℕ ∀_n∶ℕ m + 1 + n == m + n + 1 -->
 
 ---
 
@@ -36,4 +36,4 @@ For variables:
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, AdditionSuccessorLeft[m, n]]]]
 ```
 
-<!-- => ∀_m∶ℕ ∀_n∶ℕ (m + 1) + n == (m + n) + 1 -->
+<!-- => ∀_m∶ℕ ∀_n∶ℕ m + 1 + n == m + n + 1 -->

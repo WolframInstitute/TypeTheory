@@ -27,7 +27,7 @@ The statement of [MultiplicationAssociativity]():
 TypeTheoryCheck[TypeTheoryTerm[MultiplicationAssociativity]]
 ```
 
-<!-- => ∀_a∶ℕ ∀_b∶ℕ ∀_c∶ℕ (a b) c == a (b c) -->
+<!-- => ∀_a∶ℕ ∀_b∶ℕ ∀_c∶ℕ a b c == a (b c) -->
 
 ---
 
@@ -37,4 +37,4 @@ An instance:
 TypeTheoryCheck[TypeTheoryTerm[MultiplicationAssociativity[2, 3, 4]]]
 ```
 
-<!-- => (2 × 3) 4 == 2 (3 × 4) -->
+<!-- => 2 × 3 × 4 == 2 (3 × 4) -->

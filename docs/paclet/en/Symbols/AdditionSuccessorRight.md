@@ -26,7 +26,7 @@ The statement of [AdditionSuccessorRight]():
 TypeTheoryCheck[TypeTheoryTerm[AdditionSuccessorRight]]
 ```
 
-<!-- => ∀_m∶ℕ ∀_n∶ℕ m + (n + 1) == (m + n) + 1 -->
+<!-- => ∀_m∶ℕ ∀_n∶ℕ m + (n + 1) == m + n + 1 -->
 
 ---
 
@@ -36,4 +36,4 @@ An instance:
 TypeTheoryCheck[TypeTheoryTerm[AdditionSuccessorRight[2, 3]]]
 ```
 
-<!-- => 2 + (3 + 1) == (2 + 3) + 1 -->
+<!-- => 2 + (3 + 1) == 2 + 3 + 1 -->
