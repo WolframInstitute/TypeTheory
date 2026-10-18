@@ -36,7 +36,7 @@ Its function is the identity:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-WeakHeadNormalForm[TypeTheoryTerm[IdentityEquivalence[Booleans][[1]][BooleanTrue], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[IdentityEquivalence[Booleans][[1]][True], hott]]
 ```
 
 <!-- => true -->

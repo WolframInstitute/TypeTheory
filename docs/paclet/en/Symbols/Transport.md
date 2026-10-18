@@ -37,7 +37,7 @@ Along reflexivity, transport leaves an element as it is:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity[BooleanTrue], BooleanFalse], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity[True], False], hott]]
 ```
 
 <!-- => false -->

@@ -37,7 +37,7 @@ Its function is negation:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[1]][BooleanFalse], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[1]][False], hott]]
 ```
 
 <!-- => true -->

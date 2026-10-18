@@ -36,7 +36,7 @@ The function of an equivalence computes:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[1]][BooleanTrue], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[1]][True], hott]]
 ```
 
 <!-- => false -->

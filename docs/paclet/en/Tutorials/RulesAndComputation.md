@@ -52,7 +52,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Double[4], double]]
 A recursor applied to a constructor takes the case for that constructor, here the second case, for `true`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, Naturals], 0, 1, BooleanTrue]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, Naturals], 0, 1, True]]]
 ```
 
 <!-- => 1 -->
@@ -161,12 +161,12 @@ quotient[QuotientLiftClass]
 
 <!-- => rewrite QuotientLiftClass : ∀_A∶Sort u ∀_r∶A → A → Prop ∀_B∶Sort v ∀_f∶A → B ∀_h∶∀_a∶A ∀_b∶A r[a, b] ⇒ f[a] == f[b] ∀_a∶A QuotientLift[f, h, QuotientClass[r, a]] ⟶ f[a] -->
 
-Negation respects equality of Booleans, so it lifts to the quotient by equality, and on a class the lift computes:
+Negation respects equality of Booleans, so it lifts to the quotient by equality, and on a class the lift computes. [Not]() and [True]() stand for the Booleans' negation and truth here, since the types say so:
 
 ```wl
 same = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, a == b], quotient];
-respects = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]}, EqualityCongruence[BooleanNot, e]], quotient];
-WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[BooleanNot, respects, QuotientClass[same, BooleanTrue]], quotient]]
+respects = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]}, EqualityCongruence[Not, e]], quotient];
+WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], quotient]]
 ```
 
 <!-- => false -->
@@ -175,7 +175,7 @@ The same axioms on the prelude, with no rule, declare the quotient as well, but 
 
 ```wl
 stuck = TypeTheoryEnvironment[quotientDeclarations];
-WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[BooleanNot, respects, QuotientClass[same, BooleanTrue]], stuck]]
+WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], stuck]]
 ```
 
 <!-- => QuotientLift[BooleanNot, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[BooleanNot, e], QuotientClass[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->

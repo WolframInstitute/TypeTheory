@@ -270,7 +270,7 @@ A statement about every Boolean is proved by cases, with the recursor of [Boolea
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
-    InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity[BooleanFalse], EqualityReflexivity[BooleanTrue], b]
+    InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity[False], EqualityReflexivity[True], b]
 ]]]
 ```
 

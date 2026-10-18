@@ -36,7 +36,7 @@ On the base point it computes, here into a constant family:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
-WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Function[{Typed[x, Circle]}, Booleans], BooleanTrue, TransportConstant[CircleLoop, BooleanTrue], CircleBase], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Function[{Typed[x, Circle]}, Booleans], True, TransportConstant[CircleLoop, True], CircleBase], hott]]
 ```
 
 <!-- => true -->
