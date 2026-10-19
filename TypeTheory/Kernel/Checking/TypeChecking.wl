@@ -311,7 +311,11 @@ reduceHead[environment_, context_, term_] := With[{spine = applicationSpine[term
 	reduceSpine[environment, context, term, First[spine], Last[spine]]
 ]
 
-reduceSpine[_, _, _, lambdaAbstraction[_, _, body_, _], {argument_, rest___}] := makeApplication[instantiateBoundVariable[body, argument], {rest}]
+(* a function of several variables applied to arguments for them takes them all in one substitution, as in
+   Lean's kernel, not one substitution each *)
+reduceSpine[_, _, _, function_lambdaAbstraction, arguments : {__}] := With[{peeled = peelFunctions[function, Length[arguments]]},
+	makeApplication[instantiateBoundVariables[First[peeled], Take[arguments, Last[peeled]]], Drop[arguments, Last[peeled]]]
+]
 reduceSpine[_, _, _, localDefinition[_, _, value_, body_], arguments_List] := makeApplication[instantiateBoundVariable[body, value], arguments]
 reduceSpine[_, _, _, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id], arguments_List] :=
 	makeApplication[$metavariableAssignments[id], arguments]
@@ -321,6 +325,13 @@ reduceSpine[environment_, context_, term_, projection[structure_, index_, struct
 	reduceProjection[environment, context, term, structure, index, structureTerm, arguments]
 reduceSpine[_, context_, _, freeVariable[id_], arguments_List] /; KeyExistsQ[Lookup[context, id, <||>], "Value"] := makeApplication[context[id]["Value"], arguments]
 reduceSpine[_, _, term_, _, _] := term
+
+(* {body, count}: the body under the outermost functions nested in term, count of them and at most limit *)
+peelFunctions[term_, limit_Integer] := NestWhile[
+	Function[state, {state[[1, 3]], state[[2]] + 1}],
+	{term, 0},
+	Function[state, state[[2]] < limit && MatchQ[First[state], _lambdaAbstraction]]
+]
 
 (* a registered operation on natural numbers computes on literals before it unfolds *)
 reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Replace[

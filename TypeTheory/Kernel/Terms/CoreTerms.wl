@@ -56,6 +56,7 @@ PackageScoped[liftBoundVariables]
 PackageScoped[looseBoundRange]
 PackageScoped[$looseBoundRangeCache]
 PackageScoped[instantiateBoundVariable]
+PackageScoped[instantiateBoundVariables]
 PackageScoped[abstractFreeVariable]
 PackageScoped[boundVariableOccursQ]
 PackageScoped[instantiateUniverseParameters]
@@ -96,6 +97,7 @@ liftBoundVariables::usage = "liftBoundVariables[term, amount, cutoff] adds amoun
 looseBoundRange::usage = "looseBoundRange[term] gives one more than the largest index of a bound variable of term that no binder of term binds, or 0."
 $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loose bound ranges remembered while the kernel checks a declaration, or None."
 instantiateBoundVariable::usage = "instantiateBoundVariable[body, value] replaces the variable bound just outside body by value."
+instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ..., valuek}] replaces the k variables bound just outside body by the values at once, the innermost by valuek."
 abstractFreeVariable::usage = "abstractFreeVariable[term, id] replaces freeVariable[id] by a bound variable, ready to be wrapped in a binder."
 boundVariableOccursQ::usage = "boundVariableOccursQ[body, index] gives True if body refers to boundVariable[index] counted from its own top."
 instantiateUniverseParameters::usage = "instantiateUniverseParameters[term, {u, ...}, {level, ...}] replaces each universe parameter u by its level."
@@ -165,34 +167,37 @@ liftNode[projection[structure_, index_, term_], amount_, cutoff_] := projection[
 liftNode[term_, _, _] := term
 
 
-instantiateBoundVariable[body_, value_] := substituteBoundVariable[body, value, 0]
+instantiateBoundVariable[body_, value_] := instantiateBoundVariables[body, {value}]
 
-substituteBoundVariable[term_, value_, depth_] := withRangeCache[
-	If[looseBoundRange[term] <= depth, term, Block[{$substitutionMemo = <||>}, substituteShared[term, value, depth]]]
+(* the variables bound just outside body, innermost last, replaced at once by values, as beta reduction of a
+   function of several arguments needs: body refers to the last value as boundVariable[0] *)
+instantiateBoundVariables[body_, values_List] := withRangeCache[
+	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>}, substituteShared[body, Reverse[values], 0]]]
 ]
 
-substituteShared[term_, value_, depth_] := If[ looseBoundRange[term] <= depth,
+(* values innermost first: boundVariable[depth + j] is the value at j + 1 *)
+substituteShared[term_, values_, depth_] := If[ looseBoundRange[term] <= depth,
 	term,
-	Lookup[$substitutionMemo, Key[{term, depth}], $substitutionMemo[{term, depth}] = substituteNode[term, value, depth]]
+	Lookup[$substitutionMemo, Key[{term, depth}], $substitutionMemo[{term, depth}] = substituteNode[term, values, depth]]
 ]
 
-substituteNode[boundVariable[index_], value_, depth_] := Which[
-	index == depth,
-		liftBoundVariables[value, depth, 0],
-	index > depth,
-		boundVariable[index - 1],
+substituteNode[boundVariable[index_], values_, depth_] := Which[
+	index < depth,
+		boundVariable[index],
+	index < depth + Length[values],
+		liftBoundVariables[values[[index - depth + 1]], depth, 0],
 	True,
-		boundVariable[index]
+		boundVariable[index - Length[values]]
 ]
-substituteNode[application[function_, argument_], value_, depth_] :=
-	application[substituteShared[function, value, depth], substituteShared[argument, value, depth]]
-substituteNode[lambdaAbstraction[name_, domain_, body_, binder_], value_, depth_] :=
-	lambdaAbstraction[name, substituteShared[domain, value, depth], substituteShared[body, value, depth + 1], binder]
-substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], value_, depth_] :=
-	dependentFunctionType[name, substituteShared[domain, value, depth], substituteShared[codomain, value, depth + 1], binder]
-substituteNode[localDefinition[name_, type_, definedValue_, body_], value_, depth_] :=
-	localDefinition[name, substituteShared[type, value, depth], substituteShared[definedValue, value, depth], substituteShared[body, value, depth + 1]]
-substituteNode[projection[structure_, index_, term_], value_, depth_] := projection[structure, index, substituteShared[term, value, depth]]
+substituteNode[application[function_, argument_], values_, depth_] :=
+	application[substituteShared[function, values, depth], substituteShared[argument, values, depth]]
+substituteNode[lambdaAbstraction[name_, domain_, body_, binder_], values_, depth_] :=
+	lambdaAbstraction[name, substituteShared[domain, values, depth], substituteShared[body, values, depth + 1], binder]
+substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], values_, depth_] :=
+	dependentFunctionType[name, substituteShared[domain, values, depth], substituteShared[codomain, values, depth + 1], binder]
+substituteNode[localDefinition[name_, type_, definedValue_, body_], values_, depth_] :=
+	localDefinition[name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
+substituteNode[projection[structure_, index_, term_], values_, depth_] := projection[structure, index, substituteShared[term, values, depth]]
 substituteNode[term_, _, _] := term
 
 

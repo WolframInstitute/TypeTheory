@@ -22,6 +22,7 @@ levelImpredicativeMaximum = scoped["levelImpredicativeMaximum"]
 normalizeLevel = scoped["normalizeLevel"]
 levelLessEqualQ = scoped["levelLessEqualQ"]
 instantiateBoundVariable = scoped["instantiateBoundVariable"]
+instantiateBoundVariables = scoped["instantiateBoundVariables"]
 abstractFreeVariable = scoped["abstractFreeVariable"]
 betaNormalize = scoped["betaNormalize"]
 
@@ -35,6 +36,19 @@ VerificationTest[
 	instantiateBoundVariable[application[boundVariable[0], boundVariable[1]], freeVariable[7]],
 	application[freeVariable[7], boundVariable[0]],
 	TestID -> "Instantiating-the-outer-variable-lowers-the-others"
+]
+
+(* under a binder, a value is lifted past it, and a variable bound further out is lowered by the number of values *)
+VerificationTest[
+	With[
+		{
+			body = application[application[boundVariable[0], boundVariable[1]], lambdaAbstraction[HoldComplete[x], universeSort[0], application[boundVariable[3], application[boundVariable[1], boundVariable[0]]], "Explicit"]],
+			values = {application[freeVariable[1], boundVariable[0]], freeVariable[2]}
+		},
+		instantiateBoundVariables[body, values] === instantiateBoundVariable[instantiateBoundVariable[body, Last[values]], First[values]]
+	],
+	True,
+	TestID -> "Instantiating-several-variables-at-once-is-instantiating-them-in-turn"
 ]
 
 VerificationTest[
