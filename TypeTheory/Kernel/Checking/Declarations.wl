@@ -357,7 +357,10 @@ heldOptionValue[head_Symbol, Hold[options___], name_String] := First[Cases[
 	{1, 2}
 ]]
 
-declarationUniverseParameters[head_Symbol, heldOptions_Hold, syntaxes_List] := Replace[heldOptionValue[head, heldOptions, "UniverseParameters"], {
+(* the syntax trees are worked out only when the universe parameters are not given: an import gives them,
+   with terms too large to walk for nothing *)
+SetAttributes[declarationUniverseParameters, HoldRest]
+declarationUniverseParameters[head_Symbol, heldOptions_Hold, syntaxes_] := Replace[heldOptionValue[head, heldOptions, "UniverseParameters"], {
 	HoldComplete[Automatic] :> universeParameterNames[syntaxes],
 	HoldComplete[{parameters___}] /; AllTrue[Unevaluated[{parameters}], Function[parameter, MatchQ[Unevaluated[parameter], _Symbol | _String], HoldAll]] :>
 		HoldComplete /@ Unevaluated[{parameters}],

@@ -92,7 +92,7 @@ $universeParameterNames::usage = "$universeParameterNames is the list of univers
 overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
 explicitTerm::usage = "explicitTerm[environment, HoldComplete[term], {HoldComplete[u], ...}] gives the core term of a term that gives every argument and every \
-universe level, unchecked, or None if the term is not that explicit."
+universe level, or that is a core term already, unchecked, or None if the term is not that explicit."
 aliasResolvedName::usage = "aliasResolvedName[environment, HoldComplete[name]] gives the held name of the constant name stands for: a symbol whose value is a declared constant of environment stands for that constant, as Naturals does for NonNegativeIntegers, also inside InductiveRecursor."
 
 
@@ -661,6 +661,8 @@ settleOverloads[term_] := (
    checked, and needs not be: the declaration it goes into has the kernel check it, as every declaration
    does. Anything else, an implicit argument to infer, an overloaded name, an ascription, makes the term
    not explicit, and it is elaborated as usual. *)
+(* a core term, as an import builds it, is already explicit *)
+explicitTerm[_, HoldComplete[term : (_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _constantReference | _universeSort | _naturalLiteral)], _] := term
 explicitTerm[environment_, held_HoldComplete, universeParameters_List] := Block[
 	{$elaborationEnvironment = environment, $universeParameterNames = universeParameters},
 	Catch[explicitCore[toSyntax @@ held, {}], $notExplicitTag]
