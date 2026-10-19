@@ -13,7 +13,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ## Abstract
 
-<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the prelude, of classical logic, equality, the natural numbers and the Booleans. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
+<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers and the Booleans, unless [SetTypeTheoryEnvironment]() sets another. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
 
 ## Functions
 
@@ -28,6 +28,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Environments and declarations
 
 - [TypeTheoryEnvironment]() an environment of declared constants: the prelude extended with declarations, the constructive environment without its axioms, or one built from none
+- [SetTypeTheoryEnvironment]() makes an environment the default, [$TypeTheoryEnvironment](), of the terms, proofs and declarations that name none
 - [TypeTheoryAxiom]() declares an axiom
 - [TypeTheoryDefinition]() declares a definition
 - [TypeTheoryTheorem]() declares a theorem with its proof
