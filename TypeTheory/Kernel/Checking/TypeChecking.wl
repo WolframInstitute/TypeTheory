@@ -558,6 +558,9 @@ definitionallyEqualQ[environment_, context_, a_, b_] := a === b || If[ Associati
 ]
 
 definitionallyEqualCases[_, _, universeSort[first_], universeSort[second_]] := levelEquivalentQ[first, second]
+(* two literals are equal if their numbers are, which comparing them as successors would find only after
+   one step for each *)
+definitionallyEqualCases[_, _, naturalLiteral[first_], naturalLiteral[second_]] := first == second
 definitionallyEqualCases[environment_, context_, (head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], head_[_, otherDomain_, otherBody_, _]] :=
 	And[
 		definitionallyEqualQ[environment, context, domain, otherDomain],

@@ -178,3 +178,12 @@ VerificationTest[
 	"TypeChecked",
 	TestID -> "Equal-applications-are-compared-before-their-definitions-unfold"
 ]
+
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm[1935], TypeTheoryTerm[1936]],
+		DefinitionallyEqualQ[TypeTheoryTerm[1936], TypeTheoryTerm[1935 + 1]]
+	},
+	{False, True},
+	TestID -> "Two-literals-are-compared-by-their-numbers"
+]
