@@ -46,6 +46,13 @@ loadPacletPage[] := Module[{directory = Environment["PACLETPAGE_DIR"], paclet},
 
 $buildOptions = {"Source" -> $docsDirectory}
 
+(* The tutorial Mathlib in TypeTheory runs LeanLink: the checkout next to this one when there is one,
+   as LeanLink's scripts run this checkout, and otherwise LeanLink as installed. *)
+
+$leanLinkDirectory = FileNameJoin[{ParentDirectory[$repoDirectory], "LeanLink", "LeanLink"}]
+
+loadLeanLink[] := If[DirectoryQ[$leanLinkDirectory], PacletDirectoryLoad[$leanLinkDirectory]]
+
 (* A build is good when every page converted and no section reads a name that only an earlier section
    gave a value. PacletPage keeps such a page out of its cache, so every build reports it until it is fixed. *)
 
@@ -68,11 +75,14 @@ checkBuild[result_] := Module[{unevaluated},
 
 (* The function is named in full: this file is read before PacletPage is loaded. *)
 
-buildDocumentation[] := checkBuild[WolframInstitute`PacletPage`BuildPacletDocumentation[
-	$pacletDirectory,
-	Sequence @@ $buildOptions,
-	Sequence @@ If[MemberQ[$ScriptCommandLine, "--no-cache"], {"UseCache" -> False}, {}]
-]]
+buildDocumentation[] := (
+	loadLeanLink[];
+	checkBuild[WolframInstitute`PacletPage`BuildPacletDocumentation[
+		$pacletDirectory,
+		Sequence @@ $buildOptions,
+		Sequence @@ If[MemberQ[$ScriptCommandLine, "--no-cache"], {"UseCache" -> False}, {}]
+	]]
+)
 
 $resourceOptions = {}
 
