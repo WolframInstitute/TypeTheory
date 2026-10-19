@@ -62,6 +62,7 @@ PackageScoped[$universeParameterNames]
 PackageScoped[overloadedNameQ]
 PackageScoped[aliasResolvedName]
 PackageScoped[settleOverloads]
+PackageScoped[explicitTerm]
 
 
 (* ::Section:: *)
@@ -90,6 +91,8 @@ $elaborationScope::usage = "$elaborationScope gives the term and type each varia
 $universeParameterNames::usage = "$universeParameterNames is the list of universe parameters a term may mention while elaborating."
 overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
+explicitTerm::usage = "explicitTerm[environment, HoldComplete[term], {HoldComplete[u], ...}] gives the core term of a term that gives every argument and every \
+universe level, unchecked, or None if the term is not that explicit."
 aliasResolvedName::usage = "aliasResolvedName[environment, HoldComplete[name]] gives the held name of the constant name stands for: a symbol whose value is a declared constant of environment stands for that constant, as Naturals does for NonNegativeIntegers, also inside InductiveRecursor."
 
 
@@ -644,6 +647,101 @@ settleOverloads[term_] := (
 	resolvePendingOverloads[0, True];
 	instantiateMetavariables[term]
 )
+
+
+(* ::Subsection:: *)
+(*Explicit terms*)
+
+
+(* A term that gives every argument with Construct and every universe level with Subscript, as an import
+   from another proof assistant writes it, is translated straight into a core term, with no inference and
+   no unification: names in scope become bound variables, and the rest constants. The translation is not
+   checked, and needs not be: the declaration it goes into has the kernel check it, as every declaration
+   does. Anything else, an implicit argument to infer, an overloaded name, an ascription, makes the term
+   not explicit, and it is elaborated as usual. *)
+explicitTerm[environment_, held_HoldComplete, universeParameters_List] := Block[
+	{$elaborationEnvironment = environment, $universeParameterNames = universeParameters},
+	Catch[explicitCore[toSyntax @@ held, {}], $notExplicitTag]
+]
+
+(* the scope lists the binders around a subterm, innermost first, as {HoldComplete[name], type} *)
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}], scope_] :=
+	makeApplication[explicitCore[head, scope], Function[argument, explicitCore[argument, scope]] /@ {arguments}]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}], _] := With[{name = explicitConstantName[constant]},
+	If[ Length[constantRecord[$elaborationEnvironment, name]["UniverseParameters"]] =!= Length[{levels}],
+		Throw[None, $notExplicitTag]
+	];
+	constantReference[name, Function[level, elaborateLevel[level]] /@ {levels}]
+]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[head : ForAll | Function]], {binders_, body_}], scope_] := explicitBinders[head, listElements[binders], body, scope]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[With]], {bindings_, body_}], scope_] := explicitDefinitions[listElements[bindings], body, scope]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}], _] := universeSort[elaborateLevel[level]]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}], scope_] :=
+	With[{structureCore = explicitCore[structureTerm, scope]}, projection[explicitStructure[structureCore, scope], index - 1, structureCore]]
+explicitCore[syntaxInteger[n_Integer?NonNegative], _] /; naturalNumberSettings[$elaborationEnvironment] =!= None := naturalLiteral[n]
+explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_]), scope_] := With[{held = heldFromSyntax[syntax]},
+	Replace[FirstPosition[scope, {Verbatim[held], _}, None, {1}, Heads -> False], {
+		{position_Integer} :> boundVariable[position - 1],
+		None :> With[{name = explicitConstantName[syntax]},
+			If[constantRecord[$elaborationEnvironment, name]["UniverseParameters"] =!= {}, Throw[None, $notExplicitTag]];
+			constantReference[name, {}]
+		]
+	}]
+]
+explicitCore[_, _] := Throw[None, $notExplicitTag]
+
+(* a declared constant that names no overloaded meaning, which only elaboration decides *)
+explicitConstantName[syntax_] := With[{name = constantNameOfSyntax[syntax]},
+	If[ constantDeclaredQ[$elaborationEnvironment, name] && ! overloadedNameQ[$elaborationEnvironment, name] && constantRecord[$elaborationEnvironment, name]["Kind"] =!= "RewriteRule",
+		name,
+		Throw[None, $notExplicitTag]
+	]
+]
+
+explicitBinders[head_, binders_List, body_, scope_] := Module[{entries = {}, inner = scope},
+	Scan[
+		Function[binder, With[{parsed = parseBinder[binder]},
+			If[parsed["Type"] === None, Throw[None, $notExplicitTag]];
+			With[{entry = {parsed["Name"], explicitCore[parsed["Type"], inner], parsed["Binder"]}},
+				entries = Append[entries, entry];
+				inner = Prepend[inner, Take[entry, 2]]
+			]
+		]],
+		binders
+	];
+	Fold[
+		Function[{core, entry}, Replace[head, {ForAll -> dependentFunctionType, Function -> lambdaAbstraction}][First[entry], entry[[2]], core, Last[entry]]],
+		explicitCore[body, inner],
+		Reverse[entries]
+	]
+]
+
+explicitDefinitions[{}, body_, scope_] := explicitCore[body, scope]
+explicitDefinitions[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {name : (syntaxSymbol[_] | syntaxString[_]), syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {value_, type_}]}], rest___}, body_, scope_] :=
+	With[{held = heldFromSyntax[name], typeCore = explicitCore[type, scope]},
+		localDefinition[held, typeCore, explicitCore[value, scope], explicitDefinitions[{rest}, body, Prepend[scope, {held, typeCore}]]]
+	]
+explicitDefinitions[_, _, _] := Throw[None, $notExplicitTag]
+
+(* A projection names its structure, the head of the type of the term projected from: the kernel infers it,
+   with the binders in scope opened as free variables, outermost first. *)
+explicitStructure[structureCore_, scope_] := Module[{context = <||>, ids = {}, opened},
+	Scan[
+		Function[entry, With[{id = freshFreeVariable[]},
+			context = extendContext[context, id, First[entry], openBound[Last[entry], ids], "Explicit"];
+			ids = Prepend[ids, id]
+		]],
+		Reverse[scope]
+	];
+	opened = openBound[structureCore, ids];
+	Replace[First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, context, inferType[$elaborationEnvironment, context, opened]]], {
+		constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name,
+		_ :> Throw[None, $notExplicitTag]
+	}]
+]
+
+(* the bound variables of a term, 0 innermost, as the free variables ids, innermost first *)
+openBound[term_, ids_List] := Fold[Function[{core, id}, instantiateBoundVariable[core, freeVariable[id]]], term, ids]
 
 
 (* ::Subsection:: *)

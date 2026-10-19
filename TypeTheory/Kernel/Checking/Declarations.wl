@@ -160,15 +160,15 @@ $emptyEnvironments = <||>
 
 addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryAxiom, Hold[options], {toSyntax[type]}]},
-	declareAxiom[environment, HoldComplete[name], universeParameters, elaborateClosedType[environment, HoldComplete[type], universeParameters]]
+	declareAxiom[environment, HoldComplete[name], universeParameters, closedType[environment, HoldComplete[type], universeParameters]]
 ]
 
 (* a definition keeps the type it is given, implicit binders included, and its value only has to have
    that type: Lean's projections, for one, take their parameters explicitly in the value *)
 addDeclaration[environment_, TypeTheoryDefinition[name_, Typed[value_, type_], options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[Typed[value, type]]}]},
-	{typeCore = elaborateClosedType[environment, HoldComplete[type], universeParameters]},
-	declareDefinition[environment, HoldComplete[name], universeParameters, typeCore, First[elaborateClosedTerm[environment, HoldComplete[value], typeCore, universeParameters]]]
+	{typeCore = closedType[environment, HoldComplete[type], universeParameters]},
+	declareDefinition[environment, HoldComplete[name], universeParameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, universeParameters]]
 ]
 
 addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : OptionsPattern[]]] := With[
@@ -179,7 +179,7 @@ addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : Optio
 
 addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]},
-	{type = elaborateClosedType[environment, HoldComplete[statement], universeParameters]},
+	{type = closedType[environment, HoldComplete[statement], universeParameters]},
 	declareTheorem[environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters]]
 ]
 
@@ -201,7 +201,7 @@ addDeclaration[environment_, TypeTheoryInductiveType[types : {(_Rule | _RuleDela
 inductiveBlock[environment_, parsedTypes_List, parsedConstructors_List, heldOptions_Hold] := Module[
 	{universeParameters, typeCores, provisional, constructorCores},
 	universeParameters = declarationUniverseParameters[TypeTheoryInductiveType, heldOptions, Function[pair, toSyntax @@ Last[pair]] /@ Join[parsedTypes, parsedConstructors]];
-	typeCores = Function[pair, First[pair] -> elaborateClosedType[environment, Last[pair], universeParameters]] /@ parsedTypes;
+	typeCores = Function[pair, First[pair] -> closedType[environment, Last[pair], universeParameters]] /@ parsedTypes;
 	(* the constructor types may mention the types being declared *)
 	provisional = addConstantRecords[environment, Association[Function[typeCore, First[typeCore] -> <|
 		"Kind" -> "InductiveType",
@@ -214,7 +214,7 @@ inductiveBlock[environment_, parsedTypes_List, parsedConstructors_List, heldOpti
 		"Recursive" -> False,
 		"Block" -> Keys[typeCores]
 	|>] /@ typeCores]];
-	constructorCores = Function[pair, First[pair] -> elaborateClosedType[provisional, Last[pair], universeParameters]] /@ parsedConstructors;
+	constructorCores = Function[pair, First[pair] -> closedType[provisional, Last[pair], universeParameters]] /@ parsedConstructors;
 	declareInductiveTypes[
 		environment,
 		universeParameters,
@@ -290,7 +290,15 @@ theoremValue[environment_, HoldComplete[proof_TypeTheoryProof], _, _] := Replace
 	state : TypeTheoryProof[_Association] :> completedProofTerm[state],
 	failure_Failure :> throwFailure[failure]
 }]
-theoremValue[environment_, held_HoldComplete, type_, universeParameters_List] := First[elaborateClosedTerm[environment, held, type, universeParameters]]
+theoremValue[environment_, held_HoldComplete, type_, universeParameters_List] := closedValue[environment, held, type, universeParameters]
+
+(* A type or value given in full, every argument and universe level written out, as an import writes it,
+   goes into the declaration without elaboration: the kernel checks the declaration all the same. *)
+closedType[environment_, held_HoldComplete, universeParameters_List] :=
+	Replace[explicitTerm[environment, held, universeParameters], None :> elaborateClosedType[environment, held, universeParameters]]
+
+closedValue[environment_, held_HoldComplete, type_, universeParameters_List] :=
+	Replace[explicitTerm[environment, held, universeParameters], None :> First[elaborateClosedTerm[environment, held, type, universeParameters]]]
 
 (* {constructor -> type, ...}, held, as {{HoldComplete[constructor], HoldComplete[type]}, ...} *)
 SetAttributes[constructorSpecifications, HoldFirst]
