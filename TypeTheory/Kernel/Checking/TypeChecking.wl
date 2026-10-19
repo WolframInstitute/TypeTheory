@@ -87,7 +87,7 @@ $definitionalEqualityCache = None
 SetAttributes[withKernelCaches, HoldFirst]
 withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
 	body,
-	Block[{$inferTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>}, body]
+	Block[{$inferTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>}, body]
 ]
 
 freshFreeVariable[] := ++$freeVariableCounter
