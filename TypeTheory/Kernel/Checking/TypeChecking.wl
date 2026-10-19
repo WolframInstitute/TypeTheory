@@ -547,10 +547,11 @@ definitionallyEqualCases[environment_, context_, (head : lambdaAbstraction | dep
 			]
 		]
 	]
+(* proofs of the same proposition are equal before either is reduced, as Lean's kernel decides them *)
 definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 	sameHeadArgumentsEqualQ[environment, context, a, b],
-	reducedEqualQ[environment, context, a, b],
-	proofIrrelevantEqualQ[environment, context, a, b]
+	proofIrrelevantEqualQ[environment, context, a, b],
+	reducedEqualQ[environment, context, a, b]
 ]
 
 (* the same constant applied to equal arguments, tried before unfolding the constant *)
