@@ -311,9 +311,9 @@ flowchart LR
 <div class="scroll"><table>
   <thead><tr><th>Component</th><th>What it does</th><th>Status</th></tr></thead>
   <tbody>
-    <tr><td>Type inference</td><td>One rule per term former: <code>Sort u : Sort (u+1)</code>; a function has a function type; a function type lives in <code>Sort (imax u v)</code>; an application checks its argument against the domain; a local definition checks its value; a literal is a natural number. Inference always checks.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> an infer-only mode for terms already checked</td></tr>
-    <tr><td>Weak head normal form</td><td>β; ζ for local definitions; δ for definitions, never theorems; ι for a recursor applied to a constructor, with a literal read as a constructor; K-like reduction for recursors of propositions with one constructor and no fields, such as equality's.</td><td><span class="tag built">built</span></td></tr>
-    <tr><td>Definitional equality</td><td>Syntactic equality; universe equivalence; binders; the same constant on equal arguments before unfolding; reduction, then η for functions, literals against constructors, and spines; proof irrelevance.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> definitional heights, caches, structure η</td></tr>
+    <tr><td>Type inference</td><td>One rule per term former: <code>Sort u : Sort (u+1)</code>; a function has a function type; a function type lives in <code>Sort (imax u v)</code>; an application checks its argument against the domain; a local definition checks its value, and its body is checked with the variable in the context, its value beside it; a literal is a natural number. Inference always checks. While it checks a declaration, the kernel remembers the types, normal forms and equalities it has worked out, and substitution passes by a subterm with no variable to replace, so a term keeps its shared subterms.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> an infer-only mode for terms already checked</td></tr>
+    <tr><td>Weak head normal form</td><td>β, with a function of several variables taking all its arguments in one substitution; ζ for local definitions and for the let variables of the context; δ for definitions, never theorems; ι for a recursor applied to a constructor, with a literal read as a constructor; K-like reduction for recursors of propositions with one constructor and no fields, such as equality's.</td><td><span class="tag built">built</span></td></tr>
+    <tr><td>Definitional equality</td><td>Syntactic equality; universe equivalence; binders; the same constant on equal arguments before unfolding; proof irrelevance, before either side unfolds; reduction, then η for functions, literals against constructors, and spines.</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> definitional heights, structure η</td></tr>
     <tr><td>Inductive families</td><td>The type and each constructor are types; constructors take the parameters first and end in the type applied to them; strict positivity; field universes no larger than the type's, unless it is a proposition. Mutually inductive types share their parameters and universe, and their recursors take a motive for each; a type nested in a container's parameters becomes, as in Lean's kernel, an auxiliary type of the block, which the container replaces once the recursors are generated.</td><td><span class="tag built">built</span></td></tr>
     <tr><td>Recursors</td><td><code>InductiveRecursor[I]</code> takes the parameters, a motive, one minor premise per constructor with an induction hypothesis per recursive field, the indices and the major premise. A proposition eliminates only into Prop unless it has at most one constructor whose fields are proofs or indices. Every recursor type and reduction rule is type-checked before it is added.</td><td><span class="tag built">built</span></td></tr>
     <tr><td>Natural numbers</td><td>An inductive type registered as the natural numbers makes <code>0</code>, <code>1</code>, <code>2</code>, … its elements. Registered operations compute on literals with integers: the arithmetic, division, gcd, logarithm, bitwise operations, shifts and comparisons that Lean's kernel computes with GMP.</td><td><span class="tag built">built</span></td></tr>
@@ -442,7 +442,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 <h3>From Lean</h3>
 <p><code>LeanToTypeTheory[env, name]</code> imports a Lean constant with its dependency cone into a <code>TypeTheoryEnvironment</code>, where TypeTheory's kernel checks each declaration again, independently of Lean's.</p>
 <ul>
-  <li><b>Terms.</b> Lean's expressions, LeanLink's <code>Lean*</code> heads with de Bruijn indices, become exact surface syntax: every application is written with <code>Construct</code>, so nothing is filled in again, every constant is at explicit universe levels with <code>Subscript</code>, and Lean's <code>proj</code> is <code>t[[i]]</code>.</li>
+  <li><b>Terms.</b> Lean's expressions, LeanLink's <code>Lean*</code> heads with de Bruijn indices, become core terms, which number bound variables the same way, so nothing is filled in again and every constant is at explicit universe levels. Each distinct subterm is translated once, so a proof that a tactic writes keeps the sharing it has in Lean: a proof by <code>grind</code> of 3.6 million nodes written out has under 6,000 distinct ones. A declaration takes a core term as it is, and the kernel checks it as it checks every declaration.</li>
   <li><b>Names</b> stay held strings: <code>"Nat.zero_add"</code> is the constant <code>"Nat.zero_add"</code>, and <code>Nat.rec</code> is <code>InductiveRecursor["Nat"]</code>. Lean's <code>Nat</code> is registered as the natural numbers, so literals mean the same on both sides.</li>
   <li><b>Universe parameters</b> are read by type-checking a constant at placeholder levels, so the native shim needed no change.</li>
   <li><b>Inductive types</b> are read from the types of their recursors. TypeTheory generates its own constructors and recursor, and each recursor is compared with Lean's.</li>
@@ -460,7 +460,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 
 <h3>Still to build</h3>
 <ul>
-  <li>Proof terms share subterms heavily and WXF does not. A table of distinct subterms, sent once each, will lift the depth limit that LeanLink's export has on large proofs.</li>
+  <li>Proof terms share subterms heavily and WXF does not: the import shares them again, but the transfer from Lean writes them out. A table of distinct subterms, sent once each, will make the transfer as small as the proof and lift the depth limit that LeanLink's export has on large proofs.</li>
   <li>Declarations back through Lean's <code>Environment.addDecl</code> in process, besides source.</li>
   <li>Quotients in the kernel rather than as rewrite rules.</li>
 </ul>
@@ -473,7 +473,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
     <tr><td><code>mul_comm</code>, with its dependency cone</td><td class="num">14</td><td>Interactive, in TypeTheory</td></tr>
     <tr><td><code>Nat.add_comm</code>, with its cone</td><td class="num">27</td><td>Interactive</td></tr>
     <tr><td><code>List.length_append</code>, with its cone</td><td class="num">55</td><td>Interactive</td></tr>
-    <tr><td><code>Real.sqrt_nonneg</code>, with its cone through the construction of the reals</td><td class="num">1,331</td><td>Seconds to minutes; needs the compiled kernel</td></tr>
+    <tr><td><code>Real.sqrt_nonneg</code>, with its cone through the construction of the reals</td><td class="num">1,331</td><td>In TypeTheory since 0.11, with the symbolic kernel: the import checks the 11,177 constants of the cone, constructors and recursors counted, in under seven minutes</td></tr>
     <tr><td>All of <code>Init</code></td><td class="num">63,884</td><td>Batch, compiled; the stretch goal</td></tr>
     <tr><td>All of Mathlib (517,591 theorems)</td><td class="num">766,243</td><td>Lean's kernel</td></tr>
   </tbody>
@@ -503,13 +503,13 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 <div class="phase"><div class="n">2</div><div>
   <h3>The complete kernel</h3>
   <div class="when">About 6 to 10 weeks</div>
-  <p>Mutual and then nested inductive families; quotients; an infer-only mode; definitional heights and caches; the rest of literal arithmetic.</p>
+  <p>Mutual and then nested inductive families; quotients; an infer-only mode; definitional heights; the rest of literal arithmetic. Caches, sharing and literal arithmetic are done.</p>
   <p class="milestone"><b>Milestone</b> The test cases independent checkers collect for universes, nested inductives and η pass.</p>
 </div></div>
 <div class="phase"><div class="n">3</div><div>
   <h3>The Lean bridge</h3>
   <div class="when">First version done, October 2026, in LeanLink; about 3 to 4 weeks more</div>
-  <p>Done: import with dependency cones, recursors compared with Lean's, export as Lean source. Next: export with shared subterms, declarations back through <code>addDecl</code>, and larger cones.</p>
+  <p>Done: import with dependency cones and shared subterms, recursors compared with Lean's, export as Lean source; all of <code>Init.Prelude</code> and the 25 lowest modules of Mathlib check. Next: export with shared subterms, declarations back through <code>addDecl</code>, and larger cones.</p>
   <p class="milestone"><b>Milestone</b> The cones of <code>mul_comm</code>, <code>Nat.add_comm</code> and <code>List.length_append</code> check in TypeTheory with the same verdicts as Lean's kernel.</p>
 </div></div>
 <div class="phase"><div class="n">4</div><div>
@@ -521,7 +521,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
   <h3>The compiled kernel</h3>
   <div class="when">About 6 to 8 weeks</div>
   <p>The array representation and the compiled functions above, each tested against the symbolic kernel.</p>
-  <p class="milestone"><b>Milestone</b> The 1,331-declaration cone of <code>Real.sqrt_nonneg</code> checks.</p>
+  <p class="milestone"><b>Milestone</b> All of <code>Init</code> checks in a batch. The first milestone set here, the cone of <code>Real.sqrt_nonneg</code>, the symbolic kernel reached in 0.11.</p>
 </div></div>
 <div class="phase"><div class="n">6</div><div>
   <h3>Other rules</h3>
@@ -540,7 +540,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 <div class="scroll"><table>
   <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
   <tbody>
-    <tr><td>Speed on large proof terms</td><td>The compiled kernel, structural caches, and Lean's kernel for bulk checking through the bridge.</td></tr>
+    <tr><td>Speed on large proof terms</td><td>Sharing and caches, in 0.11: a proof that <code>grind</code> writes, of 3.6 million nodes written out, checks in a minute and a half with its cone of 2,889 constants. Then the compiled kernel, and Lean's kernel for bulk checking through the bridge.</td></tr>
     <tr><td>Nested and reflexive inductive types, where independent checkers most often go wrong</td><td>After mutual families, with Lean's own recursors to compare against.</td></tr>
     <tr><td>Built-in symbols evaluating</td><td>Every entry point holds its arguments, and terms become inert syntax trees before anything looks at them. <code>TypeOf</code> also holds its argument, so a symbol holding a term needs <code>TypeOf[Evaluate[t]]</code>, or <code>TypeTheoryCheck[t]</code>.</td></tr>
     <tr><td>Built-in names with another meaning, such as <code>Sort</code></td><td>Universes have their own head, <code>TypeUniverse</code>; only symbols whose meaning matches become constants.</td></tr>
@@ -557,7 +557,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 </ul>
 </section>
 
-<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.10.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.11.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>
