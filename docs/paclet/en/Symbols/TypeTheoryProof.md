@@ -76,13 +76,20 @@ proof["Term"]
 
 ---
 
-The goals as statements:
+Applying [AndIntroduction]() leaves a goal for each side of the conjunction:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
     TypeTheoryTactic["Introduce", a, b, ha, hb],
     TypeTheoryTactic["Apply", AndIntroduction]
-}];
+}]
+```
+
+<!-- => Proof, 2 goals: a ∶ Prop, b ∶ Prop, ha ∶ a, hb ∶ b ⊢ a; a ∶ Prop, b ∶ Prop, ha ∶ a, hb ∶ b ⊢ b -->
+
+The goals as statements:
+
+```wl
 proof["Goals"]
 ```
 
@@ -90,11 +97,25 @@ proof["Goals"]
 
 ## Properties and Relations
 
+A finished proof:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}]
+```
+
+<!-- => Proof complete -->
+
 A finished proof is declared with [TypeTheoryTheorem]():
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}];
-proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]];
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+The theorem in the new environment:
+
+```wl
 proved[ZeroRightIdentity]
 ```
 

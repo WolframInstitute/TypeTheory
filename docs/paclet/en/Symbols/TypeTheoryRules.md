@@ -54,7 +54,14 @@ An environment of those rules, where a theorem states a type:
 units = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory"], {
     TypeTheoryInductiveType[Unit, TypeUniverse[1], {UnitIntroduction -> Unit}],
     TypeTheoryTheorem[UnitInhabited, Unit, UnitIntroduction]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 4 constants -->
+
+Its constants:
+
+```wl
 Keys[units]
 ```
 

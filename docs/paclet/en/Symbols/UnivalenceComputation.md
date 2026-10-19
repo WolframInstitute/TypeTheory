@@ -21,10 +21,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The statement of [UnivalenceComputation]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[UnivalenceComputation, hott]]
 ```
 

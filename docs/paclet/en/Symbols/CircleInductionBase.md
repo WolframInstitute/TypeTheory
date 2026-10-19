@@ -22,10 +22,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The declaration of the rule:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 hott[CircleInductionBase]
 ```
 
@@ -33,10 +40,17 @@ hott[CircleInductionBase]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The rewrite rules of the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 Information[hott, "RewriteRules"]
 ```
 

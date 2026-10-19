@@ -22,10 +22,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The statement of [Transport]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[Transport, hott]]
 ```
 
@@ -33,10 +40,17 @@ TypeTheoryCheck[TypeTheoryTerm[Transport, hott]]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 Along reflexivity, transport leaves an element as it is:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity[True], False], hott]]
 ```
 

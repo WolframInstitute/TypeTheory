@@ -21,10 +21,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The type of [IdentityEquivalence]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[IdentityEquivalence, hott]]
 ```
 
@@ -32,10 +39,17 @@ TypeTheoryCheck[TypeTheoryTerm[IdentityEquivalence, hott]]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 Its function is the identity:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 WeakHeadNormalForm[TypeTheoryTerm[IdentityEquivalence[Booleans][[1]][True], hott]]
 ```
 

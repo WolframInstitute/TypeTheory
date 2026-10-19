@@ -22,10 +22,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The type of [EqualityToEquivalence]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[EqualityToEquivalence, hott]]
 ```
 
@@ -33,10 +40,17 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityToEquivalence, hott]]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 Reflexivity gives the identity, by computation:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 DefinitionallyEqualQ[TypeTheoryTerm[EqualityToEquivalence[EqualityReflexivity[Booleans]], hott], TypeTheoryTerm[IdentityEquivalence[Booleans], hott]]
 ```
 

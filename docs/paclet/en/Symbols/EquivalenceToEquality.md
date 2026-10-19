@@ -22,10 +22,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The type of [EquivalenceToEquality]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[EquivalenceToEquality, hott]]
 ```
 
@@ -33,10 +40,17 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalenceToEquality, hott]]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 Negation gives a path from the Booleans to themselves:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeOf[TypeTheoryTerm[EquivalenceToEquality[NegationEquivalence], hott]]
 ```
 

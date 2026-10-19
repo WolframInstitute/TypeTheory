@@ -37,7 +37,14 @@ Assume the excluded middle in the constructive environment, which has no axioms:
 ```wl
 excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {
     TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 97 constants -->
+
+Applied to a proposition, the axiom proves it or its negation:
+
+```wl
 TypeOf[TypeTheoryTerm[ExcludedMiddle[True], excludedMiddle]]
 ```
 
@@ -53,15 +60,24 @@ Information[excludedMiddle, "Axioms"]
 
 ## Scope
 
+Assume a function on the natural numbers:
+
+```wl
+measured = TypeTheoryEnvironment[TypeTheoryAxiom[Measure, TypeSpecifier[{Naturals} -> Naturals]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
 [Format]() gives an axiom's symbol a display, which its declaration and every term use:
 
 ```wl
-measured = TypeTheoryEnvironment[TypeTheoryAxiom[Measure, TypeSpecifier[{Naturals} -> Naturals]]];
 Format[Measure] := "\[Mu]";
 measured[Measure]
 ```
 
 <!-- => axiom μ : ℕ → ℕ -->
+
+And a term that uses it:
 
 ```wl
 TypeTheoryTerm[Function[{Typed[n, Naturals]}, Measure[Measure[n]]], measured]

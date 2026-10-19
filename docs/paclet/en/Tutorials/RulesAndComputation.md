@@ -40,10 +40,17 @@ TypeTheoryRules["MartinLofTypeTheory"]["Prop"]
 
 ## How Constants Compute
 
-Under any rules, a definition unfolds to its value:
+Under any rules, a definition unfolds to its value. Here is the prelude with a definition:
 
 ```wl
-double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]}];
+double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+`Double[4]` unfolds and computes:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[Double[4], double]]
 ```
 
@@ -65,10 +72,17 @@ WeakHeadNormalForm[TypeTheoryTerm[123456789 * 987654321 + 2^64]]
 
 <!-- => 18568676704822186885 -->
 
-An axiom never unfolds: it has no value. Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stops at the recursor, waiting for a constructor the axiom never gives:
+An axiom never unfolds: it has no value.
 
 ```wl
-mystery = TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals]}];
+mystery = TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stops at the recursor, waiting for a constructor the axiom never gives:
+
+```wl
 {WeakHeadNormalForm[TypeTheoryTerm[Mystery + 0, mystery]], WeakHeadNormalForm[TypeTheoryTerm[0 + Mystery, mystery]]}
 ```
 
@@ -89,10 +103,17 @@ TypeTheoryCheck[
 
 <!-- => Success["TypeChecked", ...] -->
 
-The HoTT environment follows Martin-Löf type theory. There, two paths from the base point of the circle to itself are not equal by computation:
+The HoTT environment follows Martin-Löf type theory:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
+There, two paths from the base point of the circle to itself are not equal by computation:
+
+```wl
 TypeTheoryCheck[
     TypeTheoryTerm[Function[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]}, EqualityReflexivity[p]], hott],
     TypeTheoryTerm[ForAll[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]}, p == q], hott]
@@ -154,27 +175,62 @@ liftClass = TypeTheoryRewriteRule[QuotientLiftClass, ForAll[
 The prelude's rules allow no rewrite rules, so the declarations of the prelude, read back with [Normal](), rebuild it under the same rules with rewrite rules allowed:
 
 ```wl
-rewriting = TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "RewriteRules" -> True], Normal[TypeTheoryEnvironment["Prelude"]]];
-quotient = TypeTheoryEnvironment[rewriting, Append[quotientDeclarations, liftClass]];
+rewriting = TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "RewriteRules" -> True], Normal[TypeTheoryEnvironment["Prelude"]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 109 constants -->
+
+There the quotient is declared with its rule:
+
+```wl
+quotient = TypeTheoryEnvironment[rewriting, Append[quotientDeclarations, liftClass]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 114 constants -->
+
+The rule, as declared:
+
+```wl
 quotient[QuotientLiftClass]
 ```
 
 <!-- => rewrite QuotientLiftClass : ∀_A∶Sort u ∀_r∶A → A → Prop ∀_B∶Sort v ∀_f∶A → B ∀_h∶∀_a∶A ∀_b∶A r[a, b] ⇒ f[a] == f[b] ∀_a∶A QuotientLift[f, h, QuotientClass[r, a]] ⟶ f[a] -->
 
-Negation respects equality of Booleans, so it lifts to the quotient by equality, and on a class the lift computes. [Not]() and [True]() stand for the Booleans' negation and truth here, since the types say so:
+Negation respects equality of Booleans, so it lifts to the quotient by equality. The relation:
 
 ```wl
-same = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, a == b], quotient];
-respects = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]}, EqualityCongruence[Not, e]], quotient];
+same = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, a == b], quotient]
+```
+
+<!-- => (a∶𝔹) (b∶𝔹) ↦ a == b -->
+
+And the proof that negation respects it:
+
+```wl
+respects = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]}, EqualityCongruence[Not, e]], quotient]
+```
+
+<!-- => (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[not, e] -->
+
+On a class the lift computes. [Not]() and [True]() stand for the Booleans' negation and truth here, since the types say so:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], quotient]]
 ```
 
 <!-- => false -->
 
-The same axioms on the prelude, with no rule, declare the quotient as well, but the lift is stuck:
+The same axioms on the prelude, with no rule, declare the quotient as well:
 
 ```wl
-stuck = TypeTheoryEnvironment[quotientDeclarations];
+stuck = TypeTheoryEnvironment[quotientDeclarations]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 113 constants -->
+
+But the lift is stuck:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], stuck]]
 ```
 
@@ -210,11 +266,26 @@ flips = TypeTheoryEnvironment[rewriting, {
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
     TypeTheoryRewriteRule[FlipAny, ForAll[{Typed[b, Bit]}, Flip[b] -> b]]
-}];
-{WeakHeadNormalForm[TypeTheoryTerm[Flip[BitZero], flips]], DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[b, Bit]}, Flip[b]], flips], TypeTheoryTerm[Function[{Typed[b, Bit]}, b], flips]]}
+}]
 ```
 
-<!-- => {BitOne, True} -->
+<!-- => TypeTheoryEnvironment summary box: 116 constants -->
+
+By the first rule, `Flip[BitZero]` computes to `BitOne`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Flip[BitZero], flips]]
+```
+
+<!-- => BitOne -->
+
+By the second, `Flip` is the identity:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[b, Bit]}, Flip[b]], flips], TypeTheoryTerm[Function[{Typed[b, Bit]}, b], flips]]
+```
+
+<!-- => True -->
 
 So the kernel accepts a proof that two different constructors are equal, from which anything follows:
 
@@ -226,7 +297,14 @@ confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
         Function[{Typed[g, TypeSpecifier[{Bit} -> Bit]]}, g[BitZero]],
         Typed[EqualityReflexivity[Function[{Typed[b, Bit]}, b]], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
     ]
-]}];
+]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 117 constants -->
+
+The theorem it declares:
+
+```wl
 confused[Confusion]
 ```
 

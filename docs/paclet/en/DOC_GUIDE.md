@@ -37,11 +37,15 @@ section gave a value.
 ## TypeTheory's own rules
 
 - **The prelude goes without saying.** A term, a proof or a list of declarations without an
-  environment is in the prelude, so examples never write `TypeTheoryEnvironment["Prelude"]` where it
-  could be left out: <code>[TypeTheoryTerm]()[2 + 3]</code>, <code>[TypeTheoryProof]()[*statement*, {...}]</code>,
-  <code>[TypeTheoryEnvironment]()[{*declaration*}]</code>. Name an environment only when it is not the
-  prelude, and build on <code>[TypeTheoryEnvironment]()[]</code> when the prelude must be left out, as
-  for natural numbers of your own.
+  environment is in the default environment, the prelude, so examples never write
+  `TypeTheoryEnvironment["Prelude"]` where it could be left out: <code>[TypeTheoryTerm]()[2 + 3]</code>,
+  <code>[TypeTheoryProof]()[*statement*, {...}]</code>, <code>[TypeTheoryEnvironment]()[{*declaration*}]</code>.
+  Name an environment only when it is not the prelude, and build on <code>[TypeTheoryEnvironment]()[]</code>
+  when the prelude must be left out, as for natural numbers of your own.
+- **An example that sets the default environment sets the prelude back.** The build evaluates every
+  page in one kernel, and [$TypeTheoryEnvironment]() is the kernel's, so a page that calls
+  [SetTypeTheoryEnvironment]() ends with <code>[SetTypeTheoryEnvironment]()["Prelude"]</code>, or the pages
+  after it run in its environment. For one computation, use <code>[Block]()[{[$TypeTheoryEnvironment]() = *env*}, ...]</code>.
 - **[TypeOf]() takes a term written out.** It holds its argument, so `TypeOf[statement]` with
   `statement` a variable does not reach TypeTheory and fails with a compiler message. Use
   <code>[TypeTheoryCheck]()[*statement*]</code> for a term in a variable.
@@ -75,6 +79,10 @@ a term fragment (`n + 0 == n`), a tactic name (`"Induction"`), an option value. 
 ## Cells
 
 - No `Needs`: the converter loads the paclet from the frontmatter `Context:`.
+- Never hide what a main function returns. A cell that builds an environment, a proof or a term
+  shows it: the environment's summary box, the proof's goals, the term. Do not end the call with `;`
+  to ask the result something in the same cell; ask in the next cell. Only helpers stay hidden:
+  paths, lists of declarations given as data, [MakeBoxes]() definitions.
 - One output per cell, with its own caption.
 - Show the display, not the guts: a term, a declaration, a proof and an environment each display
   themselves.

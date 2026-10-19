@@ -10,7 +10,7 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
 
-The prelude is the environment of every term, proof and list of declarations that names no other. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, and the Booleans. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
+The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, and the Booleans. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
 
 ## What the Prelude Declares
 
@@ -122,6 +122,8 @@ TypeOf[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity]]]
 ```
 
 <!-- => ℕ → ℕ -->
+
+Applied to 3, it gives the successor of 3:
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity][3]], TypeTheoryTerm[4]]
@@ -340,16 +342,38 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 <code>[TypeTheoryEnvironment]()["Constructive"]</code> is the prelude without its axioms and the declarations that need them:
 
 ```wl
-constructive = TypeTheoryEnvironment["Constructive"];
-{Information[constructive, "Axioms"], KeyExistsQ[constructive, ExcludedMiddle]}
+constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => {{}, False} -->
+<!-- => TypeTheoryEnvironment summary box: 96 constants -->
+
+It has no axioms:
+
+```wl
+Information[constructive, "Axioms"]
+```
+
+<!-- => {} -->
+
+And no excluded middle:
+
+```wl
+KeyExistsQ[constructive, ExcludedMiddle]
+```
+
+<!-- => False -->
 
 Whatever is proved in it uses no axiom. Other axioms can be assumed there with [TypeTheoryAxiom](), such as the excluded middle without choice:
 
 ```wl
-excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}];
+excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 97 constants -->
+
+Its one axiom:
+
+```wl
 Information[excludedMiddle, "Axioms"]
 ```
 
@@ -357,4 +381,4 @@ Information[excludedMiddle, "Axioms"]
 
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. Decidability, pairs, sums, options and lists, and type classes are not here yet, and the kernel does not yet have mutual and nested inductive types or quotients, which parts of Lean's library need.
+Lean's library is much larger than this prelude. Decidability, pairs, sums, options and lists, and type classes are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types among it, and quotients as rewrite rules, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.

@@ -21,10 +21,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The statement of [EquivalenceIntroduction]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[EquivalenceIntroduction, hott]]
 ```
 
@@ -32,10 +39,17 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalenceIntroduction, hott]]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The function of an equivalence computes:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[1]][True], hott]]
 ```
 

@@ -27,7 +27,7 @@ RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory]
 
 ## Basic Examples
 
-An axiom that computes:
+An axiom that flips bits, and computes by two rewrite rules:
 
 ```wl
 bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRules" -> True], {
@@ -35,7 +35,14 @@ bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRule
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
     TypeTheoryRewriteRule[FlipOne, Flip[BitOne] -> BitZero]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 7 constants -->
+
+Flipping twice gives back the bit:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[Flip[Flip[BitZero]], bits]]
 ```
 
@@ -43,7 +50,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Flip[Flip[BitZero]], bits]]
 
 ## Scope
 
-A rule with variables:
+Bits, with an axiom that flips them by two rewrite rules:
 
 ```wl
 bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRules" -> True], {
@@ -51,11 +58,25 @@ bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRule
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
     TypeTheoryRewriteRule[FlipOne, Flip[BitOne] -> BitZero]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 7 constants -->
+
+A rule with variables, for an axiom that applies a function twice:
+
+```wl
 twice = TypeTheoryEnvironment[bits, {
     TypeTheoryAxiom[Twice, TypeSpecifier[{TypeSpecifier[{Bit} -> Bit], Bit} -> Bit]],
     TypeTheoryRewriteRule[TwiceRule, ForAll[{Typed[h, TypeSpecifier[{Bit} -> Bit]], Typed[x, Bit]}, Twice[h, x] -> h[h[x]]]]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 9 constants -->
+
+The rule matches any function and bit:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[Twice[Flip, BitOne], twice]]
 ```
 
@@ -71,7 +92,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[b, Bit]}, Flip[b]], twice]]
 
 ## Properties and Relations
 
-The rewrite rules of an environment:
+Bits, with an axiom that flips them by two rewrite rules:
 
 ```wl
 bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRules" -> True], {
@@ -79,7 +100,14 @@ bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRule
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
     TypeTheoryRewriteRule[FlipOne, Flip[BitOne] -> BitZero]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 7 constants -->
+
+The rewrite rules of the environment:
+
+```wl
 Information[bits, "RewriteRules"]
 ```
 
@@ -105,7 +133,7 @@ TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals], TypeTheoryRewriteRule
 
 ---
 
-The left side must be an axiom applied to arguments:
+Bits, with an axiom that flips them by two rewrite rules:
 
 ```wl
 bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRules" -> True], {
@@ -113,7 +141,14 @@ bits = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory", "RewriteRule
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
     TypeTheoryRewriteRule[FlipOne, Flip[BitOne] -> BitZero]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 7 constants -->
+
+The left side must be an axiom applied to arguments:
+
+```wl
 TypeTheoryEnvironment[bits, {TypeTheoryRewriteRule[ZeroOne, BitZero -> BitOne]}]
 ```
 

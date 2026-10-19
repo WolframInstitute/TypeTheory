@@ -87,6 +87,8 @@ arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, Eq
 
 <!-- => TypeTheoryEnvironment summary box: 110 constants -->
 
+The theorem, as the environment holds it:
+
 ```wl
 arithmetic[TwoPlusTwo]
 ```
@@ -101,14 +103,45 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[
 
 <!-- => Failure["TypeMismatch", ...]: EqualityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 -->
 
-[Append]() adds a declaration to an environment. A [TypeTheoryDefinition]() unfolds when terms compute:
+[Append]() adds a declaration to an environment:
 
 ```wl
-doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]];
+doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 111 constants -->
+
+A [TypeTheoryDefinition]() unfolds when terms compute:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[Doubled[Doubled[5]], doubled]]
 ```
 
 <!-- => 20 -->
+
+Naming the environment in every term gets long. [SetTypeTheoryEnvironment]() makes an environment the default, the environment of the terms, proofs and declarations that name none:
+
+```wl
+SetTypeTheoryEnvironment[doubled]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 111 constants -->
+
+A term that names no environment is now in it:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]
+```
+
+<!-- => 42 -->
+
+<code>[SetTypeTheoryEnvironment]()["Prelude"]</code> makes the prelude the default again:
+
+```wl
+SetTypeTheoryEnvironment["Prelude"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 109 constants -->
 
 Environments never change, so `arithmetic` is as it was:
 
@@ -154,7 +187,14 @@ doubled[Doubled]
 trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[1], {
     BinaryLeaf -> BinaryTree,
     BinaryNode -> ForAll[{Typed[left, BinaryTree], Typed[right, BinaryTree]}, BinaryTree]
-}]}];
+}]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 113 constants -->
+
+The environment's last four constants are the new ones:
+
+```wl
 Keys[trees][[-4 ;;]]
 ```
 
@@ -179,7 +219,14 @@ trees = Append[trees, TypeTheoryDefinition[NodeCount, Typed[
         tree
     ]],
     TypeSpecifier[{BinaryTree} -> Naturals]
-]]];
+]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 114 constants -->
+
+A node over a leaf and a node of two leaves has five nodes in all:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[NodeCount[BinaryNode[BinaryLeaf, BinaryNode[BinaryLeaf, BinaryLeaf]]], trees]]
 ```
 
@@ -230,7 +277,14 @@ proof["Term"]
 Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term. The prelude has this theorem already, as [AdditionZeroLeft](), so it is declared here under a name of its own:
 
 ```wl
-proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}];
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+The theorem, as declared:
+
+```wl
 proved[ZeroLeftIdentity]
 ```
 
@@ -257,7 +311,14 @@ TypeTheoryCheck[proved]
 [Normal]() gives the declarations themselves, the prelude's included, written out exactly, so an environment can be saved and rebuilt from them on the empty environment, checking every declaration again:
 
 ```wl
-rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[proved]];
+rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[proved]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+The rebuilt environment has the theorem:
+
+```wl
 rebuilt[ZeroLeftIdentity]
 ```
 

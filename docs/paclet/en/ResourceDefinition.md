@@ -55,7 +55,14 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n][21]]]
 Add a theorem to the prelude, checked by the kernel:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}];
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+The theorem in it:
+
+```wl
 arithmetic[TwoPlusTwo]
 ```
 
@@ -97,7 +104,7 @@ proof["Term"]
 
 ---
 
-Declare an inductive type, and compute with its recursor:
+Declare an inductive type, and a sum defined with its recursor:
 
 ```wl
 lists = TypeTheoryEnvironment[{
@@ -114,7 +121,14 @@ lists = TypeTheoryEnvironment[{
         ]],
         TypeSpecifier[{NaturalList} -> Naturals]
     ]]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 114 constants -->
+
+The sum computes:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[ListSum[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]]
 ```
 

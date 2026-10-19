@@ -29,11 +29,10 @@ mathlibReady = DirectoryQ[FileNameJoin[{mathlibDir, ".lake", "build"}]]
 `Mathlib.Data.Nat.Init` holds the first facts Mathlib proves about the natural numbers, before its algebra. [LeanImport](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanImport) loads it, with every module it imports:
 
 ```wl
-lean = If[mathlibReady, LeanImport["ProjectDir" -> mathlibDir, "Imports" -> {"Mathlib.Data.Nat.Init"}], <||>];
-Length[lean]
+lean = If[mathlibReady, LeanImport["ProjectDir" -> mathlibDir, "Imports" -> {"Mathlib.Data.Nat.Init"}], <||>]
 ```
 
-<!-- => 85086 -->
+<!-- => LeanEnvironment summary box: 106418 constants -->
 
 This is one of its theorems, as Lean writes it:
 
@@ -48,7 +47,14 @@ lean["Nat.sq_sub_sq"]["TypeForm"]
 [LeanToTypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanToTypeTheory) imports constants into a new environment, each after the constants it mentions, and TypeTheory's kernel checks every one. Here are two theorems of Mathlib, two of Lean's own library, and Lean's greatest common divisor:
 
 ```wl
-mathlib = LeanToTypeTheory[lean, {"Nat.sq_sub_sq", "Nat.dvd_add_self_right", "Nat.dvd_add", "Nat.dvd_mul_left", "Nat.gcd"}];
+mathlib = LeanToTypeTheory[lean, {"Nat.sq_sub_sq", "Nat.dvd_add_self_right", "Nat.dvd_add", "Nat.dvd_mul_left", "Nat.gcd"}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 376 constants -->
+
+What it holds, by kind:
+
+```wl
 Information[mathlib, "Kinds"]
 ```
 
@@ -62,10 +68,18 @@ Information[mathlib, "Axioms"]
 
 <!-- => {"propext"} -->
 
+[SetTypeTheoryEnvironment]() makes it the default environment, so the terms and proofs below need not name it:
+
+```wl
+SetTypeTheoryEnvironment[mathlib]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 376 constants -->
+
 A constant keeps its Lean name, as a string. The statement of `Nat.sq_sub_sq`, as TypeTheory has checked it:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq", mathlib]]
+TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"]]
 ```
 
 <!-- => ∀_a∶Nat ∀_b∶Nat Eq[HSub.hSub[HPow.hPow[a, OfNat.ofNat[2]], HPow.hPow[b, OfNat.ofNat[2]]], HMul.hMul[HAdd.hAdd[a, b], HSub.hSub[a, b]]] -->
@@ -86,7 +100,7 @@ MakeBoxes["HMul.hMul"[a_, b_], form_] := MakeBoxes[a * b, form];
 MakeBoxes["HPow.hPow"[a_, b_], form_] := MakeBoxes[a^b, form];
 MakeBoxes["Dvd.dvd"[a_, b_], form_] := MakeBoxes[VerticalBar[a, b], form];
 MakeBoxes["OfNat.ofNat"[n_], form_] := MakeBoxes[n, form];
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq", mathlib]]
+TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"]]
 ```
 
 <!-- => ∀_a∶Nat ∀_b∶Nat a^2 - b^2 == (a + b) (a - b) -->
@@ -94,7 +108,7 @@ TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq", mathlib]]
 The notation holds wherever a term shows, as in this theorem of divisibility:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.dvd_add_self_right", mathlib]]
+TypeTheoryCheck[TypeTheoryTerm["Nat.dvd_add_self_right"]]
 ```
 
 <!-- => ∀_{m ∶ Nat} ∀_{n ∶ Nat} (m | n + m ⧦ m | n) -->
@@ -104,7 +118,7 @@ TypeTheoryCheck[TypeTheoryTerm["Nat.dvd_add_self_right", mathlib]]
 A theorem applies to arguments like a function. Applied to 7 and 3, `Nat.sq_sub_sq` proves an equation of numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3], mathlib]]
+TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3]]]
 ```
 
 <!-- => 7^2 - 3^2 == (7 + 3) (7 - 3) -->
@@ -112,7 +126,7 @@ TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3], mathlib]]
 Both sides compute to 40, so the same proof proves `40 == 40`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3], mathlib], TypeTheoryTerm["Eq"[40, 40], mathlib]]
+TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3]], TypeTheoryTerm["Eq"[40, 40]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -120,7 +134,7 @@ TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3], mathlib], TypeTheoryTerm["
 The import registers Lean's natural numbers as those of the environment, with the operations Lean's kernel computes on literals, so TypeTheory's kernel computes them too, with the Wolfram Language's integers. Here is Lean's greatest common divisor of Euclid's example:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["Nat.gcd"[1071, 462], mathlib]]
+WeakHeadNormalForm[TypeTheoryTerm["Nat.gcd"[1071, 462]]]
 ```
 
 <!-- => 21 -->
@@ -137,25 +151,23 @@ def double : ℕ → ℕ
   | n + 1 => double n + 2
 
 def DoubleIsTwice : Prop := ∀ n : ℕ, double n = 2 * n";
-stated = If[mathlibReady, LeanImportString["import Mathlib.Data.Nat.Init\n\n" <> statements, "ProjectDir" -> mathlibDir], <||>];
-Keys[stated]
+stated = If[mathlibReady, LeanImportString["import Mathlib.Data.Nat.Init\n\n" <> statements, "ProjectDir" -> mathlibDir], <||>]
 ```
 
-<!-- => {"DoubleIsTwice", "double", "DividesShift"} -->
+<!-- => LeanEnvironment summary box: 3 constants -->
 
-With the option `"Environment"`, [LeanToTypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanToTypeTheory) adds them, and `congrArg` for later, to the environment of Mathlib's theorems:
+With the option `"Environment"`, [LeanToTypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanToTypeTheory) adds them, and `congrArg` for later, to the environment of Mathlib's theorems, which becomes the default:
 
 ```wl
-goals = LeanToTypeTheory[stated, {"DividesShift", "DoubleIsTwice", "congrArg"}, "Environment" -> mathlib];
-Length[goals] - Length[mathlib]
+SetTypeTheoryEnvironment[LeanToTypeTheory[stated, {"DividesShift", "DoubleIsTwice", "congrArg"}, "Environment" -> mathlib]]
 ```
 
-<!-- => 5 -->
+<!-- => TypeTheoryEnvironment summary box: 381 constants -->
 
 `DividesShift` is a definition, and [TypeTheoryTactic]() `"Introduce"` unfolds it to find what to introduce. `"Apply"` with `And.intro` splits the conjunction into two goals:
 
 ```wl
-proof = TypeTheoryProof[TypeTheoryTerm["DividesShift", goals], {
+proof = TypeTheoryProof["DividesShift", {
     TypeTheoryTactic["Introduce", a, b, h],
     TypeTheoryTactic["Apply", "And.intro"]
 }]
@@ -184,7 +196,7 @@ proof = TypeTheoryTactic["Exact", "Nat.dvd_add"[h, "Nat.dvd_mul_left"[a, 2]]][pr
 `"Induction"` splits on a variable of Lean's natural numbers as on the prelude's, with the recursor TypeTheory generated for them:
 
 ```wl
-induction = TypeTheoryProof[TypeTheoryTerm["DoubleIsTwice", goals], {
+induction = TypeTheoryProof["DoubleIsTwice", {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Induction", n]
 }]
@@ -195,7 +207,7 @@ induction = TypeTheoryProof[TypeTheoryTerm["DoubleIsTwice", goals], {
 Both sides of the first goal compute to 0. In the second, `double[k + 1]` computes to `double[k] + 2` and `2 (k + 1)` to `2 k + 2`, and adding 2 is applying the successor twice, so `congrArg` applies it twice to the induction hypothesis:
 
 ```wl
-induction = TypeTheoryProof[TypeTheoryTerm["DoubleIsTwice", goals], {
+induction = TypeTheoryProof["DoubleIsTwice", {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Induction", n],
     TypeTheoryTactic["Reflexivity"],
@@ -208,10 +220,17 @@ induction = TypeTheoryProof[TypeTheoryTerm["DoubleIsTwice", goals], {
 
 ## Back to Lean
 
-The finished proofs are declared as theorems, under names of TypeTheory's own:
+The finished proofs are declared as theorems, under names of TypeTheory's own, in the default environment:
 
 ```wl
-proved = TypeTheoryEnvironment[goals, {TypeTheoryTheorem[DividesShiftProof, proof], TypeTheoryTheorem[DoubleIsTwiceProof, induction]}];
+proved = TypeTheoryEnvironment[{TypeTheoryTheorem[DividesShiftProof, proof], TypeTheoryTheorem[DoubleIsTwiceProof, induction]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 383 constants -->
+
+The theorem proved by induction:
+
+```wl
 proved[DoubleIsTwiceProof]
 ```
 
@@ -220,21 +239,35 @@ proved[DoubleIsTwiceProof]
 LeanLink's [TypeTheoryToLean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/TypeTheoryToLean) writes them as Lean source, with every argument explicit. The constants that came from Lean keep their names, and the theorems are declared under the namespace `TypeTheory`:
 
 ```wl
-source = TypeTheoryToLean[proved, {DividesShiftProof, DoubleIsTwiceProof}];
-StringTake[source, UpTo[400]]
+source = TypeTheoryToLean[proved, {DividesShiftProof, DoubleIsTwiceProof}]
 ```
 
-<!-- => "-- Generated by LeanLink's TypeTheoryToLean: TypeTheory declarations, for Lean's kernel to check.\n\ntheorem TypeTheory.DividesShiftProof : @DividesShift :=\n  (fun (a : @Nat) (b : @Nat) (h : ...) => ...)" -->
+<!-- => "-- Generated by LeanLink's TypeTheoryToLean: TypeTheory declarations, for Lean's kernel to check.\n\ntheorem TypeTheory.DividesShiftProof : @DividesShift :=\n  (fun (a : @Nat) (b : @Nat) (h : ...) => ...)\n\ntheorem TypeTheory.DoubleIsTwiceProof : @DoubleIsTwice :=\n  ..." -->
 
 Lean compiles the source after the statements, and its kernel checks the proofs, independently of TypeTheory's:
 
 ```wl
-checked = If[mathlibReady, LeanImportString["import Mathlib.Data.Nat.Init\n\n" <> statements <> "\n\n" <> source, "ProjectDir" -> mathlibDir], <||>];
+checked = If[mathlibReady, LeanImportString["import Mathlib.Data.Nat.Init\n\n" <> statements <> "\n\n" <> source, "ProjectDir" -> mathlibDir], <||>]
+```
+
+<!-- => LeanEnvironment summary box: 5 constants -->
+
+In Lean, the theorem has the statement it had in TypeTheory:
+
+```wl
 checked["TypeTheory.DoubleIsTwiceProof"]["TypeForm"]
 ```
 
 <!-- => "DoubleIsTwice" -->
 
+The prelude is the default again with [SetTypeTheoryEnvironment]():
+
+```wl
+SetTypeTheoryEnvironment["Prelude"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 109 constants -->
+
 ## How Much of Mathlib
 
-Every constant of Lean's prelude, `Init.Prelude`, imports and checks, all 1,381 of them, and so do the 25 modules at the bottom of Mathlib, from the logic of `Nonempty` to folds over lists, with the 5,113 constants they depend on, in about three minutes. `Real.sqrt_nonneg`, that the square root of a real number is never negative, checks with the 11,177 constants it depends on, Mathlib's construction of the real numbers among them, in under seven minutes. A proof that a decision procedure such as `omega` or `grind` writes is a term of millions of nodes written out but of a few thousand distinct ones, and the import shares them as Lean does: a proof that `grind` writes in `Mathlib.Data.Int.Init` checks, with the 2,889 constants it depends on, in a minute and a half. LeanLink's tutorial [Checking Mathlib with TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#tutorial/CheckingMathlib) checks a whole module and lists what TypeTheory does not check yet.
+Every constant of Lean's prelude, `Init.Prelude`, imports and checks, all 1,381 of them, and so do the 25 modules at the bottom of Mathlib, from the logic of `Nonempty` to folds over lists, with the 5,113 constants they depend on, in about three minutes. `Real.sqrt_nonneg`, that the square root of a real number is never negative, checks with the 11,177 constants it depends on, Mathlib's construction of the real numbers among them, in under seven minutes. A proof that a decision procedure such as `omega` or `grind` writes is a term of millions of nodes written out but of a few thousand distinct ones, and the import shares them as Lean does: a proof that `grind` writes in `Mathlib.Data.Int.Init` checks, with the 2,889 constants it depends on, in a minute and a half. Lean's own kernel, written in C++, checks the same cones about 130 times faster: that of `Real.sqrt_nonneg` in three seconds. LeanLink's tutorial [Checking Mathlib with TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#tutorial/CheckingMathlib) checks a whole module and lists what TypeTheory does not check yet.

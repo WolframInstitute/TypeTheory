@@ -70,7 +70,14 @@ Natural numbers of your own:
 unary = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 4 constants -->
+
+Literals are of the new type:
+
+```wl
 TypeOf[TypeTheoryTerm[3, unary]]
 ```
 
@@ -97,16 +104,25 @@ TypeTheoryTerm[UnarySuccessor[UnarySuccessor[UnaryZero]], unary]
 A later registration adds an operation: here the equality of natural numbers as a Boolean, registered by the alias [Naturals]():
 
 ```wl
-equality = TypeTheoryEnvironment[TypeTheoryEnvironment["Prelude"], {
+equality = TypeTheoryEnvironment[{
     TypeTheoryDefinition[NaturalNumberEqual, Function[{Typed[m, Naturals], Typed[n, Naturals]},
         InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], True, Function[{Typed[k, Naturals], Typed[r, Booleans]}, False], (m - n) + (n - m)]
     ]],
     TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"Equal" -> NaturalNumberEqual|>]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+The equality computes on literals at once:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberEqual[2^70, 2^70], equality]]
 ```
 
 <!-- => true -->
+
+The operations of the environment's natural numbers:
 
 ```wl
 Information[equality, "NaturalNumbers"]
@@ -129,14 +145,21 @@ TypeTheoryEnvironment[TypeTheoryEnvironment[], {
 
 ---
 
-The kernel trusts a registered operation. A projection registered as addition computes as addition on literals, though its definition gives its first argument:
+The kernel trusts a registered operation. Register a projection as addition:
 
 ```wl
 trusted = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
     TypeTheoryDefinition[FirstNumber, Function[{Typed[m, Unary], Typed[n, Unary]}, m]],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor, <|"Addition" -> FirstNumber|>]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 5 constants -->
+
+It computes as addition on literals, though its definition gives its first argument:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[FirstNumber[2, 3], trusted]]
 ```
 

@@ -31,35 +31,62 @@ RelatedGuides: [TypeTheory]
 
 ## Basic Examples
 
+Start a proof with [TypeTheoryProof]():
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n]]
+```
+
+<!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ n + 0 == n -->
+
 Introduce a variable:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n]];
-proof = TypeTheoryTactic["Introduce", n][proof];
-proof["Goals"]
+proof = TypeTheoryTactic["Introduce", n][proof]
 ```
 
-<!-- => {n ∶ ℕ ⊢ n + 0 == n} -->
+<!-- => Proof, 1 goal: n ∶ ℕ ⊢ n + 0 == n -->
 
 Finish it by computation:
 
 ```wl
-TypeTheoryTactic["Reflexivity"][proof]["Goals"]
+TypeTheoryTactic["Reflexivity"][proof]
 ```
 
-<!-- => {} -->
+<!-- => Proof complete -->
 
 ## Scope
 
-`"Apply"` leaves a goal for each argument, and `"Assumption"` closes one with a hypothesis:
+`"Apply"` leaves a goal for each argument of [AndIntroduction]():
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
     TypeTheoryTactic["Introduce", a, b, ha, hb],
-    TypeTheoryTactic["Apply", AndIntroduction],
-    TypeTheoryTactic["Assumption"],
-    TypeTheoryTactic["Exact", hb]
-}];
+    TypeTheoryTactic["Apply", AndIntroduction]
+}]
+```
+
+<!-- => Proof, 2 goals: a ∶ Prop, b ∶ Prop, ha ∶ a, hb ∶ b ⊢ a; a ∶ Prop, b ∶ Prop, ha ∶ a, hb ∶ b ⊢ b -->
+
+`"Assumption"` closes the first with a hypothesis:
+
+```wl
+proof = TypeTheoryTactic["Assumption"][proof]
+```
+
+<!-- => Proof, 1 goal: a ∶ Prop, b ∶ Prop, ha ∶ a, hb ∶ b ⊢ b -->
+
+`"Exact"` closes the second:
+
+```wl
+proof = TypeTheoryTactic["Exact", hb][proof]
+```
+
+<!-- => Proof complete -->
+
+The proof term:
+
+```wl
 proof["Term"]
 ```
 
@@ -67,33 +94,52 @@ proof["Term"]
 
 ---
 
-Solving one goal can solve another it mentions:
+Applying [EqualityTransitivity]() leaves a goal for each equation, and one for the term between them, which both mention:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
-    TypeTheoryTactic["Apply", EqualityTransitivity],
-    TypeTheoryTactic["Exact", h1],
-    TypeTheoryTactic["Exact", h2]
-}];
-proof["Goals"]
+    TypeTheoryTactic["Apply", EqualityTransitivity]
+}]
 ```
 
-<!-- => {} -->
+<!-- => Proof, 3 goals: x ∶ ℕ, y ∶ ℕ, z ∶ ℕ, h1 ∶ x == y, h2 ∶ y == z ⊢ x == ?m; the same hypotheses ⊢ ?m == z; the same hypotheses ⊢ ℕ -->
+
+Solving one goal can solve another it mentions: `h1` makes the term between them `y`:
+
+```wl
+proof = TypeTheoryTactic["Exact", h1][proof]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℕ, y ∶ ℕ, z ∶ ℕ, h1 ∶ x == y, h2 ∶ y == z ⊢ y == z -->
+
+The last goal is the other hypothesis:
+
+```wl
+proof = TypeTheoryTactic["Exact", h2][proof]
+```
+
+<!-- => Proof complete -->
 
 ---
 
-`"Introduce"` unfolds [Not]():
+`"Introduce"` unfolds [Not](), so the hypothesis of `¬¬p` is `¬p`, and its goal [False]():
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, Not[Not[p]]]], {
-    TypeTheoryTactic["Introduce", p, hp, hnp],
-    TypeTheoryTactic["Exact", hnp[hp]]
-}];
-proof["Goals"]
+    TypeTheoryTactic["Introduce", p, hp, hnp]
+}]
 ```
 
-<!-- => {} -->
+<!-- => Proof, 1 goal: p ∶ Prop, hp ∶ p, hnp ∶ ¬p ⊢ False -->
+
+The two hypotheses contradict each other:
+
+```wl
+proof = TypeTheoryTactic["Exact", hnp[hp]][proof]
+```
+
+<!-- => Proof complete -->
 
 ## Possible Issues
 

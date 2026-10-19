@@ -32,10 +32,17 @@ TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]},
 
 ---
 
+The polymorphic identity, declared:
+
+```wl
+identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
 Declared, it is applied to its explicit argument alone:
 
 ```wl
-identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}];
 WeakHeadNormalForm[TypeTheoryTerm[PolymorphicIdentity[5], identity]]
 ```
 
@@ -50,7 +57,14 @@ swap = TypeTheoryEnvironment[{TypeTheoryTheorem[
     ConjunctionSwap,
     ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[a && b, b && a]],
     Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, a && b]}, AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]]
-]}];
+]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+Its declaration:
+
+```wl
 swap[ConjunctionSwap]
 ```
 
@@ -66,10 +80,17 @@ TypeOf[TypeTheoryTerm[ConjunctionSwap[AndIntroduction[TrueIntroduction, Equality
 
 ---
 
+The polymorphic identity, declared:
+
+```wl
+identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
 [Construct]() gives the implicit argument explicitly:
 
 ```wl
-identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}];
 TypeOf[TypeTheoryTerm[Construct[PolymorphicIdentity, Naturals], identity]]
 ```
 
@@ -87,10 +108,17 @@ TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"
 
 ---
 
+The polymorphic identity, declared:
+
+```wl
+identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
 Declarations read back with it:
 
 ```wl
-identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}];
 InputForm[identity[PolymorphicIdentity]]
 ```
 

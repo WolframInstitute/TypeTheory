@@ -36,7 +36,14 @@ Chain two equations:
 proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
     TypeTheoryTactic["Exact", EqualityTransitivity[h1, h2]]
-}];
+}]
+```
+
+<!-- => Proof complete -->
+
+The proof term:
+
+```wl
 proof["Term"]
 ```
 

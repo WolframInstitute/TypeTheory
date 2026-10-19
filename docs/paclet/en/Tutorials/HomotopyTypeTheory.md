@@ -14,10 +14,17 @@ RelatedTutorials: [TypeTheoryIntroduction, RulesAndComputation, ThePrelude]
 
 ## The Rules
 
-The HoTT environment follows Martin-Löf type theory, with rewrite rules allowed:
+The HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
+It follows Martin-Löf type theory, with rewrite rules allowed:
+
+```wl
 Information[hott, "Rules"]["Name"]
 ```
 

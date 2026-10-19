@@ -21,10 +21,17 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Basic Examples
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 The type of [IsSet]() in the HoTT environment:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 TypeTheoryCheck[TypeTheoryTerm[IsSet, hott]]
 ```
 
@@ -32,10 +39,17 @@ TypeTheoryCheck[TypeTheoryTerm[IsSet, hott]]
 
 ---
 
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
 What it says of the Booleans:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"];
 WeakHeadNormalForm[TypeTheoryTerm[IsSet[Booleans], hott]]
 ```
 

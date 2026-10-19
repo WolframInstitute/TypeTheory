@@ -41,7 +41,14 @@ double = TypeTheoryTerm[Function[{Typed[n, Naturals]}, InductiveRecursor[Natural
     0,
     Function[{Typed[k, Naturals], Typed[r, Naturals]}, r + 2],
     n
-]]];
+]]]
+```
+
+<!-- => (n ∶ ℕ) ↦ rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ)(r ∶ ℕ) ↦ r + 2, n] -->
+
+Applied to 5, it computes:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[double[5]]]
 ```
 
@@ -49,7 +56,7 @@ WeakHeadNormalForm[TypeTheoryTerm[double[5]]]
 
 ---
 
-A tree nested in a list of trees has a recursor on the list as well, with the same motives and minor premises:
+Rose trees, each with a chain of rose trees as its children:
 
 ```wl
 roses = TypeTheoryEnvironment[{
@@ -58,7 +65,14 @@ roses = TypeTheoryEnvironment[{
         ChainLink -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[head, A], Typed[tail, Chain[A]]}, Chain[A]]
     }],
     TypeTheoryInductiveType[Rose, TypeUniverse[1], {RoseNode -> ForAll[{Typed[label, Naturals], Typed[children, Chain[Rose]]}, Rose]}]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 117 constants -->
+
+A tree nested in a list of trees has a recursor on the list as well, with the same motives and minor premises:
+
+```wl
 TypeOf[TypeTheoryTerm[InductiveRecursor[Rose, 1], roses]]
 ```
 

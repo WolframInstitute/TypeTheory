@@ -26,7 +26,14 @@ RelatedGuides: [TypeTheory]
 A theorem proved by computation:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]];
+arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+Its declaration:
+
+```wl
 arithmetic[TwoPlusTwo]
 ```
 
@@ -34,14 +41,28 @@ arithmetic[TwoPlusTwo]
 
 ## Scope
 
-The statement of a finished proof:
+A finished proof:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {
     TypeTheoryTactic["Introduce", n],
     TypeTheoryTactic["Reflexivity"]
-}];
-proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]];
+}]
+```
+
+<!-- => Proof complete -->
+
+A theorem with it as its proof:
+
+```wl
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
+The theorem states what the proof proved:
+
+```wl
 TypeOf[TypeTheoryTerm[ZeroRightIdentity, proved]]
 ```
 

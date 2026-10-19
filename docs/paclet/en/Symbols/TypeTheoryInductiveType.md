@@ -44,7 +44,14 @@ lists = TypeTheoryEnvironment[{
         ]],
         TypeSpecifier[{NaturalList} -> Naturals]
     ]]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 114 constants -->
+
+The length of a list of three numbers:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]]
 ```
 
@@ -52,7 +59,7 @@ WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7,
 
 ## Scope
 
-Vectors: an inductive family indexed by its length, which is checked by computation:
+Vectors: an inductive family indexed by its length:
 
 ```wl
 vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
@@ -62,7 +69,14 @@ vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
         VectorEmpty -> NaturalVector[0],
         VectorCons -> ForAll[{TypedImplicit[n, Naturals], Typed[h, Naturals], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]
     }
-]];
+]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 113 constants -->
+
+The length in a vector's type is checked by computation:
+
+```wl
 TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vectors], TypeTheoryTerm[NaturalVector[2]]]
 ```
 
@@ -70,14 +84,21 @@ TypeTheoryCheck[TypeTheoryTerm[VectorCons[1, VectorCons[2, VectorEmpty]], vector
 
 ---
 
-A structure, whose fields are projections:
+A structure, a pair of natural numbers:
 
 ```wl
 pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
     NaturalPair,
     TypeUniverse[1],
     {NaturalPairIntroduction -> ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, NaturalPair]}
-]];
+]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 112 constants -->
+
+Its fields are projections:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[NaturalPairIntroduction[3, 4][[2]], pairs]]
 ```
 
@@ -95,7 +116,14 @@ parity = TypeTheoryEnvironment[TypeTheoryInductiveType[
         EvenSuccessor -> ForAll[{TypedImplicit[n, Naturals], Typed[h, Odd[n]]}, Even[n + 1]],
         OddSuccessor -> ForAll[{TypedImplicit[n, Naturals], Typed[h, Even[n]]}, Odd[n + 1]]
     }
-]];
+]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 116 constants -->
+
+Three is odd:
+
+```wl
 TypeTheoryCheck[TypeTheoryTerm[OddSuccessor[EvenSuccessor[OddSuccessor[EvenZero]]], parity], TypeTheoryTerm[Odd[3]]]
 ```
 
@@ -120,7 +148,14 @@ roses = TypeTheoryEnvironment[{
         ChainLink -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[head, A], Typed[tail, Chain[A]]}, Chain[A]]
     }],
     TypeTheoryInductiveType[Rose, TypeUniverse[1], {RoseNode -> ForAll[{Typed[label, Naturals], Typed[children, Chain[Rose]]}, Rose]}]
-}];
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 117 constants -->
+
+The recursor of the trees takes a motive for the list too:
+
+```wl
 TypeOf[TypeTheoryTerm[InductiveRecursor[Rose], roses]]
 ```
 

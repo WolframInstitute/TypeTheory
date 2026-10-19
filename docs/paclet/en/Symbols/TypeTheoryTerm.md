@@ -94,10 +94,17 @@ TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, Naturals, 3]]]
 
 ---
 
+A term:
+
+```wl
+equation = TypeTheoryTerm[1 + 1 == 2]
+```
+
+<!-- => 1 + 1 == 2 -->
+
 A term that holds another, spliced in:
 
 ```wl
-equation = TypeTheoryTerm[1 + 1 == 2];
 TypeOf[TypeTheoryTerm[Implies[equation, equation]]]
 ```
 
@@ -125,10 +132,17 @@ TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment[]]]
 
 ---
 
+A type of bits:
+
+```wl
+bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 113 constants -->
+
 [TypeOf]() also takes the environment as its second argument, as it takes a type environment for compiled types:
 
 ```wl
-bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}];
 TypeOf[TypeTheoryTerm[BitOne], bits]
 ```
 
@@ -136,10 +150,17 @@ TypeOf[TypeTheoryTerm[BitOne], bits]
 
 ## Possible Issues
 
+A term held in a variable:
+
+```wl
+term = TypeTheoryTerm[2 + 3]
+```
+
+<!-- => 2 + 3 -->
+
 [TypeOf]() holds its argument, so it does not see the term a variable holds; [TypeTheoryCheck]() evaluates its argument:
 
 ```wl
-term = TypeTheoryTerm[2 + 3];
 TypeTheoryCheck[term]
 ```
 
@@ -165,10 +186,17 @@ TypeOf[TypeTheoryTerm[Typed[True, Booleans]]]
 
 ---
 
+Define doubling:
+
+```wl
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
 [Format]() evaluates the arguments of what it formats, so a bound variable whose symbol has a value shows that value:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]];
 Format[Double[a_]] := CenterDot[2, a];
 k = 7;
 TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
@@ -178,10 +206,17 @@ TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
 
 ---
 
+Define doubling:
+
+```wl
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+
 [MakeBoxes]() holds them, so a notation for a constant applied to arguments is a definition of [MakeBoxes]():
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]];
 MakeBoxes[Double[a_], form_] := MakeBoxes[CenterDot[2, a], form];
 k = 7;
 TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
