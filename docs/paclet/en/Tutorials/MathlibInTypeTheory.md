@@ -141,7 +141,7 @@ WeakHeadNormalForm[TypeTheoryTerm["Nat.gcd"[1071, 462]]]
 
 ## Proving with Mathlib's Theorems
 
-TypeTheory does not search for instances, so a statement that uses Lean's notation is written in Lean, which finds them, and imported. [LeanImportString](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanImportString) compiles two statements, the second about a function defined by recursion:
+TypeTheory does not search for instances, so a statement that uses Lean's notation is written in Lean, which finds them, and imported. [LeanImportString](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanImportString) compiles a list of sources joined with newlines, here an import and two statements, the second about a function defined by recursion:
 
 ```wl
 statements = "def DividesShift : Prop := ∀ a b : ℕ, a ∣ b → a ∣ b + a ∧ a ∣ b + 2 * a
@@ -151,7 +151,7 @@ def double : ℕ → ℕ
   | n + 1 => double n + 2
 
 def DoubleIsTwice : Prop := ∀ n : ℕ, double n = 2 * n";
-stated = If[mathlibReady, LeanImportString["import Mathlib.Data.Nat.Init\n\n" <> statements, "ProjectDir" -> mathlibDir], <||>]
+stated = If[mathlibReady, LeanImportString[{"import Mathlib.Data.Nat.Init", statements}, "ProjectDir" -> mathlibDir], <||>]
 ```
 
 <!-- => LeanEnvironment summary box: 3 constants -->
@@ -247,7 +247,7 @@ source = TypeTheoryToLean[proved, {DividesShiftProof, DoubleIsTwiceProof}]
 Lean compiles the source after the statements, and its kernel checks the proofs, independently of TypeTheory's:
 
 ```wl
-checked = If[mathlibReady, LeanImportString["import Mathlib.Data.Nat.Init\n\n" <> statements <> "\n\n" <> source, "ProjectDir" -> mathlibDir], <||>]
+checked = If[mathlibReady, LeanImportString[{"import Mathlib.Data.Nat.Init", statements, source}, "ProjectDir" -> mathlibDir], <||>]
 ```
 
 <!-- => LeanEnvironment summary box: 5 constants -->
