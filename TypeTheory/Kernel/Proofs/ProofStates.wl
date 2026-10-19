@@ -28,7 +28,8 @@ The tactics:
 	"Introduce", x, ...     x : A |- B for a goal ForAll[{Typed[x, A]}, B] or A -> B, unfolding definitions to find it
 	"Exact", term           solves the goal with term
 	"Apply", term           solves the goal with term applied to as many new goals as its conclusion needs
-	"Reflexivity"           solves a goal a == b whose sides are definitionally equal
+	"Reflexivity"           solves a goal a == b whose sides are definitionally equal, of Equal or of another type
+	                        of equations, such as Lean's Eq imported
 	"Induction", x          splits on the variable x of an inductive type: one goal per constructor, taking
 	                        the constructor's fields and an induction hypothesis per recursive field
 	"Assumption"            solves the goal with a hypothesis of the same type
@@ -333,13 +334,26 @@ applyUntilUnified[data_, goal_, term_, type_, target_] := If[ attemptOrRestore[u
 
 reflexivity[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
-		application[application[application[constantReference[HoldComplete[Equal], levels_], type_], left_], right_] :> If[
+		application[application[application[constantReference[equality_, levels_], type_], left_], right_] /; equalityTypeQ[environment, equality] :> If[
 			definitionallyEqualQ[environment, current["Context"], left, right],
-			solveGoal[data, goal, makeApplication[constantReference[HoldComplete[EqualityReflexivity], levels], {type, left}], {}],
+			solveGoal[data, goal, makeApplication[constantReference[First[constantRecord[environment, equality]["Constructors"]], levels], {type, left}], {}],
 			tacticFailure["NotReflexive", "The two sides of the goal `1` are not equal by computation.", data, goal]
 		],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation.", data, goal]
 	}]
+]
+
+(* a type of equations, as Equal is and Lean's Eq imported: an inductive type of a type A and two elements of
+   it, whose one constructor makes an element x equal to x *)
+equalityTypeQ[environment_, name_HoldComplete] := With[{record = constantRecord[environment, name]},
+	And[
+		MatchQ[record, KeyValuePattern[{"Kind" -> "InductiveType", "Constructors" -> {_}}]],
+		MatchQ[record["Type"], dependentFunctionType[_, _, dependentFunctionType[_, boundVariable[0], dependentFunctionType[_, boundVariable[1], _universeSort, _], _], _]],
+		MatchQ[
+			constantRecord[environment, First[record["Constructors"]]]["Type"],
+			dependentFunctionType[_, _, dependentFunctionType[_, boundVariable[0], application[application[application[constantReference[name, _], boundVariable[1]], boundVariable[0]], boundVariable[0]], _], _]
+		]
+	]
 ]
 
 

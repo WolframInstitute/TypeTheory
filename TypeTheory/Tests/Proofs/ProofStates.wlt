@@ -63,6 +63,27 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[
+		{
+			equations = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+				TypeTheoryInductiveType["Unit", TypeUniverse[1], {"Unit.unit" -> "Unit"}],
+				TypeTheoryInductiveType[
+					"Eq",
+					ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A], Typed[y, A]}, TypeUniverse[0]],
+					{"Eq.refl" -> ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, "Eq"[x, x]]}
+				]
+			}]
+		},
+		{
+			TypeTheoryProof[TypeTheoryTerm["Eq"["Unit.unit", "Unit.unit"], equations], {TypeTheoryTactic["Reflexivity"]}]["Goals"],
+			First @ TypeTheoryProof[TypeTheoryTerm["Unit", equations], {TypeTheoryTactic["Reflexivity"]}]
+		}
+	],
+	{{}, "EquationExpected"},
+	TestID -> "Reflexivity-solves-an-equation-of-another-type-of-equations"
+]
+
+VerificationTest[
 	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Induction", n]}]["Goals"],
 	With[{n = WolframInstitute`TypeTheory`Library`Prelude`Private`n},
 		{
