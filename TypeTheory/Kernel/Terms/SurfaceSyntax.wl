@@ -86,7 +86,7 @@ PackageScoped[displayedName]
 
 TypeTheoryTerm::usage = "TypeTheoryTerm[term, environment] represents a term of the type theory in the TypeTheoryEnvironment environment, \
 written with built-in symbols such as Function, Typed, ForAll, Implies, Equal and Plus, and kept unevaluated.\n\
-TypeTheoryTerm[term] is a term in the prelude, TypeTheoryEnvironment[\"Prelude\"].\n\
+TypeTheoryTerm[term] is a term in the default environment, $TypeTheoryEnvironment: the prelude, unless SetTypeTheoryEnvironment set another.\n\
 TypeOf[TypeTheoryTerm[term, environment]] gives its type; TypeOf[TypeTheoryTerm[term], environment] gives its type in environment."
 TypeUniverse::usage = "TypeUniverse[level] is the universe at level: TypeUniverse[0] is Prop, the universe of propositions, and TypeUniverse[1] is \
 Type. level is a non-negative integer, a universe parameter, level + k, Max[level1, level2] or ImpredicativeMaximum[level1, level2]."

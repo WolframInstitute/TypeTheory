@@ -73,13 +73,13 @@ TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, ___], form : Stan
 ]
 
 (* the natural numbers a display shows as 0 and n + 1: those of the environment shown, and outside one, as
-   in a declaration, the prelude's *)
+   in a declaration, the default environment's *)
 $displayedNaturalNumbers = Automatic
 
 SetAttributes[withDisplayEnvironment, HoldRest]
 withDisplayEnvironment[environment_, expression_] := Block[{$displayedNaturalNumbers = settingsOrNone[environment]}, expression]
 
-displayedNaturalNumbers[] := Replace[$displayedNaturalNumbers, Automatic :> settingsOrNone[preludeEnvironment[]]]
+displayedNaturalNumbers[] := Replace[$displayedNaturalNumbers, Automatic :> settingsOrNone[defaultEnvironment[]]]
 
 settingsOrNone[environment_] := Replace[Quiet[naturalNumberSettings[environment]], Except[_Association] -> <||>]
 

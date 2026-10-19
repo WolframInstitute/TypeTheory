@@ -119,3 +119,31 @@ VerificationTest[
 	{TypeTheoryAxiom, TypeTheoryEnvironment},
 	TestID -> "Arguments-that-do-not-match-stay-unevaluated"
 ]
+
+(* the default environment is a value: Block restores it, as each test here must *)
+VerificationTest[
+	Block[{$TypeTheoryEnvironment},
+		With[{doubled = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]}]},
+			{
+				SetTypeTheoryEnvironment[doubled] === doubled,
+				First[WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]],
+				TypeTheoryProof[Doubled[2] == 4, {TypeTheoryTactic["Reflexivity"]}]["Goals"],
+				KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], Doubled],
+				SetTypeTheoryEnvironment["Prelude"] === prelude
+			}
+		]
+	],
+	{True, 42, {}, True, True},
+	TestID -> "SetTypeTheoryEnvironment-sets-the-environment-of-what-names-none"
+]
+
+VerificationTest[
+	{
+		$TypeTheoryEnvironment === prelude,
+		Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], ExcludedMiddle]],
+		Block[{$TypeTheoryEnvironment}, Keys[SetTypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}]] === Append[Keys[prelude], Point]],
+		First[SetTypeTheoryEnvironment[42]]
+	},
+	{True, False, True, "NotAnEnvironment"},
+	TestID -> "The-default-environment-is-the-prelude-and-Block-scopes-it"
+]

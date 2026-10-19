@@ -135,15 +135,15 @@ declarationQ[_] := False
 (*Environments from declarations*)
 
 
-(* without an environment to extend, declarations extend the prelude; TypeTheoryEnvironment[] has none *)
+(* without an environment to extend, declarations extend the default environment; TypeTheoryEnvironment[] has none *)
 TypeTheoryEnvironment[] := $emptyEnvironment
 TypeTheoryEnvironment[rules_TypeTheoryRules?rulesQ] := emptyEnvironmentOf[rules]
 TypeTheoryEnvironment[rules_TypeTheoryRules?rulesQ, declarations : (_List | _?declarationQ)] := TypeTheoryEnvironment[emptyEnvironmentOf[rules], declarations]
 TypeTheoryEnvironment["Prelude"] := preludeEnvironment[]
 TypeTheoryEnvironment["Constructive"] := constructiveEnvironment[]
 TypeTheoryEnvironment["HomotopyTypeTheory"] := homotopyTypeTheoryEnvironment[]
-TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[preludeEnvironment[], declarations]
-TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[preludeEnvironment[], {declaration}]
+TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[defaultEnvironment[], declarations]
+TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[defaultEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]
 
 (* the stores of the steps in between are removed, and so are all of them when a declaration fails *)

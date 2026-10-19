@@ -62,7 +62,7 @@ PackageScoped[instantiateProofTerm]
 (*Usage Messages*)
 
 
-TypeTheoryProof::usage = "TypeTheoryProof[statement] starts a proof of statement in the prelude, with statement itself as its one goal.\n\
+TypeTheoryProof::usage = "TypeTheoryProof[statement] starts a proof of statement in the default environment, $TypeTheoryEnvironment, with statement itself as its one goal.\n\
 TypeTheoryProof[statement, environment] starts the proof in the TypeTheoryEnvironment environment.\n\
 TypeTheoryProof[TypeTheoryTerm[statement, environment]] does the same.\n\
 TypeTheoryProof[statement, {tactic1, tactic2, ...}], TypeTheoryProof[statement, environment, {tactic1, ...}] and \
@@ -103,12 +103,12 @@ TypeTheoryProof[statement_, environment_?environmentQ, options : OptionsPattern[
 TypeTheoryProof[statement_, environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; statementQ[Unevaluated[statement]] :=
 	runTactics[TypeTheoryProof[statement, environment, options], tactics]
 
-(* without an environment, a statement is proved in the prelude *)
+(* without an environment, a statement is proved in the default environment *)
 TypeTheoryProof[statement_, options : OptionsPattern[]] /; ! termExpressionQ[Unevaluated[statement]] && statementQ[Unevaluated[statement]] :=
-	TypeTheoryProof[statement, preludeEnvironment[], options]
+	TypeTheoryProof[statement, defaultEnvironment[], options]
 
 TypeTheoryProof[statement_, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; ! termExpressionQ[Unevaluated[statement]] && statementQ[Unevaluated[statement]] :=
-	TypeTheoryProof[statement, preludeEnvironment[], tactics, options]
+	TypeTheoryProof[statement, defaultEnvironment[], tactics, options]
 
 (* a TypeTheoryTerm, written out or held in a symbol, carries its own environment *)
 TypeTheoryProof[term_, options : OptionsPattern[]] /; termExpressionQ[Unevaluated[term]] := With[{evaluated = term},

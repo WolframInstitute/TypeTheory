@@ -50,6 +50,8 @@ catches it with catchKernelFailure and returns it.
 
 
 PackageExported[TypeTheoryEnvironment]
+PackageExported[SetTypeTheoryEnvironment]
+PackageExported[$TypeTheoryEnvironment]
 
 
 (* ::Section:: *)
@@ -57,6 +59,7 @@ PackageExported[TypeTheoryEnvironment]
 
 
 PackageScoped[emptyEnvironment]
+PackageScoped[defaultEnvironment]
 PackageScoped[environmentRules]
 PackageScoped[addRewriteRuleRecord]
 PackageScoped[rewriteRuleRecords]
@@ -84,12 +87,18 @@ TypeTheoryEnvironment::usage = "TypeTheoryEnvironment[] gives the environment wi
 TypeTheoryEnvironment[\"Prelude\"] gives the prelude: classical logic, equality, the natural numbers and the Booleans.\n\
 TypeTheoryEnvironment[\"Constructive\"] gives the prelude without its axioms and the theorems proved from them.\n\
 TypeTheoryEnvironment[\"HomotopyTypeTheory\"] gives homotopy type theory: paths, univalence and the circle, under rules without Prop.\n\
-TypeTheoryEnvironment[{declaration1, declaration2, ...}] checks the declarations in turn and gives the prelude extended with them.\n\
+TypeTheoryEnvironment[{declaration1, declaration2, ...}] checks the declarations in turn and gives the default environment, $TypeTheoryEnvironment, extended with them.\n\
 TypeTheoryEnvironment[environment, {declaration1, ...}] gives environment extended with the declarations; Append[environment, declaration] adds one.\n\
 TypeTheoryEnvironment[rules] gives the environment with no constants that follows the TypeTheoryRules rules, and TypeTheoryEnvironment[rules, {declaration1, ...}] extends it.\n\
 environment[name] gives the declaration that introduced the constant name. Keys, Length, KeyExistsQ, Normal and Information[environment, property] also work."
 
+SetTypeTheoryEnvironment::usage = "SetTypeTheoryEnvironment[environment] makes environment the default environment, $TypeTheoryEnvironment, of the terms, \
+proofs and declarations that name none, and gives it.\n\
+SetTypeTheoryEnvironment[spec] makes TypeTheoryEnvironment[spec] the default: \"Prelude\" sets the prelude back, and {declaration1, ...} extends the default with the declarations."
+$TypeTheoryEnvironment::usage = "$TypeTheoryEnvironment is the default environment, of the terms, proofs and declarations that name none: the prelude, unless \
+SetTypeTheoryEnvironment set another. Block[{$TypeTheoryEnvironment = environment}, expr] makes environment the default while expr evaluates."
 emptyEnvironment::usage = "emptyEnvironment[] gives an environment with no constants and the default rules; emptyEnvironment[rules] gives one with the given rules."
+defaultEnvironment::usage = "defaultEnvironment[] gives $TypeTheoryEnvironment, or the prelude if it is not an environment."
 environmentRules::usage = "environmentRules[environment] gives the TypeTheoryRules environment follows."
 addRewriteRuleRecord::usage = "addRewriteRuleRecord[environment, HoldComplete[name], record] gives a new environment with the rewrite rule name added to the rules of its head."
 rewriteRuleRecords::usage = "rewriteRuleRecords[environment, HoldComplete[axiom]] gives the records of the rewrite rules of axiom, in the order they were declared."
@@ -140,6 +149,25 @@ emptyEnvironment[] := emptyEnvironment[$defaultRules]
 emptyEnvironment[rules_TypeTheoryRules] := newEnvironment[<|"Records" -> <||>, "Names" -> {}, "Rules" -> rules, "RewriteRuleIndex" -> <||>|>, <||>, None]
 
 environmentRules[TypeTheoryEnvironment[store_Symbol]] := store["Rules"]
+
+
+(* ::Subsection:: *)
+(*The default environment*)
+
+
+(* Terms, proofs and declarations that name no environment are in $TypeTheoryEnvironment, which
+   FinalEvaluations.wl sets to the prelude once the prelude is built. It is a value like any other: setting
+   it chooses the environment, and declarations never change it. *)
+
+defaultEnvironment[] := If[environmentQ[$TypeTheoryEnvironment], $TypeTheoryEnvironment, preludeEnvironment[]]
+
+SetTypeTheoryEnvironment[environment_?environmentQ] := ($TypeTheoryEnvironment = environment)
+
+SetTypeTheoryEnvironment[specification_] := Replace[TypeTheoryEnvironment[specification], {
+	environment_?environmentQ :> SetTypeTheoryEnvironment[environment],
+	failure_Failure :> failure,
+	_ :> Failure["NotAnEnvironment", <|"MessageTemplate" -> "`1` does not specify an environment.", "MessageParameters" -> {specification}|>]
+}]
 
 
 constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] :=

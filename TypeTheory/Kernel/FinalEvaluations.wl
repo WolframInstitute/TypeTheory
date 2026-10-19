@@ -9,3 +9,6 @@ $emptyEnvironment = withoutStoreTracking[emptyEnvironment[]]
 $constructiveEnvironment = withoutStoreTracking[TypeTheoryEnvironment[$emptyEnvironment, $constructiveDeclarations]]
 
 $preludeEnvironment = withoutStoreTracking[TypeTheoryEnvironment[$constructiveEnvironment, $classicalDeclarations]]
+
+(* the default environment, until SetTypeTheoryEnvironment sets another *)
+$TypeTheoryEnvironment = $preludeEnvironment
