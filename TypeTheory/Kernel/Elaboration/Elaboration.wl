@@ -896,7 +896,16 @@ unifyBinders[(head : dependentFunctionType | lambdaAbstraction)[name_, domain_, 
 	]
 ]
 
+(* as the kernel compares terms: reduced without unfolding definitions first, then with *)
 unifyReduced[a_, b_] := With[
+	{
+		coreA = reducedHeadWithoutUnfolding[$elaborationEnvironment, $elaborationContext, a],
+		coreB = reducedHeadWithoutUnfolding[$elaborationEnvironment, $elaborationContext, b]
+	},
+	If[coreA =!= a || coreB =!= b, unify[coreA, coreB], unifyUnfolded[a, b]]
+]
+
+unifyUnfolded[a_, b_] := With[
 	{
 		reducedA = weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, a],
 		reducedB = weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, b]

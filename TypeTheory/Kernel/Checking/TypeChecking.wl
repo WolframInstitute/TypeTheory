@@ -33,6 +33,7 @@ $metavariableTypes and $metavariableAssignments, which the elaborator binds.
 PackageScoped[inferType]
 PackageScoped[withKernelCaches]
 PackageScoped[weakHeadNormalForm]
+PackageScoped[reducedHeadWithoutUnfolding]
 PackageScoped[definitionallyEqualQ]
 PackageScoped[sortLevel]
 PackageScoped[checkHasType]
@@ -52,6 +53,7 @@ PackageScoped[$metavariableAssignments]
 
 inferType::usage = "inferType[environment, context, term] gives the type of term, checking it; a term that does not type-check throws a kernel failure."
 weakHeadNormalForm::usage = "weakHeadNormalForm[environment, context, term] reduces term until its head can no longer reduce."
+reducedHeadWithoutUnfolding::usage = "reducedHeadWithoutUnfolding[environment, context, term] reduces the head of term as far as it reduces without unfolding a definition."
 definitionallyEqualQ::usage = "definitionallyEqualQ[environment, context, a, b] gives True if a and b are equal by computation, eta and proof irrelevance."
 sortLevel::usage = "sortLevel[environment, context, type] gives the level of the sort type belongs to, or throws a kernel failure if type is not a type."
 checkHasType::usage = "checkHasType[environment, context, term, type] throws a kernel failure unless term has a type definitionally equal to type."
@@ -305,7 +307,15 @@ weakHeadNormalForm[environment_, context_, term_] := If[ AssociationQ[$weakHeadN
 	reducedHead[environment, context, term]
 ]
 
-reducedHead[environment_, context_, term_] := FixedPoint[Function[current, reduceHead[environment, context, current]], term]
+reducedHead[environment_, context_, term_] := Block[{$unfoldDefinitions = True}, FixedPoint[Function[current, reduceHead[environment, context, current]], term]]
+
+(* reduced as far as it reduces without unfolding a definition, as Lean's whnf_core: an equation is
+   compared at this point before its definitions unfold, as two applications of the same constant often are
+   equal by their arguments, and unfolding first can mean a long computation, as Nat.sub on a variable and a
+   large literal is *)
+reducedHeadWithoutUnfolding[environment_, context_, term_] := Block[{$unfoldDefinitions = False}, FixedPoint[Function[current, reduceHead[environment, context, current]], term]]
+
+$unfoldDefinitions = True
 
 reduceHead[environment_, context_, term_] := With[{spine = applicationSpine[term]},
 	reduceSpine[environment, context, term, First[spine], Last[spine]]
@@ -338,8 +348,10 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Rep
 	literalOperationResult[environment, context, name, arguments],
 	None :> With[{record = constantRecord[environment, name]},
 		Which[
-			record["Kind"] === "Definition",
+			record["Kind"] === "Definition" && $unfoldDefinitions,
 				unfoldDefinition[record, levels, arguments],
+			record["Kind"] === "Definition",
+				term,
 			record["Kind"] === "Recursor",
 				reduceRecursor[environment, context, term, record, levels, arguments],
 			record["Kind"] === "Axiom",
@@ -577,10 +589,15 @@ sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applic
 ]
 
 reducedEqualQ[environment_, context_, a_, b_] := With[
-	{reducedA = weakHeadNormalForm[environment, context, a], reducedB = weakHeadNormalForm[environment, context, b]},
-	If[ reducedA =!= a || reducedB =!= b,
-		definitionallyEqualQ[environment, context, reducedA, reducedB],
-		normalFormsEqualQ[environment, context, a, b]
+	{coreA = reducedHeadWithoutUnfolding[environment, context, a], coreB = reducedHeadWithoutUnfolding[environment, context, b]},
+	If[ coreA =!= a || coreB =!= b,
+		definitionallyEqualQ[environment, context, coreA, coreB],
+		With[{reducedA = weakHeadNormalForm[environment, context, a], reducedB = weakHeadNormalForm[environment, context, b]},
+			If[ reducedA =!= a || reducedB =!= b,
+				definitionallyEqualQ[environment, context, reducedA, reducedB],
+				normalFormsEqualQ[environment, context, a, b]
+			]
+		]
 	]
 ]
 

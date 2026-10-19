@@ -167,3 +167,14 @@ VerificationTest[
 	True,
 	TestID -> "A-structure-recursor-computes-on-a-variable-by-eta"
 ]
+
+(* n - 5000 unfolds into a recursion 5000 deep on a variable n, which the comparison needs not do: after
+   beta reduction both sides are Subtract applied to equal arguments *)
+VerificationTest[
+	TypeTheoryCheck[
+		TypeTheoryTerm[Function[{Typed[n, Naturals]}, EqualityReflexivity[n - 5000]]],
+		TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, Function[{Typed[k, Naturals]}, n - k][5000] == n - (4999 + 1)]]
+	][[1]],
+	"TypeChecked",
+	TestID -> "Equal-applications-are-compared-before-their-definitions-unfold"
+]
