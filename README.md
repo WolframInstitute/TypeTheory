@@ -9,7 +9,8 @@ and tactics build proofs step by step in a notebook.
 > projections, elaboration, a prelude of logic, equality and natural numbers, and six tactics work and
 > are tested. It is pure Wolfram Language, with no native library underneath, and it does not depend
 > on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate declarations between Lean
-> and TypeTheory.
+> and TypeTheory; through them this kernel checks all of Lean's `Init.Prelude`, the 25 lowest modules of
+> Mathlib, and the 11,177 constants under `Real.sqrt_nonneg`.
 
 ## Loading
 
@@ -33,7 +34,7 @@ Loading takes about a second, and most of that is building the prelude through t
 
 The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
 page for every symbol, a guide, and the tutorials *Getting Started with TypeTheory*, *The Prelude*,
-*Rules and Computation* and *Homotopy Type Theory*. The pages are
+*Rules and Computation*, *Homotopy Type Theory* and *Mathlib in TypeTheory*. The pages are
 literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
 [PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
@@ -250,7 +251,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 164 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 181 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.
