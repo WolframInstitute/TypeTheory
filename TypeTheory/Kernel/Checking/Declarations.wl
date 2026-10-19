@@ -384,28 +384,28 @@ levelParameterNames[_] := {}
 (*Core declarations*)
 
 
-declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] := (
+declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] := withKernelCaches[
 	checkUniverseParameters[name, universeParameters, {type}];
 	sortLevel[environment, <||>, type];
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>|>]
-)
+]
 
-declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_] := (
+declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_] := withKernelCaches[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
 	checkHasType[environment, <||>, value, type];
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
-)
+]
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
-declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_] := (
+declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_] := withKernelCaches[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
 		kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
 	];
 	checkHasType[environment, <||>, value, type];
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
-)
+]
 
 (* The left side is an axiom applied to a pattern: each argument is a variable of the rule, a term
    without variables, or a constant applied to such arguments. Every variable occurs in it, and every

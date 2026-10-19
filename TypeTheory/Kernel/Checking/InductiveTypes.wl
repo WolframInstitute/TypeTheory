@@ -85,7 +85,10 @@ looseBoundVariablesQ[term_] := liftBoundVariables[term, 1, 0] =!= term
 declareInductiveType[environment_, name_HoldComplete, universeParameters_List, numberOfParameters_Integer, type_, constructors_List] :=
 	declareInductiveTypes[environment, universeParameters, numberOfParameters, {name -> type}, constructors]
 
-declareInductiveTypes[environment_, universeParameters_List, numberOfParameters_Integer, types : {(_HoldComplete -> _) ..}, constructors_List] := Module[
+declareInductiveTypes[environment_, universeParameters_List, numberOfParameters_Integer, types : {(_HoldComplete -> _) ..}, constructors_List] :=
+	withKernelCaches[declareBlock[environment, universeParameters, numberOfParameters, types, constructors]]
+
+declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, types_List, constructors_List] := Module[
 	{
 		names = Keys[types], levels = levelParameter /@ universeParameters, typeContext, parameterIds, originals, provisional,
 		originalConstructors, blockConstructors, auxiliaries, blockTypes, resultLevel, checkedProvisional, checkedConstructors

@@ -158,10 +158,12 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 	];
 	(* the kernel checks the elaborated term on its own, with no metavariables but the open goals of a proof *)
 	Block[{$metavariableTypes = $goalMetavariableTypes, $metavariableAssignments = <||>},
-		If[ expected === None,
-			{finalTerm, inferType[environment, context, finalTerm]},
-			checkHasType[environment, context, finalTerm, expected];
-			{finalTerm, expected}
+		withKernelCaches[
+			If[ expected === None,
+				{finalTerm, inferType[environment, context, finalTerm]},
+				checkHasType[environment, context, finalTerm, expected];
+				{finalTerm, expected}
+			]
 		]
 	]
 ]

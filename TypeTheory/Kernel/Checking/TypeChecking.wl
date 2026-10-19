@@ -31,6 +31,7 @@ $metavariableTypes and $metavariableAssignments, which the elaborator binds.
 
 
 PackageScoped[inferType]
+PackageScoped[withKernelCaches]
 PackageScoped[weakHeadNormalForm]
 PackageScoped[definitionallyEqualQ]
 PackageScoped[sortLevel]
@@ -55,6 +56,7 @@ definitionallyEqualQ::usage = "definitionallyEqualQ[environment, context, a, b] 
 sortLevel::usage = "sortLevel[environment, context, type] gives the level of the sort type belongs to, or throws a kernel failure if type is not a type."
 checkHasType::usage = "checkHasType[environment, context, term, type] throws a kernel failure unless term has a type definitionally equal to type."
 freshFreeVariable::usage = "freshFreeVariable[] gives an identifier no free variable has used."
+withKernelCaches::usage = "withKernelCaches[body] evaluates body remembering the kernel's inferred types, weak head normal forms and definitional equalities, unless an enclosing check already does."
 extendContext::usage = "extendContext[context, id, HoldComplete[name], type, binder] gives context with freeVariable[id] of type type."
 makeLambda::usage = "makeLambda[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into functions."
 makeDependentFunctionType::usage = "makeDependentFunctionType[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into a function type."
@@ -72,6 +74,21 @@ $metavariableAssignments::usage = "$metavariableAssignments is the Association f
 $metavariableTypes = <||>
 $metavariableAssignments = <||>
 $freeVariableCounter = 0
+
+(* While it checks a declaration, the kernel remembers the types it has inferred, the weak head normal
+   forms it has computed and the definitional equalities it has decided, for a proof meets the same
+   subterms again and again. The free variables of a term are fresh for each binder opened, so a term
+   means the same wherever it occurs in one check of one environment; outside a check, while elaborating,
+   metavariables get solved, and nothing is remembered. *)
+$inferTypeCache = None
+$weakHeadNormalFormCache = None
+$definitionalEqualityCache = None
+
+SetAttributes[withKernelCaches, HoldFirst]
+withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
+	body,
+	Block[{$inferTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>}, body]
+]
 
 freshFreeVariable[] := ++$freeVariableCounter
 
@@ -94,7 +111,12 @@ makeDependentFunctionType[context_Association, ids_List, body_] := Fold[
 (*Type inference*)
 
 
-inferType[environment_, context_, term_] := Replace[term, {
+inferType[environment_, context_, term_] := If[ AssociationQ[$inferTypeCache],
+	Lookup[$inferTypeCache, Key[{environment, term}], $inferTypeCache[{environment, term}] = inferTypeOf[environment, context, term]],
+	inferTypeOf[environment, context, term]
+]
+
+inferTypeOf[environment_, context_, term_] := Replace[term, {
 	boundVariable[index_] :> kernelFailure["LooseBoundVariable", "A bound variable with index `1` occurs outside its binder.", {index}],
 	freeVariable[id_] :> Lookup[context, id, kernelFailure["UnknownVariable", "The free variable `1` is not in the local context.", {id}]]["Type"],
 	metavariable[id_] :> Lookup[$metavariableTypes, id, kernelFailure["Metavariable", "The term contains an unsolved metavariable.", {}]],
@@ -269,7 +291,12 @@ instantiateLeadingBinder[environment_, context_, type_, value_] := Replace[weakH
 (*Reduction*)
 
 
-weakHeadNormalForm[environment_, context_, term_] := FixedPoint[Function[current, reduceHead[environment, context, current]], term]
+weakHeadNormalForm[environment_, context_, term_] := If[ AssociationQ[$weakHeadNormalFormCache],
+	Lookup[$weakHeadNormalFormCache, Key[{environment, term}], $weakHeadNormalFormCache[{environment, term}] = reducedHead[environment, context, term]],
+	reducedHead[environment, context, term]
+]
+
+reducedHead[environment_, context_, term_] := FixedPoint[Function[current, reduceHead[environment, context, current]], term]
 
 reduceHead[environment_, context_, term_] := With[{spine = applicationSpine[term]},
 	reduceSpine[environment, context, term, First[spine], Last[spine]]
@@ -492,7 +519,10 @@ reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motive
 (*Definitional equality*)
 
 
-definitionallyEqualQ[environment_, context_, a_, b_] := a === b || definitionallyEqualCases[environment, context, a, b]
+definitionallyEqualQ[environment_, context_, a_, b_] := a === b || If[ AssociationQ[$definitionalEqualityCache],
+	Lookup[$definitionalEqualityCache, Key[{environment, a, b}], $definitionalEqualityCache[{environment, a, b}] = definitionallyEqualCases[environment, context, a, b]],
+	definitionallyEqualCases[environment, context, a, b]
+]
 
 definitionallyEqualCases[_, _, universeSort[first_], universeSort[second_]] := levelEquivalentQ[first, second]
 definitionallyEqualCases[environment_, context_, (head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], head_[_, otherDomain_, otherBody_, _]] :=
