@@ -129,7 +129,7 @@ inferTypeOf[environment_, context_, term_] := Replace[term, {
 	application[function_, argument_] :> applicationType[environment, context, function, argument],
 	lambdaAbstraction[name_, domain_, body_, binder_] :> lambdaType[environment, context, name, domain, body, binder],
 	dependentFunctionType[name_, domain_, codomain_, binder_] :> functionTypeSort[environment, context, name, domain, codomain, binder],
-	localDefinition[name_, type_, value_, body_] :> localDefinitionType[environment, context, type, value, body],
+	localDefinition[name_, type_, value_, body_] :> localDefinitionType[environment, context, name, type, value, body],
 	projection[structure_, index_Integer?NonNegative, structureTerm_] :> projectionType[environment, context, structure, index, structureTerm],
 	_ :> kernelFailure["IllFormedTerm", "`1` is not a term.", {term}]
 }]
@@ -199,11 +199,20 @@ functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := 
 	]]]
 ]
 
-localDefinitionType[environment_, context_, type_, value_, body_] := (
+(* The body is inferred with the variable in the context, its value beside it for computation to unfold,
+   as in Lean's kernel: putting the value in the body would infer its type again at every use. *)
+localDefinitionType[environment_, context_, name_, type_, value_, body_] := (
 	sortLevel[environment, context, type];
 	checkHasType[environment, context, value, type];
-	inferType[environment, context, instantiateBoundVariable[body, value]]
+	With[{id = freshFreeVariable[]},
+		instantiateBoundVariable[
+			abstractFreeVariable[inferType[environment, extendLocalDefinition[context, id, name, type, value], instantiateBoundVariable[body, freeVariable[id]]], id],
+			value
+		]
+	]
 )
+
+extendLocalDefinition[context_Association, id_Integer, name_, type_, value_] := Append[context, id -> <|"Name" -> name, "Type" -> type, "Binder" -> "Explicit", "Value" -> value|>]
 
 sortLevel[environment_, context_, type_] := Replace[
 	weakHeadNormalForm[environment, context, inferType[environment, context, type]],
@@ -310,6 +319,7 @@ reduceSpine[environment_, context_, term_, constantReference[name_, levels_List]
 	reduceConstant[environment, context, term, name, levels, arguments]
 reduceSpine[environment_, context_, term_, projection[structure_, index_, structureTerm_], arguments_List] :=
 	reduceProjection[environment, context, term, structure, index, structureTerm, arguments]
+reduceSpine[_, context_, _, freeVariable[id_], arguments_List] /; KeyExistsQ[Lookup[context, id, <||>], "Value"] := makeApplication[context[id]["Value"], arguments]
 reduceSpine[_, _, term_, _, _] := term
 
 (* a registered operation on natural numbers computes on literals before it unfolds *)
