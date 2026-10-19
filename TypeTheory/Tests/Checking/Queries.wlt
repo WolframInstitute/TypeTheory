@@ -19,7 +19,7 @@ firstProjection = lambdaAbstraction[HoldComplete[m], natural, lambdaAbstraction[
 (* a copy of the environment's store with one record changed by hand *)
 forge[TypeTheoryEnvironment[store_Symbol], name_HoldComplete, change_] := Module[{copy},
 	DownValues[copy] = DownValues[store] /. store -> copy;
-	copy[name] = change[copy[name]];
+	copy["Records"] = MapAt[change, copy["Records"], Key[name]];
 	TypeTheoryEnvironment[copy]
 ]
 

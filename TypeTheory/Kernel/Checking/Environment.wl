@@ -6,8 +6,8 @@ Environments: the declared constants a term may mention, with their records.
 An environment is a handle, TypeTheoryEnvironment[store], to a symbol of its own whose definitions hold
 the environment's contents. That is the Wolfram Language's own way of storing named definitions:
 
-	store[HoldComplete[name]]    the record of the constant name, or None if name is not declared
-	store["Names"]               {HoldComplete[name], ...}, in the order the constants were declared
+	store["Records"]             <|HoldComplete[name] -> record, ...|>, in the order the constants were declared
+	store["Names"]               {HoldComplete[name], ...}, the keys of store["Records"]
 	store["NaturalNumbers"]      None | <|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero],
 	                                "Successor" -> HoldComplete[successor], "Operations" -> <|role -> HoldComplete[operation]|>,
 	                                "Roles" -> <|HoldComplete[operation] -> role|>, "Registrations" -> {{role, ...}, ...}|>,
@@ -16,10 +16,11 @@ the environment's contents. That is the Wolfram Language's own way of storing na
 	store["Rules"]               the TypeTheoryRules the environment follows, set when it is started
 	store["RewriteRuleIndex"]    <|HoldComplete[axiom] -> {HoldComplete[rule], ...}|>: the rewrite rules of each axiom
 
-An environment never changes. Adding constants gives a new environment, whose store holds a copy of the
-old definitions and the new ones, and leaves the old environment as it was, so a proof can branch or be
-undone without bookkeeping. The handle is small, so terms and proofs carry their environment with them.
-A store lives for the session: Normal[environment] gives the declarations to rebuild it from.
+An environment never changes. Adding constants gives a new environment, whose store holds the old
+records joined with the new ones, and leaves the old environment as it was, so a proof can branch or be
+undone without bookkeeping. The records are joined, not copied: the new store shares the old one's records,
+terms and all. The handle is small, so terms and proofs carry their environment with them. A store lives
+for the session: Normal[environment] gives the declarations to rebuild it from.
 
 A record is an Association with "Kind" (one of "Axiom", "Definition", "Theorem", "InductiveType",
 "Constructor", "Recursor", "RewriteRule"), "Type" (a core term, or None for a rewrite rule, which is not a
@@ -121,43 +122,30 @@ environmentQ[TypeTheoryEnvironment[store_Symbol]] := IntegerQ[store["Identifier"
 environmentQ[_] := False
 
 
-(* A fresh store: the definitions of an existing store (with $storePlaceholder for its symbol) and the
-   new records. Callers have checked the names, records and settings. *)
-newEnvironment[baseDownValues_List, names_List, records_Association, naturalNumbers_] := Module[{store},
-	DownValues[store] = ReplaceAll[baseDownValues, $storePlaceholder -> store];
-	KeyValueMap[Function[{name, record}, store[name] = record], records];
-	store["Names"] = names;
+(* A fresh store: the contents of an existing store, as a store holds them or as an Association, with the
+   new records joined to its records. Callers have checked the names, records and settings. *)
+newEnvironment[base_, records_Association, naturalNumbers_] := Module[{store},
+	store["Records"] = Join[base["Records"], records];
+	store["Names"] = Join[base["Names"], Keys[records]];
+	store["Rules"] = base["Rules"];
+	store["RewriteRuleIndex"] = base["RewriteRuleIndex"];
 	store["NaturalNumbers"] = naturalNumbers;
 	store["Identifier"] = ++$storeCounter;
 	Sow[store, $storeTag];
 	TypeTheoryEnvironment[store]
 ]
 
-(* every store answers None for a name it does not declare *)
-$emptyDownValues = {HoldPattern[$storePlaceholder[_HoldComplete]] :> None}
-
-storeDownValues[store_Symbol] := ReplaceAll[DownValues[store], store -> $storePlaceholder]
-
 emptyEnvironment[] := emptyEnvironment[$defaultRules]
 
-(* a new store is filled in before anyone sees it, and the environments made from it copy these entries *)
-emptyEnvironment[rules_TypeTheoryRules] := With[{environment = newEnvironment[$emptyDownValues, {}, <||>, None]},
-	With[{store = First[environment]},
-		store["Rules"] = rules;
-		store["RewriteRuleIndex"] = <||>
-	];
-	environment
-]
+emptyEnvironment[rules_TypeTheoryRules] := newEnvironment[<|"Records" -> <||>, "Names" -> {}, "Rules" -> rules, "RewriteRuleIndex" -> <||>|>, <||>, None]
 
 environmentRules[TypeTheoryEnvironment[store_Symbol]] := store["Rules"]
 
 
-constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := Replace[
-	store[name],
-	None :> kernelFailure["UnknownConstant", "`1` is not declared.", {HoldForm @@ name}]
-]
+constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] :=
+	Lookup[store["Records"], Key[name], kernelFailure["UnknownConstant", "`1` is not declared.", {HoldForm @@ name}]]
 
-constantDeclaredQ[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := store[name] =!= None
+constantDeclaredQ[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := KeyExistsQ[store["Records"], name]
 
 environmentNames[TypeTheoryEnvironment[store_Symbol]] := store["Names"]
 
@@ -166,7 +154,7 @@ addConstantRecords[environment : TypeTheoryEnvironment[store_Symbol], records_As
 	{clash = Select[Keys[records], Function[name, constantDeclaredQ[environment, name]]]},
 	If[ clash =!= {},
 		kernelFailure["AlreadyDeclared", "`1` is already declared.", {HoldForm @@ First[clash]}],
-		newEnvironment[storeDownValues[store], Join[store["Names"], Keys[records]], records, store["NaturalNumbers"]]
+		newEnvironment[store, records, store["NaturalNumbers"]]
 	]
 ]
 
@@ -180,12 +168,12 @@ addRewriteRuleRecord[environment : TypeTheoryEnvironment[store_Symbol], name_Hol
 	extended
 ]
 
-rewriteRuleRecords[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name, store[name]] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
+rewriteRuleRecords[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name, store["Records"][name]] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
 
 
 naturalNumberSettings[TypeTheoryEnvironment[store_Symbol]] := store["NaturalNumbers"]
 
-setNaturalNumberSettings[TypeTheoryEnvironment[store_Symbol], settings_] := newEnvironment[storeDownValues[store], store["Names"], <||>, settings]
+setNaturalNumberSettings[TypeTheoryEnvironment[store_Symbol], settings_] := newEnvironment[store, <||>, settings]
 
 
 (* The stores body created become unreachable once body is done, except through its value, so the
@@ -224,7 +212,7 @@ catchKernelFailure[expr_] := Catch[expr, $kernelFailureTag]
 
 
 TypeTheoryEnvironment /: MakeBoxes[environment : TypeTheoryEnvironment[store_Symbol], format : StandardForm] /; environmentQ[environment] := With[
-	{records = store /@ store["Names"], naturalNumbers = store["NaturalNumbers"]},
+	{records = Values[store["Records"]], naturalNumbers = store["NaturalNumbers"]},
 	BoxForm`ArrangeSummaryBox[
 		TypeTheoryEnvironment,
 		environment,
