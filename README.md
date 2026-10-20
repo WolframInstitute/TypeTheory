@@ -29,7 +29,7 @@ PacletDirectoryLoad["path/to/TypeTheory/TypeTheory"]
 Needs["WolframInstitute`TypeTheory`"]
 ```
 
-Loading takes about three and a half seconds, two of them building the prelude through the kernel.
+Loading takes a little over three seconds, two of them building the prelude through the kernel.
 
 ## Documentation
 
