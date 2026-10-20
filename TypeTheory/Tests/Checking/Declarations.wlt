@@ -80,6 +80,23 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[
+		{
+			lemmas = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom[ZeroAtMost, ForAll[{TypedImplicit[n, NonNegativeIntegers]}, 0 <= n]],
+				TypeTheoryDefinition[MonomorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]
+			}]
+		},
+		Head /@ {
+			Append[lemmas, TypeTheoryTheorem[ZeroAtMostThree, 0 <= 3, ZeroAtMost]],
+			Append[lemmas, TypeTheoryDefinition[NaturalIdentity, Typed[MonomorphicIdentity, TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]]]]
+		}
+	],
+	{TypeTheoryEnvironment, TypeTheoryEnvironment},
+	TestID -> "A-constant-given-on-its-own-gets-its-implicit-arguments"
+]
+
+VerificationTest[
 	First /@ {
 		Append[prelude, TypeTheoryTheorem[Bogus, 2 + 2 == 5, EqualityReflexivity[4]]],
 		Append[prelude, TypeTheoryTheorem[NotAProposition, NonNegativeIntegers, 3]],

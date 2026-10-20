@@ -655,12 +655,13 @@ settleOverloads[term_] := (
 (*Explicit terms*)
 
 
-(* A term that gives every argument with Construct and every universe level with Subscript, as an import
-   from another proof assistant writes it, is translated straight into a core term, with no inference and
-   no unification: names in scope become bound variables, and the rest constants. The translation is not
-   checked, and needs not be: the declaration it goes into has the kernel check it, as every declaration
-   does. Anything else, an implicit argument to infer, an overloaded name, an ascription, makes the term
-   not explicit, and it is elaborated as usual. *)
+(* A term that leaves elaboration nothing to infer, as Normal and an import from another proof assistant
+   write it, is translated straight into a core term, with no inference and no unification: every universe
+   level is given with Subscript, and every argument is given, with Construct or to an explicit binder.
+   Names in scope become bound variables, and the rest constants. The translation is not checked, and needs
+   not be: the declaration it goes into has the kernel check it, as every declaration does. Anything else,
+   an implicit argument to infer, an overloaded name, an ascription, makes the term not explicit, and it is
+   elaborated as usual. *)
 (* a core term, as an import builds it, is already explicit *)
 explicitTerm[_, HoldComplete[term : (_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _constantReference | _universeSort | _naturalLiteral)], _] := term
 explicitTerm[environment_, held_HoldComplete, universeParameters_List] := Block[
@@ -670,20 +671,41 @@ explicitTerm[environment_, held_HoldComplete, universeParameters_List] := Block[
 
 (* the scope lists the binders around a subterm, innermost first, as {HoldComplete[name], type} *)
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}], scope_] :=
-	makeApplication[explicitCore[head, scope], Function[argument, explicitCore[argument, scope]] /@ {arguments}]
-explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}], _] := With[{name = explicitConstantName[constant]},
-	If[ Length[constantRecord[$elaborationEnvironment, name]["UniverseParameters"]] =!= Length[{levels}],
-		Throw[None, $notExplicitTag]
-	];
-	constantReference[name, Function[level, elaborateLevel[level]] /@ {levels}]
-]
+	makeApplication[explicitHead[head, scope], Function[argument, explicitCore[argument, scope]] /@ {arguments}]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[head : ForAll | Function]], {binders_, body_}], scope_] := explicitBinders[head, listElements[binders], body, scope]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[With]], {bindings_, body_}], scope_] := explicitDefinitions[listElements[bindings], body, scope]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}], _] := universeSort[elaborateLevel[level]]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}], scope_] :=
 	With[{structureCore = explicitCore[structureTerm, scope]}, projection[explicitStructure[structureCore, scope], index - 1, structureCore]]
 explicitCore[syntaxInteger[n_Integer?NonNegative], _] /; naturalNumberSettings[$elaborationEnvironment] =!= None := naturalLiteral[n]
-explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_]), scope_] := With[{held = heldFromSyntax[syntax]},
+(* a constant on its own gets its leading implicit arguments, which only elaboration finds *)
+explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {_, __}]), scope_] :=
+	Replace[explicitHead[syntax, scope], {
+		reference_constantReference /; leadingImplicitQ[constantRecord[$elaborationEnvironment, First[reference]]["Type"]] :> Throw[None, $notExplicitTag],
+		core_ :> core
+	}]
+(* A -> B, written as Implies or TypeSpecifier: its binders are anonymous, as the elaborator writes them *)
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}], scope_] := explicitArrow[{domain}, codomain, scope]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}], scope_] :=
+	explicitArrow[listElements[domains], codomain, scope]
+(* f[a, ...] is exact when each binder of the type of f that an argument fills is explicit, for elaboration
+   would fill an implicit one itself *)
+explicitCore[syntaxApplication[head : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript | Function | Part]], _]), arguments_List], scope_] /;
+	! notationHeadQ[head, Length[arguments]] :=
+	With[{headCore = explicitHead[head, scope], argumentCores = Function[argument, explicitCore[argument, scope]] /@ arguments},
+		If[! explicitArgumentsQ[headCore, argumentCores, scope], Throw[None, $notExplicitTag]];
+		makeApplication[headCore, argumentCores]
+	]
+explicitCore[_, _] := Throw[None, $notExplicitTag]
+
+(* a constant at the head of an application takes the arguments given, and no others *)
+explicitHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}], _] := With[{name = explicitConstantName[constant]},
+	If[ Length[constantRecord[$elaborationEnvironment, name]["UniverseParameters"]] =!= Length[{levels}],
+		Throw[None, $notExplicitTag]
+	];
+	constantReference[name, Function[level, elaborateLevel[level]] /@ {levels}]
+]
+explicitHead[syntax : (syntaxSymbol[_] | syntaxString[_]), scope_] := With[{held = heldFromSyntax[syntax]},
 	Replace[FirstPosition[scope, {Verbatim[held], _}, None, {1}, Heads -> False], {
 		{position_Integer} :> boundVariable[position - 1],
 		None :> With[{name = explicitConstantName[syntax]},
@@ -692,7 +714,76 @@ explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_]), scope_] := With[{held
 		]
 	}]
 ]
-explicitCore[_, _] := Throw[None, $notExplicitTag]
+explicitHead[syntax_, scope_] := explicitCore[syntax, scope]
+
+(* the heads elaboration reads as notation, whatever constant they also name: a sum of three terms is a
+   sum of sums *)
+notationHeadQ[syntaxSymbol[HoldComplete[Function | ForAll | RightTee | Exists | Implies | TypeSpecifier | Rule | TypeUniverse | Typed | With | Subscript | Construct | Part]], _] := True
+notationHeadQ[syntaxSymbol[HoldComplete[Plus | Times | And | Or]], count_Integer] := count =!= 2
+notationHeadQ[_, _] := False
+
+(* whether a constant of this type, on its own, gets implicit arguments from elaboration *)
+leadingImplicitQ[dependentFunctionType[_, _, _, binder_]] := binder =!= "Explicit"
+leadingImplicitQ[type_] := MatchQ[weakHeadNormalForm[$elaborationEnvironment, <||>, type], dependentFunctionType[_, _, _, Except["Explicit"]]]
+
+(* each domain lies under the binders of the domains before it, which name nothing a term can refer to *)
+explicitArrow[domains_List, codomain_, scope_] := Module[{inner = scope, cores = {}},
+	Scan[
+		Function[domain, With[{core = explicitCore[domain, inner]},
+			cores = Append[cores, core];
+			inner = Prepend[inner, {HoldComplete[anonymousBinder], core}]
+		]],
+		domains
+	];
+	Fold[
+		Function[{accumulated, domainCore}, dependentFunctionType[HoldComplete[\[FormalX]], domainCore, accumulated, "Explicit"]],
+		explicitCore[codomain, inner],
+		Reverse[cores]
+	]
+]
+
+(* The binders the arguments fill are read off the type of the head as written. A type that is not a
+   function type as written may unfold to one, as DecidableEq Nat does, or become one once the arguments
+   before are put in, as the type of a recursor whose motive gives a function does: that type is read as
+   the kernel types the application. *)
+explicitArgumentsQ[headCore_, argumentCores_List, scope_] := Replace[
+	writtenBindersQ[explicitHeadType[headCore, scope], Length[argumentCores]],
+	None :> unfoldedBindersQ[headCore, argumentCores, scope]
+]
+
+explicitHeadType[constantReference[name_, _], _] := constantRecord[$elaborationEnvironment, name]["Type"]
+explicitHeadType[boundVariable[index_Integer], scope_] := Last[First[Drop[scope, index]]]
+explicitHeadType[lambda_lambdaAbstraction, _] := lambdaBinders[lambda]
+explicitHeadType[_, _] := None
+
+(* a function as written takes the binders of its lambdas *)
+lambdaBinders[lambdaAbstraction[name_, domain_, body_, binder_]] := dependentFunctionType[name, domain, lambdaBinders[body], binder]
+lambdaBinders[_] := None
+
+(* True or False when the type as written decides, None when it does not *)
+writtenBindersQ[_, 0] := True
+writtenBindersQ[dependentFunctionType[_, _, codomain_, "Explicit"], count_Integer] := writtenBindersQ[codomain, count - 1]
+writtenBindersQ[_dependentFunctionType, _] := False
+writtenBindersQ[_, _] := None
+
+(* each argument is checked against its binder's type before it goes into the types after, as the kernel
+   checks it, so an argument that does not fit makes the term not explicit *)
+unfoldedBindersQ[headCore_, argumentCores_List, scope_] := With[{opened = openScope[scope]},
+	TrueQ[Quiet @ catchKernelFailure[unfoldedBindersFrom[
+		First[opened],
+		inferType[$elaborationEnvironment, First[opened], openBound[headCore, Last[opened]]],
+		Function[argument, openBound[argument, Last[opened]]] /@ argumentCores
+	]]]
+]
+
+unfoldedBindersFrom[_, _, {}] := True
+unfoldedBindersFrom[context_, type_, {argument_, rest___}] := Replace[weakHeadNormalForm[$elaborationEnvironment, context, type], {
+	dependentFunctionType[_, domain_, codomain_, "Explicit"] :> (
+		checkHasType[$elaborationEnvironment, context, argument, domain];
+		unfoldedBindersFrom[context, instantiateBoundVariable[codomain, argument], {rest}]
+	),
+	_ :> False
+}]
 
 (* a declared constant that names no overloaded meaning, which only elaboration decides *)
 explicitConstantName[syntax_] := With[{name = constantNameOfSyntax[syntax]},
@@ -728,8 +819,18 @@ explicitDefinitions[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {name : 
 explicitDefinitions[_, _, _] := Throw[None, $notExplicitTag]
 
 (* A projection names its structure, the head of the type of the term projected from: the kernel infers it,
-   with the binders in scope opened as free variables, outermost first. *)
-explicitStructure[structureCore_, scope_] := Module[{context = <||>, ids = {}, opened},
+   with the binders in scope opened. *)
+explicitStructure[structureCore_, scope_] := Module[{context, ids, opened},
+	{context, ids} = openScope[scope];
+	opened = openBound[structureCore, ids];
+	Replace[First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, context, inferType[$elaborationEnvironment, context, opened]]], {
+		constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name,
+		_ :> Throw[None, $notExplicitTag]
+	}]
+]
+
+(* the binders in scope as free variables, outermost first: the context they make, and their ids, innermost first *)
+openScope[scope_] := Module[{context = <||>, ids = {}},
 	Scan[
 		Function[entry, With[{id = freshFreeVariable[]},
 			context = extendContext[context, id, First[entry], openBound[Last[entry], ids], "Explicit"];
@@ -737,11 +838,7 @@ explicitStructure[structureCore_, scope_] := Module[{context = <||>, ids = {}, o
 		]],
 		Reverse[scope]
 	];
-	opened = openBound[structureCore, ids];
-	Replace[First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, context, inferType[$elaborationEnvironment, context, opened]]], {
-		constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name,
-		_ :> Throw[None, $notExplicitTag]
-	}]
+	{context, ids}
 ]
 
 (* the bound variables of a term, 0 innermost, as the free variables ids, innermost first *)
