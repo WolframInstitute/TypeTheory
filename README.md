@@ -9,8 +9,8 @@ and tactics build proofs step by step in a notebook.
 > projections, elaboration, a prelude of logic, equality and natural numbers, and six tactics work and
 > are tested. It is pure Wolfram Language, with no native library underneath, and it does not depend
 > on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate declarations between Lean
-> and TypeTheory; through them this kernel checks all of Lean's `Init.Prelude`, 90 modules of Mathlib,
-> from the logic of `Nonempty` to groups, rings, orders, finite sets and filters, and the 11,177
+> and TypeTheory; through them this kernel checks all of Lean's `Init.Prelude`, 100 modules of Mathlib,
+> from the logic of `Nonempty` to ordered fields, finite sums, filters and topology, and the 11,177
 > constants under `Real.sqrt_nonneg`.
 
 ## Loading
