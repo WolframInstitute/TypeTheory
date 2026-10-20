@@ -97,6 +97,29 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[
+		{
+			named = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom[Shift, TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]],
+				TypeTheoryAxiom[Shift[0], NonNegativeIntegers]
+			}]
+		},
+		{
+			! FreeQ[
+				WolframInstitute`TypeTheory`PackageScope`constantRecord[Append[named, TypeTheoryAxiom[ShiftAtMostFive, LessEqual[Shift[0], 5]]], HoldComplete[ShiftAtMostFive]]["Type"],
+				WolframInstitute`TypeTheory`PackageScope`constantReference[HoldComplete[Shift[0]], {}]
+			],
+			FreeQ[
+				WolframInstitute`TypeTheory`PackageScope`constantRecord[Append[prelude, TypeTheoryDefinition[Six, Typed[With[{n = Typed[3, NonNegativeIntegers]}, n + n], NonNegativeIntegers]]], HoldComplete[Six]]["Value"],
+				_WolframInstitute`TypeTheory`PackageScope`localDefinition
+			]
+		}
+	],
+	{True, True},
+	TestID -> "A-declaration-reads-a-constant-named-by-an-application-and-a-With-as-elaboration-does"
+]
+
+VerificationTest[
 	First /@ {
 		Append[prelude, TypeTheoryTheorem[Bogus, 2 + 2 == 5, EqualityReflexivity[4]]],
 		Append[prelude, TypeTheoryTheorem[NotAProposition, NonNegativeIntegers, 3]],

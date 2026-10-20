@@ -678,23 +678,22 @@ explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}], scope_] :=
 	With[{structureCore = explicitCore[structureTerm, scope]}, projection[explicitStructure[structureCore, scope], index - 1, structureCore]]
 explicitCore[syntaxInteger[n_Integer?NonNegative], _] /; naturalNumberSettings[$elaborationEnvironment] =!= None := naturalLiteral[n]
-(* a constant on its own gets its leading implicit arguments, which only elaboration finds *)
-explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {_, __}]), scope_] :=
-	Replace[explicitHead[syntax, scope], {
-		reference_constantReference /; leadingImplicitQ[constantRecord[$elaborationEnvironment, First[reference]]["Type"]] :> Throw[None, $notExplicitTag],
-		core_ :> core
-	}]
+explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {_, __}]), scope_] := onItsOwn[explicitHead[syntax, scope]]
 (* A -> B, written as Implies or TypeSpecifier: its binders are anonymous, as the elaborator writes them *)
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}], scope_] := explicitArrow[{domain}, codomain, scope]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}], scope_] :=
 	explicitArrow[listElements[domains], codomain, scope]
 (* f[a, ...] is exact when each binder of the type of f that an argument fills is explicit, for elaboration
-   would fill an implicit one itself *)
-explicitCore[syntaxApplication[head : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript | Function | Part]], _]), arguments_List], scope_] /;
+   would fill an implicit one itself; but a declared constant named f[a, ...], as InductiveRecursor[Paint]
+   is, is that constant, as elaboration reads it first *)
+explicitCore[syntax : syntaxApplication[head : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript | Function | Part]], _] | _syntaxApplication?declaredConstantSyntaxQ), arguments_List], scope_] /;
 	! notationHeadQ[head, Length[arguments]] :=
-	With[{headCore = explicitHead[head, scope], argumentCores = Function[argument, explicitCore[argument, scope]] /@ arguments},
-		If[! explicitArgumentsQ[headCore, argumentCores, scope], Throw[None, $notExplicitTag]];
-		makeApplication[headCore, argumentCores]
+	If[ declaredConstantSyntaxQ[syntax],
+		onItsOwn[explicitConstantReference[syntax]],
+		With[{headCore = explicitHead[head, scope], argumentCores = Function[argument, explicitCore[argument, scope]] /@ arguments},
+			If[! explicitArgumentsQ[headCore, argumentCores, scope], Throw[None, $notExplicitTag]];
+			makeApplication[headCore, argumentCores]
+		]
 	]
 explicitCore[_, _] := Throw[None, $notExplicitTag]
 
@@ -708,13 +707,21 @@ explicitHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_
 explicitHead[syntax : (syntaxSymbol[_] | syntaxString[_]), scope_] := With[{held = heldFromSyntax[syntax]},
 	Replace[FirstPosition[scope, {Verbatim[held], _}, None, {1}, Heads -> False], {
 		{position_Integer} :> boundVariable[position - 1],
-		None :> With[{name = explicitConstantName[syntax]},
-			If[constantRecord[$elaborationEnvironment, name]["UniverseParameters"] =!= {}, Throw[None, $notExplicitTag]];
-			constantReference[name, {}]
-		]
+		None :> explicitConstantReference[syntax]
 	}]
 ]
+explicitHead[syntax_syntaxApplication, _] /; declaredConstantSyntaxQ[syntax] := explicitConstantReference[syntax]
 explicitHead[syntax_, scope_] := explicitCore[syntax, scope]
+
+(* a declared constant named without universe levels, which elaboration fills in for a constant that has them *)
+explicitConstantReference[syntax_] := With[{name = explicitConstantName[syntax]},
+	If[constantRecord[$elaborationEnvironment, name]["UniverseParameters"] =!= {}, Throw[None, $notExplicitTag]];
+	constantReference[name, {}]
+]
+
+(* a constant on its own gets its leading implicit arguments, which only elaboration finds *)
+onItsOwn[reference_constantReference] /; leadingImplicitQ[constantRecord[$elaborationEnvironment, First[reference]]["Type"]] := Throw[None, $notExplicitTag]
+onItsOwn[core_] := core
 
 (* the heads elaboration reads as notation, whatever constant they also name: a sum of three terms is a
    sum of sums *)
@@ -811,10 +818,11 @@ explicitBinders[head_, binders_List, body_, scope_] := Module[{entries = {}, inn
 	]
 ]
 
+(* each value goes in for its name, as elaboration puts it in *)
 explicitDefinitions[{}, body_, scope_] := explicitCore[body, scope]
 explicitDefinitions[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {name : (syntaxSymbol[_] | syntaxString[_]), syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {value_, type_}]}], rest___}, body_, scope_] :=
 	With[{held = heldFromSyntax[name], typeCore = explicitCore[type, scope]},
-		localDefinition[held, typeCore, explicitCore[value, scope], explicitDefinitions[{rest}, body, Prepend[scope, {held, typeCore}]]]
+		instantiateBoundVariable[explicitDefinitions[{rest}, body, Prepend[scope, {held, typeCore}]], explicitCore[value, scope]]
 	]
 explicitDefinitions[_, _, _] := Throw[None, $notExplicitTag]
 
