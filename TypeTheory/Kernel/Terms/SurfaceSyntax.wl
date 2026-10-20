@@ -305,10 +305,17 @@ explicitArguments[environment_, context_, head_, arguments_List] := With[
 	]
 ]
 
-(* the binder kinds of the first n arguments of head, read off its type *)
-binderKinds[environment_, context_, head_, n_Integer] := binderKindsFrom[environment, context, inferType[environment, context, head], n]
-binderKindsFrom[_, _, _, 0] := {}
-binderKindsFrom[environment_, context_, type_, n_Integer] := Replace[weakHeadNormalForm[environment, context, type], {
-	dependentFunctionType[_, _, codomain_, binder_] :> Prepend[binderKindsFrom[environment, context, instantiateBoundVariable[codomain, metavariable[0]], n - 1], binder],
-	_ :> {}
-}]
+(* the binder kinds of the first n arguments of head, read off its type: a function type as written gives
+   its binder at once, and a type that is not one is unfolded, with the variables of the binders before it
+   put in as placeholders *)
+binderKinds[environment_, context_, head_, n_Integer] := binderKindsFrom[environment, context, inferType[environment, context, head], n, 0]
+binderKindsFrom[_, _, _, 0, _] := {}
+binderKindsFrom[environment_, context_, dependentFunctionType[_, _, codomain_, binder_], n_Integer, depth_Integer] :=
+	Prepend[binderKindsFrom[environment, context, codomain, n - 1, depth + 1], binder]
+binderKindsFrom[environment_, context_, type_, n_Integer, depth_Integer] := Replace[
+	weakHeadNormalForm[environment, context, If[depth === 0, type, instantiateBoundVariables[type, ConstantArray[metavariable[0], depth]]]],
+	{
+		unfolded_dependentFunctionType :> binderKindsFrom[environment, context, unfolded, n, 0],
+		_ :> {}
+	}
+]
