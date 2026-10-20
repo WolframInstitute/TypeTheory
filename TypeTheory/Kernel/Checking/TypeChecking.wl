@@ -379,16 +379,16 @@ matchRewriteRule[environment_, context_, record_, levels_, arguments_] := Module
 	{numberOfVariables = record["NumberOfVariables"], patternHead, patterns, levelValues, substitution},
 	{patternHead, patterns} = applicationSpine[ruleBody[record["LeftHandSide"], numberOfVariables]];
 	levelValues = matchLevels[Last[patternHead], levels, record["UniverseParameters"]];
-	If[ Length[arguments] < Length[patterns] || levelValues === None,
-		Return[None, Module]
-	];
-	substitution = Fold[
-		Function[{accumulated, pair}, If[ accumulated === None,
-			None,
-			matchPattern[environment, context, numberOfVariables, record["UniverseParameters"], levelValues, First[pair], Last[pair], accumulated]
-		]],
-		<||>,
-		Transpose[{patterns, Take[arguments, Length[patterns]]}]
+	substitution = If[ Length[arguments] < Length[patterns] || levelValues === None,
+		None,
+		Fold[
+			Function[{accumulated, pair}, If[ accumulated === None,
+				None,
+				matchPattern[environment, context, numberOfVariables, record["UniverseParameters"], levelValues, First[pair], Last[pair], accumulated]
+			]],
+			<||>,
+			Transpose[{patterns, Take[arguments, Length[patterns]]}]
+		]
 	];
 	If[ substitution === None,
 		None,
