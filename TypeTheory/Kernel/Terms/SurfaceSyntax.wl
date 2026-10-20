@@ -307,8 +307,14 @@ explicitArguments[environment_, context_, head_, arguments_List] := With[
 
 (* the binder kinds of the first n arguments of head, read off its type: a function type as written gives
    its binder at once, and a type that is not one is unfolded, with the variables of the binders before it
-   put in as placeholders *)
+   put in as placeholders. A constant's type is its declared one, whose universe levels decide no binder,
+   and a function takes its own binders, so that only another head's type is inferred. *)
+binderKinds[environment_, context_, constantReference[name_, _], n_Integer] := binderKindsFrom[environment, context, constantRecord[environment, name]["Type"], n, 0]
+binderKinds[environment_, context_, function_lambdaAbstraction, n_Integer] /; Length[lambdaBinderKinds[function]] >= n := Take[lambdaBinderKinds[function], n]
 binderKinds[environment_, context_, head_, n_Integer] := binderKindsFrom[environment, context, inferType[environment, context, head], n, 0]
+
+lambdaBinderKinds[lambdaAbstraction[_, _, body_, binder_]] := Prepend[lambdaBinderKinds[body], binder]
+lambdaBinderKinds[_] := {}
 binderKindsFrom[_, _, _, 0, _] := {}
 binderKindsFrom[environment_, context_, dependentFunctionType[_, _, codomain_, binder_], n_Integer, depth_Integer] :=
 	Prepend[binderKindsFrom[environment, context, codomain, n - 1, depth + 1], binder]
