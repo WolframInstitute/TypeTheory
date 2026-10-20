@@ -257,7 +257,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 185 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 188 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.
