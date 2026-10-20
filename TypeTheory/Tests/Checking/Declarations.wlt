@@ -135,6 +135,28 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[
+		{
+			pairs = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom[P, TypeUniverse[0]],
+				TypeTheoryAxiom[Q, TypeUniverse[0]],
+				TypeTheoryAxiom[BothEverywhere, ForAll[{Typed[n, NonNegativeIntegers]}, And[P, Q]]]
+			}]
+		},
+		Head /@ {
+			Append[pairs, TypeTheoryTheorem[FirstEverywhere, ForAll[{Typed[n, NonNegativeIntegers]}, P],
+				With[{A = Typed[NonNegativeIntegers, TypeUniverse[1]]}, Function[{Typed[n, A]}, BothEverywhere[n][[1]]]]
+			]],
+			Append[pairs, TypeTheoryTheorem[FirstEverywhereAgain, ForAll[{Typed[n, NonNegativeIntegers]}, P],
+				With[{A = Typed[NonNegativeIntegers, TypeUniverse[1]]}, Function[{Typed[n, A]}, With[{p = Typed[BothEverywhere[n][[1]], P]}, Identity[p]]]]
+			]]
+		}
+	],
+	{TypeTheoryEnvironment, TypeTheoryEnvironment},
+	TestID -> "A-projection-under-a-binder-whose-type-a-With-names"
+]
+
+VerificationTest[
 	First /@ {
 		Append[prelude, TypeTheoryTheorem[Bogus, 2 + 2 == 5, EqualityReflexivity[4]]],
 		Append[prelude, TypeTheoryTheorem[NotAProposition, NonNegativeIntegers, 3]],

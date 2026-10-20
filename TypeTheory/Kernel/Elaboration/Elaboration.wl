@@ -848,11 +848,12 @@ bindingChecksQ[valueCore_, typeCore_, scope_] := With[{opened = openScope[scope]
 ]
 
 (* A projection names its structure, the head of the type of the term projected from: the kernel infers it,
-   with the binders in scope opened. *)
+   with the binders in scope opened. A term it cannot type so, as one that needs the value of a With to
+   type, is left to elaboration. *)
 explicitStructure[structureCore_, scope_] := Module[{context, ids, opened},
 	{context, ids} = openScope[scope];
 	opened = openBound[structureCore, ids];
-	Replace[First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, context, inferType[$elaborationEnvironment, context, opened]]], {
+	Replace[Quiet @ catchKernelFailure[First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, context, inferType[$elaborationEnvironment, context, opened]]]], {
 		constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name,
 		_ :> Throw[None, $notExplicitTag]
 	}]
