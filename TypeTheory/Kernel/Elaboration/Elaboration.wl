@@ -685,15 +685,19 @@ explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {synta
 	explicitArrow[listElements[domains], codomain, scope]
 (* f[a, ...] is exact when each binder of the type of f that an argument fills is explicit, for elaboration
    would fill an implicit one itself; but a declared constant named f[a, ...], as InductiveRecursor[Paint]
-   is, is that constant, as elaboration reads it first *)
+   is, is that constant, as elaboration reads it, after an overloaded name and a difference *)
 explicitCore[syntax : syntaxApplication[head : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript | Function | Part]], _] | _syntaxApplication?declaredConstantSyntaxQ), arguments_List], scope_] /;
 	! notationHeadQ[head, Length[arguments]] :=
-	If[ declaredConstantSyntaxQ[syntax],
-		onItsOwn[explicitConstantReference[syntax]],
-		With[{headCore = explicitHead[head, scope], argumentCores = Function[argument, explicitCore[argument, scope]] /@ arguments},
-			If[! explicitArgumentsQ[headCore, argumentCores, scope], Throw[None, $notExplicitTag]];
-			makeApplication[headCore, argumentCores]
-		]
+	Which[
+		readBeforeNamesQ[syntax, scope],
+			Throw[None, $notExplicitTag],
+		declaredConstantSyntaxQ[syntax],
+			onItsOwn[explicitConstantReference[syntax]],
+		True,
+			With[{headCore = explicitHead[head, scope], argumentCores = Function[argument, explicitCore[argument, scope]] /@ arguments},
+				If[! explicitArgumentsQ[headCore, argumentCores, scope], Throw[None, $notExplicitTag]];
+				makeApplication[headCore, argumentCores]
+			]
 	]
 explicitCore[_, _] := Throw[None, $notExplicitTag]
 
@@ -722,6 +726,12 @@ explicitConstantReference[syntax_] := With[{name = explicitConstantName[syntax]}
 (* a constant on its own gets its leading implicit arguments, which only elaboration finds *)
 onItsOwn[reference_constantReference] /; leadingImplicitQ[constantRecord[$elaborationEnvironment, First[reference]]["Type"]] := Throw[None, $notExplicitTag]
 onItsOwn[core_] := core
+
+(* what elaboration reads before it looks for a declared constant of the name: an overloaded name applied,
+   unless a variable in scope has the name, and a difference written as a sum *)
+readBeforeNamesQ[syntaxApplication[syntaxSymbol[name_], _], scope_] /; ! MemberQ[scope, {Verbatim[name], _}] && overloadedNameQ[$elaborationEnvironment, name] := True
+readBeforeNamesQ[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {_, syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], _}] | syntaxInteger[_Integer?Negative]}], _] := True
+readBeforeNamesQ[_, _] := False
 
 (* the heads elaboration reads as notation, whatever constant they also name: a sum of three terms is a
    sum of sums *)
@@ -818,13 +828,24 @@ explicitBinders[head_, binders_List, body_, scope_] := Module[{entries = {}, inn
 	]
 ]
 
-(* each value goes in for its name, as elaboration puts it in *)
+(* each value goes in for its name, as elaboration puts it in, once it is checked as elaboration checks it *)
 explicitDefinitions[{}, body_, scope_] := explicitCore[body, scope]
 explicitDefinitions[{syntaxApplication[syntaxSymbol[HoldComplete[Set]], {name : (syntaxSymbol[_] | syntaxString[_]), syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {value_, type_}]}], rest___}, body_, scope_] :=
-	With[{held = heldFromSyntax[name], typeCore = explicitCore[type, scope]},
-		instantiateBoundVariable[explicitDefinitions[{rest}, body, Prepend[scope, {held, typeCore}]], explicitCore[value, scope]]
+	With[{held = heldFromSyntax[name], typeCore = explicitCore[type, scope], valueCore = explicitCore[value, scope]},
+		If[! bindingChecksQ[valueCore, typeCore, scope], Throw[None, $notExplicitTag]];
+		instantiateBoundVariable[explicitDefinitions[{rest}, body, Prepend[scope, {held, typeCore}]], valueCore]
 	]
 explicitDefinitions[_, _, _] := Throw[None, $notExplicitTag]
+
+(* the type of a binding is a type, and its value has it, with the binders in scope opened: a value put in
+   for a name it is not used under would otherwise go unchecked *)
+bindingChecksQ[valueCore_, typeCore_, scope_] := With[{opened = openScope[scope]},
+	TrueQ[Quiet @ catchKernelFailure[
+		sortLevel[$elaborationEnvironment, First[opened], openBound[typeCore, Last[opened]]];
+		checkHasType[$elaborationEnvironment, First[opened], openBound[valueCore, Last[opened]], openBound[typeCore, Last[opened]]];
+		True
+	]]
+]
 
 (* A projection names its structure, the head of the type of the term projected from: the kernel infers it,
    with the binders in scope opened. *)

@@ -120,6 +120,21 @@ VerificationTest[
 ]
 
 VerificationTest[
+	{
+		First[Append[prelude, TypeTheoryDefinition[Zero, Typed[With[{x = Typed[NonNegativeIntegers, NonNegativeIntegers]}, 0], NonNegativeIntegers]]]],
+		First[Append[prelude, TypeTheoryDefinition[Four, Typed[With[{x = Typed[3, Booleans]}, x + 1], NonNegativeIntegers]]]],
+		With[{negated = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[Q, TypeUniverse[0]], TypeTheoryAxiom[Not[Q], TypeUniverse[0]]}]},
+			FreeQ[
+				WolframInstitute`TypeTheory`PackageScope`constantRecord[Append[negated, TypeTheoryAxiom[NotQ, Not[Q]]], HoldComplete[NotQ]]["Type"],
+				WolframInstitute`TypeTheory`PackageScope`constantReference[HoldComplete[Not[Q]], _]
+			]
+		]
+	},
+	{"TypeMismatch", "TypeMismatch", True},
+	TestID -> "A-declaration-checks-a-With-binding-and-reads-an-overloaded-name-before-a-declared-one"
+]
+
+VerificationTest[
 	First /@ {
 		Append[prelude, TypeTheoryTheorem[Bogus, 2 + 2 == 5, EqualityReflexivity[4]]],
 		Append[prelude, TypeTheoryTheorem[NotAProposition, NonNegativeIntegers, 3]],
