@@ -28,7 +28,7 @@ PacletDirectoryLoad["path/to/TypeTheory/TypeTheory"]
 Needs["WolframInstitute`TypeTheory`"]
 ```
 
-Loading takes about a second, and most of that is building the prelude through the kernel.
+Loading takes about three and a half seconds, two of them building the prelude through the kernel.
 
 ## Documentation
 
@@ -82,7 +82,7 @@ proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]
 
 proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}];
 TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]]
-(* True *)
+(* Success["TypeChecked", ...] *)
 ```
 
 In a notebook a proof shows its open goals, each as a list of hypotheses over the goal. A term shows
@@ -129,8 +129,10 @@ evaluates inside a term.
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
 | `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
 
-`TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the prelude, which is also the
-environment of any term or proof that names none. `TypeTheoryEnvironment[env, {declaration, ...}]` adds
+`TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the default environment, which is
+also the environment of any term or proof that names none: the prelude, until
+`SetTypeTheoryEnvironment[env]` makes `env` the default (`SetTypeTheoryEnvironment["Prelude"]` sets it
+back, and `Block[{$TypeTheoryEnvironment = env}, ...]` sets it for one computation). `TypeTheoryEnvironment[env, {declaration, ...}]` adds
 them to `env`, `Append[env, declaration]` adds one, `TypeTheoryEnvironment[]` is empty,
 `TypeTheoryEnvironment["Prelude"]` is the prelude itself, `TypeTheoryEnvironment["Constructive"]` is
 the prelude without its axioms, `TypeTheoryEnvironment["HomotopyTypeTheory"]` is homotopy type theory, and
@@ -146,7 +148,8 @@ store is never changed once built, and it lasts for the session.
 
 ## The prelude
 
-The prelude is the environment of every term, proof and declaration list that names none. Each of its
+The prelude is the default environment, that of every term, proof and declaration list that names
+none, unless `SetTypeTheoryEnvironment` sets another. Each of its
 109 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
 three constants are axioms, propositional extensionality, function extensionality and choice, and the
 excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
@@ -223,6 +226,7 @@ TypeTheory/Kernel/
   Terms/CoreTerms.wl           core terms (locally nameless) and universe levels
   Terms/SurfaceSyntax.wl       held syntax trees; reading core terms back, for display or exactly
   Terms/Formatting.wl          notebook display of terms, declarations and proofs
+  Checking/Rules.wl            the rules an environment is checked by: TypeTheoryRules
   Checking/TypeChecking.wl     the kernel: inference, reduction, definitional equality, projections
   Checking/InductiveTypes.wl   checking inductive families and generating recursors
   Checking/NaturalNumbers.wl   registering the natural numbers for literals
@@ -232,10 +236,11 @@ TypeTheory/Kernel/
   Elaboration/Elaboration.wl   implicit arguments, universe levels, unification
   Proofs/ProofStates.wl        proof states and tactics
   Library/Prelude.wl           the prelude
+  Library/HomotopyTypeTheory.wl  the homotopy type theory environment
 ```
 
 The trusted part is `CoreTerms.wl`, `TypeChecking.wl`, `InductiveTypes.wl`, `NaturalNumbers.wl`,
-`Environment.wl` and the core declaration functions: about 1,400 lines with their comments and usage
+`Environment.wl` and the core declaration functions: about 2,200 lines with their comments and usage
 messages. Elaboration and tactics produce terms that the kernel checks again with no metavariables
 left, so a mistake outside the kernel can make a proof fail but cannot make a false statement a theorem.
 Kernel answers are `Failure` objects, never messages.
@@ -251,7 +256,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 181 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 184 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.

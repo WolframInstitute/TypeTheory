@@ -53,9 +53,10 @@ wolframscript -f scripts/run_tests.wls                                   # every
 wolframscript -f scripts/run_tests.wls TypeTheory/Tests/Proofs/ProofStates.wlt
 ```
 
-Run from the repository root: each `.wlt` file starts with `PacletDirectoryLoad[Directory[]]`. There is
-no global environment: a test builds the environments it needs, usually from `TypeTheoryEnvironment["Prelude"]`,
-and environments never change, so files do not depend on one another.
+Run from the repository root: each `.wlt` file starts with `PacletDirectoryLoad[Directory[]]`. A test
+builds the environments it needs, usually from `TypeTheoryEnvironment["Prelude"]`, and environments never
+change. A test that sets the default environment does it inside `Block[{$TypeTheoryEnvironment}, ...]`,
+since the files share one kernel, so files do not depend on one another.
 
 ### Writing Wolfram context names in Markdown
 

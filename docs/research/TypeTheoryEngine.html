@@ -147,7 +147,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
   <li><span class="k">Built-in symbols are the constants</span><span>The prelude declares <code>Equal</code> as the inductive equality type, <code>NonNegativeIntegers</code> as the natural numbers, and <code>Plus</code> as addition. <code>n + 0 == n</code> is therefore literally a statement of the theory.</span></li>
   <li><span class="k"><code>TypeOf</code> is the front door</span><span><code>TypeOf[TypeTheoryTerm[2 + 3]]</code> gives <code>TypeTheoryTerm[NonNegativeIntegers, prelude]</code>, shown as ℕ. The engine extends the built-in through an upvalue on <code>TypeTheoryTerm</code>, without modifying it.</span></li>
   <li><span class="k">A small trusted kernel</span><span>Type inference, reduction and definitional equality; inductive families with generated recursors; natural number literals. Elaboration and tactics sit outside it: whatever they produce is checked again with no holes left.</span></li>
-  <li><span class="k">Explicit environments</span><span>There is no global environment. Declarations are inert constructors, such as <code>TypeTheoryTheorem[name, statement, proof]</code>, that <code>TypeTheoryEnvironment[env, {declaration, …}]</code> or <code>Append[env, declaration]</code> checks into a new environment, leaving the old one as it was. An environment is a handle to a store, a symbol whose DownValues hold the constants, so terms and proofs carry theirs: <code>TypeTheoryTerm[term, env]</code>, <code>TypeTheoryProof[statement, env]</code>. Where none is given, the environment is the prelude. A store can be changed by hand, so <code>TypeTheoryCheck[env]</code> replays every declaration from scratch.</span></li>
+  <li><span class="k">Explicit environments</span><span>No global environment changes as declarations are made. Declarations are inert constructors, such as <code>TypeTheoryTheorem[name, statement, proof]</code>, that <code>TypeTheoryEnvironment[env, {declaration, …}]</code> or <code>Append[env, declaration]</code> checks into a new environment, leaving the old one as it was. An environment is a handle to a store, a symbol whose DownValues hold the constants, so terms and proofs carry theirs: <code>TypeTheoryTerm[term, env]</code>, <code>TypeTheoryProof[statement, env]</code>. Where none is given, the environment is the default, <code>$TypeTheoryEnvironment</code>: the prelude, until <code>SetTypeTheoryEnvironment[env]</code> makes <code>env</code> the default. Declaring never changes the default. A store can be changed by hand, so <code>TypeTheoryCheck[env]</code> replays every declaration from scratch.</span></li>
 </ul>
 </section>
 
@@ -178,7 +178,7 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
 
 <section id="prototype">
 <h2>The prototype</h2>
-<p>Version 0.8.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in under three seconds, about half of them spent building and checking the prelude.</p>
+<p>Version 0.12.0 has the whole pipeline, from a surface statement through tactics to a declared theorem, on a deliberately small theory, with a <a href="https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory">documentation site</a> that has a page for every symbol. It loads in about three and a half seconds, two of them spent building and checking the prelude.</p>
 <div class="scroll"><table>
   <thead><tr><th>Component</th><th>Status</th><th>File</th></tr></thead>
   <tbody>
@@ -323,13 +323,13 @@ flowchart LR
 <div class="note"><p class="label">The literal contract</p><p>Registering natural numbers is checked strictly: the type must live in Type with no parameters, indices or universe parameters, and its constructors must be exactly a zero and a successor. An operation is registered for a role, such as <code>"Multiplication"</code> or <code>"LessEqual"</code>, and must have the role's type. The kernel then computes it on literals with Wolfram integers and trusts that the operation's definition computes the same, as Lean's kernel trusts GMP for <code>Nat.mul</code> and the rest; a registration is part of the trusted base, as an axiom is.</p></div>
 
 <h3>Interface</h3>
-<pre><code><span class="c">(* a term carries the environment its constants come from; without one, it is in the prelude *)</span>
+<pre><code><span class="c">(* a term carries the environment its constants come from; without one, it is in the default environment, the prelude *)</span>
 TypeOf[TypeTheoryTerm[2 + 3]]                                    <span class="c">(* TypeTheoryTerm[NonNegativeIntegers, prelude], shown as ℕ *)</span>
 WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]                        <span class="c">(* 5 *)</span>
 DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[2]], TypeTheoryTerm[3]]   <span class="c">(* True *)</span>
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]  <span class="c">(* True *)</span>
+TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]  <span class="c">(* Success["TypeChecked", ...] *)</span>
 
-<span class="c">(* declarations are inert until an environment checks them: without one, they extend the prelude *)</span>
+<span class="c">(* declarations are inert until an environment checks them: without one, they extend the default environment *)</span>
 lists = TypeTheoryEnvironment[{
   TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
     EmptyList -&gt; NaturalList,
@@ -338,6 +338,8 @@ lists = TypeTheoryEnvironment[{
   TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]],
   TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]
 }];
+SetTypeTheoryEnvironment[lists];                                 <span class="c">(* terms and declarations that name no environment are now in lists *)</span>
+SetTypeTheoryEnvironment["Prelude"];                             <span class="c">(* and in the prelude again *)</span>
 excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}];   <span class="c">(* other axioms, on the prelude without its own *)</span>
 bits = TypeTheoryEnvironment[TypeTheoryEnvironment[], {TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -&gt; Bit, BitOne -&gt; Bit}]}];   <span class="c">(* without the prelude *)</span>
 
@@ -403,7 +405,7 @@ proof = TypeTheoryTactic["Introduce", k, ih][proof];    <span class="c">(* k ∶
 proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][proof];
 
 proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}];
-TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]]   <span class="c">(* True *)</span></code></pre>
+TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]]   <span class="c">(* Success["TypeChecked", ...] *)</span></code></pre>
 <p>The last step works because <code>0 + NaturalNumberSuccessor[k]</code> reduces to <code>NaturalNumberSuccessor[0 + k]</code>, so the congruence proof's type matches the goal by computation.</p>
 
 <h3>The Wolfram Language as an oracle</h3>
@@ -540,7 +542,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 <div class="scroll"><table>
   <thead><tr><th>Risk</th><th>Mitigation</th></tr></thead>
   <tbody>
-    <tr><td>Speed on large proof terms</td><td>Sharing and caches, in 0.11: a proof that <code>grind</code> writes, of 3.6 million nodes written out, checks in a minute and a half with its cone of 2,889 constants. Then the compiled kernel, and Lean's kernel for bulk checking through the bridge.</td></tr>
+    <tr><td>Speed on large proof terms</td><td>Sharing and caches, in 0.11: a proof that <code>grind</code> writes, of 3.6 million nodes written out, checks in a minute and a half with its cone of 2,889 constants. Lean's kernel, replaying the same cones into an empty environment, is about 130 times faster: 3.2 seconds for the cone of <code>Real.sqrt_nonneg</code>, against 6.7 minutes. Then the compiled kernel, and Lean's kernel for bulk checking through the bridge.</td></tr>
     <tr><td>Nested and reflexive inductive types, where independent checkers most often go wrong</td><td>After mutual families, with Lean's own recursors to compare against.</td></tr>
     <tr><td>Built-in symbols evaluating</td><td>Every entry point holds its arguments, and terms become inert syntax trees before anything looks at them. <code>TypeOf</code> also holds its argument, so a symbol holding a term needs <code>TypeOf[Evaluate[t]]</code>, or <code>TypeTheoryCheck[t]</code>.</td></tr>
     <tr><td>Built-in names with another meaning, such as <code>Sort</code></td><td>Universes have their own head, <code>TypeUniverse</code>; only symbols whose meaning matches become constants.</td></tr>
@@ -557,7 +559,7 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 </ul>
 </section>
 
-<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.11.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
+<footer>TypeTheory Engine, design for the WolframInstitute/TypeTheory paclet, version 0.12.0. The behaviour of <code>TypeOf</code>, <code>ForAll</code> and <code>Element</code> was measured on Wolfram Language 15.1. Declaration counts were measured on Lean 4.30.0 and the Mathlib checkout LeanLink builds against.</footer>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script>
