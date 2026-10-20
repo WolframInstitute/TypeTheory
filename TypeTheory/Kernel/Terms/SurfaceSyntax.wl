@@ -72,6 +72,7 @@ PackageScoped[syntaxApplication]
 PackageScoped[toSyntax]
 PackageScoped[heldFromSyntax]
 PackageScoped[syntaxHead]
+PackageScoped[listElements]
 PackageScoped[delaborate]
 PackageScoped[displayCoreTerm]
 PackageScoped[coreToTypeTheoryTerm]
@@ -105,6 +106,7 @@ syntaxApplication::usage = "syntaxApplication[head, {argument, ...}] is a compou
 toSyntax::usage = "toSyntax[expr] gives the syntax tree of expr without evaluating it."
 heldFromSyntax::usage = "heldFromSyntax[syntax] gives HoldComplete[expr] for the expression syntax describes."
 syntaxHead::usage = "syntaxHead[symbol, {argument, ...}] gives the syntax tree of symbol applied to the argument syntax trees."
+listElements::usage = "listElements[syntax] gives the elements of the syntax tree of a list, or {syntax} for any other syntax tree."
 delaborate::usage = "delaborate[environment, context, term] gives a syntax tree for the core term in the local context."
 displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the core term as a TypeTheoryTerm, or the core term itself if it cannot be displayed."
 coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm in environment."
@@ -148,6 +150,9 @@ joinHeld[HoldComplete[head_], heldArguments_List] := Replace[
 
 SetAttributes[syntaxHead, HoldFirst]
 syntaxHead[symbol_Symbol, arguments_List] := syntaxApplication[syntaxSymbol[HoldComplete[symbol]], arguments]
+
+listElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
+listElements[single_] := {single}
 
 
 (* ::Subsection:: *)

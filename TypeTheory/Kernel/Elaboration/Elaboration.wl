@@ -212,9 +212,6 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	_ :> elaborationFailure["`1` is not a term of the type theory: it is neither a variable in scope nor a declared constant.", syntax]
 }]
 
-listElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
-listElements[single_] := {single}
-
 rightFold[head_, arguments_List] := Fold[
 	Function[{accumulated, previous}, syntaxApplication[syntaxSymbol[HoldComplete[head]], {previous, accumulated}]],
 	Last[arguments],

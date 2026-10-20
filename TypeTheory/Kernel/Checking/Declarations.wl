@@ -280,9 +280,6 @@ rewriteRuleSides[HoldComplete[ForAll[binders_, Rule[left_, right_]]]] :=
 rewriteRuleSides[HoldComplete[Rule[left_, right_]]] := <|"Left" -> HoldComplete[left], "Right" -> HoldComplete[right], "NumberOfVariables" -> 0|>
 rewriteRuleSides[HoldComplete[other_]] := kernelFailure["RewriteRuleSpecification", "`1` is not a rewrite rule: write ForAll[{Typed[x, type], ...}, lhs -> rhs].", {HoldForm[other]}]
 
-listElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
-listElements[single_] := {single}
-
 
 (* A proof written as TypeTheoryProof[...] runs here; any other proof is a term, which may also name a
    finished proof stored in a symbol. *)

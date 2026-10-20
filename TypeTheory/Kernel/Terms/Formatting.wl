@@ -192,9 +192,6 @@ displayApplication[head_, {syntaxApplication[syntaxSymbol[HoldComplete[Plus]], s
 displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successor"] := syntaxHead[Plus, {argument, syntaxInteger[1]}]
 displayApplication[head_, arguments_List] := syntaxApplication[displaySyntax[head], arguments]
 
-listElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
-listElements[single_] := {single}
-
 delimited[left_String, syntax_, right_String] := syntaxHead[Row, {syntaxHead[List, {syntaxString[left], syntax, syntaxString[right]}]}]
 
 (* several binders are each parenthesized, unless their brackets already delimit them *)
