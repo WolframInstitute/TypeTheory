@@ -26,8 +26,9 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Booleans                   with the constants "false" and "true", "not", "and" and "or", named by strings;
 	                           True, False, Not, And and Or stand for these where a Boolean is expected
 	"equal", "lessEqual"       the Boolean comparisons of natural numbers, which the kernel computes on literals
-	Decidable[p]               decisions, with Decide, DecideSoundness, and the decisions of ==, <= and the
-	                           connectives
+	Decidable[p]               decisions, with Decide, DecideSoundness, and the instances deciding == and <= of
+	                           natural numbers, True, False, the connectives and == of Booleans, the last three
+	                           named "trueDecidable", "falseDecidable" and "booleanEqualityDecidable"
 	CartesianProduct, DisjointUnion, Option, Lists
 	                           pairs, sums, optional values and lists, with Join, Length, Map, Append and Reverse
 
@@ -256,7 +257,8 @@ DoubleNegationElimination::usage = "DoubleNegationElimination[p] proves Implies[
 Decidable::usage = "Decidable[p] is the type of decisions of the proposition p: DecidableFalse with a proof of Not[p], or DecidableTrue with a proof of p."
 DecidableFalse::usage = "DecidableFalse[h] decides p false, given a proof h of Not[p]."
 DecidableTrue::usage = "DecidableTrue[h] decides p true, given a proof h of p."
-Decide::usage = "Decide[d] is the Boolean that the decision d of Decidable[p] computes: False for DecidableFalse, True for DecidableTrue."
+Decide::usage = "Decide[p] is the Boolean that the decision of the proposition p computes, False for DecidableFalse and True for DecidableTrue, \
+the decision being the instance of Decidable[p] that elaboration finds."
 CartesianProduct::usage = "CartesianProduct[a, b] is the type of the pairs of an element of the type a and one of the type b; p[[1]] and p[[2]] project a pair p."
 Pair::usage = "Pair[x, y] is the element of CartesianProduct[a, b] made of x of type a and y of type b."
 DisjointUnion::usage = "DisjointUnion[a, b] is the type of the elements of the type a or of the type b, each tagged with its side."
@@ -268,12 +270,12 @@ OptionSome::usage = "OptionSome[x] is the element of Option[a] holding x of type
 Lists::usage = "Lists[a] is the type of finite lists of elements of the type a, built from EmptyList by ListPrepend; Join, Length, Map, Append and Reverse operate on them."
 EmptyList::usage = "EmptyList is the list with no elements, of type Lists[a]."
 ListPrepend::usage = "ListPrepend[x, l] is the list l with x in front."
-DecideSoundness::usage = "DecideSoundness[d, h] proves p from a decision d of Decidable[p] and a proof h of Decide[d] == True."
-NotDecidable::usage = "NotDecidable[d] decides Not[p] from a decision d of Decidable[p]."
-AndDecidable::usage = "AndDecidable[d, e] decides And[p, q] from decisions d of Decidable[p] and e of Decidable[q]."
-OrDecidable::usage = "OrDecidable[d, e] decides Or[p, q] from decisions d of Decidable[p] and e of Decidable[q]."
-NaturalNumberEqualityDecidable::usage = "NaturalNumberEqualityDecidable[m, n] decides m == n for natural numbers m and n."
-LessEqualDecidable::usage = "LessEqualDecidable[m, n] decides m <= n for natural numbers m and n."
+DecideSoundness::usage = "DecideSoundness[h] proves p from a proof h of Decide[p] == True, for the instance of Decidable[p] that elaboration finds."
+NotDecidable::usage = "NotDecidable is the instance deciding Not[p] from the instance of Decidable[p]."
+AndDecidable::usage = "AndDecidable is the instance deciding And[p, q] from the instances of Decidable[p] and Decidable[q]."
+OrDecidable::usage = "OrDecidable is the instance deciding Or[p, q] from the instances of Decidable[p] and Decidable[q]."
+NaturalNumberEqualityDecidable::usage = "NaturalNumberEqualityDecidable[m, n] decides m == n for natural numbers m and n; it is the instance of Decidable[m == n]."
+LessEqualDecidable::usage = "LessEqualDecidable[m, n] decides m <= n for natural numbers m and n; it is the instance of Decidable[m <= n]."
 JoinEmptyRight::usage = "JoinEmptyRight[l] proves Join[l, EmptyList] == l."
 JoinAssociativity::usage = "JoinAssociativity[a, b, c] proves Join[Join[a, b], c] == Join[a, Join[b, c]]."
 LengthJoin::usage = "LengthJoin[a, b] proves Length[Join[a, b]] == Length[a] + Length[b]."
@@ -927,7 +929,8 @@ $constructiveDeclarations = {
 	TypeTheoryDefinition["or", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], b, "true", a]]],
 
 	(* decidable propositions, as Lean's Decidable: a proof of Not[p] or of p, in that order, which Decide
-	   turns into the Boolean it computes *)
+	   turns into the Boolean it computes; Decide[p] finds the decision of p among the instances, as Lean's
+	   decide *)
 	TypeTheoryInductiveType[
 		Decidable,
 		ForAll[{Typed[p, TypeUniverse[0]]}, TypeUniverse[1]],
@@ -938,18 +941,18 @@ $constructiveDeclarations = {
 	],
 	TypeTheoryDefinition[
 		Decide,
-		Function[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]},
+		Function[{Typed[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]},
 			InductiveRecursor[Decidable][Function[{Typed[t, Decidable[p]]}, Booleans], Function[{Typed[h, Not[p]]}, "false"], Function[{Typed[h, p]}, "true"], d]
 		]
 	],
 
-	(* Decide[d] == True proves p; the connectives, and the equality and order of the natural numbers, are
-	   decidable *)
+	(* Decide[p] == True proves p, as Lean's of_decide_eq_true; True, False, the connectives, and the
+	   equality and order of the natural numbers, are decidable, by instances *)
 	TypeTheoryTheorem[
 		DecideSoundness,
-		ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, Implies[Decide[d] == "true", p]],
-		Function[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, InductiveRecursor[Decidable][
-			Function[{Typed[t, Decidable[p]]}, Implies[Decide[t] == "true", p]],
+		ForAll[{TypedImplicit[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]}, Implies[Decide[p] == "true", p]],
+		Function[{TypedImplicit[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]}, InductiveRecursor[Decidable][
+			Function[{Typed[t, Decidable[p]]}, Implies[Construct[Decide, p, t] == "true", p]],
 			Function[{Typed[h, Not[p]], Typed[e, "false" == "true"]}, FalseElimination[
 				InductiveRecursor[Equal][
 					Function[{Typed[y, Booleans], Typed[k, "false" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], True, False, y]],
@@ -961,42 +964,53 @@ $constructiveDeclarations = {
 			d
 		]]
 	],
+	TypeTheoryDefinition["trueDecidable", Typed[DecidableTrue[TrueIntroduction], Decidable[True]], "Instance" -> True],
+	TypeTheoryDefinition["falseDecidable", Typed[DecidableFalse[Function[{Typed[h, False]}, h]], Decidable[False]], "Instance" -> True],
 	TypeTheoryDefinition[
 		NotDecidable,
-		Function[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, InductiveRecursor[Decidable][
+		Function[{TypedImplicit[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]}, InductiveRecursor[Decidable][
 			Function[{Typed[t, Decidable[p]]}, Decidable[Not[p]]],
 			Function[{Typed[h, Not[p]]}, DecidableTrue[h]],
 			Function[{Typed[h, p]}, DecidableFalse[Function[{Typed[k, Not[p]]}, k[h]]]],
 			d
-		]]
+		]],
+		"Instance" -> True
 	],
 	TypeTheoryDefinition[
 		AndDecidable,
-		Function[{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Typed[d, Decidable[p]], Typed[e, Decidable[q]]}, InductiveRecursor[Decidable][
-			Function[{Typed[t, Decidable[p]]}, Decidable[And[p, q]]],
-			Function[{Typed[h, Not[p]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, h[AndEliminationLeft[k]]]]],
-			Function[{Typed[h, p]}, InductiveRecursor[Decidable][
-				Function[{Typed[t, Decidable[q]]}, Decidable[And[p, q]]],
-				Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, g[AndEliminationRight[k]]]]],
-				Function[{Typed[g, q]}, DecidableTrue[AndIntroduction[h, g]]],
-				e
-			]],
-			d
-		]]
+		Function[
+			{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"], Annotation[Typed[e, Decidable[q]], "InstanceImplicit"]},
+			InductiveRecursor[Decidable][
+				Function[{Typed[t, Decidable[p]]}, Decidable[And[p, q]]],
+				Function[{Typed[h, Not[p]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, h[AndEliminationLeft[k]]]]],
+				Function[{Typed[h, p]}, InductiveRecursor[Decidable][
+					Function[{Typed[t, Decidable[q]]}, Decidable[And[p, q]]],
+					Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, g[AndEliminationRight[k]]]]],
+					Function[{Typed[g, q]}, DecidableTrue[AndIntroduction[h, g]]],
+					e
+				]],
+				d
+			]
+		],
+		"Instance" -> True
 	],
 	TypeTheoryDefinition[
 		OrDecidable,
-		Function[{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Typed[d, Decidable[p]], Typed[e, Decidable[q]]}, InductiveRecursor[Decidable][
-			Function[{Typed[t, Decidable[p]]}, Decidable[Or[p, q]]],
-			Function[{Typed[h, Not[p]]}, InductiveRecursor[Decidable][
-				Function[{Typed[t, Decidable[q]]}, Decidable[Or[p, q]]],
-				Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, Or[p, q]]}, InductiveRecursor[Or][Function[{Typed[s, Or[p, q]]}, False], h, g, k]]]],
-				Function[{Typed[g, q]}, DecidableTrue[OrIntroductionRight[g]]],
-				e
-			]],
-			Function[{Typed[h, p]}, DecidableTrue[OrIntroductionLeft[h]]],
-			d
-		]]
+		Function[
+			{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"], Annotation[Typed[e, Decidable[q]], "InstanceImplicit"]},
+			InductiveRecursor[Decidable][
+				Function[{Typed[t, Decidable[p]]}, Decidable[Or[p, q]]],
+				Function[{Typed[h, Not[p]]}, InductiveRecursor[Decidable][
+					Function[{Typed[t, Decidable[q]]}, Decidable[Or[p, q]]],
+					Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, Or[p, q]]}, InductiveRecursor[Or][Function[{Typed[s, Or[p, q]]}, False], h, g, k]]]],
+					Function[{Typed[g, q]}, DecidableTrue[OrIntroductionRight[g]]],
+					e
+				]],
+				Function[{Typed[h, p]}, DecidableTrue[OrIntroductionLeft[h]]],
+				d
+			]
+		],
+		"Instance" -> True
 	],
 	(* two Booleans that differ, by the predicate true of one and false of the other *)
 	TypeTheoryTheorem[
@@ -1016,6 +1030,17 @@ $constructiveDeclarations = {
 			TrueIntroduction,
 			e
 		]]
+	],
+	(* the equality of Booleans is decidable, by cases on both, as Lean's instDecidableEqBool *)
+	TypeTheoryDefinition[
+		"booleanEqualityDecidable",
+		Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][
+			Function[{Typed[x, Booleans]}, Decidable[x == b]],
+			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["false" == y]], DecidableTrue[EqualityReflexivity["false"]], DecidableFalse["falseNotTrue"], b],
+			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["true" == y]], DecidableFalse["trueNotFalse"], DecidableTrue[EqualityReflexivity["true"]], b],
+			a
+		]],
+		"Instance" -> True
 	],
 
 	(* the Boolean comparisons of natural numbers, by recursion on both, as Lean's Nat.beq and Nat.ble; the
@@ -1144,7 +1169,8 @@ $constructiveDeclarations = {
 	],
 
 	(* a decision of m == n or m <= n is what the comparison gives, with the proof it gives, as Lean's
-	   Nat.decEq and Nat.decLe: on literals it is one step of the kernel, however large they are *)
+	   Nat.decEq and Nat.decLe, instances as they are: on literals it is one step of the kernel, however
+	   large they are *)
 	TypeTheoryDefinition[
 		NaturalNumberEqualityDecidable,
 		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Booleans][
@@ -1152,7 +1178,8 @@ $constructiveDeclarations = {
 			Function[{Typed[e, "equal"[m, n] == "false"]}, DecidableFalse["equalFalse"[m, n, e]]],
 			Function[{Typed[e, "equal"[m, n] == "true"]}, DecidableTrue["equalTrue"[m, n, e]]],
 			"equal"[m, n]
-		][EqualityReflexivity["equal"[m, n]]]]
+		][EqualityReflexivity["equal"[m, n]]]],
+		"Instance" -> True
 	],
 	TypeTheoryDefinition[
 		LessEqualDecidable,
@@ -1161,7 +1188,8 @@ $constructiveDeclarations = {
 			Function[{Typed[e, "lessEqual"[m, n] == "false"]}, DecidableFalse["lessEqualFalse"[m, n, e]]],
 			Function[{Typed[e, "lessEqual"[m, n] == "true"]}, DecidableTrue["lessEqualTrue"[m, n, e]]],
 			"lessEqual"[m, n]
-		][EqualityReflexivity["lessEqual"[m, n]]]]
+		][EqualityReflexivity["lessEqual"[m, n]]]],
+		"Instance" -> True
 	],
 
 	(* pairs, sums, optional values and lists, laid out as Lean's Prod, Sum, Option and List *)

@@ -68,6 +68,26 @@ VerificationTest[
 	TestID -> "No-instance-is-a-failure"
 ]
 
+(* inside a function, its instance-implicit variable is the instance of its type, as Lean's local instances *)
+VerificationTest[
+	With[
+		{
+			pairs = TypeTheoryEnvironment[environment, {
+				TypeTheoryDefinition[DefaultPair, Function[
+					{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"]},
+					Pair[Typed[Default, \[Alpha]], Typed[Default, \[Alpha]]]
+				]]
+			}]
+		},
+		{
+			MatchQ[TypeTheoryCheck[pairs], _Success],
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], pairs], TypeTheoryTerm[Pair[0, 0], pairs]]
+		}
+	],
+	{True, True},
+	TestID -> "A-local-instance-is-found-first"
+]
+
 VerificationTest[
 	{
 		MatchQ[TypeTheoryCheck[environment], _Success],
@@ -120,4 +140,17 @@ VerificationTest[
 	},
 	{TypeTheoryTerm[OptionSome[3], environment], TypeTheoryTerm[OptionSome[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
 	TestID -> "Coercions-are-polymorphic-and-chain"
+]
+
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[Decide["not"["true"] == "false" && 2 < 3], prelude]],
+		TypeTheoryProof[Not["true" == "false"] && 2 + 2 == 4 && Not[5 <= 3], prelude, {TypeTheoryTactic["Decide"]}]["Goals"],
+		First @ TypeTheoryProof[Nonempty[NonNegativeIntegers], prelude, {TypeTheoryTactic["Decide"]}],
+		TypeTheoryProof[Nonempty[NonNegativeIntegers], TypeTheoryEnvironment[prelude, {
+			TypeTheoryDefinition[NaturalsNonempty, Typed[DecidableTrue[NonemptyIntroduction[0]], Decidable[Nonempty[NonNegativeIntegers]]], "Instance" -> True]
+		}], {TypeTheoryTactic["Decide"]}]["Goals"]
+	},
+	{TypeTheoryTerm["true", prelude], {}, "NotDecidable", {}},
+	TestID -> "Decide-uses-the-instances-of-Decidable-an-environment-declares"
 ]

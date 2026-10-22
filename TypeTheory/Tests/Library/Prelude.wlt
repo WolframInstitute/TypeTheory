@@ -126,7 +126,7 @@ VerificationTest[
 			Information[prelude, "Axioms"]
 		}
 	],
-	{148, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
+	{151, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
 	TestID -> "The-constructive-environment-is-the-prelude-without-its-classical-part"
 ]
 
@@ -189,16 +189,18 @@ VerificationTest[
 
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[Decide[NaturalNumberEqualityDecidable[3 + 4, 7]], prelude]],
-		WeakHeadNormalForm[TypeTheoryTerm[Decide[LessEqualDecidable[5, 2]], prelude]],
-		WeakHeadNormalForm[TypeTheoryTerm[Decide[AndDecidable[NotDecidable[NaturalNumberEqualityDecidable[1, 2]], OrDecidable[LessEqualDecidable[3, 1], LessEqualDecidable[1, 3]]]], prelude]]
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[3 + 4 == 7], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[5 <= 2], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[Not[1 == 2] && (3 <= 1 || 1 <= 3)], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5 && True && Not[False]], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 5 <= 2, LessEqualDecidable[5, 2]], prelude]]
 	},
-	{TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude], TypeTheoryTerm["true", prelude]},
-	TestID -> "Decisions-compute-to-Booleans"
+	{TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude], TypeTheoryTerm["true", prelude], TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude]},
+	TestID -> "Decisions-are-found-among-the-instances-and-compute-to-Booleans"
 ]
 
 VerificationTest[
-	MatchQ[TypeTheoryCheck[TypeTheoryTerm[DecideSoundness[NaturalNumberEqualityDecidable[3 + 4, 7], EqualityReflexivity[True]], prelude], TypeTheoryTerm[3 + 4 == 7, prelude]], _Success],
+	MatchQ[TypeTheoryCheck[TypeTheoryTerm[DecideSoundness[EqualityReflexivity[True]], prelude], TypeTheoryTerm[3 + 4 == 7, prelude]], _Success],
 	True,
 	TestID -> "A-decision-that-computes-to-True-proves-its-proposition"
 ]

@@ -44,8 +44,8 @@ The tactics:
 	"Change", statement     replaces the goal by a statement equal to it by computation
 	"Simplify", {h, ...}    rewrites with the equations h, ... until none applies, then closes an equation whose
 	                        sides are equal by computation; a definition among them unfolds where it computes
-	"Decide"                proves a closed statement of equations and inequalities of natural numbers and the
-	                        connectives by computing its decision
+	"Decide"                proves a closed statement by computing its decision, the instance of Decidable found:
+	                        the prelude's decide equations and inequalities of natural numbers and the connectives
 	"FindInstance"          proves an existential statement over the natural numbers with witnesses that
 	                        Wolfram's FindInstance finds, the instance proved by "Decide"
 	"Ring"                  proves an equation of natural numbers that holds in every commutative semiring, by
@@ -110,7 +110,8 @@ TypeTheoryTactic[\"Rewrite\", h, \"At\" -> k] and TypeTheoryTactic[\"Rewrite\", 
 TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which must be equal to it by computation.\n\
 TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation; \
 a definition among h1, h2, ... unfolds where it computes, as Join does on ListPrepend[x, l], with its recursive calls folded back.\n\
-TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision.\n\
+TypeTheoryTactic[\"Decide\"] proves a closed statement by computing its decision, the instance of Decidable that elaboration finds: \
+the prelude's decide == and <= of natural numbers, And, Or, Not, True and False, and an environment may declare more.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
 TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2.\n\
 TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds.\n\
@@ -776,66 +777,6 @@ unfold[data_, goal_, held_HoldComplete] := With[
 	]
 ]
 
-(* the term, an application of the definition name, computed as unfold computes it, or None *)
-unfoldedApplication[environment_, context_, name_, term_] := Replace[applicationSpine[term], {
-	{constantReference[name, levels_], arguments_} :> With[
-		{record = constantRecord[environment, name]},
-		{value = instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels]},
-		{opened = openedFunction[value, 0]},
-		Which[
-			Length[arguments] < Last[opened],
-				None,
-			recursorApplicationQ[environment, First[opened]],
-				computedRecursion[environment, context, name, levels, opened, arguments],
-			True,
-				makeApplication[value, arguments]
-		]
-	],
-	_ :> None
-}]
-
-(* {body, count}: the body under the functions nested at the top of term, and their count *)
-openedFunction[lambdaAbstraction[_, _, body_, _], count_Integer] := openedFunction[body, count + 1]
-openedFunction[body_, count_Integer] := {body, count}
-
-recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]], constantReference[recursor_, _] /; constantRecord[environment, recursor]["Kind"] === "Recursor"]
-
-(* A definition by structural recursion has a recursor applied to its parameters, motives and minor
-   premises, no indices, and last the major premise, one of the definition's count variables, which no
-   other argument of the recursor mentions. None for any other body. *)
-computedRecursion[environment_, context_, name_, levels_, {body_, count_Integer}, arguments_List] := With[
-	{spine = applicationSpine[body]},
-	{record = constantRecord[environment, First[First[spine]]], recursorArguments = Last[spine]},
-	If[ And[
-			record["NumberOfIndices"] === 0,
-			Length[recursorArguments] === record["NumberOfParameters"] + record["NumberOfMotives"] + record["NumberOfMinors"] + 1,
-			MatchQ[Last[recursorArguments], boundVariable[k_Integer] /; k < count],
-			NoneTrue[Most[recursorArguments], Function[argument, boundVariableOccursQ[argument, First[Last[recursorArguments]]]]]
-		],
-		refoldedRecursion[environment, context, name, levels, First[spine], recursorArguments, count, arguments],
-		None
-	]
-]
-
-(* The recursor reduced on the argument given for its major premise, or None if it does not reduce; in
-   what it gives, a recursive call, the recursor applied to the same arguments but a smaller major
-   premise, is the definition applied to that one in its place. *)
-refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArguments_List, count_Integer, arguments_List] := With[
-	{
-		position = count - First[Last[recursorArguments]],
-		given = Take[arguments, count]
-	},
-	{prefix = makeApplication[recursor, Function[argument, instantiateBoundVariables[argument, given]] /@ Most[recursorArguments]]},
-	{reduced = reducedHeadWithoutUnfolding[environment, context, application[prefix, First[Drop[given, position - 1]]]]},
-	If[ MatchQ[reduced, application[Verbatim[prefix], _]],
-		None,
-		makeApplication[
-			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Drop[given, position]]]],
-			Drop[arguments, count]
-		]
-	]
-]
-
 (* the state with the goal closed by reflexivity, or None *)
 closedByReflexivity[state_, goal_] := Replace[
 	withOpenGoals[state, Quiet @ catchKernelFailure[reflexivity[state, goal]]],
@@ -843,14 +784,18 @@ closedByReflexivity[state_, goal_] := Replace[
 ]
 
 
-(* A closed proposition built from == and <= on the natural numbers, And, Or, Not, True and False gets
-   its decision from the prelude's, Decidable[p]; the kernel computes Decide of it to True, and
-   DecideSoundness turns EqualityReflexivity[True] into a proof of the goal. *)
+(* A closed proposition gets its decision from the instances of Decidable[p], as Lean's decide: the
+   prelude's decide == and <= on the natural numbers, And, Or, Not, True and False, and an environment may
+   declare more; the kernel computes Decide of it to True, and DecideSoundness turns
+   EqualityReflexivity[True] into a proof of the goal. *)
 decide[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[$decisionConstants, Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["DecisionUnavailable", "The environment of the goal `1` lacks the decisions of the prelude.", data, goal]
 	];
-	With[{decision = decisionTerm[data, goal, environment, current["Context"], current["Type"]]},
+	With[{decision = findInstance[environment, current["Context"], makeApplication[preludeConstant[Decidable], {current["Type"]}]]},
+		If[ decision === None,
+			tacticFailure["NotDecidable", "No instance of Decidable decides the goal `1`.", data, goal]
+		];
 		Replace[weakHeadNormalForm[environment, current["Context"], makeApplication[preludeConstant[Decide], {current["Type"], decision}]], {
 			constantReference[HoldComplete["true"], _] :> solveGoal[data, goal, makeApplication[preludeConstant[DecideSoundness], {
 				current["Type"],
@@ -863,41 +808,10 @@ decide[data_, goal_] := With[{current = currentGoal[data, goal], environment = d
 	]
 ]
 
-$decisionConstants = HoldComplete /@ Unevaluated[{
-	Decidable, DecidableTrue, DecidableFalse, Decide, DecideSoundness, NotDecidable, AndDecidable, OrDecidable,
-	NaturalNumberEqualityDecidable, LessEqualDecidable, Booleans, "true", EqualityReflexivity, TrueIntroduction
-}]
+$decisionConstants = HoldComplete /@ Unevaluated[{Decidable, Decide, DecideSoundness, Booleans, "true", EqualityReflexivity}]
 
 SetAttributes[preludeConstant, HoldAll]
 preludeConstant[name_] := constantReference[HoldComplete[name], {}]
-
-(* the decision of a proposition, by its form; a definition such as Not, Less or Unequal is unfolded to find it *)
-decisionTerm[data_, goal_, environment_, context_, proposition_] := Replace[proposition, {
-	application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /;
-		MatchQ[weakHeadNormalForm[environment, context, type], constantReference[HoldComplete[NonNegativeIntegers], _]] :>
-		makeApplication[preludeConstant[NaturalNumberEqualityDecidable], {left, right}],
-	application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :>
-		makeApplication[preludeConstant[LessEqualDecidable], {left, right}],
-	application[application[constantReference[HoldComplete[connective : And | Or], _], left_], right_] :>
-		makeApplication[preludeConstant @@ {If[connective === And, AndDecidable, OrDecidable]}, {
-			left,
-			right,
-			decisionTerm[data, goal, environment, context, left],
-			decisionTerm[data, goal, environment, context, right]
-		}],
-	constantReference[HoldComplete[True], _] :> makeApplication[preludeConstant[DecidableTrue], {proposition, preludeConstant[TrueIntroduction]}],
-	constantReference[HoldComplete[False], _] :> makeApplication[preludeConstant[DecidableFalse], {proposition, lambdaAbstraction[HoldComplete[h], proposition, boundVariable[0], "Explicit"]}],
-	(* Not[p] unfolds to a function from p to False *)
-	dependentFunctionType[_, premise_, constantReference[HoldComplete[False], _], _] :>
-		makeApplication[preludeConstant[NotDecidable], {premise, decisionTerm[data, goal, environment, context, premise]}],
-	other_ :> With[{reduced = weakHeadNormalForm[environment, context, other]},
-		If[ reduced =!= other,
-			decisionTerm[data, goal, environment, context, reduced],
-			tacticFailure["NotDecidable", "The goal `1` is not built from equations and inequalities of natural numbers and the connectives.", data, goal]
-		]
-	]
-}]
-
 
 
 (* ::Subsection:: *)

@@ -240,7 +240,7 @@ VerificationTest[
 		Last[TypeOf[TypeTheoryTerm[Not]]["MessageParameters"]]
 	},
 	{
-		{"and", "equal", "equalFalse", "equalTrue", "false", "falseNotTrue", "lessEqual", "lessEqualFalse", "lessEqualTrue", "not", "or", "true", "trueNotFalse"},
+		{"and", "booleanEqualityDecidable", "equal", "equalFalse", "equalTrue", "false", "falseDecidable", "falseNotTrue", "lessEqual", "lessEqualFalse", "lessEqualTrue", "not", "or", "true", "trueDecidable", "trueNotFalse"},
 		{},
 		True,
 		"true",

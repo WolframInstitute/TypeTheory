@@ -59,7 +59,7 @@ VerificationTest[
 		First /@ {
 			WeakHeadNormalForm[TypeTheoryTerm["equal"[2^70, 2^70]]],
 			WeakHeadNormalForm[TypeTheoryTerm["lessEqual"[2^70 + 1, 2^70]]],
-			WeakHeadNormalForm[TypeTheoryTerm[Decide[NaturalNumberEqualityDecidable[12^3 + 1, 9^3 + 10^3]]]]
+			WeakHeadNormalForm[TypeTheoryTerm[Decide[12^3 + 1 == 9^3 + 10^3]]]
 		},
 		Information[prelude, "NaturalNumbers"]["Operations"]["Equal"]
 	},

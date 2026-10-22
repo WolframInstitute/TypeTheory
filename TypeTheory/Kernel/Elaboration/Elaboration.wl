@@ -33,8 +33,9 @@ variables of that context. A metavariable left unsolved in a function when its b
 out of them, so it never names a variable after the variable's binder is gone.
 
 The argument of an instance-implicit binder is a metavariable that waits in $pendingInstances for an
-instance: a definition declared with "Instance" -> True whose type, under its binders, unifies with the
-binder's type, its own instance-implicit arguments found the same way. It is found as soon as the
+instance: a variable of the local context bound by an instance-implicit binder, as Lean's local
+instances, or else a definition declared with "Instance" -> True whose type, under its binders, unifies
+with the binder's type, its own instance-implicit arguments found the same way. It is found as soon as the
 type's arguments are known, and at the end at the latest; the kernel checks the term found as any
 other. A term whose type does not unify with the one its place expects is coerced: x becomes f[x] for a
 definition f declared with "Coercion" -> True from the term's type to the one expected, or a chain of at
@@ -78,6 +79,8 @@ PackageScoped[overloadedNameQ]
 PackageScoped[aliasResolvedName]
 PackageScoped[settleOverloads]
 PackageScoped[explicitTerm]
+PackageScoped[findInstance]
+PackageScoped[unfoldedApplication]
 
 
 (* ::Section:: *)
@@ -111,6 +114,10 @@ overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
 explicitTerm::usage = "explicitTerm[environment, HoldComplete[term], {HoldComplete[u], ...}] gives the core term of a term that gives every argument and every \
 universe level, or that is a core term already, unchecked, or None if the term is not that explicit."
+findInstance::usage = "findInstance[environment, context, type] gives the instance of the class type that elaboration finds in context and environment, \
+or None."
+unfoldedApplication::usage = "unfoldedApplication[environment, context, HoldComplete[name], term] gives term, an application of the definition name, \
+unfolded once where it computes, with the recursive calls of a definition by recursion folded back into it, or None."
 aliasResolvedName::usage = "aliasResolvedName[environment, HoldComplete[name]] gives the held name of the constant name stands for: a symbol whose value is a declared constant of environment stands for that constant, as Naturals does for NonNegativeIntegers, also inside InductiveRecursor."
 
 
@@ -332,34 +339,58 @@ elaborateHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant
 elaborateHead[syntax_] := elaborateSyntax[syntax, None]
 
 (* Implicit binders get metavariables, and each explicit binder takes the next argument, elaborated at
-   once against its binder's type. An argument whose type is still an unknown applied to arguments, as
-   the proof of P[x] for an implicit predicate P, waits: the type of the whole application is unified
-   with the expected type first, which is what usually determines P. *)
+   once against its binder's type; the implicit binders after the last argument get metavariables too, as
+   in Lean. Before the first explicit argument, the expected type is unified with the type the application
+   will have, where that type does not depend on the arguments, as Lean's propagateExpectedType: the
+   arguments are then checked against what it determines, and the instances it determines are found
+   first. An argument whose type is still an unknown applied to arguments, as the proof of P[x] for an
+   implicit predicate P, waits: the type of the whole application is unified with the expected type first,
+   which is what usually determines P. *)
 applyArguments[{function_, functionType_}, arguments_List, headSyntax_, expected_] :=
-	finishApplication[collectArguments[function, functionType, arguments, {}, headSyntax], expected]
+	finishApplication[collectArguments[function, functionType, arguments, {}, headSyntax, expected], expected]
 
-collectArguments[term_, type_, {}, postponed_List, _] := {term, type, postponed}
-collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_] := Replace[
+collectArguments[term_, type_, {}, postponed_List, _, _] := Append[insertImplicitArguments[{term, type}], postponed]
+collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expected_] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
 	{
 		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = implicitArgument[domain, binder]},
-			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax]
+			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax, expected]
 		],
+		functionType : dependentFunctionType[_, _, _, _] /; expected =!= None :> (
+			propagateExpectedType[functionType, Length[arguments], expected];
+			collectArguments[term, functionType, arguments, postponed, headSyntax, None]
+		),
 		dependentFunctionType[_, domain_, codomain_, _] /; flexibleTypeQ[domain] :> With[{placeholder = newMetavariable[domain]},
 			collectArguments[
 				application[term, placeholder],
 				instantiateBoundVariable[codomain, placeholder],
 				Rest[arguments],
 				Append[postponed, {placeholder, First[arguments]}],
-				headSyntax
+				headSyntax,
+				None
 			]
 		],
 		dependentFunctionType[_, domain_, codomain_, _] :> With[{argument = checkAgainst[First[arguments], domain]},
-			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], Rest[arguments], postponed, headSyntax]
+			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], Rest[arguments], postponed, headSyntax, None]
 		],
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
+
+(* the expected type unified, if it can be, with the type after the arguments, where that type does not
+   depend on them; the instances waiting whose types it determines are found *)
+propagateExpectedType[functionType_, count_Integer, expected_] := With[{result = typeAfterArguments[functionType, count]},
+	If[ result =!= None && looseBoundRange[result] == 0,
+		attemptOrRestore[unify[result, expected]];
+		synthesizePendingInstances[False]
+	]
+]
+
+(* the type after count explicit binders and the implicit binders around them, or None *)
+typeAfterArguments[dependentFunctionType[_, _, codomain_, binder_], count_Integer] /; binder =!= "Explicit" := typeAfterArguments[codomain, count]
+typeAfterArguments[dependentFunctionType[_, _, codomain_, "Explicit"], count_Integer] /; count > 0 := typeAfterArguments[codomain, count - 1]
+typeAfterArguments[type_, 0] := type
+typeAfterArguments[_, _Integer] := None
 
 finishApplication[{term_, type_, {}}, _] := (
 	synthesizePendingInstances[False];
@@ -720,13 +751,31 @@ synthesizePendingInstances[final_] := Scan[
 
 instanceTypeKnownQ[id_] := FreeQ[instantiateMetavariables[$metavariableTypes[id]], metavariable[other_] /; unassignedMetavariableQ[metavariable[other]]]
 
-(* the first instance of the goal's class, the latest declared first, whose type unifies with the goal and
-   whose own instance arguments are found in turn, at most eight deep; None if there is none *)
-synthesizedInstance[_, depth_Integer] /; depth > 8 := None
+(* a local instance of the goal's class, or else the first instance of the environment, the latest declared
+   first, whose type unifies with the goal and whose own instance arguments are found in turn, at most 32
+   deep; None if there is none *)
+synthesizedInstance[_, depth_Integer] /; depth > 32 := None
 synthesizedInstance[goal_, depth_Integer] := Replace[instanceClass[goal], {
 	None -> None,
-	class_ :> firstInstance[Reverse @ instancesOf[$elaborationEnvironment, class], goal, depth]
+	class_ :> Replace[localInstance[class, goal], None :> firstInstance[Reverse @ instancesOf[$elaborationEnvironment, class], goal, depth]]
 }]
+
+(* the innermost variable of the local context bound by an instance-implicit binder whose type unifies with
+   the goal, or None *)
+localInstance[class_, goal_] := Replace[
+	SelectFirst[
+		Reverse @ Keys @ Select[$elaborationContext, Function[entry, entry["Binder"] === "InstanceImplicit" && instanceClass[entry["Type"]] === class]],
+		Function[id, attemptOrRestore[unify[$elaborationContext[id]["Type"], goal]]]
+	],
+	{id_Integer :> freeVariable[id], _ -> None}
+]
+
+(* an instance found outside elaboration, as by a tactic, with no metavariable left *)
+findInstance[environment_, context_, type_] := withElaborationState[{environment, context, <||>, {}},
+	Replace[synthesizedInstance[type, 0], found : Except[None] :> With[{instance = instantiateMetavariables[found]},
+		If[unsolvedMetavariables[instance] === {}, instance, None]
+	]]
+]
 
 firstInstance[{}, _, _] := None
 firstInstance[{name_, rest___}, goal_, depth_] := Replace[instanceCandidate[name, goal, depth], None :> firstInstance[{rest}, goal, depth]]
@@ -1149,6 +1198,71 @@ restrictedQ[id_, allowed_List] := With[{context = Lookup[$metavariableContexts, 
 
 
 (* ::Subsection:: *)
+(*Unfolding*)
+
+
+(* the term, an application of the definition name, computed as unfold computes it, or None *)
+unfoldedApplication[environment_, context_, name_, term_] := Replace[applicationSpine[term], {
+	{constantReference[name, levels_], arguments_} :> With[
+		{record = constantRecord[environment, name]},
+		{value = instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels]},
+		{opened = openedFunction[value, 0]},
+		Which[
+			Length[arguments] < Last[opened],
+				None,
+			recursorApplicationQ[environment, First[opened]],
+				computedRecursion[environment, context, name, levels, opened, arguments],
+			True,
+				makeApplication[value, arguments]
+		]
+	],
+	_ :> None
+}]
+
+(* {body, count}: the body under the functions nested at the top of term, and their count *)
+openedFunction[lambdaAbstraction[_, _, body_, _], count_Integer] := openedFunction[body, count + 1]
+openedFunction[body_, count_Integer] := {body, count}
+
+recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]], constantReference[recursor_, _] /; constantRecord[environment, recursor]["Kind"] === "Recursor"]
+
+(* A definition by structural recursion has a recursor applied to its parameters, motives and minor
+   premises, no indices, and last the major premise, one of the definition's count variables, which no
+   other argument of the recursor mentions. None for any other body. *)
+computedRecursion[environment_, context_, name_, levels_, {body_, count_Integer}, arguments_List] := With[
+	{spine = applicationSpine[body]},
+	{record = constantRecord[environment, First[First[spine]]], recursorArguments = Last[spine]},
+	If[ And[
+			record["NumberOfIndices"] === 0,
+			Length[recursorArguments] === record["NumberOfParameters"] + record["NumberOfMotives"] + record["NumberOfMinors"] + 1,
+			MatchQ[Last[recursorArguments], boundVariable[k_Integer] /; k < count],
+			NoneTrue[Most[recursorArguments], Function[argument, boundVariableOccursQ[argument, First[Last[recursorArguments]]]]]
+		],
+		refoldedRecursion[environment, context, name, levels, First[spine], recursorArguments, count, arguments],
+		None
+	]
+]
+
+(* The recursor reduced on the argument given for its major premise, or None if it does not reduce; in
+   what it gives, a recursive call, the recursor applied to the same arguments but a smaller major
+   premise, is the definition applied to that one in its place. *)
+refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArguments_List, count_Integer, arguments_List] := With[
+	{
+		position = count - First[Last[recursorArguments]],
+		given = Take[arguments, count]
+	},
+	{prefix = makeApplication[recursor, Function[argument, instantiateBoundVariables[argument, given]] /@ Most[recursorArguments]]},
+	{reduced = reducedHeadWithoutUnfolding[environment, context, application[prefix, First[Drop[given, position - 1]]]]},
+	If[ MatchQ[reduced, application[Verbatim[prefix], _]],
+		None,
+		makeApplication[
+			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Drop[given, position]]]],
+			Drop[arguments, count]
+		]
+	]
+]
+
+
+(* ::Subsection:: *)
 (*Unification*)
 
 
@@ -1281,7 +1395,23 @@ unifyReduced[a_, b_] := With[
 	If[coreA =!= a || coreB =!= b, unify[coreA, coreB], unifyUnfolded[a, b]]
 ]
 
-unifyUnfolded[a_, b_] := With[
+(* a definition at the head of either side is unfolded once first, its recursive calls folded back, as
+   Lean's smart unfolding: n + (k + 1) against ?m + 1 gives ?m = n + k, not the recursor that Plus
+   unfolds to; only where neither unfolds so do both go to their weak head normal forms *)
+unifyUnfolded[a_, b_] := With[{unfoldedA = headUnfolded[a], unfoldedB = headUnfolded[b]},
+	If[ unfoldedA =!= None || unfoldedB =!= None,
+		unify[Replace[unfoldedA, None -> a], Replace[unfoldedB, None -> b]],
+		unifyNormalized[a, b]
+	]
+]
+
+headUnfolded[term_] := Replace[First[applicationSpine[term]], {
+	constantReference[name_, _] /; constantRecord[$elaborationEnvironment, name]["Kind"] === "Definition" :>
+		unfoldedApplication[$elaborationEnvironment, $elaborationContext, name, term],
+	_ -> None
+}]
+
+unifyNormalized[a_, b_] := With[
 	{
 		reducedA = weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, a],
 		reducedB = weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, b]

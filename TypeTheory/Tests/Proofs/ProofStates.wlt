@@ -552,10 +552,7 @@ VerificationTest[
 	{
 		{},
 		TypeTheoryTerm[
-			ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[
-				AndDecidable[NaturalNumberEqualityDecidable[3^2 + 4^2, 25], AndDecidable[LessEqualDecidable[3 + 1, 4], LessEqualDecidable[0 + 1, 3]]],
-				EqualityReflexivity["true"]
-			]]],
+			ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[EqualityReflexivity["true"]]]],
 			prelude
 		],
 		{},
