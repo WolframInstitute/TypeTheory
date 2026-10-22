@@ -158,8 +158,10 @@ store is never changed once built, and it lasts for the session.
 is asked for: classes of pairs of natural numbers (a, b), standing for a - b, a quotient type. The
 operations are lifted from pairs, and the laws of a commutative ring, `IntegerAdditionCommutativity`
 through `IntegerDistributivity`, are proved by the tactics themselves: `"Induction"` on each class,
-`QuotientSoundness`, and `"Ring"` on the pairs. There `+`, `*`, `-`, the comparisons and negative
-literals are the integers' wherever the types say so, and a natural number coerces to an integer:
+`QuotientSoundness`, and `"Ring"` on the pairs, which `"Ring"` does on its own for any identity of
+commutative rings; `IntegerEqualityDecidable` decides their equations, so `"Decide"` proves a closed one.
+There `+`, `*`, `-`, the comparisons and negative literals are the integers' wherever the types say so,
+and a natural number coerces to an integer:
 
 ```wl
 integers = TypeTheoryEnvironment["Integers"];
@@ -403,7 +405,7 @@ records; and, on the prelude's rules, the HoTT library proving False with an equ
 
 ## Not yet
 
-- The rationals, as a quotient of the integers; deciding equations of integers, and "Ring" over them.
+- The rationals, as a quotient of the integers; deciding the order of the integers.
 - Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
 - Composition in a universe and higher inductive types in the cubical rules, so that transport along a

@@ -101,6 +101,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [IntegerAdditionCommutativity](), [IntegerAdditionAssociativity](), [IntegerAdditionZero](), [IntegerAdditionNegation](), [IntegerSubtractionNegation]() addition and negation
 - [IntegerMultiplicationCommutativity](), [IntegerMultiplicationAssociativity](), [IntegerMultiplicationOne](), [IntegerDistributivity]() multiplication
 - [IntegerOfNaturalAddition](), [IntegerOfNaturalMultiplication]() the natural numbers among the integers, and [IntegerLessEqualReflexivity]() the order
+- [IntegerEqualityDecidable]() the instance deciding `==` of integers
 
 ### Cubical type theory
 

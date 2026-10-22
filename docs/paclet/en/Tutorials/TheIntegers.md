@@ -20,7 +20,7 @@ The environment, the prelude with the integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 200 constants -->
+<!-- => TypeTheoryEnvironment summary box: 210 constants -->
 
 [Integers]() is the quotient of pairs by a relation, and shows as ℤ:
 
@@ -156,3 +156,42 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
 <!-- => Proof complete -->
 
 Induction on a class proves propositions only. A function into data, such as negation, is lifted from pairs with [QuotientLift](), given a proof that it respects the relation, which `"LinearArithmetic"` and `"PolynomialReduce"` prove for the library's operations.
+
+## Ring over the Integers
+
+`"Ring"` does all of this on its own for an equation of integers: induction on the class of each integer variable, [QuotientSoundness](), and `"Ring"` on the pairs. An identity of commutative rings, such as the difference of squares:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y) (x + y) == x x - y y], integers, {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+What holds in no ring does not follow:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}]
+```
+
+<!-- => Failure["NotRingEquation", ...] -->
+
+## Deciding Equations
+
+An equation of integers is decidable, by [IntegerEqualityDecidable](): the Boolean it computes compares a + d and c + b for the pairs (a, b) and (c, d). So [Decide]() computes:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == -3], integers]]
+```
+
+<!-- => true -->
+
+And `"Decide"` proves a closed equation, the two representatives that computation alone does not make equal included:
+
+```wl
+TypeTheoryProof[Typed[2 - 5, Integers] == -3, integers, {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->
