@@ -894,14 +894,14 @@ $constructiveDeclarations = {
 	TypeTheoryDefinition[
 		NaturalNumberEqualityDecidable,
 		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a == b]]],
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a == n]]],
 			Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Decidable[0 == c]],
 				DecidableTrue[EqualityReflexivity[0]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[0 == c]]}, DecidableFalse[Function[{Typed[e, 0 == c + 1]}, SuccessorNotZero[c][EqualitySymmetry[e]]]]],
 				b
 			]],
-			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a == b]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a == n]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Decidable[a + 1 == c]],
 				DecidableFalse[SuccessorNotZero[a]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[a + 1 == c]]}, InductiveRecursor[Decidable][
@@ -918,9 +918,9 @@ $constructiveDeclarations = {
 	TypeTheoryDefinition[
 		LessEqualDecidable,
 		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a <= b]]],
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a <= n]]],
 			Function[{Typed[b, NonNegativeIntegers]}, DecidableTrue[LessEqualZero[b]]],
-			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a <= b]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a <= n]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Decidable[a + 1 <= c]],
 				DecidableFalse[SuccessorNotLessEqualZero[a]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[a + 1 <= c]]}, InductiveRecursor[Decidable][
