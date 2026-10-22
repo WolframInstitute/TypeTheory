@@ -20,7 +20,9 @@ axiom where the environment's rules allow them. Definitional equality adds eta f
 irrelevance: two proofs of the same proposition are equal.
 
 Under rules without Prop, every universe level must be at least 1 whatever its universe parameters are,
-so no type is a proposition, and proof irrelevance and K-like reduction never apply.
+so no type is a proposition, and proof irrelevance and K-like reduction never apply. Under rules with
+quantities a binder may carry a quantity, 0 or 1, and two function types are equal only if their binders
+have the same quantity; elsewhere a binder with a quantity does not check (Quantities.wl).
 
 Metavariables only appear while elaborating; their types and assignments are read from
 $metavariableTypes and $metavariableAssignments, which the elaborator binds.
@@ -40,6 +42,7 @@ PackageScoped[sortLevel]
 PackageScoped[checkHasType]
 PackageScoped[freshFreeVariable]
 PackageScoped[extendContext]
+PackageScoped[extendLocalDefinition]
 PackageScoped[makeLambda]
 PackageScoped[makeDependentFunctionType]
 PackageScoped[toConstructorForm]
@@ -61,6 +64,7 @@ checkHasType::usage = "checkHasType[environment, context, term, type] throws a k
 freshFreeVariable::usage = "freshFreeVariable[] gives an identifier no free variable has used."
 withKernelCaches::usage = "withKernelCaches[body] evaluates body remembering the kernel's inferred types, weak head normal forms and definitional equalities, unless an enclosing check already does."
 extendContext::usage = "extendContext[context, id, HoldComplete[name], type, binder] gives context with freeVariable[id] of type type."
+extendLocalDefinition::usage = "extendLocalDefinition[context, id, HoldComplete[name], type, value] gives context with freeVariable[id] of type type standing for value."
 makeLambda::usage = "makeLambda[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into functions."
 makeDependentFunctionType::usage = "makeDependentFunctionType[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into a function type."
 toConstructorForm::usage = "toConstructorForm[environment, term] writes a natural literal as a constructor application, and gives any other term unchanged."
@@ -95,7 +99,7 @@ withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
 
 freshFreeVariable[] := ++$freeVariableCounter
 
-extendContext[context_Association, id_Integer, name_, type_, binder_String] := Append[context, id -> <|"Name" -> name, "Type" -> type, "Binder" -> binder|>]
+extendContext[context_Association, id_Integer, name_, type_, binder : (_String | {_String, _})] := Append[context, id -> <|"Name" -> name, "Type" -> type, "Binder" -> binder|>]
 
 makeLambda[context_Association, ids_List, body_] := Fold[
 	Function[{accumulated, id}, With[{entry = context[id]}, lambdaAbstraction[entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
@@ -186,6 +190,7 @@ checkHasType[environment_, context_, term_, expected_] := With[{actual = inferTy
 ]
 
 lambdaType[environment_, context_, name_, domain_, body_, binder_] := With[{id = freshFreeVariable[]},
+	checkBinderQuantity[environment, name, binder];
 	sortLevel[environment, context, domain];
 	dependentFunctionType[
 		name,
@@ -196,6 +201,7 @@ lambdaType[environment_, context_, name_, domain_, body_, binder_] := With[{id =
 ]
 
 functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := With[{id = freshFreeVariable[]},
+	checkBinderQuantity[environment, name, binder];
 	universeSort[normalizeLevel[levelImpredicativeMaximum[
 		sortLevel[environment, context, domain],
 		sortLevel[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]]]
@@ -564,8 +570,10 @@ definitionallyEqualCases[_, _, universeSort[first_], universeSort[second_]] := l
 (* two literals are equal if their numbers are, which comparing them as successors would find only after
    one step for each *)
 definitionallyEqualCases[_, _, naturalLiteral[first_], naturalLiteral[second_]] := first == second
-definitionallyEqualCases[environment_, context_, (head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], head_[_, otherDomain_, otherBody_, _]] :=
+(* two function types are equal only if their binders have the same quantity, the binders' kinds aside *)
+definitionallyEqualCases[environment_, context_, (head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], head_[_, otherDomain_, otherBody_, otherBinder_]] :=
 	And[
+		head === lambdaAbstraction || binderQuantity[binder] === binderQuantity[otherBinder],
 		definitionallyEqualQ[environment, context, domain, otherDomain],
 		With[{id = freshFreeVariable[]},
 			definitionallyEqualQ[

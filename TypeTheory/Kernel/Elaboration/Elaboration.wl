@@ -332,7 +332,7 @@ constantWithLevels[constantSyntax_, levelSyntaxes_List] := With[{held = constant
 insertImplicitArguments[{term_, type_}] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
 	{
-		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = implicitArgument[domain, binder]},
+		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] :> With[{implicit = implicitArgument[domain, binder]},
 			insertImplicitArguments[{application[term, implicit], instantiateBoundVariable[codomain, implicit]}]
 		],
 		_ :> {term, type}
@@ -361,7 +361,7 @@ collectArguments[term_, type_, {}, postponed_List, _, _] := Append[insertImplici
 collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expected_] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
 	{
-		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = implicitArgument[domain, binder]},
+		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] :> With[{implicit = implicitArgument[domain, binder]},
 			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax, expected]
 		],
 		functionType : dependentFunctionType[_, _, _, _] /; expected =!= None :> (
@@ -395,8 +395,8 @@ propagateExpectedType[functionType_, count_Integer, expected_] := With[{result =
 ]
 
 (* the type after count explicit binders and the implicit binders around them, or None *)
-typeAfterArguments[dependentFunctionType[_, _, codomain_, binder_], count_Integer] /; binder =!= "Explicit" := typeAfterArguments[codomain, count]
-typeAfterArguments[dependentFunctionType[_, _, codomain_, "Explicit"], count_Integer] /; count > 0 := typeAfterArguments[codomain, count - 1]
+typeAfterArguments[dependentFunctionType[_, _, codomain_, binder_], count_Integer] /; ! explicitBinderQ[binder] := typeAfterArguments[codomain, count]
+typeAfterArguments[dependentFunctionType[_, _, codomain_, _], count_Integer] /; count > 0 := typeAfterArguments[codomain, count - 1]
 typeAfterArguments[type_, 0] := type
 typeAfterArguments[_, _Integer] := None
 
@@ -486,7 +486,7 @@ openBinder[state_Association, binder_] := Block[{$elaborationContext = state["Co
 				type = instantiateMetavariables[Replace[parsed["Type"], {None :> expectedDomain[state["Expected"], binder], typeSyntax_ :> elaborateTypeSyntax[typeSyntax]}]]
 			},
 			<|
-				"Context" -> extendContext[state["Context"], id, parsed["Name"], type, parsed["Binder"]],
+				"Context" -> extendContext[state["Context"], id, parsed["Name"], type, expectedQuantityBinder[parsed, state["Expected"]]],
 				"Scope" -> Append[state["Scope"], parsed["Name"] -> {freeVariable[id], type}],
 				"Ids" -> Append[state["Ids"], id],
 				"Expected" -> expectedBody[state["Expected"], id]
@@ -495,15 +495,38 @@ openBinder[state_Association, binder_] := Block[{$elaborationContext = state["Co
 	]
 ]
 
-parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[name_], type_}]] := <|"Name" -> name, "Type" -> type, "Binder" -> "Explicit"|>
-parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString[name_], type_}]] := <|"Name" -> HoldComplete[name], "Type" -> type, "Binder" -> "Explicit"|>
+(* "Quantity" is the quantity written, Typed[x, type, quantity], or Automatic *)
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[name_], type_}]] := <|"Name" -> name, "Type" -> type, "Binder" -> "Explicit", "Quantity" -> Automatic|>
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString[name_], type_}]] := <|"Name" -> HoldComplete[name], "Type" -> type, "Binder" -> "Explicit", "Quantity" -> Automatic|>
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {name_, type_, quantity_}]] :=
+	withQuantity[parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {name, type}]], quantity]
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, syntaxString[kind : "Implicit" | "StrictImplicit" | "InstanceImplicit"]}]] :=
-	Append[parseBinder[binder], "Binder" -> kind]
-parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {name_, type_}]] :=
-	Append[parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {name, type}]], "Binder" -> "Implicit"]
-parseBinder[syntaxSymbol[name_]] := <|"Name" -> name, "Type" -> None, "Binder" -> "Explicit"|>
-parseBinder[syntaxString[name_]] := <|"Name" -> HoldComplete[name], "Type" -> None, "Binder" -> "Explicit"|>
+	withKind[parseBinder[binder], kind]
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {arguments__}]] /; Length[{arguments}] <= 3 :=
+	withKind[parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {arguments}]], "Implicit"]
+parseBinder[syntaxSymbol[name_]] := <|"Name" -> name, "Type" -> None, "Binder" -> "Explicit", "Quantity" -> Automatic|>
+parseBinder[syntaxString[name_]] := <|"Name" -> HoldComplete[name], "Type" -> None, "Binder" -> "Explicit", "Quantity" -> Automatic|>
 parseBinder[other_] := elaborationFailure["`1` is not a binder: write Typed[x, type] or TypedImplicit[x, type].", other]
+
+withKind[parsed_, kind_String] := Append[parsed, "Binder" -> quantifiedBinder[kind, binderQuantity[parsed["Binder"]]]]
+
+withQuantity[parsed_, quantitySyntax_] := With[{quantity = parsedQuantity[quantitySyntax]},
+	Join[parsed, <|"Binder" -> quantifiedBinder[binderKind[parsed["Binder"]], quantity], "Quantity" -> quantity|>]
+]
+
+parsedQuantity[syntaxInteger[quantity : 0 | 1]] := quantity
+parsedQuantity[syntaxSymbol[HoldComplete[Infinity]]] := Infinity
+parsedQuantity[syntaxApplication[syntaxSymbol[HoldComplete[DirectedInfinity]], {syntaxInteger[1]}]] := Infinity
+parsedQuantity[other_] := elaborationFailure["`1` is not a quantity: the quantity of a binder is 0, 1 or Infinity.", other]
+
+(* a binder written without a quantity takes the one the expected function type gives its variable *)
+expectedQuantityBinder[parsed_, expected_] := If[ parsed["Quantity"] === Automatic && expected =!= None,
+	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], {
+		dependentFunctionType[_, _, _, binder_] :> quantifiedBinder[binderKind[parsed["Binder"]], binderQuantity[binder]],
+		_ :> parsed["Binder"]
+	}],
+	parsed["Binder"]
+]
 
 expectedDomain[expected_, binder_] := Replace[
 	If[expected === None, None, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]],
@@ -770,7 +793,7 @@ settleOverloads[term_] := (
 
 (* the argument of an implicit binder; one of an instance-implicit binder waits for an instance *)
 implicitArgument[domain_, binder_] := With[{argument = newMetavariable[domain]},
-	If[binder === "InstanceImplicit", AppendTo[$pendingInstances, First[argument]]];
+	If[binderKind[binder] === "InstanceImplicit", AppendTo[$pendingInstances, First[argument]]];
 	argument
 ]
 
@@ -805,7 +828,7 @@ synthesizedInstance[goal_, depth_Integer] := Replace[instanceClass[goal], {
    the goal, or None *)
 localInstance[class_, goal_] := Replace[
 	SelectFirst[
-		Reverse @ Keys @ Select[$elaborationContext, Function[entry, entry["Binder"] === "InstanceImplicit" && instanceClass[entry["Type"]] === class]],
+		Reverse @ Keys @ Select[$elaborationContext, Function[entry, binderKind[entry["Binder"]] === "InstanceImplicit" && instanceClass[entry["Type"]] === class]],
 		Function[id, attemptOrRestore[unify[$elaborationContext[id]["Type"], goal]]]
 	],
 	{id_Integer :> freeVariable[id], _ -> None}
@@ -829,7 +852,7 @@ instanceCandidate[name_, goal_, depth_] := Replace[openedInstance[constantWithFr
 
 (* the instance applied to new metavariables for its binders: {term, conclusion, {instance-implicit ones}} *)
 openedInstance[{term_, dependentFunctionType[_, domain_, codomain_, binder_]}, subgoals_List] := With[{argument = newMetavariable[domain]},
-	openedInstance[{application[term, argument], instantiateBoundVariable[codomain, argument]}, If[binder === "InstanceImplicit", Append[subgoals, First[argument]], subgoals]]
+	openedInstance[{application[term, argument], instantiateBoundVariable[codomain, argument]}, If[binderKind[binder] === "InstanceImplicit", Append[subgoals, First[argument]], subgoals]]
 ]
 openedInstance[{term_, conclusion_}, subgoals_List] := {term, conclusion, subgoals}
 
@@ -864,7 +887,7 @@ firstCoercion[{name_, rest___}, term_, actual_, expected_, depth_] := Replace[co
 (* the coercion's implicit arguments are new metavariables and its instance arguments are found, once its
    domain is the term's type: its codomain is then the type expected, or the start of the rest of a chain *)
 coercionStep[name_, term_, actual_, expected_, depth_] := Replace[openedImplicitBinders[constantWithFreshLevels[name], {}], {
-	{function_, dependentFunctionType[_, domain_, codomain_, "Explicit"], subgoals_} :> With[
+	{function_, dependentFunctionType[_, domain_, codomain_, _?explicitBinderQ], subgoals_} :> With[
 		{coerced = application[function, term], target = instantiateBoundVariable[codomain, term], solvedQ = Function[id, subgoalSolvedQ[id, 0]]},
 		attemptOrNone[Which[
 			! unify[domain, actual],
@@ -881,8 +904,8 @@ coercionStep[name_, term_, actual_, expected_, depth_] := Replace[openedImplicit
 }]
 
 (* a constant applied to new metavariables for its leading implicit binders: {term, type, {instance-implicit ones}} *)
-openedImplicitBinders[{term_, dependentFunctionType[_, domain_, codomain_, binder_]}, subgoals_List] /; binder =!= "Explicit" := With[{argument = newMetavariable[domain]},
-	openedImplicitBinders[{application[term, argument], instantiateBoundVariable[codomain, argument]}, If[binder === "InstanceImplicit", Append[subgoals, First[argument]], subgoals]]
+openedImplicitBinders[{term_, dependentFunctionType[_, domain_, codomain_, binder_]}, subgoals_List] /; ! explicitBinderQ[binder] := With[{argument = newMetavariable[domain]},
+	openedImplicitBinders[{application[term, argument], instantiateBoundVariable[codomain, argument]}, If[binderKind[binder] === "InstanceImplicit", Append[subgoals, First[argument]], subgoals]]
 ]
 openedImplicitBinders[{term_, type_}, subgoals_List] := {term, type, subgoals}
 
@@ -998,9 +1021,11 @@ notationHeadQ[syntaxSymbol[HoldComplete[Function | ForAll | RightTee | Exists | 
 notationHeadQ[syntaxSymbol[HoldComplete[Plus | Times | And | Or]], count_Integer] := count =!= 2
 notationHeadQ[_, _] := False
 
+explicitBinderQ[binder_] := binderKind[binder] === "Explicit"
+
 (* whether a constant of this type, on its own, gets implicit arguments from elaboration *)
-leadingImplicitQ[dependentFunctionType[_, _, _, binder_]] := binder =!= "Explicit"
-leadingImplicitQ[type_] := MatchQ[weakHeadNormalForm[$elaborationEnvironment, <||>, type], dependentFunctionType[_, _, _, Except["Explicit"]]]
+leadingImplicitQ[dependentFunctionType[_, _, _, binder_]] := ! explicitBinderQ[binder]
+leadingImplicitQ[type_] := MatchQ[weakHeadNormalForm[$elaborationEnvironment, <||>, type], dependentFunctionType[_, _, _, binder_ /; ! explicitBinderQ[binder]]]
 
 (* each domain lies under the binders of the domains before it, which name nothing a term can refer to *)
 explicitArrow[domains_List, codomain_, scope_] := Module[{inner = scope, cores = {}},
@@ -1038,7 +1063,7 @@ lambdaBinders[_] := None
 
 (* True or False when the type as written decides, None when it does not *)
 writtenBindersQ[_, 0] := True
-writtenBindersQ[dependentFunctionType[_, _, codomain_, "Explicit"], count_Integer] := writtenBindersQ[codomain, count - 1]
+writtenBindersQ[dependentFunctionType[_, _, codomain_, _?explicitBinderQ], count_Integer] := writtenBindersQ[codomain, count - 1]
 writtenBindersQ[_dependentFunctionType, _] := False
 writtenBindersQ[_, _] := None
 
@@ -1054,7 +1079,7 @@ unfoldedBindersQ[headCore_, argumentCores_List, scope_] := With[{opened = openSc
 
 unfoldedBindersFrom[_, _, {}] := True
 unfoldedBindersFrom[context_, type_, {argument_, rest___}] := Replace[weakHeadNormalForm[$elaborationEnvironment, context, type], {
-	dependentFunctionType[_, domain_, codomain_, "Explicit"] :> (
+	dependentFunctionType[_, domain_, codomain_, _?explicitBinderQ] :> (
 		checkHasType[$elaborationEnvironment, context, argument, domain];
 		unfoldedBindersFrom[context, instantiateBoundVariable[codomain, argument], {rest}]
 	),
@@ -1418,7 +1443,9 @@ unifyHeads[constantReference[name_, levels_List], constantReference[name_, other
 	Length[levels] == Length[otherLevels] && AllTrue[Transpose[{levels, otherLevels}], Apply[unifyLevels]]
 unifyHeads[a_, b_] := a === b
 
-unifyBinders[(head : dependentFunctionType | lambdaAbstraction)[name_, domain_, body_, binder_], head_[_, otherDomain_, otherBody_, _]] := And[
+(* as in the kernel, two function types unify only if their binders have the same quantity *)
+unifyBinders[(head : dependentFunctionType | lambdaAbstraction)[name_, domain_, body_, binder_], head_[_, otherDomain_, otherBody_, otherBinder_]] := And[
+	head === lambdaAbstraction || binderQuantity[binder] === binderQuantity[otherBinder],
 	unify[domain, otherDomain],
 	With[{id = freshFreeVariable[]},
 		Block[{$elaborationContext = extendContext[$elaborationContext, id, name, instantiateMetavariables[domain], binder]},

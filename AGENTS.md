@@ -23,8 +23,8 @@ umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and e
   `Return`, no `Part`, usage messages for every function.
 - **The kernel is the trust boundary.** `Terms/CoreTerms.wl`, `Checking/TypeChecking.wl`,
   `Checking/InductiveTypes.wl`, `Checking/NaturalNumbers.wl`, `Checking/Quotients.wl`,
-  `Checking/Environment.wl` and the core declaration functions in `Checking/Declarations.wl` decide what
-  is a theorem. A change there needs a
+  `Checking/Quantities.wl`, `Checking/Environment.wl` and the core declaration functions in
+  `Checking/Declarations.wl` decide what is a theorem. A change there needs a
   test that a forged proof or declaration is still rejected. Elaboration and tactics are untrusted:
   everything they produce is checked again by the kernel.
 - **Terms must stay held.** Surface terms are built from built-in symbols that evaluate (`ForAll`,

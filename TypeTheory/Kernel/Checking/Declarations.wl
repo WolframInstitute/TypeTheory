@@ -30,7 +30,9 @@ first declaration that does not check. Append[environment, declaration] adds one
 
 TypeTheoryEnvironment[rules] starts an environment with no constants that follows the TypeTheoryRules
 rules; every environment made from it follows them too. Rewrite rules may only be declared where the
-rules allow them, and under rules without Prop a theorem may state any type.
+rules allow them, and under rules without Prop a theorem may state any type. Under rules with
+quantities, the value of a definition, the proof of a theorem and the right side of a rewrite rule pass
+the live check of Quantities.wl.
 
 A name is any expression: a symbol, or a string for a constant imported from elsewhere. Universe
 parameters are the symbols and strings in universe levels, in the order they first appear; the option
@@ -200,7 +202,7 @@ definitionRoles[heldOptions_Hold, type_] := Select[
 	<|
 		"Instance" -> roleOption[heldOptions, "Instance", MatchQ[First @ applicationSpine[functionTypeConclusion[type]], _constantReference],
 			"InstanceTypeExpected", "The type of an instance must be a class, a constant applied to arguments, under its binders."],
-		"Coercion" -> roleOption[heldOptions, "Coercion", MatchQ[explicitFunctionType[type], dependentFunctionType[_, _, _, "Explicit"]],
+		"Coercion" -> roleOption[heldOptions, "Coercion", MatchQ[explicitFunctionType[type], dependentFunctionType[_, _, _, binder_ /; binderKind[binder] === "Explicit"]],
 			"CoercionTypeExpected", "The type of a coercion must be a function of an explicit argument, under its implicit binders."]
 	|>,
 	TrueQ
@@ -216,7 +218,7 @@ roleOption[heldOptions_Hold, option_String, fitsQ_, tag_String, message_String] 
 functionTypeConclusion[dependentFunctionType[_, _, codomain_, _]] := functionTypeConclusion[codomain]
 functionTypeConclusion[type_] := type
 
-explicitFunctionType[dependentFunctionType[_, _, codomain_, binder_]] /; binder =!= "Explicit" := explicitFunctionType[codomain]
+explicitFunctionType[dependentFunctionType[_, _, codomain_, binder_]] /; binderKind[binder] =!= "Explicit" := explicitFunctionType[codomain]
 explicitFunctionType[type_] := type
 
 addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, options : OptionsPattern[]]] := With[
@@ -441,6 +443,7 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
 	checkHasType[environment, <||>, value, type];
+	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
 	addConstantRecords[environment, <|name -> Join[
 		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
 		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ]
@@ -454,6 +457,7 @@ declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, 
 		kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
 	];
 	checkHasType[environment, <||>, value, type];
+	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
 ]
 
@@ -478,6 +482,7 @@ declareRewriteRule[environment_, name_HoldComplete, universeParameters_List, num
 	If[ ! SubsetQ[Cases[headLevels, levelParameter[parameter_] :> parameter], universeParameters],
 		kernelFailure["RewriteRuleUniverse", "Every universe parameter of the rewrite rule `1` must be a universe level of its head.", {HoldForm @@ name}]
 	];
+	If[rulesSetting[environment, "Quantities"], checkRewriteRuleUses[environment, name, numberOfVariables, left, right]];
 	addRewriteRuleRecord[environment, name, <|
 		"Kind" -> "RewriteRule",
 		"Type" -> None,

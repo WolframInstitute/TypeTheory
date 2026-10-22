@@ -8,6 +8,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 
 	Typed[x, A]                         x ∶ A                Colon
 	TypedImplicit[x, A]                 {x ∶ A}
+	Typed[x, A, q], TypedImplicit[x, A, q]   q x ∶ A, {q x ∶ A}   the quantity first, as Idris writes it
 	Annotation[Typed[x, A], kind]       {x ∶ A}, ⦃x ∶ A⦄, [x ∶ A]
 	ForAll[{b1, b2}, B]                 ∀_b1 ∀_b2 B          ForAll, one binder at a time
 	Exists[{b}, B]                      ∃_b B
@@ -65,7 +66,7 @@ displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term
 typeTheoryBoxes[syntax_, form_] := Block[
 	{
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
-		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], _}]]
+		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]]
 	},
 	quantifiedOperandBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
@@ -154,6 +155,8 @@ displaySyntax[syntax_] := syntax
 
 displayApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] := syntaxHead[Colon, {term, type}]
 displayApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {term_, type_}] := delimited["{", syntaxHead[Colon, {term, type}], "}"]
+displayApplication[syntaxSymbol[HoldComplete[head : Typed | TypedImplicit]], {term_, type_, quantity_}] :=
+	displayApplication[syntaxSymbol[HoldComplete[head]], {syntaxHead[Row, {syntaxHead[List, {quantity, term}], syntaxString[" "]}], type}]
 displayApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, syntaxString[kind : "Implicit" | "StrictImplicit" | "InstanceImplicit"]}] :=
 	Replace[kind, {
 		"Implicit" :> delimited["{", binder, "}"],

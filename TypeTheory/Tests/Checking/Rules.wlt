@@ -18,7 +18,7 @@ unit = TypeTheoryEnvironment[martinLof, {TypeTheoryInductiveType[Unit, TypeUnive
 
 VerificationTest[
 	{TypeTheoryRules["CalculusOfInductiveConstructions"]["Prop"], martinLof["Prop"], TypeTheoryRules["MartinLofTypeTheory", "RewriteRules" -> True]},
-	{True, False, TypeTheoryRules[<|"Name" -> "MartinLofTypeTheory", "Prop" -> False, "RewriteRules" -> True, "Quotients" -> False|>]},
+	{True, False, TypeTheoryRules[<|"Name" -> "MartinLofTypeTheory", "Prop" -> False, "RewriteRules" -> True, "Quotients" -> False, "Quantities" -> False|>]},
 	TestID -> "Named-rules-and-their-settings"
 ]
 

@@ -29,7 +29,8 @@ Prop itself, as a proof that 0 is no successor does, is tried again with the lev
 proposition lives in the universe of its largest field, as Exists does. What needs Prop's impredicativity
 or proof irrelevance, or a recursor at a universe parameter that may be 0, then fails to check, and is
 left out with every declaration that mentions it. A theorem of rules without Prop states a type, so where
-the rules gain Prop it becomes a definition.
+the rules gain Prop it becomes a definition. Where the rules lose quantities, every binder loses its
+quantity; where they gain them, the kernel gives the constructors and recursors theirs.
 *)
 
 
@@ -104,6 +105,13 @@ givenEnvironment[TypeTheoryTerm[_]] := None
 elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] :=
 	elaborateClosedTerm[environment, heldTerm[term], expected, universeParameters]
 
+(* a term checks under rules with quantities only if its functions use their variables as their quantities allow *)
+checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] := With[
+	{elaborated = elaborateQueryTerm[environment, term, expected, universeParameters]},
+	If[rulesSetting[environment, "Quantities"], withKernelCaches[checkLiveUses[environment, First[elaborated]]]];
+	elaborated
+]
+
 
 TypeTheoryTerm /: TypeOf[term : TypeTheoryTerm[_, ___]] := TypeTheoryCheck[term]
 TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryCheck[TypeTheoryTerm[term, environment]]
@@ -114,14 +122,14 @@ TypeTheoryCheck[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment =
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
 		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
 			constantRecord[environment, name]["Type"],
-		_ :> Last @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
+		_ :> Last @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]
 ]
 
 TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure @ With[
 	{environment = sharedEnvironment[term, type], universeParameters = universeParameterNames[{termSyntax[term], termSyntax[type]}]},
 	{expected = elaborateClosedType[environment, heldTerm[type], universeParameters]},
-	elaborateQueryTerm[environment, term, expected, universeParameters];
+	checkedQueryTerm[environment, term, expected, universeParameters];
 	Success["TypeChecked", <|"MessageTemplate" -> "`1` has type `2`.", "MessageParameters" -> {term, type}, "Term" -> term, "Type" -> type|>]
 ]
 
@@ -456,7 +464,7 @@ fieldLevels[_, _, _, _, _, levels_List] := levels
 (* Where the rules lose Prop, Prop becomes Type, the lowest universe of types, and every other sort stays: a
    level l becomes max(l, 1), so a constant keeps its universe levels, its own sorts lifted the same way. A
    recursor's level moves with the meaning of its motive's universe. *)
-translatedTerm[original_, target_, direction_, mode_, term_] := ReplaceAll[term, {
+translatedTerm[original_, target_, direction_, mode_, term_] := ReplaceAll[If[TrueQ[rulesSetting[target, "Quantities"]], term, withoutQuantities[term]], {
 	universeSort[level_] /; direction === "LoseProp" :> universeSort[normalizeLevel[levelMaximum[level, 1]]],
 	constantReference[name : HoldComplete[_InductiveRecursor], levels_List] :> constantReference[name, recursorLevels[original, target, direction, mode, name, levels]]
 }]

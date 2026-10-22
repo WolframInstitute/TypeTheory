@@ -30,6 +30,11 @@ eliminates only into Prop. Each constructor gets a reduction rule. A single prop
 constructor and no fields, such as Equal, is K-like: its recursor reduces on any major premise of the
 right type.
 
+Under rules with quantities (Quantities.wl), the parameters of each constructor are erased, and so are
+the parameters, motives and indices of each recursor. A recursor takes its minor premises and its major
+premise at quantity 1 when no constructor of the block has a recursive field, and at quantity Infinity
+otherwise; a minor premise takes each field at the quantity the constructor takes it times that.
+
 Everything is built with fresh free variables and abstracted at the end, which keeps de Bruijn indices
 out of the construction. The generated recursor types and rules are type-checked before they are added.
 *)
@@ -445,7 +450,7 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 	{
 		levels = levelParameter /@ universeParameters, restore, checkedConstructors, eliminationName, recursorUniverseParameters, eliminationLevel,
 		recursorConstants, motiveIds, majorIds, majorTypes, majorContexts, motiveContext, minorIds, ihIds, minorContext, minorTypes,
-		recursorContexts, recursorTypes, rules, inductiveRecords, constructorRecords, recursorRecords, extended
+		recursorContexts, recursorTypes, rules, inductiveRecords, constructorRecords, recursorRecords, extended, matchQuantity, matchBinder, premiseContext
 	},
 	restore = If[AllTrue[blockTypes, Function[type, type["Nested"] === None]], Identity, restoreNested[blockTypes, numberOfParameters]];
 	(* the auxiliary types give way to the nested types before anything is built from the constructors *)
@@ -495,9 +500,19 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 		Join @@ Append[Function[constructor, constructor["FieldContext"]] /@ checkedConstructors, motiveContext],
 		Transpose[{checkedConstructors, ihIds}]
 	];
+	(* with quantities, a match uses its argument once, unless it recurses; without them every quantity is Infinity *)
+	matchQuantity = If[AnyTrue[checkedConstructors, Function[constructor, constructor["RecursiveFields"] =!= {}]], Infinity, 1];
+	matchBinder = If[rulesSetting[environment, "Quantities"], quantifiedBinder["Explicit", matchQuantity], "Explicit"];
+	premiseContext = Fold[
+		Function[{context, fieldId}, With[{binder = context[fieldId]["Binder"]},
+			Append[context, fieldId -> Append[context[fieldId], "Binder" -> quantifiedBinder[binderKind[binder], multiplyQuantities[matchQuantity, binderQuantity[binder]]]]]
+		]],
+		minorContext,
+		Catenate[Lookup[checkedConstructors, "FieldIds"]]
+	];
 	minorTypes = MapThread[
 		Function[{constructor, constructorIhIds},
-			makeDependentFunctionType[minorContext, Join[constructor["FieldIds"], constructorIhIds], makeApplication[
+			makeDependentFunctionType[premiseContext, Join[constructor["FieldIds"], constructorIhIds], makeApplication[
 				freeVariable[motiveIds[[ownerPosition[blockTypes, constructor]]]],
 				Append[constructor["ConclusionIndices"], constructor["Application"]]
 			]]
@@ -510,12 +525,13 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 				Function[{context, entry}, extendContext[context, First[entry], Last[entry]["Name"], Last[entry]["Type"], Last[entry]["Binder"]]],
 				minorContext,
 				Join[
-					Function[id, {id, Append[minorContext[id], "Binder" -> "Implicit"]}] /@ Join[parameterIds, type["IndexIds"]],
+					Function[id, {id, Append[minorContext[id], "Binder" -> erasedBinder[environment, "Implicit"]]}] /@ Join[parameterIds, type["IndexIds"]],
+					Function[id, {id, Append[minorContext[id], "Binder" -> erasedBinder[environment, "Explicit"]]}] /@ motiveIds,
 					MapThread[
-						Function[{id, constructor, minorType}, {id, <|"Name" -> displayedConstructorName[constructor], "Type" -> minorType, "Binder" -> "Explicit"|>}],
+						Function[{id, constructor, minorType}, {id, <|"Name" -> displayedConstructorName[constructor], "Type" -> minorType, "Binder" -> matchBinder|>}],
 						{minorIds, checkedConstructors, minorTypes}
 					],
-					{{majorId, minorContext[majorId]}}
+					{{majorId, Append[minorContext[majorId], "Binder" -> matchBinder]}}
 				]
 			]
 		],
@@ -570,7 +586,7 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 	constructorRecords = Association[Catenate[Function[type, MapIndexed[
 		Function[{constructor, position}, constructor["Name"] -> <|
 			"Kind" -> "Constructor",
-			"Type" -> constructor["Type"],
+			"Type" -> If[rulesSetting[environment, "Quantities"], erasedParameters[constructor["Type"], numberOfParameters], constructor["Type"]],
 			"UniverseParameters" -> universeParameters,
 			"InductiveType" -> type["Name"],
 			"ConstructorIndex" -> First[position],
@@ -606,6 +622,11 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 	Scan[Function[rule, inferType[extended, <||>, rule["RightHandSide"]]], Catenate[Values /@ rules]];
 	extended
 ]
+
+(* with quantities, a constructor's parameters are erased: the value it builds does not hold them *)
+erasedParameters[dependentFunctionType[name_, domain_, codomain_, binder_], count_Integer?Positive] :=
+	dependentFunctionType[name, domain, erasedParameters[codomain, count - 1], quantifiedBinder[binderKind[binder], 0]]
+erasedParameters[type_, _] := type
 
 ownerPosition[blockTypes_, constructor_] := First[FirstPosition[Lookup[blockTypes, "Name"], Verbatim[constructor["Owner"]], {0}, {1}, Heads -> False]]
 

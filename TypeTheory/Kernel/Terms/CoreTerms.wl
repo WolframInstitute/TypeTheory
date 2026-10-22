@@ -21,7 +21,9 @@ carries its name and type.
 	projection[HoldComplete[structure], index, term]    field index, counting from 0, of a term of a structure type
 
 Names are held, so a constant or variable whose symbol has a value never evaluates inside a term.
-binder is one of "Explicit", "Implicit", "StrictImplicit", "InstanceImplicit".
+binder is its kind, one of "Explicit", "Implicit", "StrictImplicit", "InstanceImplicit", or under rules
+with quantities {kind, quantity} with quantity 0 or 1 (Quantities.wl); a binder that is its kind alone has
+the quantity Infinity.
 
 Levels are a non-negative Integer, levelParameter[HoldComplete[u]], levelMetavariable[id],
 levelSuccessor[level, k] (level + k for an Integer k >= 1), levelMaximum[level, ...] and
@@ -51,6 +53,11 @@ PackageScoped[levelMetavariable]
 PackageScoped[levelSuccessor]
 PackageScoped[levelMaximum]
 PackageScoped[levelImpredicativeMaximum]
+
+PackageScoped[binderKind]
+PackageScoped[binderQuantity]
+PackageScoped[quantifiedBinder]
+PackageScoped[withoutQuantities]
 
 PackageScoped[liftBoundVariables]
 PackageScoped[looseBoundRange]
@@ -93,6 +100,11 @@ levelSuccessor::usage = "levelSuccessor[level, k] is level + k."
 levelMaximum::usage = "levelMaximum[level1, level2, ...] is the largest of the levels."
 levelImpredicativeMaximum::usage = "levelImpredicativeMaximum[a, b] is 0 when b is 0 and the maximum of a and b otherwise: the level of a function type from Sort a to Sort b."
 
+binderKind::usage = "binderKind[binder] gives the kind of binder: \"Explicit\", \"Implicit\", \"StrictImplicit\" or \"InstanceImplicit\"."
+binderQuantity::usage = "binderQuantity[binder] gives the quantity of binder: 0, 1, or Infinity for a binder that is its kind alone."
+quantifiedBinder::usage = "quantifiedBinder[kind, quantity] gives the binder of the given kind and quantity: the kind alone for the quantity Infinity, and {kind, quantity} otherwise."
+withoutQuantities::usage = "withoutQuantities[term] gives term with the quantity of every binder in it removed."
+
 liftBoundVariables::usage = "liftBoundVariables[term, amount, cutoff] adds amount to every bound variable index at least cutoff."
 looseBoundRange::usage = "looseBoundRange[term] gives one more than the largest index of a bound variable of term that no binder of term binds, or 0."
 $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loose bound ranges remembered while the kernel checks a declaration, or None."
@@ -113,6 +125,25 @@ levelNeverZeroQ::usage = "levelNeverZeroQ[level] gives True if level is at least
 
 (* ::Section:: *)
 (*Function Definitions*)
+
+
+(* ::Subsection:: *)
+(*Binders*)
+
+
+binderKind[{kind_String, _}] := kind
+binderKind[kind_] := kind
+
+binderQuantity[{_String, quantity_}] := quantity
+binderQuantity[_] := Infinity
+
+quantifiedBinder[kind_String, Infinity] := kind
+quantifiedBinder[kind_String, quantity_] := {kind, quantity}
+
+withoutQuantities[term_] := ReplaceAll[
+	term,
+	(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, {kind_String, _}] :> head[name, withoutQuantities[domain], withoutQuantities[body], kind]
+]
 
 
 (* ::Subsection:: *)

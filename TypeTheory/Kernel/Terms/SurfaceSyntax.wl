@@ -11,6 +11,7 @@ A surface term is an ordinary Wolfram Language expression, kept unevaluated:
 	A -> B, {A, ...} -> B                             the same, written as a rule
 	TypedImplicit[x, A]                               an implicit binder, the same as Annotation[Typed[x, A], "Implicit"]
 	Annotation[Typed[x, A], kind]                     a binder of kind "StrictImplicit" or "InstanceImplicit"
+	Typed[x, A, q], TypedImplicit[x, A, q]            a binder of quantity q, 0, 1 or Infinity, under rules with quantities
 	Exists[{Typed[x, A]}, p]                          Exists applied to Function[{Typed[x, A]}, p]
 	Typed[e, A]                                       e, checked against A
 	With[{x = v}, b]                                  b with x standing for v
@@ -215,6 +216,11 @@ arrowBinderQ[_] := False
 binderSyntax[name_, domainSyntax_, "Explicit"] := syntaxHead[Typed, {nameSyntax[name], domainSyntax}]
 binderSyntax[name_, domainSyntax_, "Implicit"] := syntaxHead[TypedImplicit, {nameSyntax[name], domainSyntax}]
 binderSyntax[name_, domainSyntax_, binder_String] := syntaxHead[Annotation, {syntaxHead[Typed, {nameSyntax[name], domainSyntax}], syntaxString[binder]}]
+(* the quantity is the third argument of Typed or TypedImplicit *)
+binderSyntax[name_, domainSyntax_, {kind_String, quantity_}] := Replace[binderSyntax[name, domainSyntax, kind], {
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {nameAndType__}] :> syntaxApplication[head, {nameAndType, syntaxInteger[quantity]}],
+	syntaxApplication[annotation_, {syntaxApplication[typed_, {nameAndType__}], kindSyntax_}] :> syntaxApplication[annotation, {syntaxApplication[typed, {nameAndType, syntaxInteger[quantity]}], kindSyntax}]
+}]
 
 nameSyntax[HoldComplete[name_String]] := syntaxString[name]
 nameSyntax[name_HoldComplete] := syntaxSymbol[name]
@@ -318,11 +324,11 @@ binderKinds[environment_, context_, constantReference[name_, _], n_Integer] := b
 binderKinds[environment_, context_, function_lambdaAbstraction, n_Integer] /; Length[lambdaBinderKinds[function]] >= n := Take[lambdaBinderKinds[function], n]
 binderKinds[environment_, context_, head_, n_Integer] := binderKindsFrom[environment, context, inferType[environment, context, head], n, 0]
 
-lambdaBinderKinds[lambdaAbstraction[_, _, body_, binder_]] := Prepend[lambdaBinderKinds[body], binder]
+lambdaBinderKinds[lambdaAbstraction[_, _, body_, binder_]] := Prepend[lambdaBinderKinds[body], binderKind[binder]]
 lambdaBinderKinds[_] := {}
 binderKindsFrom[_, _, _, 0, _] := {}
 binderKindsFrom[environment_, context_, dependentFunctionType[_, _, codomain_, binder_], n_Integer, depth_Integer] :=
-	Prepend[binderKindsFrom[environment, context, codomain, n - 1, depth + 1], binder]
+	Prepend[binderKindsFrom[environment, context, codomain, n - 1, depth + 1], binderKind[binder]]
 binderKindsFrom[environment_, context_, type_, n_Integer, depth_Integer] := Replace[
 	weakHeadNormalForm[environment, context, If[depth === 0, type, instantiateBoundVariables[type, ConstantArray[metavariable[0], depth]]]],
 	{

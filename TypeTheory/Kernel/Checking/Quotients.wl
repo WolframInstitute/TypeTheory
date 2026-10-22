@@ -98,9 +98,10 @@ equalityQ[environment_, equality_HoldComplete] := And[
 			record = constantRecord[environment, equality],
 			level = levelParameter[First[constantRecord[environment, equality]["UniverseParameters"]]]
 		},
+		(* under rules with quantities the constructor's parameters are erased, which changes nothing here *)
 		And[
-			definitionallyEqualQ[environment, <||>, record["Type"], equalityType[level]],
-			definitionallyEqualQ[environment, <||>, constantRecord[environment, First[record["Constructors"]]]["Type"], reflexivityType[equality, level]]
+			definitionallyEqualQ[environment, <||>, withoutQuantities[record["Type"]], equalityType[level]],
+			definitionallyEqualQ[environment, <||>, withoutQuantities[constantRecord[environment, First[record["Constructors"]]]["Type"]], reflexivityType[equality, level]]
 		]
 	]
 ]
