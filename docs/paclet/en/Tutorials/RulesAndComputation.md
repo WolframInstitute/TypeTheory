@@ -334,6 +334,48 @@ confused[Confusion]
 
 Rules that do not overlap and always terminate, such as the quotient's and the circle's, keep the theory consistent, as long as the axioms they compute with are consistent.
 
+## Translations Between Rules
+
+[TypeTheoryTranslate]() moves the declarations of an environment to other rules, whose kernel checks each of them again, and leaves out those that do not check, with whatever mentions them. Where the rules lose Prop, Prop becomes Type, the lowest universe of types. The constructive prelude in Martin-Löf type theory:
+
+```wl
+martinLof = TypeTheoryTranslate[TypeTheoryEnvironment["Constructive"], TypeTheoryRules["MartinLofTypeTheory"]]
+```
+
+<!-- => Success["Translated", ...] -->
+
+All of it checks there but the quotient types, which those rules do not have:
+
+```wl
+Keys[martinLof["Failures"]]
+```
+
+<!-- => {QuotientType} -->
+
+The laws of arithmetic hold there, proved as in the prelude:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity, martinLof["Environment"]]]
+```
+
+<!-- => ∀_m∶ℕ ∀_n∶ℕ m + n == n + m -->
+
+Axioms stay behind unless asked for, since an axiom about propositions need not hold of types. Propositional extensionality, kept, does not check there; if every type counted as a proposition it would be inconsistent:
+
+```wl
+First @ TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], TypeTheoryRules["MartinLofTypeTheory"], "Axioms" -> True]["Failures"][PropositionalExtensionality]
+```
+
+<!-- => "TypeMismatch" -->
+
+The other way, homotopy type theory, univalence and the circle included, goes to the calculus of inductive constructions with rewrite rules, where its theorems, which state types, become definitions:
+
+```wl
+TypeTheoryTranslate[TypeTheoryEnvironment["HomotopyTypeTheory"], TypeTheoryRules["CalculusOfInductiveConstructions", "RewriteRules" -> True], "Axioms" -> True]
+```
+
+<!-- => Success["Translated", ...] -->
+
 ## Summary
 
 | | The prelude's rules | The same with rewrite rules allowed | Martin-Löf rules, as in the HoTT environment | Lean's kernel |

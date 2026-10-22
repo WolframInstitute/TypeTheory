@@ -37,6 +37,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryRewriteRule]() makes an axiom compute, where the rules allow it
 - [TypeTheoryQuotients]() declares the quotient types of Lean's kernel
 - [TypeTheoryRules]() the rules an environment follows: the calculus of inductive constructions, with quotients, or Martin-Löf type theory without Prop
+- [TypeTheoryTranslate]() moves the declarations of an environment to other rules, whose kernel checks them again
 
 ### Checking and computing
 

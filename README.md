@@ -255,6 +255,14 @@ circle, by axioms, with the rewrite rule `CircleInductionBase` making induction 
 point. On the prelude's rules the same declarations with an equality in Prop prove False, which is why
 the HoTT rules refuse one.
 
+`TypeTheoryTranslate[environment, rules]` moves declarations between rules: it replays them on the
+empty environment of `rules`, whose kernel checks each again, and leaves out what does not check with
+whatever mentions it. Where the rules lose Prop, Prop becomes `Type` and a universe level `l` becomes
+`max(l, 1)`, recursor levels following; where they gain it, theorems become definitions. The
+constructive prelude translates to Martin-Löf type theory but for the quotient types, and homotopy type
+theory to the calculus of inductive constructions with rewrite rules. Axioms are kept only with
+`"Axioms" -> True`, since propositional extensionality, for one, does not hold of types.
+
 ## Tactics
 
 `TypeTheoryTactic[name, arguments...][proof]` works on the first goal of a `TypeTheoryProof`:
@@ -351,7 +359,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 253 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 259 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, and tampered environment records; and, on the prelude's rules,
@@ -362,6 +370,6 @@ the HoTT library proving False with an equality in Prop.
 - The rationals, as a quotient of the integers; deciding equations of integers, and "Ring" over them.
 - Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
-- Cubical type theory, where univalence computes; truncations; translations between rules.
+- Cubical type theory, where univalence computes; truncations; an affine kernel after BendTT.
 - Higher-order unification beyond patterns.
 - A compiled kernel (`FunctionCompile` over an array encoding of terms).
