@@ -827,13 +827,26 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 	];
 	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
-			Replace[ringEquationProof[left, right], {
+			Replace[ringEquationProof[arithmeticReduced[environment, current["Context"], left], arithmeticReduced[environment, current["Context"], right]], {
 				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative semiring.", data, goal],
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
 	}]
 ]
+
+(* A term of natural numbers with its atoms, the subterms that are no sum, product, power or successor,
+   reduced as far as they reduce without unfolding a definition: a field of a pair written out is the
+   term in it, Pair[a, b][[1]] is a. The term is equal to it by computation, which is all the kernel
+   needs of a proof built from the reduced one. *)
+arithmeticReduced[environment_, context_, term_] := Replace[term, {
+	application[application[head : constantReference[HoldComplete[Plus | Times | Power], _], a_], b_] :>
+		makeApplication[head, {arithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b]}],
+	application[head : constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :> application[head, arithmeticReduced[environment, context, a]],
+	_ :> With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
+		If[reduced === term, term, arithmeticReduced[environment, context, reduced]]
+	]
+}]
 
 (* the goal solved by a proof that the kernel checks first; the proof shares its subterms many times
    over, which the kernel's caches check once *)
@@ -968,7 +981,7 @@ polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], envir
 	];
 	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
-			Replace[ringCombinationProof[left, right, equationHypotheses[environment, current["Context"]]], {
+			Replace[ringCombinationProof[arithmeticReduced[environment, current["Context"], left], arithmeticReduced[environment, current["Context"], right], equationHypotheses[environment, current["Context"]]], {
 				None :> tacticFailure[
 					"NoCombination",
 					"Wolfram finds no polynomial combination of the equations among the hypotheses that gives the goal `1`.",
@@ -991,9 +1004,14 @@ linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], envir
 	With[{inequalities = inequalityHypotheses[environment, current["Context"]]},
 		Replace[
 			Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
-				application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :> ringLinearProof[left, right, inequalities],
+				application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :>
+					ringLinearProof[arithmeticReduced[environment, current["Context"], left], arithmeticReduced[environment, current["Context"], right], inequalities],
 				application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
-					With[{one = ringLinearProof[left, right, inequalities], other = ringLinearProof[right, left, inequalities]},
+					With[
+						{
+							one = ringLinearProof[arithmeticReduced[environment, current["Context"], left], arithmeticReduced[environment, current["Context"], right], inequalities],
+							other = ringLinearProof[arithmeticReduced[environment, current["Context"], right], arithmeticReduced[environment, current["Context"], left], inequalities]
+						},
 						If[one === None || other === None, None, makeApplication[constantReference[HoldComplete[LessEqualAntisymmetry], {}], {left, right, one, other}]]
 					],
 				constantReference[HoldComplete[False], _] :> ringContradictionProof[inequalities],
@@ -1016,9 +1034,10 @@ $linearConstants = HoldComplete /@ Unevaluated[{
    giving two *)
 inequalityHypotheses[environment_, context_] := Catenate @ KeyValueMap[
 	Function[{id, entry}, Replace[weakHeadNormalForm[environment, context, entry["Type"]], {
-		application[application[constantReference[HoldComplete[LessEqual], _], a_], b_] :> {{a, b, freeVariable[id]}},
+		application[application[constantReference[HoldComplete[LessEqual], _], a_], b_] :>
+			{{arithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b], freeVariable[id]}},
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; naturalNumberTypeQ[environment, context, type] :>
-			ringEquationInequalities[a, b, freeVariable[id]],
+			ringEquationInequalities[arithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b], freeVariable[id]],
 		_ :> {}
 	}]],
 	context
@@ -1061,7 +1080,8 @@ universalEquationBinders[environment_, context_, statement_, type_, count_Intege
 (* {{a, b, proof}, ...} for the hypotheses that are equations a == b of natural numbers *)
 equationHypotheses[environment_, context_] := KeyValueMap[
 	Function[{id, entry}, Replace[weakHeadNormalForm[environment, context, entry["Type"]], {
-		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; naturalNumberTypeQ[environment, context, type] :> {a, b, freeVariable[id]},
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; naturalNumberTypeQ[environment, context, type] :>
+			{arithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b], freeVariable[id]},
 		_ :> Nothing
 	}]],
 	context
@@ -1094,7 +1114,50 @@ closeIfSidesSame[data_, goal_, type_] := If[
    that constructor, states them again, and so does each induction hypothesis: the recursor's result is
    applied to them. "Induction" gives each new goal the minor premise's type, the constructor's fields
    and an induction hypothesis per recursive field; "Cases" gives it the fields alone. *)
-eliminate[data_, goal_, variableName_HoldComplete, mode : "Induction" | "Cases"] := Module[
+(* a variable of a quotient type is eliminated by the quotient's induction, any other by its inductive
+   type's recursor *)
+eliminate[data_, goal_, variableName_HoldComplete, mode : "Induction" | "Cases"] := With[
+	{current = currentGoal[data, goal], environment = data["Environment"]},
+	{id = hypothesisId[data, goal, current["Context"], variableName]},
+	{spine = applicationSpine[weakHeadNormalForm[environment, current["Context"], current["Context"][id]["Type"]]]},
+	If[ quotientTypeQ[environment, First[spine]],
+		quotientElimination[data, goal, current, id, spine, variableName],
+		inductiveElimination[data, goal, variableName, mode]
+	]
+]
+
+quotientTypeQ[environment_, head_] := MatchQ[head, constantReference[name_, _] /; MatchQ[constantRecord[environment, name], KeyValuePattern[{"Kind" -> "Quotient", "QuotientRole" -> "Type"}]]]
+
+(* A class q of the quotient of α by r: the goal, with the hypotheses that mention q, is a proposition P[q],
+   and the quotient's induction proves it from the one goal ForAll[{Typed[a, α]}, P[class of a]], as
+   Lean's induction using Quot.ind. Into data, a quotient is eliminated by lifting a function instead. *)
+quotientElimination[data_, goal_, current_, id_, {head : constantReference[name_, levels_], {alpha_, relation_}}, variableName_] := With[
+	{
+		environment = data["Environment"],
+		context = current["Context"],
+		induction = Last[constantRecord[data["Environment"], name]["QuotientNames"]],
+		dependents = dependentHypotheses[current["Context"], {id}],
+		newGoal = freshMetavariableId[]
+	},
+	{goalBody = makeDependentFunctionType[context, dependents, current["Type"]]},
+	{motive = makeLambda[context, {id}, goalBody]},
+	{premiseType = Replace[
+		instantiateUniverseParameters[constantRecord[environment, induction]["Type"], constantRecord[environment, induction]["UniverseParameters"], levels],
+		dependentFunctionType[_, _, dependentFunctionType[_, _, dependentFunctionType[_, _, dependentFunctionType[_, premise_, _, _], _], _], _] :>
+			betaNormalize[instantiateBoundVariables[premise, {alpha, relation, motive}]]
+	]},
+	If[ ! levelEquivalentQ[sortLevel[environment, context, goalBody], 0],
+		tacticFailure["QuotientEliminationIntoData", "In the goal `1`, the class `2` can only be eliminated into a proposition; lift a function to the classes instead.", data, goal, {HoldForm @@ variableName}]
+	];
+	solveGoal[
+		data,
+		goal,
+		makeApplication[constantReference[induction, levels], Join[{alpha, relation, motive, metavariable[newGoal], freeVariable[id]}, freeVariable /@ dependents]],
+		{newGoal -> <|"Context" -> KeyDrop[context, Join[{id}, dependents]], "Type" -> premiseType, "Case" -> HoldComplete[QuotientIntroduction]|>}
+	]
+]
+
+inductiveElimination[data_, goal_, variableName_HoldComplete, mode : "Induction" | "Cases"] := Module[
 	{
 		current = currentGoal[data, goal], environment = data["Environment"], context, id, head, arguments, inductiveName,
 		inductiveRecord, recursorRecord, parameters, indices, eliminated, dependents, goalBody, eliminationLevel,
