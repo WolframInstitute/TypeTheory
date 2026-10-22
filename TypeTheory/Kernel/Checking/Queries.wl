@@ -179,7 +179,8 @@ primaryNames[environment_] := Select[environmentNames[environment], Function[nam
 generatedQ[record_, name_] := Or[
 	MatchQ[record["Kind"], "Constructor" | "Recursor"],
 	record["Kind"] === "InductiveType" && First[record["Block"]] =!= name,
-	record["Kind"] === "Quotient" && record["QuotientType"] =!= name
+	record["Kind"] === "Quotient" && record["QuotientType"] =!= name,
+	record["Kind"] === "Cubical" && record["CubicalRole"] =!= "Interval"
 ]
 
 (* each registration of the natural numbers, or of operations on them, comes right after the last constant
@@ -249,6 +250,7 @@ declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDec
 	Replace[constantRecord[environment, name], {
 		record : KeyValuePattern["Kind" -> "Constructor" | "Recursor"] :> declarationOf[environment, record["InductiveType"], mode],
 		record : KeyValuePattern["Kind" -> "Quotient"] :> quotientDeclaration[record],
+		record : KeyValuePattern["Kind" -> "Cubical"] :> Replace[record["Sum"], HoldComplete[sum_] :> TypeTheoryCubical[sum]],
 		record_ :> ReleaseHold @ heldFromSyntax @ declarationSyntax[environment, name, record, mode]
 	}]
 ]
@@ -353,6 +355,7 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
 	"Quotient" :> declareQuotients[replayed, record["Equality"], record["QuotientNames"]],
+	"Cubical" :> declareCubical[replayed, record["Sum"]],
 	"InductiveType" :> declareInductiveTypes[
 		replayed,
 		record["UniverseParameters"],
@@ -417,6 +420,7 @@ translatedRecord[original_, target_, name_, record_, direction_, translate_] := 
 	"Theorem" :> declareTheorem[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],
 	"RewriteRule" :> declareRewriteRule[target, name, record["UniverseParameters"], record["NumberOfVariables"], translate[record["LeftHandSide"]], translate[record["RightHandSide"]]],
 	"Quotient" :> declareQuotients[target, record["Equality"], record["QuotientNames"]],
+	"Cubical" :> declareCubical[target, record["Sum"]],
 	"InductiveType" :> With[
 		{
 			constructorTypes = Function[constructor, constructor -> translate[constantRecord[original, constructor]["Type"]]] /@

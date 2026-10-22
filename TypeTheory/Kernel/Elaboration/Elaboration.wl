@@ -207,6 +207,16 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 
 elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] :> elaborateFunction[listElements[binders], body, expected],
+	(* cubical type theory: 0 and 1 where an element of the interval is expected, Min, Max and 1 - r for its
+	   operations, a type or a path of types where a line is expected, and the sides of a composition *)
+	syntaxInteger[n : 0 | 1] /; intervalExpectedQ[expected] :> {intervalEndpoint[n], intervalConstantTerm["Interval"]},
+	syntaxApplication[syntaxSymbol[HoldComplete[head : Min | Max]], {first_, second_}] /; cubicalElaborationQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxSymbol[Replace[head, {Min -> HoldComplete[IntervalMeet], Max -> HoldComplete[IntervalJoin]}]], {first, second}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Subtract]], {syntaxInteger[1], reversed_}] /; cubicalElaborationQ[] && intervalSyntaxQ[reversed] :>
+		elaborateSyntax[syntaxApplication[syntaxSymbol[HoldComplete[IntervalReverse]], {reversed}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Path]], {line_, left_, right_}] /; cubicalElaborationQ[] :> elaboratePath[line, left, right],
+	syntaxApplication[syntaxSymbol[HoldComplete[CubicalTransport]], {line_, face_, value_}] /; cubicalElaborationQ[] :> elaborateTransport[line, face, value],
+	syntaxApplication[syntaxSymbol[HoldComplete[CubicalComposition]], {type_, tube_, cap_}] /; cubicalElaborationQ[] :> elaborateComposition[type, tube, cap],
 	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | RightTee]], {binders_, body_}] :> elaborateForAll[listElements[binders], body],
 	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, body_}] :> elaborateSyntax[nestedExistential[listElements[binders], body], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
@@ -381,6 +391,7 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 		dependentFunctionType[_, domain_, codomain_, _] :> With[{argument = checkAgainst[First[arguments], domain]},
 			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], Rest[arguments], postponed, headSyntax, None]
 		],
+		pathType_ /; asIntervalFunction[pathType] =!= pathType :> collectArguments[term, asIntervalFunction[pathType], arguments, postponed, headSyntax, expected],
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
@@ -423,9 +434,10 @@ flexibleTypeQ[type_] := With[{spine = applicationSpine[instantiateMetavariables[
 	unassignedMetavariableQ[First[spine]] && Last[spine] =!= {}
 ]
 
-(* a term whose type does not unify with the one expected is coerced, if a chain of coercions applies *)
+(* a term whose type does not unify with the one expected is coerced, if a chain of coercions applies; a path
+   is a function of the interval *)
 checkAgainst[syntax_, expected_] := With[{result = elaborateSyntax[syntax, expected]},
-	With[{term = If[attemptOrRestore[unify[Last[result], expected]], First[result], coercedOrFail[result, expected, syntax]]},
+	With[{term = If[attemptOrRestore[unify[Last[result], expected] || pathAsFunctionQ[Last[result], expected]], First[result], coercedOrFail[result, expected, syntax]]},
 		synthesizePendingInstances[False];
 		term
 	]
@@ -444,6 +456,7 @@ applyExplicitly[{function_, functionType_}, {argument_, rest___}, headSyntax_] :
 		dependentFunctionType[_, domain_, codomain_, _] :> With[{value = checkAgainst[argument, domain]},
 			applyExplicitly[{application[function, value], instantiateBoundVariable[codomain, value]}, {rest}, headSyntax]
 		],
+		pathType_ /; asIntervalFunction[pathType] =!= pathType :> applyExplicitly[{function, asIntervalFunction[pathType]}, {argument, rest}, headSyntax],
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
@@ -529,7 +542,7 @@ expectedQuantityBinder[parsed_, expected_] := If[ parsed["Quantity"] === Automat
 ]
 
 expectedDomain[expected_, binder_] := Replace[
-	If[expected === None, None, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]],
+	If[expected === None, None, asIntervalFunction[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]]],
 	{
 		dependentFunctionType[_, domain_, _, _] :> domain,
 		_ :> elaborationFailure["The type of the variable `1` is needed: write Typed[x, type].", binder]
@@ -538,7 +551,7 @@ expectedDomain[expected_, binder_] := Replace[
 
 expectedBody[None, _] := None
 expectedBody[expected_, id_] := Replace[
-	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]],
+	asIntervalFunction[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]],
 	{dependentFunctionType[_, _, codomain_, _] :> instantiateBoundVariable[codomain, freeVariable[id]], _ :> None}
 ]
 
@@ -552,11 +565,24 @@ elaborateFunction[binders_List, body_, expected_] := With[{start = Length[$pendi
 			(* an overloaded name inside may mention the bound variables, so it is decided before they go out of scope *)
 			resolvePendingOverloads[start, True];
 			liftMetavariables[opened["Ids"], {result, boundVariableTypes[opened["Ids"]]}];
-			{
-				makeLambda[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[First[result]]],
-				makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[Last[result]]]
-			}
+			lambdaWithType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[First[result]], instantiateMetavariables[Last[result]]]
 		]
+	]
+]
+
+(* {function, type}: in cubical type theory a function of the interval is a path between its values at the
+   endpoints, as the kernel types it *)
+lambdaWithType[context_, ids_List, term_, type_] := If[ ! cubicalElaborationQ[] || NoneTrue[ids, Function[id, intervalTypeQ[$elaborationEnvironment, context[id]["Type"]]]],
+	{makeLambda[context, ids, term], makeDependentFunctionType[context, ids, type]},
+	Fold[
+		Function[{accumulated, id}, With[{function = makeLambda[context, {id}, First[accumulated]]},
+			{function, Replace[intervalLambdaType[$elaborationEnvironment, context, id, context[id]["Name"], context[id]["Type"], abstractFreeVariable[First[accumulated], id], Last[accumulated]], {
+				None :> makeDependentFunctionType[context, {id}, Last[accumulated]],
+				pathType_ :> betaNormalize[pathType]
+			}]}
+		]],
+		{term, type},
+		Reverse[ids]
 	]
 ]
 
@@ -588,6 +614,8 @@ elaborateArrow[domains_List, codomain_] := With[
 elaborateTypeSyntax[syntax_] := With[{result = elaborateSyntax[syntax, universeSort[newLevelMetavariable[]]]},
 	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[result]]], {
 		_universeSort :> First[result],
+		(* the interval, which only a function or a path may take; the kernel refuses it anywhere else *)
+		_intervalUniverse :> First[result],
 		_metavariable :> (unify[Last[result], universeSort[newLevelMetavariable[]]]; First[result]),
 		_ :> elaborationFailure["`1` is not a type.", syntax]
 	}]
@@ -1326,6 +1354,140 @@ refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArg
 		]
 	]
 ]
+
+
+(* ::Subsection:: *)
+(*Cubical type theory*)
+
+
+cubicalElaborationQ[] := cubicalDeclaredQ[$elaborationEnvironment]
+
+intervalConstantTerm[role_String] := constantReference[$cubicalNames[role], {}]
+
+intervalEndpoint[0] := intervalConstantTerm["Zero"]
+intervalEndpoint[1] := intervalConstantTerm["One"]
+
+intervalExpectedQ[expected_] := And[
+	expected =!= None,
+	cubicalElaborationQ[],
+	intervalTypeQ[$elaborationEnvironment, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]]
+]
+
+(* syntax that is an element of the interval as written: a variable of it, or an operation on its elements *)
+intervalSyntaxQ[syntaxSymbol[held_]] := KeyExistsQ[$elaborationScope, held] && intervalTypeQ[$elaborationEnvironment, Last[$elaborationScope[held]]]
+intervalSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Min | Max | IntervalMeet | IntervalJoin | IntervalReverse]], _]] := True
+intervalSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Subtract]], {syntaxInteger[1], reversed_}]] := intervalSyntaxQ[reversed]
+intervalSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {syntaxInteger[1], syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], reversed_}]}]] :=
+	intervalSyntaxQ[reversed]
+intervalSyntaxQ[_] := False
+
+(* a path type is a function type of the interval, to elaborate a function or an application against *)
+asIntervalFunction[type_] := Replace[If[cubicalElaborationQ[], pathTypeArguments[$elaborationEnvironment, type], None], {
+	{line_, _, _} :> dependentFunctionType[HoldComplete[i], intervalConstantTerm["Interval"], application[liftBoundVariables[line, 1, 0], boundVariable[0]], "Explicit"],
+	None :> type
+}]
+
+(* A line of types, {line, level}: a function of the interval into a universe, a type, which is the constant
+   line, or a path of types. *)
+elaborateLine[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function]], _]] := With[{level = newLevelMetavariable[]},
+	{checkAgainst[syntax, dependentFunctionType[HoldComplete[i], intervalConstantTerm["Interval"], universeSort[level], "Explicit"]], level}
+]
+elaborateLine[syntax_] := With[{result = elaborateSyntax[syntax, None]},
+	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[result]]], {
+		universeSort[level_] :> {lambdaAbstraction[HoldComplete[i], intervalConstantTerm["Interval"], liftBoundVariables[First[result], 1, 0], "Explicit"], level},
+		dependentFunctionType[_, domain_, codomain_, _] /; intervalTypeQ[$elaborationEnvironment, domain] :> Replace[
+			weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateBoundVariable[codomain, intervalEndpoint[0]]],
+			{universeSort[level_] :> {First[result], level}, _ :> elaborationFailure["`1` is no line of types.", syntax]}
+		],
+		type_ /; pathTypeArguments[$elaborationEnvironment, type] =!= None :> Replace[
+			weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, application[First[pathTypeArguments[$elaborationEnvironment, type]], intervalEndpoint[0]]],
+			{
+				universeSort[level_] :> {lambdaAbstraction[HoldComplete[i], intervalConstantTerm["Interval"], application[liftBoundVariables[First[result], 1, 0], boundVariable[0]], "Explicit"], level},
+				_ :> elaborationFailure["`1` is no path of types.", syntax]
+			}
+		],
+		_ :> elaborationFailure["`1` is no line of types: write a type, a path of types or a function of the interval into a universe.", syntax]
+	}]
+]
+
+elaboratePath[lineSyntax_, leftSyntax_, rightSyntax_] := Replace[elaborateLine[lineSyntax], {line_, level_} :> {
+	makeApplication[constantReference[$cubicalNames["Path"], {level}], {
+		line,
+		checkAgainst[leftSyntax, betaNormalize[application[line, intervalEndpoint[0]]]],
+		checkAgainst[rightSyntax, betaNormalize[application[line, intervalEndpoint[1]]]]
+	}],
+	universeSort[level]
+}]
+
+elaborateTransport[lineSyntax_, faceSyntax_, valueSyntax_] := Replace[elaborateLine[lineSyntax], {line_, level_} :> {
+	makeApplication[constantReference[$cubicalNames["Transport"], {level}], {
+		line,
+		elaborateFace[faceSyntax],
+		checkAgainst[valueSyntax, betaNormalize[application[line, intervalEndpoint[0]]]]
+	}],
+	betaNormalize[application[line, intervalEndpoint[1]]]
+}]
+
+(* CubicalComposition[A, Function[{i}, {face -> side, ...}], base]: each side is elaborated against A as it is
+   where the first conjunction of its face holds, and the kernel checks the rest *)
+elaborateComposition[typeSyntax_, tubeSyntax_, capSyntax_] := Module[{level = newLevelMetavariable[], type, tube},
+	type = checkAgainst[typeSyntax, universeSort[level]];
+	tube = elaborateTube[tubeSyntax, type];
+	{makeApplication[constantReference[$cubicalNames["Composition"], {level}], {type, tube, checkAgainst[capSyntax, type]}], type}
+]
+
+pathAsFunctionQ[actual_, expected_] := cubicalElaborationQ[] && Replace[
+	{
+		pathTypeArguments[$elaborationEnvironment, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[actual]]],
+		weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]
+	},
+	{
+		{{line_, _, _}, dependentFunctionType[name_, domain_, codomain_, _]} /; intervalTypeQ[$elaborationEnvironment, domain] :> With[{id = freshFreeVariable[]},
+			Block[{$elaborationContext = extendContext[$elaborationContext, id, name, domain, "Explicit"]},
+				unify[application[line, freeVariable[id]], instantiateBoundVariable[codomain, freeVariable[id]]]
+			]
+		],
+		_ -> False
+	}
+]
+
+elaborateTube[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, syntaxApplication[syntaxSymbol[HoldComplete[List]], branches_List]}], type_] /; Length[listElements[binders]] == 1 :=
+	With[{parsed = parseBinder[First[listElements[binders]]], id = freshFreeVariable[]},
+		Block[
+			{
+				$elaborationContext = extendContext[$elaborationContext, id, parsed["Name"], intervalConstantTerm["Interval"], "Explicit"],
+				$elaborationScope = Append[$elaborationScope, parsed["Name"] -> {freeVariable[id], intervalConstantTerm["Interval"]}]
+			},
+			With[{system = cubicalSystem[Function[branch, elaborateBranch[branch, type]] /@ branches]},
+				liftMetavariables[{id}, {system}];
+				makeLambda[instantiateContext[$elaborationContext], {id}, instantiateMetavariables[system]]
+			]
+		]
+	]
+elaborateTube[syntax_, _] := elaborationFailure["`1` is not the sides of a composition: write Function[{i}, {face -> side, ...}].", syntax]
+
+elaborateBranch[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {faceSyntax_, sideSyntax_}], type_] := With[{face = elaborateFace[faceSyntax]},
+	{face, checkAgainst[sideSyntax, faceRestrictedType[face, type]]}
+]
+elaborateBranch[syntax_, _] := elaborationFailure["`1` is not a branch of a system: write face -> side.", syntax]
+
+faceRestrictedType[face_, type_] := Replace[faceConjunctions[$elaborationEnvironment, instantiateContext[$elaborationContext], instantiateMetavariables[face]], {
+	{substitution_, ___} :> restrictedTerm[instantiateMetavariables[type], substitution],
+	{} :> type
+}]
+
+(* a face: r == 0 and r == 1, And and Or of faces, True and False, or an element of the interval *)
+elaborateFace[syntaxApplication[syntaxSymbol[HoldComplete[Equal]], {variable_, syntaxInteger[endpoint : 0 | 1]}]] := With[
+	{element = checkAgainst[variable, intervalConstantTerm["Interval"]]},
+	If[endpoint === 1, element, application[intervalConstantTerm["Reverse"], element]]
+]
+elaborateFace[syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], faces_List]] /; faces =!= {} := Fold[
+	Function[{accumulated, next}, makeApplication[intervalConstantTerm[Replace[head, {And -> "Meet", Or -> "Join"}]], {accumulated, next}]],
+	elaborateFace /@ faces
+]
+elaborateFace[syntaxSymbol[HoldComplete[True]]] := intervalEndpoint[1]
+elaborateFace[syntaxSymbol[HoldComplete[False]]] := intervalEndpoint[0]
+elaborateFace[syntax_] := checkAgainst[syntax, intervalConstantTerm["Interval"]]
 
 
 (* ::Subsection:: *)

@@ -31,6 +31,9 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	"integerOfNatural"[n]               ↑n, or the literal n itself
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
+	IntervalZero, IntervalOne           0, 1                 the endpoints of the interval of cubical type theory
+	IntervalMeet, IntervalJoin, IntervalReverse   r ∧ s, r ∨ s, ~r
+	Path[Function[{i}, A], a, b]        a ≡ b                Congruent, where the line is constant
 
 The display rewrites the syntax tree of the term with these operators, rebuilds it held, and takes its
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
@@ -149,6 +152,8 @@ displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] :
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]
 displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
 displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruckCapitalS]\:00b9"]
+displaySyntax[syntaxSymbol[HoldComplete[IntervalZero]]] := syntaxInteger[0]
+displaySyntax[syntaxSymbol[HoldComplete[IntervalOne]]] := syntaxInteger[1]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
 displaySyntax[syntax_] := syntax
@@ -179,6 +184,14 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_, syntaxInteger[index_Integer]}] := syntaxHead[Subscript, {type, syntaxString["rec_" <> ToString[index]]}]
+(* the operations of the interval show as cubical type theory writes them, and a path over a constant line as a ≡ b *)
+displayApplication[syntaxSymbol[HoldComplete[IntervalMeet]], arguments : {_, _}] := syntaxHead[And, arguments]
+displayApplication[syntaxSymbol[HoldComplete[IntervalJoin]], arguments : {_, _}] := syntaxHead[Or, arguments]
+displayApplication[syntaxSymbol[HoldComplete[IntervalReverse]], {argument_}] := prefixed["~", argument]
+displayApplication[
+	syntaxSymbol[HoldComplete[Path]],
+	{syntaxApplication[syntaxSymbol[HoldComplete[RightTeeArrow]], {syntaxApplication[syntaxSymbol[HoldComplete[Colon]], {name_, _}], body_}], left_, right_}
+] /; FreeQ[body, name] := syntaxHead[Congruent, {left, right}]
 (* the predecessor shows as n - 1, which it is by computation *)
 displayApplication[syntaxSymbol[HoldComplete[NaturalNumberPredecessor]], {argument_}] := syntaxHead[Subtract, {argument, syntaxInteger[1]}]
 (* (a && b) && c shows as a && b && c, the way Lean reads it *)

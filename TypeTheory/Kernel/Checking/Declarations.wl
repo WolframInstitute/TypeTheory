@@ -23,6 +23,8 @@ evaluates, and it means nothing until it is added to an environment:
 	TypeTheoryQuotients[]                                       the quotient types of Lean's kernel (Quotients.wl)
 	TypeTheoryQuotients[equality, {type, introduction, lift, induction}]
 	                                                            the same under other names, with another equality
+	TypeTheoryCubical[sum]                                      the interval, paths, transport and composition of cubical
+	                                                            type theory (Cubical.wl)
 
 TypeTheoryEnvironment[environment, {declaration, ...}] elaborates each declaration's terms in the
 environment so far, has the kernel check them, and gives the extended environment, or a Failure for the
@@ -122,7 +124,7 @@ whose sides are the core functions left and right of its variables, and gives en
 emptyEnvironmentOf::usage = "emptyEnvironmentOf[rules] gives the environment with no constants that follows rules, the same one each time."
 addDeclaration::usage = "addDeclaration[environment, declaration] elaborates and checks the declaration and gives the extended environment, or throws a kernel failure."
 declarationQ::usage = "declarationQ[expr] gives True if expr is a declaration: TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, \
-TypeTheoryNaturalNumbers, TypeTheoryRewriteRule or TypeTheoryQuotients."
+TypeTheoryNaturalNumbers, TypeTheoryRewriteRule, TypeTheoryQuotients or TypeTheoryCubical."
 declarationUniverseParameters::usage = "declarationUniverseParameters[head, Hold[options], {syntax, ...}] gives the universe parameters {HoldComplete[u], ...} \
 of a declaration from its \"UniverseParameters\" option, or from the universe levels in the syntax trees."
 universeParameterNames::usage = "universeParameterNames[{syntax, ...}] gives the symbols and strings in universe levels of the syntax trees, \
@@ -141,10 +143,10 @@ Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
 
-SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule, TypeTheoryQuotients}, HoldAll]
+SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule, TypeTheoryQuotients, TypeTheoryCubical}, HoldAll]
 
 declarationQ[_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryInductiveType | _TypeTheoryNaturalNumbers | _TypeTheoryRewriteRule] := True
-declarationQ[TypeTheoryQuotients[] | TypeTheoryQuotients[_, {_, _, _, _}]] := True
+declarationQ[TypeTheoryQuotients[] | TypeTheoryQuotients[_, {_, _, _, _}] | TypeTheoryCubical[_]] := True
 declarationQ[_] := False
 
 
@@ -320,6 +322,8 @@ addDeclaration[environment_, TypeTheoryRewriteRule[name_, rule_, options : Optio
 addDeclaration[environment_, TypeTheoryQuotients[]] := addDeclaration[environment, TypeTheoryQuotients[Equal, {QuotientType, QuotientIntroduction, QuotientLift, QuotientInduction}]]
 addDeclaration[environment_, TypeTheoryQuotients[equality_, {type_, introduction_, lift_, induction_}]] :=
 	declareQuotients[environment, HoldComplete[equality], HoldComplete /@ Unevaluated[{type, introduction, lift, induction}]]
+
+addDeclaration[environment_, TypeTheoryCubical[sum_]] := declareCubical[environment, HoldComplete[sum]]
 
 addDeclaration[_, other_] := kernelFailure["DeclarationExpected", "`1` is not a declaration.", {Short[other]}]
 

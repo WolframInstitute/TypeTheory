@@ -19,6 +19,8 @@ carries its name and type.
 	localDefinition[HoldComplete[name], type, value, body]
 	naturalLiteral[n]                                   n a non-negative Integer
 	projection[HoldComplete[structure], index, term]    field index, counting from 0, of a term of a structure type
+	cubicalSystem[{{face, term}, ...}]                  a system of partial elements of cubical type theory (Cubical.wl)
+	intervalUniverse[]                                  the sort of the interval of cubical type theory, no universe
 
 Names are held, so a constant or variable whose symbol has a value never evaluates inside a term.
 binder is its kind, one of "Explicit", "Implicit", "StrictImplicit", "InstanceImplicit", or under rules
@@ -47,6 +49,8 @@ PackageScoped[dependentFunctionType]
 PackageScoped[localDefinition]
 PackageScoped[naturalLiteral]
 PackageScoped[projection]
+PackageScoped[cubicalSystem]
+PackageScoped[intervalUniverse]
 
 PackageScoped[levelParameter]
 PackageScoped[levelMetavariable]
@@ -93,6 +97,8 @@ localDefinition::usage = "localDefinition[HoldComplete[name], type, value, body]
 naturalLiteral::usage = "naturalLiteral[n] is the natural number n."
 projection::usage = "projection[HoldComplete[structure], index, term] is the field index, counting from 0, of term, whose type is the structure structure: \
 an inductive type with one constructor and no indices."
+cubicalSystem::usage = "cubicalSystem[{{face, term}, ...}] is a system of cubical type theory: a partial element, each term given where its face holds."
+intervalUniverse::usage = "intervalUniverse[] is the sort of the Interval of cubical type theory, which is no universe: nothing may have a type of it but the interval."
 
 levelParameter::usage = "levelParameter[HoldComplete[u]] is the universe parameter u."
 levelMetavariable::usage = "levelMetavariable[id] is an unknown universe level, solved by unification."
@@ -167,6 +173,7 @@ looseBoundRangeOf[application[function_, argument_]] := Max[looseBoundRange[func
 looseBoundRangeOf[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _]] := Max[looseBoundRange[domain], looseBoundRange[body] - 1]
 looseBoundRangeOf[localDefinition[_, type_, value_, body_]] := Max[looseBoundRange[type], looseBoundRange[value], looseBoundRange[body] - 1]
 looseBoundRangeOf[projection[_, _, term_]] := looseBoundRange[term]
+looseBoundRangeOf[cubicalSystem[branches_List]] := Max[0, looseBoundRange /@ Flatten[branches, 1]]
 looseBoundRangeOf[_] := 0
 
 $looseBoundRangeCache = None
@@ -195,6 +202,7 @@ liftNode[dependentFunctionType[name_, domain_, codomain_, binder_], amount_, cut
 liftNode[localDefinition[name_, type_, value_, body_], amount_, cutoff_] :=
 	localDefinition[name, liftShared[type, amount, cutoff], liftShared[value, amount, cutoff], liftShared[body, amount, cutoff + 1]]
 liftNode[projection[structure_, index_, term_], amount_, cutoff_] := projection[structure, index, liftShared[term, amount, cutoff]]
+liftNode[cubicalSystem[branches_List], amount_, cutoff_] := cubicalSystem[Map[Function[part, liftShared[part, amount, cutoff]], branches, {2}]]
 liftNode[term_, _, _] := term
 
 
@@ -229,12 +237,13 @@ substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], values
 substituteNode[localDefinition[name_, type_, definedValue_, body_], values_, depth_] :=
 	localDefinition[name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
 substituteNode[projection[structure_, index_, term_], values_, depth_] := projection[structure, index, substituteShared[term, values, depth]]
+substituteNode[cubicalSystem[branches_List], values_, depth_] := cubicalSystem[Map[Function[part, substituteShared[part, values, depth]], branches, {2}]]
 substituteNode[term_, _, _] := term
 
 
 abstractFreeVariable[term_, id_] := Block[{$abstractionMemo = <||>}, abstractShared[term, id, 0]]
 
-abstractShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable), _, _] := term
+abstractShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _, _] := term
 abstractShared[term_, id_, depth_] := Lookup[$abstractionMemo, Key[{term, depth}], $abstractionMemo[{term, depth}] = abstractAt[term, id, depth]]
 
 abstractAt[freeVariable[id_], id_, depth_] := boundVariable[depth]
@@ -246,6 +255,7 @@ abstractAt[dependentFunctionType[name_, domain_, codomain_, binder_], id_, depth
 abstractAt[localDefinition[name_, type_, value_, body_], id_, depth_] :=
 	localDefinition[name, abstractShared[type, id, depth], abstractShared[value, id, depth], abstractShared[body, id, depth + 1]]
 abstractAt[projection[structure_, index_, term_], id_, depth_] := projection[structure, index, abstractShared[term, id, depth]]
+abstractAt[cubicalSystem[branches_List], id_, depth_] := cubicalSystem[Map[Function[part, abstractShared[part, id, depth]], branches, {2}]]
 abstractAt[term_, _, _] := term
 
 
@@ -256,6 +266,7 @@ boundVariableOccursQ[(lambdaAbstraction | dependentFunctionType)[_, domain_, bod
 boundVariableOccursQ[localDefinition[_, type_, value_, body_], target_] :=
 	boundVariableOccursQ[type, target] || boundVariableOccursQ[value, target] || boundVariableOccursQ[body, target + 1]
 boundVariableOccursQ[projection[_, _, term_], target_] := boundVariableOccursQ[term, target]
+boundVariableOccursQ[cubicalSystem[branches_List], target_] := AnyTrue[Flatten[branches, 1], Function[part, boundVariableOccursQ[part, target]]]
 boundVariableOccursQ[_, _] := False
 
 
@@ -275,6 +286,7 @@ betaNormalize[application[function_, argument_]] := betaApply[betaNormalize[func
 betaNormalize[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := head[name, betaNormalize[domain], betaNormalize[body], binder]
 betaNormalize[localDefinition[name_, type_, value_, body_]] := localDefinition[name, betaNormalize[type], betaNormalize[value], betaNormalize[body]]
 betaNormalize[projection[structure_, index_, term_]] := projection[structure, index, betaNormalize[term]]
+betaNormalize[cubicalSystem[branches_List]] := cubicalSystem[Map[betaNormalize, branches, {2}]]
 betaNormalize[term_] := term
 
 betaApply[lambdaAbstraction[_, _, body_, _], argument_] := betaNormalize[instantiateBoundVariable[body, argument]]

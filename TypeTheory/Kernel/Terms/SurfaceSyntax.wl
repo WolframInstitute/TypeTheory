@@ -181,8 +181,23 @@ delaborate[environment_, context_, term_] := Replace[term, {
 		delaborateArrow[environment, context, domain, codomain],
 	dependentFunctionType[___] :> delaborateBinders[environment, context, term, dependentFunctionType, ForAll],
 	_application | _constantReference :> delaborateApplication[environment, context, term],
+	cubicalSystem[branches_List] :> syntaxHead[List, Function[branch, syntaxHead[Rule, {faceSyntax[environment, context, First[branch]], delaborate[environment, context, Last[branch]]}]] /@ branches],
+	intervalUniverse[] :> syntaxString["IntervalUniverse"],
 	_ :> syntaxOther[HoldComplete[term]]
 }]
+
+(* a face of a system as conditions on its variables, i == 0 and i == 1, joined by And and Or *)
+faceSyntax[environment_, context_, face_] := Replace[Quiet @ catchKernelFailure[intervalForm[environment, context, face]], {
+	{} :> syntaxSymbol[HoldComplete[False]],
+	{{}} :> syntaxSymbol[HoldComplete[True]],
+	form : {__List} :> joinedSyntax[Or, Function[conjunction, joinedSyntax[And, Function[literal,
+		syntaxHead[Equal, {nameSyntax[Lookup[Lookup[context, First[literal], <||>], "Name", HoldComplete[x]]], syntaxInteger[Boole[Last[literal]]]}]
+	] /@ conjunction]] /@ form],
+	_ :> delaborate[environment, context, face]
+}]
+
+joinedSyntax[_, {single_}] := single
+joinedSyntax[head_, parts_List] := syntaxHead[head, parts]
 
 levelSyntax[n_Integer] := syntaxInteger[n]
 levelSyntax[levelParameter[held_]] := nameSyntax[held]

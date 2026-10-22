@@ -5,7 +5,8 @@ The rules of a type theory, as a value. Every environment carries the rules it w
 the kernel checks each declaration and term by the rules of its environment. The declarations of an
 environment are its assumptions, axioms included; the rules are what the kernel allows and computes.
 
-	TypeTheoryRules[<|"Name" -> name, "Prop" -> True | False, "RewriteRules" -> True | False, "Quotients" -> True | False, "Quantities" -> True | False|>]
+	TypeTheoryRules[<|"Name" -> name, "Prop" -> True | False, "RewriteRules" -> True | False, "Quotients" -> True | False, "Quantities" -> True | False,
+		"Cubical" -> True | False|>]
 
 	"Prop"            TypeUniverse[0] is a universe of propositions: impredicative, with proof irrelevance,
 	                  K-like reduction and elimination of subsingletons into any universe. Without it every
@@ -17,11 +18,15 @@ environment are its assumptions, axioms included; the rules are what the kernel 
 	"Quantities"      a binder may have a quantity, 0 or 1, which bounds how many times the code that runs
 	                  uses its variable, as in BendTT's affine type theory (Quantities.wl). The rules only
 	                  reject more terms, so they are consistent whenever the same rules without it are.
+	"Cubical"         TypeTheoryCubical may declare the interval, paths over it, transport, composition and
+	                  Glue types of cubical type theory, in which univalence computes (Cubical.wl); they
+	                  exclude Prop, whose proof irrelevance contradicts univalence.
 
 "CalculusOfInductiveConstructions" is the rules of the prelude, which those of Lean's kernel are, quotients
 included; without "Quotients" they are those of Rocq's kernel.
 "MartinLofTypeTheory" has no Prop, as Martin-Löf's intensional type theory, and so no rule that would
 make any two equalities equal: univalence is consistent with it. Neither has quantities.
+"CubicalTypeTheory" is Martin-Löf type theory with the primitives of cubical type theory.
 *)
 
 
@@ -46,11 +51,12 @@ PackageScoped[$defaultRules]
 
 
 TypeTheoryRules::usage = "TypeTheoryRules[name] gives the rules of the named type theory: \"CalculusOfInductiveConstructions\", the rules of the prelude, \
-or \"MartinLofTypeTheory\", with no universe of propositions.\n\
+\"MartinLofTypeTheory\", with no universe of propositions, or \"CubicalTypeTheory\", Martin-Löf type theory with the interval, paths and Glue types of cubical type theory.\n\
 TypeTheoryRules[name, setting -> value, ...] gives those rules with some settings changed.\n\
 TypeTheoryRules[<|\"Name\" -> name, \"Prop\" -> p, \"RewriteRules\" -> r, \"Quotients\" -> q, \"Quantities\" -> a|>] is the rules with the given settings: p says whether \
 TypeUniverse[0] is an impredicative universe of propositions with proof irrelevance, r whether rewrite rules may be declared, q whether quotient types \
-may be, with their computation, and a whether a binder may have a quantity, 0 or 1, that bounds how many times the code that runs uses its variable.\n\
+may be, with their computation, and a whether a binder may have a quantity, 0 or 1, that bounds how many times the code that runs uses its variable; \
+\"Cubical\" -> c says whether TypeTheoryCubical may declare the primitives of cubical type theory.\n\
 TypeTheoryEnvironment[rules] gives an environment with no constants that follows rules; Information[environment, \"Rules\"] gives an environment's."
 
 rulesQ::usage = "rulesQ[expr] gives True if expr is a valid TypeTheoryRules value."
@@ -62,11 +68,12 @@ $defaultRules::usage = "$defaultRules is the rules of TypeTheoryEnvironment[] an
 (*Function Definitions*)
 
 
-$ruleSettings = {"Prop", "RewriteRules", "Quotients", "Quantities"}
+$ruleSettings = {"Prop", "RewriteRules", "Quotients", "Quantities", "Cubical"}
 
 $namedRules = <|
-	"CalculusOfInductiveConstructions" -> <|"Name" -> "CalculusOfInductiveConstructions", "Prop" -> True, "RewriteRules" -> False, "Quotients" -> True, "Quantities" -> False|>,
-	"MartinLofTypeTheory" -> <|"Name" -> "MartinLofTypeTheory", "Prop" -> False, "RewriteRules" -> False, "Quotients" -> False, "Quantities" -> False|>
+	"CalculusOfInductiveConstructions" -> <|"Name" -> "CalculusOfInductiveConstructions", "Prop" -> True, "RewriteRules" -> False, "Quotients" -> True, "Quantities" -> False, "Cubical" -> False|>,
+	"MartinLofTypeTheory" -> <|"Name" -> "MartinLofTypeTheory", "Prop" -> False, "RewriteRules" -> False, "Quotients" -> False, "Quantities" -> False, "Cubical" -> False|>,
+	"CubicalTypeTheory" -> <|"Name" -> "CubicalTypeTheory", "Prop" -> False, "RewriteRules" -> False, "Quotients" -> False, "Quantities" -> False, "Cubical" -> True|>
 |>
 
 rulesQ[TypeTheoryRules[settings_Association]] := And[
@@ -98,7 +105,8 @@ TypeTheoryRules /: MakeBoxes[rules : TypeTheoryRules[settings_Association], form
 			BoxForm`SummaryItem[{"Prop: ", settings["Prop"]}],
 			BoxForm`SummaryItem[{"Rewrite rules: ", settings["RewriteRules"]}],
 			BoxForm`SummaryItem[{"Quotients: ", settings["Quotients"]}],
-			BoxForm`SummaryItem[{"Quantities: ", settings["Quantities"]}]
+			BoxForm`SummaryItem[{"Quantities: ", settings["Quantities"]}],
+			BoxForm`SummaryItem[{"Cubical: ", settings["Cubical"]}]
 		},
 		format,
 		"Interpretable" -> Automatic

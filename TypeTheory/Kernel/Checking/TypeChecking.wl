@@ -133,13 +133,25 @@ inferTypeOf[environment_, context_, term_] := Replace[term, {
 	),
 	constantReference[name_, levels_List] :> constantType[environment, name, levels],
 	naturalLiteral[_Integer?NonNegative] :> naturalNumberType[environment],
-	application[function_, argument_] :> applicationType[environment, context, function, argument],
+	(* a primitive of cubical type theory with rules of its own types its arguments together *)
+	application[function_, argument_] :> Replace[cubicalSpineType[environment, context, term], None :> applicationType[environment, context, function, argument]],
 	lambdaAbstraction[name_, domain_, body_, binder_] :> lambdaType[environment, context, name, domain, body, binder],
 	dependentFunctionType[name_, domain_, codomain_, binder_] :> functionTypeSort[environment, context, name, domain, codomain, binder],
 	localDefinition[name_, type_, value_, body_] :> localDefinitionType[environment, context, name, type, value, body],
 	projection[structure_, index_Integer?NonNegative, structureTerm_] :> projectionType[environment, context, structure, index, structureTerm],
+	_cubicalSystem :> kernelFailure["SystemTerm", "A system has no type of its own: it is only the side of a composition or a Glue type.", {}],
+	_intervalUniverse :> kernelFailure["IntervalUniverseTerm", "The sort of the interval has no type.", {}],
 	_ :> kernelFailure["IllFormedTerm", "`1` is not a term.", {term}]
 }]
+
+cubicalSpineType[environment_, context_, term_] := If[ ! cubicalDeclaredQ[environment],
+	None,
+	Replace[applicationSpine[term], {
+		{constantReference[name_, levels_List], arguments_List} /; cubicalRole[environment, name] =!= None :>
+			cubicalApplicationType[environment, context, constantRecord[environment, name], levels, arguments],
+		_ -> None
+	}]
+]
 
 constantType[environment_, name_, levels_List] := With[{record = constantRecord[environment, name]},
 	Which[
@@ -147,6 +159,8 @@ constantType[environment_, name_, levels_List] := With[{record = constantRecord[
 			kernelFailure["RewriteRuleTerm", "`1` is a rewrite rule, not a term.", {HoldForm @@ name}],
 		Length[levels] =!= Length[record["UniverseParameters"]],
 			kernelFailure["UniverseArity", "`1` takes `2` universe levels, not `3`.", {HoldForm @@ name, Length[record["UniverseParameters"]], Length[levels]}],
+		record["Kind"] === "Cubical",
+			cubicalConstantType[environment, record, instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]],
 		True,
 			instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]
 	]
@@ -171,16 +185,16 @@ applicationType[environment_, context_, function_, argument_] := Replace[
 			checkHasType[environment, context, argument, domain];
 			instantiateBoundVariable[codomain, argument]
 		),
-		functionType_ :> kernelFailure[
+		functionType_ :> Replace[pathApplicationType[environment, context, functionType, argument], None :> kernelFailure[
 			"FunctionExpected",
 			"`1` is applied to an argument, but its type `2` is not a function type.",
 			{displayCoreTerm[environment, context, function], displayCoreTerm[environment, context, functionType]}
-		]
+		]]
 	}
 ]
 
 checkHasType[environment_, context_, term_, expected_] := With[{actual = inferType[environment, context, term]},
-	If[ ! definitionallyEqualQ[environment, context, actual, expected],
+	If[ ! definitionallyEqualQ[environment, context, actual, expected] && ! cubicalFitQ[environment, context, term, actual, expected],
 		kernelFailure[
 			"TypeMismatch",
 			"`1` has type `2`, but the expected type is `3`.",
@@ -189,17 +203,25 @@ checkHasType[environment_, context_, term_, expected_] := With[{actual = inferTy
 	]
 ]
 
+(* a function of the interval of cubical type theory is a path between its values at the endpoints *)
 lambdaType[environment_, context_, name_, domain_, body_, binder_] := With[{id = freshFreeVariable[]},
 	checkBinderQuantity[environment, name, binder];
-	sortLevel[environment, context, domain];
-	dependentFunctionType[
-		name,
-		domain,
-		abstractFreeVariable[inferType[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]], id],
-		binder
+	checkIntervalDomain[environment, context, domain];
+	With[{bodyContext = extendContext[context, id, name, domain, binder]},
+		With[{bodyType = inferType[environment, bodyContext, instantiateBoundVariable[body, freeVariable[id]]]},
+			Replace[intervalLambdaType[environment, bodyContext, id, name, domain, body, bodyType], None :>
+				dependentFunctionType[name, domain, abstractFreeVariable[bodyType, id], binder]
+			]
+		]
 	]
 ]
 
+(* a function type of the interval is a pretype, as the interval is: it has the sort of the interval, which
+   is no universe, so no variable may have it *)
+functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] /; cubicalDeclaredQ[environment] && intervalTypeQ[environment, domain] := (
+	checkBinderQuantity[environment, name, binder];
+	intervalUniverse[]
+)
 functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := With[{id = freshFreeVariable[]},
 	checkBinderQuantity[environment, name, binder];
 	universeSort[normalizeLevel[levelImpredicativeMaximum[
@@ -324,8 +346,14 @@ reducedHeadWithoutUnfolding[environment_, context_, term_] := Block[{$unfoldDefi
 
 $unfoldDefinitions = True
 
+(* in cubical type theory, a path that is stuck at an endpoint is that endpoint of its type *)
 reduceHead[environment_, context_, term_] := With[{spine = applicationSpine[term]},
-	reduceSpine[environment, context, term, First[spine], Last[spine]]
+	With[{reduced = reduceSpine[environment, context, term, First[spine], Last[spine]]},
+		If[ reduced === term && Last[spine] =!= {} && cubicalDeclaredQ[environment],
+			reducePathEndpoint[environment, context, term, First[spine], Last[spine]],
+			reduced
+		]
+	]
 ]
 
 (* a function of several variables applied to arguments for them takes them all in one substitution, as in
@@ -365,6 +393,8 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Rep
 				rewriteAxiom[environment, context, term, name, levels, arguments],
 			record["Kind"] === "Quotient",
 				reduceQuotient[environment, context, term, record, arguments],
+			record["Kind"] === "Cubical",
+				reduceCubical[environment, context, term, record, levels, arguments],
 			True,
 				term
 		]
@@ -584,8 +614,15 @@ definitionallyEqualCases[environment_, context_, (head : lambdaAbstraction | dep
 			]
 		]
 	]
-(* proofs of the same proposition are equal before either is reduced, as Lean's kernel decides them *)
+definitionallyEqualCases[environment_, context_, first_cubicalSystem, second_cubicalSystem] := systemsEqualQ[environment, context, first, second]
+definitionallyEqualCases[_, _, _cubicalSystem, _] := False
+definitionallyEqualCases[_, _, _, _cubicalSystem] := False
+definitionallyEqualCases[_, _, _intervalUniverse, _] := False
+definitionallyEqualCases[_, _, _, _intervalUniverse] := False
+(* proofs of the same proposition are equal before either is reduced, as Lean's kernel decides them; two
+   elements of the interval are equal by their normal forms *)
 definitionallyEqualCases[environment_, context_, a_, b_] := Or[
+	cubicalDeclaredQ[environment] && intervalEqualQ[environment, context, a, b],
 	sameHeadArgumentsEqualQ[environment, context, a, b],
 	proofIrrelevantEqualQ[environment, context, a, b],
 	reducedEqualQ[environment, context, a, b]
@@ -654,7 +691,10 @@ structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := 
 	]
 ]
 
-(* any two terms of a structure with no fields are equal, unless it is a proposition, where proof irrelevance decides *)
+(* any two terms of a structure with no fields are equal, unless it is a proposition, where proof irrelevance
+   decides; a type is never one, nor is a path type, whose line inferring its type would open again *)
+unitEqualQ[_, _, _universeSort | _dependentFunctionType | _intervalUniverse, _] := False
+unitEqualQ[environment_, context_, a_, _] /; cubicalDeclaredQ[environment] && pathTypeArguments[environment, a] =!= None := False
 unitEqualQ[environment_, context_, a_, b_] := With[{type = weakHeadNormalForm[environment, context, inferType[environment, context, a]]},
 	Replace[First @ applicationSpine[type], {
 		constantReference[structure_, _] /; structureLikeQ[environment, structure] && unitStructureQ[environment, structure] :>
@@ -697,6 +737,7 @@ headsEqualQ[environment_, context_, projection[structure_, index_, first_], proj
 	definitionallyEqualQ[environment, context, first, second]
 headsEqualQ[_, _, _, _] := False
 
+proofIrrelevantEqualQ[environment_, context_, a_, b_] /; ! rulesSetting[environment, "Prop"] := False
 proofIrrelevantEqualQ[environment_, context_, a_, b_] := With[{typeA = inferType[environment, context, a]},
 	And[
 		propositionQ[environment, context, typeA],
