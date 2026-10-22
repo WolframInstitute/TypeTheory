@@ -924,11 +924,14 @@ integerTypeQ[environment_, type_] := type === constantReference[HoldComplete[Int
 
 (* An equation of integers is one of classes once each integer variable it mentions is the class of a
    pair: the soundness of quotients makes it the relation of the two pairs, an equation of natural numbers
-   that holds in every commutative semiring where the integers' holds in every commutative ring. *)
-integerRing[data_, goal_, current_] := With[
+   that holds in every commutative semiring where the integers' holds in every commutative ring. The
+   equation is first a goal with only the hypotheses it mentions, so that no other hypothesis is
+   generalized with an integer variable into the goal of its classes. *)
+integerRing[data_, goal_, current_] := With[{narrowedGoal = freshMetavariableId[], context = neededContext[current["Context"], current["Type"]]},
 	{
-		variables = Select[Keys[current["Context"]], Function[id, And[
-			integerTypeQ[data["Environment"], current["Context"][id]["Type"]],
+		narrowed = solveGoal[data, goal, metavariable[narrowedGoal], {narrowedGoal -> <|"Context" -> context, "Type" -> current["Type"], "Case" -> None|>}],
+		variables = Select[Keys[context], Function[id, And[
+			integerTypeQ[data["Environment"], context[id]["Type"]],
 			! FreeQ[current["Type"], freeVariable[id]]
 		]]]
 	},
@@ -936,10 +939,10 @@ integerRing[data_, goal_, current_] := With[
 		catchKernelFailure @ With[
 			{
 				classes = Fold[
-					Function[{state, id}, With[{eliminated = eliminate[state, First[state["Goals"]], current["Context"][id]["Name"], "Induction"]},
+					Function[{state, id}, With[{eliminated = eliminate[state, First[state["Goals"]], context[id]["Name"], "Induction"]},
 						introduceVariable[eliminated, First[eliminated["Goals"]], Automatic]
 					]],
-					data,
+					narrowed,
 					variables
 				]
 			},
@@ -950,6 +953,19 @@ integerRing[data_, goal_, current_] := With[
 		_Failure :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative ring.", data, goal]
 	]
 ]
+
+(* the hypotheses that term mentions, with those that their types and values mention, in order *)
+neededContext[context_Association, term_] := With[
+	{
+		needed = FixedPoint[
+			Function[ids, Union[ids, mentionedFreeVariables[Function[id, {context[id]["Type"], Lookup[context[id], "Value", {}]}] /@ ids]]],
+			Intersection[mentionedFreeVariables[term], Keys[context]]
+		]
+	},
+	KeySelect[context, Function[id, MemberQ[needed, id]]]
+]
+
+mentionedFreeVariables[term_] := Union[Cases[term, freeVariable[id_] :> id, {0, Infinity}]]
 
 (* the witnesses FindInstance finds for the variables, in order, or a Failure *)
 foundWitnesses[data_, goal_, {variables_Association, body_, context_}] := With[

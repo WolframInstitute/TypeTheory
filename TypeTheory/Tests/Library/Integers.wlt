@@ -119,3 +119,13 @@ VerificationTest[
 	{{}, {}, {}, "NotRingEquation"},
 	TestID -> "Ring-proves-the-identities-of-commutative-rings-over-the-integers"
 ]
+
+(* a hypothesis that mentions an integer variable is not generalized into the goal of its classes *)
+VerificationTest[
+	TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[x <= y, (x + y) (x - y) == x x - y y]], integers, {
+		TypeTheoryTactic["Introduce", x, y, h],
+		TypeTheoryTactic["Ring"]
+	}]["Goals"],
+	{},
+	TestID -> "Ring-over-the-integers-leaves-other-hypotheses-aside"
+]
