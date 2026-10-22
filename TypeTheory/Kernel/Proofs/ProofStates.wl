@@ -46,6 +46,8 @@ The tactics:
 	                        sides are equal by computation; a definition among them unfolds where it computes
 	"Decide"                proves a closed statement of equations and inequalities of natural numbers and the
 	                        connectives by computing its decision
+	"FindInstance"          proves an existential statement over the natural numbers with witnesses that
+	                        Wolfram's FindInstance finds, the instance proved by "Decide"
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -99,7 +101,8 @@ TypeTheoryTactic[\"Rewrite\", h, \"At\" -> k] and TypeTheoryTactic[\"Rewrite\", 
 TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which must be equal to it by computation.\n\
 TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation; \
 a definition among h1, h2, ... unfolds where it computes, as Join does on ListPrepend[x, l], with its recursive calls folded back.\n\
-TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision."
+TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision.\n\
+TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -283,6 +286,7 @@ runTactic["Constructor", Hold[], data_, goal_] := constructorTactic[data, goal]
 runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldComplete[statement]]
 runTactic["Simplify", Hold[{lemmas___}], data_, goal_] := simplify[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
+runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
@@ -875,6 +879,123 @@ decisionTerm[data_, goal_, environment_, context_, proposition_] := Replace[prop
 	]
 }]
 
+
+
+(* ::Subsection:: *)
+(*Wolfram oracles*)
+
+
+(* These tactics ask Wolfram for what a proof needs, and the kernel checks the proof built from the
+   answer: a wrong answer makes the tactic fail, and can never make a false statement a theorem.
+
+   "FindInstance": for a goal Exists[{Typed[x1, Naturals], ...}, p], with p built from == and <= of
+   arithmetic on the variables and literals, and the connectives, Wolfram's FindInstance finds the
+   witnesses over the natural numbers. ExistsIntroduction takes them, and "Decide" proves p of them by
+   computing; an instance it cannot decide is left as the new goal. *)
+findInstance[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[$oracleConstants, Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["OracleUnavailable", "The environment of the goal `1` lacks the natural numbers and existential statements of the prelude.", data, goal]
+	];
+	With[{existentials = existentialPrefix[environment, current["Context"], current["Type"], <||>]},
+		If[ First[existentials] === <||>,
+			tacticFailure["ExistentialExpected", "The goal `1` is not an existential statement over the natural numbers.", data, goal]
+		];
+		With[{witnesses = foundWitnesses[data, goal, existentials]},
+			{newGoal = freshMetavariableId[]},
+			{witnessed = witnessedProof[environment, current["Context"], current["Type"], witnesses, newGoal]},
+			decidedInstance[
+				solveGoal[data, goal, First[witnessed], {newGoal -> <|"Context" -> current["Context"], "Type" -> Last[witnessed], "Case" -> None|>}],
+				newGoal
+			]
+		]
+	]
+]
+
+$oracleConstants = HoldComplete /@ Unevaluated[{Exists, ExistsIntroduction, NonNegativeIntegers, Equal, LessEqual}]
+
+(* {<|id -> variable, ...|>, body}: the variables of the existential statements over the natural numbers
+   at the head of statement, outermost first, each a fresh free variable of the body standing for the
+   Wolfram variable given *)
+existentialPrefix[environment_, context_, statement_, variables_Association] := Replace[weakHeadNormalForm[environment, context, statement], {
+	application[application[constantReference[HoldComplete[Exists], _], type_], predicate_] /; naturalNumberTypeQ[environment, context, type] :>
+		With[{id = freshFreeVariable[]},
+			existentialPrefix[
+				environment,
+				extendContext[context, id, HoldComplete[x], type, "Explicit"],
+				betaNormalize[application[predicate, freeVariable[id]]],
+				Append[variables, id -> Subscript[\[FormalX], Length[variables] + 1]]
+			]
+		],
+	_ :> {variables, statement, context}
+}]
+
+naturalNumberTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, type], constantReference[HoldComplete[NonNegativeIntegers], _]]
+
+(* the witnesses FindInstance finds for the variables, in order, or a Failure *)
+foundWitnesses[data_, goal_, {variables_Association, body_, context_}] := With[
+	{condition = wolframCondition[data, goal, context, variables, body]},
+	Replace[
+		TimeConstrained[Quiet @ FindInstance[condition && And @@ Thread[Values[variables] >= 0], Values[variables], Integers], 10, $Aborted],
+		{
+			{solution_List, ___} /; AllTrue[ReplaceAll[Values[variables], solution], Function[value, IntegerQ[value] && value >= 0]] :> ReplaceAll[Values[variables], solution],
+			{} :> tacticFailure["NoInstance", "Wolfram's FindInstance finds no natural numbers that make the goal `1` true.", data, goal],
+			_ :> tacticFailure["NoInstance", "Wolfram's FindInstance finds no instance of the goal `1` in ten seconds.", data, goal]
+		}
+	]
+]
+
+(* the proposition as a condition on the Wolfram variables; a definition such as Less or Unequal is
+   unfolded to find its form *)
+wolframCondition[data_, goal_, context_, variables_, proposition_] := Replace[proposition, {
+	application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[data["Environment"], context, type] :>
+		wolframExpression[data, goal, variables, left] == wolframExpression[data, goal, variables, right],
+	application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :>
+		wolframExpression[data, goal, variables, left] <= wolframExpression[data, goal, variables, right],
+	application[application[constantReference[HoldComplete[And], _], left_], right_] :>
+		wolframCondition[data, goal, context, variables, left] && wolframCondition[data, goal, context, variables, right],
+	application[application[constantReference[HoldComplete[Or], _], left_], right_] :>
+		wolframCondition[data, goal, context, variables, left] || wolframCondition[data, goal, context, variables, right],
+	constantReference[HoldComplete[True], _] :> True,
+	constantReference[HoldComplete[False], _] :> False,
+	dependentFunctionType[_, premise_, constantReference[HoldComplete[False], _], _] :> ! wolframCondition[data, goal, context, variables, premise],
+	other_ :> With[{reduced = weakHeadNormalForm[data["Environment"], context, other]},
+		If[ reduced =!= other,
+			wolframCondition[data, goal, context, variables, reduced],
+			tacticFailure["NotTranslatable", "The goal `1` is not built from == and <= of arithmetic on natural numbers and the connectives.", data, goal]
+		]
+	]
+}]
+
+(* subtraction of natural numbers stops at 0 *)
+wolframExpression[data_, goal_, variables_, term_] := Replace[term, {
+	freeVariable[id_] /; KeyExistsQ[variables, id] :> variables[id],
+	naturalLiteral[n_Integer] :> n,
+	constantReference[HoldComplete[NaturalNumberZero], _] :> 0,
+	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], argument_] :> wolframExpression[data, goal, variables, argument] + 1,
+	application[application[constantReference[HoldComplete[operation : Plus | Times | Power | Subtract], _], left_], right_] :> With[
+		{first = wolframExpression[data, goal, variables, left], second = wolframExpression[data, goal, variables, right]},
+		Replace[operation, {Plus :> first + second, Times :> first * second, Power :> first ^ second, Subtract :> Max[first - second, 0]}]
+	],
+	_ :> tacticFailure["NotTranslatable", "In the goal `1`, the term `2` is not arithmetic on the variables and natural number literals.", data, goal, {displayCoreTerm[data["Environment"], <||>, term]}]
+}]
+
+(* {proof, instance}: ExistsIntroduction applied to each witness in turn, the statement left for the
+   last being instance, whose proof is the metavariable newGoal *)
+witnessedProof[environment_, context_, statement_, {}, newGoal_] := {metavariable[newGoal], statement}
+witnessedProof[environment_, context_, statement_, {witness_, rest___}, newGoal_] := Replace[weakHeadNormalForm[environment, context, statement], {
+	application[application[constantReference[HoldComplete[Exists], levels_], type_], predicate_] :> With[
+		{inner = witnessedProof[environment, context, betaNormalize[application[predicate, naturalLiteral[witness]]], {rest}, newGoal]},
+		{makeApplication[constantReference[HoldComplete[ExistsIntroduction], levels], {type, predicate, naturalLiteral[witness], First[inner]}], Last[inner]}
+	]
+}]
+
+(* the instance proved by "Decide" where it decides it, or left as the goal; an instance decided false
+   means Wolfram's answer was wrong *)
+decidedInstance[state_, goal_] := Replace[catchKernelFailure[decide[state, goal]], {
+	Failure["DecidedFalse", _] :> tacticFailure["InstanceRejected", "The witnesses Wolfram found do not prove the goal `1`.", state, goal],
+	_Failure :> state,
+	decided_ :> decided
+}]
 
 (* a rewritten goal a == a is closed by reflexivity *)
 closeIfSidesSame[data_, goal_, type_] := If[

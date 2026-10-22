@@ -531,3 +531,45 @@ VerificationTest[
 	},
 	TestID -> "Rewrite-at-a-hypothesis-replaces-it-with-the-rewritten-one"
 ]
+
+(* Wolfram finds, the kernel checks *)
+
+VerificationTest[
+	With[
+		{
+			pythagorean = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, And[x^2 + y^2 == 25, x < y, 0 < x]], prelude, {TypeTheoryTactic["FindInstance"]}],
+			taxicab = TypeTheoryProof[Exists[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, And[a^3 + b^3 == c^3 + 1, 1 < a, a < b]], prelude, {
+				TypeTheoryTactic["FindInstance"]
+			}]
+		},
+		{
+			pythagorean["Goals"],
+			pythagorean["Term"],
+			taxicab["Goals"],
+			MatchQ[TypeTheoryCheck[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[PythagoreanPair, pythagorean], TypeTheoryTheorem[Taxicab, taxicab]}]], _Success]
+		}
+	],
+	{
+		{},
+		TypeTheoryTerm[
+			ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[
+				AndDecidable[NaturalNumberEqualityDecidable[3^2 + 4^2, 25], AndDecidable[LessEqualDecidable[3 + 1, 4], LessEqualDecidable[0 + 1, 3]]],
+				EqualityReflexivity["true"]
+			]]],
+			prelude
+		],
+		{},
+		True
+	},
+	TestID -> "FindInstance-finds-witnesses-that-the-kernel-checks-by-computing"
+]
+
+VerificationTest[
+	First /@ {
+		TypeTheoryProof[Exists[{Typed[n, NonNegativeIntegers]}, n * n == 143], prelude, {TypeTheoryTactic["FindInstance"]}],
+		TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, Exists[{Typed[n, NonNegativeIntegers]}, n == m + 1]], prelude, {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["FindInstance"]}],
+		TypeTheoryProof[2 + 2 == 4, prelude, {TypeTheoryTactic["FindInstance"]}]
+	},
+	{"NoInstance", "NotTranslatable", "ExistentialExpected"},
+	TestID -> "FindInstance-fails-without-an-instance-or-on-what-it-cannot-translate"
+]
