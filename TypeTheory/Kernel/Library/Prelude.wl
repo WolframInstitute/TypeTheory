@@ -1,10 +1,11 @@
 (* ::Package:: *)
 
 (*
-The prelude: classical logic, equality and the natural numbers, written as lists of declarations in the
-surface syntax, so it doubles as an example of them. TypeTheoryEnvironment["Prelude"] gives its
-environment, built and checked when the paclet loads; TypeTheoryEnvironment["Constructive"] gives the
-environment of the constructive declarations alone, without the axioms and what is proved from them.
+The prelude: classical logic, equality, the natural numbers, decisions and lists, written as lists of
+declarations in the surface syntax, so it doubles as an example of them. TypeTheoryEnvironment["Prelude"]
+gives its environment, built and checked when the paclet loads; TypeTheoryEnvironment["Constructive"]
+gives the environment of the constructive declarations alone, without the axioms and what is proved
+from them.
 
 The connectives are built-in symbols, so terms read as ordinary mathematics:
 
@@ -24,6 +25,11 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	m <= n                     LessEqual, inductive as in Lean, with Less, GreaterEqual and Greater
 	Booleans                   with the constants "false" and "true", "not", "and" and "or", named by strings;
 	                           True, False, Not, And and Or stand for these where a Boolean is expected
+	"equal", "lessEqual"       the Boolean comparisons of natural numbers, which the kernel computes on literals
+	Decidable[p]               decisions, with Decide, DecideSoundness, and the decisions of ==, <= and the
+	                           connectives
+	CartesianProduct, DisjointUnion, Option, Lists
+	                           pairs, sums, optional values and lists, with Join, Length, Map, Append and Reverse
 
 	Nonempty[a], Subtype[P]    with NonemptyIntroduction, and SubtypeIntroduction, an element and its proof
 
@@ -836,8 +842,8 @@ $constructiveDeclarations = {
 		]
 	],
 
-	(* Decide[d] == True proves p; the connectives and the equality and order of the natural numbers are
-	   decidable, by recursion on their arguments *)
+	(* Decide[d] == True proves p; the connectives, and the equality and order of the natural numbers, are
+	   decidable *)
 	TypeTheoryTheorem[
 		DecideSoundness,
 		ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, Implies[Decide[d] == "true", p]],
@@ -891,48 +897,170 @@ $constructiveDeclarations = {
 			d
 		]]
 	],
+	(* two Booleans that differ, by the predicate true of one and false of the other *)
+	TypeTheoryTheorem[
+		"falseNotTrue",
+		Not["false" == "true"],
+		Function[{Typed[e, "false" == "true"]}, InductiveRecursor[Equal][
+			Function[{Typed[y, Booleans], Typed[k, "false" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], True, False, y]],
+			TrueIntroduction,
+			e
+		]]
+	],
+	TypeTheoryTheorem[
+		"trueNotFalse",
+		Not["true" == "false"],
+		Function[{Typed[e, "true" == "false"]}, InductiveRecursor[Equal][
+			Function[{Typed[y, Booleans], Typed[k, "true" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], False, True, y]],
+			TrueIntroduction,
+			e
+		]]
+	],
+
+	(* the Boolean comparisons of natural numbers, by recursion on both, as Lean's Nat.beq and Nat.ble; the
+	   kernel computes them on literals *)
 	TypeTheoryDefinition[
-		NaturalNumberEqualityDecidable,
-		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a == n]]],
-			Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-				Function[{Typed[c, NonNegativeIntegers]}, Decidable[0 == c]],
-				DecidableTrue[EqualityReflexivity[0]],
-				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[0 == c]]}, DecidableFalse[Function[{Typed[e, 0 == c + 1]}, SuccessorNotZero[c][EqualitySymmetry[e]]]]],
-				b
-			]],
-			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a == n]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-				Function[{Typed[c, NonNegativeIntegers]}, Decidable[a + 1 == c]],
-				DecidableFalse[SuccessorNotZero[a]],
-				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[a + 1 == c]]}, InductiveRecursor[Decidable][
-					Function[{Typed[t, Decidable[a == c]]}, Decidable[a + 1 == c + 1]],
-					Function[{Typed[h, Not[a == c]]}, DecidableFalse[Function[{Typed[e, a + 1 == c + 1]}, h[SuccessorInjectivity[e]]]]],
-					Function[{Typed[h, a == c]}, DecidableTrue[EqualityCongruence[NaturalNumberSuccessor, h]]],
-					ih[c]
+		"equal",
+		Typed[
+			Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[a, NonNegativeIntegers]}, TypeSpecifier[{NonNegativeIntegers} -> Booleans]],
+				Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+					Function[{Typed[c, NonNegativeIntegers]}, Booleans],
+					"true",
+					Function[{Typed[c, NonNegativeIntegers], Typed[r, Booleans]}, "false"],
+					n
 				]],
-				b
+				Function[{Typed[a, NonNegativeIntegers], Typed[ih, TypeSpecifier[{NonNegativeIntegers} -> Booleans]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+					Function[{Typed[c, NonNegativeIntegers]}, Booleans],
+					"false",
+					Function[{Typed[c, NonNegativeIntegers], Typed[r, Booleans]}, ih[c]],
+					n
+				]]],
+				m
+			]],
+			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> Booleans]
+		]
+	],
+	TypeTheoryDefinition[
+		"lessEqual",
+		Typed[
+			Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[a, NonNegativeIntegers]}, TypeSpecifier[{NonNegativeIntegers} -> Booleans]],
+				Function[{Typed[n, NonNegativeIntegers]}, "true"],
+				Function[{Typed[a, NonNegativeIntegers], Typed[ih, TypeSpecifier[{NonNegativeIntegers} -> Booleans]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+					Function[{Typed[c, NonNegativeIntegers]}, Booleans],
+					"false",
+					Function[{Typed[c, NonNegativeIntegers], Typed[r, Booleans]}, ih[c]],
+					n
+				]]],
+				m
+			]],
+			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> Booleans]
+		]
+	],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Equal" -> "equal", "LessEqual" -> "lessEqual"|>],
+
+	(* what the comparisons give says what holds *)
+	TypeTheoryTheorem[
+		"equalTrue",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["equal"[m, n] == "true", m == n]],
+		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "true", a == n]]],
+			Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[0, c] == "true", 0 == c]],
+				Function[{Typed[e, "equal"[0, 0] == "true"]}, EqualityReflexivity[0]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[0, c] == "true", 0 == c]], Typed[e, "equal"[0, c + 1] == "true"]}, FalseElimination["falseNotTrue"[e]]],
+				n
+			]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "true", a == n]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[a + 1, c] == "true", a + 1 == c]],
+				Function[{Typed[e, "equal"[a + 1, 0] == "true"]}, FalseElimination["falseNotTrue"[e]]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[a + 1, c] == "true", a + 1 == c]], Typed[e, "equal"[a + 1, c + 1] == "true"]},
+					EqualityCongruence[NaturalNumberSuccessor, ih[c, e]]
+				],
+				n
 			]]],
 			m
 		]]
 	],
-	TypeTheoryDefinition[
-		LessEqualDecidable,
+	TypeTheoryTheorem[
+		"equalFalse",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["equal"[m, n] == "false", Not[m == n]]],
 		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a <= n]]],
-			Function[{Typed[b, NonNegativeIntegers]}, DecidableTrue[LessEqualZero[b]]],
-			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Decidable[a <= n]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
-				Function[{Typed[c, NonNegativeIntegers]}, Decidable[a + 1 <= c]],
-				DecidableFalse[SuccessorNotLessEqualZero[a]],
-				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[a + 1 <= c]]}, InductiveRecursor[Decidable][
-					Function[{Typed[t, Decidable[a <= c]]}, Decidable[a + 1 <= c + 1]],
-					Function[{Typed[h, Not[a <= c]]}, DecidableFalse[Function[{Typed[e, a + 1 <= c + 1]}, h[LessEqualPredecessor[e]]]]],
-					Function[{Typed[h, a <= c]}, DecidableTrue[LessEqualSuccessor[h]]],
-					ih[c]
-				]],
-				b
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "false", Not[a == n]]]],
+			Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[0, c] == "false", Not[0 == c]]],
+				Function[{Typed[e, "equal"[0, 0] == "false"]}, FalseElimination["trueNotFalse"[e]]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[0, c] == "false", Not[0 == c]]], Typed[e, "equal"[0, c + 1] == "false"], Typed[k, 0 == c + 1]},
+					SuccessorNotZero[c][EqualitySymmetry[k]]
+				],
+				n
+			]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "false", Not[a == n]]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[a + 1, c] == "false", Not[a + 1 == c]]],
+				Function[{Typed[e, "equal"[a + 1, 0] == "false"], Typed[k, a + 1 == 0]}, SuccessorNotZero[a][k]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[a + 1, c] == "false", Not[a + 1 == c]]], Typed[e, "equal"[a + 1, c + 1] == "false"], Typed[k, a + 1 == c + 1]},
+					ih[c, e][SuccessorInjectivity[k]]
+				],
+				n
 			]]],
 			m
 		]]
+	],
+	TypeTheoryTheorem[
+		"lessEqualTrue",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[m, n] == "true", m <= n]],
+		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "true", a <= n]]],
+			Function[{Typed[n, NonNegativeIntegers], Typed[e, "lessEqual"[0, n] == "true"]}, LessEqualZero[n]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "true", a <= n]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies["lessEqual"[a + 1, c] == "true", a + 1 <= c]],
+				Function[{Typed[e, "lessEqual"[a + 1, 0] == "true"]}, FalseElimination["falseNotTrue"[e]]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["lessEqual"[a + 1, c] == "true", a + 1 <= c]], Typed[e, "lessEqual"[a + 1, c + 1] == "true"]},
+					LessEqualSuccessor[ih[c, e]]
+				],
+				n
+			]]],
+			m
+		]]
+	],
+	TypeTheoryTheorem[
+		"lessEqualFalse",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[m, n] == "false", Not[m <= n]]],
+		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "false", Not[a <= n]]]],
+			Function[{Typed[n, NonNegativeIntegers], Typed[e, "lessEqual"[0, n] == "false"]}, FalseElimination["trueNotFalse"[e]]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "false", Not[a <= n]]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies["lessEqual"[a + 1, c] == "false", Not[a + 1 <= c]]],
+				Function[{Typed[e, "lessEqual"[a + 1, 0] == "false"]}, SuccessorNotLessEqualZero[a]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["lessEqual"[a + 1, c] == "false", Not[a + 1 <= c]]], Typed[e, "lessEqual"[a + 1, c + 1] == "false"], Typed[k, a + 1 <= c + 1]},
+					ih[c, e][LessEqualPredecessor[k]]
+				],
+				n
+			]]],
+			m
+		]]
+	],
+
+	(* a decision of m == n or m <= n is what the comparison gives, with the proof it gives, as Lean's
+	   Nat.decEq and Nat.decLe: on literals it is one step of the kernel, however large they are *)
+	TypeTheoryDefinition[
+		NaturalNumberEqualityDecidable,
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["equal"[m, n] == b, Decidable[m == n]]],
+			Function[{Typed[e, "equal"[m, n] == "false"]}, DecidableFalse["equalFalse"[m, n, e]]],
+			Function[{Typed[e, "equal"[m, n] == "true"]}, DecidableTrue["equalTrue"[m, n, e]]],
+			"equal"[m, n]
+		][EqualityReflexivity["equal"[m, n]]]]
+	],
+	TypeTheoryDefinition[
+		LessEqualDecidable,
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["lessEqual"[m, n] == b, Decidable[m <= n]]],
+			Function[{Typed[e, "lessEqual"[m, n] == "false"]}, DecidableFalse["lessEqualFalse"[m, n, e]]],
+			Function[{Typed[e, "lessEqual"[m, n] == "true"]}, DecidableTrue["lessEqualTrue"[m, n, e]]],
+			"lessEqual"[m, n]
+		][EqualityReflexivity["lessEqual"[m, n]]]]
 	],
 
 	(* pairs, sums, optional values and lists, laid out as Lean's Prod, Sum, Option and List *)

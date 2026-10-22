@@ -48,8 +48,27 @@ VerificationTest[
 	TestID -> "The-prelude-computes-its-arithmetic-on-literals"
 ]
 
-(* the comparison of natural numbers on Booleans, registered after the prelude by the alias Naturals *)
-withEquality = TypeTheoryEnvironment[prelude, {
+(* the prelude up to, and without, the registration of its comparisons of natural numbers *)
+beforeComparisons = TypeTheoryEnvironment[
+	TypeTheoryEnvironment[],
+	TakeWhile[Normal[prelude], Function[declaration, ! MatchQ[declaration, TypeTheoryNaturalNumbers[_, _, _, operations_Association /; KeyExistsQ[operations, "Equal"]]]]]
+]
+
+VerificationTest[
+	{
+		First /@ {
+			WeakHeadNormalForm[TypeTheoryTerm["equal"[2^70, 2^70]]],
+			WeakHeadNormalForm[TypeTheoryTerm["lessEqual"[2^70 + 1, 2^70]]],
+			WeakHeadNormalForm[TypeTheoryTerm[Decide[NaturalNumberEqualityDecidable[12^3 + 1, 9^3 + 10^3]]]]
+		},
+		Information[prelude, "NaturalNumbers"]["Operations"]["Equal"]
+	},
+	{{"true", "false", "true"}, "equal"},
+	TestID -> "The-prelude-compares-literals-on-Booleans-in-one-step"
+]
+
+(* a comparison of its own, registered by the alias Naturals on the prelude without its comparisons *)
+withEquality = TypeTheoryEnvironment[beforeComparisons, {
 	TypeTheoryDefinition[
 		NaturalNumberEqual,
 		Function[{Typed[m, Naturals], Typed[n, Naturals]},
