@@ -172,7 +172,8 @@ TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7
 Squares are at least 0, `IntegerSquareNonnegative`, and `IntegerLessEqualOfMultiple` gives `x <= y` from
 `(d + 1) (y - x) == s` with `0 <= s`. `"SumOfSquares"` proves an inequality with them: Wolfram finds `d`
 and a sum `s` of squares of polynomials, by exact linear algebra on a Gram matrix and, where it has free
-entries, `SemidefiniteOptimization`; `"Ring"` proves the equation:
+entries, a diagonally dominant one from linear inequalities or else `SemidefiniteOptimization`; `"Ring"`
+proves the equation:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], integers, {
@@ -411,7 +412,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 296 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 297 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, a definition that copies an affine variable, a recursion on an

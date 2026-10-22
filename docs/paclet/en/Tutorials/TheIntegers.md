@@ -240,7 +240,7 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, 2 a b <= a^2 + 
 
 <!-- => Proof complete -->
 
-Where the Gram matrix has free entries, [SemidefiniteOptimization]() finds one that is positive semidefinite. `x^4 - 4 x + 3` needs it, and three times it is `(x^2 + 2 x - 3)^2 + 2 (x^2 - x)^2`:
+Where the Gram matrix has free entries, a diagonally dominant one, each diagonal entry at least the sum of the absolute values of the others in its row, is positive semidefinite, and linear inequalities find one exactly; failing that, [SemidefiniteOptimization]() finds one. The Gram matrices of `x^4 - 4 x + 3`, three times which is `(x^2 + 2 x - 3)^2 + 2 (x^2 - x)^2`, have a free entry:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers]}, 4 x <= x^4 + 3], integers, {
