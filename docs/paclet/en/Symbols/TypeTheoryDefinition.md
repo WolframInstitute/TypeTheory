@@ -4,7 +4,7 @@ Name: TypeTheoryDefinition
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryDefinition
-Keywords: [definition, declaration, function, unfolding, environment, universe polymorphism, instance, type class, coercion]
+Keywords: [definition, declaration, function, unfolding, environment, universe polymorphism, instance, type class, coercion, opaque]
 SeeAlso: [TypeTheoryEnvironment, TypeTheoryAxiom, TypeTheoryTheorem, WeakHeadNormalForm, Decidable]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [InstancesAndCoercions]
@@ -24,6 +24,7 @@ RelatedTutorials: [InstancesAndCoercions]
 - The option `"Instance" -> True` makes the definition an instance of its class, the constant its type applies at the end, under its binders, as Lean's `instance`. Elaboration fills an argument of an instance-implicit binder, <code>[Annotation]()[[Typed]()[*x*, *class*], "InstanceImplicit"]</code>, with a variable bound by such a binder, or else with the first instance whose type unifies with the binder's, the latest declared first, finding the instance's own instance-implicit arguments in turn.
 - The option `"Coercion" -> True` makes a function of one explicit argument, after its implicit ones, a coercion, as Lean's `@[coe]`: where a term's type does not unify with the one expected, elaboration applies the coercion from the one to the other, or a chain of at most three.
 - An instance or a coercion is a definition as any other: the kernel checks it, and every term elaboration builds with it.
+- The option `"Opaque" -> True` makes the definition opaque, as Lean's `opaque`: the kernel checks *value* against the type, but the definition never unfolds, so it equals only itself. Unlike an axiom of its type, it cannot make the theory inconsistent, since *value* is an element of the type.
 
 ## Basic Examples
 
@@ -152,6 +153,32 @@ coerced[NaturalOfBoolean]
 
 <!-- => coercion NaturalOfBoolean : 𝔹 → ℕ := (b ∶ 𝔹) ↦ 𝔹_rec[(t ∶ 𝔹) ↦ ℕ, 0, 1, b] -->
 
+---
+
+An opaque definition, whose value the kernel checks:
+
+```wl
+secret = TypeTheoryEnvironment[TypeTheoryDefinition[Secret, Typed[42, Naturals], "Opaque" -> True]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+
+It never unfolds, so it is not equal to its value:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Secret, secret], TypeTheoryTerm[42, secret]]
+```
+
+<!-- => False -->
+
+The declaration shows as opaque:
+
+```wl
+secret[Secret]
+```
+
+<!-- => opaque Secret : ℕ := 42 -->
+
 ## Possible Issues
 
 The type of an instance must end in a class, a constant applied to arguments, and a coercion must be a function:
@@ -161,6 +188,19 @@ TypeTheoryEnvironment[TypeTheoryDefinition[NotACoercion, Typed[0, Naturals], "Co
 ```
 
 <!-- => Failure["CoercionTypeExpected", ...] -->
+
+---
+
+An opaque definition equals only itself, so a proof that needs its value does not check:
+
+```wl
+Append[
+    TypeTheoryEnvironment[TypeTheoryDefinition[Secret, Typed[42, Naturals], "Opaque" -> True]],
+    TypeTheoryTheorem[SecretValue, Secret == 42, EqualityReflexivity[42]]
+]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
 
 ---
 
