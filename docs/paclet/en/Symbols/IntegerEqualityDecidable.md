@@ -28,7 +28,7 @@ The integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 230 constants -->
+<!-- => TypeTheoryEnvironment summary box: 244 constants -->
 
 The decision of an equation computes:
 
@@ -46,7 +46,7 @@ The integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 230 constants -->
+<!-- => TypeTheoryEnvironment summary box: 244 constants -->
 
 `"Decide"` proves a closed equation:
 

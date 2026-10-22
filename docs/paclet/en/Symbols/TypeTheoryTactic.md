@@ -34,7 +34,7 @@ RelatedGuides: [TypeTheory]
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
 | `"Decide"` | proves a closed statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's decide `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False]() |
-| `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by induction on the class of each integer variable and the soundness of quotients |
+| `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
 | `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
@@ -378,7 +378,7 @@ TypeTheoryProof[ForAll[
 `"SumOfSquares"` proves an inequality of integers whose larger side less the smaller is a sum of squares, here half the sum of the squares of `x - y`, `y - z` and `z - x`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], TypeTheoryEnvironment["Integers"], {
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], TypeTheoryEnvironment["Integers"], {
     TypeTheoryTactic["Introduce", x, y, z],
     TypeTheoryTactic["SumOfSquares"]
 }]
@@ -464,10 +464,10 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y,
 
 ---
 
-`"SumOfSquares"` proves only what a sum of squares shows; `x x <= 2` is false for `x = 2`:
+`"SumOfSquares"` proves only what a sum of squares shows; `x^2 <= 2` is false for `x = 2`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers]}, x x <= 2], TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
 ```
 
 <!-- => Failure["NoSumOfSquares", ...] -->

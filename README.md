@@ -158,10 +158,11 @@ store is never changed once built, and it lasts for the session.
 is asked for: classes of pairs of natural numbers (a, b), standing for a - b, a quotient type. The
 operations are lifted from pairs, and the laws of a commutative ring, `IntegerAdditionCommutativity`
 through `IntegerDistributivity`, are proved by the tactics themselves: `"Induction"` on each class,
-`QuotientSoundness`, and `"Ring"` on the pairs, which `"Ring"` does on its own for any identity of
-commutative rings; `IntegerEqualityDecidable` decides their equations, so `"Decide"` proves a closed one.
-There `+`, `*`, `-`, the comparisons and negative literals are the integers' wherever the types say so,
-and a natural number coerces to an integer:
+`QuotientSoundness`, and `"Ring"` on the pairs. With those laws, `"Ring"` proves any identity of
+commutative rings over the integers by normal forms of its own, as it does over the natural numbers;
+`IntegerEqualityDecidable` decides their equations, so `"Decide"` proves a closed one. There `+`, `*`,
+`-`, `^`, the comparisons and negative literals are the integers' wherever the types say so, and a
+natural number coerces to an integer:
 
 ```wl
 integers = TypeTheoryEnvironment["Integers"];
@@ -174,9 +175,9 @@ and a sum `s` of squares of polynomials, by exact linear algebra on a Gram matri
 entries, `SemidefiniteOptimization`; `"Ring"` proves the equation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], integers, {
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], integers, {
     TypeTheoryTactic["Introduce", x, y, z],
-    TypeTheoryTactic["SumOfSquares"]                     (* 2 (x x + y y + z z - x y - y z - z x), a sum of three squares *)
+    TypeTheoryTactic["SumOfSquares"]                     (* 2 (x^2 + y^2 + z^2 - x y - y z - z x), a sum of three squares *)
 }]
 ```
 
@@ -410,7 +411,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 294 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 296 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, a definition that copies an affine variable, a recursion on an

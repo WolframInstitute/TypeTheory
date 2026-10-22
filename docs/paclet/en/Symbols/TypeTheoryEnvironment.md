@@ -151,7 +151,7 @@ The integers extend the prelude, built and checked the first time they are asked
 TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 230 constants -->
+<!-- => TypeTheoryEnvironment summary box: 244 constants -->
 
 ## Properties and Relations
 

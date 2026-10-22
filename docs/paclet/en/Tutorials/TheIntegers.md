@@ -20,7 +20,7 @@ The environment, the prelude with the integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 230 constants -->
+<!-- => TypeTheoryEnvironment summary box: 244 constants -->
 
 [Integers]() is the quotient of pairs by a relation, and shows as ℤ:
 
@@ -48,7 +48,7 @@ integers["integerOfNatural"]
 
 ## Arithmetic
 
-In this environment `+`, `*`, `-`, the comparisons and negative literals are the integers' wherever the types say so, and the natural numbers' otherwise, as in Lean:
+In this environment `+`, `*`, `-`, `^` with a natural number exponent, the comparisons and negative literals are the integers' wherever the types say so, and the natural numbers' otherwise, as in Lean:
 
 ```wl
 TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]
@@ -159,11 +159,22 @@ Induction on a class proves propositions only. A function into data, such as neg
 
 ## Ring over the Integers
 
-`"Ring"` does all of this on its own for an equation of integers: induction on the class of each integer variable, [QuotientSoundness](), and `"Ring"` on the pairs. An identity of commutative rings, such as the difference of squares:
+With the laws proved, `"Ring"` proves an equation of integers on its own, as it does one of natural numbers: it normalizes each side to a polynomial with integer coefficients, built from the integers' laws, where like monomials cancel. An identity of commutative rings, such as the square of a difference:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y) (x + y) == x x - y y], integers, {
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y)^2 == x^2 - 2 x y + y^2], integers, {
     TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+The atoms of the polynomials need not be variables, and the integers of natural numbers keep their sums, products and powers:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Integers} -> Integers]], Typed[n, Naturals]}, (f[n] + n)^2 == f[n]^2 + 2 n f[n] + Typed[n^2, Integers]], integers, {
+    TypeTheoryTactic["Introduce", f, n],
     TypeTheoryTactic["Ring"]
 }]
 ```
@@ -207,10 +218,10 @@ integers[IntegerLessEqualOfMultiple]
 
 <!-- => theorem IntegerLessEqualOfMultiple : ∀_d∶ℕ ∀_{x∶ℤ} ∀_{y∶ℤ} ∀_s∶ℤ ↑(d + 1) (y - x) == s ⇒ 0 ≤ s ⇒ x ≤ y -->
 
-The tactic `"SumOfSquares"` proves an inequality this way. Wolfram finds a positive integer `d` and a sum `s` of squares of polynomials, each times a positive integer, with `d (y - x) == s`. `"Ring"` proves that equation, and the lemmas above prove that `s` is at least 0. Here `2 (x x + y y + z z - x y - y z - z x)` is the sum of the squares of `x - y`, `y - z` and `z - x`:
+The tactic `"SumOfSquares"` proves an inequality this way. Wolfram finds a positive integer `d` and a sum `s` of squares of polynomials, each times a positive integer, with `d (y - x) == s`. `"Ring"` proves that equation, and the lemmas above prove that `s` is at least 0. Here `2 (x^2 + y^2 + z^2 - x y - y z - z x)` is the sum of the squares of `x - y`, `y - z` and `z - x`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], integers, {
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], integers, {
     TypeTheoryTactic["Introduce", x, y, z],
     TypeTheoryTactic["SumOfSquares"]
 }]
@@ -229,10 +240,21 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, 2 a b <= a^2 + 
 
 <!-- => Proof complete -->
 
+Where the Gram matrix has free entries, [SemidefiniteOptimization]() finds one that is positive semidefinite. `x^4 - 4 x + 3` needs it, and three times it is `(x^2 + 2 x - 3)^2 + 2 (x^2 - x)^2`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, 4 x <= x^4 + 3], integers, {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
 Wolfram finds no sum of squares where there is none. Here the inequality is false at `x = 2`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers]}, x x <= 2], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
 ```
 
 <!-- => Failure["NoSumOfSquares", ...] -->
