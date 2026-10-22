@@ -25,6 +25,9 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Booleans, "true", "false"          𝔹, true, false       a constant named by a string shows as the string
 	Circle                              𝕊¹                   the circle of the HoTT environment
 	"and", "or", "not"                  a && b, a || b, !a   as Lean writes them for its Bool
+	Integers                            ℤ                    the integers of TypeTheoryEnvironment["Integers"]
+	"integerAddition" and the others    x + y, x y, x - y, -x, x ≤ y, ...   as the natural numbers' operations
+	"integerOfNatural"[n]               ↑n, or the literal n itself
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
 
@@ -142,6 +145,7 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[head, displaySyntax /@ arguments]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
+displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]
 displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
 displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruckCapitalS]\:00b9"]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
@@ -180,6 +184,22 @@ displayApplication[syntaxString["and"], {syntaxApplication[syntaxSymbol[HoldComp
 displayApplication[syntaxString["and"], arguments_List] := syntaxHead[Nand, arguments]
 displayApplication[syntaxString["or"], {syntaxApplication[syntaxSymbol[HoldComplete[Nor]], rest_List], last_}] := syntaxHead[Nor, Append[rest, last]]
 displayApplication[syntaxString["or"], arguments_List] := syntaxHead[Nor, arguments]
+(* the integers' operations show as those of the natural numbers, which the types tell apart, as in Lean *)
+displayApplication[syntaxString["integerAddition"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Plus]], arguments]
+displayApplication[syntaxString["integerMultiplication"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Times]], arguments]
+displayApplication[syntaxString["integerSubtraction"], arguments_List] := syntaxHead[Subtract, arguments]
+displayApplication[syntaxString["integerNegation"], {argument_}] := prefixed["-", argument]
+displayApplication[syntaxString["integerLessEqual"], arguments_List] := syntaxHead[LessEqual, arguments]
+displayApplication[syntaxString["integerLess"], arguments_List] := syntaxHead[Less, arguments]
+displayApplication[syntaxString["integerGreaterEqual"], arguments_List] := syntaxHead[GreaterEqual, arguments]
+displayApplication[syntaxString["integerGreater"], arguments_List] := syntaxHead[Greater, arguments]
+displayApplication[syntaxString["integerOfNatural"], {literal : syntaxInteger[_Integer]}] := literal
+displayApplication[syntaxString["integerOfNatural"], {argument_}] := prefixed["\[UpArrow]", argument]
+
+(* -x and ↑x, with an argument that is no name or number in parentheses, so x + -y keeps its sign and
+   ↑(m + n) its sum *)
+prefixed[sign_String, argument : (_syntaxSymbol | _syntaxString | _syntaxInteger)] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign], argument}]}]
+prefixed[sign_String, argument_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign <> "("], argument, syntaxString[")"]}]}]
 (* (a + b) + c shows as a + b + c, and (a b) c as a b c, the way Lean reads + and * *)
 displayApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], {syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List], last_}] :=
 	syntaxHead[head, Append[rest, last]]

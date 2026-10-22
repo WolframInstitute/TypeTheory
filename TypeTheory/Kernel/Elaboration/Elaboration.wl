@@ -138,6 +138,7 @@ $metavariableContexts = <||>
 $pendingOverloads = {}
 $pendingInstances = {}
 $instanceIndex = <||>
+$coercions = True
 
 
 SetAttributes[withElaborationState, HoldRest]
@@ -224,6 +225,11 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[syntaxHead[Subtract, {first, second}], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxInteger[k_Integer?Negative]}] :>
 		elaborateSyntax[syntaxHead[Subtract, {first, syntaxInteger[-k]}], expected],
+	(* -x, read as Times[-1, x], and a negative literal negate an integer, where the environment has them *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}] /; integersDeclaredQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxString["integerNegation"], {second}], expected],
+	syntaxInteger[k_Integer?Negative] /; integersDeclaredQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxString["integerNegation"], {syntaxInteger[-k]}], expected],
 	syntaxApplication[syntaxSymbol[name_], arguments_List] /; ! KeyExistsQ[$elaborationScope, name] && overloadedNameQ[$elaborationEnvironment, name] :>
 		elaborateOverloaded[name, arguments, syntax, expected],
 	(* a && b && c is a && (b && c), as in Lean *)
@@ -241,6 +247,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxSymbol[HoldComplete[symbol_Symbol]] /; storedValueQ[symbol] :> elaborateStoredValue[symbol, expected],
 	_ :> elaborationFailure["`1` is not a term of the type theory: it is neither a variable in scope nor a declared constant.", syntax]
 }]
+
+integersDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["integerNegation"]]
 
 (* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], as in Lean, each Exists applied to a predicate *)
 nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]
@@ -423,7 +431,7 @@ checkAgainst[syntax_, expected_] := With[{result = elaborateSyntax[syntax, expec
 	]
 ]
 
-coercedOrFail[{term_, type_}, expected_, syntax_] := Replace[coercedTerm[term, type, expected], None :> (
+coercedOrFail[{term_, type_}, expected_, syntax_] := Replace[If[$coercions, coercedTerm[term, type, expected], None], None :> (
 	unifyOrFail[type, expected, syntax];
 	term
 )]
@@ -588,8 +596,18 @@ $overloadedNames = <|
 	HoldComplete[False] -> {HoldComplete[False], HoldComplete["false"]},
 	HoldComplete[Not] -> {HoldComplete[Not], HoldComplete["not"]},
 	HoldComplete[And] -> {HoldComplete[And], HoldComplete["and"]},
-	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete["or"]}
+	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete["or"]},
+	HoldComplete[Plus] -> {HoldComplete[Plus], HoldComplete["integerAddition"]},
+	HoldComplete[Times] -> {HoldComplete[Times], HoldComplete["integerMultiplication"]},
+	HoldComplete[Subtract] -> {HoldComplete[Subtract], HoldComplete["integerSubtraction"]},
+	HoldComplete[LessEqual] -> {HoldComplete[LessEqual], HoldComplete["integerLessEqual"]},
+	HoldComplete[Less] -> {HoldComplete[Less], HoldComplete["integerLess"]},
+	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"]},
+	HoldComplete[Greater] -> {HoldComplete[Greater], HoldComplete["integerGreater"]}
 |>
+
+(* the operations of the natural numbers, which an environment with the integers overloads *)
+$arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, LessEqual, Less, GreaterEqual, Greater}]
 
 overloadedNameQ[environment_, name_HoldComplete] := Length[declaredMeanings[environment, name]] > 1
 
@@ -603,25 +621,41 @@ elaborateOverloaded[name_HoldComplete, arguments_List, syntax_, expected_] := Re
 	}
 ]
 
-(* the meaning the expected type allows, or the one meaning that fits, or None if both fit; if neither
-   fits, the proposition, whose elaboration then says why *)
-chosenMeaning[{proposition_, boolean_}, arguments_List, expected_] := Replace[
-	expectedMeaning[{proposition, boolean}, arguments, expected],
-	None :> With[{fitting = Select[{proposition, boolean}, Function[meaning, meaningFitsQ[meaning, arguments, expected]]]},
-		Replace[fitting, {{only_} :> only, {} :> proposition, _ :> None}]
-	]
+(* the meaning the expected type allows, or the one meaning that fits, or None if both fit; a meaning that
+   fits without coercions is taken before one that needs them, so 2 + 3 adds natural numbers even where the
+   integers could take them; if neither fits, the first, whose elaboration then says why *)
+chosenMeaning[meanings : {_, _}, arguments_List, expected_] := Replace[
+	expectedMeaning[meanings, arguments, expected],
+	None :> Replace[Select[meanings, Function[meaning, Block[{$coercions = False}, meaningFitsQ[meaning, arguments, expected]]]], {
+		{only_} :> only,
+		{} :> Replace[Select[meanings, Function[meaning, meaningFitsQ[meaning, arguments, expected]]], {{only_} :> only, {} :> First[meanings], _ :> None}],
+		_ :> None
+	}]
 ]
 chosenMeaning[{only_}, _, _] := only
 
 (* a type or Prop is expected only of the proposition, and Booleans only of the Boolean; a connective
    with no arguments is a function, which the expected type does not decide this way *)
-expectedMeaning[{proposition_, boolean_}, arguments_List, expected_] /; expected =!= None && (arguments =!= {} || MatchQ[proposition, HoldComplete[True | False]]) :=
+expectedMeaning[{proposition : HoldComplete[True | False | Not | And | Or], boolean_}, arguments_List, expected_] /; expected =!= None && (arguments =!= {} || MatchQ[proposition, HoldComplete[True | False]]) :=
 	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], {
 		_universeSort :> proposition,
 		constantReference[HoldComplete[Booleans], {}] :> boolean,
 		_ :> None
 	}]
+(* a natural number is expected only of the operation on natural numbers, and an integer only of the
+   one on integers; a comparison is a proposition either way *)
+expectedMeaning[{natural_, integer_}, _, expected_] /; expected =!= None && MemberQ[$arithmeticNames, natural] :=
+	With[{type = instantiateMetavariables[expected]},
+		Which[
+			MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, type], constantReference[HoldComplete[NonNegativeIntegers], {}]], natural,
+			constantDeclaredQ[$elaborationEnvironment, HoldComplete[Integers]] && unassignedFreeQ[type] &&
+				definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, type, constantReference[HoldComplete[Integers], {}]], integer,
+			True, None
+		]
+	]
 expectedMeaning[_, _, _] := None
+
+unassignedFreeQ[term_] := FreeQ[term, metavariable[id_] /; unassignedMetavariableQ[metavariable[id]]]
 
 (* a trial, with the elaboration state restored after *)
 meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
@@ -676,6 +710,13 @@ resolvePendingOverloads[start_Integer, final_] := With[
 			$pendingOverloads = DeleteCases[$pendingOverloads, First[decided], {1}, 1];
 			decideOverload @@ decided;
 			resolvePendingOverloads[start, final],
+		(* an arithmetic operation nothing decides is that of the natural numbers, as a numeral is in Lean *)
+		final && Length[$pendingOverloads] > start && MemberQ[$arithmeticNames, $pendingOverloads[[start + 1]]["Name"]],
+			With[{entry = $pendingOverloads[[start + 1]]},
+				$pendingOverloads = Delete[$pendingOverloads, start + 1];
+				decideOverload[entry, First[declaredMeanings[$elaborationEnvironment, entry["Name"]]]];
+				resolvePendingOverloads[start, final]
+			],
 		final && Length[$pendingOverloads] > start,
 			ambiguityFailure[$pendingOverloads[[start + 1]]],
 		True,

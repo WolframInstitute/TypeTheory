@@ -157,6 +157,7 @@ TypeTheoryEnvironment[rules_TypeTheoryRules?rulesQ, declarations : (_List | _?de
 TypeTheoryEnvironment["Prelude"] := preludeEnvironment[]
 TypeTheoryEnvironment["Constructive"] := constructiveEnvironment[]
 TypeTheoryEnvironment["HomotopyTypeTheory"] := homotopyTypeTheoryEnvironment[]
+TypeTheoryEnvironment["Integers"] := integersEnvironment[]
 TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[defaultEnvironment[], declarations]
 TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[defaultEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]
