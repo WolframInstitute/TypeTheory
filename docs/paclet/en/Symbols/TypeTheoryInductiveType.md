@@ -32,7 +32,7 @@ Lists of natural numbers, and their length by recursion:
 ```wl
 lists = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
-        EmptyList -> NaturalList,
+        EmptyNaturalList -> NaturalList,
         ConsList -> ForAll[{Typed[h, Naturals], Typed[t, NaturalList]}, NaturalList]
     }],
     TypeTheoryDefinition[ListLength, Typed[
@@ -47,12 +47,12 @@ lists = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 114 constants -->
+<!-- => TypeTheoryEnvironment summary box: 154 constants -->
 
 The length of a list of three numbers:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]]
+WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyNaturalList]]]], lists]]
 ```
 
 <!-- => 3 -->
@@ -72,7 +72,7 @@ vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 113 constants -->
+<!-- => TypeTheoryEnvironment summary box: 153 constants -->
 
 The length in a vector's type is checked by computation:
 
@@ -94,7 +94,7 @@ pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 112 constants -->
+<!-- => TypeTheoryEnvironment summary box: 152 constants -->
 
 Its fields are projections:
 
@@ -119,7 +119,7 @@ parity = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 116 constants -->
+<!-- => TypeTheoryEnvironment summary box: 156 constants -->
 
 Three is odd:
 
@@ -151,7 +151,7 @@ roses = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 117 constants -->
+<!-- => TypeTheoryEnvironment summary box: 157 constants -->
 
 The recursor of the trees takes a motive for the list too:
 

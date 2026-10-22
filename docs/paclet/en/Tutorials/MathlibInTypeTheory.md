@@ -266,7 +266,7 @@ The prelude is the default again with [SetTypeTheoryEnvironment]():
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 109 constants -->
+<!-- => TypeTheoryEnvironment summary box: 149 constants -->
 
 ## How Much of Mathlib
 

@@ -33,7 +33,7 @@ Make the prelude with a definition added the default:
 SetTypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+<!-- => TypeTheoryEnvironment summary box: 150 constants -->
 
 Terms use it without naming it:
 
@@ -57,7 +57,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 109 constants -->
+<!-- => TypeTheoryEnvironment summary box: 149 constants -->
 
 ## Scope
 
@@ -75,7 +75,7 @@ Outside the [Block](), the default is the prelude, where it is a theorem:
 TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]
 ```
 
-<!-- => ∀_p∶Prop p ∨ ¬p -->
+<!-- => ∀_p∶Prop (p ∨ ¬p) -->
 
 ## Possible Issues
 
@@ -85,7 +85,7 @@ A term written without an environment is in the default environment when it is u
 SetTypeTheoryEnvironment[{TypeTheoryDefinition[Tripled, Function[{Typed[n, Naturals]}, n + n + n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+<!-- => TypeTheoryEnvironment summary box: 150 constants -->
 
 A term written while it is the default:
 
@@ -101,7 +101,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 109 constants -->
+<!-- => TypeTheoryEnvironment summary box: 149 constants -->
 
 The term no longer has the definition:
 

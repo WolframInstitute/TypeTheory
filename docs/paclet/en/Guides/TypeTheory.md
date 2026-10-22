@@ -6,14 +6,14 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
-Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, Lean]
+Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, Lean]
 RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, RulesAndComputation, HomotopyTypeTheory, MathlibInTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
 ## Abstract
 
-<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers and the Booleans, unless [SetTypeTheoryEnvironment]() sets another. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
+<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers, the Booleans, decisions, pairs, sums, options and lists, unless [SetTypeTheoryEnvironment]() sets another. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
 
 ## Functions
 
@@ -46,7 +46,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Proofs
 
 - [TypeTheoryProof]() a proof in progress, with its open goals
-- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Assumption"`
+- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`
 
 ### The prelude: logic and equality
 
@@ -77,6 +77,21 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### The prelude: Booleans
 
 - [Booleans]() with the values `"false"` and `"true"` and the operations `"not"`, `"and"` and `"or"`, constants named by strings, which [False](), [True](), [Not](), [And]() and [Or]() stand for where a Boolean is expected
+
+### The prelude: decisions
+
+- [Decidable]() the decisions of a proposition, made with [DecidableTrue]() and [DecidableFalse]()
+- [Decide]() the Boolean of a decision, and [DecideSoundness]() the proof from a decision that computes to `"true"`
+- [NaturalNumberEqualityDecidable](), [LessEqualDecidable]() deciding `==` and `<=` of natural numbers
+- [NotDecidable](), [AndDecidable](), [OrDecidable]() deciding [Not](), [And]() and [Or]() from decisions of their parts
+
+### The prelude: pairs, sums, options and lists
+
+- [CartesianProduct]() pairs, made with [Pair]()
+- [DisjointUnion]() sums, made with [LeftInjection]() and [RightInjection]()
+- [Option]() optional values, [OptionNone]() and [OptionSome]()
+- [Lists]() lists, built from [EmptyList]() by [ListPrepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
+- [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse](), [LengthReverse]() the laws of lists
 
 ### Homotopy type theory
 

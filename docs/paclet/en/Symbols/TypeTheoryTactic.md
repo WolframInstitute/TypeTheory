@@ -4,8 +4,8 @@ Name: TypeTheoryTactic
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
-Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, assumption]
-SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm]
+Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide]
+SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, Lists]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -23,10 +23,20 @@ RelatedGuides: [TypeTheory]
 | `"Exact", term` | solves the goal with a term |
 | `"Apply", term` | solves the goal with a term applied to new goals, as many as its conclusion needs |
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
-| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses |
+| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized |
+| `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
+| `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
+| `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
 | `"Assumption"` | solves the goal with a hypothesis of the same type |
+| `"Rewrite", h` | replaces the first instance of the left side of the equation `h` in the goal, and every copy of it, by the right side, then closes a goal whose sides are the same |
+| `"Rewrite", h, "RightToLeft"` | replaces the right side by the left |
+| `"Rewrite", h, "At" -> k` | rewrites the hypothesis `k` instead of the goal; `"RightToLeft"` can come before `"At" -> k` |
+| `"Change", statement` | replaces the goal by a statement equal to it by computation |
+| `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
+| `"Decide"` | proves a closed statement of `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False]() by computing its decision |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
+- A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[ListPrepend[x, l], m]` becomes `ListPrepend[x, Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
 - A tactic that does not apply gives a [Failure]().
 
 ## Basic Examples
@@ -141,6 +151,133 @@ proof = TypeTheoryTactic["Exact", hnp[hp]][proof]
 
 <!-- => Proof complete -->
 
+---
+
+`"Induction"` on a list leaves a goal for the empty list and one for a list with a first element:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {
+    TypeTheoryTactic["Introduce", l],
+    TypeTheoryTactic["Induction", l]
+}]
+```
+
+<!-- => Proof, 2 goals: case EmptyList ⊢ Join[EmptyList, EmptyList] == EmptyList; case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, EmptyList] == l ⇒ Join[ListPrepend[x, l], EmptyList] == ListPrepend[x, l] -->
+
+`"Simplify"` unfolds [Join]() on the empty list, and the sides are then the same:
+
+```wl
+proof = TypeTheoryTactic["Simplify", {Join}][proof]
+```
+
+<!-- => Proof, 1 goal: case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, EmptyList] == l ⇒ Join[ListPrepend[x, l], EmptyList] == ListPrepend[x, l] -->
+
+Introduce the first element, the rest and the induction hypothesis:
+
+```wl
+proof = TypeTheoryTactic["Introduce", x, rest, ih][proof]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ Lists[ℕ], ih ∶ Join[rest, EmptyList] == rest ⊢ Join[ListPrepend[x, rest], EmptyList] == ListPrepend[x, rest] -->
+
+Unfolding [Join]() once more brings out `Join[rest, EmptyList]`, which the induction hypothesis rewrites:
+
+```wl
+proof = TypeTheoryTactic["Simplify", {Join, ih}][proof]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`"Rewrite"` replaces `a` by `b`, and the goal closes:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a == b, a + 1 == b + 1]], {
+    TypeTheoryTactic["Introduce", a, b, h],
+    TypeTheoryTactic["Rewrite", h]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+With `"At" -> k`, the hypothesis `k` is rewritten instead:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a == b, Implies[a + 1 == 3, b + 1 == 3]]], {
+    TypeTheoryTactic["Introduce", a, b, h, k],
+    TypeTheoryTactic["Rewrite", h, "At" -> k]
+}]
+```
+
+<!-- => Proof, 1 goal: a ∶ ℕ, b ∶ ℕ, h ∶ a == b, k ∶ b + 1 == 3 ⊢ b + 1 == 3 -->
+
+The rewritten hypothesis is the goal:
+
+```wl
+TypeTheoryTactic["Exact", k][proof]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`"Cases"` splits a natural number into zero and a successor, with no induction hypothesis:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Or[n == 0, Exists[{Typed[k, Naturals]}, n == k + 1]]], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Cases", n]
+}]
+```
+
+<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 == 0 ∨ ∃_k∶ℕ 0 == k + 1; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ (n + 1 == 0 ∨ ∃_k∶ℕ n + 1 == k + 1) -->
+
+---
+
+`"Constructor"` applies [AndIntroduction](), the constructor of [And]():
+
+```wl
+TypeTheoryProof[And[True, 2 == 2], {TypeTheoryTactic["Constructor"]}]
+```
+
+<!-- => Proof, 2 goals: ⊢ True; ⊢ 2 == 2 -->
+
+---
+
+`"Generalize"` moves `m` back into the goal, with `h`, which depends on it:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals], Typed[m, Naturals]}, Implies[n == m, m == n]], {
+    TypeTheoryTactic["Introduce", n, m, h],
+    TypeTheoryTactic["Generalize", m]
+}]
+```
+
+<!-- => Proof, 1 goal: n ∶ ℕ ⊢ ∀_m∶ℕ n == m ⇒ m == n -->
+
+---
+
+`"Change"` replaces the goal by one equal to it by computation:
+
+```wl
+TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Change", 4 == 4]}]
+```
+
+<!-- => Proof, 1 goal: ⊢ 4 == 4 -->
+
+---
+
+`"Decide"` proves a closed statement by computing its decision with [Decide]():
+
+```wl
+TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->
+
 ## Possible Issues
 
 `"Reflexivity"` needs the sides to be equal by computation; `0 + n` is not `n` until induction:
@@ -153,3 +290,36 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
+
+---
+
+`"Decide"` needs a closed statement; with a variable there is nothing to compute:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n <= n + 1], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Failure["NotDecided", ...] -->
+
+---
+
+A definition by recursion does not unfold on a variable, where it does not compute; `"Induction"` on the variable comes first:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Simplify", {Join}]}]
+```
+
+<!-- => Failure["NoProgress", ...] -->
+
+---
+
+`"Induction"` on a proof of an inductive family needs its indices to be variables:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a <= b + 1, a <= b + 2]], {
+    TypeTheoryTactic["Introduce", a, b, h],
+    TypeTheoryTactic["Induction", h]
+}]
+```
+
+<!-- => Failure["IndexNotVariable", ...] -->

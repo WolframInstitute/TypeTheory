@@ -6,12 +6,13 @@ in the Wolfram Language. Terms are ordinary Wolfram Language expressions built f
 and tactics build proofs step by step in a notebook.
 
 > Status: **prototype.** The kernel, inductive families with generated recursors, structures with
-> projections, elaboration, a prelude of logic, equality and natural numbers, and six tactics work and
-> are tested. It is pure Wolfram Language, with no native library underneath, and it does not depend
-> on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate declarations between Lean
-> and TypeTheory; through them this kernel checks all of Lean's `Init.Prelude`, 147 modules of Mathlib,
-> from the logic of `Nonempty` to the complex numbers, derivatives, logarithms and real powers, inner
-> product spaces and the p-adic numbers, and the 11,177 constants under `Real.sqrt_nonneg`.
+> projections, elaboration, a prelude of logic, equality, natural numbers, decisions and lists, and
+> thirteen tactics work and are tested. It is pure Wolfram Language, with no native library underneath,
+> and it does not depend on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate
+> declarations between Lean and TypeTheory; through them this kernel checks all of Lean's
+> `Init.Prelude`, 147 modules of Mathlib, from the logic of `Nonempty` to the complex numbers,
+> derivatives, logarithms and real powers, inner product spaces and the p-adic numbers, and the 11,177
+> constants under `Real.sqrt_nonneg`.
 
 ## Loading
 
@@ -29,7 +30,7 @@ PacletDirectoryLoad["path/to/TypeTheory/TypeTheory"]
 Needs["WolframInstitute`TypeTheory`"]
 ```
 
-Loading takes a little over three seconds, two of them building the prelude through the kernel.
+Loading takes about three and a half seconds, most of them building the prelude through the kernel.
 
 ## Documentation
 
@@ -151,7 +152,7 @@ store is never changed once built, and it lasts for the session.
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-109 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+149 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
 three constants are axioms, propositional extensionality, function extensionality and choice, and the
 excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
@@ -176,6 +177,15 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Booleans:** `Booleans`, with the constants `"false"` and `"true"`, and `"not"`, `"and"` and `"or"`,
   named by strings, by cases on the first argument as Lean's `Bool`. `True`, `False`, `Not`, `And` and
   `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
+- **Decisions:** `Decidable` (`DecidableFalse`, `DecidableTrue`), as Lean's, with `Decide` giving the
+  Boolean of a decision and `DecideSoundness` the proof from one that computes to `"true"`;
+  `NaturalNumberEqualityDecidable` and `LessEqualDecidable` decide `==` and `<=` of natural numbers, and
+  `NotDecidable`, `AndDecidable` and `OrDecidable` combine decisions.
+- **Pairs, sums, options and lists:** `CartesianProduct` (`Pair`), `DisjointUnion` (`LeftInjection`,
+  `RightInjection`), `Option` (`OptionNone`, `OptionSome`) and `Lists` (`EmptyList`, `ListPrepend`), as
+  Lean's `Prod`, `Sum`, `Option` and `List`; `Join`, `Length`, `Map`, `Append` and `Reverse` on lists,
+  and their laws `JoinEmptyRight`, `JoinAssociativity`, `LengthJoin`, `LengthMap`, `MapJoin`,
+  `MapComposition`, `ReverseJoin`, `ReverseReverse` and `LengthReverse`.
 - **Classical logic:** `Nonempty` (`NonemptyIntroduction`) and `Subtype` (`SubtypeIntroduction`); the
   axioms `PropositionalExtensionality`, `FunctionExtensionality` (which Lean proves from quotients) and
   `Choice`; `ChosenWitness` with `ChosenWitnessProperty`; and the theorems `ExcludedMiddle`, proved by
@@ -214,11 +224,31 @@ the HoTT rules refuse one.
 | `"Exact", term` | solves the goal with a term |
 | `"Apply", term` | solves the goal with a term applied to new goals, as many as its conclusion needs |
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
-| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses |
+| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized |
+| `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
+| `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
+| `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
 | `"Assumption"` | solves the goal with a hypothesis |
+| `"Rewrite", h` | rewrites the goal with the equation `h`, left to right, or right to left with `"RightToLeft"`; `"At" -> k` rewrites the hypothesis `k` instead |
+| `"Change", statement` | replaces the goal by a statement equal to it by computation |
+| `"Simplify", {h, ...}` | rewrites with the equations until none applies, unfolds each definition among them where it computes, and closes an equation whose sides are equal by computation |
+| `"Decide"` | proves a closed statement of `==` and `<=` of natural numbers and the connectives by computing its decision |
 
 `TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics. Nothing a tactic does
 is trusted: the finished term is checked by the kernel when the theorem is added to an environment.
+
+`"Simplify"` unfolds a definition by recursion where it computes, as Lean's `simp [f]` does, and folds
+its recursive calls back, so the laws of lists go through with induction and simplification alone:
+
+```wolfram
+TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Typed[c, Lists[Naturals]]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
+    TypeTheoryTactic["Introduce", a, b, c],
+    TypeTheoryTactic["Induction", a],
+    TypeTheoryTactic["Simplify", {Join}],                (* Join[EmptyList, m] is m *)
+    TypeTheoryTactic["Introduce", x, rest, ih],
+    TypeTheoryTactic["Simplify", {Join, ih}]             (* Join[ListPrepend[x, l], m] is ListPrepend[x, Join[l, m]] *)
+}]
+```
 
 ## How it works
 
@@ -257,16 +287,17 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 188 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 215 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.
 
 ## Not yet
 
-- Decidability, pairs, sums, options and lists, and the theory around them.
+- Type classes and coercions; the integers and the rationals.
 - Quotients are declared with a rewrite rule for their computation, as LeanLink imports Lean's;
-  induction on indexed families and on mutual or nested types in the tactic.
+  induction on mutual or nested types, and on indexed families whose indices are not variables, in the
+  tactic.
 - Cubical type theory, where univalence computes; truncations; translations between rules.
-- Higher-order unification beyond patterns; no type classes.
+- Higher-order unification beyond patterns.
 - A compiled kernel (`FunctionCompile` over an array encoding of terms).

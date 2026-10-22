@@ -112,7 +112,7 @@ equality = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+<!-- => TypeTheoryEnvironment summary box: 150 constants -->
 
 The equality computes on literals at once:
 

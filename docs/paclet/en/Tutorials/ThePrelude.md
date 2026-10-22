@@ -5,12 +5,12 @@ Title: The TypeTheory Prelude
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/ThePrelude
-Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, classical logic, axioms, choice, excluded middle, constructive]
+Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, decidability, Decidable, pairs, sums, options, lists, classical logic, axioms, choice, excluded middle, constructive]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
 
-The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, and the Booleans. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
+The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, the Booleans, decisions of propositions, pairs, sums, optional values, and lists with their operations and laws. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
 
 ## What the Prelude Declares
 
@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 12, "Constructor" -> 15, "Recursor" -> 12, "Definition" -> 16, "Theorem" -> 51, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 27, "Theorem" -> 61, "Axiom" -> 3|> -->
 
 It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
@@ -278,6 +278,66 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
 
 <!-- => ∀_b∶𝔹 !!b == b -->
 
+## Decisions
+
+A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with [DecidableTrue]() or [DecidableFalse](). It is data, so it computes, and [Decide]() turns it into a Boolean. The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), as Lean's instances do:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Decide[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]]]]]
+```
+
+<!-- => true -->
+
+[DecideSoundness]() turns a decision that computes to `"true"` into a proof, which the kernel checks by computing:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[DecideSoundness[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]], EqualityReflexivity["true"]]]]
+```
+
+<!-- => 1 ≤ 2 ∧ 2 == 2 -->
+
+The tactic `"Decide"` builds the decision of a closed statement and proves it so:
+
+```wl
+TypeTheoryProof[And[3 + 4 == 7, Or[5 <= 2, Not[2 == 3]]], {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->
+
+## Pairs, Sums and Options
+
+<code>[CartesianProduct]()[α, β]</code> is the type of pairs, made with [Pair](), whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnion]()[α, β]</code> has the elements of `α` on the left, with [LeftInjection](), and those of `β` on the right, with [RightInjection](); and <code>[Option]()[α]</code> has [OptionNone]() and the values <code>[OptionSome]()[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[1]]]]
+```
+
+<!-- => 2 -->
+
+## Lists
+
+<code>[Lists]()[α]</code> is the type of finite lists, built from [EmptyList]() by [ListPrepend](), the head first, as Lean's `List`. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]], TypeTheoryTerm[ListPrepend[2, ListPrepend[1, EmptyList]]]]
+```
+
+<!-- => True -->
+
+Their laws are theorems: [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse]() and [LengthReverse](). Each is proved by recursion on a list, and tactics prove such laws too: `"Induction"` splits a list into the empty list and a list with a first element, and `"Simplify"` unfolds a definition where its list is one of these, folding the recursive call back, before it rewrites with the induction hypothesis and the laws of arithmetic:
+
+```wl
+lengthJoin = TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Length[Join[a, b]] == Length[a] + Length[b]], {
+    TypeTheoryTactic["Introduce", a, b],
+    TypeTheoryTactic["Induction", a],
+    TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
+    TypeTheoryTactic["Introduce", x, rest, ih],
+    TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
+}]
+```
+
+<!-- => Proof complete -->
+
 ## Classical Logic
 
 The prelude's three axioms are those of Lean's library. [PropositionalExtensionality]() makes equivalent propositions equal:
@@ -345,7 +405,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 96 constants -->
+<!-- => TypeTheoryEnvironment summary box: 136 constants -->
 
 It has no axioms:
 
@@ -369,7 +429,7 @@ Whatever is proved in it uses no axiom. Other axioms can be assumed there with [
 excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 97 constants -->
+<!-- => TypeTheoryEnvironment summary box: 137 constants -->
 
 Its one axiom:
 
@@ -381,4 +441,4 @@ Information[excludedMiddle, "Axioms"]
 
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. Decidability, pairs, sums, options and lists, and type classes are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types among it, and quotients as rewrite rules, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
+Lean's library is much larger than this prelude. Type classes, coercions, the integers and the rationals are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types among it, and quotients as rewrite rules, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.

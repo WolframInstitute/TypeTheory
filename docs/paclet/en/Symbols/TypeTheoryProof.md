@@ -111,7 +111,7 @@ A finished proof is declared with [TypeTheoryTheorem]():
 proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 110 constants -->
+<!-- => TypeTheoryEnvironment summary box: 150 constants -->
 
 The theorem in the new environment:
 
