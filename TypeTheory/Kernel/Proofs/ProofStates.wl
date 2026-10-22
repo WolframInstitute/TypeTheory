@@ -55,6 +55,8 @@ The tactics:
 	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
 	                        from the inequalities and equations among the hypotheses, with multipliers Wolfram
 	                        finds
+	"FindEquationalProof"   proves an equation from the hypotheses that are equations for all values, by replaying
+	                        a proof that Wolfram's FindEquationalProof finds (Equational.wl)
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -113,7 +115,9 @@ TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] 
 TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2.\n\
 TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds.\n\
 TypeTheoryTactic[\"LinearArithmetic\"] proves an inequality, an equation or False, of natural numbers, from the inequalities and equations among the hypotheses, \
-by a linear combination of them that Wolfram finds."
+by a linear combination of them that Wolfram finds.\n\
+TypeTheoryTactic[\"FindEquationalProof\"] proves an equation from the hypotheses that are equations of its type for all values of their variables, \
+by replaying a proof that Wolfram's FindEquationalProof finds."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -301,6 +305,7 @@ runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
 runTactic["LinearArithmetic", Hold[], data_, goal_] := linearArithmetic[data, goal]
+runTactic["FindEquationalProof", Hold[], data_, goal_] := findEquationalProof[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
@@ -1104,6 +1109,40 @@ inequalityHypotheses[environment_, context_] := Catenate @ KeyValueMap[
 	}]],
 	context
 ]
+
+(* "FindEquationalProof": an equation from the hypotheses that are equations of its type for all values
+   of their variables, by replaying a proof that Wolfram's FindEquationalProof finds (Equational.wl) *)
+findEquationalProof[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
+		application[application[application[constantReference[HoldComplete[Equal], _], _], side_], side_] :> reflexivity[data, goal],
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] :> With[
+			{hypotheses = equationalHypotheses[environment, current["Context"], type]},
+			If[ hypotheses === {},
+				tacticFailure["NoEquationalHypotheses", "No hypothesis of the goal `1` is an equation of its type for all values of its variables.", data, goal]
+			];
+			Replace[equationalProof[environment, current["Context"], {type, left, right}, hypotheses], {
+				reason_String :> tacticFailure["NoEquationalProof", "Wolfram's FindEquationalProof gives no proof of the goal `1` to replay: `2`.", data, goal, {reason}],
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
+			}]
+		],
+		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation.", data, goal]
+	}]
+]
+
+(* {{id, binderCount}, ...}: the hypotheses that are equations of the type for all values of their
+   variables, all of the type *)
+equationalHypotheses[environment_, context_, type_] := KeyValueMap[
+	Function[{id, entry}, Replace[universalEquationBinders[environment, context, entry["Type"], type, 0], {count_Integer :> {id, count}, None :> Nothing}]],
+	context
+]
+
+universalEquationBinders[environment_, context_, statement_, type_, count_Integer] := Replace[statement, {
+	dependentFunctionType[name_, domain_, codomain_, binder_] /; definitionallyEqualQ[environment, context, domain, type] :> With[{id = freshFreeVariable[]},
+		universalEquationBinders[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]], type, count + 1]
+	],
+	application[application[application[constantReference[HoldComplete[Equal], _], equalityType_], _], _] /; definitionallyEqualQ[environment, context, equalityType, type] :> count,
+	_ :> None
+}]
 
 (* {{a, b, proof}, ...} for the hypotheses that are equations a == b of natural numbers *)
 equationHypotheses[environment_, context_] := KeyValueMap[
