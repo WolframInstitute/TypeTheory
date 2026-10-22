@@ -75,7 +75,10 @@ TypeTheoryAxiom::usage = "TypeTheoryAxiom[name, type] declares name as an axiom 
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
 TypeTheoryDefinition::usage = "TypeTheoryDefinition[name, value] declares name as a definition with the given value, when added to a TypeTheoryEnvironment.\n\
 TypeTheoryDefinition[name, Typed[value, type]] gives the definition the given type.\n\
-The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
+The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear. \
+The option \"Instance\" -> True makes the definition an instance of its type's class, the constant its type applies at the end, which elaboration finds \
+for an argument of an instance-implicit binder. The option \"Coercion\" -> True makes a function of one explicit argument a coercion, which elaboration \
+applies to a term whose type is the function's domain where its codomain is expected."
 TypeTheoryTheorem::usage = "TypeTheoryTheorem[name, statement, proof] declares name as a theorem: proof must prove statement when it is added to a TypeTheoryEnvironment. \
 statement must be a proposition, or under rules without Prop any type; a theorem is never unfolded.\n\
 TypeTheoryTheorem[name, proof] declares the statement of the finished TypeTheoryProof proof.\n\
@@ -98,7 +101,9 @@ TypeTheoryNaturalNumbers[type, zero, successor, addition] registers addition as 
 
 declareAxiom::usage = "declareAxiom[environment, HoldComplete[name], {HoldComplete[u], ...}, type] checks the core type and gives environment with the axiom name added."
 declareDefinition::usage = "declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value] checks the core value against the core type \
-and gives environment with the definition name added."
+and gives environment with the definition name added.\n\
+declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value, <|\"Instance\" -> True, \"Coercion\" -> True|>] adds it as an instance or \
+a coercion for elaboration, which the kernel checks as any definition."
 declareTheorem::usage = "declareTheorem[environment, HoldComplete[name], {HoldComplete[u], ...}, statement, proof] checks that statement is a proposition, or \
 under rules without Prop a type, and that proof proves it, and gives environment with the theorem name added."
 declareRewriteRule::usage = "declareRewriteRule[environment, HoldComplete[name], {HoldComplete[u], ...}, numberOfVariables, left, right] checks the rewrite rule \
@@ -120,7 +125,7 @@ $emptyEnvironment::usage = "$emptyEnvironment is the environment with no constan
 
 
 Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic}
-Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic}
+Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False}
 Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
@@ -168,14 +173,40 @@ addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPatt
 addDeclaration[environment_, TypeTheoryDefinition[name_, Typed[value_, type_], options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[Typed[value, type]]}]},
 	{typeCore = closedType[environment, HoldComplete[type], universeParameters]},
-	declareDefinition[environment, HoldComplete[name], universeParameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, universeParameters]]
+	declareDefinition[environment, HoldComplete[name], universeParameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, universeParameters], definitionRoles[Hold[options], typeCore]]
 ]
 
 addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[value]}]},
 	{elaborated = elaborateClosedTerm[environment, HoldComplete[value], None, universeParameters]},
-	declareDefinition[environment, HoldComplete[name], universeParameters, betaNormalize[Last[elaborated]], First[elaborated]]
+	declareDefinition[environment, HoldComplete[name], universeParameters, betaNormalize[Last[elaborated]], First[elaborated], definitionRoles[Hold[options], betaNormalize[Last[elaborated]]]]
 ]
+
+(* the roles the options give a definition for elaboration: an instance's type, under its binders, is a
+   constant applied to arguments, its class; a coercion's type, under its implicit binders, is a function
+   of an explicit argument *)
+definitionRoles[heldOptions_Hold, type_] := Select[
+	<|
+		"Instance" -> roleOption[heldOptions, "Instance", MatchQ[First @ applicationSpine[functionTypeConclusion[type]], _constantReference],
+			"InstanceTypeExpected", "The type of an instance must be a class, a constant applied to arguments, under its binders."],
+		"Coercion" -> roleOption[heldOptions, "Coercion", MatchQ[explicitFunctionType[type], dependentFunctionType[_, _, _, "Explicit"]],
+			"CoercionTypeExpected", "The type of a coercion must be a function of an explicit argument, under its implicit binders."]
+	|>,
+	TrueQ
+]
+
+roleOption[heldOptions_Hold, option_String, fitsQ_, tag_String, message_String] := Replace[heldOptionValue[TypeTheoryDefinition, heldOptions, option], {
+	HoldComplete[False] -> False,
+	HoldComplete[True] /; fitsQ -> True,
+	HoldComplete[True] :> kernelFailure[tag, message, {}],
+	HoldComplete[other_] :> kernelFailure["InvalidOption", "The value of the option `1` must be True or False, not `2`.", {option, HoldForm[other]}]
+}]
+
+functionTypeConclusion[dependentFunctionType[_, _, codomain_, _]] := functionTypeConclusion[codomain]
+functionTypeConclusion[type_] := type
+
+explicitFunctionType[dependentFunctionType[_, _, codomain_, binder_]] /; binder =!= "Explicit" := explicitFunctionType[codomain]
+explicitFunctionType[type_] := type
 
 addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]},
@@ -390,11 +421,15 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] :=
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>|>]
 ]
 
-declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_] := withKernelCaches[
+(* an instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other *)
+declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withKernelCaches[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
 	checkHasType[environment, <||>, value, type];
-	addConstantRecords[environment, <|name -> <|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
+	addConstantRecords[environment, <|name -> Join[
+		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
+		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ]
+	]|>]
 ]
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)

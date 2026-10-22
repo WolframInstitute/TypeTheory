@@ -244,7 +244,11 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 			universeOption
 		]],
 		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption]],
-		"Definition" :> syntaxHead[TypeTheoryDefinition, Join[{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]}, universeOption]],
+		"Definition" :> syntaxHead[TypeTheoryDefinition, Join[
+			{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]},
+			universeOption,
+			Function[role, syntaxHead[Rule, {syntaxString[role], syntaxSymbol[HoldComplete[True]]}]] /@ Select[{"Instance", "Coercion"}, Function[role, TrueQ[record[role]]]]
+		]],
 		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, readBack[environment, record["Value"], mode]}, universeOption]],
 		"InductiveType" :> syntaxHead[TypeTheoryInductiveType, Join[
 			{
@@ -307,7 +311,7 @@ replayDeclaration[original_, replayed_, name_ -> record_] := With[
 
 redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"]],
-	"Definition" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
+	"Definition" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], KeyTake[record, {"Instance", "Coercion"}]],
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
 	"InductiveType" :> declareInductiveTypes[

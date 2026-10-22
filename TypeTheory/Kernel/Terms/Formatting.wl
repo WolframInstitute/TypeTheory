@@ -276,10 +276,16 @@ goalPanel[data_, goal_, form_] := Replace[Quiet @ catchKernelFailure[goalDisplay
 TypeTheoryAxiom /: MakeBoxes[declaration : TypeTheoryAxiom[name_, type_, ___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[declaration, "axiom", {{toSyntax[name], toSyntax[type]}}, form]
 
-TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, Typed[value_, type_], ___], form : StandardForm | TraditionalForm] :=
-	declarationBoxes[declaration, "definition", {{toSyntax[name], toSyntax[type], toSyntax[value]}}, form]
-TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, value_, ___], form : StandardForm | TraditionalForm] :=
-	declarationBoxes[declaration, "definition", {{toSyntax[name], None, toSyntax[value]}}, form]
+TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, Typed[value_, type_], options___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, definitionKeyword[Hold[options]], {{toSyntax[name], toSyntax[type], toSyntax[value]}}, form]
+TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, value_, options___], form : StandardForm | TraditionalForm] :=
+	declarationBoxes[declaration, definitionKeyword[Hold[options]], {{toSyntax[name], None, toSyntax[value]}}, form]
+
+(* an instance or a coercion is named so, as Lean's instance and @[coe] *)
+definitionKeyword[heldOptions_Hold] := Replace[
+	Select[{"Instance", "Coercion"}, Function[role, MemberQ[heldOptions, (Rule | RuleDelayed)[role, True]]]],
+	{{} -> "definition", roles_ :> ToLowerCase[StringRiffle[roles, " "]]}
+]
 
 TypeTheoryTheorem /: MakeBoxes[declaration : TypeTheoryTheorem[name_, statement_, Except[_Rule | _RuleDelayed], ___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[declaration, "theorem", {{toSyntax[name], toSyntax[statement]}}, form]

@@ -32,6 +32,14 @@ A metavariable has the local context it was made in, as in Lean: its solution ma
 variables of that context. A metavariable left unsolved in a function when its binders close is lifted
 out of them, so it never names a variable after the variable's binder is gone.
 
+The argument of an instance-implicit binder is a metavariable that waits in $pendingInstances for an
+instance: a definition declared with "Instance" -> True whose type, under its binders, unifies with the
+binder's type, its own instance-implicit arguments found the same way. It is found as soon as the
+type's arguments are known, and at the end at the latest; the kernel checks the term found as any
+other. A term whose type does not unify with the one its place expects is coerced: x becomes f[x] for a
+definition f declared with "Coercion" -> True from the term's type to the one expected, or a chain of at
+most three, as Lean inserts ↑x.
+
 True, False, Not, And and Or are overloaded: they stand for the propositions or, in an environment that
 declares them, for the Booleans' constants "true", "false", "not", "and" and "or", named by strings. The
 type decides: where a type or Prop is expected they are the propositions, where Booleans is expected
@@ -121,6 +129,8 @@ $goalMetavariableTypes = <||>
 $goalMetavariableContexts = <||>
 $metavariableContexts = <||>
 $pendingOverloads = {}
+$pendingInstances = {}
+$instanceIndex = <||>
 
 
 SetAttributes[withElaborationState, HoldRest]
@@ -131,6 +141,7 @@ withElaborationState[{environment_, context_, scope_, universeParameters_}, body
 		$metavariableAssignments = <||>,
 		$levelAssignments = <||>,
 		$pendingOverloads = {},
+		$pendingInstances = {},
 		$elaborationEnvironment = environment,
 		$elaborationContext = context,
 		$elaborationScope = scope,
@@ -306,7 +317,7 @@ constantWithLevels[constantSyntax_, levelSyntaxes_List] := With[{held = constant
 insertImplicitArguments[{term_, type_}] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
 	{
-		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = newMetavariable[domain]},
+		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = implicitArgument[domain, binder]},
 			insertImplicitArguments[{application[term, implicit], instantiateBoundVariable[codomain, implicit]}]
 		],
 		_ :> {term, type}
@@ -331,7 +342,7 @@ collectArguments[term_, type_, {}, postponed_List, _] := {term, type, postponed}
 collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
 	{
-		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = newMetavariable[domain]},
+		dependentFunctionType[_, domain_, codomain_, binder_] /; binder =!= "Explicit" :> With[{implicit = implicitArgument[domain, binder]},
 			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax]
 		],
 		dependentFunctionType[_, domain_, codomain_, _] /; flexibleTypeQ[domain] :> With[{placeholder = newMetavariable[domain]},
@@ -350,7 +361,10 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_] := R
 	}
 ]
 
-finishApplication[{term_, type_, {}}, _] := {term, type}
+finishApplication[{term_, type_, {}}, _] := (
+	synthesizePendingInstances[False];
+	{term, type}
+)
 finishApplication[{term_, type_, postponed_List}, expected_] := (
 	If[expected =!= None, attemptOrRestore[unify[type, expected]]];
 	Scan[
@@ -361,6 +375,7 @@ finishApplication[{term_, type_, postponed_List}, expected_] := (
 		]],
 		postponed
 	];
+	synthesizePendingInstances[False];
 	{term, type}
 )
 
@@ -369,10 +384,18 @@ flexibleTypeQ[type_] := With[{spine = applicationSpine[instantiateMetavariables[
 	unassignedMetavariableQ[First[spine]] && Last[spine] =!= {}
 ]
 
+(* a term whose type does not unify with the one expected is coerced, if a chain of coercions applies *)
 checkAgainst[syntax_, expected_] := With[{result = elaborateSyntax[syntax, expected]},
-	unifyOrFail[Last[result], expected, syntax];
-	First[result]
+	With[{term = If[attemptOrRestore[unify[Last[result], expected]], First[result], coercedOrFail[result, expected, syntax]]},
+		synthesizePendingInstances[False];
+		term
+	]
 ]
+
+coercedOrFail[{term_, type_}, expected_, syntax_] := Replace[coercedTerm[term, type, expected], None :> (
+	unifyOrFail[type, expected, syntax];
+	term
+)]
 
 (* Construct[f, a, ...]: each argument fills the next binder, implicit or not, and nothing is filled in *)
 applyExplicitly[{function_, functionType_}, {}, _] := {function, functionType}
@@ -576,7 +599,8 @@ meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
 		$levelAssignments = $levelAssignments,
 		$metavariableTypes = $metavariableTypes,
 		$metavariableContexts = $metavariableContexts,
-		$pendingOverloads = $pendingOverloads
+		$pendingOverloads = $pendingOverloads,
+		$pendingInstances = $pendingInstances
 	},
 	TrueQ @ Quiet @ catchKernelFailure[
 		With[{result = elaborateMeaning[meaning, arguments, expected]}, expected === None || unify[Last[result], expected]]
@@ -663,8 +687,137 @@ ambiguityFailure[entry_Association] := Which[
 
 settleOverloads[term_] := (
 	resolvePendingOverloads[0, True];
+	synthesizePendingInstances[True];
 	instantiateMetavariables[term]
 )
+
+
+(* ::Subsection:: *)
+(*Instances*)
+
+
+(* the argument of an implicit binder; one of an instance-implicit binder waits for an instance *)
+implicitArgument[domain_, binder_] := With[{argument = newMetavariable[domain]},
+	If[binder === "InstanceImplicit", AppendTo[$pendingInstances, First[argument]]];
+	argument
+]
+
+(* each instance still waiting whose type's arguments are known, or with final each one, solved by an
+   instance of the environment *)
+synthesizePendingInstances[final_] := Scan[
+	Function[id, If[ unassignedMetavariableQ[metavariable[id]] && (final || instanceTypeKnownQ[id]),
+		With[{type = instantiateMetavariables[$metavariableTypes[id]]},
+			Replace[synthesizedInstance[type, 0], {
+				None :> If[ final,
+					kernelFailure["NoInstance", "No instance of `1` is found.", {displayCoreTerm[$elaborationEnvironment, $elaborationContext, type]}]
+				],
+				found_ :> unify[metavariable[id], found]
+			}]
+		]
+	]],
+	$pendingInstances
+]
+
+instanceTypeKnownQ[id_] := FreeQ[instantiateMetavariables[$metavariableTypes[id]], metavariable[other_] /; unassignedMetavariableQ[metavariable[other]]]
+
+(* the first instance of the goal's class, the latest declared first, whose type unifies with the goal and
+   whose own instance arguments are found in turn, at most eight deep; None if there is none *)
+synthesizedInstance[_, depth_Integer] /; depth > 8 := None
+synthesizedInstance[goal_, depth_Integer] := Replace[instanceClass[goal], {
+	None -> None,
+	class_ :> firstInstance[Reverse @ instancesOf[$elaborationEnvironment, class], goal, depth]
+}]
+
+firstInstance[{}, _, _] := None
+firstInstance[{name_, rest___}, goal_, depth_] := Replace[instanceCandidate[name, goal, depth], None :> firstInstance[{rest}, goal, depth]]
+
+instanceCandidate[name_, goal_, depth_] := Replace[openedInstance[constantWithFreshLevels[name], {}], {term_, conclusion_, subgoals_} :> If[
+	attemptOrRestore[unify[conclusion, goal] && AllTrue[subgoals, Function[id, subgoalSolvedQ[id, depth]]]],
+	instantiateMetavariables[term],
+	None
+]]
+
+(* the instance applied to new metavariables for its binders: {term, conclusion, {instance-implicit ones}} *)
+openedInstance[{term_, dependentFunctionType[_, domain_, codomain_, binder_]}, subgoals_List] := With[{argument = newMetavariable[domain]},
+	openedInstance[{application[term, argument], instantiateBoundVariable[codomain, argument]}, If[binder === "InstanceImplicit", Append[subgoals, First[argument]], subgoals]]
+]
+openedInstance[{term_, conclusion_}, subgoals_List] := {term, conclusion, subgoals}
+
+subgoalSolvedQ[id_, depth_] := Or[
+	! unassignedMetavariableQ[metavariable[id]],
+	Replace[synthesizedInstance[instantiateMetavariables[$metavariableTypes[id]], depth + 1], {None -> False, found_ :> unify[metavariable[id], found]}]
+]
+
+
+
+(* ::Subsection:: *)
+(*Coercions*)
+
+
+(* the term coerced from its type to the one expected, or None; both types must be known, with no
+   metavariable left, as Lean waits for them *)
+coercedTerm[term_, actual_, expected_] := If[knownTypeQ[actual] && knownTypeQ[expected],
+	coercionChain[term, actual, expected, 0],
+	None
+]
+
+knownTypeQ[type_] := FreeQ[instantiateMetavariables[type], metavariable[id_] /; unassignedMetavariableQ[metavariable[id]]]
+
+(* the first coercion, the latest declared first, that takes the term to the type expected, or to a type
+   from which further coercions do, at most three in all; None if there is none *)
+coercionChain[_, _, _, depth_Integer] /; depth >= 3 := None
+coercionChain[term_, actual_, expected_, depth_Integer] := firstCoercion[Reverse @ coercionsOf[$elaborationEnvironment], term, actual, expected, depth]
+
+firstCoercion[{}, __] := None
+firstCoercion[{name_, rest___}, term_, actual_, expected_, depth_] := Replace[coercionStep[name, term, actual, expected, depth], None :> firstCoercion[{rest}, term, actual, expected, depth]]
+
+(* the coercion's implicit arguments are new metavariables and its instance arguments are found, once its
+   domain is the term's type: its codomain is then the type expected, or the start of the rest of a chain *)
+coercionStep[name_, term_, actual_, expected_, depth_] := Replace[openedImplicitBinders[constantWithFreshLevels[name], {}], {
+	{function_, dependentFunctionType[_, domain_, codomain_, "Explicit"], subgoals_} :> With[
+		{coerced = application[function, term], target = instantiateBoundVariable[codomain, term], solvedQ = Function[id, subgoalSolvedQ[id, 0]]},
+		attemptOrNone[Which[
+			! unify[domain, actual],
+				None,
+			attemptOrRestore[unify[target, expected] && AllTrue[subgoals, solvedQ]],
+				instantiateMetavariables[coerced],
+			AllTrue[subgoals, solvedQ] && knownTypeQ[target],
+				coercionChain[instantiateMetavariables[coerced], instantiateMetavariables[target], expected, depth + 1],
+			True,
+				None
+		]]
+	],
+	_ -> None
+}]
+
+(* a constant applied to new metavariables for its leading implicit binders: {term, type, {instance-implicit ones}} *)
+openedImplicitBinders[{term_, dependentFunctionType[_, domain_, codomain_, binder_]}, subgoals_List] /; binder =!= "Explicit" := With[{argument = newMetavariable[domain]},
+	openedImplicitBinders[{application[term, argument], instantiateBoundVariable[codomain, argument]}, If[binder === "InstanceImplicit", Append[subgoals, First[argument]], subgoals]]
+]
+openedImplicitBinders[{term_, type_}, subgoals_List] := {term, type, subgoals}
+
+(* the coercions of the environment, in the order declared, worked out once per environment *)
+coercionsOf[environment_] := Lookup[$instanceIndex, Key[{environment, "Coercions"}], $instanceIndex[{environment, "Coercions"}] = Select[
+	environmentNames[environment],
+	Function[name, TrueQ[constantRecord[environment, name]["Coercion"]]]
+]]
+
+(* the constant a type applies, unfolding definitions to find one *)
+instanceClass[type_] := Replace[First @ applicationSpine[type], {
+	constantReference[name_, _] :> name,
+	_ :> Replace[First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, type]], {constantReference[name_, _] :> name, _ -> None}]
+}]
+
+(* the instances of a class in the environment, in the order declared, worked out once per environment *)
+instancesOf[environment_, class_] := Lookup[$instanceIndex, Key[{environment, class}], $instanceIndex[{environment, class}] = Select[
+	environmentNames[environment],
+	Function[name, With[{record = constantRecord[environment, name]},
+		TrueQ[record["Instance"]] && MatchQ[First @ applicationSpine[typeConclusion[record["Type"]]], constantReference[class, _]]
+	]]
+]]
+
+typeConclusion[dependentFunctionType[_, _, codomain_, _]] := typeConclusion[codomain]
+typeConclusion[type_] := type
 
 
 (* ::Subsection:: *)
@@ -1071,6 +1224,16 @@ assignMetavariable[metavariable[id_], value_] := If[ ! FreeQ[value, metavariable
 	]
 ]
 
+(* the term an attempt gives, or None with the solutions it recorded undone *)
+SetAttributes[attemptOrNone, HoldFirst]
+attemptOrNone[attempt_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments},
+	Replace[attempt, None :> (
+		$metavariableAssignments = assignments;
+		$levelAssignments = levels;
+		None
+	)]
+]
+
 (* undo the solutions a failed attempt recorded *)
 SetAttributes[attemptOrRestore, HoldFirst]
 attemptOrRestore[attempt_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments},
@@ -1082,13 +1245,19 @@ attemptOrRestore[attempt_] := With[{assignments = $metavariableAssignments, leve
 	]
 ]
 
+(* a constant's universe levels are unified after its arguments, which often solve their metavariables:
+   max(?u, ?v) = 0 is solved once the arguments give ?u = 0 and ?v = 0 *)
 unifySpines[a_, b_] := With[{spineA = applicationSpine[a], spineB = applicationSpine[b]},
 	And[
 		Length[Last[spineA]] == Length[Last[spineB]],
-		unifyHeads[First[spineA], First[spineB]],
-		AllTrue[Transpose[{Last[spineA], Last[spineB]}], Function[pair, unify[First[pair], Last[pair]]]]
+		sameHeadQ[First[spineA], First[spineB]],
+		AllTrue[Transpose[{Last[spineA], Last[spineB]}], Function[pair, unify[First[pair], Last[pair]]]],
+		unifyHeads[First[spineA], First[spineB]]
 	]
 ]
+
+sameHeadQ[constantReference[name_, levels_List], constantReference[name_, otherLevels_List]] := Length[levels] == Length[otherLevels]
+sameHeadQ[a_, b_] := a === b
 
 unifyHeads[constantReference[name_, levels_List], constantReference[name_, otherLevels_List]] :=
 	Length[levels] == Length[otherLevels] && AllTrue[Transpose[{levels, otherLevels}], Apply[unifyLevels]]
@@ -1154,14 +1323,24 @@ unifyLevels[a_, b_] := With[{first = normalizeLevel[instantiateLevels[a]], secon
 		(* the successor is injective: u + 2 = ?w + 1 is u + 1 = ?w *)
 		MatchQ[{first, second}, {levelSuccessor[_, _], levelSuccessor[_, _]}],
 			With[{common = Min[Last[first], Last[second]]}, unifyLevels[lowerLevel[first, common], lowerLevel[second, common]]],
-		MatchQ[first, levelSuccessor[_levelMetavariable, _]] && IntegerQ[second] && second >= Last[first],
-			unifyLevels[First[first], second - Last[first]],
-		MatchQ[second, levelSuccessor[_levelMetavariable, _]] && IntegerQ[first] && first >= Last[second],
-			unifyLevels[First[second], first - Last[second]],
+		(* ?w + 1 = max(u + 1, v + 1) is ?w = max(u, v) *)
+		MatchQ[first, levelSuccessor[_levelMetavariable, _]] && loweredLevel[second, Last[first]] =!= None,
+			unifyLevels[First[first], loweredLevel[second, Last[first]]],
+		MatchQ[second, levelSuccessor[_levelMetavariable, _]] && loweredLevel[first, Last[second]] =!= None,
+			unifyLevels[First[second], loweredLevel[first, Last[second]]],
 		True,
 			levelEquivalentQ[first, second]
 	]
 ]
+
+(* a normal level less k, where every part of it is at least k: max(u + 1, v + 1) less 1 is max(u, v);
+   None where a part is not *)
+loweredLevel[level_Integer, k_Integer] := If[level >= k, level - k, None]
+loweredLevel[levelSuccessor[base_, j_Integer], k_Integer] := Which[j > k, levelSuccessor[base, j - k], j == k, base, True, None]
+loweredLevel[levelMaximum[parts__], k_Integer] := With[{lowered = Function[part, loweredLevel[part, k]] /@ {parts}},
+	If[MemberQ[lowered, None], None, normalizeLevel[levelMaximum @@ lowered]]
+]
+loweredLevel[_, _] := None
 
 lowerLevel[levelSuccessor[level_, k_], k_] := level
 lowerLevel[levelSuccessor[level_, k_], j_] := levelSuccessor[level, k - j]
