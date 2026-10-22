@@ -18,6 +18,7 @@ RelatedTutorials: [ThePrelude]
 
 - [LessEqualDecidable]() is a definition of the prelude, as Lean's `Nat.decLe`: it is what the Boolean comparison `"lessEqual"` gives, with the proof of `m <= n` or of its negation that the theorems `"lessEqualTrue"` and `"lessEqualFalse"` give for it.
 - `"lessEqual"` is defined by recursion on both numbers, as Lean's `Nat.ble`, and registered with the kernel, which computes it on literals with integers, so deciding literals of any size is one step.
+- It is an instance: [Decide]() and the tactic `"Decide"` find it for an inequality of natural numbers, and for [Less](), which unfolds to one.
 
 ## Basic Examples
 
@@ -44,7 +45,7 @@ WeakHeadNormalForm[TypeTheoryTerm[LessEqualDecidable[1, 4]]]
 3 <= 2 is decided false:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[LessEqualDecidable[3, 2]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Decide[3 <= 2]]]
 ```
 
 <!-- => false -->

@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[DecidableFalse[Function[{Typed[h, False]}, h]]]]
 [Decide]() gives `"false"` for it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[DecidableFalse[Function[{Typed[h, False]}, h]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, False, DecidableFalse[Function[{Typed[h, False]}, h]]]]]
 ```
 
 <!-- => false -->

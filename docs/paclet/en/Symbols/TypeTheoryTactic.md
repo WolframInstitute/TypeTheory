@@ -33,7 +33,7 @@ RelatedGuides: [TypeTheory]
 | `"Rewrite", h, "At" -> k` | rewrites the hypothesis `k` instead of the goal; `"RightToLeft"` can come before `"At" -> k` |
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
-| `"Decide"` | proves a closed statement of `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False]() by computing its decision |
+| `"Decide"` | proves a closed statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's decide `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False]() |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
@@ -276,7 +276,7 @@ TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Change", 4 == 4]}]
 
 ---
 
-`"Decide"` proves a closed statement by computing its decision with [Decide]():
+`"Decide"` proves a closed statement by computing its decision, which it finds among the instances of [Decidable]():
 
 ```wl
 TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
@@ -307,13 +307,13 @@ proof = TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2
 
 <!-- => Proof complete -->
 
-The proof holds the witnesses, and the decision that the kernel computes for them:
+The proof holds the witnesses; the decision that the kernel computes for them is the instance argument of [DecideSoundness](), which a term does not show:
 
 ```wl
 proof["Term"]
 ```
 
-<!-- => ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[AndDecidable[NaturalNumberEqualityDecidable[3^2 + 4^2, 25], AndDecidable[LessEqualDecidable[0 + 1, 3], LessEqualDecidable[3 + 1, 4]]], EqualityReflexivity[true]]]] -->
+<!-- => ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[EqualityReflexivity[true]]]] -->
 
 ---
 

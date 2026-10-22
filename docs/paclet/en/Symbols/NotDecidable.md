@@ -4,20 +4,20 @@ Name: NotDecidable
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/NotDecidable
-Keywords: [decidable, negation, decision, prelude]
+Keywords: [decidable, instance, negation, decision, prelude]
 SeeAlso: [Decidable, AndDecidable, OrDecidable, Decide]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [ThePrelude]
+RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 ---
 
 ## Usage
 
-<code>[NotDecidable]()[*d*]</code> decides <code>[Not]()[*p*]</code> from a decision *d* of *p*.
+[NotDecidable]() is the instance deciding <code>[Not]()[*p*]</code> from the instance of <code>[Decidable]()[*p*]</code>.
 
 ## Details & Options
 
-- [NotDecidable]() is a definition of the prelude, by cases on *d*, as Lean's `instDecidableNot`.
-- *p* is an implicit argument, found from the type of *d*.
+- [NotDecidable]() is an instance of the prelude, by cases on the decisions, as Lean's `instDecidableNot`.
+- Elaboration uses it: [Decide]() and the tactic `"Decide"` find it, with the decisions it takes, for a proposition of its form.
 
 ## Basic Examples
 
@@ -27,24 +27,24 @@ The type of [NotDecidable]():
 TypeTheoryCheck[TypeTheoryTerm[NotDecidable]]
 ```
 
-<!-- => ∀_{p ∶ Prop} Decidable[p] → Decidable[¬p] -->
+<!-- => ∀_{p∶Prop} ∀_[d∶Decidable[p]] Decidable[¬p] -->
 
 ---
 
-A decision of `¬2 == 3`:
+It decides a proposition of its form, with the decisions it takes found in turn:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NotDecidable[NaturalNumberEqualityDecidable[2, 3]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[NotDecidable, Decidable[Not[2 == 3]]]]]
 ```
 
 <!-- => Decidable[¬2 == 3] -->
 
 ## Properties and Relations
 
-It is decided true:
+[Decide]() finds it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[NotDecidable[NaturalNumberEqualityDecidable[2, 3]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Decide[Not[2 == 3]]]]
 ```
 
 <!-- => true -->

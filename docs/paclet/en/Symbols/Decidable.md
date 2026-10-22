@@ -18,8 +18,9 @@ RelatedTutorials: [ThePrelude]
 
 - [Decidable]() is an inductive type of the prelude, with the constructors [DecidableFalse]() and [DecidableTrue](), in that order, as Lean's `Decidable`.
 - A decision is data, in `Type`, not a proposition, so it computes: [Decide]() turns it into a Boolean, and [DecideSoundness]() turns a decision that computes to `"true"` into a proof of *p*.
-- The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), which compare literals in one step of the kernel, and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable]().
-- The tactic `"Decide"` of [TypeTheoryTactic]() builds a decision of the goal from these and proves it with [DecideSoundness]().
+- [Decidable]() is a class: its instances are definitions declared with `"Instance" -> True`, and elaboration finds the decision of a proposition among them, as Lean's type class resolution does.
+- The prelude's instances decide equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), which compare literals in one step of the kernel, combine decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), and decide [True](), [False]() and equations of Booleans with `"trueDecidable"`, `"falseDecidable"` and `"booleanEqualityDecidable"`.
+- The tactic `"Decide"` of [TypeTheoryTactic]() finds the decision of the goal and proves it with [DecideSoundness](); an environment extends it with instances of its own.
 
 ## Basic Examples
 
@@ -52,6 +53,16 @@ WeakHeadNormalForm[TypeTheoryTerm[LessEqualDecidable[1, 4]]]
 <!-- => DecidableTrue[lessEqualTrue[1, 4, EqualityReflexivity[lessEqual[1, 4]]]] -->
 
 ## Properties and Relations
+
+[Decide]() finds the decision of a proposition among the instances:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && Not[2 == 3]]]]
+```
+
+<!-- => true -->
+
+---
 
 The tactic `"Decide"` proves a closed statement by computing its decision:
 

@@ -29,7 +29,7 @@ A theorem proved by computation:
 arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 162 constants -->
+<!-- => TypeTheoryEnvironment summary box: 165 constants -->
 
 Its declaration:
 
@@ -58,7 +58,7 @@ A theorem with it as its proof:
 proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 162 constants -->
+<!-- => TypeTheoryEnvironment summary box: 165 constants -->
 
 The theorem states what the proof proved:
 

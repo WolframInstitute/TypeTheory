@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[DecidableTrue[TrueIntroduction]]]
 [Decide]() gives `"true"` for it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[DecidableTrue[TrueIntroduction]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, True, DecidableTrue[TrueIntroduction]]]]
 ```
 
 <!-- => true -->

@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/ThePrelude
 Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, decidability, Decidable, pairs, sums, options, lists, classical logic, axioms, choice, excluded middle, constructive]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction, HomotopyTypeTheory]
+RelatedTutorials: [InstancesAndCoercions, TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
 
 The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, the Booleans, decisions of propositions, pairs, sums, optional values, and lists with their operations and laws. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 71, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Theorem" -> 71, "Axiom" -> 3|> -->
 
 It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
@@ -280,29 +280,31 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
 
 ## Decisions
 
-A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with [DecidableTrue]() or [DecidableFalse](). It is data, so it computes, and [Decide]() turns it into a Boolean. The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), as Lean's instances do. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
+A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with [DecidableTrue]() or [DecidableFalse](). It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class, as in Lean: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's decide equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), combine decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && 2 == 2]]]
 ```
 
 <!-- => true -->
 
-[DecideSoundness]() turns a decision that computes to `"true"` into a proof, which the kernel checks by computing:
+[DecideSoundness]() turns a decision that computes to `"true"` into a proof of the proposition it is checked against, which the kernel checks by computing:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DecideSoundness[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]], EqualityReflexivity["true"]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[DecideSoundness[EqualityReflexivity["true"]], 1 <= 2 && 2 == 2]]]
 ```
 
 <!-- => 1 ≤ 2 ∧ 2 == 2 -->
 
-The tactic `"Decide"` builds the decision of a closed statement and proves it so:
+The tactic `"Decide"` finds the decision of a closed statement and proves it so:
 
 ```wl
 TypeTheoryProof[And[3 + 4 == 7, Or[5 <= 2, Not[2 == 3]]], {TypeTheoryTactic["Decide"]}]
 ```
 
 <!-- => Proof complete -->
+
+The tutorial *Instances and Coercions* shows how an environment adds instances of its own.
 
 ## Pairs, Sums and Options
 
@@ -405,7 +407,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 148 constants -->
+<!-- => TypeTheoryEnvironment summary box: 151 constants -->
 
 It has no axioms:
 
@@ -429,7 +431,7 @@ Whatever is proved in it uses no axiom. Other axioms can be assumed there with [
 excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 149 constants -->
+<!-- => TypeTheoryEnvironment summary box: 152 constants -->
 
 Its one axiom:
 

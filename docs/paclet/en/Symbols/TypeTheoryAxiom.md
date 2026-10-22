@@ -40,7 +40,7 @@ excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 149 constants -->
+<!-- => TypeTheoryEnvironment summary box: 152 constants -->
 
 Applied to a proposition, the axiom proves it or its negation:
 
@@ -66,7 +66,7 @@ Assume a function on the natural numbers:
 measured = TypeTheoryEnvironment[TypeTheoryAxiom[Measure, TypeSpecifier[{Naturals} -> Naturals]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 162 constants -->
+<!-- => TypeTheoryEnvironment summary box: 165 constants -->
 
 [Format]() gives an axiom's symbol a display, which its declaration and every term use:
 

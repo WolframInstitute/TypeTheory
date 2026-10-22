@@ -36,7 +36,7 @@ Loading takes about three and a half seconds, most of them building the prelude 
 
 The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
 page for every symbol, a guide, and the tutorials *Getting Started with TypeTheory*, *The Prelude*,
-*Rules and Computation*, *Homotopy Type Theory* and *Mathlib in TypeTheory*. The pages are
+*Instances and Coercions*, *Rules and Computation*, *Homotopy Type Theory* and *Mathlib in TypeTheory*. The pages are
 literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
 [PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
@@ -98,7 +98,7 @@ them; a declaration shows as its keyword, its name and its type.
 | `Function[{Typed[x, A], ...}, b]` | a function |
 | `ForAll[{Typed[x, A], ...}, B]` | a dependent function type, or a universal statement |
 | `Implies[A, B]`, `TypeSpecifier[{A, ...} -> B]`, `A -> B` | a function type whose result does not depend on the argument |
-| `TypedImplicit[x, A]` | an implicit binder, filled in by elaboration; `Annotation[Typed[x, A], kind]` with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds |
+| `TypedImplicit[x, A]` | an implicit binder, filled in by elaboration; `Annotation[Typed[x, A], kind]` with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds, an instance-implicit one filled in by an instance |
 | `Exists[{Typed[x, A]}, p]` | an existential statement |
 | `Typed[e, A]` | `e`, checked against `A` |
 | `With[{x = v}, b]` | `b` with `x` standing for `v` |
@@ -125,7 +125,7 @@ evaluates inside a term.
 | Constructor | Declares |
 | --- | --- |
 | `TypeTheoryAxiom[name, type]` | an axiom |
-| `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]` |
+| `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]`; `"Instance" -> True` makes it an instance of its type's class, and `"Coercion" -> True` a coercion |
 | `TypeTheoryTheorem[name, statement, proof]` | a theorem; `TypeTheoryTheorem[name, proof]` takes the statement of a finished proof |
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]`; `{name -> type, ...}` declares mutually inductive types |
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
@@ -148,11 +148,29 @@ An environment is a handle to a store: a symbol of its own whose DownValues hold
 Wolfram Language's own way of storing definitions. The handle is small, so terms and proofs carry it. A
 store is never changed once built, and it lasts for the session.
 
+### Instances and coercions
+
+Elaboration fills in what Lean's type classes and coercions do. An argument of an instance-implicit
+binder, `Annotation[Typed[h, class], "InstanceImplicit"]`, is a variable bound by such a binder, or else
+the first definition declared with `"Instance" -> True` whose type unifies with the binder's, the latest
+declared first, its own instance arguments found in turn. A term whose type does not unify with the one
+expected is passed through a definition declared with `"Coercion" -> True` from the one type to the
+other, or a chain of at most three. The kernel checks every term elaboration builds with them:
+
+```wl
+coerced = TypeTheoryEnvironment[{
+    TypeTheoryDefinition[NaturalOfBoolean, Function[{Typed[b, Booleans]},
+        InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Naturals], 0, 1, b]], "Coercion" -> True]
+}];
+WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberSuccessor["true"], coerced]]   (* NaturalOfBoolean["true"] + 1 *)
+WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (* "true", by the instances of Decidable *)
+```
+
 ## The prelude
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-161 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+164 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
 three constants are axioms, propositional extensionality, function extensionality and choice, and the
 excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
@@ -178,11 +196,13 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Booleans:** `Booleans`, with the constants `"false"` and `"true"`, and `"not"`, `"and"` and `"or"`,
   named by strings, by cases on the first argument as Lean's `Bool`. `True`, `False`, `Not`, `And` and
   `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
-- **Decisions:** `Decidable` (`DecidableFalse`, `DecidableTrue`), as Lean's, with `Decide` giving the
-  Boolean of a decision and `DecideSoundness` the proof from one that computes to `"true"`;
+- **Decisions:** `Decidable` (`DecidableFalse`, `DecidableTrue`), a class as Lean's, with `Decide[p]`
+  giving the Boolean of the decision of `p`, found among the instances, and `DecideSoundness` the proof
+  from one that computes to `"true"`, as Lean's `decide` and `of_decide_eq_true`. The instances
   `NaturalNumberEqualityDecidable` and `LessEqualDecidable` decide `==` and `<=` of natural numbers
-  through the Boolean comparisons `"equal"` and `"lessEqual"`, which the kernel computes on literals, and
-  `NotDecidable`, `AndDecidable` and `OrDecidable` combine decisions.
+  through the Boolean comparisons `"equal"` and `"lessEqual"`, which the kernel computes on literals;
+  `NotDecidable`, `AndDecidable` and `OrDecidable` combine decisions, and `"trueDecidable"`,
+  `"falseDecidable"` and `"booleanEqualityDecidable"` decide `True`, `False` and equations of Booleans.
 - **Pairs, sums, options and lists:** `CartesianProduct` (`Pair`), `DisjointUnion` (`LeftInjection`,
   `RightInjection`), `Option` (`OptionNone`, `OptionSome`) and `Lists` (`EmptyList`, `ListPrepend`), as
   Lean's `Prod`, `Sum`, `Option` and `List`; `Join`, `Length`, `Map`, `Append` and `Reverse` on lists,
@@ -234,7 +254,7 @@ the HoTT rules refuse one.
 | `"Rewrite", h` | rewrites the goal with the equation `h`, left to right, or right to left with `"RightToLeft"`; `"At" -> k` rewrites the hypothesis `k` instead |
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"Simplify", {h, ...}` | rewrites with the equations until none applies, unfolds each definition among them where it computes, and closes an equation whose sides are equal by computation |
-| `"Decide"` | proves a closed statement of `==` and `<=` of natural numbers and the connectives by computing its decision |
+| `"Decide"` | proves a closed statement by computing its decision, the instance of `Decidable` that elaboration finds: the prelude's decide `==` and `<=` of natural numbers and the connectives |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, by normal forms with proofs from the prelude's laws |
 | `"FindInstance"` | proves an existential statement over the natural numbers with witnesses that Wolfram's `FindInstance` finds |
 | `"PolynomialReduce"` | proves an equation from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds |
@@ -285,7 +305,7 @@ TypeTheory/Kernel/
   Checking/Environment.wl      environments as stores of definitions, and kernel failures
   Checking/Declarations.wl     the declaration constructors and environments built from them
   Checking/Queries.wl          TypeOf, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
-  Elaboration/Elaboration.wl   implicit arguments, universe levels, unification
+  Elaboration/Elaboration.wl   implicit arguments, instances, coercions, universe levels, unification
   Proofs/ProofStates.wl        proof states and tactics
   Proofs/Ring.wl               polynomial identities, with proofs from the prelude's laws
   Proofs/Equational.wl         the proofs of FindEquationalProof, replayed
@@ -310,14 +330,14 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 230 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 240 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.
 
 ## Not yet
 
-- Type classes and coercions; the integers and the rationals.
+- The integers and the rationals, built as quotients once quotients are native.
 - Quotients are declared with a rewrite rule for their computation, as LeanLink imports Lean's;
   induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.

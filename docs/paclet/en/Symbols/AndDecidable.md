@@ -4,20 +4,20 @@ Name: AndDecidable
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/AndDecidable
-Keywords: [decidable, conjunction, decision, prelude]
+Keywords: [decidable, instance, conjunction, decision, prelude]
 SeeAlso: [Decidable, OrDecidable, NotDecidable, Decide]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [ThePrelude]
+RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 ---
 
 ## Usage
 
-<code>[AndDecidable]()[*d*, *e*]</code> decides <code>[And]()[*p*, *q*]</code> from a decision *d* of *p* and a decision *e* of *q*.
+[AndDecidable]() is the instance deciding <code>[And]()[*p*, *q*]</code> from the instances of <code>[Decidable]()[*p*]</code> and <code>[Decidable]()[*q*]</code>.
 
 ## Details & Options
 
-- [AndDecidable]() is a definition of the prelude, by cases on *d* and then *e*, as Lean's `instDecidableAnd`.
-- *p* and *q* are implicit arguments, found from the types of *d* and *e*.
+- [AndDecidable]() is an instance of the prelude, by cases on the decisions, as Lean's `instDecidableAnd`.
+- Elaboration uses it: [Decide]() and the tactic `"Decide"` find it, with the decisions it takes, for a proposition of its form.
 
 ## Basic Examples
 
@@ -27,24 +27,24 @@ The type of [AndDecidable]():
 TypeTheoryCheck[TypeTheoryTerm[AndDecidable]]
 ```
 
-<!-- => ∀_{p ∶ Prop} ∀_{q ∶ Prop} Decidable[p] → Decidable[q] → Decidable[p ∧ q] -->
+<!-- => ∀_{p∶Prop} ∀_{q∶Prop} ∀_[d∶Decidable[p]] ∀_[e∶Decidable[q]] Decidable[p∧q] -->
 
 ---
 
-A decision of a conjunction:
+It decides a proposition of its form, with the decisions it takes found in turn:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[AndDecidable, Decidable[1 <= 2 && 2 == 2]]]]
 ```
 
-<!-- => Decidable[1 ≤ 2 ∧ 2 == 2] -->
+<!-- => Decidable[1≤2∧2 == 2] -->
 
 ## Properties and Relations
 
-It is decided true:
+[Decide]() finds it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && 2 == 2]]]
 ```
 
 <!-- => true -->

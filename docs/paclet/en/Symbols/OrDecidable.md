@@ -4,20 +4,20 @@ Name: OrDecidable
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/OrDecidable
-Keywords: [decidable, disjunction, decision, prelude]
+Keywords: [decidable, instance, disjunction, decision, prelude]
 SeeAlso: [Decidable, AndDecidable, NotDecidable, Decide]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [ThePrelude]
+RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 ---
 
 ## Usage
 
-<code>[OrDecidable]()[*d*, *e*]</code> decides <code>[Or]()[*p*, *q*]</code> from a decision *d* of *p* and a decision *e* of *q*.
+[OrDecidable]() is the instance deciding <code>[Or]()[*p*, *q*]</code> from the instances of <code>[Decidable]()[*p*]</code> and <code>[Decidable]()[*q*]</code>.
 
 ## Details & Options
 
-- [OrDecidable]() is a definition of the prelude, by cases on *d* and then *e*, as Lean's `instDecidableOr`.
-- *p* and *q* are implicit arguments, found from the types of *d* and *e*.
+- [OrDecidable]() is an instance of the prelude, by cases on the decisions, as Lean's `instDecidableOr`.
+- Elaboration uses it: [Decide]() and the tactic `"Decide"` find it, with the decisions it takes, for a proposition of its form.
 
 ## Basic Examples
 
@@ -27,14 +27,24 @@ The type of [OrDecidable]():
 TypeTheoryCheck[TypeTheoryTerm[OrDecidable]]
 ```
 
-<!-- => ∀_{p ∶ Prop} ∀_{q ∶ Prop} Decidable[p] → Decidable[q] → Decidable[p ∨ q] -->
+<!-- => ∀_{p∶Prop} ∀_{q∶Prop} ∀_[d∶Decidable[p]] ∀_[e∶Decidable[q]] Decidable[p∨q] -->
 
 ---
 
-One true side decides a disjunction true:
+It decides a proposition of its form, with the decisions it takes found in turn:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[OrDecidable[LessEqualDecidable[3, 2], NaturalNumberEqualityDecidable[2, 2]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[OrDecidable, Decidable[3 <= 2 || 2 == 2]]]]
+```
+
+<!-- => Decidable[3≤2∨2 == 2] -->
+
+## Properties and Relations
+
+[Decide]() finds it:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Decide[3 <= 2 || 2 == 2]]]
 ```
 
 <!-- => true -->
