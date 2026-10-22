@@ -36,7 +36,8 @@ Loading takes about three and a half seconds, most of them building the prelude 
 
 The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
 page for every symbol, a guide, and the tutorials *Getting Started with TypeTheory*, *The Prelude*,
-*Instances and Coercions*, *The Integers*, *Rules and Computation*, *Homotopy Type Theory* and *Mathlib in TypeTheory*. The pages are
+*Instances and Coercions*, *The Integers*, *Rules and Computation*, *Erased and Affine Variables*, *Homotopy Type Theory*,
+*Cubical Type Theory* and *Mathlib in TypeTheory*. The pages are
 literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
 [PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
@@ -131,6 +132,7 @@ evaluates inside a term.
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
 | `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
 | `TypeTheoryQuotients[]` | the quotient types of Lean's kernel; `TypeTheoryQuotients[equality, {type, introduction, lift, induction}]` under other names |
+| `TypeTheoryCubical[sum]` | the interval, paths, transport, composition and Glue types of cubical type theory, where the rules are cubical |
 
 `TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the default environment, which is
 also the environment of any term or proof that names none: the prelude, until
@@ -138,7 +140,8 @@ also the environment of any term or proof that names none: the prelude, until
 back, and `Block[{$TypeTheoryEnvironment = env}, ...]` sets it for one computation). `TypeTheoryEnvironment[env, {declaration, ...}]` adds
 them to `env`, `Append[env, declaration]` adds one, `TypeTheoryEnvironment[]` is empty,
 `TypeTheoryEnvironment["Prelude"]` is the prelude itself, `TypeTheoryEnvironment["Constructive"]` is
-the prelude without its axioms, `TypeTheoryEnvironment["HomotopyTypeTheory"]` is homotopy type theory, and
+the prelude without its axioms, `TypeTheoryEnvironment["HomotopyTypeTheory"]` is homotopy type theory,
+`TypeTheoryEnvironment["Cubical"]` is cubical type theory, and
 `TypeTheoryEnvironment[rules]` is the empty environment of the given `TypeTheoryRules`. An environment behaves like an association of
 its constants: `env[name]` gives the declaration that introduced `name`, and `Keys`, `Length`,
 `KeyExistsQ`, `Normal` and `Information` work as expected. `Normal[env]` gives the declarations, the
@@ -161,6 +164,32 @@ literals are the integers' wherever the types say so, and a natural number coerc
 ```wl
 integers = TypeTheoryEnvironment["Integers"];
 TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]]   (* ℤ → ℕ → Prop *)
+```
+
+### Quantities
+
+Under `TypeTheoryRules["CalculusOfInductiveConstructions", "Quantities" -> True]` a binder may carry a
+quantity, `Typed[x, A, 0]` or `Typed[x, A, 1]`: the code that runs never uses an erased variable, and uses
+an affine one at most once, as in BendTT's affine type theory. The kernel counts the uses of each variable
+outside the types, and function types differ by their quantities. The rules only reject more, so they are
+as consistent as without quantities:
+
+```wl
+affine = TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], TypeTheoryRules["CalculusOfInductiveConstructions", "Quantities" -> True]]["Environment"];
+TypeTheoryEnvironment[affine, {TypeTheoryDefinition[Twice, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]}, f[f[x]]]]}]
+(* Failure["QuantityExceeded", ...]: f has quantity 1, but the code that runs uses it more than once *)
+```
+
+### Cubical type theory
+
+`TypeTheoryEnvironment["Cubical"]` follows cubical type theory, after Cohen, Coquand, Huber and Mörtberg: a
+path is a function of an interval, function extensionality and path induction are terms, transport and
+composition compute by the type, and univalence is a path of Glue types along which transport applies the
+equivalence. It has no axiom, so transport along univalence computes:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"];
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], cubical]]   (* "false" *)
 ```
 
 ### Instances and coercions
