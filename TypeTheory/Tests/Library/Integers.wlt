@@ -132,6 +132,33 @@ VerificationTest[
 	TestID -> "Ring-over-the-integers-leaves-other-hypotheses-aside"
 ]
 
+VerificationTest[
+	With[
+		{
+			scaled = TypeTheoryProof[ForAll[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers]}, Implies[a == b, a c - 3 == b c - 3]], integers, {
+				TypeTheoryTactic["Introduce", a, b, c, h],
+				TypeTheoryTactic["PolynomialReduce"]
+			}],
+			crossed = TypeTheoryProof[
+				ForAll[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers], Typed[d, Integers]}, Implies[a d == c b, Implies[c == -a, a (b + d) == 0]]],
+				integers,
+				{TypeTheoryTactic["Introduce", a, b, c, d, h, k], TypeTheoryTactic["PolynomialReduce"]}
+			]
+		},
+		{
+			scaled["Goals"],
+			crossed["Goals"],
+			MatchQ[TypeTheoryCheck[TypeTheoryEnvironment[integers, {TypeTheoryTheorem[ScaledEquation, scaled], TypeTheoryTheorem[CrossedEquation, crossed]}]], _Success],
+			First @ TypeTheoryProof[ForAll[{Typed[a, Integers], Typed[b, Integers]}, Implies[a == b, a == b + 1]], integers, {
+				TypeTheoryTactic["Introduce", a, b, h],
+				TypeTheoryTactic["PolynomialReduce"]
+			}]
+		}
+	],
+	{{}, {}, True, "NoCombination"},
+	TestID -> "PolynomialReduce-combines-equations-of-integers"
+]
+
 (* the order: squares and their sums are at least 0, a positive multiple is at least 0 only where the
    integer is, and an inequality of integers of natural numbers is one of the natural numbers *)
 VerificationTest[

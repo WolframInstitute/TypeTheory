@@ -35,7 +35,8 @@ hypotheses reduce the goal, and otherwise linear algebra over the rationals find
 degree up to the goal's, d clearing their denominators. Then d l + X == d r + X' holds in every
 commutative semiring, with X the sum of the pi bi and qi ai, and X' that of the pi ai and qi bi; the
 hypotheses make X' equal to X, taking X from both sides leaves d l == d r, and MultiplicationCancellation
-leaves l == r.
+leaves l == r. Over the integers, with d = 1, l == r + c1 (a1 - b1) + ... and r + c1 (b1 - b1) + ... == r
+hold in every commutative ring, and the hypotheses carry the one sum to the other.
 
 Linear arithmetic proves l <= r from hypotheses a1 <= b1, ..., each monomial of the atoms counted as a
 variable. LessEqualTotality gives l <= r or r < l, and the second is refuted: Wolfram's FindInstance
@@ -58,6 +59,7 @@ PackageScoped[ringContradictionProof]
 PackageScoped[ringEquationInequalities]
 PackageScoped[integerRingEquationProof]
 PackageScoped[integerRingAvailableQ]
+PackageScoped[integerCombinationProof]
 
 
 (* ::Section:: *)
@@ -76,6 +78,8 @@ each other linearly, or None."
 integerRingEquationProof::usage = "integerRingEquationProof[left, right] gives a proof of left == right for core terms of the integers of TypeTheoryEnvironment[\"Integers\"] \
 with the same normal form, from the integers' laws, or None."
 integerRingAvailableQ::usage = "integerRingAvailableQ[environment] gives True if environment declares the integers and the laws their normal forms are built from."
+integerCombinationProof::usage = "integerCombinationProof[left, right, {{a, b, proof}, ...}] gives a proof of left == right for core terms of the integers of \
+TypeTheoryEnvironment[\"Integers\"] from proofs of equations a == b of integers, by a polynomial combination of them with integer cofactors that Wolfram finds, or None."
 ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {{a, b, proof1}, {b, a, proof2}}, the inequalities a <= b and b <= a, from a proof of a == b."
 
 
@@ -104,23 +108,38 @@ ringEquation[left_, right_] := With[{leftForm = ringNormalForm[left], rightForm 
 
 ringCombinationProof[left_, right_, hypotheses_List] := Replace[combinationEquation[left, right, hypotheses], equation_List :> Last[equation]]
 
-(* None where no cofactors are found; a hypothesis whose sides have the same normal form says nothing,
-   and is left out *)
-combinationEquation[left_, right_, hypotheses_List] := Module[{forms, atoms, variables, difference, useful, cofactors, scale},
+integerCombinationProof[left_, right_, hypotheses_List] := Block[{$ring = $integerRing},
+	Replace[integerCombinationEquation[left, right, hypotheses], equation_List :> Last[equation]]
+]
+
+combinationEquation[left_, right_, hypotheses_List] := Replace[combinationCofactors[left, right, hypotheses], {
+	{useful_, cofactors_, variables_, atoms_} :> With[
+		{scale = LCM @@ Denominator[Catenate[Function[cofactor, Last /@ CoefficientRules[cofactor, variables]] /@ cofactors]]},
+		combination[left, right, scale, MapThread[
+			Function[{hypothesis, cofactor}, Prepend[signedParts[scale * cofactor, variables, atoms], hypothesis]],
+			{useful, cofactors}
+		]]
+	],
+	None -> None
+}]
+
+integerCombinationEquation[left_, right_, hypotheses_List] := Replace[combinationCofactors[left, right, hypotheses], {
+	{useful_, cofactors_, variables_, atoms_} /; AllTrue[Catenate[Function[cofactor, Last /@ CoefficientRules[cofactor, variables]] /@ cofactors], IntegerQ] :>
+		integerCombination[left, right, useful, Function[cofactor, cofactorTerm[cofactor, variables, atoms]] /@ cofactors],
+	_ -> None
+}]
+
+(* {hypotheses, cofactors, variables, atoms}: the hypotheses used and their cofactors, as polynomials in the
+   variables standing for the atoms, or None where no cofactors are found; a hypothesis whose sides have
+   the same normal form says nothing, and is left out *)
+combinationCofactors[left_, right_, hypotheses_List] := Module[{forms, atoms, variables, difference, useful, cofactors},
 	forms = Function[pair, Function[term, First @ ringNormalForm[term]] /@ pair] /@ Prepend[Function[hypothesis, Most[hypothesis]] /@ hypotheses, {left, right}];
 	atoms = DeleteDuplicates @ Catenate[Function[monomial, First /@ Last[monomial]] /@ Catenate[Catenate[forms]]];
 	variables = Table[Subscript[\[FormalX], k], {k, Length[atoms]}];
 	difference = Function[pair, Expand[Subtract @@ (Function[polynomial, wolframPolynomial[polynomial, AssociationThread[atoms, variables]]] /@ pair)]];
 	useful = Select[Transpose[{hypotheses, difference /@ Rest[forms]}], Function[pair, Last[pair] =!= 0]];
 	cofactors = foundCofactors[difference[First[forms]], Last /@ useful, variables];
-	If[ cofactors === None,
-		None,
-		scale = LCM @@ Denominator[Catenate[Function[cofactor, Last /@ CoefficientRules[cofactor, variables]] /@ cofactors]];
-		combination[left, right, scale, MapThread[
-			Function[{hypothesis, cofactor}, Prepend[signedParts[scale * cofactor, variables, atoms], hypothesis]],
-			{First /@ useful, cofactors}
-		]]
-	]
+	If[cofactors === None, None, {First /@ useful, cofactors, variables, atoms}]
 ]
 
 (* the cofactors c with target = c . divisors, from PolynomialReduce, or else from linear algebra for
@@ -181,6 +200,40 @@ combination[left_, right_, scale_Integer, parts_List] := With[
 
 scaled[term_, 1] := term
 scaled[term_, scale_Integer] := times[literal[scale], term]
+
+(* l == r + c1 (a1 - b1) + ... and r + c1 (b1 - b1) + ... == r, both identities of the integers, and in
+   between each hypothesis ai == bi in its place in turn *)
+integerCombination[left_, right_, {}, {}] := ringEquation[left, right]
+integerCombination[left_, right_, hypotheses_List, cofactors_List] := With[
+	{
+		firsts = Replace[hypotheses, {first_, _, _} :> first, {1}],
+		seconds = Replace[hypotheses, {_, second_, _} :> second, {1}]
+	},
+	Replace[{ringEquation[left, combinationTerm[right, cofactors, seconds, firsts]], ringEquation[combinationTerm[right, cofactors, seconds, seconds], right]}, {
+		{opening_List, closing_List} :> chain[
+			opening,
+			Sequence @@ MapIndexed[
+				Function[{hypothesis, position}, With[{k = First[position]},
+					congruent[Function[hole, combinationTerm[right, cofactors, seconds, Join[Take[seconds, k - 1], {hole}, Drop[firsts, k]]]], hypothesis]
+				]],
+				hypotheses
+			],
+			closing
+		],
+		_ -> None
+	}]
+]
+
+(* r + c1 (x1 - b1) + ..., the differences written as sums with the negation *)
+combinationTerm[right_, cofactors_List, seconds_List, holes_List] := plus[right, Fold[
+	Function[{accumulated, summand}, plus[summand, accumulated]],
+	Reverse[MapThread[Function[{cofactor, second, hole}, times[cofactor, plus[hole, negation[second]]]], {cofactors, seconds, holes}]]
+]]
+
+(* a polynomial of Wolfram's in the variables, with integer coefficients, as a term of the atoms *)
+cofactorTerm[cofactor_, variables_List, atoms_List] := polynomialTerm[
+	Function[rule, {Last[rule], Select[Transpose[{atoms, First[rule]}], Function[factor, Last[factor] > 0]]}] /@ CoefficientRules[Expand[cofactor], variables]
+]
 
 (* left == right from left + X == right + X', by the normal forms, and difference, a proof of X' == X *)
 cancelled[left_, right_, difference : {primed_, unprimed_, _}] := Replace[ringEquation[plus[left, unprimed], plus[right, primed]], {

@@ -36,7 +36,7 @@ Loading takes about three and a half seconds, most of them building the prelude 
 
 The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
 page for every symbol, a guide, and the tutorials *Getting Started with TypeTheory*, *The Prelude*,
-*Instances and Coercions*, *The Integers*, *Rules and Computation*, *Erased and Affine Variables*, *Homotopy Type Theory*,
+*Instances and Coercions*, *The Integers*, *The Rationals*, *Rules and Computation*, *Erased and Affine Variables*, *Homotopy Type Theory*,
 *Cubical Type Theory* and *Mathlib in TypeTheory*. The pages are
 literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
@@ -179,6 +179,29 @@ proves the equation:
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], integers, {
     TypeTheoryTactic["Introduce", x, y, z],
     TypeTheoryTactic["SumOfSquares"]                     (* 2 (x^2 + y^2 + z^2 - x y - y z - z x), a sum of three squares *)
+}]
+```
+
+### The rationals
+
+`TypeTheoryEnvironment["Rationals"]` is the integers' environment with the rationals: classes of pairs
+(a, b) of an integer and a natural number, standing for a / (b + 1), so no denominator is 0. The
+operations are lifted from pairs, each respecting the relation by a polynomial combination of it that
+`"PolynomialReduce"` finds over the integers, and the laws of a commutative ring, `RationalAdditionCommutativity`
+through `RationalDistributivity`, are proved by `"Induction"` on each class, `QuotientSoundness`, and
+`"Ring"` on the equation of integers it leaves. The inverse computes, by recursion on the pair of natural
+numbers of the numerator, and `RationalMultiplicationInverse` proves `x x^-1 == 1` for `x` not 0, which makes
+the rationals a field; `0^-1` is 0. There `+`, `*`, `-`, `/`, `^`, `x^-1` and the comparisons are the
+rationals' wherever the types say so, and an integer or a natural number coerces to a rational. `"Ring"`
+proves identities of rationals by their classes, and `RationalEqualityDecidable` decides equations, so
+`"Decide"` settles one of literals:
+
+```wl
+rationals = TypeTheoryEnvironment["Rationals"];
+TypeTheoryProof[Typed[1/2 + 1/3, Rationals] == 5/6, rationals, {TypeTheoryTactic["Decide"]}]      (* Proof complete *)
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x / 2 + x / 3 == 5 x / 6], rationals, {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Ring"]                             (* by the classes of x and of the fractions *)
 }]
 ```
 
@@ -391,6 +414,7 @@ TypeTheory/Kernel/
   Library/Prelude.wl           the prelude
   Library/HomotopyTypeTheory.wl  the homotopy type theory environment
   Library/Integers.wl          the integers, a quotient, with their laws proved by the tactics
+  Library/Rationals.wl         the rationals, a quotient over the integers, with their laws and inverse
   Library/Cubical.wl           the cubical environment: paths, equivalences and univalence that computes
 ```
 
@@ -418,7 +442,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 303 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 309 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, a definition that copies an affine variable, a recursion on an
@@ -427,8 +451,8 @@ records; and, on the prelude's rules, the HoTT library proving False with an equ
 
 ## Not yet
 
-- The rationals, as a quotient of the integers; deciding the order of the integers; sums of squares with
-  rational coefficients, and inequalities from hypotheses by the Positivstellensatz.
+- Deciding the order of the integers and the rationals; normal forms of the rationals' own in `"Ring"`;
+  sums of squares with rational coefficients, and inequalities from hypotheses by the Positivstellensatz.
 - Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
 - Composition in a universe and higher inductive types in the cubical rules, so that transport along a

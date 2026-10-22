@@ -29,6 +29,10 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Integers                            ℤ                    the integers of TypeTheoryEnvironment["Integers"]
 	"integerAddition" and the others    x + y, x y, x - y, -x, x^n, x ≤ y, ...   as the natural numbers' operations
 	"integerOfNatural"[n]               ↑n, or the literal n itself
+	Rationals                           ℚ                    the rationals of TypeTheoryEnvironment["Rationals"]
+	"rationalAddition" and the others   x + y, x y, x - y, -x, x^n, x^-1, x / y, x ≤ y, ...   as the integers' operations
+	"rationalOfInteger"[x]              ↑x, or the literal itself
+	"rationalOfPair"[Pair[a, b]]        a / (b + 1), and a where b is 0, for a literal b
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
 	IntervalZero, IntervalOne           0, 1                 the endpoints of the interval of cubical type theory
@@ -150,6 +154,7 @@ displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[he
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]
+displaySyntax[syntaxSymbol[HoldComplete[Rationals]]] := syntaxString["\[DoubleStruckCapitalQ]"]
 displaySyntax[syntaxSymbol[HoldComplete[Booleans]]] := syntaxString["\[DoubleStruckCapitalB]"]
 displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruckCapitalS]\:00b9"]
 displaySyntax[syntaxSymbol[HoldComplete[IntervalZero]]] := syntaxInteger[0]
@@ -216,6 +221,29 @@ displayApplication[syntaxString["integerGreaterEqual"], arguments_List] := synta
 displayApplication[syntaxString["integerGreater"], arguments_List] := syntaxHead[Greater, arguments]
 displayApplication[syntaxString["integerOfNatural"], {literal : syntaxInteger[_Integer]}] := literal
 displayApplication[syntaxString["integerOfNatural"], {argument_}] := prefixed["\[UpArrow]", argument]
+(* the rationals' operations show as the integers' do, an inverse as x^-1 and a division as x / y *)
+displayApplication[syntaxString["rationalAddition"], arguments_List] := displayApplication[syntaxString["integerAddition"], arguments]
+displayApplication[syntaxString["rationalMultiplication"], arguments_List] := displayApplication[syntaxString["integerMultiplication"], arguments]
+displayApplication[syntaxString["rationalSubtraction"], arguments_List] := syntaxHead[Subtract, arguments]
+displayApplication[syntaxString["rationalPower"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Power]], arguments]
+displayApplication[syntaxString["rationalNegation"], {argument_}] := prefixed["-", argument]
+displayApplication[syntaxString["rationalInverse"], {argument_}] := syntaxHead[Power, {argument, syntaxInteger[-1]}]
+displayApplication[syntaxString["rationalDivision"], arguments_List] := syntaxHead[Divide, arguments]
+displayApplication[syntaxString["rationalLessEqual"], arguments_List] := syntaxHead[LessEqual, arguments]
+displayApplication[syntaxString["rationalLess"], arguments_List] := syntaxHead[Less, arguments]
+displayApplication[syntaxString["rationalGreaterEqual"], arguments_List] := syntaxHead[GreaterEqual, arguments]
+displayApplication[syntaxString["rationalGreater"], arguments_List] := syntaxHead[Greater, arguments]
+displayApplication[syntaxString["rationalOfInteger"], {literal : syntaxInteger[_Integer]}] := literal
+displayApplication[syntaxString["rationalOfInteger"], {negative : syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["-"], syntaxInteger[_Integer]}]}]}] := negative
+displayApplication[syntaxString["rationalOfInteger"], {argument_}] := prefixed["\[UpArrow]", argument]
+(* a class of a pair with a literal denominator shows as the fraction it stands for, as computation gives it too *)
+displayApplication[
+	syntaxSymbol[HoldComplete[QuotientIntroduction]],
+	{syntaxString["rationalRelation"], pair : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, syntaxInteger[_Integer]}]}
+] := displayApplication[syntaxString["rationalOfPair"], {pair}]
+displayApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[0]}]}] := numerator
+displayApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[denominator_Integer]}]}] :=
+	syntaxHead[Divide, {numerator, syntaxInteger[denominator + 1]}]
 
 (* -x and ↑x, with an argument that is no name or number in parentheses, so x + -y keeps its sign and
    ↑(m + n) its sum *)

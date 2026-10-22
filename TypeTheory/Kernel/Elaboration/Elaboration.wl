@@ -246,11 +246,20 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[syntaxHead[Subtract, {first, second}], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxInteger[k_Integer?Negative]}] :>
 		elaborateSyntax[syntaxHead[Subtract, {first, syntaxInteger[-k]}], expected],
-	(* -x, read as Times[-1, x], and a negative literal negate an integer, where the environment has them *)
+	(* -x, read as Times[-1, x], negates an integer or a rational, and a negative literal is an integer,
+	   where the environment has them *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}] /; integersDeclaredQ[] :>
-		elaborateSyntax[syntaxApplication[syntaxString["integerNegation"], {second}], expected],
+		elaborateSyntax[syntaxHead[Minus, {second}], expected],
 	syntaxInteger[k_Integer?Negative] /; integersDeclaredQ[] :>
 		elaborateSyntax[syntaxApplication[syntaxString["integerNegation"], {syntaxInteger[-k]}], expected],
+	(* x^-1, which x / y is read with, is the inverse of a rational, and x^-k that of x^k, where the
+	   environment has the rationals *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Power]], {base_, syntaxInteger[-1]}] /; rationalsDeclaredQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxString["rationalInverse"], {base}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Power]], {base_, syntaxInteger[k_Integer?Negative]}] /; rationalsDeclaredQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxString["rationalInverse"], {syntaxHead[Power, {base, syntaxInteger[-k]}]}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Divide]], {first_, second_}] /; rationalsDeclaredQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxString["rationalDivision"], {first, second}], expected],
 	syntaxApplication[syntaxSymbol[name_], arguments_List] /; ! KeyExistsQ[$elaborationScope, name] && overloadedNameQ[$elaborationEnvironment, name] :>
 		elaborateOverloaded[name, arguments, syntax, expected],
 	(* a && b && c is a && (b && c), as in Lean *)
@@ -270,6 +279,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 }]
 
 integersDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["integerNegation"]]
+
+rationalsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["rationalInverse"]]
 
 (* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], as in Lean, each Exists applied to a predicate *)
 nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]
@@ -652,27 +663,33 @@ elaborateWith[{other_, ___}, _, _] := elaborationFailure["`1` is not a binding: 
 (*Overloaded names*)
 
 
-(* each overloaded name, with the proposition it stands for first and the Boolean second *)
+(* each overloaded name, with the proposition it stands for first and the Boolean second, or the
+   operation of the natural numbers, then the integers', then the rationals' *)
 $overloadedNames = <|
 	HoldComplete[True] -> {HoldComplete[True], HoldComplete["true"]},
 	HoldComplete[False] -> {HoldComplete[False], HoldComplete["false"]},
 	HoldComplete[Not] -> {HoldComplete[Not], HoldComplete["not"]},
 	HoldComplete[And] -> {HoldComplete[And], HoldComplete["and"]},
 	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete["or"]},
-	HoldComplete[Plus] -> {HoldComplete[Plus], HoldComplete["integerAddition"]},
-	HoldComplete[Times] -> {HoldComplete[Times], HoldComplete["integerMultiplication"]},
-	HoldComplete[Subtract] -> {HoldComplete[Subtract], HoldComplete["integerSubtraction"]},
-	HoldComplete[Power] -> {HoldComplete[Power], HoldComplete["integerPower"]},
-	HoldComplete[LessEqual] -> {HoldComplete[LessEqual], HoldComplete["integerLessEqual"]},
-	HoldComplete[Less] -> {HoldComplete[Less], HoldComplete["integerLess"]},
-	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"]},
-	HoldComplete[Greater] -> {HoldComplete[Greater], HoldComplete["integerGreater"]}
+	HoldComplete[Plus] -> {HoldComplete[Plus], HoldComplete["integerAddition"], HoldComplete["rationalAddition"]},
+	HoldComplete[Times] -> {HoldComplete[Times], HoldComplete["integerMultiplication"], HoldComplete["rationalMultiplication"]},
+	HoldComplete[Subtract] -> {HoldComplete[Subtract], HoldComplete["integerSubtraction"], HoldComplete["rationalSubtraction"]},
+	HoldComplete[Power] -> {HoldComplete[Power], HoldComplete["integerPower"], HoldComplete["rationalPower"]},
+	HoldComplete[LessEqual] -> {HoldComplete[LessEqual], HoldComplete["integerLessEqual"], HoldComplete["rationalLessEqual"]},
+	HoldComplete[Less] -> {HoldComplete[Less], HoldComplete["integerLess"], HoldComplete["rationalLess"]},
+	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"], HoldComplete["rationalGreaterEqual"]},
+	HoldComplete[Greater] -> {HoldComplete[Greater], HoldComplete["integerGreater"], HoldComplete["rationalGreater"]},
+	HoldComplete[Minus] -> {HoldComplete["integerNegation"], HoldComplete["rationalNegation"]}
 |>
 
 (* the operations of the natural numbers, which an environment with the integers overloads *)
 $arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, LessEqual, Less, GreaterEqual, Greater}]
 
-overloadedNameQ[environment_, name_HoldComplete] := Length[declaredMeanings[environment, name]] > 1
+(* a name with several meanings declared, or with one where the name itself is no constant, as -x where
+   only the integers are declared *)
+overloadedNameQ[environment_, name_HoldComplete] := With[{meanings = declaredMeanings[environment, name]},
+	Length[meanings] > 1 || Length[meanings] == 1 && ! constantDeclaredQ[environment, name]
+]
 
 declaredMeanings[environment_, name_HoldComplete] := Select[Lookup[$overloadedNames, name, {}], Function[meaning, constantDeclaredQ[environment, meaning]]]
 
@@ -684,18 +701,26 @@ elaborateOverloaded[name_HoldComplete, arguments_List, syntax_, expected_] := Re
 	}
 ]
 
-(* the meaning the expected type allows, or the one meaning that fits, or None if both fit; a meaning that
-   fits without coercions is taken before one that needs them, so 2 + 3 adds natural numbers even where the
-   integers could take them; if neither fits, the first, whose elaboration then says why *)
-chosenMeaning[meanings : {_, _}, arguments_List, expected_] := Replace[
+(* the meaning the expected type allows, or the one meaning that fits, or None if several fit; a meaning
+   that fits without coercions is taken before one that needs them, so 2 + 3 adds natural numbers even
+   where the integers could take them, and of the operations that fit with coercions the first, so an
+   integer plus a natural number is an integer; if none fits, the first, whose elaboration then says why *)
+chosenMeaning[meanings : {_, __}, arguments_List, expected_] := Replace[
 	expectedMeaning[meanings, arguments, expected],
 	None :> Replace[Select[meanings, Function[meaning, Block[{$coercions = False}, meaningFitsQ[meaning, arguments, expected]]]], {
 		{only_} :> only,
-		{} :> Replace[Select[meanings, Function[meaning, meaningFitsQ[meaning, arguments, expected]]], {{only_} :> only, {} :> First[meanings], _ :> None}],
+		{} :> Replace[Select[meanings, Function[meaning, meaningFitsQ[meaning, arguments, expected]]], {
+			{only_} :> only,
+			{} :> First[meanings],
+			{first_, __} /; arithmeticMeaningsQ[meanings] :> first,
+			_ :> None
+		}],
 		_ :> None
 	}]
 ]
 chosenMeaning[{only_}, _, _] := only
+
+arithmeticMeaningsQ[meanings_List] := MemberQ[$arithmeticNames, First[meanings]] || MatchQ[meanings, {HoldComplete["integerNegation"], ___}]
 
 (* a type or Prop is expected only of the proposition, and Booleans only of the Boolean; a connective
    with no arguments is a function, which the expected type does not decide this way *)
@@ -705,18 +730,34 @@ expectedMeaning[{proposition : HoldComplete[True | False | Not | And | Or], bool
 		constantReference[HoldComplete[Booleans], {}] :> boolean,
 		_ :> None
 	}]
-(* a natural number is expected only of the operation on natural numbers, and an integer only of the
-   one on integers; a comparison is a proposition either way *)
-expectedMeaning[{natural_, integer_}, _, expected_] /; expected =!= None && MemberQ[$arithmeticNames, natural] :=
+(* a natural number is expected only of the operation on natural numbers, an integer only of the one on
+   integers, and a rational only of the one on rationals; a comparison is a proposition either way *)
+expectedMeaning[{natural_, integer_, rational___}, _, expected_] /; expected =!= None && MemberQ[$arithmeticNames, natural] :=
 	With[{type = instantiateMetavariables[expected]},
 		Which[
 			MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, type], constantReference[HoldComplete[NonNegativeIntegers], {}]], natural,
-			constantDeclaredQ[$elaborationEnvironment, HoldComplete[Integers]] && unassignedFreeQ[type] &&
-				definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, type, constantReference[HoldComplete[Integers], {}]], integer,
+			numberTypeQ[type, HoldComplete[Integers]], integer,
+			MatchQ[{rational}, {_}] && numberTypeQ[type, HoldComplete[Rationals]], First[{rational}],
+			True, None
+		]
+	]
+(* a negation of an integer is expected to be an integer, and that of a rational a rational *)
+expectedMeaning[{integer : HoldComplete["integerNegation"], rational___}, _, expected_] /; expected =!= None :=
+	With[{type = instantiateMetavariables[expected]},
+		Which[
+			numberTypeQ[type, HoldComplete[Integers]], integer,
+			MatchQ[{rational}, {_}] && numberTypeQ[type, HoldComplete[Rationals]], First[{rational}],
 			True, None
 		]
 	]
 expectedMeaning[_, _, _] := None
+
+(* the type is the declared number type name, with no metavariable left to decide it *)
+numberTypeQ[type_, name_HoldComplete] := And[
+	constantDeclaredQ[$elaborationEnvironment, name],
+	unassignedFreeQ[type],
+	definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, type, constantReference[name, {}]]
+]
 
 unassignedFreeQ[term_] := FreeQ[term, metavariable[id_] /; unassignedMetavariableQ[metavariable[id]]]
 

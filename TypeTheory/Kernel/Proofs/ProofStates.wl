@@ -55,7 +55,9 @@ The tactics:
 	                        all of them, by induction on the class of each integer variable, the soundness of
 	                        quotients, and the equation of natural numbers of the pairs
 	"PolynomialReduce"      proves an equation of natural numbers from the equations among the hypotheses by a
-	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks
+	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks; and an
+	                        equation of the integers of TypeTheoryEnvironment["Integers"] from the equations of
+	                        integers among them, by a combination with integer cofactors
 	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
 	                        from the inequalities and equations among the hypotheses, with multipliers Wolfram
 	                        finds
@@ -843,15 +845,31 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; integerTypeQ[environment, type] && integerRingAvailableQ[environment] :>
-			Replace[integerRingEquationProof[left, right], {
+			Replace[integerRingEquationProof[integerArithmeticReduced[environment, current["Context"], left], integerArithmeticReduced[environment, current["Context"], right]], {
 				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative ring.", data, goal],
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; integerTypeQ[environment, type] :>
-			integerRing[data, goal, current],
-		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers or of integers.", data, goal]
+			classRing[data, goal, current, integerTypeQ],
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; rationalTypeQ[environment, type] :>
+			classRing[data, goal, current, rationalTypeQ],
+		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers, integers or rationals.", data, goal]
 	}]
 ]
+
+(* A term of integers with its atoms reduced as those of natural numbers are, the natural numbers it casts
+   included: a field of a pair written out is the term in it *)
+integerArithmeticReduced[environment_, context_, term_] := Replace[term, {
+	application[application[head : constantReference[HoldComplete["integerAddition" | "integerMultiplication" | "integerSubtraction"], _], a_], b_] :>
+		makeApplication[head, {integerArithmeticReduced[environment, context, a], integerArithmeticReduced[environment, context, b]}],
+	application[application[head : constantReference[HoldComplete["integerPower"], _], a_], b_] :>
+		makeApplication[head, {integerArithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b]}],
+	application[head : constantReference[HoldComplete["integerNegation"], _], a_] :> application[head, integerArithmeticReduced[environment, context, a]],
+	application[head : constantReference[HoldComplete["integerOfNatural"], _], a_] :> application[head, arithmeticReduced[environment, context, a]],
+	_ :> With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
+		If[reduced === term, term, integerArithmeticReduced[environment, context, reduced]]
+	]
+}]
 
 (* A term of natural numbers with its atoms, the subterms that are no sum, product, power or successor,
    reduced as far as they reduce without unfolding a definition: a field of a pair written out is the
@@ -935,18 +953,20 @@ naturalNumberTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[e
 (* the integers of TypeTheoryEnvironment["Integers"], a quotient of pairs of natural numbers *)
 integerTypeQ[environment_, type_] := type === constantReference[HoldComplete[Integers], {}] && constantDeclaredQ[environment, HoldComplete["integerRelation"]]
 
+rationalTypeQ[environment_, type_] := type === constantReference[HoldComplete[Rationals], {}] && constantDeclaredQ[environment, HoldComplete["rationalRelation"]]
+
 (* Where the environment lacks the laws the integers' normal forms are built from, as while the integers'
-   library is built: an equation of integers is one of classes once each integer variable it mentions is
-   the class of a pair, and the soundness of quotients makes it the relation of the two pairs, an equation
-   of natural numbers that holds in every commutative semiring where the integers' holds in every
-   commutative ring. The
+   library is built, and for the rationals: an equation of integers is one of classes once each integer
+   variable it mentions is the class of a pair, and the soundness of quotients makes it the relation of the
+   two pairs, an equation of natural numbers that holds in every commutative semiring where the integers'
+   holds in every commutative ring; an equation of rationals likewise gives an equation of integers. The
    equation is first a goal with only the hypotheses it mentions, so that no other hypothesis is
-   generalized with an integer variable into the goal of its classes. *)
-integerRing[data_, goal_, current_] := With[{narrowedGoal = freshMetavariableId[], context = neededContext[current["Context"], current["Type"]]},
+   generalized with a variable into the goal of its classes. *)
+classRing[data_, goal_, current_, typeQ_] := With[{narrowedGoal = freshMetavariableId[], context = neededContext[current["Context"], current["Type"]]},
 	{
 		narrowed = solveGoal[data, goal, metavariable[narrowedGoal], {narrowedGoal -> <|"Context" -> context, "Type" -> current["Type"], "Case" -> None|>}],
 		variables = Select[Keys[context], Function[id, And[
-			integerTypeQ[data["Environment"], context[id]["Type"]],
+			typeQ[data["Environment"], context[id]["Type"]],
 			! FreeQ[current["Type"], freeVariable[id]]
 		]]]
 	},
@@ -1042,7 +1062,7 @@ witnessedProof[environment_, context_, statement_, {witness_, rest___}, newGoal_
 
 (* "PolynomialReduce": an equation of natural numbers that follows from the equations among the
    hypotheses by a polynomial combination, whose cofactors Wolfram's PolynomialReduce, or else linear
-   algebra, finds (Ring.wl) *)
+   algebra, finds (Ring.wl); or an equation of integers from the equations of integers among them *)
 polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[Join[$ringConstants, HoldComplete /@ Unevaluated[{Subtract, AdditionSubtractionCancellation}]], Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
@@ -1058,7 +1078,21 @@ polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], envir
 				],
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
-		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; integerTypeQ[environment, type] && integerRingAvailableQ[environment] :>
+			Replace[integerCombinationProof[
+				integerArithmeticReduced[environment, current["Context"], left],
+				integerArithmeticReduced[environment, current["Context"], right],
+				integerEquationHypotheses[environment, current["Context"]]
+			], {
+				None :> tacticFailure[
+					"NoCombination",
+					"Wolfram finds no polynomial combination with integer cofactors of the equations among the hypotheses that gives the goal `1`.",
+					data,
+					goal
+				],
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
+			}],
+		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers or of integers.", data, goal]
 	}]
 ]
 
@@ -1146,6 +1180,15 @@ universalEquationBinders[environment_, context_, statement_, type_, count_Intege
 }]
 
 (* {{a, b, proof}, ...} for the hypotheses that are equations a == b of natural numbers *)
+integerEquationHypotheses[environment_, context_] := KeyValueMap[
+	Function[{id, entry}, Replace[weakHeadNormalForm[environment, context, entry["Type"]], {
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; integerTypeQ[environment, type] :>
+			{integerArithmeticReduced[environment, context, a], integerArithmeticReduced[environment, context, b], freeVariable[id]},
+		_ :> Nothing
+	}]],
+	context
+]
+
 equationHypotheses[environment_, context_] := KeyValueMap[
 	Function[{id, entry}, Replace[weakHeadNormalForm[environment, context, entry["Type"]], {
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; naturalNumberTypeQ[environment, context, type] :>
