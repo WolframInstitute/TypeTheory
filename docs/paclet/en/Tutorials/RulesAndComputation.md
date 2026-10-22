@@ -22,15 +22,15 @@ Information[TypeTheoryEnvironment[], "Rules"]["Name"]
 
 <!-- => "CalculusOfInductiveConstructions" -->
 
-Those rules have a universe of propositions, Prop, quotient types, and no rewrite rules:
+Those rules have a universe of propositions, Prop, quotient types, no rewrite rules and no quantities:
 
 ```wl
-TypeTheoryRules["CalculusOfInductiveConstructions"] /@ {"Prop", "Quotients", "RewriteRules"}
+TypeTheoryRules["CalculusOfInductiveConstructions"] /@ {"Prop", "Quotients", "RewriteRules", "Quantities"}
 ```
 
-<!-- => {True, True, False} -->
+<!-- => {True, True, False, False} -->
 
-Without quotient types, they are the rules of Rocq's kernel.
+Without quotient types, they are the rules of Rocq's kernel. With quantities, a binder may say that the code that runs uses its variable at most once, or never; the tutorial *Erased and Affine Variables* has them.
 
 Martin-Löf type theory has no Prop:
 

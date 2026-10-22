@@ -18,6 +18,7 @@ RelatedTutorials: [TypeTheoryIntroduction]
 
 - [TypedImplicit]() is a binder of [ForAll](), [Function]() and [Exists](), wherever <code>[Typed]()[*x*, *A*]</code> is one: in terms, in statements and in the types of declarations.
 - Where a constant with an implicit binder is applied, elaboration fills in the implicit argument by unification with the types of the explicit ones, or with the type the term is expected to have. <code>[Construct]()[*f*, *a*, ...]</code> gives every argument, implicit ones included.
+- <code>[TypedImplicit]()[*x*, *A*, *q*]</code> is an implicit binder of quantity *q*, 0 or 1, under rules with quantities, as <code>[Typed]()[*x*, *A*, *q*]</code> is an explicit one; see [TypeTheoryRules]().
 - <code>[TypedImplicit]()[*x*, *A*]</code> is the same binder as <code>[Annotation]()[[Typed]()[*x*, *A*], "Implicit"]</code>, and terms and declarations read back with it. The strict implicit and instance implicit binders of Lean are written <code>[Annotation]()[[Typed]()[*x*, *A*], "StrictImplicit"]</code> and <code>[Annotation]()[[Typed]()[*x*, *A*], "InstanceImplicit"]</code>.
 
 ## Basic Examples
