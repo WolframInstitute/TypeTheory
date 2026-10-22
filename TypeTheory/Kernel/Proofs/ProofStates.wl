@@ -39,10 +39,11 @@ The tactics:
 	"Constructor"           applies the first constructor of the goal's inductive type that applies
 	"Assumption"            solves the goal with a hypothesis of the same type
 	"Rewrite", h            replaces the first instance in the goal of the left side of the equation h, and every
-	                        copy of it, by the right side; "Rewrite", h, "RightToLeft" replaces the right side
+	                        copy of it, by the right side; "Rewrite", h, "RightToLeft" replaces the right side;
+	                        with "At" -> k last, it rewrites the hypothesis k instead
 	"Change", statement     replaces the goal by a statement equal to it by computation
 	"Simplify", {h, ...}    rewrites with the equations h, ... until none applies, then closes an equation whose
-	                        sides are equal by computation
+	                        sides are equal by computation; a definition among them unfolds where it computes
 	"Decide"                proves a closed statement of equations and inequalities of natural numbers and the
 	                        connectives by computing its decision
 
@@ -94,8 +95,10 @@ TypeTheoryTactic[\"Constructor\"] applies the first constructor of the goal's in
 TypeTheoryTactic[\"Assumption\"] solves the goal with a hypothesis of the same type.\n\
 TypeTheoryTactic[\"Rewrite\", h] replaces an instance of the left side of the equation h in the goal by its right side; \
 TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\"] replaces the right side by the left.\n\
+TypeTheoryTactic[\"Rewrite\", h, \"At\" -> k] and TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\", \"At\" -> k] rewrite the hypothesis k instead of the goal.\n\
 TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which must be equal to it by computation.\n\
-TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation.\n\
+TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation; \
+a definition among h1, h2, ... unfolds where it computes, as Join does on ListPrepend[x, l], with its recursive calls folded back.\n\
 TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
@@ -281,8 +284,11 @@ runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldCo
 runTactic["Simplify", Hold[{lemmas___}], data_, goal_] := simplify[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
-runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight"]
-runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction]
+runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
+runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
+runTactic["Rewrite", Hold[term_, "At" -> (hypothesis : _Symbol | _String)], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", HoldComplete[hypothesis]]
+runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft", "At" -> (hypothesis : _Symbol | _String)], data_, goal_] :=
+	rewrite[data, goal, HoldComplete[term], direction, HoldComplete[hypothesis]]
 runTactic[name_, _, _, _] := kernelFailure["UnknownTactic", "`1` is not a tactic, or is not given the arguments it takes.", {name}]
 
 
@@ -412,84 +418,149 @@ assumption[data_, goal_] := With[{current = currentGoal[data, goal], environment
 
 
 (* The proof h is applied to new metavariables until its type is an equation lhs == rhs of a type of
-   equations. The first subterm of the goal that unifies with the side to replace, children before
+   equations. The first subterm of the statement that unifies with the side to replace, children before
    their parent and functions before arguments as Lean's kabstract visits them, fixes those
    metavariables, and every copy of that instance is abstracted into the motive P.
-   Left to right, the new goal is P[rhs]: the equation's recursor, with the motive (y, t) ↦ P[y] -> P[lhs]
-   and the identity as its one minor premise, takes h to a function from P[rhs] to P[lhs].
-   Right to left, the new goal is P[lhs]: it is the minor premise of the recursor with the motive
-   (y, t) ↦ P[y], which gives P[rhs].
-   A new goal whose two sides are the same term is closed by reflexivity, as after Lean's rw. *)
-rewrite[data_, goal_, held_HoldComplete, direction_String] := With[
+   Left to right, the new goal is P[rhs], carried back along the equation to a proof of the goal P[lhs];
+   right to left, the new goal is P[lhs], carried forward to P[rhs]. A new goal whose two sides are the
+   same term is closed by reflexivity, as after Lean's rw.
+   At a hypothesis k : P[lhs], left to right, k is carried forward to a proof of P[rhs], which a new
+   hypothesis of the same name takes, and right to left back; the new hypothesis replaces k unless the
+   goal or another hypothesis depends on k, as with Lean's rw at k. *)
+rewrite[data_, goal_, held_HoldComplete, direction_String, location_] := With[
 	{current = currentGoal[data, goal], environment = data["Environment"], goalTypes = openGoalTypes[data]},
 	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
-		rewriteGoal[data, goal, current, goalTypes, toSyntax @@ held, direction]
+		Replace[location, {
+			None :> rewriteGoal[data, goal, current, goalTypes, rewrittenStatement[data, goal, current, goalTypes, toSyntax @@ held, direction, current["Type"]], direction],
+			name_HoldComplete :> With[{id = hypothesisId[data, goal, current["Context"], name]},
+				rewriteHypothesis[
+					data,
+					goal,
+					current,
+					goalTypes,
+					rewrittenStatement[data, goal, current, goalTypes, toSyntax @@ held, direction, current["Context"][id]["Type"]],
+					direction,
+					id
+				]
+			]
+		}]
 	]
 ]
 
-rewriteGoal[data_, goal_, current_, goalTypes_, syntax_, direction_String] := Module[
-	{
-		environment = data["Environment"], context = current["Context"], elaborated, equation, side, target, instance,
-		replacement, proof, elementType, levels, motiveBody, newId, newType, recursor, solution, updated
-	},
+(* the equation, its instance in the statement and the motive: <|"Left", "Right", "Proof", "Type", "Recursor",
+   "Instance", "Motive" -> P, "Statement" -> the statement rewritten|> *)
+rewrittenStatement[data_, goal_, current_, goalTypes_, syntax_, direction_String, statement_] := Module[
+	{environment = data["Environment"], context = current["Context"], elaborated, equation, side, target, left, right, proof, elementType, levels, instance, motiveBody},
 	elaborated = elaborateSyntax[syntax, None];
 	equation = equationOf[data, goal, settleOverloads[First[elaborated]], Last[elaborated]];
 	side = If[direction === "LeftToRight", equation["Left"], equation["Right"]];
-	target = instantiateMetavariables[current["Type"]];
+	target = instantiateMetavariables[statement];
 	If[ instancePatternKey[instantiateMetavariables[side]] === None,
 		tacticFailure["PatternExpected", "In the goal `1`, the side of the equation to rewrite is an unknown term.", data, goal]
 	];
 	If[ ! firstInstanceUnifiedQ[target, side],
 		tacticFailure["NoInstance", "The goal `1` has no instance of `2`.", data, goal, {displayCoreTerm[environment, context, instantiateMetavariables[side]]}]
 	];
-	{instance, replacement, proof, elementType} = instantiateMetavariables /@ {
-		side,
-		If[direction === "LeftToRight", equation["Right"], equation["Left"]],
-		equation["Proof"],
-		equation["Type"]
-	};
+	{left, right, proof, elementType} = instantiateMetavariables /@ {equation["Left"], equation["Right"], equation["Proof"], equation["Type"]};
 	(* levels are instantiated where they stand, in a constant *)
 	levels = Last @ instantiateMetavariables[constantReference[equation["Equality"], equation["Levels"]]];
-	If[ ! FreeQ[{proof, replacement, levels}, metavariable[id_] /; ! KeyExistsQ[goalTypes, id]] || ! FreeQ[{proof, replacement, levels}, _levelMetavariable],
+	If[ ! FreeQ[{proof, left, right, levels}, metavariable[id_] /; ! KeyExistsQ[goalTypes, id]] || ! FreeQ[{proof, left, right, levels}, _levelMetavariable],
 		tacticFailure["UnsolvedImplicitArgument", "Could not infer every argument of the equation used to rewrite the goal `1`.", data, goal]
 	];
+	instance = If[direction === "LeftToRight", left, right];
 	motiveBody = abstractInstances[instantiateMetavariables[target], instance];
-	newId = freshMetavariableId[];
-	newType = betaNormalize[instantiateBoundVariable[motiveBody, replacement]];
-	recursor = equationRecursor[data, goal, context, equation["Equality"], levels, instantiateMetavariables[target]];
-	solution = If[ direction === "LeftToRight",
-		application[
-			makeApplication[recursor, {
-				elementType,
-				instance,
-				rewriteMotive[context, equation["Equality"], levels, elementType, instance, motiveBody, instance],
-				lambdaAbstraction[HoldComplete[p], instantiateBoundVariable[motiveBody, instance], boundVariable[0], "Explicit"],
-				replacement,
-				proof
-			}],
-			metavariable[newId]
-		],
-		makeApplication[recursor, {
-			elementType,
-			replacement,
-			rewriteMotive[context, equation["Equality"], levels, elementType, replacement, motiveBody, None],
-			metavariable[newId],
-			instance,
-			proof
-		}]
-	];
-	updated = keepSolvedGoals[data, goalTypes];
-	Replace[
-		Block[{$metavariableTypes = Join[goalTypes, <|newId -> newType|>], $metavariableAssignments = <||>},
-			catchKernelFailure[checkHasType[environment, context, solution, instantiateProofTerm[updated, current["Type"]]]]
-		],
-		_Failure :> tacticFailure["MotiveNotTypeCorrect", "Abstracting `2` in the goal `1` gives a statement that is not well typed.", data, goal, {displayCoreTerm[environment, context, instance]}]
-	];
-	closeIfSidesSame[
-		solveGoal[updated, goal, solution, {newId -> <|"Context" -> context, "Type" -> newType, "Case" -> None|>}],
-		newId,
-		newType
+	<|
+		"Left" -> left,
+		"Right" -> right,
+		"Proof" -> proof,
+		"Type" -> elementType,
+		"Equality" -> equation["Equality"],
+		"Levels" -> levels,
+		"Recursor" -> equationRecursor[data, goal, context, equation["Equality"], levels, instantiateMetavariables[target]],
+		"Instance" -> instance,
+		"Motive" -> motiveBody,
+		"Statement" -> betaNormalize[instantiateBoundVariable[motiveBody, If[direction === "LeftToRight", right, left]]]
+	|>
+]
+
+rewriteGoal[data_, goal_, current_, goalTypes_, rewritten_Association, direction_String] := With[
+	{
+		newId = freshMetavariableId[],
+		environment = data["Environment"],
+		context = current["Context"],
+		updated = keepSolvedGoals[data, goalTypes]
+	},
+	With[{solution = If[direction === "LeftToRight", transportBackward, transportForward][rewritten, context, metavariable[newId]]},
+		Replace[
+			Block[{$metavariableTypes = Join[goalTypes, <|newId -> rewritten["Statement"]|>], $metavariableAssignments = <||>},
+				catchKernelFailure[checkHasType[environment, context, solution, instantiateProofTerm[updated, current["Type"]]]]
+			],
+			_Failure :> motiveFailure[data, goal, context, rewritten]
+		];
+		closeIfSidesSame[
+			solveGoal[updated, goal, solution, {newId -> <|"Context" -> context, "Type" -> rewritten["Statement"], "Case" -> None|>}],
+			newId,
+			rewritten["Statement"]
+		]
 	]
+]
+
+rewriteHypothesis[data_, goal_, current_, goalTypes_, rewritten_Association, direction_String, id_] := Module[
+	{environment = data["Environment"], context = current["Context"], newId = freshFreeVariable[], newGoal = freshMetavariableId[], proof, others, newContext},
+	proof = If[direction === "LeftToRight", transportForward, transportBackward][rewritten, context, freeVariable[id]];
+	Replace[
+		Block[{$metavariableTypes = goalTypes, $metavariableAssignments = <||>},
+			catchKernelFailure[checkHasType[environment, context, proof, rewritten["Statement"]]]
+		],
+		_Failure :> motiveFailure[data, goal, context, rewritten]
+	];
+	others = KeyDrop[context, id];
+	newContext = extendContext[
+		If[FreeQ[{current["Type"], rewritten["Statement"], Lookup[Values[others], "Type"]}, freeVariable[id]], others, context],
+		newId,
+		context[id]["Name"],
+		rewritten["Statement"],
+		context[id]["Binder"]
+	];
+	solveGoal[
+		keepSolvedGoals[data, goalTypes],
+		goal,
+		application[pendingAbstraction[newContext, {newId}, metavariable[newGoal]], proof],
+		{newGoal -> <|"Context" -> newContext, "Type" -> current["Type"], "Case" -> None|>}
+	]
+]
+
+(* m, a proof of P[lhs], carried along the equation to a proof of P[rhs]: the equation's recursor with the
+   motive (y, t) ↦ P[y] takes m as its one minor premise *)
+transportForward[rewritten_Association, context_, m_] := makeApplication[rewritten["Recursor"], {
+	rewritten["Type"],
+	rewritten["Left"],
+	rewriteMotive[context, rewritten["Equality"], rewritten["Levels"], rewritten["Type"], rewritten["Left"], rewritten["Motive"], None],
+	m,
+	rewritten["Right"],
+	rewritten["Proof"]
+}]
+
+(* m, a proof of P[rhs], carried back to a proof of P[lhs]: the recursor with the motive (y, t) ↦ P[y] -> P[lhs]
+   and the identity as its minor premise gives a function from P[rhs] to P[lhs] *)
+transportBackward[rewritten_Association, context_, m_] := application[
+	makeApplication[rewritten["Recursor"], {
+		rewritten["Type"],
+		rewritten["Left"],
+		rewriteMotive[context, rewritten["Equality"], rewritten["Levels"], rewritten["Type"], rewritten["Left"], rewritten["Motive"], rewritten["Left"]],
+		lambdaAbstraction[HoldComplete[p], instantiateBoundVariable[rewritten["Motive"], rewritten["Left"]], boundVariable[0], "Explicit"],
+		rewritten["Right"],
+		rewritten["Proof"]
+	}],
+	m
+]
+
+motiveFailure[data_, goal_, context_, rewritten_Association] := tacticFailure[
+	"MotiveNotTypeCorrect",
+	"Abstracting `2` in the goal `1` gives a statement that is not well typed.",
+	data,
+	goal,
+	{displayCoreTerm[data["Environment"], context, rewritten["Instance"]]}
 ]
 
 (* the proof applied to new metavariables until its type is an equation of a type of equations *)
@@ -639,11 +710,107 @@ simplificationSteps[state_, goal_, lemmas_List, seen_List] := If[
 	}]
 ]
 
-(* the state after the first lemma that rewrites the goal, or None *)
+(* the state after the first lemma that rewrites the goal, or None; a definition named among the lemmas
+   unfolds where it computes instead *)
 firstRewrite[state_, goal_, {}] := None
 firstRewrite[state_, goal_, {lemma_, rest___}] := Replace[
-	withOpenGoals[state, Quiet @ catchKernelFailure[rewrite[state, goal, lemma, "LeftToRight"]]],
+	withOpenGoals[state, Quiet @ catchKernelFailure[
+		If[definitionNamedQ[state, goal, lemma], unfold[state, goal, lemma], rewrite[state, goal, lemma, "LeftToRight", None]]
+	]],
 	_Failure :> firstRewrite[state, goal, {rest}]
+]
+
+(* a name that is no hypothesis of the goal and stands for a definition *)
+definitionNamedQ[data_, goal_, held_HoldComplete] := With[{name = aliasResolvedName[data["Environment"], held]},
+	And[
+		! MemberQ[Lookup[Values[data["Metavariables"][goal]["Context"]], "Name"], held],
+		constantDeclaredQ[data["Environment"], name],
+		constantRecord[data["Environment"], name]["Kind"] === "Definition"
+	]
+]
+
+(* The first application of the definition in the goal, children before their parent, that computes, in
+   its place. A definition by recursion on one of its arguments, as Join is on its first, computes where
+   that argument is a constructor applied: it gives the recursor's rule for that constructor, with each
+   recursive call folded back into the definition, so Join[ListPrepend[x, l], m] gives
+   ListPrepend[x, Join[l, m]]. Any other definition, given all its arguments, is its value applied to them.
+   The new goal is equal to the goal by computation, so its solution solves the goal. *)
+unfold[data_, goal_, held_HoldComplete] := With[
+	{current = currentGoal[data, goal], environment = data["Environment"], name = aliasResolvedName[data["Environment"], held]},
+	Replace[
+		SelectFirst[
+			Function[candidate, {candidate, unfoldedApplication[environment, current["Context"], name, candidate]}] /@ instanceCandidates[current["Type"]],
+			Function[pair, Last[pair] =!= None],
+			None
+		],
+		{
+			None :> tacticFailure["NothingToUnfold", "The definition `2` computes nowhere in the goal `1`.", data, goal, {HoldForm @@ held}],
+			{instance_, unfolded_} :> With[
+				{newGoal = freshMetavariableId[], statement = betaNormalize[instantiateBoundVariable[abstractInstances[current["Type"], instance], unfolded]]},
+				solveGoal[data, goal, metavariable[newGoal], {newGoal -> <|"Context" -> current["Context"], "Type" -> statement, "Case" -> None|>}]
+			]
+		}
+	]
+]
+
+(* the term, an application of the definition name, computed as unfold computes it, or None *)
+unfoldedApplication[environment_, context_, name_, term_] := Replace[applicationSpine[term], {
+	{constantReference[name, levels_], arguments_} :> With[
+		{record = constantRecord[environment, name]},
+		{value = instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels]},
+		{opened = openedFunction[value, 0]},
+		Which[
+			Length[arguments] < Last[opened],
+				None,
+			recursorApplicationQ[environment, First[opened]],
+				computedRecursion[environment, context, name, levels, opened, arguments],
+			True,
+				makeApplication[value, arguments]
+		]
+	],
+	_ :> None
+}]
+
+(* {body, count}: the body under the functions nested at the top of term, and their count *)
+openedFunction[lambdaAbstraction[_, _, body_, _], count_Integer] := openedFunction[body, count + 1]
+openedFunction[body_, count_Integer] := {body, count}
+
+recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]], constantReference[recursor_, _] /; constantRecord[environment, recursor]["Kind"] === "Recursor"]
+
+(* A definition by structural recursion has a recursor applied to its parameters, motives and minor
+   premises, no indices, and last the major premise, one of the definition's count variables, which no
+   other argument of the recursor mentions. None for any other body. *)
+computedRecursion[environment_, context_, name_, levels_, {body_, count_Integer}, arguments_List] := With[
+	{spine = applicationSpine[body]},
+	{record = constantRecord[environment, First[First[spine]]], recursorArguments = Last[spine]},
+	If[ And[
+			record["NumberOfIndices"] === 0,
+			Length[recursorArguments] === record["NumberOfParameters"] + record["NumberOfMotives"] + record["NumberOfMinors"] + 1,
+			MatchQ[Last[recursorArguments], boundVariable[k_Integer] /; k < count],
+			NoneTrue[Most[recursorArguments], Function[argument, boundVariableOccursQ[argument, First[Last[recursorArguments]]]]]
+		],
+		refoldedRecursion[environment, context, name, levels, First[spine], recursorArguments, count, arguments],
+		None
+	]
+]
+
+(* The recursor reduced on the argument given for its major premise, or None if it does not reduce; in
+   what it gives, a recursive call, the recursor applied to the same arguments but a smaller major
+   premise, is the definition applied to that one in its place. *)
+refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArguments_List, count_Integer, arguments_List] := With[
+	{
+		position = count - First[Last[recursorArguments]],
+		given = Take[arguments, count]
+	},
+	{prefix = makeApplication[recursor, Function[argument, instantiateBoundVariables[argument, given]] /@ Most[recursorArguments]]},
+	{reduced = reducedHeadWithoutUnfolding[environment, context, application[prefix, First[Drop[given, position - 1]]]]},
+	If[ MatchQ[reduced, application[Verbatim[prefix], _]],
+		None,
+		makeApplication[
+			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Drop[given, position]]]],
+			Drop[arguments, count]
+		]
+	]
 ]
 
 (* the state with the goal closed by reflexivity, or None *)

@@ -437,3 +437,97 @@ VerificationTest[
 	"TypeMismatch",
 	TestID -> "A-goal-is-not-solved-with-a-hypothesis-it-does-not-have"
 ]
+
+(* Simplify unfolds a definition it is given where the definition computes, and Rewrite reaches into hypotheses *)
+
+joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]], Typed[c, Lists[\[Alpha]]]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], prelude, {
+	TypeTheoryTactic["Introduce", \[Alpha], a, b, c],
+	TypeTheoryTactic["Induction", a],
+	TypeTheoryTactic["Simplify", {Join}],
+	TypeTheoryTactic["Introduce", x, rest, ih],
+	TypeTheoryTactic["Simplify", {Join, ih}]
+}]
+
+lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Length[Join[a, b]] == Length[a] + Length[b]], prelude, {
+	TypeTheoryTactic["Introduce", \[Alpha], a, b],
+	TypeTheoryTactic["Induction", a],
+	TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
+	TypeTheoryTactic["Introduce", x, rest, ih],
+	TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
+}]
+
+reverseJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]], prelude, {
+	TypeTheoryTactic["Introduce", \[Alpha], a, b],
+	TypeTheoryTactic["Induction", a],
+	TypeTheoryTactic["Simplify", {Join, Reverse, JoinEmptyRight}],
+	TypeTheoryTactic["Introduce", x, rest, ih],
+	TypeTheoryTactic["Simplify", {Join, Reverse, ih, Append, JoinAssociativity}]
+}]
+
+VerificationTest[
+	{
+		joinAssociativity["Goals"],
+		lengthJoin["Goals"],
+		reverseJoin["Goals"],
+		MatchQ[
+			TypeTheoryCheck[TypeTheoryEnvironment[prelude, {
+				TypeTheoryTheorem[JoinAssociativityAgain, joinAssociativity],
+				TypeTheoryTheorem[LengthJoinAgain, lengthJoin],
+				TypeTheoryTheorem[ReverseJoinAgain, reverseJoin]
+			}]],
+			_Success
+		]
+	},
+	{{}, {}, {}, True},
+	TestID -> "Simplify-unfolds-a-definition-by-recursion-where-it-computes"
+]
+
+VerificationTest[
+	{
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, Lists[\[Alpha]]]}, Reverse[ListPrepend[x, a]] == Append[Reverse[a], x]], prelude, {
+			TypeTheoryTactic["Introduce", \[Alpha], x, a],
+			TypeTheoryTactic["Simplify", {Reverse}]
+		}]["Goals"],
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, Lists[\[Alpha]]]}, Append[a, x] == Join[a, ListPrepend[x, EmptyList]]], prelude, {
+			TypeTheoryTactic["Introduce", \[Alpha], x, a],
+			TypeTheoryTactic["Simplify", {Append}]
+		}]["Goals"],
+		First @ TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]]}, Join[a, EmptyList] == a], prelude, {
+			TypeTheoryTactic["Introduce", \[Alpha], a],
+			TypeTheoryTactic["Simplify", {Join}]
+		}]
+	},
+	{{}, {}, "NoProgress"},
+	TestID -> "Simplify-folds-recursive-calls-back-and-leaves-a-definition-that-does-not-compute"
+]
+
+VerificationTest[
+	With[
+		{
+			forward = TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a == b, Implies[a + 1 == 3, b + 1 == 3]]], prelude, {
+				TypeTheoryTactic["Introduce", a, b, h, k],
+				TypeTheoryTactic["Rewrite", h, "At" -> k]
+			}],
+			backward = TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a == b, Implies[b + 1 == 3, a + 1 == 3]]], prelude, {
+				TypeTheoryTactic["Introduce", a, b, h, k],
+				TypeTheoryTactic["Rewrite", h, "RightToLeft", "At" -> k],
+				TypeTheoryTactic["Exact", k]
+			}]
+		},
+		{
+			forward["Goals"],
+			MatchQ[
+				TypeTheoryCheck[TypeTheoryEnvironment[prelude, {
+					TypeTheoryTheorem[RewrittenHypothesis, TypeTheoryTactic["Exact", k][forward]],
+					TypeTheoryTheorem[RewrittenHypothesisBack, backward]
+				}]],
+				_Success
+			]
+		}
+	],
+	{
+		{TypeTheoryTerm[RightTee[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a == b], Typed[k, b + 1 == 3]}, b + 1 == 3], prelude]},
+		True
+	},
+	TestID -> "Rewrite-at-a-hypothesis-replaces-it-with-the-rewritten-one"
+]
