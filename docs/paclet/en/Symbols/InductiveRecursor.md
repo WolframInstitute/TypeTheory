@@ -68,7 +68,7 @@ roses = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 166 constants -->
+<!-- => TypeTheoryEnvironment summary box: 169 constants -->
 
 A tree nested in a list of trees has a recursor on the list as well, with the same motives and minor premises:
 

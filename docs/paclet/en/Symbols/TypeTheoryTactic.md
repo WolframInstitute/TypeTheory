@@ -4,7 +4,7 @@ Name: TypeTheoryTactic
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
-Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, oracle]
+Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, FindEquationalProof, equational reasoning, oracle]
 SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, Lists]
 RelatedGuides: [TypeTheory]
 ---
@@ -37,10 +37,12 @@ RelatedGuides: [TypeTheory]
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
+| `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
+| `"FindEquationalProof"` | proves an equation from the hypotheses that are equations of its type for all values of their variables, by replaying the proof that Wolfram's [FindEquationalProof]() finds, step by step |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[ListPrepend[x, l], m]` becomes `ListPrepend[x, Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
-- `"FindInstance"` and `"PolynomialReduce"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
+- `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"` and `"FindEquationalProof"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - A tactic that does not apply gives a [Failure]().
 
 ## Basic Examples
@@ -326,6 +328,37 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y =
 
 <!-- => Proof complete -->
 
+---
+
+`"LinearArithmetic"` multiplies and adds inequalities:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[2 x + 3 y <= 12, Implies[4 <= x, y <= 1]]], {
+    TypeTheoryTactic["Introduce", x, y, h, k],
+    TypeTheoryTactic["LinearArithmetic"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`"FindEquationalProof"` derives the right identity of a group from its left identity and left inverses:
+
+```wl
+TypeTheoryProof[ForAll[
+    {Typed[G, TypeUniverse[1]], Typed[op, TypeSpecifier[{G, G} -> G]], Typed[e, G], Typed[inv, TypeSpecifier[{G} -> G]]},
+    Implies[ForAll[{Typed[a, G], Typed[b, G], Typed[c, G]}, op[op[a, b], c] == op[a, op[b, c]]],
+        Implies[ForAll[{Typed[a, G]}, op[e, a] == a],
+            Implies[ForAll[{Typed[a, G]}, op[inv[a], a] == e], ForAll[{Typed[x, G]}, op[x, e] == x]]]]
+], {
+    TypeTheoryTactic["Introduce", G, op, e, inv, associativity, identity, inverse, x],
+    TypeTheoryTactic["FindEquationalProof"]
+}]
+```
+
+<!-- => Proof complete -->
+
 ## Possible Issues
 
 `"Reflexivity"` needs the sides to be equal by computation; `0 + n` is not `n` until induction:
@@ -391,3 +424,13 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals]}, Exists[{Typed[n, Naturals]}, n == m
 ```
 
 <!-- => Failure["NotTranslatable", ...] -->
+
+---
+
+`"LinearArithmetic"` proves only what follows from the hypotheses:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, y <= x]], {TypeTheoryTactic["Introduce", x, y, h], TypeTheoryTactic["LinearArithmetic"]}]
+```
+
+<!-- => Failure["NoLinearCombination", ...] -->

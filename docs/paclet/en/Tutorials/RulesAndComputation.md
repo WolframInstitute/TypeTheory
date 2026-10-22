@@ -46,7 +46,7 @@ Under any rules, a definition unfolds to its value. Here is the prelude with a d
 double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 159 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 `Double[4]` unfolds and computes:
 
@@ -78,7 +78,7 @@ An axiom never unfolds: it has no value.
 mystery = TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 159 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stops at the recursor, waiting for a constructor the axiom never gives:
 
@@ -178,7 +178,7 @@ The prelude's rules allow no rewrite rules, so the declarations of the prelude, 
 rewriting = TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "RewriteRules" -> True], Normal[TypeTheoryEnvironment["Prelude"]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 158 constants -->
+<!-- => TypeTheoryEnvironment summary box: 161 constants -->
 
 There the quotient is declared with its rule:
 
@@ -186,7 +186,7 @@ There the quotient is declared with its rule:
 quotient = TypeTheoryEnvironment[rewriting, Append[quotientDeclarations, liftClass]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 163 constants -->
+<!-- => TypeTheoryEnvironment summary box: 166 constants -->
 
 The rule, as declared:
 
@@ -226,7 +226,7 @@ The same axioms on the prelude, with no rule, declare the quotient as well:
 stuck = TypeTheoryEnvironment[quotientDeclarations]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 162 constants -->
+<!-- => TypeTheoryEnvironment summary box: 165 constants -->
 
 But the lift is stuck:
 
@@ -269,7 +269,7 @@ flips = TypeTheoryEnvironment[rewriting, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 168 constants -->
 
 By the first rule, `Flip[BitZero]` computes to `BitOne`:
 
@@ -300,7 +300,7 @@ confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 166 constants -->
+<!-- => TypeTheoryEnvironment summary box: 169 constants -->
 
 The theorem it declares:
 

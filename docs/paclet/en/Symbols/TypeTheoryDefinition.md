@@ -29,7 +29,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 159 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 Compute with it:
 
@@ -57,7 +57,7 @@ identity = TypeTheoryEnvironment[
 ]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 159 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 A universe-polymorphic definition is used at each universe:
 
@@ -85,7 +85,7 @@ composite = TypeTheoryEnvironment[TypeTheoryDefinition[Composite,
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 159 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 [MakeBoxes]() definitions give a definition a notation. A term shows the arguments that are not implicit, so the rule matches those:
 

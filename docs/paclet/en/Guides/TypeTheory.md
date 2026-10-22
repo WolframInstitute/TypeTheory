@@ -46,7 +46,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Proofs
 
 - [TypeTheoryProof]() a proof in progress, with its open goals
-- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`, `"Ring"`, and the Wolfram oracles `"FindInstance"` and `"PolynomialReduce"`
+- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`, `"Ring"`, and the Wolfram oracles `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"` and `"FindEquationalProof"`
 
 ### The prelude: logic and equality
 
@@ -110,4 +110,5 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [PowerZero](), [PowerSuccessor](), [PowerOne](), [PowerAddition]() powers
 - [SuccessorInjectivity](), [SuccessorNotZero]() the successor
 - [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualAddition](), [PredecessorLessEqual]() the order and the successor
-- [LessEqualTransitivity](), [LessEqualAntisymmetry](), [LessIrreflexivity](), [SuccessorNotLessEqualZero]() the laws of the order
+- [LessEqualTransitivity](), [LessEqualAntisymmetry](), [LessIrreflexivity](), [SuccessorNotLessEqualZero](), [LessEqualTotality]() the laws of the order
+- [AdditionMonotonicity](), [MultiplicationMonotonicity]() sums and multiples of inequalities

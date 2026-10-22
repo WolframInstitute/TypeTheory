@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 68, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 71, "Axiom" -> 3|> -->
 
 It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
@@ -232,7 +232,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAntisymmetry]]
 
 <!-- => ∀_{a ∶ ℕ} ∀_{b ∶ ℕ} a ≤ b ⇒ b ≤ a ⇒ a == b -->
 
-The other theorems are [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualTransitivity](), [LessIrreflexivity](), [SuccessorNotLessEqualZero]() and [PredecessorLessEqual]().
+The other theorems are [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualTransitivity](), [LessIrreflexivity](), [SuccessorNotLessEqualZero](), [PredecessorLessEqual]() and [LessEqualTotality](), and [AdditionMonotonicity]() and [MultiplicationMonotonicity](), which add and multiply inequalities.
 
 ## Booleans
 
@@ -405,7 +405,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 145 constants -->
+<!-- => TypeTheoryEnvironment summary box: 148 constants -->
 
 It has no axioms:
 
@@ -429,7 +429,7 @@ Whatever is proved in it uses no axiom. Other axioms can be assumed there with [
 excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 146 constants -->
+<!-- => TypeTheoryEnvironment summary box: 149 constants -->
 
 Its one axiom:
 
