@@ -639,23 +639,43 @@ sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applic
 	]
 ]
 
-(* Lean's lazy delta reduction. Where neither side reduces further without unfolding a definition, the
-   side whose definition at its head is higher, defined in terms of the other's, unfolds one step, or
-   both do at the same height, and the two sides are compared again: an application of a definition
-   defined by another meets an application of that other before either unfolds into what may be a long
-   computation. Where neither has a definition at its head, both are in weak head normal form. *)
 reducedEqualQ[environment_, context_, a_, b_] := With[
 	{coreA = reducedHeadWithoutUnfolding[environment, context, a], coreB = reducedHeadWithoutUnfolding[environment, context, b]},
 	If[ coreA =!= a || coreB =!= b,
 		definitionallyEqualQ[environment, context, coreA, coreB],
-		Replace[lazyDeltaStep[environment, context, a, b], {
-			{unfoldedA_, unfoldedB_} :> definitionallyEqualQ[environment, context, unfoldedA, unfoldedB],
-			None :> normalFormsEqualQ[environment, context, a, b]
-		}]
+		lazyDeltaEqualQ[environment, context, a, b]
 	]
 ]
 
-lazyDeltaStep[environment_, context_, a_, b_] := With[{heightA = headDefinitionHeight[environment, a], heightB = headDefinitionHeight[environment, b]},
+(* Lean's lazy delta reduction. Where neither side reduces further without unfolding a definition, the
+   side whose definition at its head is higher, defined in terms of the other's, unfolds one step, or
+   both do at the same height, until the sides are the same or neither has a definition at its head: an
+   application of a definition defined by another meets an application of that other before either
+   unfolds into what may be a long computation. As in Lean's kernel the steps are a loop, and between
+   them the sides are compared only by identity, and by their arguments where one definition is at both
+   heads; unfolding leaves a proof a proof of the same proposition, so proof irrelevance, asked of the
+   first pair, is not asked again. The last pair is compared in full, or by its weak head normal forms
+   where nothing unfolded. *)
+lazyDeltaEqualQ[environment_, context_, a_, b_] := Module[{pair = {a, b}, step},
+	(* the arguments of one definition at both heads of the first pair are compared already *)
+	step = lazyDeltaStep[environment, context, a, b, False];
+	While[ ListQ[step] && step[[1]] =!= step[[2]],
+		pair = step;
+		step = lazyDeltaStep[environment, context, pair[[1]], pair[[2]], True]
+	];
+	Which[
+		step =!= None,
+			True,
+		pair === {a, b},
+			normalFormsEqualQ[environment, context, a, b],
+		True,
+			definitionallyEqualQ[environment, context, pair[[1]], pair[[2]]]
+	]
+]
+
+(* the next pair, True for one definition at both heads applied to equal arguments, or None where
+   neither side has a definition at its head *)
+lazyDeltaStep[environment_, context_, a_, b_, compareArguments_] := With[{heightA = headDefinitionHeight[environment, a], heightB = headDefinitionHeight[environment, b]},
 	Which[
 		heightA === None && heightB === None,
 			None,
@@ -663,6 +683,8 @@ lazyDeltaStep[environment_, context_, a_, b_] := With[{heightA = headDefinitionH
 			{unfoldedHead[environment, context, a], b},
 		heightA === None || heightA < heightB,
 			{a, unfoldedHead[environment, context, b]},
+		compareArguments && sameHeadArgumentsEqualQ[environment, context, a, b],
+			True,
 		True,
 			{unfoldedHead[environment, context, a], unfoldedHead[environment, context, b]}
 	]

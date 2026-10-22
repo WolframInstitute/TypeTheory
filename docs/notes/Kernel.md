@@ -32,9 +32,12 @@ order: `SameQ`, sorts, binders, the same constant on equal arguments, proof irre
 without unfolding a definition, then Lean's lazy delta reduction, and finally η, literals against
 constructors, spines, η for structures and unit types. Lazy delta reduction unfolds one definition at a
 time: of two definitions at the heads of the sides, the higher one, where a definition's height is one
-more than the greatest height of the definitions its value mentions, or both at the same height, and
-compares the sides again. The kernel remembers inferred types, weak head normal forms and definitional
-equalities for the length of a check.
+more than the greatest height of the definitions its value mentions, or both at the same height. As in
+Lean's kernel it is a loop that compares the sides between steps only by identity, and by their
+arguments where one definition is at both heads, until neither side has a definition at its head; that
+last pair is compared in full. Proof irrelevance is not asked again between steps, since unfolding
+leaves a proof a proof of the same proposition. The kernel remembers inferred types, weak head normal
+forms and definitional equalities for the length of a check.
 
 A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
 with `catchKernelFailure`, so a user sees a `Failure` and never a message.
