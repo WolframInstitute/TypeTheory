@@ -206,6 +206,8 @@ currentGoal[data_, goal_] := With[{entry = data["Metavariables"][goal]},
 
 openGoalTypes[data_] := AssociationMap[Function[goal, instantiateProofTerm[data, data["Metavariables"][goal]["Type"]]], data["Goals"]]
 
+openGoalContexts[data_] := AssociationMap[Function[goal, Keys[data["Metavariables"][goal]["Context"]]], data["Goals"]]
+
 (* the hypotheses by name, a later hypothesis hiding an earlier one of the same name *)
 contextScope[context_Association] := Association @ KeyValueMap[Function[{id, entry}, entry["Name"] -> {freeVariable[id], entry["Type"]}], context]
 
@@ -251,12 +253,16 @@ goalDisplay[data_, goal_] := Quiet @ catchKernelFailure[goalTerm[data, goal]]
 
 TypeTheoryTactic[name_String, arguments___][TypeTheoryProof[data_Association]] := catchKernelFailure @ Replace[data["Goals"], {
 	{} :> kernelFailure["NoGoals", "The proof has no open goals.", {}],
-	{goal_, ___} :> With[{goalTypes = openGoalTypes[data]},
-		Block[{$metavariableTypes = goalTypes, $goalMetavariableTypes = goalTypes},
-			proofState[runTactic[name, Hold[arguments], data, goal]]
-		]
-	]
+	{goal_, ___} :> withOpenGoals[data, proofState[runTactic[name, Hold[arguments], data, goal]]]
 }]
+
+(* the open goals of the proof, as the metavariables a tactic's elaboration may meet, each with its type and hypotheses *)
+SetAttributes[withOpenGoals, HoldRest]
+withOpenGoals[data_, body_] := With[{goalTypes = openGoalTypes[data]},
+	Block[{$metavariableTypes = goalTypes, $goalMetavariableTypes = goalTypes, $goalMetavariableContexts = openGoalContexts[data]},
+		body
+	]
+]
 
 runTactic["Introduce", Hold[], data_, goal_] := introduceVariable[data, goal, Automatic]
 runTactic["Introduce", Hold[names : (_Symbol | _String) ..], data_, goal_] := Fold[
@@ -317,7 +323,8 @@ exactTerm[data_, goal_, held_HoldComplete] := With[
 
 
 (* The term is applied to new metavariables until its type unifies with the goal; those left unsolved
-   become new goals, the ones no other new goal mentions first. *)
+   become new goals, the ones no other new goal mentions first, each with the hypotheses of the context
+   it was made in. *)
 applyTerm[data_, goal_, held_HoldComplete] := With[
 	{current = currentGoal[data, goal], environment = data["Environment"], goalTypes = openGoalTypes[data]},
 	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
@@ -340,7 +347,7 @@ applyTerm[data_, goal_, held_HoldComplete] := With[
 				updated,
 				goal,
 				applied,
-				Function[id, id -> <|"Context" -> current["Context"], "Type" -> newTypes[id], "Case" -> None|>] /@ SortBy[
+				Function[id, id -> <|"Context" -> KeyTake[current["Context"], $metavariableContexts[id]], "Type" -> newTypes[id], "Case" -> None|>] /@ SortBy[
 					newIds,
 					Function[id, ! FreeQ[Values[newTypes], metavariable[id]]]
 				]
@@ -635,15 +642,13 @@ simplificationSteps[state_, goal_, lemmas_List, seen_List] := If[
 (* the state after the first lemma that rewrites the goal, or None *)
 firstRewrite[state_, goal_, {}] := None
 firstRewrite[state_, goal_, {lemma_, rest___}] := Replace[
-	Block[{$metavariableTypes = openGoalTypes[state], $goalMetavariableTypes = openGoalTypes[state]},
-		Quiet @ catchKernelFailure[rewrite[state, goal, lemma, "LeftToRight"]]
-	],
+	withOpenGoals[state, Quiet @ catchKernelFailure[rewrite[state, goal, lemma, "LeftToRight"]]],
 	_Failure :> firstRewrite[state, goal, {rest}]
 ]
 
 (* the state with the goal closed by reflexivity, or None *)
 closedByReflexivity[state_, goal_] := Replace[
-	Block[{$metavariableTypes = openGoalTypes[state], $goalMetavariableTypes = openGoalTypes[state]}, Quiet @ catchKernelFailure[reflexivity[state, goal]]],
+	withOpenGoals[state, Quiet @ catchKernelFailure[reflexivity[state, goal]]],
 	_Failure -> None
 ]
 

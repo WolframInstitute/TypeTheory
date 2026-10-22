@@ -427,3 +427,13 @@ VerificationTest[
 	{{}, {}, {}, "DecidedFalse", "NotDecided"},
 	TestID -> "Decide-proves-closed-statements-by-computing-their-decision"
 ]
+
+VerificationTest[
+	First @ TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, ForAll[{Typed[y, NonNegativeIntegers]}, y == x]], prelude, {
+		TypeTheoryTactic["Constructor"],
+		TypeTheoryTactic["Introduce", y],
+		TypeTheoryTactic["Exact", EqualityReflexivity[y]]
+	}],
+	"TypeMismatch",
+	TestID -> "A-goal-is-not-solved-with-a-hypothesis-it-does-not-have"
+]

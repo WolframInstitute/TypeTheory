@@ -242,3 +242,21 @@ VerificationTest[
 	{{"and", "false", "not", "or", "true"}, {}, True, "true", "not"},
 	TestID -> "The-constants-of-the-Booleans-are-named-by-strings"
 ]
+
+VerificationTest[
+	TypeOf[TypeTheoryTerm[
+		Function[{Typed[x, NonNegativeIntegers]}, OptionNone] == Function[{Typed[y, NonNegativeIntegers]}, Typed[OptionNone, Option[Decidable[y == y]]]],
+		prelude
+	]],
+	TypeTheoryTerm[TypeUniverse[0], prelude],
+	TestID -> "A-metavariable-left-in-a-function-is-lifted-out-of-its-binders"
+]
+
+VerificationTest[
+	{
+		First @ TypeOf[TypeTheoryTerm[Map[Function[{Typed[n, NonNegativeIntegers]}, EqualityReflexivity[n]], EmptyList], prelude]],
+		TypeOf[TypeTheoryTerm[Typed[Map[Function[{Typed[n, NonNegativeIntegers]}, OptionNone], EmptyList], Lists[Option[NonNegativeIntegers]]], prelude]]
+	},
+	{"TypeMismatch", TypeTheoryTerm[Lists[Option[NonNegativeIntegers]], prelude]},
+	TestID -> "A-solution-names-only-variables-in-the-scope-of-its-metavariable"
+]

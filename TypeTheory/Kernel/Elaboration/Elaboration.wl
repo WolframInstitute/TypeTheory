@@ -12,6 +12,7 @@ ill-typed term through.
 State, bound with Block for one elaboration (see withElaborationState):
 
 	$metavariableTypes, $metavariableAssignments    metavariable types and solutions (TypeChecking.wl)
+	$metavariableContexts                           the free variables in scope where each metavariable was made
 	$levelAssignments                               universe level metavariable solutions
 	$elaborationEnvironment                         the environment
 	$elaborationContext                             the local context
@@ -25,7 +26,11 @@ value is a declared constant stands for that constant, as Naturals = NonNegative
 does InductiveRecursor[Naturals] for the recursor.
 
 While a tactic elaborates a term for a goal, $goalMetavariableTypes gives the types of the proof's open
-goals, which may occur in the goal's type.
+goals, which may occur in the goal's type, and $goalMetavariableContexts their hypotheses.
+
+A metavariable has the local context it was made in, as in Lean: its solution may name only the
+variables of that context. A metavariable left unsolved in a function when its binders close is lifted
+out of them, so it never names a variable after the variable's binder is gone.
 
 True, False, Not, And and Or are overloaded: they stand for the propositions or, in an environment that
 declares them, for the Booleans' constants "true", "false", "not", "and" and "or", named by strings. The
@@ -54,6 +59,8 @@ PackageScoped[unsolvedMetavariables]
 PackageScoped[freshMetavariableId]
 PackageScoped[attemptOrRestore]
 PackageScoped[$goalMetavariableTypes]
+PackageScoped[$goalMetavariableContexts]
+PackageScoped[$metavariableContexts]
 PackageScoped[$levelAssignments]
 PackageScoped[$elaborationEnvironment]
 PackageScoped[$elaborationContext]
@@ -79,11 +86,14 @@ finishElaboration::usage = "finishElaboration[environment, context, {term, type}
 unify::usage = "unify[a, b] gives True if it can solve metavariables so that a and b are definitionally equal, recording the solutions."
 unifyOrFail::usage = "unifyOrFail[actual, expected, syntax] unifies actual with expected, or throws a type mismatch failure for syntax."
 instantiateMetavariables::usage = "instantiateMetavariables[term] replaces every solved metavariable in term by its solution."
-newMetavariable::usage = "newMetavariable[type] gives a fresh metavariable of the given type."
+newMetavariable::usage = "newMetavariable[type] gives a fresh metavariable of the given type, made in the local context. \
+newMetavariable[type, {id, ...}] gives one made in the context of the free variables ids."
 unsolvedMetavariables::usage = "unsolvedMetavariables[term] gives the metavariables and universe level metavariables left in term."
 freshMetavariableId::usage = "freshMetavariableId[] gives an identifier no metavariable has used."
 attemptOrRestore::usage = "attemptOrRestore[attempt] evaluates attempt and gives True if it gives True; otherwise it undoes the solutions attempt recorded and gives False."
 $goalMetavariableTypes::usage = "$goalMetavariableTypes is the Association from the open goals of a proof to their types while a tactic elaborates a term."
+$goalMetavariableContexts::usage = "$goalMetavariableContexts is the Association from the open goals of a proof to the ids of their hypotheses while a tactic elaborates a term."
+$metavariableContexts::usage = "$metavariableContexts is the Association from metavariable identifiers to the ids of the free variables in scope where each was made, while elaborating."
 $levelAssignments::usage = "$levelAssignments is the Association of solved universe level metavariables while elaborating."
 $elaborationEnvironment::usage = "$elaborationEnvironment is the environment while elaborating."
 $elaborationContext::usage = "$elaborationContext is the local context while elaborating."
@@ -108,6 +118,8 @@ $elaborationContext = <||>
 $elaborationScope = <||>
 $universeParameterNames = {}
 $goalMetavariableTypes = <||>
+$goalMetavariableContexts = <||>
+$metavariableContexts = <||>
 $pendingOverloads = {}
 
 
@@ -115,6 +127,7 @@ SetAttributes[withElaborationState, HoldRest]
 withElaborationState[{environment_, context_, scope_, universeParameters_}, body_] := Block[
 	{
 		$metavariableTypes = $goalMetavariableTypes,
+		$metavariableContexts = $goalMetavariableContexts,
 		$metavariableAssignments = <||>,
 		$levelAssignments = <||>,
 		$pendingOverloads = {},
@@ -450,6 +463,7 @@ elaborateFunction[binders_List, body_, expected_] := With[{start = Length[$pendi
 			If[opened["Expected"] =!= None, attemptOrRestore[unify[Last[result], opened["Expected"]]]];
 			(* an overloaded name inside may mention the bound variables, so it is decided before they go out of scope *)
 			resolvePendingOverloads[start, True];
+			liftMetavariables[opened["Ids"], {result, boundVariableTypes[opened["Ids"]]}];
 			{
 				makeLambda[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[First[result]]],
 				makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[Last[result]]]
@@ -464,6 +478,7 @@ elaborateForAll[binders_List, body_] := With[{start = Length[$pendingOverloads],
 			term = Block[{$elaborationContext = opened["Context"], $elaborationScope = opened["Scope"]},
 				With[{bodyType = elaborateTypeSyntax[body]},
 					resolvePendingOverloads[start, True];
+					liftMetavariables[opened["Ids"], {bodyType, boundVariableTypes[opened["Ids"]]}];
 					makeDependentFunctionType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[bodyType]]
 				]
 			]
@@ -557,6 +572,7 @@ meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
 		$metavariableAssignments = $metavariableAssignments,
 		$levelAssignments = $levelAssignments,
 		$metavariableTypes = $metavariableTypes,
+		$metavariableContexts = $metavariableContexts,
 		$pendingOverloads = $pendingOverloads
 	},
 	TrueQ @ Quiet @ catchKernelFailure[
@@ -893,8 +909,10 @@ elaborateLevel[other_] := elaborationFailure["`1` is not a universe level; a uni
 
 freshMetavariableId[] := ++$metavariableCounter
 
-newMetavariable[type_] := With[{id = freshMetavariableId[]},
+newMetavariable[type_] := newMetavariable[type, Keys[$elaborationContext]]
+newMetavariable[type_, context_List] := With[{id = freshMetavariableId[]},
 	$metavariableTypes[id] = type;
+	$metavariableContexts[id] = context;
 	metavariable[id]
 ]
 
@@ -912,6 +930,66 @@ unsolvedMetavariables[term_] := Union[Cases[term, _metavariable | _levelMetavari
 (* A binder's type may have metavariables that were solved after the binder was opened; they must be
    filled in before the binder is abstracted, or a solution naming a variable would escape its binder. *)
 instantiateContext[context_Association] := Function[entry, Append[entry, "Type" -> instantiateMetavariables[entry["Type"]]]] /@ context
+
+boundVariableTypes[ids_List] := Function[id, $elaborationContext[id]["Type"]] /@ ids
+
+(* Before the variables ids are abstracted, each metavariable left unsolved in terms whose context has one
+   of them is replaced by a new one made outside them, applied to them, as Lean's elimMVarDeps does: ?m,
+   made with x in scope, becomes ?n[x], where ?n has the type (x : A) -> T. A solution found for it later,
+   under another binder, may then depend on the variable there, and no solution names x once x is gone.
+   The variables of its context from the first of ids on are abstracted, with the ones after that depend
+   on them; they must be in the local context, or the lifting fails. *)
+liftMetavariables[ids_List, terms_] := AllTrue[
+	Select[reachableMetavariables[terms], Function[id, IntersectingQ[Lookup[$metavariableContexts, id, {}], ids]]],
+	Function[id, liftMetavariable[id, Drop[$metavariableContexts[id], First @ FirstPosition[$metavariableContexts[id], Alternatives @@ ids, None, {1}] - 1]]]
+]
+
+liftMetavariable[id_, local_List] := And[
+	SubsetQ[Keys[$elaborationContext], local],
+	With[
+		{
+			lifted = newMetavariable[
+				makeDependentFunctionType[instantiateContext[$elaborationContext], local, instantiateMetavariables[$metavariableTypes[id]]],
+				Drop[$metavariableContexts[id], -Length[local]]
+			]
+		},
+		$metavariableAssignments[id] = makeApplication[lifted, freeVariable /@ local];
+		True
+	]
+]
+
+(* the unsolved metavariables of terms and of their types, in the order they were made, which puts each after the ones its type mentions *)
+reachableMetavariables[terms_] := Sort @ FixedPoint[
+	Function[ids, Union[ids, unsolvedMetavariableIds[Lookup[$metavariableTypes, ids, Nothing]]]],
+	unsolvedMetavariableIds[terms]
+]
+
+unsolvedMetavariableIds[term_] := Union @ Cases[instantiateMetavariables[term], metavariable[id_] :> id, {0, Infinity}]
+
+freeVariableIds[term_] := Union @ Cases[term, freeVariable[id_] :> id, {0, Infinity}]
+
+(* Whether term may stand where only the variables allowed are in scope, as a solution of a metavariable
+   made there: it names no other variable, and each unsolved metavariable in it made in a larger context is
+   restricted to the variables both contexts have, as Lean's checkAssignment does, by a solution that is a
+   new metavariable made in the smaller context. A solution found for it later then names no variable the
+   solution it is part of must not. *)
+withinContextQ[_, All] := True
+withinContextQ[term_, allowed_List] := And[
+	SubsetQ[allowed, freeVariableIds[instantiateMetavariables[term]]],
+	AllTrue[unsolvedMetavariableIds[term], Function[id, restrictedQ[id, allowed]]]
+]
+
+restrictedQ[id_, allowed_List] := With[{context = Lookup[$metavariableContexts, id, All]},
+	Or[
+		context === All || SubsetQ[allowed, context],
+		With[{kept = Select[context, Function[variable, MemberQ[allowed, variable]]]},
+			withinContextQ[$metavariableTypes[id], kept] && (
+				$metavariableAssignments[id] = newMetavariable[instantiateMetavariables[$metavariableTypes[id]], kept];
+				True
+			)
+		]
+	]
+]
 
 
 (* ::Subsection:: *)
@@ -956,8 +1034,9 @@ patternApplicationQ[term_] := With[{spine = applicationSpine[term]},
 	]
 ]
 
+(* the metavariables of value made under the pattern's variables are lifted out of them first, for the solution abstracts them *)
 assignPattern[term_, value_] := With[{spine = applicationSpine[term]},
-	assignMetavariable[First[spine], etaReducedSolution[First /@ Last[spine], value]]
+	liftMetavariables[First /@ Last[spine], value] && assignMetavariable[First[spine], etaReducedSolution[First /@ Last[spine], instantiateMetavariables[value]]]
 ]
 
 (* the trailing arguments of value that are the trailing pattern variables, in order and nowhere else, are dropped with their binders *)
@@ -979,8 +1058,9 @@ etaReducedSolution[ids_List, value_] := With[{valueSpine = applicationSpine[valu
 ]
 
 (* A solution must have the metavariable's type; unifying the two types is what solves universe levels,
-   such as the level of Equal in a == b once the type of a is known. *)
-assignMetavariable[metavariable[id_], value_] := If[ ! FreeQ[value, metavariable[id]],
+   such as the level of Equal in a == b once the type of a is known. It names only variables of the
+   context the metavariable was made in. *)
+assignMetavariable[metavariable[id_], value_] := If[ ! FreeQ[value, metavariable[id]] || ! withinContextQ[value, Lookup[$metavariableContexts, id, All]],
 	False,
 	$metavariableAssignments[id] = value;
 	With[{valueType = Quiet @ catchKernelFailure[inferType[$elaborationEnvironment, $elaborationContext, value]]},
