@@ -18,7 +18,7 @@ RelatedTutorials: [ThePrelude]
 
 - [Decidable]() is an inductive type of the prelude, with the constructors [DecidableFalse]() and [DecidableTrue](), in that order, as Lean's `Decidable`.
 - A decision is data, in `Type`, not a proposition, so it computes: [Decide]() turns it into a Boolean, and [DecideSoundness]() turns a decision that computes to `"true"` into a proof of *p*.
-- The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable]().
+- The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), which compare literals in one step of the kernel, and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable]().
 - The tactic `"Decide"` of [TypeTheoryTactic]() builds a decision of the goal from these and proves it with [DecideSoundness]().
 
 ## Basic Examples
@@ -49,7 +49,7 @@ A decision computes to the constructor that holds, with its proof:
 WeakHeadNormalForm[TypeTheoryTerm[LessEqualDecidable[1, 4]]]
 ```
 
-<!-- => DecidableTrue[LessEqualSuccessor[LessEqualZero[3]]] -->
+<!-- => DecidableTrue[lessEqualTrue[1, 4, EqualityReflexivity[lessEqual[1, 4]]]] -->
 
 ## Properties and Relations
 

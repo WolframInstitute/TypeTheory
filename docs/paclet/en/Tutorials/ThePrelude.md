@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 27, "Theorem" -> 61, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 68, "Axiom" -> 3|> -->
 
 It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
@@ -193,7 +193,7 @@ TypeTheoryCheck[TypeTheoryTerm[PowerAddition]]
 
 <!-- => ∀_m∶ℕ ∀_a∶ℕ ∀_b∶ℕ m^(a + b) == m^a m^b -->
 
-The others are [AdditionZeroRight](), [AdditionZeroLeft](), [AdditionSuccessorRight](), [AdditionSuccessorLeft](), [AdditionAssociativity](), [MultiplicationZeroRight](), [MultiplicationZeroLeft](), [MultiplicationSuccessorRight](), [MultiplicationSuccessorLeft](), [MultiplicationOneRight](), [MultiplicationOneLeft](), [MultiplicationCommutativity](), [MultiplicationDistributivityRight](), [MultiplicationAssociativity](), [SubtractionZeroRight](), [SubtractionZeroLeft](), [SubtractionSuccessor](), [SubtractionSelf](), [AdditionSubtractionCancellation](), [PowerZero](), [PowerSuccessor]() and [PowerOne](), with [SuccessorInjectivity]() and [SuccessorNotZero]().
+The others are [AdditionZeroRight](), [AdditionZeroLeft](), [AdditionSuccessorRight](), [AdditionSuccessorLeft](), [AdditionAssociativity](), [MultiplicationZeroRight](), [MultiplicationZeroLeft](), [MultiplicationSuccessorRight](), [MultiplicationSuccessorLeft](), [MultiplicationOneRight](), [MultiplicationOneLeft](), [MultiplicationCommutativity](), [MultiplicationDistributivityRight](), [MultiplicationAssociativity](), [SubtractionZeroRight](), [SubtractionZeroLeft](), [SubtractionSuccessor](), [SubtractionSelf](), [AdditionSubtractionCancellation](), [MultiplicationCancellation](), [PowerZero](), [PowerSuccessor]() and [PowerOne](), with [SuccessorInjectivity]() and [SuccessorNotZero]().
 
 A theorem applies like a function. Here `n * 2` computes to `0 + n + n`, and [AdditionZeroLeft]() under [EqualityCongruence]() finishes a proof that doubling is adding:
 
@@ -280,7 +280,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
 
 ## Decisions
 
-A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with [DecidableTrue]() or [DecidableFalse](). It is data, so it computes, and [Decide]() turns it into a Boolean. The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), as Lean's instances do:
+A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with [DecidableTrue]() or [DecidableFalse](). It is data, so it computes, and [Decide]() turns it into a Boolean. The prelude decides equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), and combines decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), as Lean's instances do. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Decide[AndDecidable[LessEqualDecidable[1, 2], NaturalNumberEqualityDecidable[2, 2]]]]]
@@ -405,7 +405,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 136 constants -->
+<!-- => TypeTheoryEnvironment summary box: 145 constants -->
 
 It has no axioms:
 
@@ -429,7 +429,7 @@ Whatever is proved in it uses no axiom. Other axioms can be assumed there with [
 excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 137 constants -->
+<!-- => TypeTheoryEnvironment summary box: 146 constants -->
 
 Its one axiom:
 

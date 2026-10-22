@@ -40,7 +40,7 @@ RelatedGuides: [TypeTheory]
 - These are the operations Lean's kernel computes on its literals with GMP, with the same values at 0. An operation of a role must be a definition or an axiom of type <code>*type* → *type* → *type*</code>, <code>*type* → *type*</code> for `"Log2"`, and <code>*type* → *type* → *B*</code> for `"Equal"` and `"LessEqual"`, where *B* is an inductive type with two constructors without fields, false and then true, as [Booleans]() is.
 - The kernel trusts that an operation computes what its role says, as Lean's kernel trusts GMP: an operation that computes something else makes the environment inconsistent. It checks the operation's type, not its definition.
 - An operation computes on arguments that compute to literals, and unfolds otherwise. Powers and left shifts by 2^24 or more unfold, as in Lean.
-- An environment registers its natural numbers once. A later registration of the same *type*, *zero* and *successor* adds operations. The prelude registers [NonNegativeIntegers]() with [Plus](), [Subtract](), [Times]() and [Power](), and <code>[Information]()[*env*, "NaturalNumbers"]</code> lists the operations of an environment.
+- An environment registers its natural numbers once. A later registration of the same *type*, *zero* and *successor* adds operations. The prelude registers [NonNegativeIntegers]() with [Plus](), [Subtract](), [Times]() and [Power](), and with the Boolean comparisons `"equal"` and `"lessEqual"`, through which [NaturalNumberEqualityDecidable]() and [LessEqualDecidable]() decide literals in one step; <code>[Information]()[*env*, "NaturalNumbers"]</code> lists the operations of an environment.
 - Natural numbers of your own go in an environment built on the empty one, <code>[TypeTheoryEnvironment]()[]</code>.
 - In a notebook, the zero of the registered natural numbers shows as `0`, and the successor of *n* as <code>*n* + 1</code>, as Lean shows them.
 
@@ -101,34 +101,32 @@ TypeTheoryTerm[UnarySuccessor[UnarySuccessor[UnaryZero]], unary]
 
 ## Scope
 
-A later registration adds an operation: here the equality of natural numbers as a Boolean, registered by the alias [Naturals]():
+A later registration adds an operation: here the left shift, *m* 2^*n*, registered by the alias [Naturals]():
 
 ```wl
-equality = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[NaturalNumberEqual, Function[{Typed[m, Naturals], Typed[n, Naturals]},
-        InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], True, Function[{Typed[k, Naturals], Typed[r, Booleans]}, False], (m - n) + (n - m)]
-    ]],
-    TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"Equal" -> NaturalNumberEqual|>]
+shifted = TypeTheoryEnvironment[{
+    TypeTheoryDefinition[NaturalNumberShiftLeft, Function[{Typed[m, Naturals], Typed[n, Naturals]}, m * 2^n]],
+    TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"ShiftLeft" -> NaturalNumberShiftLeft|>]
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 150 constants -->
+<!-- => TypeTheoryEnvironment summary box: 159 constants -->
 
-The equality computes on literals at once:
+The shift computes on literals at once:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberEqual[2^70, 2^70], equality]]
+WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberShiftLeft[3, 100], shifted]]
 ```
 
-<!-- => true -->
+<!-- => 3802951800684688204490109616128 -->
 
 The operations of the environment's natural numbers:
 
 ```wl
-Information[equality, "NaturalNumbers"]
+Information[shifted, "NaturalNumbers"]
 ```
 
-<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> NaturalNumberEqual|>|> -->
+<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual", "ShiftLeft" -> NaturalNumberShiftLeft|>|> -->
 
 ## Possible Issues
 

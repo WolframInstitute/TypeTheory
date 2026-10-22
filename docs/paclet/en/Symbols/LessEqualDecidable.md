@@ -16,8 +16,8 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [LessEqualDecidable]() is a definition of the prelude, by recursion on *m* and then on *n*, as Lean's `Nat.decLe`.
-- It computes on literals, to the proof or refutation it finds.
+- [LessEqualDecidable]() is a definition of the prelude, as Lean's `Nat.decLe`: it is what the Boolean comparison `"lessEqual"` gives, with the proof of `m <= n` or of its negation that the theorems `"lessEqualTrue"` and `"lessEqualFalse"` give for it.
+- `"lessEqual"` is defined by recursion on both numbers, as Lean's `Nat.ble`, and registered with the kernel, which computes it on literals with integers, so deciding literals of any size is one step.
 
 ## Basic Examples
 
@@ -37,7 +37,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualDecidable]]
 WeakHeadNormalForm[TypeTheoryTerm[LessEqualDecidable[1, 4]]]
 ```
 
-<!-- => DecidableTrue[LessEqualSuccessor[LessEqualZero[3]]] -->
+<!-- => DecidableTrue[lessEqualTrue[1, 4, EqualityReflexivity[lessEqual[1, 4]]]] -->
 
 ---
 

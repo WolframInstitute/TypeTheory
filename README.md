@@ -7,7 +7,7 @@ and tactics build proofs step by step in a notebook.
 
 > Status: **prototype.** The kernel, inductive families with generated recursors, structures with
 > projections, elaboration, a prelude of logic, equality, natural numbers, decisions and lists, and
-> thirteen tactics work and are tested. It is pure Wolfram Language, with no native library underneath,
+> sixteen tactics, two of them Wolfram oracles, work and are tested. It is pure Wolfram Language, with no native library underneath,
 > and it does not depend on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate
 > declarations between Lean and TypeTheory; through them this kernel checks all of Lean's
 > `Init.Prelude`, 147 modules of Mathlib, from the logic of `Nonempty` to the complex numbers,
@@ -152,7 +152,7 @@ store is never changed once built, and it lasts for the session.
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-149 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+158 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
 three constants are axioms, propositional extensionality, function extensionality and choice, and the
 excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
@@ -172,14 +172,16 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
   inductive as Lean's `Nat.le` (`LessEqualReflexivity`, `LessEqualStep`), with `Less`, `GreaterEqual`
   and `Greater`.
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
-  multiplication, the zero, one and successor laws, cancellation of subtraction, the laws of powers,
-  injectivity of the successor, and the order's transitivity, antisymmetry and irreflexivity.
+  multiplication, the zero, one and successor laws, cancellation of subtraction and of a positive factor,
+  the laws of powers, injectivity of the successor, and the order's transitivity, antisymmetry and
+  irreflexivity.
 - **Booleans:** `Booleans`, with the constants `"false"` and `"true"`, and `"not"`, `"and"` and `"or"`,
   named by strings, by cases on the first argument as Lean's `Bool`. `True`, `False`, `Not`, `And` and
   `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
 - **Decisions:** `Decidable` (`DecidableFalse`, `DecidableTrue`), as Lean's, with `Decide` giving the
   Boolean of a decision and `DecideSoundness` the proof from one that computes to `"true"`;
-  `NaturalNumberEqualityDecidable` and `LessEqualDecidable` decide `==` and `<=` of natural numbers, and
+  `NaturalNumberEqualityDecidable` and `LessEqualDecidable` decide `==` and `<=` of natural numbers
+  through the Boolean comparisons `"equal"` and `"lessEqual"`, which the kernel computes on literals, and
   `NotDecidable`, `AndDecidable` and `OrDecidable` combine decisions.
 - **Pairs, sums, options and lists:** `CartesianProduct` (`Pair`), `DisjointUnion` (`LeftInjection`,
   `RightInjection`), `Option` (`OptionNone`, `OptionSome`) and `Lists` (`EmptyList`, `ListPrepend`), as
@@ -233,6 +235,9 @@ the HoTT rules refuse one.
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"Simplify", {h, ...}` | rewrites with the equations until none applies, unfolds each definition among them where it computes, and closes an equation whose sides are equal by computation |
 | `"Decide"` | proves a closed statement of `==` and `<=` of natural numbers and the connectives by computing its decision |
+| `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, by normal forms with proofs from the prelude's laws |
+| `"FindInstance"` | proves an existential statement over the natural numbers with witnesses that Wolfram's `FindInstance` finds |
+| `"PolynomialReduce"` | proves an equation from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds |
 
 `TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics. Nothing a tactic does
 is trusted: the finished term is checked by the kernel when the theorem is added to an environment.
@@ -247,6 +252,19 @@ TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Ty
     TypeTheoryTactic["Simplify", {Join}],                (* Join[EmptyList, m] is m *)
     TypeTheoryTactic["Introduce", x, rest, ih],
     TypeTheoryTactic["Simplify", {Join, ih}]             (* Join[ListPrepend[x, l], m] is ListPrepend[x, Join[l, m]] *)
+}]
+```
+
+`"FindInstance"` and `"PolynomialReduce"` ask Wolfram for what a proof needs, witnesses or the cofactors
+of a polynomial combination of the hypotheses, and the kernel checks the proof built from the answer:
+
+```wolfram
+TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {
+    TypeTheoryTactic["FindInstance"]                     (* x = 3, y = 4, checked by computing *)
+}]
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y == 10, Implies[x == 2 y + 1, x y == 21]]], {
+    TypeTheoryTactic["Introduce", x, y, h, k],
+    TypeTheoryTactic["PolynomialReduce"]                 (* cofactors over thirds, checked by "Ring" *)
 }]
 ```
 
@@ -266,6 +284,7 @@ TypeTheory/Kernel/
   Checking/Queries.wl          TypeOf, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
   Elaboration/Elaboration.wl   implicit arguments, universe levels, unification
   Proofs/ProofStates.wl        proof states and tactics
+  Proofs/Ring.wl               polynomial identities, with proofs from the prelude's laws
   Library/Prelude.wl           the prelude
   Library/HomotopyTypeTheory.wl  the homotopy type theory environment
 ```
@@ -287,7 +306,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 215 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 225 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
 prelude's rules, the HoTT library proving False with an equality in Prop.

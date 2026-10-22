@@ -45,7 +45,7 @@ Add a theorem to the prelude, proved by computation:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 150 constants -->
+<!-- => TypeTheoryEnvironment summary box: 159 constants -->
 
 The declaration of the new constant:
 
@@ -61,7 +61,7 @@ Add a definition to that environment:
 doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 160 constants -->
 
 ## Scope
 
@@ -91,7 +91,7 @@ How many constants of each kind the prelude has:
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 27, "Theorem" -> 61, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 68, "Axiom" -> 3|> -->
 
 ---
 
@@ -101,7 +101,7 @@ Its natural numbers, which literals belong to, and the operations the kernel com
 Information[TypeTheoryEnvironment["Prelude"], "NaturalNumbers"]
 ```
 
-<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>|> -->
+<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|> -->
 
 ---
 
@@ -111,7 +111,7 @@ The constructive environment:
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 136 constants -->
+<!-- => TypeTheoryEnvironment summary box: 145 constants -->
 
 It has no axioms:
 
@@ -147,7 +147,7 @@ Add a theorem to the prelude:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 150 constants -->
+<!-- => TypeTheoryEnvironment summary box: 159 constants -->
 
 Add an axiom to that environment:
 
@@ -155,7 +155,7 @@ Add an axiom to that environment:
 extended = Append[arithmetic, TypeTheoryAxiom[Origin, Naturals]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 160 constants -->
 
 The new environment has the axiom:
 
@@ -181,7 +181,7 @@ Add a theorem to the prelude:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 150 constants -->
+<!-- => TypeTheoryEnvironment summary box: 159 constants -->
 
 [Normal]() gives the declarations, which rebuild the environment on the empty one:
 

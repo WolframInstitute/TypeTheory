@@ -47,7 +47,7 @@ lists = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 154 constants -->
+<!-- => TypeTheoryEnvironment summary box: 163 constants -->
 
 The length of a list of three numbers:
 
@@ -72,7 +72,7 @@ vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 153 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 The length in a vector's type is checked by computation:
 
@@ -94,7 +94,7 @@ pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 152 constants -->
+<!-- => TypeTheoryEnvironment summary box: 161 constants -->
 
 Its fields are projections:
 
@@ -119,7 +119,7 @@ parity = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 156 constants -->
+<!-- => TypeTheoryEnvironment summary box: 165 constants -->
 
 Three is odd:
 
@@ -151,7 +151,7 @@ roses = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 157 constants -->
+<!-- => TypeTheoryEnvironment summary box: 166 constants -->
 
 The recursor of the trees takes a motive for the list too:
 

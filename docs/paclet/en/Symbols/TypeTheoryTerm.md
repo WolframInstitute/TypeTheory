@@ -138,7 +138,7 @@ A type of bits:
 bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 153 constants -->
+<!-- => TypeTheoryEnvironment summary box: 162 constants -->
 
 [TypeOf]() also takes the environment as its second argument, as it takes a type environment for compiled types:
 
@@ -192,7 +192,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 150 constants -->
+<!-- => TypeTheoryEnvironment summary box: 159 constants -->
 
 [Format]() evaluates the arguments of what it formats, so a bound variable whose symbol has a value shows that value:
 
@@ -212,7 +212,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 150 constants -->
+<!-- => TypeTheoryEnvironment summary box: 159 constants -->
 
 [MakeBoxes]() holds them, so a notation for a constant applied to arguments is a definition of [MakeBoxes]():
 

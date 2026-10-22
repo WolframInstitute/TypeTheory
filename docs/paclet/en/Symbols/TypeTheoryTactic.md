@@ -4,7 +4,7 @@ Name: TypeTheoryTactic
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
-Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide]
+Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, oracle]
 SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, Lists]
 RelatedGuides: [TypeTheory]
 ---
@@ -34,9 +34,13 @@ RelatedGuides: [TypeTheory]
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
 | `"Decide"` | proves a closed statement of `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False]() by computing its decision |
+| `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws |
+| `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
+| `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[ListPrepend[x, l], m]` becomes `ListPrepend[x, Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
+- `"FindInstance"` and `"PolynomialReduce"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - A tactic that does not apply gives a [Failure]().
 
 ## Basic Examples
@@ -278,6 +282,50 @@ TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
 
 <!-- => Proof complete -->
 
+---
+
+`"Ring"` proves a polynomial identity:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^2 + 2 a b + b^2], {
+    TypeTheoryTactic["Introduce", a, b],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`"FindInstance"` asks Wolfram for natural numbers with a property:
+
+```wl
+proof = TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {TypeTheoryTactic["FindInstance"]}]
+```
+
+<!-- => Proof complete -->
+
+The proof holds the witnesses, and the decision that the kernel computes for them:
+
+```wl
+proof["Term"]
+```
+
+<!-- => ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[AndDecidable[NaturalNumberEqualityDecidable[3^2 + 4^2, 25], AndDecidable[LessEqualDecidable[0 + 1, 3], LessEqualDecidable[3 + 1, 4]]], EqualityReflexivity[true]]]] -->
+
+---
+
+`"PolynomialReduce"` finds how the hypotheses combine into the goal:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y == 10, Implies[x == 2 y + 1, x y == 21]]], {
+    TypeTheoryTactic["Introduce", x, y, h, k],
+    TypeTheoryTactic["PolynomialReduce"]
+}]
+```
+
+<!-- => Proof complete -->
+
 ## Possible Issues
 
 `"Reflexivity"` needs the sides to be equal by computation; `0 + n` is not `n` until induction:
@@ -323,3 +371,23 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a <= b 
 ```
 
 <!-- => Failure["IndexNotVariable", ...] -->
+
+---
+
+`"Ring"` proves only what holds in every commutative semiring:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^2 + b^2], {TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Ring"]}]
+```
+
+<!-- => Failure["NotRingEquation", ...] -->
+
+---
+
+`"FindInstance"` needs a statement of the variables it binds alone; a hypothesis in it is not translated:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals]}, Exists[{Typed[n, Naturals]}, n == m + 1]], {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["FindInstance"]}]
+```
+
+<!-- => Failure["NotTranslatable", ...] -->
