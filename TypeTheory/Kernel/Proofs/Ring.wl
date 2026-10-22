@@ -454,17 +454,45 @@ polynomialPower[polynomial_List, k_Integer] := With[{lower = polynomialPower[pol
 (*Sums*)
 
 
-(* {C, term[A] + term[B] == term[C]}: the monomials of A inserted into B one at a time, the last first *)
+(* {C, term[A] + term[B] == term[C]}: A and B merged as two sorted lists are, the first monomial of either
+   taken in turn, like monomials added; a step for each monomial, where inserting one at a time would
+   take a step for each pair *)
 polynomialSum[{}, second_List] := {second, additionZeroLeft[polynomialTerm[second]]}
 polynomialSum[first_List, {}] := {first, additionZeroRight[polynomialTerm[first]]}
 polynomialSum[{monomial_}, second_List] := monomialInsertion[monomial, second]
-polynomialSum[{monomial_, rest__}, second_List] := With[{inner = polynomialSum[{rest}, second]},
-	{outer = monomialInsertion[monomial, First[inner]]},
-	{First[outer], chain[
-		additionAssociativity[monomialTerm[monomial], polynomialTerm[{rest}], polynomialTerm[second]],
-		congruent[Function[hole, plus[monomialTerm[monomial], hole]], Last[inner]],
-		Last[outer]
-	]}
+polynomialSum[first_List, {other_}] := With[{inserted = monomialInsertion[other, first]},
+	{First[inserted], transitive[additionCommutativity[polynomialTerm[first], monomialTerm[other]], Last[inserted]]}
+]
+polynomialSum[first : {monomial_, rest__}, second : {other_, others__}] := Which[
+	(* (m + R) + (o + S) == (m + o) + (R + S) *)
+	Last[monomial] === Last[other],
+		With[{merged = likeMonomialSum[monomial, other], inner = polynomialSum[{rest}, {others}]},
+			{Prepend[First[inner], First[merged]], chain[
+				additionAssociativity[monomialTerm[monomial], polynomialTerm[{rest}], polynomialTerm[second]],
+				congruent[
+					Function[hole, plus[monomialTerm[monomial], hole]],
+					leftCommutativity[plus, additionAssociativity, additionCommutativity, polynomialTerm[{rest}], monomialTerm[other], polynomialTerm[{others}]]
+				],
+				symmetric[additionAssociativity[monomialTerm[monomial], monomialTerm[other], plus[polynomialTerm[{rest}], polynomialTerm[{others}]]]],
+				congruentBoth[plus, Last[merged], Last[inner]]
+			]}
+		],
+	(* (m + R) + B == m + (R + B) *)
+	monomialBeforeQ[monomial, other],
+		With[{inner = polynomialSum[{rest}, second]},
+			{Prepend[First[inner], monomial], transitive[
+				additionAssociativity[monomialTerm[monomial], polynomialTerm[{rest}], polynomialTerm[second]],
+				congruent[Function[hole, plus[monomialTerm[monomial], hole]], Last[inner]]
+			]}
+		],
+	(* A + (o + S) == o + (A + S) *)
+	True,
+		With[{inner = polynomialSum[first, {others}]},
+			{Prepend[First[inner], other], transitive[
+				leftCommutativity[plus, additionAssociativity, additionCommutativity, polynomialTerm[first], monomialTerm[other], polynomialTerm[{others}]],
+				congruent[Function[hole, plus[monomialTerm[other], hole]], Last[inner]]
+			]}
+		]
 ]
 
 (* {D, term[m] + term[C] == term[D]} *)
