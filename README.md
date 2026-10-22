@@ -10,8 +10,8 @@ and tactics build proofs step by step in a notebook.
 > eighteen tactics, four of them Wolfram oracles, work and are tested. It is pure Wolfram Language, with no native library underneath,
 > and it does not depend on Lean. LeanLink's `LeanToTypeTheory` and `TypeTheoryToLean` translate
 > declarations between Lean and TypeTheory; through them this kernel checks all of Lean's
-> `Init.Prelude`, 147 modules of Mathlib, from the logic of `Nonempty` to the complex numbers,
-> derivatives, logarithms and real powers, inner product spaces and the p-adic numbers, and the 11,177
+> `Init.Prelude`, 142 modules of Mathlib, from the logic of `Nonempty` to the complex numbers,
+> derivatives, logarithms and real powers, inner product spaces and the p-adic numbers, and the 11,167
 > constants under `Real.sqrt_nonneg`.
 
 ## Loading
