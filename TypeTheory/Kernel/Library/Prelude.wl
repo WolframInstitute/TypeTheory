@@ -118,6 +118,36 @@ PackageExported[ChosenWitness]
 PackageExported[ChosenWitnessProperty]
 PackageExported[ExcludedMiddle]
 PackageExported[DoubleNegationElimination]
+PackageExported[Decidable]
+PackageExported[DecidableFalse]
+PackageExported[DecidableTrue]
+PackageExported[Decide]
+PackageExported[CartesianProduct]
+PackageExported[Pair]
+PackageExported[DisjointUnion]
+PackageExported[LeftInjection]
+PackageExported[RightInjection]
+PackageExported[Option]
+PackageExported[OptionNone]
+PackageExported[OptionSome]
+PackageExported[Lists]
+PackageExported[EmptyList]
+PackageExported[ListPrepend]
+PackageExported[DecideSoundness]
+PackageExported[NotDecidable]
+PackageExported[AndDecidable]
+PackageExported[OrDecidable]
+PackageExported[NaturalNumberEqualityDecidable]
+PackageExported[LessEqualDecidable]
+PackageExported[JoinEmptyRight]
+PackageExported[JoinAssociativity]
+PackageExported[LengthJoin]
+PackageExported[LengthMap]
+PackageExported[MapJoin]
+PackageExported[MapComposition]
+PackageExported[ReverseJoin]
+PackageExported[ReverseReverse]
+PackageExported[LengthReverse]
 
 
 (* ::Section:: *)
@@ -209,6 +239,36 @@ ChosenWitness::usage = "ChosenWitness[h] is an element x with P[x], chosen from 
 ChosenWitnessProperty::usage = "ChosenWitnessProperty[h] proves P[ChosenWitness[h]] from a proof h of Exists[P]."
 ExcludedMiddle::usage = "ExcludedMiddle[p] proves Or[p, Not[p]]. It is a theorem of the prelude, proved from its axioms."
 DoubleNegationElimination::usage = "DoubleNegationElimination[p] proves Implies[Not[Not[p]], p]."
+Decidable::usage = "Decidable[p] is the type of decisions of the proposition p: DecidableFalse with a proof of Not[p], or DecidableTrue with a proof of p."
+DecidableFalse::usage = "DecidableFalse[h] decides p false, given a proof h of Not[p]."
+DecidableTrue::usage = "DecidableTrue[h] decides p true, given a proof h of p."
+Decide::usage = "Decide[d] is the Boolean that the decision d of Decidable[p] computes: False for DecidableFalse, True for DecidableTrue."
+CartesianProduct::usage = "CartesianProduct[a, b] is the type of the pairs of an element of the type a and one of the type b; p[[1]] and p[[2]] project a pair p."
+Pair::usage = "Pair[x, y] is the element of CartesianProduct[a, b] made of x of type a and y of type b."
+DisjointUnion::usage = "DisjointUnion[a, b] is the type of the elements of the type a or of the type b, each tagged with its side."
+LeftInjection::usage = "LeftInjection[x] is the element x of the type a in DisjointUnion[a, b]."
+RightInjection::usage = "RightInjection[y] is the element y of the type b in DisjointUnion[a, b]."
+Option::usage = "Option[a] is the type of optional elements of the type a: OptionNone, or OptionSome[x] with x of type a."
+OptionNone::usage = "OptionNone is the element of Option[a] with no element of a."
+OptionSome::usage = "OptionSome[x] is the element of Option[a] holding x of type a."
+Lists::usage = "Lists[a] is the type of finite lists of elements of the type a, built from EmptyList by ListPrepend; Join, Length, Map, Append and Reverse operate on them."
+EmptyList::usage = "EmptyList is the list with no elements, of type Lists[a]."
+ListPrepend::usage = "ListPrepend[x, l] is the list l with x in front."
+DecideSoundness::usage = "DecideSoundness[d, h] proves p from a decision d of Decidable[p] and a proof h of Decide[d] == True."
+NotDecidable::usage = "NotDecidable[d] decides Not[p] from a decision d of Decidable[p]."
+AndDecidable::usage = "AndDecidable[d, e] decides And[p, q] from decisions d of Decidable[p] and e of Decidable[q]."
+OrDecidable::usage = "OrDecidable[d, e] decides Or[p, q] from decisions d of Decidable[p] and e of Decidable[q]."
+NaturalNumberEqualityDecidable::usage = "NaturalNumberEqualityDecidable[m, n] decides m == n for natural numbers m and n."
+LessEqualDecidable::usage = "LessEqualDecidable[m, n] decides m <= n for natural numbers m and n."
+JoinEmptyRight::usage = "JoinEmptyRight[l] proves Join[l, EmptyList] == l."
+JoinAssociativity::usage = "JoinAssociativity[a, b, c] proves Join[Join[a, b], c] == Join[a, Join[b, c]]."
+LengthJoin::usage = "LengthJoin[a, b] proves Length[Join[a, b]] == Length[a] + Length[b]."
+LengthMap::usage = "LengthMap[f, l] proves Length[Map[f, l]] == Length[l]."
+MapJoin::usage = "MapJoin[f, a, b] proves Map[f, Join[a, b]] == Join[Map[f, a], Map[f, b]]."
+MapComposition::usage = "MapComposition[f, g, l] proves Map[f, Map[g, l]] == Map[Composition[f, g], l]."
+ReverseJoin::usage = "ReverseJoin[a, b] proves Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]."
+ReverseReverse::usage = "ReverseReverse[l] proves Reverse[Reverse[l]] == l."
+LengthReverse::usage = "LengthReverse[l] proves Length[Reverse[l]] == Length[l]."
 
 preludeEnvironment::usage = "preludeEnvironment[] gives the environment of the prelude, built and checked when the paclet loads."
 $constructiveDeclarations::usage = "$constructiveDeclarations is the list of the declarations of the constructive environment, in order."
@@ -757,7 +817,336 @@ $constructiveDeclarations = {
 	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {"false" -> Booleans, "true" -> Booleans}],
 	TypeTheoryDefinition["not", Function[{Typed[a, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "true", "false", a]]],
 	TypeTheoryDefinition["and", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "false", b, a]]],
-	TypeTheoryDefinition["or", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], b, "true", a]]]
+	TypeTheoryDefinition["or", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], b, "true", a]]],
+
+	(* decidable propositions, as Lean's Decidable: a proof of Not[p] or of p, in that order, which Decide
+	   turns into the Boolean it computes *)
+	TypeTheoryInductiveType[
+		Decidable,
+		ForAll[{Typed[p, TypeUniverse[0]]}, TypeUniverse[1]],
+		{
+			DecidableFalse -> ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[h, Not[p]]}, Decidable[p]],
+			DecidableTrue -> ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[h, p]}, Decidable[p]]
+		}
+	],
+	TypeTheoryDefinition[
+		Decide,
+		Function[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]},
+			InductiveRecursor[Decidable][Function[{Typed[t, Decidable[p]]}, Booleans], Function[{Typed[h, Not[p]]}, "false"], Function[{Typed[h, p]}, "true"], d]
+		]
+	],
+
+	(* Decide[d] == True proves p; the connectives and the equality and order of the natural numbers are
+	   decidable, by recursion on their arguments *)
+	TypeTheoryTheorem[
+		DecideSoundness,
+		ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, Implies[Decide[d] == "true", p]],
+		Function[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, InductiveRecursor[Decidable][
+			Function[{Typed[t, Decidable[p]]}, Implies[Decide[t] == "true", p]],
+			Function[{Typed[h, Not[p]], Typed[e, "false" == "true"]}, FalseElimination[
+				InductiveRecursor[Equal][
+					Function[{Typed[y, Booleans], Typed[k, "false" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], True, False, y]],
+					TrueIntroduction,
+					e
+				]
+			]],
+			Function[{Typed[h, p], Typed[e, "true" == "true"]}, h],
+			d
+		]]
+	],
+	TypeTheoryDefinition[
+		NotDecidable,
+		Function[{TypedImplicit[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, InductiveRecursor[Decidable][
+			Function[{Typed[t, Decidable[p]]}, Decidable[Not[p]]],
+			Function[{Typed[h, Not[p]]}, DecidableTrue[h]],
+			Function[{Typed[h, p]}, DecidableFalse[Function[{Typed[k, Not[p]]}, k[h]]]],
+			d
+		]]
+	],
+	TypeTheoryDefinition[
+		AndDecidable,
+		Function[{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Typed[d, Decidable[p]], Typed[e, Decidable[q]]}, InductiveRecursor[Decidable][
+			Function[{Typed[t, Decidable[p]]}, Decidable[And[p, q]]],
+			Function[{Typed[h, Not[p]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, h[AndEliminationLeft[k]]]]],
+			Function[{Typed[h, p]}, InductiveRecursor[Decidable][
+				Function[{Typed[t, Decidable[q]]}, Decidable[And[p, q]]],
+				Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, g[AndEliminationRight[k]]]]],
+				Function[{Typed[g, q]}, DecidableTrue[AndIntroduction[h, g]]],
+				e
+			]],
+			d
+		]]
+	],
+	TypeTheoryDefinition[
+		OrDecidable,
+		Function[{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Typed[d, Decidable[p]], Typed[e, Decidable[q]]}, InductiveRecursor[Decidable][
+			Function[{Typed[t, Decidable[p]]}, Decidable[Or[p, q]]],
+			Function[{Typed[h, Not[p]]}, InductiveRecursor[Decidable][
+				Function[{Typed[t, Decidable[q]]}, Decidable[Or[p, q]]],
+				Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, Or[p, q]]}, InductiveRecursor[Or][Function[{Typed[s, Or[p, q]]}, False], h, g, k]]]],
+				Function[{Typed[g, q]}, DecidableTrue[OrIntroductionRight[g]]],
+				e
+			]],
+			Function[{Typed[h, p]}, DecidableTrue[OrIntroductionLeft[h]]],
+			d
+		]]
+	],
+	TypeTheoryDefinition[
+		NaturalNumberEqualityDecidable,
+		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a == b]]],
+			Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Decidable[0 == c]],
+				DecidableTrue[EqualityReflexivity[0]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[0 == c]]}, DecidableFalse[Function[{Typed[e, 0 == c + 1]}, SuccessorNotZero[c][EqualitySymmetry[e]]]]],
+				b
+			]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a == b]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Decidable[a + 1 == c]],
+				DecidableFalse[SuccessorNotZero[a]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[a + 1 == c]]}, InductiveRecursor[Decidable][
+					Function[{Typed[t, Decidable[a == c]]}, Decidable[a + 1 == c + 1]],
+					Function[{Typed[h, Not[a == c]]}, DecidableFalse[Function[{Typed[e, a + 1 == c + 1]}, h[SuccessorInjectivity[e]]]]],
+					Function[{Typed[h, a == c]}, DecidableTrue[EqualityCongruence[NaturalNumberSuccessor, h]]],
+					ih[c]
+				]],
+				b
+			]]],
+			m
+		]]
+	],
+	TypeTheoryDefinition[
+		LessEqualDecidable,
+		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a <= b]]],
+			Function[{Typed[b, NonNegativeIntegers]}, DecidableTrue[LessEqualZero[b]]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Decidable[a <= b]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Decidable[a + 1 <= c]],
+				DecidableFalse[SuccessorNotLessEqualZero[a]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Decidable[a + 1 <= c]]}, InductiveRecursor[Decidable][
+					Function[{Typed[t, Decidable[a <= c]]}, Decidable[a + 1 <= c + 1]],
+					Function[{Typed[h, Not[a <= c]]}, DecidableFalse[Function[{Typed[e, a + 1 <= c + 1]}, h[LessEqualPredecessor[e]]]]],
+					Function[{Typed[h, a <= c]}, DecidableTrue[LessEqualSuccessor[h]]],
+					ih[c]
+				]],
+				b
+			]]],
+			m
+		]]
+	],
+
+	(* pairs, sums, optional values and lists, laid out as Lean's Prod, Sum, Option and List *)
+	TypeTheoryInductiveType[
+		CartesianProduct,
+		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
+		{
+			Pair -> ForAll[
+				{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]], Typed[y, \[Beta]]},
+				CartesianProduct[\[Alpha], \[Beta]]
+			]
+		}
+	],
+	TypeTheoryInductiveType[
+		DisjointUnion,
+		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
+		{
+			LeftInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]]}, DisjointUnion[\[Alpha], \[Beta]]],
+			RightInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[y, \[Beta]]}, DisjointUnion[\[Alpha], \[Beta]]]
+		}
+	],
+	TypeTheoryInductiveType[
+		Option,
+		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+		{
+			OptionNone -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Option[\[Alpha]]],
+			OptionSome -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, Option[\[Alpha]]]
+		}
+	],
+	TypeTheoryInductiveType[
+		Lists,
+		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+		{
+			EmptyList -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Lists[\[Alpha]]],
+			ListPrepend -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[l, Lists[\[Alpha]]]}, Lists[\[Alpha]]]
+		}
+	],
+
+	(* the operations on lists, by recursion on the first list: Join, Length, Map, Append of one element at
+	   the end, and Reverse, which appends each element to the reversed rest *)
+	TypeTheoryDefinition[
+		Join,
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]], Typed[m, Lists[\[Alpha]]]},
+			InductiveRecursor[Lists][
+				Function[{Typed[t, Lists[\[Alpha]]]}, Lists[\[Alpha]]],
+				m,
+				Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[r, Lists[\[Alpha]]]}, ListPrepend[x, r]],
+				l
+			]
+		]
+	],
+	TypeTheoryDefinition[
+		Length,
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]},
+			InductiveRecursor[Lists][
+				Function[{Typed[t, Lists[\[Alpha]]]}, NonNegativeIntegers],
+				0,
+				Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[r, NonNegativeIntegers]}, r + 1],
+				l
+			]
+		]
+	],
+	TypeTheoryDefinition[
+		Map,
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, Lists[\[Alpha]]]},
+			InductiveRecursor[Lists][
+				Function[{Typed[t, Lists[\[Alpha]]]}, Lists[\[Beta]]],
+				EmptyList,
+				Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[r, Lists[\[Beta]]]}, ListPrepend[f[x], r]],
+				l
+			]
+		]
+	],
+	TypeTheoryDefinition[
+		Append,
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]], Typed[x, \[Alpha]]}, Join[l, ListPrepend[x, EmptyList]]]
+	],
+	TypeTheoryDefinition[
+		Reverse,
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]},
+			InductiveRecursor[Lists][
+				Function[{Typed[t, Lists[\[Alpha]]]}, Lists[\[Alpha]]],
+				EmptyList,
+				Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[r, Lists[\[Alpha]]]}, Append[r, x]],
+				l
+			]
+		]
+	],
+
+	(* the laws of the operations on lists, each by recursion on a list *)
+	TypeTheoryTheorem[
+		JoinEmptyRight,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, Join[l, EmptyList] == l],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Join[t, EmptyList] == t],
+			EqualityReflexivity[EmptyList],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Join[rest, EmptyList] == rest]},
+				EqualityCongruence[Function[{Typed[r, Lists[\[Alpha]]]}, ListPrepend[x, r]], ih]
+			],
+			l
+		]]
+	],
+	TypeTheoryTheorem[
+		JoinAssociativity,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]], Typed[c, Lists[\[Alpha]]]}, Join[Join[a, b], c] == Join[a, Join[b, c]]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]], Typed[c, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Join[Join[t, b], c] == Join[t, Join[b, c]]],
+			EqualityReflexivity[Join[b, c]],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Join[Join[rest, b], c] == Join[rest, Join[b, c]]]},
+				EqualityCongruence[Function[{Typed[r, Lists[\[Alpha]]]}, ListPrepend[x, r]], ih]
+			],
+			a
+		]]
+	],
+	TypeTheoryTheorem[
+		LengthJoin,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Length[Join[a, b]] == Length[a] + Length[b]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Length[Join[t, b]] == Length[t] + Length[b]],
+			EqualitySymmetry[AdditionZeroLeft[Length[b]]],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Length[Join[rest, b]] == Length[rest] + Length[b]]},
+				EqualityTransitivity[EqualityCongruence[NaturalNumberSuccessor, ih], EqualitySymmetry[AdditionSuccessorLeft[Length[rest], Length[b]]]]
+			],
+			a
+		]]
+	],
+	TypeTheoryTheorem[
+		LengthMap,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, Lists[\[Alpha]]]}, Length[Map[f, l]] == Length[l]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Length[Map[f, t]] == Length[t]],
+			EqualityReflexivity[0],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Length[Map[f, rest]] == Length[rest]]}, EqualityCongruence[NaturalNumberSuccessor, ih]],
+			l
+		]]
+	],
+	TypeTheoryTheorem[
+		MapJoin,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Map[f, Join[a, b]] == Join[Map[f, a], Map[f, b]]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Map[f, Join[t, b]] == Join[Map[f, t], Map[f, b]]],
+			EqualityReflexivity[Map[f, b]],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Map[f, Join[rest, b]] == Join[Map[f, rest], Map[f, b]]]},
+				EqualityCongruence[Function[{Typed[r, Lists[\[Beta]]]}, ListPrepend[f[x], r]], ih]
+			],
+			a
+		]]
+	],
+	TypeTheoryTheorem[
+		MapComposition,
+		ForAll[
+			{
+				TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], TypedImplicit[\[Gamma], TypeUniverse[w + 1]],
+				Typed[f, TypeSpecifier[{\[Beta]} -> \[Gamma]]], Typed[g, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, Lists[\[Alpha]]]
+			},
+			Map[f, Map[g, l]] == Map[Composition[f, g], l]
+		],
+		Function[
+			{
+				TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], TypedImplicit[\[Gamma], TypeUniverse[w + 1]],
+				Typed[f, TypeSpecifier[{\[Beta]} -> \[Gamma]]], Typed[g, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, Lists[\[Alpha]]]
+			},
+			InductiveRecursor[Lists][
+				Function[{Typed[t, Lists[\[Alpha]]]}, Map[f, Map[g, t]] == Map[Composition[f, g], t]],
+				EqualityReflexivity[EmptyList],
+				Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Map[f, Map[g, rest]] == Map[Composition[f, g], rest]]},
+					EqualityCongruence[Function[{Typed[r, Lists[\[Gamma]]]}, ListPrepend[f[g[x]], r]], ih]
+				],
+				l
+			]
+		]
+	],
+	TypeTheoryTheorem[
+		ReverseJoin,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Reverse[Join[t, b]] == Join[Reverse[b], Reverse[t]]],
+			EqualitySymmetry[JoinEmptyRight[Reverse[b]]],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Reverse[Join[rest, b]] == Join[Reverse[b], Reverse[rest]]]},
+				EqualityTransitivity[
+					EqualityCongruence[Function[{Typed[r, Lists[\[Alpha]]]}, Join[r, ListPrepend[x, EmptyList]]], ih],
+					JoinAssociativity[Reverse[b], Reverse[rest], ListPrepend[x, EmptyList]]
+				]
+			],
+			a
+		]]
+	],
+	TypeTheoryTheorem[
+		ReverseReverse,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, Reverse[Reverse[l]] == l],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Reverse[Reverse[t]] == t],
+			EqualityReflexivity[EmptyList],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Reverse[Reverse[rest]] == rest]},
+				EqualityTransitivity[
+					ReverseJoin[Reverse[rest], ListPrepend[x, EmptyList]],
+					EqualityCongruence[Function[{Typed[r, Lists[\[Alpha]]]}, Join[ListPrepend[x, EmptyList], r]], ih]
+				]
+			],
+			l
+		]]
+	],
+	TypeTheoryTheorem[
+		LengthReverse,
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, Length[Reverse[l]] == Length[l]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, InductiveRecursor[Lists][
+			Function[{Typed[t, Lists[\[Alpha]]]}, Length[Reverse[t]] == Length[t]],
+			EqualityReflexivity[0],
+			Function[{Typed[x, \[Alpha]], Typed[rest, Lists[\[Alpha]]], Typed[ih, Length[Reverse[rest]] == Length[rest]]},
+				EqualityTransitivity[LengthJoin[Reverse[rest], ListPrepend[x, EmptyList]], EqualityCongruence[NaturalNumberSuccessor, ih]]
+			],
+			l
+		]]
+	]
 }
 
 (* The classical part of the prelude: Lean's axioms, propositional extensionality, choice and, since

@@ -126,7 +126,7 @@ VerificationTest[
 			Information[prelude, "Axioms"]
 		}
 	],
-	{96, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
+	{136, {}, True, False, {PropositionalExtensionality, FunctionExtensionality, Choice}},
 	TestID -> "The-constructive-environment-is-the-prelude-without-its-classical-part"
 ]
 
@@ -183,4 +183,54 @@ VerificationTest[
 	], _Success],
 	True,
 	TestID -> "A-statement-about-every-Boolean-proved-by-cases"
+]
+
+(* decisions, pairs, sums, optional values and lists *)
+
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[NaturalNumberEqualityDecidable[3 + 4, 7]], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[LessEqualDecidable[5, 2]], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[AndDecidable[NotDecidable[NaturalNumberEqualityDecidable[1, 2]], OrDecidable[LessEqualDecidable[3, 1], LessEqualDecidable[1, 3]]]], prelude]]
+	},
+	{TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude], TypeTheoryTerm["true", prelude]},
+	TestID -> "Decisions-compute-to-Booleans"
+]
+
+VerificationTest[
+	MatchQ[TypeTheoryCheck[TypeTheoryTerm[DecideSoundness[NaturalNumberEqualityDecidable[3 + 4, 7], EqualityReflexivity[True]], prelude], TypeTheoryTerm[3 + 4 == 7, prelude]], _Success],
+	True,
+	TestID -> "A-decision-that-computes-to-True-proves-its-proposition"
+]
+
+VerificationTest[
+	{
+		TypeOf[TypeTheoryTerm[Pair[1, "true"][[2]], prelude]],
+		TypeOf[TypeTheoryTerm[Typed[LeftInjection[3], DisjointUnion[NonNegativeIntegers, Booleans]], prelude]],
+		TypeOf[TypeTheoryTerm[OptionSome[5], prelude]],
+		TypeOf[TypeTheoryTerm[ListPrepend[1, EmptyList], prelude]]
+	},
+	{
+		TypeTheoryTerm[Booleans, prelude],
+		TypeTheoryTerm[DisjointUnion[NonNegativeIntegers, Booleans], prelude],
+		TypeTheoryTerm[Option[NonNegativeIntegers], prelude],
+		TypeTheoryTerm[Lists[NonNegativeIntegers], prelude]
+	},
+	TestID -> "Pairs-sums-optional-values-and-lists-have-their-types"
+]
+
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[Length[Join[ListPrepend[1, ListPrepend[2, EmptyList]], ListPrepend[3, EmptyList]]], prelude]],
+		MatchQ[TypeTheoryCheck[
+			TypeTheoryTerm[EqualityReflexivity[ListPrepend[3, ListPrepend[2, ListPrepend[1, EmptyList]]]], prelude],
+			TypeTheoryTerm[Reverse[ListPrepend[1, ListPrepend[2, ListPrepend[3, EmptyList]]]] == ListPrepend[3, ListPrepend[2, ListPrepend[1, EmptyList]]], prelude]
+		], _Success],
+		MatchQ[TypeTheoryCheck[
+			TypeTheoryTerm[ReverseReverse[ListPrepend[1, EmptyList]], prelude],
+			TypeTheoryTerm[Reverse[Reverse[ListPrepend[1, EmptyList]]] == ListPrepend[1, EmptyList], prelude]
+		], _Success]
+	},
+	{TypeTheoryTerm[3, prelude], True, True},
+	TestID -> "The-operations-on-lists-compute-and-their-laws-apply"
 ]

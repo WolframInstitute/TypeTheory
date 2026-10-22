@@ -16,7 +16,7 @@ VerificationTest[
 	With[
 		{
 			lists = TypeTheoryEnvironment[prelude, {
-				TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {EmptyList -> NaturalList, ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]}],
+				TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {EmptyNaturalList -> NaturalList, ConsList -> ForAll[{Typed[h, NonNegativeIntegers], Typed[t, NaturalList]}, NaturalList]}],
 				TypeTheoryDefinition[
 					ListLength,
 					Typed[
@@ -33,7 +33,7 @@ VerificationTest[
 				]
 			}]
 		},
-		WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]] === TypeTheoryTerm[3, lists]
+		WeakHeadNormalForm[TypeTheoryTerm[ListLength[ConsList[5, ConsList[6, ConsList[7, EmptyNaturalList]]]], lists]] === TypeTheoryTerm[3, lists]
 	],
 	True,
 	TestID -> "A-recursor-computes-on-constructors"
