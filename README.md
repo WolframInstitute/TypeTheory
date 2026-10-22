@@ -270,7 +270,9 @@ otherwise whatever the arguments or the term's use allow. A term nothing decides
 ## Rules and homotopy type theory
 
 The rules the kernel checks by are a value, `TypeTheoryRules`, which every environment carries:
-`"CalculusOfInductiveConstructions"` for the prelude, and `"MartinLofTypeTheory"`, which has no Prop.
+`"CalculusOfInductiveConstructions"` for the prelude, `"MartinLofTypeTheory"`, which has no Prop, and
+`"CubicalTypeTheory"`, Martin-Löf type theory with the primitives of cubical type theory. The setting
+`"Quantities"` adds binders of quantity 0 and 1 to any of them.
 Without Prop every universe is `Type u`, no two proofs of an equality are made equal, recursors
 eliminate into `Type u`, and a theorem may state any type. `TypeTheoryEnvironment[rules]` starts an
 environment of given rules, and the setting `"RewriteRules"` allows `TypeTheoryRewriteRule` declarations,
@@ -359,6 +361,8 @@ TypeTheory/Kernel/
   Checking/InductiveTypes.wl   checking inductive families and generating recursors
   Checking/NaturalNumbers.wl   registering the natural numbers for literals
   Checking/Quotients.wl        the quotient types of Lean's kernel, and their computation
+  Checking/Quantities.wl       binder quantities and the live check of erased and affine variables
+  Checking/Cubical.wl          the interval, paths, transport, composition and Glue types
   Checking/Environment.wl      environments as stores of definitions, and kernel failures
   Checking/Declarations.wl     the declaration constructors and environments built from them
   Checking/Queries.wl          TypeOf, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
@@ -369,11 +373,13 @@ TypeTheory/Kernel/
   Library/Prelude.wl           the prelude
   Library/HomotopyTypeTheory.wl  the homotopy type theory environment
   Library/Integers.wl          the integers, a quotient, with their laws proved by the tactics
+  Library/Cubical.wl           the cubical environment: paths, equivalences and univalence that computes
 ```
 
 The trusted part is `CoreTerms.wl`, `TypeChecking.wl`, `InductiveTypes.wl`, `NaturalNumbers.wl`,
-`Quotients.wl`, `Environment.wl` and the core declaration functions: about 2,500 lines with their
-comments and usage messages. Elaboration and tactics produce terms that the kernel checks again with no metavariables
+`Quotients.wl`, `Quantities.wl`, `Cubical.wl`, `Environment.wl` and the core declaration functions: about
+4,000 lines with their comments and usage messages, a thousand of them the cubical rules, which an
+environment uses only under cubical rules. Elaboration and tactics produce terms that the kernel checks again with no metavariables
 left, so a mistake outside the kernel can make a proof fail but cannot make a false statement a theorem.
 Kernel answers are `Failure` objects, never messages.
 
@@ -388,17 +394,20 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 259 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 285 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
-equality that is not the identity type, and tampered environment records; and, on the prelude's rules,
-the HoTT library proving False with an equality in Prop.
+equality that is not the identity type, a definition that copies an affine variable, a recursion on an
+affine number, a transport along a line that is not constant on its face, and tampered environment
+records; and, on the prelude's rules, the HoTT library proving False with an equality in Prop.
 
 ## Not yet
 
 - The rationals, as a quotient of the integers; deciding equations of integers, and "Ring" over them.
 - Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
-- Cubical type theory, where univalence computes; truncations; an affine kernel after BendTT.
+- Composition in a universe and higher inductive types in the cubical rules, so that transport along a
+  concatenation of univalence paths computes; truncations; BendTT's own relaxations, a universe in itself
+  and no positivity, which its consistency proof covers and these rules do not.
 - Higher-order unification beyond patterns.
 - A compiled kernel (`FunctionCompile` over an array encoding of terms).
