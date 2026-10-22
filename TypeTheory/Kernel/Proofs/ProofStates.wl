@@ -60,6 +60,9 @@ The tactics:
 	                        finds
 	"FindEquationalProof"   proves an equation from the hypotheses that are equations for all values, by replaying
 	                        a proof that Wolfram's FindEquationalProof finds (Equational.wl)
+	"SumOfSquares"          proves an inequality of the integers of TypeTheoryEnvironment["Integers"], or of natural
+	                        numbers there, whose larger side less the smaller is a sum of squares of polynomials up
+	                        to a positive factor, which Wolfram finds (SumsOfSquares.wl)
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -121,7 +124,9 @@ TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers fro
 TypeTheoryTactic[\"LinearArithmetic\"] proves an inequality, an equation or False, of natural numbers, from the inequalities and equations among the hypotheses, \
 by a linear combination of them that Wolfram finds.\n\
 TypeTheoryTactic[\"FindEquationalProof\"] proves an equation from the hypotheses that are equations of its type for all values of their variables, \
-by replaying a proof that Wolfram's FindEquationalProof finds."
+by replaying a proof that Wolfram's FindEquationalProof finds.\n\
+TypeTheoryTactic[\"SumOfSquares\"] proves an inequality of integers, or of natural numbers, in TypeTheoryEnvironment[\"Integers\"], such as 2 x y <= x x + y y, \
+by a sum of squares of polynomials that Wolfram finds, a positive multiple of its larger side less the smaller."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -310,6 +315,7 @@ runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
 runTactic["LinearArithmetic", Hold[], data_, goal_] := linearArithmetic[data, goal]
 runTactic["FindEquationalProof", Hold[], data_, goal_] := findEquationalProof[data, goal]
+runTactic["SumOfSquares", Hold[], data_, goal_] := sumOfSquares[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
@@ -1154,6 +1160,182 @@ closeIfSidesSame[data_, goal_, type_] := If[
 	reflexivity[data, goal],
 	data
 ]
+
+
+(* ::Subsection:: *)
+(*Sums of squares*)
+
+
+(* "SumOfSquares": an inequality x <= y of integers whose difference y - x, times a positive integer d, is
+   a sum c1 g1^2 + ... of squares of polynomials, which Wolfram finds (SumsOfSquares.wl).
+   IntegerLessEqualOfMultiple takes the equation d (y - x) == c1 g1 g1 + ..., which "Ring" proves, and the
+   proof that the sum is at least 0, made of IntegerSquareNonnegative, IntegerNonnegativeScaling and
+   IntegerNonnegativeAddition. The atoms of the polynomials are the subterms that are no sum, difference,
+   product or negation of integers, nor the integer of a sum, product, power by a literal or literal of
+   natural numbers. An inequality of natural numbers is that of their integers, by
+   IntegerOfNaturalLessEqual, and a goal x >= y, x < y or x > y is the inequality it unfolds to. *)
+sumOfSquares[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[Join[$ringConstants, $sumOfSquaresConstants], Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["SumOfSquaresUnavailable", "The environment of the goal `1` lacks the integers of TypeTheoryEnvironment[\"Integers\"] and their order.", data, goal]
+	];
+	Replace[inequalitySides[environment, current["Context"], current["Type"]], {
+		{"Integers", smaller_, larger_} :> integerSumOfSquares[data, goal, data, goal, smaller, larger],
+		{"NaturalNumbers", smaller_, larger_} :> With[{integerGoal = freshMetavariableId[]},
+			{
+				state = solveGoal[
+					data,
+					goal,
+					makeApplication[constantReference[HoldComplete[IntegerOfNaturalLessEqual], {}], {smaller, larger, metavariable[integerGoal]}],
+					{integerGoal -> <|"Context" -> current["Context"], "Type" -> integerLessEqual[integerOfNatural[smaller], integerOfNatural[larger]], "Case" -> None|>}
+				]
+			},
+			integerSumOfSquares[state, integerGoal, data, goal, integerOfNatural[smaller], integerOfNatural[larger]]
+		],
+		None :> tacticFailure["InequalityExpected", "The goal `1` is not an inequality of integers or of natural numbers.", data, goal]
+	}]
+]
+
+$sumOfSquaresConstants = HoldComplete /@ Unevaluated[{
+	Integers, QuotientSoundness, "integerLessEqual", "integerOfNatural", "integerAddition", "integerSubtraction", "integerMultiplication", "integerNegation",
+	IntegerLessEqualOfMultiple, IntegerNonnegativeAddition, IntegerNonnegativeScaling, IntegerSquareNonnegative, IntegerLessEqualReflexivity, IntegerOfNaturalLessEqual
+}]
+
+(* {"Integers" | "NaturalNumbers", x, y} for a goal that is x <= y of integers or of natural numbers, or
+   that unfolds to it, as x >= y, x < y and x > y do; or None *)
+inequalitySides[environment_, context_, type_] := Replace[reducedHeadWithoutUnfolding[environment, context, type], {
+	application[application[constantReference[HoldComplete["integerLessEqual"], _], smaller_], larger_] :> {"Integers", smaller, larger},
+	application[application[constantReference[HoldComplete[LessEqual], _], smaller_], larger_] :> {"NaturalNumbers", smaller, larger},
+	reduced_ :> Replace[headUnfolded[environment, reduced], unfolded : Except[None] :> inequalitySides[environment, context, unfolded]]
+}]
+
+(* the definition at the head of term unfolded, or None if its head is no definition *)
+headUnfolded[environment_, term_] := Replace[applicationSpine[term], {
+	{constantReference[name_, levels_], arguments_List} /; constantRecord[environment, name]["Kind"] === "Definition" :> With[{record = constantRecord[environment, name]},
+		makeApplication[instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels], arguments]
+	],
+	_ :> None
+}]
+
+(* The goal target of state, smaller <= larger of integers, solved by a sum of squares; a failure shows
+   the goal goal of data, the one the tactic was given. Each atom of the sides is a Wolfram variable. *)
+integerSumOfSquares[state_, target_, data_, goal_, smaller_, larger_] := With[{polynomials = integerPolynomial /@ {smaller, larger}},
+	{atoms = DeleteDuplicates[Cases[polynomials, integerAtom[atom_] :> atom, {0, Infinity}]]},
+	{variables = Table[Subscript[\[FormalX], k], {k, Length[atoms]}]},
+	Replace[
+		sumOfSquaresCertificate[ReplaceAll[Last[polynomials] - First[polynomials], Thread[(integerAtom /@ atoms) -> variables]], variables],
+		{
+			None :> tacticFailure["NoSumOfSquares", "Wolfram finds no sum of squares of polynomials that is a positive multiple of the larger side less the smaller in the goal `1`.", data, goal],
+			{scale_Integer, squares_List} :> certifiedInequality[
+				state,
+				target,
+				data,
+				goal,
+				{smaller, larger, scale - 1},
+				Function[square, {First[square], integerTermOfPolynomial[Last[square], variables, atoms]}] /@ squares
+			]
+		}
+	]
+]
+
+(* The goal solved by IntegerLessEqualOfMultiple applied to d and to the sum s of the squares, its
+   equation a new goal that "Ring" proves, and the proof that s is at least 0 checked by the kernel first.
+   The premises are read off the lemma's type. *)
+certifiedInequality[state_, target_, data_, goal_, {smaller_, larger_, d_Integer}, squares_List] := With[
+	{
+		environment = state["Environment"],
+		context = currentGoal[state, target]["Context"],
+		equationGoal = freshMetavariableId[],
+		sum = nonnegativeSum[squares]
+	},
+	{lemma = makeApplication[constantReference[HoldComplete[IntegerLessEqualOfMultiple], {}], {naturalLiteral[d], smaller, larger, First[sum]}]},
+	Replace[
+		catchKernelFailure @ Replace[lemmaPremises[environment, context, lemma, metavariable[equationGoal]], {equation_, nonnegativity_} :> (
+			withKernelCaches[checkHasType[environment, context, Last[sum], nonnegativity]];
+			solveGoal[state, target, makeApplication[lemma, {metavariable[equationGoal], Last[sum]}], {equationGoal -> <|"Context" -> context, "Type" -> equation, "Case" -> None|>}]
+		)],
+		{
+			_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal],
+			solved_ :> Replace[catchKernelFailure[integerRing[solved, equationGoal, currentGoal[solved, equationGoal]]], _Failure :> tacticFailure[
+				"NotRingEquation",
+				"\"Ring\" does not prove the equation of the sum of squares that Wolfram finds for the goal `1`, as when an atom of its sides is not a variable.",
+				data,
+				goal
+			]]
+		}
+	]
+]
+
+(* {A, B} for a lemma whose type is A -> B -> C, the premise A taken to be proved by proof *)
+lemmaPremises[environment_, context_, lemma_, proof_] := Replace[weakHeadNormalForm[environment, context, inferType[environment, context, lemma]], {
+	dependentFunctionType[_, first_, rest_, _] :> Replace[weakHeadNormalForm[environment, context, instantiateBoundVariable[rest, proof]], {
+		dependentFunctionType[_, second_, _, _] :> {first, second},
+		_ :> kernelFailure["PremiseExpected", "The lemma has fewer premises than expected.", {}]
+	}],
+	_ :> kernelFailure["PremiseExpected", "The lemma has fewer premises than expected.", {}]
+}]
+
+(* {s, proof of 0 <= s} for s the sum of the c g g, right nested; 0 for no squares *)
+nonnegativeSum[{}] := {integerLiteral[0], makeApplication[constantReference[HoldComplete[IntegerLessEqualReflexivity], {}], {integerLiteral[0]}]}
+nonnegativeSum[{square_}] := nonnegativeSquare @@ square
+nonnegativeSum[{square_, rest__}] := With[{first = nonnegativeSquare @@ square, others = nonnegativeSum[{rest}]},
+	{
+		integerAddition[First[first], First[others]],
+		makeApplication[constantReference[HoldComplete[IntegerNonnegativeAddition], {}], {First[first], First[others], Last[first], Last[others]}]
+	}
+]
+
+(* {c g g, proof of 0 <= c g g}, a coefficient 1 left out *)
+nonnegativeSquare[1, term_] := {integerMultiplication[term, term], makeApplication[constantReference[HoldComplete[IntegerSquareNonnegative], {}], {term}]}
+nonnegativeSquare[coefficient_Integer, term_] := With[{square = nonnegativeSquare[1, term]},
+	{
+		integerMultiplication[integerLiteral[coefficient], First[square]],
+		makeApplication[constantReference[HoldComplete[IntegerNonnegativeScaling], {}], {naturalLiteral[coefficient], First[square], Last[square]}]
+	}
+]
+
+(* the term of integers as a Wolfram polynomial, each atom integerAtom[atom] *)
+integerPolynomial[term_] := Replace[term, {
+	application[application[constantReference[HoldComplete["integerAddition"], _], a_], b_] :> integerPolynomial[a] + integerPolynomial[b],
+	application[application[constantReference[HoldComplete["integerSubtraction"], _], a_], b_] :> integerPolynomial[a] - integerPolynomial[b],
+	application[application[constantReference[HoldComplete["integerMultiplication"], _], a_], b_] :> integerPolynomial[a] * integerPolynomial[b],
+	application[constantReference[HoldComplete["integerNegation"], _], a_] :> -integerPolynomial[a],
+	application[constantReference[HoldComplete["integerOfNatural"], _], n_] :> naturalPolynomial[n],
+	_ :> integerAtom[term]
+}]
+
+(* the integer of a term of natural numbers as a Wolfram polynomial: its sums, products, powers by
+   literals and literals carry over, and the integer of any other subterm is an atom *)
+naturalPolynomial[term_] := Replace[term, {
+	naturalLiteral[n_Integer] :> n,
+	constantReference[HoldComplete[NaturalNumberZero], _] :> 0,
+	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :> naturalPolynomial[a] + 1,
+	application[application[constantReference[HoldComplete[Plus], _], a_], b_] :> naturalPolynomial[a] + naturalPolynomial[b],
+	application[application[constantReference[HoldComplete[Times], _], a_], b_] :> naturalPolynomial[a] * naturalPolynomial[b],
+	application[application[constantReference[HoldComplete[Power], _], a_], naturalLiteral[k_Integer]] :> naturalPolynomial[a] ^ k,
+	_ :> integerAtom[integerOfNatural[term]]
+}]
+
+(* the polynomial, with integer coefficients, as a term of integers, each variable standing for its atom *)
+integerTermOfPolynomial[polynomial_, variables_List, atoms_List] := Replace[
+	Function[rule, integerMonomialTerm[Last[rule], Catenate[MapThread[ConstantArray, {atoms, First[rule]}]]]] /@ CoefficientRules[polynomial, variables],
+	{
+		{} :> integerLiteral[0],
+		monomials_List :> Fold[integerAddition, monomials]
+	}
+]
+
+(* the coefficient times the product of the factors, a coefficient 1 left out and a negative one negated *)
+integerMonomialTerm[coefficient_Integer?Negative, factors_List] := integerNegation[integerMonomialTerm[-coefficient, factors]]
+integerMonomialTerm[coefficient_Integer, {}] := integerLiteral[coefficient]
+integerMonomialTerm[1, factors_List] := Fold[integerMultiplication, factors]
+integerMonomialTerm[coefficient_Integer, factors_List] := integerMultiplication[integerLiteral[coefficient], Fold[integerMultiplication, factors]]
+
+integerLiteral[n_Integer] := integerOfNatural[naturalLiteral[n]]
+integerOfNatural[term_] := application[constantReference[HoldComplete["integerOfNatural"], {}], term]
+integerNegation[term_] := application[constantReference[HoldComplete["integerNegation"], {}], term]
+integerAddition[a_, b_] := makeApplication[constantReference[HoldComplete["integerAddition"], {}], {a, b}]
+integerMultiplication[a_, b_] := makeApplication[constantReference[HoldComplete["integerMultiplication"], {}], {a, b}]
+integerLessEqual[a_, b_] := makeApplication[constantReference[HoldComplete["integerLessEqual"], {}], {a, b}]
 
 
 (* ::Subsection:: *)

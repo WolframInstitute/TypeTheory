@@ -18,10 +18,12 @@ VerificationTest[
 		Function[name, MatchQ[integers[name], TypeTheoryTheorem[__]]] /@ {
 			IntegerAdditionCommutativity, IntegerAdditionAssociativity, IntegerAdditionZero, IntegerAdditionNegation,
 			IntegerMultiplicationCommutativity, IntegerMultiplicationAssociativity, IntegerMultiplicationOne, IntegerDistributivity,
-			IntegerSubtractionNegation, IntegerOfNaturalAddition, IntegerOfNaturalMultiplication, IntegerLessEqualReflexivity
+			IntegerSubtractionNegation, IntegerOfNaturalAddition, IntegerOfNaturalMultiplication, IntegerLessEqualReflexivity,
+			IntegerSquareNonnegative, IntegerNonnegativeAddition, IntegerNonnegativeScaling, IntegerNonnegativeCancellation,
+			IntegerLessEqualOfDifference, IntegerLessEqualOfMultiple, IntegerOfNaturalLessEqual
 		}
 	},
-	{True, {PropositionalExtensionality, QuotientSoundness, Choice}, ConstantArray[True, 12]},
+	{True, {PropositionalExtensionality, QuotientSoundness, Choice}, ConstantArray[True, 19]},
 	TestID -> "The-integers-and-their-laws-check"
 ]
 
@@ -128,4 +130,25 @@ VerificationTest[
 	}]["Goals"],
 	{},
 	TestID -> "Ring-over-the-integers-leaves-other-hypotheses-aside"
+]
+
+(* the order: squares and their sums are at least 0, a positive multiple is at least 0 only where the
+   integer is, and an inequality of integers of natural numbers is one of the natural numbers *)
+VerificationTest[
+	{
+		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 0 <= 3 (x x) + y y], integers, {
+			TypeTheoryTactic["Introduce", x, y],
+			TypeTheoryTactic["Exact", IntegerNonnegativeAddition[IntegerNonnegativeScaling[3, IntegerSquareNonnegative[x]], IntegerSquareNonnegative[y]]]
+		}]["Goals"],
+		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[0 <= 2 (y - x), x <= y]], integers, {
+			TypeTheoryTactic["Introduce", x, y, h],
+			TypeTheoryTactic["Exact", IntegerLessEqualOfDifference[x, y, IntegerNonnegativeCancellation[1, y - x, h]]]
+		}]["Goals"],
+		TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[Typed[m, Integers] <= n, m <= n]], integers, {
+			TypeTheoryTactic["Introduce", m, n, h],
+			TypeTheoryTactic["Exact", IntegerOfNaturalLessEqual[m, n, h]]
+		}]["Goals"]
+	},
+	{{}, {}, {}},
+	TestID -> "Squares-are-at-least-zero-and-give-inequalities"
 ]

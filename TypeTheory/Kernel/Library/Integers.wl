@@ -24,6 +24,10 @@ or the expected type are integers, and as the natural numbers' otherwise.
 Equations of integers are decidable: IntegerEqualityDecidable decides x == y with the Boolean
 "integerEqual", which compares a + d and c + b for the pairs (a, b) and (c, d), so Decide and the tactic
 "Decide" settle an equation of integer literals by computation.
+
+A square is at least 0, and so are sums and natural multiples of what is at least 0. Then
+IntegerLessEqualOfMultiple gives x <= y from (d + 1) (y - x) == s where 0 <= s, which is how the tactic
+"SumOfSquares" proves an inequality, s being a sum of squares of polynomials that Wolfram finds.
 *)
 
 
@@ -44,6 +48,13 @@ PackageExported[IntegerOfNaturalAddition]
 PackageExported[IntegerOfNaturalMultiplication]
 PackageExported[IntegerLessEqualReflexivity]
 PackageExported[IntegerEqualityDecidable]
+PackageExported[IntegerSquareNonnegative]
+PackageExported[IntegerNonnegativeAddition]
+PackageExported[IntegerNonnegativeScaling]
+PackageExported[IntegerNonnegativeCancellation]
+PackageExported[IntegerLessEqualOfDifference]
+PackageExported[IntegerLessEqualOfMultiple]
+PackageExported[IntegerOfNaturalLessEqual]
 
 
 (* ::Section:: *)
@@ -73,6 +84,20 @@ It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
 IntegerLessEqualReflexivity::usage = "IntegerLessEqualReflexivity[x] proves x <= x for an integer x. It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
 IntegerEqualityDecidable::usage = "IntegerEqualityDecidable[x, y] decides x == y for integers x and y; it is the instance of Decidable[x == y] in \
 TypeTheoryEnvironment[\"Integers\"], so Decide and the tactic \"Decide\" settle equations of integers by computation."
+IntegerSquareNonnegative::usage = "IntegerSquareNonnegative[z] proves 0 <= z z for an integer z. It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerNonnegativeAddition::usage = "IntegerNonnegativeAddition[hx, hy] proves 0 <= x + y from proofs hx of 0 <= x and hy of 0 <= y, for integers x and y. \
+It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerNonnegativeScaling::usage = "IntegerNonnegativeScaling[k, hx] proves 0 <= k x from a proof hx of 0 <= x, for a natural number k and an integer x. \
+It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerNonnegativeCancellation::usage = "IntegerNonnegativeCancellation[d, x, h] proves 0 <= x from a proof h of 0 <= (d + 1) x, for a natural number d and an integer x. \
+It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerLessEqualOfDifference::usage = "IntegerLessEqualOfDifference[x, y, h] proves x <= y from a proof h of 0 <= y - x, for integers x and y. \
+It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerLessEqualOfMultiple::usage = "IntegerLessEqualOfMultiple[d, s, e, h] proves x <= y from a proof e of (d + 1) (y - x) == s and a proof h of 0 <= s, \
+for a natural number d and integers x, y and s; the tactic \"SumOfSquares\" proves inequalities with it, s being a sum of squares. \
+It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerOfNaturalLessEqual::usage = "IntegerOfNaturalLessEqual[m, n, h] proves m <= n for natural numbers m and n from a proof h of m <= n of their integers. \
+It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
 
 integersEnvironment::usage = "integersEnvironment[] gives the prelude with the integers, built and checked the first time it is asked for."
 
@@ -531,5 +556,306 @@ $integerDeclarations = {
 			"integerEqual"[x, y]
 		][EqualityReflexivity["integerEqual"[x, y]]]],
 		"Instance" -> True
+	],
+
+	(* Order: a square is at least 0, since for the pair (a, b) of an integer, a a + b b is a b + b a plus
+	   (a - b)^2 or (b - a)^2, whichever of a and b is larger. Sums and natural multiples of what is at
+	   least 0 are at least 0, and a positive multiple is at least 0 only where the integer is, since the
+	   classes of pairs whose second is larger are negative. So x <= y follows from (d + 1) (y - x) == s
+	   where 0 <= s, which "SumOfSquares" proves of a sum of squares. *)
+	TypeTheoryTheorem[
+		"lessEqualWitness",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, Exists[{Typed[k, NonNegativeIntegers]}, n == m + k]]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, m <= n]},
+			InductiveRecursor[LessEqual][
+				Function[{Typed[j, NonNegativeIntegers], Typed[g, m <= j]}, Exists[{Typed[k, NonNegativeIntegers]}, j == m + k]],
+				ExistsIntroduction[0, EqualitySymmetry[AdditionZeroRight[m]]],
+				Function[{Typed[j, NonNegativeIntegers], Typed[g, m <= j], Typed[ih, Exists[{Typed[k, NonNegativeIntegers]}, j == m + k]]},
+					InductiveRecursor[Exists][
+						Function[{Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, j == m + k]]}, Exists[{Typed[k, NonNegativeIntegers]}, j + 1 == m + k]],
+						Function[{Typed[k, NonNegativeIntegers], Typed[e, j == m + k]},
+							ExistsIntroduction[k + 1, EqualityTransitivity[EqualityCongruence[NaturalNumberSuccessor, e], EqualitySymmetry[AdditionSuccessorRight[m, k]]]]
+						],
+						ih
+					]
+				],
+				h
+			]
+		]
+	],
+	integerTheorem[
+		"squareIdentity",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, a a + (a + k) (a + k) == k k + (a (a + k) + (a + k) a)],
+		{TypeTheoryTactic["Introduce", a, k], TypeTheoryTactic["Ring"]}
+	],
+	integerTheorem[
+		"squareIdentitySwapped",
+		ForAll[{Typed[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, (b + 1 + k) (b + 1 + k) + b b == (k + 1) (k + 1) + ((b + 1 + k) b + b (b + 1 + k))],
+		{TypeTheoryTactic["Introduce", b, k], TypeTheoryTactic["Ring"]}
+	],
+	TypeTheoryTheorem[
+		"squareOfPairNonnegative",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Exists[{Typed[n, NonNegativeIntegers]}, a a + b b == n + (a b + b a)]],
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]},
+			InductiveRecursor[Or][
+				Function[{Typed[o, Or[a <= b, b < a]]}, Exists[{Typed[n, NonNegativeIntegers]}, a a + b b == n + (a b + b a)]],
+				Function[{Typed[h, a <= b]}, InductiveRecursor[Exists][
+					Function[{Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, b == a + k]]}, Exists[{Typed[n, NonNegativeIntegers]}, a a + b b == n + (a b + b a)]],
+					Function[{Typed[k, NonNegativeIntegers], Typed[e, b == a + k]}, ExistsIntroduction[k k, Construct[
+						EqualitySubstitution,
+						NonNegativeIntegers,
+						Function[{Typed[c, NonNegativeIntegers]}, a a + c c == k k + (a c + c a)],
+						a + k,
+						b,
+						EqualitySymmetry[e],
+						"squareIdentity"[a, k]
+					]]],
+					"lessEqualWitness"[a, b, h]
+				]],
+				Function[{Typed[h, b < a]}, InductiveRecursor[Exists][
+					Function[{Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, a == b + 1 + k]]}, Exists[{Typed[n, NonNegativeIntegers]}, a a + b b == n + (a b + b a)]],
+					Function[{Typed[k, NonNegativeIntegers], Typed[e, a == b + 1 + k]}, ExistsIntroduction[(k + 1) (k + 1), Construct[
+						EqualitySubstitution,
+						NonNegativeIntegers,
+						Function[{Typed[c, NonNegativeIntegers]}, c c + b b == (k + 1) (k + 1) + (c b + b c)],
+						b + 1 + k,
+						a,
+						EqualitySymmetry[e],
+						"squareIdentitySwapped"[b, k]
+					]]],
+					"lessEqualWitness"[b + 1, a, h]
+				]],
+				LessEqualTotality[a, b]
+			]
+		]
+	],
+	integerTheorem[
+		"squareRelation",
+		ForAll[
+			{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Implies[a a + b b == n + (a b + b a), (a a + b b) + (0 + 0) == (0 + n) + (a b + b a)]
+		],
+		{TypeTheoryTactic["Introduce", a, b, n, h], TypeTheoryTactic["LinearArithmetic"]}
+	],
+	TypeTheoryTheorem[
+		IntegerSquareNonnegative,
+		ForAll[{Typed[z, Integers]}, 0 <= z z],
+		Function[{Typed[z, Integers]}, Construct[
+			QuotientInduction,
+			CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+			"integerRelation",
+			Function[{Typed[w, Integers]}, 0 <= w w],
+			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, InductiveRecursor[Exists][
+				Function[
+					{Typed[o, Exists[{Typed[n, NonNegativeIntegers]}, p[[1]] p[[1]] + p[[2]] p[[2]] == n + (p[[1]] p[[2]] + p[[2]] p[[1]])]]},
+					0 <= "integerOfPair"[p] "integerOfPair"[p]
+				],
+				Function[{Typed[n, NonNegativeIntegers], Typed[e, p[[1]] p[[1]] + p[[2]] p[[2]] == n + (p[[1]] p[[2]] + p[[2]] p[[1]])]},
+					ExistsIntroduction[n, QuotientSoundness["squareRelation"[p[[1]], p[[2]], n, e]]]
+				],
+				"squareOfPairNonnegative"[p[[1]], p[[2]]]
+			]],
+			z
+		]]
+	],
+	integerTheorem[
+		"nonnegativeSum",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, (0 + "integerOfNatural"[m]) + (0 + "integerOfNatural"[n]) == 0 + "integerOfNatural"[m + n]],
+		{TypeTheoryTactic["Introduce", m, n], TypeTheoryTactic["Ring"]}
+	],
+	TypeTheoryTheorem[
+		IntegerNonnegativeAddition,
+		ForAll[{TypedImplicit[x, Integers], TypedImplicit[y, Integers]}, Implies[0 <= x, Implies[0 <= y, 0 <= x + y]]],
+		Function[{TypedImplicit[x, Integers], TypedImplicit[y, Integers], Typed[hx, 0 <= x], Typed[hy, 0 <= y]},
+			InductiveRecursor[Exists][
+				Function[{Typed[o, 0 <= x]}, 0 <= x + y],
+				Function[{Typed[m, NonNegativeIntegers], Typed[ex, x == 0 + "integerOfNatural"[m]]}, InductiveRecursor[Exists][
+					Function[{Typed[o, 0 <= y]}, 0 <= x + y],
+					Function[{Typed[n, NonNegativeIntegers], Typed[ey, y == 0 + "integerOfNatural"[n]]}, ExistsIntroduction[m + n, EqualityTransitivity[
+						EqualityCongruence[Function[{Typed[w, Integers]}, w + y], ex],
+						EqualityTransitivity[EqualityCongruence[Function[{Typed[w, Integers]}, (0 + "integerOfNatural"[m]) + w], ey], "nonnegativeSum"[m, n]]
+					]]],
+					hy
+				]],
+				hx
+			]
+		]
+	],
+	integerTheorem[
+		"nonnegativeScale",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, "integerOfNatural"[k] (0 + "integerOfNatural"[m]) == 0 + "integerOfNatural"[k m]],
+		{TypeTheoryTactic["Introduce", k, m], TypeTheoryTactic["Ring"]}
+	],
+	TypeTheoryTheorem[
+		IntegerNonnegativeScaling,
+		ForAll[{Typed[k, NonNegativeIntegers], TypedImplicit[x, Integers]}, Implies[0 <= x, 0 <= "integerOfNatural"[k] x]],
+		Function[{Typed[k, NonNegativeIntegers], TypedImplicit[x, Integers], Typed[hx, 0 <= x]},
+			InductiveRecursor[Exists][
+				Function[{Typed[o, 0 <= x]}, 0 <= "integerOfNatural"[k] x],
+				Function[{Typed[m, NonNegativeIntegers], Typed[ex, x == 0 + "integerOfNatural"[m]]}, ExistsIntroduction[k m, EqualityTransitivity[
+					EqualityCongruence[Function[{Typed[w, Integers]}, "integerOfNatural"[k] w], ex],
+					"nonnegativeScale"[k, m]
+				]]],
+				hx
+			]
+		]
+	],
+	(* equal classes have related pairs: "integerEqual" of the two is "true" *)
+	TypeTheoryTheorem[
+		"integerExact",
+		ForAll[
+			{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[r, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			Implies["integerOfPair"[q] == "integerOfPair"[r], "integerRelation"[q, r]]
+		],
+		Function[
+			{
+				Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]],
+				Typed[r, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]],
+				Typed[e, "integerOfPair"[q] == "integerOfPair"[r]]
+			},
+			"equalTrue"[q[[1]] + r[[2]], r[[1]] + q[[2]], EqualityTransitivity[
+				EqualityCongruence[Function[{Typed[w, Integers]}, "integerEqual"["integerOfPair"[q], w]], EqualitySymmetry[e]],
+				"integerEqualSelf"["integerOfPair"[q]]
+			]]
+		]
+	],
+	integerTheorem[
+		"cancellationWitness",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[j, NonNegativeIntegers]}, Implies[a == b + j, a + (0 + 0) == (0 + j) + b]],
+		{TypeTheoryTactic["Introduce", a, b, j, h], TypeTheoryTactic["LinearArithmetic"]}
+	],
+	integerTheorem[
+		"cancellationContradiction",
+		ForAll[
+			{Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[j, NonNegativeIntegers]},
+			Implies[((d + 1) a + 0 (a + 1 + j)) + (0 + 0) == (0 + k) + ((d + 1) (a + 1 + j) + 0 a), False]
+		],
+		{TypeTheoryTactic["Introduce", d, k, a, j, h], TypeTheoryTactic["LinearArithmetic"]}
+	],
+	(* the class of (a, b) with (d + 1) (a, b) the class of (k, 0): a >= b, or else (d + 1) b > (d + 1) a + k *)
+	TypeTheoryTheorem[
+		IntegerNonnegativeCancellation,
+		ForAll[{Typed[d, NonNegativeIntegers], Typed[x, Integers]}, Implies[0 <= "integerOfNatural"[d + 1] x, 0 <= x]],
+		Function[{Typed[d, NonNegativeIntegers], Typed[x, Integers], Typed[h, 0 <= "integerOfNatural"[d + 1] x]},
+			Construct[
+				QuotientInduction,
+				CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+				"integerRelation",
+				Function[{Typed[w, Integers]}, Implies[0 <= "integerOfNatural"[d + 1] w, 0 <= w]],
+				Function[
+					{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[g, 0 <= "integerOfNatural"[d + 1] "integerOfPair"[p]]},
+					InductiveRecursor[Exists][
+						Function[{Typed[o, 0 <= "integerOfNatural"[d + 1] "integerOfPair"[p]]}, 0 <= "integerOfPair"[p]],
+						Function[{Typed[k, NonNegativeIntegers], Typed[e, "integerOfNatural"[d + 1] "integerOfPair"[p] == 0 + "integerOfNatural"[k]]},
+							With[{related = "integerExact"[Pair[(d + 1) p[[1]] + 0 p[[2]], (d + 1) p[[2]] + 0 p[[1]]], Pair[0 + k, 0 + 0], e]},
+								InductiveRecursor[Or][
+									Function[{Typed[t, Or[p[[2]] <= p[[1]], p[[1]] < p[[2]]]]}, 0 <= "integerOfPair"[p]],
+									Function[{Typed[le, p[[2]] <= p[[1]]]}, InductiveRecursor[Exists][
+										Function[{Typed[o, Exists[{Typed[j, NonNegativeIntegers]}, p[[1]] == p[[2]] + j]]}, 0 <= "integerOfPair"[p]],
+										Function[{Typed[j, NonNegativeIntegers], Typed[ej, p[[1]] == p[[2]] + j]},
+											ExistsIntroduction[j, QuotientSoundness["cancellationWitness"[p[[1]], p[[2]], j, ej]]]
+										],
+										"lessEqualWitness"[p[[2]], p[[1]], le]
+									]],
+									Function[{Typed[lt, p[[1]] < p[[2]]]}, InductiveRecursor[Exists][
+										Function[{Typed[o, Exists[{Typed[j, NonNegativeIntegers]}, p[[2]] == p[[1]] + 1 + j]]}, 0 <= "integerOfPair"[p]],
+										Function[{Typed[j, NonNegativeIntegers], Typed[ej, p[[2]] == p[[1]] + 1 + j]},
+											FalseElimination["cancellationContradiction"[d, k, p[[1]], j, Construct[
+												EqualitySubstitution,
+												NonNegativeIntegers,
+												Function[{Typed[c, NonNegativeIntegers]}, ((d + 1) p[[1]] + 0 c) + (0 + 0) == (0 + k) + ((d + 1) c + 0 p[[1]])],
+												p[[2]],
+												p[[1]] + 1 + j,
+												ej,
+												related
+											]]]
+										],
+										"lessEqualWitness"[p[[1]] + 1, p[[2]], lt]
+									]],
+									LessEqualTotality[p[[2]], p[[1]]]
+								]
+							]
+						],
+						g
+					]
+				],
+				x
+			][h]
+		]
+	],
+	integerTheorem[
+		"subtractionAddition",
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, y == (y - x) + x],
+		{TypeTheoryTactic["Introduce", x, y], TypeTheoryTactic["Ring"]}
+	],
+	integerTheorem[
+		"additionNatural",
+		ForAll[{Typed[x, Integers], Typed[n, NonNegativeIntegers]}, (0 + "integerOfNatural"[n]) + x == x + "integerOfNatural"[n]],
+		{TypeTheoryTactic["Introduce", x, n], TypeTheoryTactic["Ring"]}
+	],
+	TypeTheoryTheorem[
+		IntegerLessEqualOfDifference,
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[0 <= y - x, x <= y]],
+		Function[{Typed[x, Integers], Typed[y, Integers], Typed[h, 0 <= y - x]},
+			InductiveRecursor[Exists][
+				Function[{Typed[o, 0 <= y - x]}, x <= y],
+				Function[{Typed[n, NonNegativeIntegers], Typed[e, y - x == 0 + "integerOfNatural"[n]]}, ExistsIntroduction[n, EqualityTransitivity[
+					"subtractionAddition"[x, y],
+					EqualityTransitivity[EqualityCongruence[Function[{Typed[w, Integers]}, w + x], e], "additionNatural"[x, n]]
+				]]],
+				h
+			]
+		]
+	],
+	TypeTheoryTheorem[
+		IntegerLessEqualOfMultiple,
+		ForAll[
+			{Typed[d, NonNegativeIntegers], TypedImplicit[x, Integers], TypedImplicit[y, Integers], Typed[s, Integers]},
+			Implies["integerOfNatural"[d + 1] (y - x) == s, Implies[0 <= s, x <= y]]
+		],
+		Function[
+			{
+				Typed[d, NonNegativeIntegers],
+				TypedImplicit[x, Integers],
+				TypedImplicit[y, Integers],
+				Typed[s, Integers],
+				Typed[e, "integerOfNatural"[d + 1] (y - x) == s],
+				Typed[h, 0 <= s]
+			},
+			IntegerLessEqualOfDifference[x, y, IntegerNonnegativeCancellation[d, y - x, Construct[
+				EqualitySubstitution,
+				Integers,
+				Function[{Typed[w, Integers]}, 0 <= w],
+				s,
+				"integerOfNatural"[d + 1] (y - x),
+				EqualitySymmetry[e],
+				h
+			]]]
+		]
+	],
+	(* m <= n from the class of (n, 0) being that of (m + k, 0) *)
+	integerTheorem[
+		"naturalOfRelation",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[n + (0 + 0) == (m + k) + 0, n == m + k]],
+		{TypeTheoryTactic["Introduce", m, n, k, h], TypeTheoryTactic["LinearArithmetic"]}
+	],
+	TypeTheoryTheorem[
+		IntegerOfNaturalLessEqual,
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["integerOfNatural"[m] <= "integerOfNatural"[n], m <= n]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, "integerOfNatural"[m] <= "integerOfNatural"[n]]},
+			InductiveRecursor[Exists][
+				Function[{Typed[o, "integerOfNatural"[m] <= "integerOfNatural"[n]]}, m <= n],
+				Function[{Typed[k, NonNegativeIntegers], Typed[e, "integerOfNatural"[n] == "integerOfNatural"[m] + "integerOfNatural"[k]]}, Construct[
+					EqualitySubstitution,
+					NonNegativeIntegers,
+					Function[{Typed[c, NonNegativeIntegers]}, m <= c],
+					m + k,
+					n,
+					EqualitySymmetry["naturalOfRelation"[m, n, k, "integerExact"[Pair[n, 0], Pair[m + k, 0 + 0], e]]],
+					LessEqualAddition[m, k]
+				]],
+				h
+			]
+		]
 	]
 }
