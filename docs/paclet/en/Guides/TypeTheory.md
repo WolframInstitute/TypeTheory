@@ -48,7 +48,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Proofs
 
 - [TypeTheoryProof]() a proof in progress, with its open goals
-- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`, `"Ring"`, and the Wolfram oracles `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"` and `"FindEquationalProof"`
+- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`, `"Ring"`, and the Wolfram oracles `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`
 
 ### The prelude: logic and equality
 
@@ -102,6 +102,9 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [IntegerMultiplicationCommutativity](), [IntegerMultiplicationAssociativity](), [IntegerMultiplicationOne](), [IntegerDistributivity]() multiplication
 - [IntegerOfNaturalAddition](), [IntegerOfNaturalMultiplication]() the natural numbers among the integers, and [IntegerLessEqualReflexivity]() the order
 - [IntegerEqualityDecidable]() the instance deciding `==` of integers
+- [IntegerSquareNonnegative](), [IntegerNonnegativeAddition](), [IntegerNonnegativeScaling]() squares, sums and natural multiples at least 0
+- [IntegerNonnegativeCancellation](), [IntegerLessEqualOfDifference](), [IntegerLessEqualOfMultiple]() inequalities from differences and their multiples, as `"SumOfSquares"` proves them
+- [IntegerOfNaturalLessEqual]() an inequality of natural numbers from that of their integers
 
 ### Cubical type theory
 

@@ -5,7 +5,7 @@ Title: The Integers
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheIntegers
-Keywords: [integers, quotient, quotient type, commutative ring, coercion, induction, Ring, Lean]
+Keywords: [integers, quotient, quotient type, commutative ring, coercion, induction, Ring, inequality, sum of squares, SumOfSquares, Lean]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, InstancesAndCoercions, RulesAndComputation]
 ---
@@ -20,7 +20,7 @@ The environment, the prelude with the integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 210 constants -->
+<!-- => TypeTheoryEnvironment summary box: 230 constants -->
 
 [Integers]() is the quotient of pairs by a relation, and shows as ℤ:
 
@@ -177,6 +177,65 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {TypeTheoryT
 ```
 
 <!-- => Failure["NotRingEquation", ...] -->
+
+## Inequalities and Sums of Squares
+
+`x <= y` means that `y` is `x` plus a natural number. A square is at least 0, [IntegerSquareNonnegative]():
+
+```wl
+integers[IntegerSquareNonnegative]
+```
+
+<!-- => theorem IntegerSquareNonnegative : ∀_z∶ℤ 0 ≤ z z -->
+
+So are sums and natural multiples of what is at least 0, by [IntegerNonnegativeAddition]() and [IntegerNonnegativeScaling]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 0 <= 3 (x x) + y y], integers, {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Exact", IntegerNonnegativeAddition[IntegerNonnegativeScaling[3, IntegerSquareNonnegative[x]], IntegerSquareNonnegative[y]]]
+}]
+```
+
+<!-- => Proof complete -->
+
+An inequality `x <= y` follows when a positive multiple of `y - x` is equal to something at least 0, [IntegerLessEqualOfMultiple]():
+
+```wl
+integers[IntegerLessEqualOfMultiple]
+```
+
+<!-- => theorem IntegerLessEqualOfMultiple : ∀_d∶ℕ ∀_{x∶ℤ} ∀_{y∶ℤ} ∀_s∶ℤ ↑(d + 1) (y - x) == s ⇒ 0 ≤ s ⇒ x ≤ y -->
+
+The tactic `"SumOfSquares"` proves an inequality this way. Wolfram finds a positive integer `d` and a sum `s` of squares of polynomials, each times a positive integer, with `d (y - x) == s`. `"Ring"` proves that equation, and the lemmas above prove that `s` is at least 0. Here `2 (x x + y y + z z - x y - y z - z x)` is the sum of the squares of `x - y`, `y - z` and `z - x`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], integers, {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
+An inequality of natural numbers is that of their integers, by [IntegerOfNaturalLessEqual]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, 2 a b <= a^2 + b^2], integers, {
+    TypeTheoryTactic["Introduce", a, b],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
+Wolfram finds no sum of squares where there is none. Here the inequality is false at `x = 2`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x x <= 2], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
+```
+
+<!-- => Failure["NoSumOfSquares", ...] -->
 
 ## Deciding Equations
 

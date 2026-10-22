@@ -4,8 +4,8 @@ Name: TypeTheoryTactic
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
-Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, FindEquationalProof, equational reasoning, oracle]
-SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, Lists]
+Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, FindEquationalProof, equational reasoning, SumOfSquares, sum of squares, SemidefiniteOptimization, oracle]
+SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, Lists, IntegerLessEqualOfMultiple]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -39,10 +39,11 @@ RelatedGuides: [TypeTheory]
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
 | `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
 | `"FindEquationalProof"` | proves an equation from the hypotheses that are equations of its type for all values of their variables, by replaying the proof that Wolfram's [FindEquationalProof]() finds, step by step |
+| `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra and [SemidefiniteOptimization](); [IntegerLessEqualOfMultiple]() takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[ListPrepend[x, l], m]` becomes `ListPrepend[x, Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
-- `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"` and `"FindEquationalProof"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
+- `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - A tactic that does not apply gives a [Failure]().
 
 ## Basic Examples
@@ -372,6 +373,19 @@ TypeTheoryProof[ForAll[
 
 <!-- => Proof complete -->
 
+---
+
+`"SumOfSquares"` proves an inequality of integers whose larger side less the smaller is a sum of squares, here half the sum of the squares of `x - y`, `y - z` and `z - x`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
 ## Possible Issues
 
 `"Reflexivity"` needs the sides to be equal by computation; `0 + n` is not `n` until induction:
@@ -447,3 +461,13 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y,
 ```
 
 <!-- => Failure["NoLinearCombination", ...] -->
+
+---
+
+`"SumOfSquares"` proves only what a sum of squares shows; `x x <= 2` is false for `x = 2`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x x <= 2], TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
+```
+
+<!-- => Failure["NoSumOfSquares", ...] -->

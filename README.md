@@ -168,6 +168,18 @@ integers = TypeTheoryEnvironment["Integers"];
 TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]]   (* ℤ → ℕ → Prop *)
 ```
 
+Squares are at least 0, `IntegerSquareNonnegative`, and `IntegerLessEqualOfMultiple` gives `x <= y` from
+`(d + 1) (y - x) == s` with `0 <= s`. `"SumOfSquares"` proves an inequality with them: Wolfram finds `d`
+and a sum `s` of squares of polynomials, by exact linear algebra on a Gram matrix and, where it has free
+entries, `SemidefiniteOptimization`; `"Ring"` proves the equation:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], integers, {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["SumOfSquares"]                     (* 2 (x x + y y + z z - x y - y z - z x), a sum of three squares *)
+}]
+```
+
 ### Quantities
 
 Under `TypeTheoryRules["CalculusOfInductiveConstructions", "Quantities" -> True]` a binder may carry a
@@ -320,6 +332,7 @@ theory to the calculus of inductive constructions with rewrite rules. Axioms are
 | `"PolynomialReduce"` | proves an equation from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds |
 | `"LinearArithmetic"` | proves an inequality, an equation or `False` from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram finds |
 | `"FindEquationalProof"` | proves an equation from equations for all values among the hypotheses, by replaying the proof Wolfram's `FindEquationalProof` finds |
+| `"SumOfSquares"` | proves an inequality of integers, or of natural numbers, in `TypeTheoryEnvironment["Integers"]` by a sum of squares that Wolfram finds, a positive multiple of the larger side less the smaller |
 
 `TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics. Nothing a tactic does
 is trusted: the finished term is checked by the kernel when the theorem is added to an environment.
@@ -337,9 +350,9 @@ TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Ty
 }]
 ```
 
-`"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"` and `"FindEquationalProof"` ask Wolfram for
-what a proof needs: witnesses, the cofactors or multipliers of a combination of the hypotheses, or a
-proof by completion from equational hypotheses. The kernel checks the proof built from the answer:
+`"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`
+ask Wolfram for what a proof needs: witnesses, the cofactors or multipliers of a combination of the
+hypotheses, a proof by completion from equational hypotheses, or a sum of squares. The kernel checks the proof built from the answer:
 
 ```wolfram
 TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {
@@ -372,6 +385,7 @@ TypeTheory/Kernel/
   Proofs/ProofStates.wl        proof states and tactics
   Proofs/Ring.wl               polynomial identities, with proofs from the prelude's laws
   Proofs/Equational.wl         the proofs of FindEquationalProof, replayed
+  Proofs/SumsOfSquares.wl      sums of squares of polynomials, found from Gram matrices
   Library/Prelude.wl           the prelude
   Library/HomotopyTypeTheory.wl  the homotopy type theory environment
   Library/Integers.wl          the integers, a quotient, with their laws proved by the tactics
@@ -396,7 +410,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 285 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 294 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, a definition that copies an affine variable, a recursion on an
@@ -405,7 +419,8 @@ records; and, on the prelude's rules, the HoTT library proving False with an equ
 
 ## Not yet
 
-- The rationals, as a quotient of the integers; deciding the order of the integers.
+- The rationals, as a quotient of the integers; deciding the order of the integers; sums of squares with
+  rational coefficients, and inequalities from hypotheses by the Positivstellensatz.
 - Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
 - Composition in a universe and higher inductive types in the cubical rules, so that transport along a
