@@ -21,6 +21,8 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Equivalent[p, q]           with EquivalentIntroduction, the two implications
 	x != y                     Unequal, Not[x == y]
 	Identity, Composition      the identity function and composition of functions
+	QuotientType[r]            the quotient types of Lean's kernel, with QuotientIntroduction, QuotientLift and
+	                           QuotientInduction
 	m * n, m^n, Subtract[m, n] Times, Power and Subtract, the last stopping at 0, all by recursion on n
 	m <= n                     LessEqual, inductive as in Lean, with Less, GreaterEqual and Greater
 	Booleans                   with the constants "false" and "true", "not", "and" and "or", named by strings;
@@ -40,9 +42,9 @@ EqualitySubstitution for logic and equality; the Equivalent theorems; and the la
 order: commutativity, associativity and distributivity of addition and multiplication, cancellation,
 injectivity of the successor, and the order's reflexivity, transitivity and antisymmetry.
 
-The classical declarations come last: the axioms PropositionalExtensionality, FunctionExtensionality and
-Choice, ChosenWitness defined from Choice, and ExcludedMiddle and DoubleNegationElimination proved from
-the axioms.
+The classical declarations come last: Lean's axioms PropositionalExtensionality, QuotientSoundness and
+Choice, ChosenWitness defined from Choice, and FunctionExtensionality, ExcludedMiddle and
+DoubleNegationElimination proved from the axioms.
 
 Bound variables are plain symbols: a binder scopes its variable, so no value can reach it, and the
 display shows each by its name.
@@ -124,6 +126,7 @@ PackageExported[Nonempty]
 PackageExported[Subtype]
 PackageExported[PropositionalExtensionality]
 PackageExported[FunctionExtensionality]
+PackageExported[QuotientSoundness]
 PackageExported[Choice]
 PackageExported[ChosenWitness]
 PackageExported[ChosenWitnessProperty]
@@ -248,7 +251,10 @@ NonemptyIntroduction::usage = "NonemptyIntroduction[x] proves Nonempty[a] from a
 Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]."
 SubtypeIntroduction::usage = "SubtypeIntroduction[x, h] is the element x of Subtype[P], with h a proof of P[x]."
 PropositionalExtensionality::usage = "PropositionalExtensionality[h] proves a == b from a proof h of Equivalent[a, b]: equivalent propositions are equal. It is an axiom of the prelude."
-FunctionExtensionality::usage = "FunctionExtensionality[h] proves f == g from a proof h that f[x] == g[x] for every x. It is an axiom of the prelude."
+FunctionExtensionality::usage = "FunctionExtensionality[h] proves f == g from a proof h that f[x] == g[x] for every x. It is a theorem of the prelude, \
+proved from QuotientSoundness as Lean proves funext."
+QuotientSoundness::usage = "QuotientSoundness[h] proves QuotientIntroduction[r, a] == QuotientIntroduction[r, b] from a proof h of r[a, b]: the classes \
+of related elements are equal. It is an axiom of the prelude, Lean's Quot.sound."
 Choice::usage = "Choice[h] is an element of the type a, chosen given a proof h of Nonempty[a]. It is an axiom of the prelude, so it does not compute."
 ChosenWitness::usage = "ChosenWitness[h] is an element x with P[x], chosen from a proof h of Exists[P]."
 ChosenWitnessProperty::usage = "ChosenWitnessProperty[h] proves P[ChosenWitness[h]] from a proof h of Exists[P]."
@@ -386,6 +392,9 @@ $constructiveDeclarations = {
 			Function[{Typed[x, \[Alpha]]}, f[g[x]]]
 		]
 	],
+	(* the quotient types of Lean's kernel, whose lift computes on a class; that related elements have equal
+	   classes is the axiom QuotientSoundness, among the classical declarations *)
+	TypeTheoryQuotients[],
 	TypeTheoryInductiveType[
 		NonNegativeIntegers,
 		TypeUniverse[1],
@@ -1406,9 +1415,10 @@ $constructiveDeclarations = {
 	]
 }
 
-(* The classical part of the prelude: Lean's axioms, propositional extensionality, choice and, since
-   there are no quotients, function extensionality, with the excluded middle proved from them as Lean
-   proves it, by Diaconescu's argument. TypeTheoryEnvironment["Constructive"] is the prelude without it. *)
+(* The classical part of the prelude: Lean's axioms, propositional extensionality, the soundness of
+   quotients and choice, with function extensionality proved from the soundness of quotients and the
+   excluded middle from all three, as Lean proves them, the second by Diaconescu's argument.
+   TypeTheoryEnvironment["Constructive"] is the prelude without it. *)
 $classicalDeclarations = {
 	TypeTheoryInductiveType[
 		Nonempty,
@@ -1425,6 +1435,20 @@ $classicalDeclarations = {
 		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], a == b]]
 	],
 	TypeTheoryAxiom[
+		QuotientSoundness,
+		ForAll[
+			{
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[r, TypeSpecifier[{\[Alpha], \[Alpha]} -> TypeUniverse[0]]],
+				TypedImplicit[a, \[Alpha]],
+				TypedImplicit[b, \[Alpha]]
+			},
+			Implies[r[a, b], QuotientIntroduction[r, a] == QuotientIntroduction[r, b]]
+		]
+	],
+	(* two functions equal at every point are equal: they have the same class in the quotient of functions by
+	   that relation, and applying a class to a point gives the value there, as Lean proves funext *)
+	TypeTheoryTheorem[
 		FunctionExtensionality,
 		ForAll[
 			{
@@ -1434,6 +1458,29 @@ $classicalDeclarations = {
 				TypedImplicit[g, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]]
 			},
 			Implies[ForAll[{Typed[x, \[Alpha]]}, f[x] == g[x]], f == g]
+		],
+		Function[
+			{
+				TypedImplicit[\[Alpha], TypeUniverse[u]],
+				TypedImplicit[\[Beta], TypeSpecifier[{\[Alpha]} -> TypeUniverse[v]]],
+				TypedImplicit[f, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]],
+				TypedImplicit[g, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]],
+				Typed[h, ForAll[{Typed[x, \[Alpha]]}, f[x] == g[x]]]
+			},
+			EqualityCongruence[
+				Function[
+					{
+						Typed[q, QuotientType[Function[{Typed[k, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]], Typed[l, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]]}, ForAll[{Typed[x, \[Alpha]]}, k[x] == l[x]]]]],
+						Typed[x, \[Alpha]]
+					},
+					QuotientLift[
+						Function[{Typed[k, ForAll[{Typed[y, \[Alpha]]}, \[Beta][y]]]}, k[x]],
+						Function[{Typed[k, ForAll[{Typed[y, \[Alpha]]}, \[Beta][y]]], Typed[l, ForAll[{Typed[y, \[Alpha]]}, \[Beta][y]]], Typed[e, ForAll[{Typed[y, \[Alpha]]}, k[y] == l[y]]]}, e[x]],
+						q
+					]
+				],
+				QuotientSoundness[h]
+			]
 		]
 	],
 	TypeTheoryAxiom[Choice, ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[h, Nonempty[\[Alpha]]]}, \[Alpha]]],

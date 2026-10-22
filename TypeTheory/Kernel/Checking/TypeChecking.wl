@@ -13,7 +13,8 @@ fresh free variable, so the kernel never manipulates loose bound variables.
 inferType always checks: an application checks its argument against the domain, a binder checks that
 its domain is a type. Reduction implements beta, zeta (local definitions), delta (unfolding
 definitions; theorems are never unfolded), iota (a recursor applied to a constructor, natural literals
-read as constructors, and K-like recursors such as that of Equal), and addition of natural literals
+read as constructors, and K-like recursors such as that of Equal), a quotient's lift or induction
+applied to a class (Quotients.wl), and addition of natural literals
 on Wolfram Language integers when the environment registers an addition, and the rewrite rules of an
 axiom where the environment's rules allow them. Definitional equality adds eta for functions and proof
 irrelevance: two proofs of the same proposition are equal.
@@ -356,6 +357,8 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Rep
 				reduceRecursor[environment, context, term, record, levels, arguments],
 			record["Kind"] === "Axiom",
 				rewriteAxiom[environment, context, term, name, levels, arguments],
+			record["Kind"] === "Quotient",
+				reduceQuotient[environment, context, term, record, arguments],
 			True,
 				term
 		]

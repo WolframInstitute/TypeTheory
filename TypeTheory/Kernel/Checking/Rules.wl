@@ -5,15 +5,18 @@ The rules of a type theory, as a value. Every environment carries the rules it w
 the kernel checks each declaration and term by the rules of its environment. The declarations of an
 environment are its assumptions, axioms included; the rules are what the kernel allows and computes.
 
-	TypeTheoryRules[<|"Name" -> name, "Prop" -> True | False, "RewriteRules" -> True | False|>]
+	TypeTheoryRules[<|"Name" -> name, "Prop" -> True | False, "RewriteRules" -> True | False, "Quotients" -> True | False|>]
 
 	"Prop"            TypeUniverse[0] is a universe of propositions: impredicative, with proof irrelevance,
 	                  K-like reduction and elimination of subsingletons into any universe. Without it every
 	                  universe is TypeUniverse[level] with level at least 1, and a theorem's statement may
 	                  be any type.
 	"RewriteRules"    TypeTheoryRewriteRule declarations may add computation rules to an axiom.
+	"Quotients"       TypeTheoryQuotients[] may declare the quotient types of Lean's kernel, whose lift
+	                  computes on a class; they need Prop.
 
-"CalculusOfInductiveConstructions" is the rules of the prelude, which those of Lean's kernel are.
+"CalculusOfInductiveConstructions" is the rules of the prelude, which those of Lean's kernel are, quotients
+included; without "Quotients" they are those of Rocq's kernel.
 "MartinLofTypeTheory" has no Prop, as Martin-Löf's intensional type theory, and so no rule that would
 make any two equalities equal: univalence is consistent with it.
 *)
@@ -42,8 +45,9 @@ PackageScoped[$defaultRules]
 TypeTheoryRules::usage = "TypeTheoryRules[name] gives the rules of the named type theory: \"CalculusOfInductiveConstructions\", the rules of the prelude, \
 or \"MartinLofTypeTheory\", with no universe of propositions.\n\
 TypeTheoryRules[name, setting -> value, ...] gives those rules with some settings changed.\n\
-TypeTheoryRules[<|\"Name\" -> name, \"Prop\" -> p, \"RewriteRules\" -> r|>] is the rules with the given settings: p says whether TypeUniverse[0] is \
-an impredicative universe of propositions with proof irrelevance, and r whether rewrite rules may be declared.\n\
+TypeTheoryRules[<|\"Name\" -> name, \"Prop\" -> p, \"RewriteRules\" -> r, \"Quotients\" -> q|>] is the rules with the given settings: p says whether \
+TypeUniverse[0] is an impredicative universe of propositions with proof irrelevance, r whether rewrite rules may be declared, and q whether quotient types \
+may be, with their computation.\n\
 TypeTheoryEnvironment[rules] gives an environment with no constants that follows rules; Information[environment, \"Rules\"] gives an environment's."
 
 rulesQ::usage = "rulesQ[expr] gives True if expr is a valid TypeTheoryRules value."
@@ -55,11 +59,11 @@ $defaultRules::usage = "$defaultRules is the rules of TypeTheoryEnvironment[] an
 (*Function Definitions*)
 
 
-$ruleSettings = {"Prop", "RewriteRules"}
+$ruleSettings = {"Prop", "RewriteRules", "Quotients"}
 
 $namedRules = <|
-	"CalculusOfInductiveConstructions" -> <|"Name" -> "CalculusOfInductiveConstructions", "Prop" -> True, "RewriteRules" -> False|>,
-	"MartinLofTypeTheory" -> <|"Name" -> "MartinLofTypeTheory", "Prop" -> False, "RewriteRules" -> False|>
+	"CalculusOfInductiveConstructions" -> <|"Name" -> "CalculusOfInductiveConstructions", "Prop" -> True, "RewriteRules" -> False, "Quotients" -> True|>,
+	"MartinLofTypeTheory" -> <|"Name" -> "MartinLofTypeTheory", "Prop" -> False, "RewriteRules" -> False, "Quotients" -> False|>
 |>
 
 rulesQ[TypeTheoryRules[settings_Association]] := And[

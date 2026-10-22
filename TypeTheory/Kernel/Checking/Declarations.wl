@@ -2,7 +2,8 @@
 
 (*
 Declarations: the constructors TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem,
-TypeTheoryInductiveType and TypeTheoryNaturalNumbers, and the environments built from them.
+TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule and TypeTheoryQuotients, and the
+environments built from them.
 
 A declaration is inert data. Its arguments are held, so it reads like mathematics and nothing in it
 evaluates, and it means nothing until it is added to an environment:
@@ -19,6 +20,9 @@ evaluates, and it means nothing until it is added to an environment:
 	                                                            and the operations compute on literals
 	TypeTheoryNaturalNumbers[type, zero, successor, addition]   the same, with addition the only operation
 	TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]    lhs, an axiom applied to arguments, computes to rhs
+	TypeTheoryQuotients[]                                       the quotient types of Lean's kernel (Quotients.wl)
+	TypeTheoryQuotients[equality, {type, introduction, lift, induction}]
+	                                                            the same under other names, with another equality
 
 TypeTheoryEnvironment[environment, {declaration, ...}] elaborates each declaration's terms in the
 environment so far, has the kernel check them, and gives the extended environment, or a Failure for the
@@ -48,6 +52,7 @@ PackageExported[TypeTheoryTheorem]
 PackageExported[TypeTheoryInductiveType]
 PackageExported[TypeTheoryNaturalNumbers]
 PackageExported[TypeTheoryRewriteRule]
+PackageExported[TypeTheoryQuotients]
 
 
 (* ::Section:: *)
@@ -91,6 +96,10 @@ TypeTheoryRewriteRule::usage = "TypeTheoryRewriteRule[name, ForAll[{Typed[x, typ
 x, ..., when added to a TypeTheoryEnvironment whose rules allow rewrite rules.\n\
 lhs must be an axiom applied to arguments in which each variable occurs, and rhs must have the type of lhs. Like an axiom, a rewrite rule is \
 trusted: it may make the theory inconsistent, or computation endless. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
+TypeTheoryQuotients::usage = "TypeTheoryQuotients[] declares the quotient types of Lean's kernel, QuotientType, QuotientIntroduction, QuotientLift and \
+QuotientInduction, when added to a TypeTheoryEnvironment whose rules have quotients and whose Equal is the equality of the prelude: \
+QuotientLift[f, h, QuotientIntroduction[r, a]] computes to f[a].\n\
+TypeTheoryQuotients[equality, {type, introduction, lift, induction}] declares them under the given names, with the inductive type equality as the equality."
 TypeTheoryNaturalNumbers::usage = "TypeTheoryNaturalNumbers[type, zero, successor] registers the inductive type type, with the constructors zero and successor, \
 as the natural numbers, so the literals 0, 1, 2, ... are elements of type.\n\
 TypeTheoryNaturalNumbers[type, zero, successor, <|role -> operation, ...|>] also registers operations that the kernel computes on literals with integers, \
@@ -111,7 +120,7 @@ whose sides are the core functions left and right of its variables, and gives en
 emptyEnvironmentOf::usage = "emptyEnvironmentOf[rules] gives the environment with no constants that follows rules, the same one each time."
 addDeclaration::usage = "addDeclaration[environment, declaration] elaborates and checks the declaration and gives the extended environment, or throws a kernel failure."
 declarationQ::usage = "declarationQ[expr] gives True if expr is a declaration: TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, \
-TypeTheoryNaturalNumbers or TypeTheoryRewriteRule."
+TypeTheoryNaturalNumbers, TypeTheoryRewriteRule or TypeTheoryQuotients."
 declarationUniverseParameters::usage = "declarationUniverseParameters[head, Hold[options], {syntax, ...}] gives the universe parameters {HoldComplete[u], ...} \
 of a declaration from its \"UniverseParameters\" option, or from the universe levels in the syntax trees."
 universeParameterNames::usage = "universeParameterNames[{syntax, ...}] gives the symbols and strings in universe levels of the syntax trees, \
@@ -130,9 +139,10 @@ Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
 
-SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule}, HoldAll]
+SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule, TypeTheoryQuotients}, HoldAll]
 
 declarationQ[_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryInductiveType | _TypeTheoryNaturalNumbers | _TypeTheoryRewriteRule] := True
+declarationQ[TypeTheoryQuotients[] | TypeTheoryQuotients[_, {_, _, _, _}]] := True
 declarationQ[_] := False
 
 
@@ -303,6 +313,10 @@ addDeclaration[environment_, TypeTheoryRewriteRule[name_, rule_, options : Optio
 		]
 	]
 ]
+
+addDeclaration[environment_, TypeTheoryQuotients[]] := addDeclaration[environment, TypeTheoryQuotients[Equal, {QuotientType, QuotientIntroduction, QuotientLift, QuotientInduction}]]
+addDeclaration[environment_, TypeTheoryQuotients[equality_, {type_, introduction_, lift_, induction_}]] :=
+	declareQuotients[environment, HoldComplete[equality], HoldComplete /@ Unevaluated[{type, introduction, lift, induction}]]
 
 addDeclaration[_, other_] := kernelFailure["DeclarationExpected", "`1` is not a declaration.", {Short[other]}]
 

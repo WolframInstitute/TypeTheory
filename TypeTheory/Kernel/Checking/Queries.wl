@@ -149,7 +149,11 @@ TypeTheoryEnvironment /: Normal[environment : TypeTheoryEnvironment[_Symbol]?env
 (* constructors and recursors come with their type, and the types of a block with its first *)
 primaryNames[environment_] := Select[environmentNames[environment], Function[name, ! generatedQ[constantRecord[environment, name], name]]]
 
-generatedQ[record_, name_] := MatchQ[record["Kind"], "Constructor" | "Recursor"] || (record["Kind"] === "InductiveType" && First[record["Block"]] =!= name)
+generatedQ[record_, name_] := Or[
+	MatchQ[record["Kind"], "Constructor" | "Recursor"],
+	record["Kind"] === "InductiveType" && First[record["Block"]] =!= name,
+	record["Kind"] === "Quotient" && record["QuotientType"] =!= name
+]
 
 (* each registration of the natural numbers, or of operations on them, comes right after the last constant
    it names, and after the registration before it *)
@@ -207,10 +211,17 @@ environmentInformation[environment_, "Rules"] := environmentRules[environment]
 (*Declarations read back*)
 
 
+(* the quotient constants come from one declaration, written short with the prelude's names *)
+quotientDeclaration[record_] := Replace[{record["Equality"], record["QuotientNames"]}, {
+	{HoldComplete[Equal], HoldComplete /@ Unevaluated[{QuotientType, QuotientIntroduction, QuotientLift, QuotientInduction}]} :> TypeTheoryQuotients[],
+	{HoldComplete[equality_], names_List} :> (TypeTheoryQuotients[equality, names] /. HoldComplete[name_] :> name)
+}]
+
 declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDeclaredQ[environment, name],
 	Missing["KeyAbsent", ReleaseHold[name]],
 	Replace[constantRecord[environment, name], {
 		record : KeyValuePattern["Kind" -> "Constructor" | "Recursor"] :> declarationOf[environment, record["InductiveType"], mode],
+		record : KeyValuePattern["Kind" -> "Quotient"] :> quotientDeclaration[record],
 		record_ :> ReleaseHold @ heldFromSyntax @ declarationSyntax[environment, name, record, mode]
 	}]
 ]
@@ -314,6 +325,7 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	"Definition" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], KeyTake[record, {"Instance", "Coercion"}]],
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
+	"Quotient" :> declareQuotients[replayed, record["Equality"], record["QuotientNames"]],
 	"InductiveType" :> declareInductiveTypes[
 		replayed,
 		record["UniverseParameters"],

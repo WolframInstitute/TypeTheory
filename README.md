@@ -302,6 +302,7 @@ TypeTheory/Kernel/
   Checking/TypeChecking.wl     the kernel: inference, reduction, definitional equality, projections
   Checking/InductiveTypes.wl   checking inductive families and generating recursors
   Checking/NaturalNumbers.wl   registering the natural numbers for literals
+  Checking/Quotients.wl        the quotient types of Lean's kernel, and their computation
   Checking/Environment.wl      environments as stores of definitions, and kernel failures
   Checking/Declarations.wl     the declaration constructors and environments built from them
   Checking/Queries.wl          TypeOf, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
@@ -314,8 +315,8 @@ TypeTheory/Kernel/
 ```
 
 The trusted part is `CoreTerms.wl`, `TypeChecking.wl`, `InductiveTypes.wl`, `NaturalNumbers.wl`,
-`Environment.wl` and the core declaration functions: about 2,200 lines with their comments and usage
-messages. Elaboration and tactics produce terms that the kernel checks again with no metavariables
+`Quotients.wl`, `Environment.wl` and the core declaration functions: about 2,500 lines with their
+comments and usage messages. Elaboration and tactics produce terms that the kernel checks again with no metavariables
 left, so a mistake outside the kernel can make a proof fail but cannot make a false statement a theorem.
 Kernel answers are `Failure` objects, never messages.
 

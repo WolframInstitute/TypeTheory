@@ -201,7 +201,7 @@ VerificationTest[
 		Count[Normal[evenOdd], TypeTheoryInductiveType[{_, _}, ___]],
 		MatchQ[TypeTheoryCheck[evenOdd], _Success]
 	},
-	{<|"InductiveType" -> 2, "Constructor" -> 3, "Recursor" -> 2, "Definition" -> 0, "Theorem" -> 0, "Axiom" -> 0|>, True, 1, True},
+	{<|"InductiveType" -> 2, "Constructor" -> 3, "Recursor" -> 2, "Definition" -> 0, "Quotient" -> 0, "Theorem" -> 0, "Axiom" -> 0|>, True, 1, True},
 	TestID -> "Mutually-inductive-types-are-declared-together"
 ]
 

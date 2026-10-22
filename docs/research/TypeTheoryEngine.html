@@ -189,9 +189,9 @@ footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule);
     <tr><td>Declaration constructors for axioms, definitions, theorems and inductive types; universe polymorphism</td><td><span class="tag built">built</span></td><td><code>Checking/Declarations.wl</code></td></tr>
     <tr><td>Environments as stores of definitions, carried by terms and proofs</td><td><span class="tag built">built</span></td><td><code>Checking/Environment.wl</code></td></tr>
     <tr><td>Structure projections; eta for structures and for types with one field-less constructor</td><td><span class="tag built">built</span></td><td><code>Checking/TypeChecking.wl</code></td></tr>
-    <tr><td>Rules as values: with or without Prop, and rewrite rules</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> affine and cubical rules, translations</td><td><code>Checking/Rules.wl</code></td></tr>
+    <tr><td>Rules as values: with or without Prop, rewrite rules and quotients</td><td><span class="tag built">built</span>; <span class="tag planned">planned</span> affine and cubical rules, translations</td><td><code>Checking/Rules.wl</code></td></tr>
     <tr><td>Homotopy type theory: paths, univalence, the circle</td><td><span class="tag built">built</span>, univalence and higher inductive types by axioms</td><td><code>Library/HomotopyTypeTheory.wl</code></td></tr>
-    <tr><td>Quotients</td><td><span class="tag planned">planned</span></td><td></td></tr>
+    <tr><td>Quotient types, as Lean's kernel has them: the lift and the induction compute on a class, the soundness of quotients is an axiom</td><td><span class="tag built">built</span></td><td><code>Checking/Quotients.wl</code></td></tr>
     <tr><td>Checking an environment from scratch</td><td><span class="tag built">built</span></td><td><code>Checking/Queries.wl</code></td></tr>
     <tr><td>Surface syntax, reading core terms back, notebook display</td><td><span class="tag built">built</span></td><td><code>Terms/SurfaceSyntax.wl</code>, <code>Terms/Formatting.wl</code></td></tr>
     <tr><td>Elaboration: implicit arguments, universe levels, unification with metavariables in their local contexts, names overloaded by type, instances and coercions</td><td><span class="tag built">built</span></td><td><code>Elaboration/Elaboration.wl</code></td></tr>
@@ -433,16 +433,17 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 
 <section id="trust">
 <h2>What is trusted</h2>
-<p>Five files and the core declaration functions decide what is a theorem:</p>
+<p>Six files and the core declaration functions decide what is a theorem:</p>
 <ul>
   <li><code>CoreTerms.wl</code></li>
   <li><code>TypeChecking.wl</code></li>
   <li><code>InductiveTypes.wl</code></li>
   <li><code>NaturalNumbers.wl</code></li>
+  <li><code>Quotients.wl</code></li>
   <li><code>Environment.wl</code></li>
 </ul>
-<p>Together that is about 1,400 lines with comments and usage messages. Everything else, including the elaborator, the tactics and the display, can make a proof fail but cannot make a false statement pass.</p>
-<p>An environment is a handle to a store whose definitions anyone can change by hand, so a store could claim anything. <code>TypeTheoryCheck[environment]</code> replays the declarations in order on an empty environment with the core functions. It regenerates every constructor and recursor from its inductive type, registers the natural numbers again under the strict contract, and compares every record with the one in the environment. The tests forge a theorem's statement, a recursor's elimination universe and the definition of addition, and the replay catches each. Axioms are trusted by definition and stay visible as axioms.</p>
+<p>Together that is about 2,400 lines with comments and usage messages. Everything else, including the elaborator, the tactics and the display, can make a proof fail but cannot make a false statement pass.</p>
+<p>An environment is a handle to a store whose definitions anyone can change by hand, so a store could claim anything. <code>TypeTheoryCheck[environment]</code> replays the declarations in order on an empty environment with the core functions. It regenerates every constructor and recursor from its inductive type and the quotient constants from their declaration, registers the natural numbers again under the strict contract, and compares every record with the one in the environment. The tests forge a theorem's statement, a recursor's elimination universe, the definition of addition and the type of a quotient's lift, and the replay catches each. Axioms are trusted by definition and stay visible as axioms.</p>
 </section>
 
 <section id="bridge">
