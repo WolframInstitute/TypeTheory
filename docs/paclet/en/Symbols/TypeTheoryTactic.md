@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 | `"Exact", term` | solves the goal with a term |
 | `"Apply", term` | solves the goal with a term applied to new goals, as many as its conclusion needs |
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
-| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized |
+| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized. On a class of a quotient, one goal for the class of an element, as Lean's induction using `Quot.ind` |
 | `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
 | `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
 | `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
@@ -193,6 +193,19 @@ proof = TypeTheoryTactic["Simplify", {Join, ih}][proof]
 ```
 
 <!-- => Proof complete -->
+
+---
+
+On an integer, a class of pairs of natural numbers, `"Induction"` leaves a goal for the class of a pair:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 == x], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Induction", x]
+}]
+```
+
+<!-- => Proof, 1 goal: case QuotientIntroduction ⊢ ∀_a∶CartesianProduct[ℕ, ℕ] QuotientIntroduction[integerRelation, a] + 0 == QuotientIntroduction[integerRelation, a] -->
 
 ---
 

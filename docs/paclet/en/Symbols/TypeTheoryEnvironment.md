@@ -23,6 +23,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code> gives homotopy type theory: paths, univalence and the circle, under rules without Prop.
 
+<code>[TypeTheoryEnvironment]()["Integers"]</code> gives the prelude with the integers, a quotient of pairs of natural numbers, and the laws of a commutative ring.
+
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
 ## Details & Options
@@ -138,6 +140,16 @@ Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Rules"]["Name"]
 ```
 
 <!-- => "MartinLofTypeTheory" -->
+
+---
+
+The integers extend the prelude, built and checked the first time they are asked for:
+
+```wl
+TypeTheoryEnvironment["Integers"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 200 constants -->
 
 ## Properties and Relations
 

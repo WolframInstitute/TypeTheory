@@ -186,7 +186,11 @@ displayApplication[syntaxString["or"], {syntaxApplication[syntaxSymbol[HoldCompl
 displayApplication[syntaxString["or"], arguments_List] := syntaxHead[Nor, arguments]
 (* the integers' operations show as those of the natural numbers, which the types tell apart, as in Lean *)
 displayApplication[syntaxString["integerAddition"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Plus]], arguments]
-displayApplication[syntaxString["integerMultiplication"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Times]], arguments]
+displayApplication[syntaxString["integerMultiplication"], arguments_List] := displayApplication[
+	syntaxSymbol[HoldComplete[Times]],
+	(* a negative factor is parenthesized, 2 (-1), so it does not read as 2 - 1 *)
+	Replace[arguments, negative : syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["-" | "-("], ___}]}] :> delimited["(", negative, ")"], {1}]
+]
 displayApplication[syntaxString["integerSubtraction"], arguments_List] := syntaxHead[Subtract, arguments]
 displayApplication[syntaxString["integerNegation"], {argument_}] := prefixed["-", argument]
 displayApplication[syntaxString["integerLessEqual"], arguments_List] := syntaxHead[LessEqual, arguments]

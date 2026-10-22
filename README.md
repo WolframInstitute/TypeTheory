@@ -36,7 +36,7 @@ Loading takes about three and a half seconds, most of them building the prelude 
 
 The [documentation site](https://www.wolframcloud.com/obj/wolframinstitute/TypeTheory) has a reference
 page for every symbol, a guide, and the tutorials *Getting Started with TypeTheory*, *The Prelude*,
-*Instances and Coercions*, *Rules and Computation*, *Homotopy Type Theory* and *Mathlib in TypeTheory*. The pages are
+*Instances and Coercions*, *The Integers*, *Rules and Computation*, *Homotopy Type Theory* and *Mathlib in TypeTheory*. The pages are
 literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md), and
 [PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
@@ -149,6 +149,20 @@ An environment is a handle to a store: a symbol of its own whose DownValues hold
 Wolfram Language's own way of storing definitions. The handle is small, so terms and proofs carry it. A
 store is never changed once built, and it lasts for the session.
 
+### The integers
+
+`TypeTheoryEnvironment["Integers"]` is the prelude with the integers, built and checked the first time it
+is asked for: classes of pairs of natural numbers (a, b), standing for a - b, a quotient type. The
+operations are lifted from pairs, and the laws of a commutative ring, `IntegerAdditionCommutativity`
+through `IntegerDistributivity`, are proved by the tactics themselves: `"Induction"` on each class,
+`QuotientSoundness`, and `"Ring"` on the pairs. There `+`, `*`, `-`, the comparisons and negative
+literals are the integers' wherever the types say so, and a natural number coerces to an integer:
+
+```wl
+integers = TypeTheoryEnvironment["Integers"];
+TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]]   (* ℤ → ℕ → Prop *)
+```
+
 ### Instances and coercions
 
 Elaboration fills in what Lean's type classes and coercions do. An argument of an instance-implicit
@@ -251,7 +265,7 @@ the HoTT rules refuse one.
 | `"Exact", term` | solves the goal with a term |
 | `"Apply", term` | solves the goal with a term applied to new goals, as many as its conclusion needs |
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
-| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized |
+| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized; on a class of a quotient, one goal for the class of an element |
 | `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
 | `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
 | `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
@@ -317,6 +331,7 @@ TypeTheory/Kernel/
   Proofs/Equational.wl         the proofs of FindEquationalProof, replayed
   Library/Prelude.wl           the prelude
   Library/HomotopyTypeTheory.wl  the homotopy type theory environment
+  Library/Integers.wl          the integers, a quotient, with their laws proved by the tactics
 ```
 
 The trusted part is `CoreTerms.wl`, `TypeChecking.wl`, `InductiveTypes.wl`, `NaturalNumbers.wl`,
@@ -336,7 +351,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 247 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 253 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, and tampered environment records; and, on the prelude's rules,
@@ -344,7 +359,7 @@ the HoTT library proving False with an equality in Prop.
 
 ## Not yet
 
-- The integers and the rationals, built as quotients.
+- The rationals, as a quotient of the integers; deciding equations of integers, and "Ring" over them.
 - Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
 - Cubical type theory, where univalence computes; truncations; translations between rules.

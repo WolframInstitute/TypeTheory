@@ -7,13 +7,13 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, instances, type classes, coercions, Lean]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, InstancesAndCoercions, RulesAndComputation, HomotopyTypeTheory, MathlibInTypeTheory]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, InstancesAndCoercions, TheIntegers, RulesAndComputation, HomotopyTypeTheory, MathlibInTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
 ## Abstract
 
-<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers, the Booleans, decisions, pairs, sums, options and lists, unless [SetTypeTheoryEnvironment]() sets another. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide, and elaboration fills in instances and inserts coercions, as Lean's type classes and coercions do. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
+<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers, the Booleans, decisions, quotients, pairs, sums, options and lists, unless [SetTypeTheoryEnvironment]() sets another; the integers are a quotient in an environment of their own. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide, and elaboration fills in instances and inserts coercions, as Lean's type classes and coercions do. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
 
 ## Functions
 
@@ -93,6 +93,13 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [Decide]() the Boolean of a proposition's decision, found among the instances, and [DecideSoundness]() the proof from a decision that computes to `"true"`
 - [NaturalNumberEqualityDecidable](), [LessEqualDecidable]() the instances deciding `==` and `<=` of natural numbers
 - [NotDecidable](), [AndDecidable](), [OrDecidable]() the instances deciding [Not](), [And]() and [Or]() from the decisions of their parts
+
+### The integers
+
+- <code>[TypeTheoryEnvironment]()["Integers"]</code> the prelude with the integers, classes of pairs of natural numbers, where `+`, `*`, `-` and the comparisons are the integers' wherever the types say so
+- [IntegerAdditionCommutativity](), [IntegerAdditionAssociativity](), [IntegerAdditionZero](), [IntegerAdditionNegation](), [IntegerSubtractionNegation]() addition and negation
+- [IntegerMultiplicationCommutativity](), [IntegerMultiplicationAssociativity](), [IntegerMultiplicationOne](), [IntegerDistributivity]() multiplication
+- [IntegerOfNaturalAddition](), [IntegerOfNaturalMultiplication]() the natural numbers among the integers, and [IntegerLessEqualReflexivity]() the order
 
 ### The prelude: pairs, sums, options and lists
 
