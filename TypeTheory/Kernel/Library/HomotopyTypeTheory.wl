@@ -73,21 +73,22 @@ It is a definition of the HoTT environment."
 DependentCongruence::usage = "DependentCongruence[f, p] is the path Transport[P, p, f[x]] == f[y] that a dependent function f : (x : A) -> P[x] gives from \
 a path p : x == y. It is a definition of the HoTT environment."
 TransportConstant::usage = "TransportConstant[p, b] is the path Transport[Function[{x}, B], p, b] == b: transport in a constant family leaves b where it is."
-IsEquivalence::usage = "IsEquivalence[f] is the type of proofs that f is an equivalence: a left inverse and a right inverse, each with its path. \
-It is an inductive type of the HoTT environment, with the one constructor EquivalenceProof."
+IsEquivalence::usage = "IsEquivalence[f] is the type of proofs that f is an equivalence. In the HoTT environment it is an inductive type, a left inverse and a \
+right inverse, each with its path, with the one constructor EquivalenceProof; in the cubical environment it is a definition, the contractibility of every fiber of f."
 EquivalenceProof::usage = "EquivalenceProof[g, retraction, h, section] proves IsEquivalence[f] from a function g with g[f[x]] == x for every x and a function h \
 with f[h[y]] == y for every y."
-Equivalence::usage = "Equivalence[A, B] is the type of equivalences from A to B: a function with a proof that it is an equivalence. \
-Its one constructor is EquivalenceIntroduction, and e[[1]] is the function of an equivalence e."
+Equivalence::usage = "Equivalence[A, B] is the type of equivalences from A to B: a function with a proof that it is an equivalence, and e[[1]] is the function \
+of an equivalence e. In the HoTT environment its one constructor is EquivalenceIntroduction; in the cubical environment it is a dependent sum, DependentSum[A -> B, IsEquivalence]."
 EquivalenceIntroduction::usage = "EquivalenceIntroduction[f, e] is the equivalence given by the function f and the proof e of IsEquivalence[f]."
-IdentityEquivalence::usage = "IdentityEquivalence[A] is the identity function of A as an equivalence."
+IdentityEquivalence::usage = "IdentityEquivalence[A] is the identity function of A as an equivalence, in the HoTT and cubical environments."
 EqualityToEquivalence::usage = "EqualityToEquivalence[p] is the equivalence a path p : A == B between types gives; reflexivity gives the identity."
 Univalence::usage = "Univalence[A, B] proves IsEquivalence[EqualityToEquivalence] for the types A and B: equivalent types are equal, in as many ways as \
 they are equivalent. It is the axiom of the HoTT environment."
 EquivalenceToEquality::usage = "EquivalenceToEquality[e] is the path A == B that univalence gives for the equivalence e from A to B."
 UnivalenceComputation::usage = "UnivalenceComputation[e] proves EqualityToEquivalence[EquivalenceToEquality[e]] == e: carrying along the path of an \
 equivalence is that equivalence."
-NegationEquivalence::usage = "NegationEquivalence is the negation of Booleans, \"not\", as an equivalence from Booleans to Booleans, its own inverse."
+NegationEquivalence::usage = "NegationEquivalence is the negation of Booleans, \"not\", as an equivalence from Booleans to Booleans, its own inverse, in the HoTT \
+and cubical environments."
 IsSet::usage = "IsSet[A] is the type of proofs that any two paths between the same elements of A are equal."
 UniverseNotSet::usage = "UniverseNotSet proves Not[IsSet[TypeUniverse[1]]]: by univalence, NegationEquivalence gives a path Booleans == Booleans that is not \
 reflexivity, as the HoTT book shows."

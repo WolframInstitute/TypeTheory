@@ -217,6 +217,17 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Path]], {line_, left_, right_}] /; cubicalElaborationQ[] :> elaboratePath[line, left, right],
 	syntaxApplication[syntaxSymbol[HoldComplete[CubicalTransport]], {line_, face_, value_}] /; cubicalElaborationQ[] :> elaborateTransport[line, face, value],
 	syntaxApplication[syntaxSymbol[HoldComplete[CubicalComposition]], {type_, tube_, cap_}] /; cubicalElaborationQ[] :> elaborateComposition[type, tube, cap],
+	syntaxApplication[syntaxSymbol[HoldComplete[GlueType]], {base_, system_}] /; cubicalElaborationQ[] :> elaborateGlueType[base, system],
+	syntaxApplication[syntaxSymbol[HoldComplete[GlueIntroduction]], {terms_, value_}] /; cubicalElaborationQ[] :> elaborateGlueIntroduction[None, terms, value, expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[GlueIntroduction]], {base_, system_, terms_, value_}] /; cubicalElaborationQ[] :>
+		elaborateGlueIntroduction[elaborateGlueType[base, system], terms, value, expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[GlueElimination]], {glued_}] /; cubicalElaborationQ[] :> elaborateGlueElimination[None, glued],
+	syntaxApplication[syntaxSymbol[HoldComplete[GlueElimination]], {base_, system_, glued_}] /; cubicalElaborationQ[] :> elaborateGlueElimination[elaborateGlueType[base, system], glued],
+	(* a primitive read back exactly, with Construct and its universe level, is elaborated as written plainly *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] /; cubicalElaborationQ[] && cubicalHeadSyntaxQ[head] :>
+		elaborateSyntax[syntaxApplication[cubicalHeadSymbol[head], {arguments}], expected],
+	syntaxApplication[head_, arguments_List] /; cubicalElaborationQ[] && MatchQ[head, syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], _]] && cubicalHeadSyntaxQ[head] :>
+		elaborateSyntax[syntaxApplication[cubicalHeadSymbol[head], arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | RightTee]], {binders_, body_}] :> elaborateForAll[listElements[binders], body],
 	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, body_}] :> elaborateSyntax[nestedExistential[listElements[binders], body], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
@@ -1475,6 +1486,84 @@ faceRestrictedType[face_, type_] := Replace[faceConjunctions[$elaborationEnviron
 	{substitution_, ___} :> restrictedTerm[instantiateMetavariables[type], substitution],
 	{} :> type
 }]
+
+$cubicalSpecialHeads = HoldComplete /@ Unevaluated[{Path, CubicalTransport, CubicalComposition, GlueType, GlueIntroduction, GlueElimination}]
+
+cubicalHeadSyntaxQ[syntaxSymbol[held_]] := MemberQ[$cubicalSpecialHeads, held]
+cubicalHeadSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, __}]] := cubicalHeadSyntaxQ[constant]
+cubicalHeadSyntaxQ[_] := False
+
+cubicalHeadSymbol[syntax : syntaxSymbol[_]] := syntax
+cubicalHeadSymbol[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, __}]] := cubicalHeadSymbol[constant]
+
+(* GlueType[A, {face -> pair, ...}]: each pair, an element of the sum or {T, e}, elaborated against Σ T : Type u, T ≃ A
+   as it is where its face holds *)
+elaborateGlueType[baseSyntax_, syntaxApplication[syntaxSymbol[HoldComplete[List]], branches_List]] := Module[{level = newLevelMetavariable[], base},
+	base = checkAgainst[baseSyntax, universeSort[normalizeLevel[levelSuccessor[level, 1]]]];
+	{
+		makeApplication[constantReference[$cubicalNames["GlueType"], {level}], {
+			base,
+			cubicalSystem[Function[branch, elaborateGlueBranch[branch, gluePairType[cubicalSum[$elaborationEnvironment], level, base]]] /@ branches]
+		}],
+		universeSort[normalizeLevel[levelSuccessor[level, 1]]]
+	}
+]
+elaborateGlueType[_, syntax_] := elaborationFailure["`1` is not the system of a Glue type: write {face -> {T, e}, ...}.", syntax]
+
+elaborateGlueBranch[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {faceSyntax_, pairSyntax_}], pairTypeTerm_] := With[{face = elaborateFace[faceSyntax]},
+	{face, checkAgainst[pairOfSyntax[pairSyntax], faceRestrictedType[face, pairTypeTerm]]}
+]
+elaborateGlueBranch[syntax_, _] := elaborationFailure["`1` is not a branch of a system: write face -> pair.", syntax]
+
+(* {T, e} is the pair of the sum *)
+pairOfSyntax[syntaxApplication[syntaxSymbol[HoldComplete[List]], {first_, second_}]] := syntaxApplication[
+	toSyntax @@ First[constantRecord[$elaborationEnvironment, cubicalSum[$elaborationEnvironment]]["Constructors"]],
+	{first, second}
+]
+pairOfSyntax[syntax_] := syntax
+
+(* the element of a Glue type: its type is given, or expected *)
+elaborateGlueIntroduction[given_, syntaxApplication[syntaxSymbol[HoldComplete[List]], branches_List], valueSyntax_, expected_] := Module[{glueType, arguments},
+	glueType = Replace[given, {None :> If[expected === None, None, instantiateMetavariables[expected]], {term_, _} :> term}];
+	(* a Glue type given in full is read as written: where a face holds it reduces to the glued type *)
+	arguments = Which[
+		glueType === None, None,
+		given =!= None, glueTypeArguments[$elaborationEnvironment, instantiateMetavariables[glueType]],
+		True, glueTypeArguments[$elaborationEnvironment, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, glueType]]
+	];
+	If[ arguments === None || Length[branches] =!= Length[First[Last[arguments]]],
+		elaborationFailure["GlueIntroduction needs the Glue type it builds an element of, with a term for each face of it: `1`.", syntaxHead[List, branches]]
+	];
+	Replace[arguments, {level_, base_, system : cubicalSystem[pairs_List]} :> {
+		makeApplication[constantReference[$cubicalNames["GlueIntroduction"], {level}], {
+			base,
+			system,
+			cubicalSystem[MapThread[
+				Function[{pair, branch}, {First[pair], checkAgainst[branchValueSyntax[branch], faceRestrictedType[First[pair], pairType[cubicalSum[$elaborationEnvironment], Last[pair]]]]}],
+				{pairs, branches}
+			]],
+			checkAgainst[valueSyntax, base]
+		}],
+		makeApplication[constantReference[$cubicalNames["GlueType"], {level}], {base, system}]
+	}]
+]
+elaborateGlueIntroduction[_, syntax_, _, _] := elaborationFailure["`1` is not the terms of an element of a Glue type: write {face -> t, ...}.", syntax]
+
+branchValueSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, value_}]] := value
+branchValueSyntax[syntax_] := elaborationFailure["`1` is not a branch of a system: write face -> t.", syntax]
+
+elaborateGlueElimination[given_, gluedSyntax_] := Module[{glued, arguments},
+	glued = Replace[given, {None :> elaborateSyntax[gluedSyntax, None], {term_, _} :> {checkAgainst[gluedSyntax, term], term}}];
+	arguments = If[ given =!= None,
+		glueTypeArguments[$elaborationEnvironment, instantiateMetavariables[Last[glued]]],
+		glueTypeArguments[$elaborationEnvironment, weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[glued]]]]
+	];
+	If[arguments === None, elaborationFailure["`1` is not an element of a Glue type.", gluedSyntax]];
+	Replace[arguments, {level_, base_, system_} :> {
+		makeApplication[constantReference[$cubicalNames["GlueElimination"], {level}], {base, system, First[glued]}],
+		base
+	}]
+]
 
 (* a face: r == 0 and r == 1, And and Or of faces, True and False, or an element of the interval *)
 elaborateFace[syntaxApplication[syntaxSymbol[HoldComplete[Equal]], {variable_, syntaxInteger[endpoint : 0 | 1]}]] := With[

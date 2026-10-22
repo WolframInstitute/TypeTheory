@@ -17,6 +17,13 @@ univalence is a theorem that computes. TypeTheoryCubical[sum] declares its primi
 	CubicalComposition[A, Function[{i}, system], a]
 	                                            the lid of an open box in the type A: its base is a, and the system
 	                                            gives its sides, each a line in A over a face
+	GlueType[A, system]                         the type A with, where each face of the system holds, a type T glued
+	                                            to it along an equivalence e : T ≃ A; the system gives the pairs
+	                                            {T, e}, elements of the sum, and where a face holds it is T
+	GlueIntroduction[A, system, terms, a]       the element of the Glue type that is t where a face holds, t a term
+	                                            of the system terms that e takes to a, an element of A
+	GlueElimination[A, system, b]               the element of A under the element b of the Glue type; where a face
+	                                            holds it is e applied to b
 
 A path is a function of an element of Interval, whose values at IntervalZero and IntervalOne are its
 endpoints: the kernel checks a function of the interval against a path type by its values there, and a
@@ -31,12 +38,22 @@ partial element: each term is checked with each conjunction of its face substitu
 its context, and any two terms agree where both faces hold. A system has no type of its own; it is only
 the side of a composition.
 
+An equivalence T ≃ A is a function with contractible fibers, the type the kernel writes with the sum, the
+dependent sum type TypeTheoryCubical names, and Path:
+
+	Fiber[f, y]          Σ x : T, Path[A, f[x], y]
+	IsContractible[X]    Σ c : X, ∀ z : X, Path[X, c, z]
+	T ≃ A                Σ f : T -> A, ∀ y : A, IsContractible[Fiber[f, y]]
+
 Transport and composition compute by the type they are in, as in cubical type theory: transport is the
 identity where its face holds, and in a universe or an inductive type with no parameters and no indices;
 in a function type and a path type, and composition in a function type and a path type, it is built from
 transport and composition in the parts. Composition is the side its system gives at IntervalOne where a
-face holds. Where no rule applies the term does not compute, which costs canonicity and never consistency:
-every rule is one of cubical type theory.
+face holds. Transport in a Glue type, where its own face is 0 and no face of the Glue type holds for every
+point of the line, transports the element under it in A, and takes the center of the fiber of each
+equivalence at the end of the line over it, which a composition then joins: transport along the path that
+univalence gives an equivalence e applies e. Where no rule applies the term does not compute, which costs
+canonicity and never consistency: every rule is one of cubical type theory.
 
 declareCubical, the typing of the primitives and their reductions are part of the trusted kernel.
 *)
@@ -54,6 +71,9 @@ PackageExported[IntervalJoin]
 PackageExported[IntervalReverse]
 PackageExported[CubicalTransport]
 PackageExported[CubicalComposition]
+PackageExported[GlueType]
+PackageExported[GlueIntroduction]
+PackageExported[GlueElimination]
 
 
 (* ::Section:: *)
@@ -77,6 +97,10 @@ PackageScoped[systemsEqualQ]
 PackageScoped[checkIntervalDomain]
 PackageScoped[pathTypeArguments]
 PackageScoped[intervalLambdaType]
+PackageScoped[glueTypeArguments]
+PackageScoped[gluePairType]
+PackageScoped[pairType]
+PackageScoped[cubicalSum]
 PackageScoped[restrictedTerm]
 PackageScoped[$cubicalNames]
 
@@ -97,6 +121,12 @@ CubicalTransport::usage = "CubicalTransport[A, φ, a] carries a, an element of A
 to an element of A[1]. A must be constant where the face φ holds, and there the transport is a."
 CubicalComposition::usage = "CubicalComposition[A, Function[{i}, {face -> u, ...}], a] composes in the type A: it gives the lid of the open box whose base \
 is a and whose sides are the lines u, over the faces, which must be a at i = 0. Where a face holds, it is that side at i = 1."
+GlueType::usage = "GlueType[A, {face -> pair, ...}] is the type A glued, where each face holds, to the type T of the pair, an element {T, e} of the sum with \
+e an equivalence from T to A; where a face holds it is T. Univalence turns an equivalence into a path of Glue types."
+GlueIntroduction::usage = "GlueIntroduction[{face -> t, ...}, a] is the element of the Glue type expected that is t where a face holds and lies over a, \
+an element of A that the equivalence takes t to. GlueIntroduction[A, system, {face -> t, ...}, a] gives the Glue type GlueType[A, system] in full."
+GlueElimination::usage = "GlueElimination[b] is the element of A under b, an element of GlueType[A, system]; where a face of the system holds it is the \
+equivalence there applied to b. GlueElimination[A, system, b] gives the Glue type in full."
 
 declareCubical::usage = "declareCubical[environment, HoldComplete[sum]] checks that the rules of environment are cubical and gives environment with the \
 primitives of cubical type theory declared; it throws a kernel failure otherwise."
@@ -124,6 +154,10 @@ systemsEqualQ::usage = "systemsEqualQ[environment, context, first, second] gives
 where their faces hold."
 checkIntervalDomain::usage = "checkIntervalDomain[environment, context, domain] checks that domain, the domain of a function, is a type or the interval."
 pathTypeArguments::usage = "pathTypeArguments[environment, type] gives {line, left, right} for a path type Path[line, left, right], or None."
+glueTypeArguments::usage = "glueTypeArguments[environment, type] gives {level, base, system} for a Glue type GlueType[base, system] at the universe level level, or None."
+gluePairType::usage = "gluePairType[sum, level, base] gives the type of the pairs of a Glue type over base in Type level: Σ T : Type level, T ≃ base."
+pairType::usage = "pairType[sum, pair] gives the glued type T of a pair {T, e} of a Glue type."
+cubicalSum::usage = "cubicalSum[environment] gives the dependent sum type that TypeTheoryCubical names in environment."
 intervalLambdaType::usage = "intervalLambdaType[environment, bodyContext, id, name, domain, body, bodyType] gives the path type of a function of the interval, \
 Path[Function[{i}, bodyType], body at 0, body at 1], where bodyType, the type of the body at the variable id, is a type of a universe; None otherwise."
 restrictedTerm::usage = "restrictedTerm[term, substitution] gives term restricted to a conjunction of a face: each interval variable of the substitution \
@@ -148,18 +182,25 @@ $cubicalNames = <|
 	"Reverse" -> HoldComplete[IntervalReverse],
 	"Path" -> HoldComplete[Path],
 	"Transport" -> HoldComplete[CubicalTransport],
-	"Composition" -> HoldComplete[CubicalComposition]
+	"Composition" -> HoldComplete[CubicalComposition],
+	"GlueType" -> HoldComplete[GlueType],
+	"GlueIntroduction" -> HoldComplete[GlueIntroduction],
+	"GlueElimination" -> HoldComplete[GlueElimination]
 |>
 
 (* the arguments a primitive must have before it is a term: those with rules of their own *)
-$saturatedArity = <|"Transport" -> 3, "Composition" -> 3|>
+$saturatedArity = <|"Transport" -> 3, "Composition" -> 3, "GlueType" -> 2, "GlueIntroduction" -> 4, "GlueElimination" -> 3|>
 
 declareCubical[environment_, sum_HoldComplete] := withKernelCaches[
 	If[ ! TrueQ[rulesSetting[environment, "Cubical"]] || TrueQ[rulesSetting[environment, "Prop"]],
 		kernelFailure["CubicalNotAllowed", "The rules of the environment are not cubical: they need \"Cubical\" -> True and no Prop.", {}]
 	];
-	If[ ! constantDeclaredQ[environment, sum] || ! structureLikeQ[environment, sum],
-		kernelFailure["SumExpected", "TypeTheoryCubical needs `1` declared as a dependent sum, a structure of a type and a family over it.", {HoldForm @@ sum}]
+	If[ ! sumQ[environment, sum],
+		kernelFailure[
+			"SumExpected",
+			"TypeTheoryCubical needs `1` declared as the dependent sum, of the type ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, A -> TypeUniverse[v + 1]]}, TypeUniverse[Max[u + 1, v + 1]]] with one constructor of the type ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, A -> TypeUniverse[v + 1]], Typed[a, A], Typed[b, B[a]]}, `1`[A, B]].",
+			{HoldForm @@ sum}
+		]
 	];
 	Scan[
 		Function[name, If[constantDeclaredQ[environment, name], kernelFailure["AlreadyDeclared", "`1` is already declared.", {HoldForm @@ name}]]],
@@ -170,7 +211,7 @@ declareCubical[environment_, sum_HoldComplete] := withKernelCaches[
 			"Kind" -> "Cubical",
 			"CubicalRole" -> role,
 			"Type" -> cubicalType[role],
-			"UniverseParameters" -> If[MemberQ[{"Path", "Transport", "Composition"}, role], {HoldComplete[u]}, {}],
+			"UniverseParameters" -> If[MemberQ[{"Path", "Transport", "Composition", "GlueType", "GlueIntroduction", "GlueElimination"}, role], {HoldComplete[u]}, {}],
 			"Sum" -> sum
 		|>],
 		$cubicalNames
@@ -230,6 +271,119 @@ cubicalType["Composition"] := dependentFunctionType[HoldComplete[A], universeSor
 ]
 
 lineType[] := dependentFunctionType[HoldComplete[i], $interval, universeSort[levelParameter[HoldComplete[u]]], "Explicit"]
+
+(* the Glue primitives' types only name their arguments: the systems, which no type describes, are checked by
+   the kernel itself. ForAll[{TypedImplicit[A, Type u], TypedImplicit[system, Type u]}, Type u] and so on *)
+cubicalType["GlueType"] := dependentFunctionType[HoldComplete[A], glueSort[],
+	dependentFunctionType[HoldComplete[system], glueSort[], glueSort[], "Explicit"],
+	"Explicit"
+]
+cubicalType["GlueIntroduction"] := dependentFunctionType[HoldComplete[A], glueSort[],
+	dependentFunctionType[HoldComplete[system], glueSort[],
+		dependentFunctionType[HoldComplete[terms], glueSort[],
+			dependentFunctionType[HoldComplete[a], boundVariable[2], glueSort[], "Explicit"],
+			"Explicit"
+		],
+		"Implicit"
+	],
+	"Implicit"
+]
+cubicalType["GlueElimination"] := dependentFunctionType[HoldComplete[A], glueSort[],
+	dependentFunctionType[HoldComplete[system], glueSort[],
+		dependentFunctionType[HoldComplete[b], glueSort[], boundVariable[2], "Explicit"],
+		"Implicit"
+	],
+	"Implicit"
+]
+
+glueSort[] := universeSort[levelSuccessor[levelParameter[HoldComplete[u]], 1]]
+
+
+(* ::Subsection:: *)
+(*Equivalences*)
+
+
+(* the dependent sum: a structure of a type A in Type u and a family B over it in Type v, with the pair of an
+   a and a b : B[a] *)
+sumQ[environment_, sum_HoldComplete] := And[
+	constantDeclaredQ[environment, sum],
+	structureLikeQ[environment, sum],
+	MatchQ[constantRecord[environment, sum], KeyValuePattern[{"UniverseParameters" -> {_, _}, "NumberOfParameters" -> 2}]],
+	With[
+		{
+			record = constantRecord[environment, sum],
+			levels = levelParameter /@ constantRecord[environment, sum]["UniverseParameters"]
+		},
+		And[
+			definitionallyEqualQ[environment, <||>, record["Type"], expectedSumType[levels]],
+			definitionallyEqualQ[environment, <||>, constantRecord[environment, First[record["Constructors"]]]["Type"], expectedPairType[sum, levels]]
+		]
+	]
+]
+
+(* ForAll[{Typed[A, Type u], Typed[B, A -> Type v]}, Type (max u v)] *)
+expectedSumType[{u_, v_}] := dependentFunctionType[HoldComplete[A], typeAt[u],
+	dependentFunctionType[HoldComplete[B], dependentFunctionType[HoldComplete[x], boundVariable[0], typeAt[v], "Explicit"],
+		universeSort[normalizeLevel[levelMaximum[levelSuccessor[u, 1], levelSuccessor[v, 1]]]],
+		"Explicit"
+	],
+	"Explicit"
+]
+
+(* ForAll[{TypedImplicit[A, Type u], TypedImplicit[B, A -> Type v], Typed[a, A], Typed[b, B[a]]}, sum[A, B]] *)
+expectedPairType[sum_, {u_, v_}] := dependentFunctionType[HoldComplete[A], typeAt[u],
+	dependentFunctionType[HoldComplete[B], dependentFunctionType[HoldComplete[x], boundVariable[0], typeAt[v], "Explicit"],
+		dependentFunctionType[HoldComplete[a], boundVariable[1],
+			dependentFunctionType[HoldComplete[b], application[boundVariable[1], boundVariable[0]],
+				makeApplication[constantReference[sum, {u, v}], {boundVariable[3], boundVariable[2]}],
+				"Explicit"
+			],
+			"Explicit"
+		],
+		"Implicit"
+	],
+	"Implicit"
+]
+
+typeAt[level_] := universeSort[normalizeLevel[levelSuccessor[level, 1]]]
+
+(* terms built with fresh variables, abstracted at the end *)
+binding[head_, name_, domain_, body_] := With[{id = freshFreeVariable[]},
+	head[HoldComplete[name], domain, abstractFreeVariable[body[freeVariable[id]], id], "Explicit"]
+]
+
+sumOf[sum_, {u_, v_}, domain_, family_] := makeApplication[constantReference[sum, {u, v}], {domain, family}]
+
+constantPath[level_, type_, left_, right_] := makeApplication[cubicalConstant["Path", normalizeLevel[levelSuccessor[level, 1]]], {
+	lambdaAbstraction[HoldComplete[i], $interval, liftBoundVariables[type, 1, 0], "Explicit"],
+	left,
+	right
+}]
+
+(* for T and A in Type u: the fiber of f over y, contractibility, and the equivalences from T to A *)
+fiberType[sum_, u_, domain_, codomain_, function_, point_] :=
+	sumOf[sum, {u, u}, domain, binding[lambdaAbstraction, x, domain, Function[element, constantPath[u, codomain, application[function, element], point]]]]
+
+contractibleType[sum_, u_, type_] := sumOf[sum, {u, u}, type, binding[lambdaAbstraction, c, type, Function[center,
+	binding[dependentFunctionType, z, type, Function[other, constantPath[u, type, center, other]]]
+]]]
+
+equivalenceType[sum_, u_, domain_, codomain_] := With[{functionType = binding[dependentFunctionType, x, domain, Function[element, codomain]]},
+	sumOf[sum, {u, u}, functionType, binding[lambdaAbstraction, f, functionType, Function[function,
+		binding[dependentFunctionType, y, codomain, Function[point, contractibleType[sum, u, fiberType[sum, u, domain, codomain, function, point]]]]
+	]]]
+]
+
+(* the type of a pair {T, e} of a Glue type over A in Type u: Σ T : Type u, T ≃ A *)
+gluePairType[sum_, u_, base_] := sumOf[sum, {normalizeLevel[levelSuccessor[u, 1]], u}, typeAt[u], binding[lambdaAbstraction, T, typeAt[u], Function[glued,
+	equivalenceType[sum, u, glued, base]
+]]]
+
+pairType[sum_, pair_] := projection[sum, 0, pair]
+pairFunction[sum_, pair_] := projection[sum, 0, projection[sum, 1, pair]]
+
+(* the center of contraction of the fiber over y of the equivalence of a pair: {x, Path[A, f[x], y]} *)
+fiberCenter[sum_, pair_, point_] := projection[sum, 0, application[projection[sum, 1, projection[sum, 1, pair]], point]]
 
 
 (* ::Subsection:: *)
@@ -443,7 +597,59 @@ saturatedType[environment_, context_, "Composition", {level_}, {type_, tube_, ca
 	type
 ]
 
+(* GlueType[A, system]: A in Type u, and each pair of the system an element of Σ T : Type u, T ≃ A where its face holds *)
+saturatedType[environment_, context_, "GlueType", {level_}, {base_, system_}] := (
+	checkGlueSystem[environment, context, level, base, system];
+	typeAt[level]
+)
+
+(* GlueIntroduction[A, system, terms, a]: the terms are elements of the glued types, which the equivalences take to a *)
+saturatedType[environment_, context_, "GlueIntroduction", {level_}, {base_, system_, terms_, value_}] := With[{sum = cubicalSum[environment]},
+	checkGlueSystem[environment, context, level, base, system];
+	checkHasType[environment, context, value, base];
+	Replace[{system, terms}, {
+		{cubicalSystem[pairs_List], cubicalSystem[elements_List]} /; Length[pairs] == Length[elements] && AllTrue[
+				Transpose[{pairs, elements}],
+				Function[branch, intervalEqualQ[environment, context, First[First[branch]], First[Last[branch]]]]
+			] :> (
+			MapThread[
+				Function[{pair, element}, (
+					checkUnderFace[environment, context, First[pair], Last[element], pairType[sum, Last[pair]]];
+					If[ ! equalUnderFaceQ[environment, context, First[pair], application[pairFunction[sum, Last[pair]], Last[element]], value],
+						kernelFailure["GlueMismatch", "The equivalence of a Glue type must take each term of the element to the element of the base under it.", {}]
+					]
+				)],
+				{pairs, elements}
+			];
+			Do[
+				If[ ! equalUnderFaceQ[environment, context, intervalMeet[First[elements[[k]]], First[elements[[l]]]], Last[elements[[k]]], Last[elements[[l]]]],
+					kernelFailure["SystemDisagreement", "Two sides of a system disagree where both their faces hold.", {}]
+				],
+				{k, Length[elements]},
+				{l, k + 1, Length[elements]}
+			]
+		),
+		_ :> kernelFailure["GlueTermsExpected", "The terms of an element of a Glue type must be a system with the faces of the Glue type, in order.", {}]
+	}];
+	makeApplication[cubicalConstant["GlueType", level], {base, system}]
+]
+
+(* GlueElimination[A, system, b]: b an element of GlueType[A, system] *)
+saturatedType[environment_, context_, "GlueElimination", {level_}, {base_, system_, glued_}] := (
+	checkGlueSystem[environment, context, level, base, system];
+	checkHasType[environment, context, glued, makeApplication[cubicalConstant["GlueType", level], {base, system}]];
+	base
+)
+
 saturatedType[_, _, role_, _, _] := kernelFailure["CubicalUniverse", "`1` takes one universe level.", {HoldForm @@ $cubicalNames[role]}]
+
+cubicalSum[environment_] := constantRecord[environment, $cubicalNames["Interval"]]["Sum"]
+
+checkGlueSystem[environment_, context_, level_, base_, cubicalSystem[branches_List]] := (
+	checkHasType[environment, context, base, typeAt[level]];
+	checkSystem[environment, context, First /@ branches, Last /@ branches, gluePairType[cubicalSum[environment], level, base]]
+)
+checkGlueSystem[_, _, _, _, _] := kernelFailure["GlueSystemExpected", "A Glue type takes a system of pairs, {face -> pair, ...}.", {}]
 
 lineOf[level_] := dependentFunctionType[HoldComplete[i], $interval, universeSort[level], "Explicit"]
 
@@ -551,18 +757,45 @@ reduceCubical[environment_, context_, term_, record_, levels_, arguments_] := Re
 		compositionReduction[environment, context, First[levels], type, tube, cap],
 		{None :> term, reduced_ :> makeApplication[reduced, {rest}]}
 	],
+	(* where a face holds, a Glue type is its glued type, an element of it its term there, and the element
+	   under one the equivalence applied to it *)
+	{"GlueType", {_, cubicalSystem[branches_List], rest___}} :> Replace[
+		trueBranch[environment, context, branches],
+		{None :> term, {_, pair_} :> makeApplication[pairType[record["Sum"], pair], {rest}]}
+	],
+	{"GlueIntroduction", {_, _, cubicalSystem[elements_List], _, rest___}} :> Replace[
+		trueBranch[environment, context, elements],
+		{None :> term, {_, element_} :> makeApplication[element, {rest}]}
+	],
+	{"GlueElimination", {_, cubicalSystem[branches_List], glued_, rest___}} :> Replace[trueBranch[environment, context, branches], {
+		{_, pair_} :> makeApplication[application[pairFunction[record["Sum"], pair], glued], {rest}],
+		None :> Replace[applicationSpine[weakHeadNormalForm[environment, context, glued]], {
+			{constantReference[name_, _], {_, _, _, value_}} /; cubicalRole[environment, name] === "GlueIntroduction" :> makeApplication[value, {rest}],
+			_ :> term
+		}]
+	}],
 	_ :> term
 }]
+
+trueBranch[environment_, context_, branches_List] := SelectFirst[branches, Function[branch, faceTrueQ[environment, context, First[branch]]], None]
 
 (* an operation on the interval is its canonical term *)
 canonicalInterval[environment_, context_, term_] := Replace[intervalForm[environment, context, term], {None :> term, form_ :> intervalTerm[form]}]
 
 (* a path that is no function, applied to an endpoint, is that endpoint of its type *)
 reducePathEndpoint[environment_, context_, term_, head_, arguments_List] := With[
-	{position = FirstPosition[arguments, argument_ /; MatchQ[intervalForm[environment, context, argument], {} | {{}}], None, {1}, Heads -> False]},
+	{
+		position = FirstPosition[
+			Drop[arguments, saturatedPrefix[environment, head]],
+			argument_ /; MatchQ[intervalForm[environment, context, argument], {} | {{}}],
+			None,
+			{1},
+			Heads -> False
+		]
+	},
 	If[ position === None,
 		term,
-		With[{index = First[position]},
+		With[{index = First[position] + saturatedPrefix[environment, head]},
 			Replace[
 				pathTypeArguments[environment, weakHeadNormalForm[environment, context, inferType[environment, context, makeApplication[head, Take[arguments, index - 1]]]]],
 				{
@@ -573,6 +806,10 @@ reducePathEndpoint[environment_, context_, term_, head_, arguments_List] := With
 		]
 	]
 ]
+
+(* the arguments of a primitive that its own rules check, which are no path applied to an endpoint *)
+saturatedPrefix[environment_, constantReference[name_, _]] := Lookup[$saturatedArity, cubicalRole[environment, name], 0]
+saturatedPrefix[_, _] := 0
 
 (* the line A at a fresh variable of the interval, reduced: {id, context, body} *)
 openedLine[environment_, context_, line_] := With[{id = freshFreeVariable[]},
@@ -602,6 +839,8 @@ transportReduction[environment_, context_, level_, line_, face_, value_] := If[ 
 			functionTransport[environment, context, lineContext, id, face, value, name, domain, codomain, binder],
 		{id_, lineContext_, type_} /; pathTypeArguments[environment, type] =!= None :>
 			pathTransport[environment, context, lineContext, id, level, face, value, pathTypeArguments[environment, type]],
+		{id_, lineContext_, type_} /; glueTypeArguments[environment, type] =!= None :>
+			glueTransport[environment, context, lineContext, id, level, face, value, glueTypeArguments[environment, type]],
 		_ -> None
 	}]
 ]
@@ -712,3 +951,52 @@ systemTube[opened_, change_, extra_List] := lambdaAbstraction[HoldComplete[i], $
 	cubicalSystem[Join[Transpose[{opened["Faces"], change /@ opened["Sides"]}], extra]],
 	opened["Id"]
 ], "Explicit"]
+
+glueTypeArguments[environment_, type_] := Replace[applicationSpine[type], {
+	{constantReference[name_, {glueLevel_}], {base_, system_cubicalSystem}} /; cubicalRole[environment, name] === "GlueType" :> {glueLevel, base, system},
+	_ -> None
+}]
+
+(* Transport in GlueType[A[i], {ψ[i] -> {T[i], e[i]}, ...}] with its own face 0, where no face ψ holds all
+   along the line: the element under b, carried along A, is a1; at the end of the line, the center of the
+   fiber over a1 of each equivalence e[1] gives a term t and a path from e[1][t] to a1, and a composition in
+   A[1] along those paths reversed gives the element under the result, which is t where ψ[1] holds. *)
+glueTransport[environment_, context_, lineContext_, id_, level_, face_, value_, {glueLevel_, base_, cubicalSystem[branches_List]}] := If[
+	intervalForm[environment, context, face] =!= {} || ! independentFaceEmptyQ[environment, lineContext, id, First /@ branches],
+	None,
+	glueTransportReduct[environment, id, level, value, glueLevel, base, branches]
+]
+
+glueTransportReduct[environment_, id_, level_, value_, glueLevel_, base_, branches_List] := Module[
+	{sum = cubicalSum[environment], startSystem, endSystem, endBase, under, centers},
+	startSystem = cubicalSystem[Map[Function[part, substitutedVariable[part, id, $intervalZero]], branches, {2}]];
+	endSystem = cubicalSystem[Map[Function[part, substitutedVariable[part, id, $intervalOne]], branches, {2}]];
+	endBase = substitutedVariable[base, id, $intervalOne];
+	under = makeApplication[cubicalConstant["Transport", level], {
+		intervalLambda[HoldComplete[i], id, base],
+		$intervalZero,
+		makeApplication[cubicalConstant["GlueElimination", glueLevel], {substitutedVariable[base, id, $intervalZero], startSystem, value}]
+	}];
+	centers = Function[branch, fiberCenter[sum, Last[branch], under]] /@ First[endSystem];
+	makeApplication[cubicalConstant["GlueIntroduction", glueLevel], {
+		endBase,
+		endSystem,
+		cubicalSystem[Transpose[{First /@ First[endSystem], Function[center, projection[sum, 0, center]] /@ centers}]],
+		With[{jd = freshFreeVariable[]},
+			makeApplication[cubicalConstant["Composition", level], {
+				endBase,
+				lambdaAbstraction[HoldComplete[j], $interval, abstractFreeVariable[
+					cubicalSystem[Transpose[{First /@ First[endSystem], Function[center, application[projection[sum, 1, center], intervalReverse[freeVariable[jd]]]] /@ centers}]],
+					jd
+				], "Explicit"],
+				under
+			}]
+		]
+	}]
+]
+
+(* no conjunction of the faces, all joined, leaves the variable of the line out *)
+independentFaceEmptyQ[environment_, context_, id_, faces_List] := With[
+	{form = intervalForm[environment, context, Fold[intervalJoin, $intervalZero, faces]]},
+	form =!= None && NoneTrue[Select[form, consistentConjunctionQ], Function[conjunction, FreeQ[conjunction, {id, _}]]]
+]

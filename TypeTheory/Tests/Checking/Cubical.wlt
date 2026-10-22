@@ -183,3 +183,47 @@ VerificationTest[
 	{"DeclarationMismatch", "DeclarationMismatch"},
 	TestID -> "A-forged-cubical-record-is-caught"
 ]
+
+(* Glue types in the cubical environment, whose library gives the equivalences *)
+library = TypeTheoryEnvironment["Cubical"]
+
+VerificationTest[
+	{
+		definitionFailure[library, Function[{Typed[i, Interval]}, GlueType[Booleans, {i == 0 -> {Booleans, "not"}}]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[GlueType[Booleans, {1 -> {Booleans, NegationEquivalence}}], library], TypeTheoryTerm[Booleans, library]],
+		WeakHeadNormalForm[TypeTheoryTerm[GlueElimination[Booleans, {1 -> {Booleans, NegationEquivalence}}, "true"], library]],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]], library]], TypeTheoryTerm[Path[__], _]],
+		definitionFailure[library, Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "true"]]],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]]], library],
+			TypeTheoryTerm[Function[{Typed[i, Interval]}, "false"], library]
+		]
+	},
+	{"TypeMismatch", True, TypeTheoryTerm["false", library], True, "GlueMismatch", True},
+	TestID -> "A-Glue-type-is-its-glued-type-where-a-face-holds"
+]
+
+(* transport in a Glue type: along the path univalence gives, the equivalence is applied *)
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], library]],
+		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "false"], library]],
+		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[IdentityEquivalence[Booleans]], 0, "true"], library]]
+	},
+	{TypeTheoryTerm["false", library], TypeTheoryTerm["true", library], TypeTheoryTerm["true", library]},
+	TestID -> "Transport-along-univalence-applies-the-equivalence"
+]
+
+VerificationTest[
+	{
+		First @ TypeTheoryCheck[forge[library, HoldComplete[GlueType], Function[record, Append[record, "Sum"-> HoldComplete[Booleans]]]]],
+		First @ TypeTheoryEnvironment[TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"]], {
+			TypeTheoryInductiveType[Pairs, ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeUniverse[v + 1]]}, TypeUniverse[Max[u + 1, v + 1]]], {
+				MakePair -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[a, A], Typed[b, B]}, Pairs[A, B]]
+			}],
+			TypeTheoryCubical[Pairs]
+		}]
+	},
+	{"DeclarationMismatch", "SumExpected"},
+	TestID -> "Glue-types-need-the-dependent-sum"
+]
