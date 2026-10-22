@@ -48,12 +48,13 @@ VerificationTest[
 	{
 		First @ TypeTheoryEnvironment[TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory"]], {TypeTheoryCubical[DependentSum]}],
 		First @ TypeTheoryEnvironment[TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "Cubical" -> True]], {TypeTheoryCubical[DependentSum]}],
+		First @ TypeTheoryEnvironment[TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory", "Quantities" -> True]], {TypeTheoryCubical[DependentSum]}],
 		First @ TypeTheoryEnvironment[TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"]], {TypeTheoryCubical[DependentSum]}],
 		First @ TypeTheoryEnvironment[cubical, {TypeTheoryCubical[DependentSum]}],
 		Last[Normal[TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"], Take[Normal[cubical], 2]]]],
 		First @ TypeTheoryCheck[paths]
 	},
-	{"CubicalNotAllowed", "CubicalNotAllowed", "SumExpected", "AlreadyDeclared", TypeTheoryCubical[DependentSum], "EnvironmentChecked"},
+	{"CubicalNotAllowed", "CubicalNotAllowed", "CubicalNotAllowed", "SumExpected", "AlreadyDeclared", TypeTheoryCubical[DependentSum], "EnvironmentChecked"},
 	TestID -> "Cubical-primitives-need-cubical-rules-and-a-sum"
 ]
 

@@ -20,7 +20,7 @@ environment are its assumptions, axioms included; the rules are what the kernel 
 	                  reject more terms, so they are consistent whenever the same rules without it are.
 	"Cubical"         TypeTheoryCubical may declare the interval, paths over it, transport, composition and
 	                  Glue types of cubical type theory, in which univalence computes (Cubical.wl); they
-	                  exclude Prop, whose proof irrelevance contradicts univalence.
+	                  exclude Prop, whose proof irrelevance contradicts univalence, and quantities.
 
 "CalculusOfInductiveConstructions" is the rules of the prelude, which those of Lean's kernel are, quotients
 included; without "Quotients" they are those of Rocq's kernel.

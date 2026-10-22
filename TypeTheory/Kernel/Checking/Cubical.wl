@@ -192,8 +192,9 @@ $cubicalNames = <|
 $saturatedArity = <|"Transport" -> 3, "Composition" -> 3, "GlueType" -> 2, "GlueIntroduction" -> 4, "GlueElimination" -> 3|>
 
 declareCubical[environment_, sum_HoldComplete] := withKernelCaches[
-	If[ ! TrueQ[rulesSetting[environment, "Cubical"]] || TrueQ[rulesSetting[environment, "Prop"]],
-		kernelFailure["CubicalNotAllowed", "The rules of the environment are not cubical: they need \"Cubical\" -> True and no Prop.", {}]
+	(* the live check of quantities does not count the uses in a system, so the two do not go together *)
+	If[ ! TrueQ[rulesSetting[environment, "Cubical"]] || TrueQ[rulesSetting[environment, "Prop"]] || TrueQ[rulesSetting[environment, "Quantities"]],
+		kernelFailure["CubicalNotAllowed", "The rules of the environment are not cubical: they need \"Cubical\" -> True, no Prop and no quantities.", {}]
 	];
 	If[ ! sumQ[environment, sum],
 		kernelFailure[
