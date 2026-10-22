@@ -48,6 +48,8 @@ The tactics:
 	                        connectives by computing its decision
 	"FindInstance"          proves an existential statement over the natural numbers with witnesses that
 	                        Wolfram's FindInstance finds, the instance proved by "Decide"
+	"Ring"                  proves an equation of natural numbers that holds in every commutative semiring, by
+	                        normal forms with proofs from the prelude's laws (Ring.wl)
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -102,7 +104,8 @@ TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which mu
 TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation; \
 a definition among h1, h2, ... unfolds where it computes, as Join does on ListPrepend[x, l], with its recursive calls folded back.\n\
 TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision.\n\
-TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision."
+TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
+TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -287,6 +290,7 @@ runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldCo
 runTactic["Simplify", Hold[{lemmas___}], data_, goal_] := simplify[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
 runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
+runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
@@ -351,7 +355,7 @@ applyTerm[data_, goal_, held_HoldComplete] := With[
 			];
 			(* the partial term is checked now, with its holes standing for terms of their types *)
 			Block[{$metavariableTypes = Join[goalTypes, newTypes], $metavariableAssignments = <||>},
-				checkHasType[environment, current["Context"], applied, instantiateProofTerm[updated, current["Type"]]]
+				withKernelCaches[checkHasType[environment, current["Context"], applied, instantiateProofTerm[updated, current["Type"]]]]
 			];
 			solveGoal[
 				updated,
@@ -497,7 +501,7 @@ rewriteGoal[data_, goal_, current_, goalTypes_, rewritten_Association, direction
 	With[{solution = If[direction === "LeftToRight", transportBackward, transportForward][rewritten, context, metavariable[newId]]},
 		Replace[
 			Block[{$metavariableTypes = Join[goalTypes, <|newId -> rewritten["Statement"]|>], $metavariableAssignments = <||>},
-				catchKernelFailure[checkHasType[environment, context, solution, instantiateProofTerm[updated, current["Type"]]]]
+				catchKernelFailure[withKernelCaches[checkHasType[environment, context, solution, instantiateProofTerm[updated, current["Type"]]]]]
 			],
 			_Failure :> motiveFailure[data, goal, context, rewritten]
 		];
@@ -514,7 +518,7 @@ rewriteHypothesis[data_, goal_, current_, goalTypes_, rewritten_Association, dir
 	proof = If[direction === "LeftToRight", transportForward, transportBackward][rewritten, context, freeVariable[id]];
 	Replace[
 		Block[{$metavariableTypes = goalTypes, $metavariableAssignments = <||>},
-			catchKernelFailure[checkHasType[environment, context, proof, rewritten["Statement"]]]
+			catchKernelFailure[withKernelCaches[checkHasType[environment, context, proof, rewritten["Statement"]]]]
 		],
 		_Failure :> motiveFailure[data, goal, context, rewritten]
 	];
@@ -880,6 +884,40 @@ decisionTerm[data_, goal_, environment_, context_, proposition_] := Replace[prop
 }]
 
 
+
+(* ::Subsection:: *)
+(*Ring*)
+
+
+(* An equation of natural numbers that holds in every commutative semiring: both sides are normalized to
+   polynomials in their atoms, with proofs from the prelude's laws (Ring.wl), and the kernel checks the
+   proof before it closes the goal. *)
+ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[$ringConstants, Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
+	];
+	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
+			Replace[ringEquationProof[left, right], {
+				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative semiring.", data, goal],
+				proof_ :> (
+					(* the proof shares its subterms many times over, which the kernel's caches check once *)
+					Replace[catchKernelFailure[withKernelCaches[checkHasType[environment, current["Context"], proof, current["Type"]]]],
+						_Failure :> tacticFailure["RingProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal]
+					];
+					solveGoal[data, goal, proof, {}]
+				)
+			}],
+		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
+	}]
+]
+
+$ringConstants = HoldComplete /@ Unevaluated[{
+	NonNegativeIntegers, Plus, Times, Power, Equal, EqualityReflexivity, EqualitySymmetry, EqualityTransitivity, EqualityCongruence,
+	AdditionAssociativity, AdditionCommutativity, AdditionZeroLeft, AdditionZeroRight, MultiplicationAssociativity, MultiplicationCommutativity,
+	MultiplicationZeroLeft, MultiplicationZeroRight, MultiplicationOneLeft, MultiplicationDistributivityLeft, MultiplicationDistributivityRight,
+	PowerZero, PowerOne, PowerSuccessor, PowerAddition
+}]
 
 (* ::Subsection:: *)
 (*Wolfram oracles*)
