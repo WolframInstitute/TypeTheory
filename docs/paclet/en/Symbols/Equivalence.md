@@ -19,6 +19,7 @@ RelatedTutorials: [HomotopyTypeTheory]
 - [Equivalence]() is a structure with the one constructor [EquivalenceIntroduction](); `e[[1]]` is the function of an equivalence *e* and `e[[2]]` the proof.
 - Univalence identifies the equivalences from *A* to *B* with the paths <code>*A* == *B*</code>.
 - It is a constant of <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>; terms that use it name that environment.
+- In <code>[TypeTheoryEnvironment]()["Cubical"]</code>, [Equivalence]() is a definition: the dependent sum of a function and the proof that its fibers are contractible, along which [EquivalenceToPath]() builds univalence.
 
 ## Basic Examples
 

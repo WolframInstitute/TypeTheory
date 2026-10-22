@@ -18,6 +18,7 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 - [IdentityEquivalence]() is a definition; it is what [EqualityToEquivalence]() gives for reflexivity.
 - It is a constant of <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>; terms that use it name that environment.
+- <code>[TypeTheoryEnvironment]()["Cubical"]</code> has its own, whose fibers contract to the constant path; [EquivalenceToPath]() glues along it at 1.
 
 ## Basic Examples
 

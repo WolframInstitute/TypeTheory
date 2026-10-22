@@ -19,6 +19,7 @@ RelatedTutorials: [HomotopyTypeTheory]
 - [NegationEquivalence]() is a definition; its paths are proved by cases on a Boolean.
 - Through univalence it gives a path <code>[Booleans]() == [Booleans]()</code> that is not reflexivity, which is how [UniverseNotSet]() is proved.
 - It is a constant of <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>; terms that use it name that environment.
+- <code>[TypeTheoryEnvironment]()["Cubical"]</code> has its own, made by [IsomorphismEquivalence](), and transport along <code>[EquivalenceToPath]()[[NegationEquivalence]()]</code> takes `"true"` to `"false"` by computation.
 
 ## Basic Examples
 

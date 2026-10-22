@@ -25,12 +25,12 @@ Information[TypeTheoryEnvironment[], "Rules"]["Name"]
 Those rules have a universe of propositions, Prop, quotient types, no rewrite rules and no quantities:
 
 ```wl
-TypeTheoryRules["CalculusOfInductiveConstructions"] /@ {"Prop", "Quotients", "RewriteRules", "Quantities"}
+TypeTheoryRules["CalculusOfInductiveConstructions"] /@ {"Prop", "Quotients", "RewriteRules", "Quantities", "Cubical"}
 ```
 
-<!-- => {True, True, False, False} -->
+<!-- => {True, True, False, False, False} -->
 
-Without quotient types, they are the rules of Rocq's kernel. With quantities, a binder may say that the code that runs uses its variable at most once, or never; the tutorial *Erased and Affine Variables* has them.
+Without quotient types, they are the rules of Rocq's kernel. With quantities, a binder may say that the code that runs uses its variable at most once, or never; the tutorial *Erased and Affine Variables* has them. Cubical rules have the interval and paths of cubical type theory, in which univalence computes; the tutorial *Cubical Type Theory* has them.
 
 Martin-Löf type theory has no Prop:
 

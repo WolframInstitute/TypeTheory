@@ -19,6 +19,7 @@ RelatedTutorials: [HomotopyTypeTheory]
 - [IsEquivalence]() is an inductive type with the one constructor [EquivalenceProof](); `e[[1]]` to `e[[4]]` are the left inverse, its path, the right inverse and its path.
 - This bi-invertible definition is the one under which being an equivalence is a proposition, as univalence requires.
 - It is a constant of <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>; terms that use it name that environment.
+- In <code>[TypeTheoryEnvironment]()["Cubical"]</code>, [IsEquivalence]() is a definition instead: every fiber of the function is contractible, <code>[ForAll]()[{[Typed]()[*y*, *B*]}, [IsContractible]()[[Fiber]()[*f*, *y*]]]</code>, the type the kernel writes for Glue types.
 
 ## Basic Examples
 

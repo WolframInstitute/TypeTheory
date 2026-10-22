@@ -25,6 +25,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryEnvironment]()["Integers"]</code> gives the prelude with the integers, a quotient of pairs of natural numbers, and the laws of a commutative ring.
 
+<code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
+
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
 ## Details & Options

@@ -168,4 +168,4 @@ Declarations then build a theory of one's own on them, with [TypeTheoryRewriteRu
 
 ## What It Does Not Have Yet
 
-Univalence is an axiom here, so a path it gives does not compute; cubical type theory, where it does, needs a kernel of its own. Higher inductive types come one at a time, as axioms with rewrite rules, and truncations and quotients are not here yet.
+Univalence is an axiom here, so a path it gives does not compute; in cubical type theory it does, and <code>[TypeTheoryEnvironment]()["Cubical"]</code> has it, with the rules of the tutorial *Cubical Type Theory*. Higher inductive types come one at a time, as axioms with rewrite rules, and truncations and quotients are not here yet.
