@@ -239,7 +239,13 @@ VerificationTest[
 		Last[TypeOf[TypeTheoryTerm[True]]["MessageParameters"]],
 		Last[TypeOf[TypeTheoryTerm[Not]]["MessageParameters"]]
 	},
-	{{"and", "false", "not", "or", "true"}, {}, True, "true", "not"},
+	{
+		{"and", "equal", "equalFalse", "equalTrue", "false", "falseNotTrue", "lessEqual", "lessEqualFalse", "lessEqualTrue", "not", "or", "true", "trueNotFalse"},
+		{},
+		True,
+		"true",
+		"not"
+	},
 	TestID -> "The-constants-of-the-Booleans-are-named-by-strings"
 ]
 
@@ -259,4 +265,19 @@ VerificationTest[
 	},
 	{"TypeMismatch", TypeTheoryTerm[Lists[Option[NonNegativeIntegers]], prelude]},
 	TestID -> "A-solution-names-only-variables-in-the-scope-of-its-metavariable"
+]
+
+VerificationTest[
+	{
+		TypeOf[TypeTheoryTerm[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, x + y == 5], prelude]],
+		MatchQ[
+			TypeTheoryCheck[
+				TypeTheoryTerm[ExistsIntroduction[2, ExistsIntroduction[3, EqualityReflexivity[5]]], prelude],
+				TypeTheoryTerm[Exists[{Typed[x, NonNegativeIntegers]}, Exists[{Typed[y, NonNegativeIntegers]}, x + y == 5]], prelude]
+			],
+			_Success
+		]
+	},
+	{TypeTheoryTerm[TypeUniverse[0], prelude], True},
+	TestID -> "Exists-with-several-binders-is-one-Exists-in-another"
 ]

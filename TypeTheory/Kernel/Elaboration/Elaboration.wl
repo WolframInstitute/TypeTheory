@@ -189,8 +189,7 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] :> elaborateFunction[listElements[binders], body, expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | RightTee]], {binders_, body_}] :> elaborateForAll[listElements[binders], body],
-	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, body_}] :>
-		elaborateSyntax[syntaxHead[Exists, {syntaxHead[Function, {binders, body}]}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, body_}] :> elaborateSyntax[nestedExistential[listElements[binders], body], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :>
 		elaborateArrow[listElements[domains], codomain],
@@ -224,6 +223,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxSymbol[HoldComplete[symbol_Symbol]] /; storedValueQ[symbol] :> elaborateStoredValue[symbol, expected],
 	_ :> elaborationFailure["`1` is not a term of the type theory: it is neither a variable in scope nor a declared constant.", syntax]
 }]
+
+(* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], as in Lean, each Exists applied to a predicate *)
+nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]
+nestedExistential[{binder_, rest__}, body_] := nestedExistential[{binder}, syntaxHead[Exists, {syntaxHead[List, {rest}], body}]]
 
 rightFold[head_, arguments_List] := Fold[
 	Function[{accumulated, previous}, syntaxApplication[syntaxSymbol[HoldComplete[head]], {previous, accumulated}]],
