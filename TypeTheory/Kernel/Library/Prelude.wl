@@ -100,6 +100,7 @@ PackageExported[SubtractionZeroLeft]
 PackageExported[SubtractionSuccessor]
 PackageExported[SubtractionSelf]
 PackageExported[AdditionSubtractionCancellation]
+PackageExported[MultiplicationCancellation]
 PackageExported[PowerZero]
 PackageExported[PowerSuccessor]
 PackageExported[PowerOne]
@@ -221,6 +222,7 @@ SubtractionZeroLeft::usage = "SubtractionZeroLeft[n] proves 0 - n == 0: subtract
 SubtractionSuccessor::usage = "SubtractionSuccessor[n, m] proves (n + 1) - (m + 1) == n - m."
 SubtractionSelf::usage = "SubtractionSelf[n] proves n - n == 0."
 AdditionSubtractionCancellation::usage = "AdditionSubtractionCancellation[n, m] proves (n + m) - m == n."
+MultiplicationCancellation::usage = "MultiplicationCancellation[k, a, b, h] proves a == b from a proof h of (k + 1) * a == (k + 1) * b."
 PowerZero::usage = "PowerZero[m] proves m^0 == 1."
 PowerSuccessor::usage = "PowerSuccessor[m, n] proves m^(n + 1) == m^n * m."
 PowerOne::usage = "PowerOne[m] proves m^1 == m."
@@ -750,6 +752,37 @@ $constructiveDeclarations = {
 		AdditionSubtractionCancellation,
 		ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Subtract[n + m, m] == n],
 		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[n + k, k] == n], EqualityReflexivity[n], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[n + k, k] == n]}, EqualityTransitivity[SubtractionSuccessor[n + k, k], ih]], m]]
+	],
+	(* a product by a positive number determines the other factor *)
+	TypeTheoryTheorem[
+		MultiplicationCancellation,
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[(k + 1) * a == (k + 1) * b, a == b]],
+		Function[{Typed[k, NonNegativeIntegers], Typed[a, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[t, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Implies[(k + 1) * t == (k + 1) * b, t == b]]],
+			Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies[(k + 1) * 0 == (k + 1) * c, 0 == c]],
+				Function[{Typed[h, (k + 1) * 0 == (k + 1) * 0]}, EqualityReflexivity[0]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies[(k + 1) * 0 == (k + 1) * c, 0 == c]], Typed[h, (k + 1) * 0 == (k + 1) * (c + 1)]},
+					FalseElimination[SuccessorNotZero[(k + 1) * c + k][EqualitySymmetry[h]]]
+				],
+				b
+			]],
+			Function[{Typed[t, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Implies[(k + 1) * t == (k + 1) * b, t == b]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Implies[(k + 1) * (t + 1) == (k + 1) * c, t + 1 == c]],
+				Function[{Typed[h, (k + 1) * (t + 1) == (k + 1) * 0]}, FalseElimination[SuccessorNotZero[(k + 1) * t + k][h]]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies[(k + 1) * (t + 1) == (k + 1) * c, t + 1 == c]], Typed[h, (k + 1) * (t + 1) == (k + 1) * (c + 1)]},
+					EqualityCongruence[NaturalNumberSuccessor, ih[c, EqualityTransitivity[
+						EqualitySymmetry[AdditionSubtractionCancellation[(k + 1) * t, k + 1]],
+						EqualityTransitivity[
+							EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, Subtract[x, k + 1]], h],
+							AdditionSubtractionCancellation[(k + 1) * c, k + 1]
+						]
+					]]]
+				],
+				b
+			]]],
+			a
+		]]
 	],
 	TypeTheoryTheorem[
 		PowerZero,

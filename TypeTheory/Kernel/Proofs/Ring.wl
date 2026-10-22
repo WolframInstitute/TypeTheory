@@ -20,6 +20,15 @@ A polynomial's term is the right-nested sum of its monomials' terms, and a monom
 right-nested product c * x^e * ..., without the coefficient when it is 1 and the exponent when it is 1.
 An equation whose sides are equal by computation, as 2 + 3 and 5, has a proof by reflexivity, which the
 kernel checks where the equation is used.
+
+A polynomial combination proves l == r from hypotheses a1 == b1, ...: Wolfram finds cofactors ci with
+d (l - r) = c1 (a1 - b1) + ..., d a positive integer and each ci a polynomial with integer coefficients,
+the difference pi - qi of two with natural coefficients. PolynomialReduce finds them when the
+hypotheses reduce the goal, and otherwise linear algebra over the rationals finds cofactors of each
+degree up to the goal's, d clearing their denominators. Then d l + X == d r + X' holds in every
+commutative semiring, with X the sum of the pi bi and qi ai, and X' that of the pi ai and qi bi; the
+hypotheses make X' equal to X, taking X from both sides leaves d l == d r, and MultiplicationCancellation
+leaves l == r.
 *)
 
 
@@ -29,6 +38,7 @@ kernel checks where the equation is used.
 
 PackageScoped[ringNormalForm]
 PackageScoped[ringEquationProof]
+PackageScoped[ringCombinationProof]
 
 
 (* ::Section:: *)
@@ -38,18 +48,115 @@ PackageScoped[ringEquationProof]
 ringNormalForm::usage = "ringNormalForm[term] gives {polynomial, {term, normal, proof}} for a core term of natural numbers: its normal form as a polynomial in its atoms, \
 the term normal of that polynomial, and a proof of term == normal from the laws of the prelude."
 ringEquationProof::usage = "ringEquationProof[left, right] gives a proof of left == right for core terms of natural numbers with the same normal form, or None."
+ringCombinationProof::usage = "ringCombinationProof[left, right, {{a, b, proof}, ...}] gives a proof of left == right from proofs of equations a == b of natural numbers, \
+by a polynomial combination of them that Wolfram's PolynomialReduce finds, or None."
 
 
 (* ::Section:: *)
 (*Function Definitions*)
 
 
-ringEquationProof[left_, right_] := With[{leftForm = ringNormalForm[left], rightForm = ringNormalForm[right]},
-	If[ First[leftForm] === First[rightForm],
-		Last @ transitive[Last[leftForm], symmetric[Last[rightForm]]],
-		None
+ringEquationProof[left_, right_] := Replace[ringEquation[left, right], equation_List :> Last[equation]]
+
+(* left == right as an equation, or None *)
+ringEquation[left_, right_] := With[{leftForm = ringNormalForm[left], rightForm = ringNormalForm[right]},
+	If[First[leftForm] === First[rightForm], transitive[Last[leftForm], symmetric[Last[rightForm]]], None]
+]
+
+
+(* ::Subsection:: *)
+(*Polynomial combinations*)
+
+
+ringCombinationProof[left_, right_, hypotheses_List] := Replace[combinationEquation[left, right, hypotheses], equation_List :> Last[equation]]
+
+(* None where no cofactors are found; a hypothesis whose sides have the same normal form says nothing,
+   and is left out *)
+combinationEquation[left_, right_, hypotheses_List] := Module[{forms, atoms, variables, difference, useful, cofactors, scale},
+	forms = Function[pair, Function[term, First @ ringNormalForm[term]] /@ pair] /@ Prepend[Function[hypothesis, Most[hypothesis]] /@ hypotheses, {left, right}];
+	atoms = DeleteDuplicates @ Catenate[Function[monomial, First /@ Last[monomial]] /@ Catenate[Catenate[forms]]];
+	variables = Table[Subscript[\[FormalX], k], {k, Length[atoms]}];
+	difference = Function[pair, Expand[Subtract @@ (Function[polynomial, wolframPolynomial[polynomial, AssociationThread[atoms, variables]]] /@ pair)]];
+	useful = Select[Transpose[{hypotheses, difference /@ Rest[forms]}], Function[pair, Last[pair] =!= 0]];
+	cofactors = foundCofactors[difference[First[forms]], Last /@ useful, variables];
+	If[ cofactors === None,
+		None,
+		scale = LCM @@ Denominator[Catenate[Function[cofactor, Last /@ CoefficientRules[cofactor, variables]] /@ cofactors]];
+		combination[left, right, scale, MapThread[
+			Function[{hypothesis, cofactor}, Prepend[signedParts[scale * cofactor, variables, atoms], hypothesis]],
+			{First /@ useful, cofactors}
+		]]
 	]
 ]
+
+(* the cofactors c with target = c . divisors, from PolynomialReduce, or else from linear algebra for
+   cofactors of degree 0, 1, ... up to the target's, at least 2; None if there are none *)
+foundCofactors[target_, divisors_List, variables_List] := With[{reduced = Quiet @ PolynomialReduce[target, divisors, variables]},
+	If[ Expand[Last[reduced]] === 0,
+		First[reduced],
+		linearCofactors[target, divisors, variables, 0, Max[2, Total /@ Keys[CoefficientRules[target, variables]]]]
+	]
+]
+
+linearCofactors[_, _, _, degree_Integer, limit_] /; degree > limit := None
+linearCofactors[target_, divisors_List, variables_List, degree_Integer, limit_] := Module[{monomials, unknowns, cofactors, solution},
+	monomials = Times @@@ (Function[exponents, variables^exponents] /@ Select[Tuples[Range[0, degree], Length[variables]], Function[exponents, Total[exponents] <= degree]]);
+	unknowns = Table[\[FormalU][i, j], {i, Length[divisors]}, {j, Length[monomials]}];
+	cofactors = unknowns . monomials;
+	solution = Quiet @ Solve[Thread[Last /@ CoefficientRules[Expand[target - cofactors . divisors], variables] == 0], Flatten[unknowns]];
+	If[ MatchQ[solution, {{___Rule}, ___}],
+		Expand[cofactors /. First[solution] /. \[FormalU][___] -> 0],
+		linearCofactors[target, divisors, variables, degree + 1, limit]
+	]
+]
+
+(* the polynomial as a Wolfram expression in the variables standing for its atoms *)
+wolframPolynomial[polynomial_List, variableOf_Association] := Total[Function[monomial,
+	First[monomial] * Times @@ (Function[factor, variableOf[First[factor]]^Last[factor]] /@ Last[monomial])
+] /@ polynomial]
+
+(* {p, q}: the cofactor's terms of positive coefficient, and its terms of negative coefficient negated,
+   as polynomials in the atoms *)
+signedParts[cofactor_, variables_List, atoms_List] := With[{rules = CoefficientRules[Expand[cofactor], variables]},
+	Function[sign,
+		Function[rule, {sign * Last[rule], Select[Transpose[{atoms, First[rule]}], Function[factor, Last[factor] > 0]]}] /@
+			Select[rules, Function[rule, sign * Last[rule] > 0]]
+	] /@ {1, -1}
+]
+
+(* each hypothesis a == b with its parts p and q gives p a == p b and q b == q a; their sums are X' == X *)
+combination[left_, right_, scale_Integer, parts_List] := With[
+	{
+		summands = Catenate @ Replace[parts, {hypothesis_, p_, q_} :> Join[
+			If[p === {}, {}, {congruent[Function[hole, times[polynomialTerm[p], hole]], hypothesis]}],
+			If[q === {}, {}, {congruent[Function[hole, times[polynomialTerm[q], hole]], symmetric[hypothesis]]}]
+		], {1}]
+	},
+	Replace[
+		If[ summands === {},
+			ringEquation[scaled[left, scale], scaled[right, scale]],
+			cancelled[scaled[left, scale], scaled[right, scale], Fold[Function[{accumulated, summand}, congruentBoth[plus, summand, accumulated]], Last[summands], Reverse[Most[summands]]]]
+		],
+		{
+			None -> None,
+			equation_ /; scale == 1 :> equation,
+			{_, _, proof_} :> law[MultiplicationCancellation, {literal[scale - 1], left, right, proof}, left, right]
+		}
+	]
+]
+
+scaled[term_, 1] := term
+scaled[term_, scale_Integer] := times[literal[scale], term]
+
+(* left == right from left + X == right + X', by the normal forms, and difference, a proof of X' == X *)
+cancelled[left_, right_, difference : {primed_, unprimed_, _}] := Replace[ringEquation[plus[left, unprimed], plus[right, primed]], {
+	None -> None,
+	identity_ :> chain[
+		symmetric[additionSubtractionCancellation[left, unprimed]],
+		congruent[Function[hole, subtract[hole, unprimed]], transitive[identity, congruent[Function[hole, plus[right, hole]], difference]]],
+		additionSubtractionCancellation[right, unprimed]
+	]
+}]
 
 
 (* ::Subsection:: *)
@@ -62,6 +169,7 @@ literal[n_Integer] := naturalLiteral[n]
 plus[a_, b_] := application[application[constantReference[HoldComplete[Plus], {}], a], b]
 times[a_, b_] := application[application[constantReference[HoldComplete[Times], {}], a], b]
 power[a_, b_] := application[application[constantReference[HoldComplete[Power], {}], a], b]
+subtract[a_, b_] := application[application[constantReference[HoldComplete[Subtract], {}], a], b]
 
 factorTerm[{atom_, 1}] := atom
 factorTerm[{atom_, exponent_Integer}] := power[atom, literal[exponent]]
@@ -139,6 +247,7 @@ powerZero[m_] := law[PowerZero, {m}, power[m, literal[0]], literal[1]]
 powerOne[m_] := law[PowerOne, {m}, power[m, literal[1]], m]
 powerSuccessor[m_, n_] := law[PowerSuccessor, {m, n}, power[m, plus[n, literal[1]]], times[power[m, n], m]]
 powerAddition[m_, a_, b_] := law[PowerAddition, {m, a, b}, power[m, plus[a, b]], times[power[m, a], power[m, b]]]
+additionSubtractionCancellation[n_, m_] := law[AdditionSubtractionCancellation, {n, m}, subtract[plus[n, m], m], n]
 
 (* x op (y op z) == y op (x op z), from associativity and commutativity *)
 leftCommutativity[operation_, associativity_, commutativity_, x_, y_, z_] := chain[

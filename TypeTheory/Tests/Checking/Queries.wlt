@@ -73,7 +73,7 @@ VerificationTest[
 
 VerificationTest[
 	{Length[prelude], Take[Keys[prelude], 3], KeyExistsQ[prelude, Plus], KeyExistsQ[prelude, Divide]},
-	{157, {True, TrueIntroduction, InductiveRecursor[True]}, True, False},
+	{158, {True, TrueIntroduction, InductiveRecursor[True]}, True, False},
 	TestID -> "Keys-Length-and-KeyExistsQ"
 ]
 
@@ -86,7 +86,7 @@ VerificationTest[
 VerificationTest[
 	{Information[prelude, "Kinds"], Information[prelude, "Axioms"], Information[prelude, "NaturalNumbers"]},
 	{
-		<|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 67, "Axiom" -> 3|>,
+		<|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 29, "Theorem" -> 68, "Axiom" -> 3|>,
 		{PropositionalExtensionality, FunctionExtensionality, Choice},
 		<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|>
 	},

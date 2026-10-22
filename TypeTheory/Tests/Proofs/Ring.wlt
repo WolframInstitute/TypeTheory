@@ -73,3 +73,34 @@ VerificationTest[
 	{"NotRingEquation", "NotRingEquation", "EquationExpected"},
 	TestID -> "Ring-refuses-what-does-not-hold-in-every-commutative-semiring"
 ]
+
+VerificationTest[
+	With[
+		{
+			product = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[y == z, x y + 3 == x z + 3]], prelude, {
+				TypeTheoryTactic["Introduce", x, y, z, h],
+				TypeTheoryTactic["PolynomialReduce"]
+			}],
+			system = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, Implies[x + y == 10, Implies[x == 2 y + 1, x y == 21]]], prelude, {
+				TypeTheoryTactic["Introduce", x, y, h, k],
+				TypeTheoryTactic["PolynomialReduce"]
+			}]
+		},
+		{
+			product["Goals"],
+			system["Goals"],
+			MatchQ[TypeTheoryCheck[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[ProductOfEquals, product], TypeTheoryTheorem[SolvedSystem, system]}]], _Success]
+		}
+	],
+	{{}, {}, True},
+	TestID -> "PolynomialReduce-combines-the-hypotheses-into-the-goal"
+]
+
+VerificationTest[
+	First @ TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, Implies[x == y, x == y + 1]], prelude, {
+		TypeTheoryTactic["Introduce", x, y, h],
+		TypeTheoryTactic["PolynomialReduce"]
+	}],
+	"NoCombination",
+	TestID -> "PolynomialReduce-fails-where-no-combination-gives-the-goal"
+]

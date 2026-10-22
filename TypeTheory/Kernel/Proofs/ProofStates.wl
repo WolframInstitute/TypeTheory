@@ -50,6 +50,8 @@ The tactics:
 	                        Wolfram's FindInstance finds, the instance proved by "Decide"
 	"Ring"                  proves an equation of natural numbers that holds in every commutative semiring, by
 	                        normal forms with proofs from the prelude's laws (Ring.wl)
+	"PolynomialReduce"      proves an equation of natural numbers from the equations among the hypotheses by a
+	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -105,7 +107,8 @@ TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equatio
 a definition among h1, h2, ... unfolds where it computes, as Join does on ListPrepend[x, l], with its recursive calls folded back.\n\
 TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
-TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2."
+TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2.\n\
+TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -291,6 +294,7 @@ runTactic["Simplify", Hold[{lemmas___}], data_, goal_] := simplify[data, goal, H
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
 runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
+runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
@@ -900,17 +904,20 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
 			Replace[ringEquationProof[left, right], {
 				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative semiring.", data, goal],
-				proof_ :> (
-					(* the proof shares its subterms many times over, which the kernel's caches check once *)
-					Replace[catchKernelFailure[withKernelCaches[checkHasType[environment, current["Context"], proof, current["Type"]]]],
-						_Failure :> tacticFailure["RingProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal]
-					];
-					solveGoal[data, goal, proof, {}]
-				)
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
 	}]
 ]
+
+(* the goal solved by a proof that the kernel checks first; the proof shares its subterms many times
+   over, which the kernel's caches check once *)
+solvedByCheckedProof[data_, goal_, current_, proof_] := (
+	Replace[catchKernelFailure[withKernelCaches[checkHasType[data["Environment"], current["Context"], proof, current["Type"]]]],
+		_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal]
+	];
+	solveGoal[data, goal, proof, {}]
+)
 
 $ringConstants = HoldComplete /@ Unevaluated[{
 	NonNegativeIntegers, Plus, Times, Power, Equal, EqualityReflexivity, EqualitySymmetry, EqualityTransitivity, EqualityCongruence,
@@ -1026,6 +1033,37 @@ witnessedProof[environment_, context_, statement_, {witness_, rest___}, newGoal_
 		{makeApplication[constantReference[HoldComplete[ExistsIntroduction], levels], {type, predicate, naturalLiteral[witness], First[inner]}], Last[inner]}
 	]
 }]
+
+(* "PolynomialReduce": an equation of natural numbers that follows from the equations among the
+   hypotheses by a polynomial combination, whose cofactors Wolfram's PolynomialReduce, or else linear
+   algebra, finds (Ring.wl) *)
+polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[Join[$ringConstants, HoldComplete /@ Unevaluated[{Subtract, AdditionSubtractionCancellation}]], Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
+	];
+	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
+			Replace[ringCombinationProof[left, right, equationHypotheses[environment, current["Context"]]], {
+				None :> tacticFailure[
+					"NoCombination",
+					"Wolfram finds no polynomial combination of the equations among the hypotheses that gives the goal `1`.",
+					data,
+					goal
+				],
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
+			}],
+		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
+	}]
+]
+
+(* {{a, b, proof}, ...} for the hypotheses that are equations a == b of natural numbers *)
+equationHypotheses[environment_, context_] := KeyValueMap[
+	Function[{id, entry}, Replace[weakHeadNormalForm[environment, context, entry["Type"]], {
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; naturalNumberTypeQ[environment, context, type] :> {a, b, freeVariable[id]},
+		_ :> Nothing
+	}]],
+	context
+]
 
 (* the instance proved by "Decide" where it decides it, or left as the goal; an instance decided false
    means Wolfram's answer was wrong *)
