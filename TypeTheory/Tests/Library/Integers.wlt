@@ -95,3 +95,27 @@ VerificationTest[
 	{1, "QuotientEliminationIntoData"},
 	TestID -> "Induction-on-a-class-proves-propositions-only"
 ]
+
+(* equations of integers are decidable, by the Boolean comparison of the pairs *)
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == -3], integers]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == 3], integers]],
+		TypeTheoryProof[Typed[7 * (-3) + 21, Integers] == 0, integers, {TypeTheoryTactic["Decide"]}]["Goals"],
+		MatchQ[integers[IntegerEqualityDecidable], TypeTheoryDefinition[__]]
+	},
+	{TypeTheoryTerm["true", integers], TypeTheoryTerm["false", integers], {}, True},
+	TestID -> "Equations-of-integers-are-decided-by-computation"
+]
+
+(* "Ring" over the integers: induction on each class, the soundness of quotients, "Ring" on the pairs *)
+VerificationTest[
+	{
+		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y) (x + y) == x x - y y], integers, {TypeTheoryTactic["Introduce", x, y], TypeTheoryTactic["Ring"]}]["Goals"],
+		TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + (-x) == 0], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}]["Goals"],
+		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[n, Naturals]}, 2 (x + n) - n == 2 x + n], integers, {TypeTheoryTactic["Introduce", x, n], TypeTheoryTactic["Ring"]}]["Goals"],
+		First @ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}]
+	},
+	{{}, {}, {}, "NotRingEquation"},
+	TestID -> "Ring-proves-the-identities-of-commutative-rings-over-the-integers"
+]

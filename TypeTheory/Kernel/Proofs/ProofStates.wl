@@ -49,7 +49,10 @@ The tactics:
 	"FindInstance"          proves an existential statement over the natural numbers with witnesses that
 	                        Wolfram's FindInstance finds, the instance proved by "Decide"
 	"Ring"                  proves an equation of natural numbers that holds in every commutative semiring, by
-	                        normal forms with proofs from the prelude's laws (Ring.wl)
+	                        normal forms with proofs from the prelude's laws (Ring.wl); an equation of the
+	                        integers of TypeTheoryEnvironment["Integers"] that holds in every commutative ring,
+	                        by induction on the class of each integer variable, the soundness of quotients, and
+	                        the equation of natural numbers of the pairs
 	"PolynomialReduce"      proves an equation of natural numbers from the equations among the hypotheses by a
 	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks
 	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
@@ -831,7 +834,9 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative semiring.", data, goal],
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
-		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; integerTypeQ[environment, type] :>
+			integerRing[data, goal, current],
+		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers or of integers.", data, goal]
 	}]
 ]
 
@@ -913,6 +918,38 @@ existentialPrefix[environment_, context_, statement_, variables_Association] := 
 }]
 
 naturalNumberTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, type], constantReference[HoldComplete[NonNegativeIntegers], _]]
+
+(* the integers of TypeTheoryEnvironment["Integers"], a quotient of pairs of natural numbers *)
+integerTypeQ[environment_, type_] := type === constantReference[HoldComplete[Integers], {}] && constantDeclaredQ[environment, HoldComplete["integerRelation"]]
+
+(* An equation of integers is one of classes once each integer variable it mentions is the class of a
+   pair: the soundness of quotients makes it the relation of the two pairs, an equation of natural numbers
+   that holds in every commutative semiring where the integers' holds in every commutative ring. *)
+integerRing[data_, goal_, current_] := With[
+	{
+		variables = Select[Keys[current["Context"]], Function[id, And[
+			integerTypeQ[data["Environment"], current["Context"][id]["Type"]],
+			! FreeQ[current["Type"], freeVariable[id]]
+		]]]
+	},
+	Replace[
+		catchKernelFailure @ With[
+			{
+				classes = Fold[
+					Function[{state, id}, With[{eliminated = eliminate[state, First[state["Goals"]], current["Context"][id]["Name"], "Induction"]},
+						introduceVariable[eliminated, First[eliminated["Goals"]], Automatic]
+					]],
+					data,
+					variables
+				]
+			},
+			With[{related = applyTerm[classes, First[classes["Goals"]], HoldComplete[QuotientSoundness]]},
+				ring[related, First[related["Goals"]]]
+			]
+		],
+		_Failure :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative ring.", data, goal]
+	]
+]
 
 (* the witnesses FindInstance finds for the variables, in order, or a Failure *)
 foundWitnesses[data_, goal_, {variables_Association, body_, context_}] := With[

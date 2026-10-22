@@ -20,6 +20,10 @@ kernel checks every proof as it checks any other.
 
 Elaboration reads +, *, -, the comparisons, -x and negative literals as the integers' where the arguments
 or the expected type are integers, and as the natural numbers' otherwise.
+
+Equations of integers are decidable: IntegerEqualityDecidable decides x == y with the Boolean
+"integerEqual", which compares a + d and c + b for the pairs (a, b) and (c, d), so Decide and the tactic
+"Decide" settle an equation of integer literals by computation.
 *)
 
 
@@ -39,6 +43,7 @@ PackageExported[IntegerSubtractionNegation]
 PackageExported[IntegerOfNaturalAddition]
 PackageExported[IntegerOfNaturalMultiplication]
 PackageExported[IntegerLessEqualReflexivity]
+PackageExported[IntegerEqualityDecidable]
 
 
 (* ::Section:: *)
@@ -66,6 +71,8 @@ It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
 IntegerOfNaturalMultiplication::usage = "IntegerOfNaturalMultiplication[m, n] proves that the integer of m n is the product of the integers of the natural numbers m and n. \
 It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
 IntegerLessEqualReflexivity::usage = "IntegerLessEqualReflexivity[x] proves x <= x for an integer x. It is a theorem of TypeTheoryEnvironment[\"Integers\"]."
+IntegerEqualityDecidable::usage = "IntegerEqualityDecidable[x, y] decides x == y for integers x and y; it is the instance of Decidable[x == y] in \
+TypeTheoryEnvironment[\"Integers\"], so Decide and the tactic \"Decide\" settle equations of integers by computation."
 
 integersEnvironment::usage = "integersEnvironment[] gives the prelude with the integers, built and checked the first time it is asked for."
 
@@ -385,5 +392,144 @@ $integerDeclarations = {
 		IntegerLessEqualReflexivity,
 		ForAll[{Typed[x, Integers]}, x <= x],
 		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Exact", ExistsIntroduction[0, EqualitySymmetry[IntegerAdditionZero[x]]]]}
+	],
+
+	(* Deciding equations: the Boolean "integerEqual" lifts the comparison of a + d and c + b from pairs,
+	   which takes the same value on equivalent equations, and it is "true" exactly where the integers are
+	   equal; IntegerEqualityDecidable is the instance it gives, as NaturalNumberEqualityDecidable is. *)
+	TypeTheoryTheorem[
+		"equalSelf",
+		ForAll[{Typed[n, NonNegativeIntegers]}, "equal"[n, n] == "true"],
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[k, NonNegativeIntegers]}, "equal"[k, k] == "true"],
+			EqualityReflexivity["true"],
+			Function[{Typed[k, NonNegativeIntegers], Typed[ih, "equal"[k, k] == "true"]}, ih],
+			n
+		]]
+	],
+	TypeTheoryTheorem[
+		"equalOfEquivalent",
+		ForAll[
+			{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]},
+			Implies[Equivalent[a == b, c == d], "equal"[a, b] == "equal"[c, d]]
+		],
+		Function[
+			{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[h, Equivalent[a == b, c == d]]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[x, Booleans]}, Implies["equal"[a, b] == x, "equal"[a, b] == "equal"[c, d]]],
+				Function[{Typed[e, "equal"[a, b] == "false"]}, InductiveRecursor[Booleans][
+					Function[{Typed[y, Booleans]}, Implies["equal"[c, d] == y, "equal"[a, b] == "equal"[c, d]]],
+					Function[{Typed[f, "equal"[c, d] == "false"]}, EqualityTransitivity[e, EqualitySymmetry[f]]],
+					Function[{Typed[f, "equal"[c, d] == "true"]}, FalseElimination["equalFalse"[a, b, e][EquivalentBackward[h]["equalTrue"[c, d, f]]]]],
+					"equal"[c, d]
+				][EqualityReflexivity["equal"[c, d]]]],
+				Function[{Typed[e, "equal"[a, b] == "true"]}, InductiveRecursor[Booleans][
+					Function[{Typed[y, Booleans]}, Implies["equal"[c, d] == y, "equal"[a, b] == "equal"[c, d]]],
+					Function[{Typed[f, "equal"[c, d] == "false"]}, FalseElimination["equalFalse"[c, d, f][EquivalentForward[h]["equalTrue"[a, b, e]]]]],
+					Function[{Typed[f, "equal"[c, d] == "true"]}, EqualityTransitivity[e, EqualitySymmetry[f]]],
+					"equal"[c, d]
+				][EqualityReflexivity["equal"[c, d]]]],
+				"equal"[a, b]
+			][EqualityReflexivity["equal"[a, b]]]
+		]
+	],
+	integerTheorem[
+		"integerEqualRespectsRight",
+		ForAll[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			Implies["integerRelation"[q, s], Equivalent[p[[1]] + q[[2]] == q[[1]] + p[[2]], p[[1]] + s[[2]] == s[[1]] + p[[2]]]]
+		],
+		{
+			TypeTheoryTactic["Introduce", p, q, s, h],
+			TypeTheoryTactic["Constructor"],
+			TypeTheoryTactic["Introduce", k], TypeTheoryTactic["LinearArithmetic"],
+			TypeTheoryTactic["Introduce", k], TypeTheoryTactic["LinearArithmetic"]
+		}
+	],
+	integerTheorem[
+		"integerEqualRespectsLeft",
+		ForAll[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			Implies["integerRelation"[p, q], Equivalent[p[[1]] + s[[2]] == s[[1]] + p[[2]], q[[1]] + s[[2]] == s[[1]] + q[[2]]]]
+		],
+		{
+			TypeTheoryTactic["Introduce", p, q, s, h],
+			TypeTheoryTactic["Constructor"],
+			TypeTheoryTactic["Introduce", k], TypeTheoryTactic["LinearArithmetic"],
+			TypeTheoryTactic["Introduce", k], TypeTheoryTactic["LinearArithmetic"]
+		}
+	],
+	TypeTheoryDefinition[
+		"integerEqualOfPair",
+		Typed[
+			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "equal"[p[[1]] + q[[2]], q[[1]] + p[[2]]]],
+				Function[{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
+					"equalOfEquivalent"[p[[1]] + q[[2]], q[[1]] + p[[2]], p[[1]] + s[[2]], s[[1]] + p[[2]], "integerEqualRespectsRight"[p, q, s, e]]
+				],
+				y
+			]],
+			TypeSpecifier[{CartesianProduct[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Booleans]
+		]
+	],
+	TypeTheoryDefinition[
+		"integerEqual",
+		Typed[
+			Function[{Typed[x, Integers], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerEqualOfPair"[p, y]],
+				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
+					Construct[
+						QuotientInduction,
+						CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+						"integerRelation",
+						Function[{Typed[z, Integers]}, "integerEqualOfPair"[p, z] == "integerEqualOfPair"[q, z]],
+						Function[{Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+							"equalOfEquivalent"[p[[1]] + s[[2]], s[[1]] + p[[2]], q[[1]] + s[[2]], s[[1]] + q[[2]], "integerEqualRespectsLeft"[p, q, s, e]]
+						],
+						y
+					]
+				],
+				x
+			]],
+			TypeSpecifier[{Integers, Integers} -> Booleans]
+		]
+	],
+	integerTheorem[
+		"integerEqualTrue",
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies["integerEqual"[x, y] == "true", x == y]],
+		{
+			TypeTheoryTactic["Introduce", x, y],
+			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
+			TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q, h],
+			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Exact", "equalTrue"[p[[1]] + q[[2]], q[[1]] + p[[2]], h]]
+		}
+	],
+	integerTheorem[
+		"integerEqualSelf",
+		ForAll[{Typed[x, Integers]}, "integerEqual"[x, x] == "true"],
+		{
+			TypeTheoryTactic["Introduce", x],
+			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
+			TypeTheoryTactic["Exact", "equalSelf"[p[[1]] + p[[2]]]]
+		}
+	],
+	TypeTheoryTheorem[
+		"integerEqualFalse",
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies["integerEqual"[x, y] == "false", Not[x == y]]],
+		Function[{Typed[x, Integers], Typed[y, Integers], Typed[e, "integerEqual"[x, y] == "false"], Typed[k, x == y]},
+			"falseNotTrue"[EqualityTransitivity[
+				EqualitySymmetry[e],
+				EqualityTransitivity[EqualityCongruence[Function[{Typed[z, Integers]}, "integerEqual"[x, z]], EqualitySymmetry[k]], "integerEqualSelf"[x]]
+			]]
+		]
+	],
+	TypeTheoryDefinition[
+		IntegerEqualityDecidable,
+		Function[{Typed[x, Integers], Typed[y, Integers]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["integerEqual"[x, y] == b, Decidable[x == y]]],
+			Function[{Typed[e, "integerEqual"[x, y] == "false"]}, DecidableFalse["integerEqualFalse"[x, y, e]]],
+			Function[{Typed[e, "integerEqual"[x, y] == "true"]}, DecidableTrue["integerEqualTrue"[x, y, e]]],
+			"integerEqual"[x, y]
+		][EqualityReflexivity["integerEqual"[x, y]]]],
+		"Instance" -> True
 	]
 }
