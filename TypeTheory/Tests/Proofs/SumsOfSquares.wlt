@@ -27,9 +27,9 @@ sumOfSquaresProof[statement_, variables_List] := With[{introduce = TypeTheoryTac
 ]
 
 
-(* the Gram matrix is unique for the first three and free for the quartics, which SemidefiniteOptimization
-   settles; x^2 - 1 is negative at 0, the cubic is negative somewhere, and Motzkin's polynomial is at
-   least 0 but no sum of squares *)
+(* the Gram matrix is unique for the first three, and free for the quartics, which have a diagonally
+   dominant one; x^2 - 1 is negative at 0, the cubic is negative somewhere, and Motzkin's polynomial is
+   at least 0 but no sum of squares *)
 VerificationTest[
 	{
 		Function[f, certificateQ[f, certificate[f, Variables[f]]]] /@ {
@@ -45,6 +45,14 @@ VerificationTest[
 	},
 	{{True, True, True, True, True}, {1, {{5, 1}}}, {1, {}}, {None, None, None}},
 	TestID -> "Certificates-are-found-for-sums-of-squares-only"
+]
+
+(* (x + 1 - y^2)^2 + x^4: the Gram matrix with its free entry 0 is not positive semidefinite, and none is
+   diagonally dominant, so SemidefiniteOptimization finds one *)
+VerificationTest[
+	certificateQ[1 + 2 x + x^2 + x^4 - 2 y^2 - 2 x y^2 + y^4, certificate[1 + 2 x + x^2 + x^4 - 2 y^2 - 2 x y^2 + y^4, {x, y}]],
+	True,
+	TestID -> "A-certificate-from-SemidefiniteOptimization"
 ]
 
 VerificationTest[

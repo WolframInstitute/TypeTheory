@@ -9,10 +9,13 @@ the gi polynomials with integer coefficients. Wolfram finds it as SOS tools do: 
 vector m of the monomials that can occur in the gi and a symmetric matrix Q, its Gram matrix, whose
 entries add up to the coefficients of f, and f is a sum of squares when one such Q is positive
 semidefinite. The monomials are those with half the exponents of f, in the box and the degrees they span,
-less those whose squares f cannot have. The equations of the coefficients are solved exactly; where they
-leave Q free, SemidefiniteOptimization finds a Q as far inside the positive semidefinite ones as it can,
-which is rounded to rationals. An exact decomposition Q = L . D . Transpose[L], D diagonal and at least
-0, gives f as the sum of the D[[k]] ((Transpose[L] . m)[[k]])^2, and d clears the denominators.
+less those whose squares f cannot have. The equations of the coefficients are solved exactly. Where they
+leave Q free, a diagonally dominant Q, each diagonal entry at least the sum of the absolute values of the
+others in its row, is positive semidefinite, and linear inequalities find one exactly, as for most sums
+of squares with structure; failing that, SemidefiniteOptimization finds a Q as far inside the positive
+semidefinite ones as it can, which is rounded to rationals. An exact decomposition
+Q = L . D . Transpose[L], D diagonal and at least 0, gives f as the sum of the
+D[[k]] ((Transpose[L] . m)[[k]])^2, and d clears the denominators.
 
 Nothing here is trusted: the tactic "SumOfSquares" proves d f == c1 g1^2 + ... by "Ring", and the kernel
 checks the proof.
@@ -126,7 +129,30 @@ semidefiniteMember[particular_List, {}, n_Integer] := With[{matrix = symmetricMa
 semidefiniteMember[particular_List, nullSpace_List, n_Integer] := With[{atZero = symmetricMatrix[particular, n]},
 	If[ squareDecomposition[atZero] =!= None,
 		atZero,
-		roundedMember[particular, nullSpace, n, interiorParameters[particular, nullSpace, n]]
+		Replace[diagonallyDominantMember[particular, nullSpace, n], None :> roundedMember[particular, nullSpace, n, interiorParameters[particular, nullSpace, n]]]
+	]
+]
+
+(* A diagonally dominant matrix of particular + t . nullSpace, which is positive semidefinite, or None:
+   with a bound on the absolute value of each entry off the diagonal, the bounds of a row are at most its
+   diagonal entry, linear inequalities in t and the bounds that FindInstance solves exactly. *)
+diagonallyDominantMember[particular_List, nullSpace_List, n_Integer] := Module[{parameters, entryOf, offDiagonal, boundOf, conditions},
+	parameters = Table[\[FormalT][i], {i, Length[nullSpace]}];
+	entryOf = AssociationThread[upperEntries[n], particular + parameters . nullSpace];
+	offDiagonal = Select[upperEntries[n], Function[entry, First[entry] < Last[entry]]];
+	boundOf = AssociationThread[offDiagonal, Table[\[FormalU][i], {i, Length[offDiagonal]}]];
+	conditions = Join[
+		Catenate[Function[entry, {entryOf[entry] <= boundOf[entry], -boundOf[entry] <= entryOf[entry]}] /@ offDiagonal],
+		Function[row, entryOf[{row, row}] >= Total[Lookup[boundOf, Select[offDiagonal, Function[entry, MemberQ[entry, row]]]]]] /@ Range[n]
+	];
+	Replace[
+		TimeConstrained[Quiet @ FindInstance[And @@ conditions, Join[parameters, Values[boundOf]], Reals], 30, $Aborted],
+		{
+			{solution_List, ___} :> With[{matrix = symmetricMatrix[particular + ReplaceAll[parameters, solution] . nullSpace, n]},
+				If[squareDecomposition[matrix] === None, None, matrix]
+			],
+			_ :> None
+		}
 	]
 ]
 
