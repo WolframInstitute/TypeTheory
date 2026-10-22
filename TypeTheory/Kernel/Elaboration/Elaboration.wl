@@ -662,6 +662,7 @@ $overloadedNames = <|
 	HoldComplete[Plus] -> {HoldComplete[Plus], HoldComplete["integerAddition"]},
 	HoldComplete[Times] -> {HoldComplete[Times], HoldComplete["integerMultiplication"]},
 	HoldComplete[Subtract] -> {HoldComplete[Subtract], HoldComplete["integerSubtraction"]},
+	HoldComplete[Power] -> {HoldComplete[Power], HoldComplete["integerPower"]},
 	HoldComplete[LessEqual] -> {HoldComplete[LessEqual], HoldComplete["integerLessEqual"]},
 	HoldComplete[Less] -> {HoldComplete[Less], HoldComplete["integerLess"]},
 	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"]},
@@ -669,7 +670,7 @@ $overloadedNames = <|
 |>
 
 (* the operations of the natural numbers, which an environment with the integers overloads *)
-$arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, LessEqual, Less, GreaterEqual, Greater}]
+$arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, LessEqual, Less, GreaterEqual, Greater}]
 
 overloadedNameQ[environment_, name_HoldComplete] := Length[declaredMeanings[environment, name]] > 1
 

@@ -21,6 +21,13 @@ right-nested product c * x^e * ..., without the coefficient when it is 1 and the
 An equation whose sides are equal by computation, as 2 + 3 and 5, has a proof by reflexivity, which the
 kernel checks where the equation is used.
 
+The same normal forms are built for the integers of TypeTheoryEnvironment["Integers"], from their laws,
+with $ring the integers: a coefficient is a nonzero integer, -3 x the product of the negation of the
+integer of 3 and x, and like monomials can cancel. Two literals of the same sign add by computation; of
+opposite signs they are two pairs, equal by a lemma. A negation is the product with -1, a difference
+the sum with the negation, and the integer of a natural number is pushed into the natural number's
+sums, products and powers. The exponents are natural numbers.
+
 A polynomial combination proves l == r from hypotheses a1 == b1, ...: Wolfram finds cofactors ci with
 d (l - r) = c1 (a1 - b1) + ..., d a positive integer and each ci a polynomial with integer coefficients,
 the difference pi - qi of two with natural coefficients. PolynomialReduce finds them when the
@@ -49,6 +56,8 @@ PackageScoped[ringCombinationProof]
 PackageScoped[ringLinearProof]
 PackageScoped[ringContradictionProof]
 PackageScoped[ringEquationInequalities]
+PackageScoped[integerRingEquationProof]
+PackageScoped[integerRingAvailableQ]
 
 
 (* ::Section:: *)
@@ -64,6 +73,9 @@ ringLinearProof::usage = "ringLinearProof[left, right, {{a, b, proof}, ...}] giv
 imply it linearly, or None."
 ringContradictionProof::usage = "ringContradictionProof[{{a, b, proof}, ...}] gives a proof of False from proofs of inequalities a <= b of natural numbers that contradict \
 each other linearly, or None."
+integerRingEquationProof::usage = "integerRingEquationProof[left, right] gives a proof of left == right for core terms of the integers of TypeTheoryEnvironment[\"Integers\"] \
+with the same normal form, from the integers' laws, or None."
+integerRingAvailableQ::usage = "integerRingAvailableQ[environment] gives True if environment declares the integers and the laws their normal forms are built from."
 ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {{a, b, proof1}, {b, a, proof2}}, the inequalities a <= b and b <= a, from a proof of a == b."
 
 
@@ -72,6 +84,13 @@ ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {
 
 
 ringEquationProof[left_, right_] := Replace[ringEquation[left, right], equation_List :> Last[equation]]
+
+integerRingEquationProof[left_, right_] := Block[{$ring = $integerRing}, ringEquationProof[left, right]]
+
+integerRingAvailableQ[environment_] := AllTrue[
+	Join[Values[$integerRing["Laws"]], Values[$integerRing["Operations"]], $integerNormalFormConstants],
+	Function[name, constantDeclaredQ[environment, name]]
+]
 
 (* left == right as an equation, or None *)
 ringEquation[left_, right_] := With[{leftForm = ringNormalForm[left], rightForm = ringNormalForm[right]},
@@ -296,17 +315,90 @@ carriedReflexivity[a_, b_, proof_, predicate_] := makeApplication[constantRefere
 
 $naturals = constantReference[HoldComplete[NonNegativeIntegers], {}]
 
-literal[n_Integer] := naturalLiteral[n]
-plus[a_, b_] := application[application[constantReference[HoldComplete[Plus], {}], a], b]
-times[a_, b_] := application[application[constantReference[HoldComplete[Times], {}], a], b]
-power[a_, b_] := application[application[constantReference[HoldComplete[Power], {}], a], b]
+(* The ring the normal forms are in: the natural numbers, or the integers of
+   TypeTheoryEnvironment["Integers"], whose coefficients have signs. Its literals are the coefficients;
+   exponents are natural numbers in either. *)
+$naturalNumberRing = <|
+	"Type" -> $naturals,
+	"Operations" -> <|"Plus" -> HoldComplete[Plus], "Times" -> HoldComplete[Times], "Power" -> HoldComplete[Power]|>,
+	"Literal" -> naturalLiteral,
+	"NormalForm" -> naturalNormalForm,
+	"LiteralSum" -> computedLiteralSum,
+	"Laws" -> <|
+		"AdditionAssociativity" -> HoldComplete[AdditionAssociativity],
+		"AdditionCommutativity" -> HoldComplete[AdditionCommutativity],
+		"AdditionZeroLeft" -> HoldComplete[AdditionZeroLeft],
+		"AdditionZeroRight" -> HoldComplete[AdditionZeroRight],
+		"MultiplicationAssociativity" -> HoldComplete[MultiplicationAssociativity],
+		"MultiplicationCommutativity" -> HoldComplete[MultiplicationCommutativity],
+		"MultiplicationZeroLeft" -> HoldComplete[MultiplicationZeroLeft],
+		"MultiplicationZeroRight" -> HoldComplete[MultiplicationZeroRight],
+		"MultiplicationOneLeft" -> HoldComplete[MultiplicationOneLeft],
+		"MultiplicationDistributivityLeft" -> HoldComplete[MultiplicationDistributivityLeft],
+		"MultiplicationDistributivityRight" -> HoldComplete[MultiplicationDistributivityRight],
+		"PowerZero" -> HoldComplete[PowerZero],
+		"PowerOne" -> HoldComplete[PowerOne],
+		"PowerSuccessor" -> HoldComplete[PowerSuccessor],
+		"PowerAddition" -> HoldComplete[PowerAddition]
+	|>
+|>
+
+$integerRing = <|
+	"Type" -> constantReference[HoldComplete[Integers], {}],
+	"Operations" -> <|"Plus" -> HoldComplete["integerAddition"], "Times" -> HoldComplete["integerMultiplication"], "Power" -> HoldComplete["integerPower"]|>,
+	"Literal" -> integerLiteral,
+	"NormalForm" -> integerNormalForm,
+	"LiteralSum" -> integerLiteralSum,
+	"Laws" -> <|
+		"AdditionAssociativity" -> HoldComplete[IntegerAdditionAssociativity],
+		"AdditionCommutativity" -> HoldComplete[IntegerAdditionCommutativity],
+		"AdditionZeroLeft" -> HoldComplete["integerAdditionZeroLeft"],
+		"AdditionZeroRight" -> HoldComplete[IntegerAdditionZero],
+		"MultiplicationAssociativity" -> HoldComplete[IntegerMultiplicationAssociativity],
+		"MultiplicationCommutativity" -> HoldComplete[IntegerMultiplicationCommutativity],
+		"MultiplicationZeroLeft" -> HoldComplete["integerMultiplicationZeroLeft"],
+		"MultiplicationZeroRight" -> HoldComplete["integerMultiplicationZeroRight"],
+		"MultiplicationOneLeft" -> HoldComplete["integerMultiplicationOneLeft"],
+		"MultiplicationDistributivityLeft" -> HoldComplete[IntegerDistributivity],
+		"MultiplicationDistributivityRight" -> HoldComplete["integerDistributivityRight"],
+		"PowerZero" -> HoldComplete["integerPowerZero"],
+		"PowerOne" -> HoldComplete["integerPowerOne"],
+		"PowerSuccessor" -> HoldComplete["integerPowerSuccessor"],
+		"PowerAddition" -> HoldComplete["integerPowerAddition"]
+	|>
+|>
+
+$ring = $naturalNumberRing
+
+(* the constants the integers' normal forms are built from, beside the ring's laws and operations *)
+$integerNormalFormConstants = HoldComplete /@ Unevaluated[{
+	Integers, "integerOfNatural", "integerNegation", "integerSubtraction", "integerNegationProduct", "integerLiteralDifferenceNonnegative",
+	"integerLiteralDifferenceNegative", IntegerOfNaturalAddition, IntegerOfNaturalMultiplication, "integerOfNaturalPower",
+	EqualityReflexivity, EqualitySymmetry, EqualityTransitivity, EqualityCongruence
+}]
+
+literal[n_Integer] := $ring["Literal"][n]
+plus[a_, b_] := ringOperation["Plus", a, b]
+times[a_, b_] := ringOperation["Times", a, b]
+power[a_, b_] := ringOperation["Power", a, b]
+ringOperation[name_String, a_, b_] := application[application[constantReference[$ring["Operations"][name], {}], a], b]
 subtract[a_, b_] := application[application[constantReference[HoldComplete[Subtract], {}], a], b]
+
+(* an exponent and a sum of exponents, natural numbers in either ring *)
+exponent[n_Integer] := naturalLiteral[n]
+exponentSum[a_, b_] := application[application[constantReference[HoldComplete[Plus], {}], a], b]
+
+(* the integers' literals: n is the integer of the natural number n, and -n its negation *)
+integerLiteral[n_Integer?NonNegative] := integerOfNatural[naturalLiteral[n]]
+integerLiteral[n_Integer] := negation[integerLiteral[-n]]
+integerOfNatural[term_] := application[constantReference[HoldComplete["integerOfNatural"], {}], term]
+negation[term_] := application[constantReference[HoldComplete["integerNegation"], {}], term]
 lessEqual[a_, b_] := application[application[constantReference[HoldComplete[LessEqual], {}], a], b]
 less[a_, b_] := application[application[constantReference[HoldComplete[Less], {}], a], b]
 or[p_, q_] := application[application[constantReference[HoldComplete[Or], {}], p], q]
 
 factorTerm[{atom_, 1}] := atom
-factorTerm[{atom_, exponent_Integer}] := power[atom, literal[exponent]]
+factorTerm[{atom_, k_Integer}] := power[atom, exponent[k]]
 
 productTerm[{factor_}] := factorTerm[factor]
 productTerm[{factor_, rest__}] := times[factorTerm[factor], productTerm[{rest}]]
@@ -328,7 +420,7 @@ monomialBeforeQ[{_, factors_}, {_, otherFactors_}] := Order[factors, otherFactor
 (*Equations*)
 
 
-reflexivityProof[term_] := makeApplication[constantReference[HoldComplete[EqualityReflexivity], {1}], {$naturals, term}]
+reflexivityProof[term_] := makeApplication[constantReference[HoldComplete[EqualityReflexivity], {1}], {$ring["Type"], term}]
 
 reflexivityProofQ[proof_] := MatchQ[proof, application[application[constantReference[HoldComplete[EqualityReflexivity], _], _], _]]
 
@@ -338,13 +430,13 @@ reflexive[term_] := {term, term, reflexivityProof[term]}
 computed[left_, right_] := {left, right, reflexivityProof[right]}
 
 symmetric[{left_, right_, proof_}] /; reflexivityProofQ[proof] := computed[right, left]
-symmetric[{left_, right_, proof_}] := {right, left, makeApplication[constantReference[HoldComplete[EqualitySymmetry], {1}], {$naturals, left, right, proof}]}
+symmetric[{left_, right_, proof_}] := {right, left, makeApplication[constantReference[HoldComplete[EqualitySymmetry], {1}], {$ring["Type"], left, right, proof}]}
 
 (* a step by reflexivity is left out: the kernel checks the computation where the other proof is used *)
 transitive[{left_, _, proof_}, {_, right_, otherProof_}] /; reflexivityProofQ[proof] := {left, right, otherProof}
 transitive[{left_, _, proof_}, {_, right_, otherProof_}] /; reflexivityProofQ[otherProof] := {left, right, proof}
 transitive[{left_, middle_, proof_}, {_, right_, otherProof_}] :=
-	{left, right, makeApplication[constantReference[HoldComplete[EqualityTransitivity], {1}], {$naturals, left, middle, right, proof, otherProof}]}
+	{left, right, makeApplication[constantReference[HoldComplete[EqualityTransitivity], {1}], {$ring["Type"], left, middle, right, proof, otherProof}]}
 
 chain[first_, rest___] := Fold[transitive, first, {rest}]
 
@@ -356,7 +448,7 @@ congruent[context_, {left_, right_, proof_}] := {
 	context[right],
 	makeApplication[
 		constantReference[HoldComplete[EqualityCongruence], {1, 1}],
-		{$naturals, $naturals, left, right, lambdaAbstraction[HoldComplete[x], $naturals, context[boundVariable[0]], "Explicit"], proof}
+		{$ring["Type"], $ring["Type"], left, right, lambdaAbstraction[HoldComplete[x], $ring["Type"], context[boundVariable[0]], "Explicit"], proof}
 	]
 }
 
@@ -366,22 +458,36 @@ congruentBoth[operation_, first : {_, firstRight_, _}, second : {secondLeft_, _,
 
 law[name_, arguments_List, left_, right_] := {left, right, makeApplication[constantReference[HoldComplete[name], {}], arguments]}
 
-additionAssociativity[a_, b_, c_] := law[AdditionAssociativity, {a, b, c}, plus[plus[a, b], c], plus[a, plus[b, c]]]
-additionCommutativity[a_, b_] := law[AdditionCommutativity, {a, b}, plus[a, b], plus[b, a]]
-additionZeroLeft[n_] := law[AdditionZeroLeft, {n}, plus[literal[0], n], n]
-additionZeroRight[n_] := law[AdditionZeroRight, {n}, plus[n, literal[0]], n]
-multiplicationAssociativity[a_, b_, c_] := law[MultiplicationAssociativity, {a, b, c}, times[times[a, b], c], times[a, times[b, c]]]
-multiplicationCommutativity[a_, b_] := law[MultiplicationCommutativity, {a, b}, times[a, b], times[b, a]]
-multiplicationZeroLeft[n_] := law[MultiplicationZeroLeft, {n}, times[literal[0], n], literal[0]]
-multiplicationZeroRight[n_] := law[MultiplicationZeroRight, {n}, times[n, literal[0]], literal[0]]
-multiplicationOneLeft[n_] := law[MultiplicationOneLeft, {n}, times[literal[1], n], n]
-distributivityLeft[a_, b_, c_] := law[MultiplicationDistributivityLeft, {a, b, c}, times[a, plus[b, c]], plus[times[a, b], times[a, c]]]
-distributivityRight[a_, b_, c_] := law[MultiplicationDistributivityRight, {a, b, c}, times[plus[a, b], c], plus[times[a, c], times[b, c]]]
-powerZero[m_] := law[PowerZero, {m}, power[m, literal[0]], literal[1]]
-powerOne[m_] := law[PowerOne, {m}, power[m, literal[1]], m]
-powerSuccessor[m_, n_] := law[PowerSuccessor, {m, n}, power[m, plus[n, literal[1]]], times[power[m, n], m]]
-powerAddition[m_, a_, b_] := law[PowerAddition, {m, a, b}, power[m, plus[a, b]], times[power[m, a], power[m, b]]]
+(* a law of the ring, by the name of the natural numbers' *)
+ringLaw[name_String, arguments_List, left_, right_] := {left, right, makeApplication[constantReference[$ring["Laws"][name], {}], arguments]}
+
+additionAssociativity[a_, b_, c_] := ringLaw["AdditionAssociativity", {a, b, c}, plus[plus[a, b], c], plus[a, plus[b, c]]]
+additionCommutativity[a_, b_] := ringLaw["AdditionCommutativity", {a, b}, plus[a, b], plus[b, a]]
+additionZeroLeft[n_] := ringLaw["AdditionZeroLeft", {n}, plus[literal[0], n], n]
+additionZeroRight[n_] := ringLaw["AdditionZeroRight", {n}, plus[n, literal[0]], n]
+multiplicationAssociativity[a_, b_, c_] := ringLaw["MultiplicationAssociativity", {a, b, c}, times[times[a, b], c], times[a, times[b, c]]]
+multiplicationCommutativity[a_, b_] := ringLaw["MultiplicationCommutativity", {a, b}, times[a, b], times[b, a]]
+multiplicationZeroLeft[n_] := ringLaw["MultiplicationZeroLeft", {n}, times[literal[0], n], literal[0]]
+multiplicationZeroRight[n_] := ringLaw["MultiplicationZeroRight", {n}, times[n, literal[0]], literal[0]]
+multiplicationOneLeft[n_] := ringLaw["MultiplicationOneLeft", {n}, times[literal[1], n], n]
+distributivityLeft[a_, b_, c_] := ringLaw["MultiplicationDistributivityLeft", {a, b, c}, times[a, plus[b, c]], plus[times[a, b], times[a, c]]]
+distributivityRight[a_, b_, c_] := ringLaw["MultiplicationDistributivityRight", {a, b, c}, times[plus[a, b], c], plus[times[a, c], times[b, c]]]
+powerZero[m_] := ringLaw["PowerZero", {m}, power[m, exponent[0]], literal[1]]
+powerOne[m_] := ringLaw["PowerOne", {m}, power[m, exponent[1]], m]
+powerSuccessor[m_, n_] := ringLaw["PowerSuccessor", {m, n}, power[m, exponentSum[n, exponent[1]]], times[power[m, n], m]]
+powerAddition[m_, a_, b_] := ringLaw["PowerAddition", {m, a, b}, power[m, exponentSum[a, b]], times[power[m, a], power[m, b]]]
 additionSubtractionCancellation[n_, m_] := law[AdditionSubtractionCancellation, {n, m}, subtract[plus[n, m], m], n]
+
+(* literal[a] + literal[b] == literal[a + b]: by computation, but for integers of opposite signs, which
+   are two pairs equal by a lemma; a negative one first is moved second *)
+computedLiteralSum[a_Integer, b_Integer] := computed[plus[literal[a], literal[b]], literal[a + b]]
+
+integerLiteralSum[a_Integer, b_Integer] /; a b >= 0 := computedLiteralSum[a, b]
+integerLiteralSum[a_Integer?Negative, b_Integer] := transitive[additionCommutativity[literal[a], literal[b]], integerLiteralSum[b, a]]
+integerLiteralSum[a_Integer, b_Integer] /; a + b >= 0 :=
+	law["integerLiteralDifferenceNonnegative", {naturalLiteral[-b], naturalLiteral[a + b]}, plus[literal[a], literal[b]], literal[a + b]]
+integerLiteralSum[a_Integer, b_Integer] :=
+	law["integerLiteralDifferenceNegative", {naturalLiteral[a], naturalLiteral[-a - b]}, plus[literal[a], literal[b]], literal[a + b]]
 
 (* x op (y op z) == y op (x op z), from associativity and commutativity *)
 leftCommutativity[operation_, associativity_, commutativity_, x_, y_, z_] := chain[
@@ -395,10 +501,12 @@ leftCommutativity[operation_, associativity_, commutativity_, x_, y_, z_] := cha
 (*Normal forms*)
 
 
+ringNormalForm[term_] := $ring["NormalForm"][term]
+
 (* a successor is a sum with 1, and NaturalNumberZero is 0, by computation; Subtract, which stops at 0,
    is no operation of a semiring, so a difference is an atom, and so is a power by a large exponent of
    anything but an atom *)
-ringNormalForm[term_] := Replace[term, {
+naturalNormalForm[term_] := Replace[term, {
 	naturalLiteral[0] :> {{}, reflexive[term]},
 	naturalLiteral[n_Integer] :> {{{n, {}}}, reflexive[term]},
 	constantReference[HoldComplete[NaturalNumberZero], _] :> {{}, computed[term, literal[0]]},
@@ -412,6 +520,47 @@ ringNormalForm[term_] := Replace[term, {
 	application[application[constantReference[HoldComplete[Power], {}], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :> powerNormalForm[a, k],
 	_ :> {{{1, {{term, 1}}}}, reflexive[term]}
 }]
+
+(* A term of integers: a literal, the integer of a natural number literal or its negation, is a constant;
+   sums, products and powers by literals carry over; a difference is the sum with the negation by
+   computation, and a negation the product with -1; the integer of a sum, product, power or successor of
+   natural numbers is that of the integers, and any other term is an atom. *)
+integerNormalForm[term_] := Replace[term, {
+	application[constantReference[HoldComplete["integerOfNatural"], _], naturalLiteral[0]] :> {{}, reflexive[term]},
+	application[constantReference[HoldComplete["integerOfNatural"], _], naturalLiteral[n_Integer]] :> {{{n, {}}}, reflexive[term]},
+	application[constantReference[HoldComplete["integerNegation"], _], application[constantReference[HoldComplete["integerOfNatural"], _], naturalLiteral[0]]] :>
+		{{}, computed[term, literal[0]]},
+	application[constantReference[HoldComplete["integerNegation"], _], application[constantReference[HoldComplete["integerOfNatural"], _], naturalLiteral[n_Integer]]] :>
+		{{{-n, {}}}, reflexive[term]},
+	application[application[constantReference[HoldComplete["integerAddition"], _], a_], b_] :> sumNormalForm[a, b],
+	application[application[constantReference[HoldComplete["integerMultiplication"], _], a_], b_] :> productNormalForm[a, b],
+	application[application[constantReference[HoldComplete["integerSubtraction"], _], a_], b_] :> With[{sum = sumNormalForm[a, negation[b]]},
+		{First[sum], transitive[computed[term, plus[a, negation[b]]], Last[sum]]}
+	],
+	application[constantReference[HoldComplete["integerNegation"], _], a_] :> With[{product = productNormalForm[literal[-1], a]},
+		{First[product], transitive[law["integerNegationProduct", {a}, term, times[literal[-1], a]], Last[product]]}
+	],
+	application[application[constantReference[HoldComplete["integerPower"], _], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :> powerNormalForm[a, k],
+	application[constantReference[HoldComplete["integerOfNatural"], _], n_] :> castNormalForm[term, n],
+	_ :> {{{1, {{term, 1}}}}, reflexive[term]}
+}]
+
+(* the integer term of the natural number n *)
+castNormalForm[term_, n_] := Replace[n, {
+	application[application[constantReference[HoldComplete[Plus], _], a_], b_] :> castThrough[term, law[IntegerOfNaturalAddition, {a, b}, term, plus[integerOfNatural[a], integerOfNatural[b]]]],
+	application[application[constantReference[HoldComplete[Times], _], a_], b_] :> castThrough[term, law[IntegerOfNaturalMultiplication, {a, b}, term, times[integerOfNatural[a], integerOfNatural[b]]]],
+	application[application[constantReference[HoldComplete[Power], _], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :>
+		castThrough[term, law["integerOfNaturalPower", {a, naturalLiteral[k]}, term, power[integerOfNatural[a], naturalLiteral[k]]]],
+	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :>
+		castThrough[term, law[IntegerOfNaturalAddition, {a, naturalLiteral[1]}, term, plus[integerOfNatural[a], literal[1]]]],
+	constantReference[HoldComplete[NaturalNumberZero], _] :> {{}, computed[term, literal[0]]},
+	_ :> {{{1, {{term, 1}}}}, reflexive[term]}
+}]
+
+(* the normal form of the right side of the equation, which the left side equals *)
+castThrough[term_, equation : {_, right_, _}] := With[{form = ringNormalForm[right]},
+	{First[form], transitive[equation, Last[form]]}
+]
 
 sumNormalForm[a_, b_] := With[{first = ringNormalForm[a], second = ringNormalForm[b]},
 	{sum = polynomialSum[First[first], First[second]]},
@@ -429,11 +578,11 @@ $largestRingExponent = 4096
 powerNormalForm[a_, 0] := {{{1, {}}}, powerZero[a]}
 powerNormalForm[a_, k_Integer] := With[{base = ringNormalForm[a]},
 	Replace[First[base], {
-		{{1, {{atom_, 1}}}} /; k == 1 :> {{{1, {{atom, 1}}}}, transitive[congruent[Function[hole, power[hole, literal[1]]], Last[base]], powerOne[atom]]},
-		{{1, {{atom_, 1}}}} :> {{{1, {{atom, k}}}}, congruent[Function[hole, power[hole, literal[k]]], Last[base]]},
-		_ /; k > 32 :> With[{term = power[a, literal[k]]}, {{{1, {{term, 1}}}}, reflexive[term]}],
+		{{1, {{atom_, 1}}}} /; k == 1 :> {{{1, {{atom, 1}}}}, transitive[congruent[Function[hole, power[hole, exponent[1]]], Last[base]], powerOne[atom]]},
+		{{1, {{atom_, 1}}}} :> {{{1, {{atom, k}}}}, congruent[Function[hole, power[hole, exponent[k]]], Last[base]]},
+		_ /; k > 32 :> With[{term = power[a, exponent[k]]}, {{{1, {{term, 1}}}}, reflexive[term]}],
 		polynomial_ :> With[{raised = polynomialPower[polynomial, k]},
-			{First[raised], transitive[congruent[Function[hole, power[hole, literal[k]]], Last[base]], Last[raised]]}
+			{First[raised], transitive[congruent[Function[hole, power[hole, exponent[k]]], Last[base]], Last[raised]]}
 		]
 	}]
 ]
@@ -443,7 +592,7 @@ polynomialPower[polynomial_List, 1] := {polynomial, powerOne[polynomialTerm[poly
 polynomialPower[polynomial_List, k_Integer] := With[{lower = polynomialPower[polynomial, k - 1]},
 	{product = polynomialProduct[First[lower], polynomial]},
 	{First[product], chain[
-		powerSuccessor[polynomialTerm[polynomial], literal[k - 1]],
+		powerSuccessor[polynomialTerm[polynomial], exponent[k - 1]],
 		congruent[Function[hole, times[hole, polynomialTerm[polynomial]]], Last[lower]],
 		Last[product]
 	]}
@@ -456,7 +605,7 @@ polynomialPower[polynomial_List, k_Integer] := With[{lower = polynomialPower[pol
 
 (* {C, term[A] + term[B] == term[C]}: A and B merged as two sorted lists are, the first monomial of either
    taken in turn, like monomials added; a step for each monomial, where inserting one at a time would
-   take a step for each pair *)
+   take a step for each pair. Like monomials of the integers can cancel, leaving fewer monomials. *)
 polynomialSum[{}, second_List] := {second, additionZeroLeft[polynomialTerm[second]]}
 polynomialSum[first_List, {}] := {first, additionZeroRight[polynomialTerm[first]]}
 polynomialSum[{monomial_}, second_List] := monomialInsertion[monomial, second]
@@ -467,30 +616,36 @@ polynomialSum[first : {monomial_, rest__}, second : {other_, others__}] := Which
 	(* (m + R) + (o + S) == (m + o) + (R + S) *)
 	Last[monomial] === Last[other],
 		With[{merged = likeMonomialSum[monomial, other], inner = polynomialSum[{rest}, {others}]},
-			{Prepend[First[inner], First[merged]], chain[
+			{joined = joinedMonomials[First[merged], First[inner]]},
+			{First[joined], chain[
 				additionAssociativity[monomialTerm[monomial], polynomialTerm[{rest}], polynomialTerm[second]],
 				congruent[
 					Function[hole, plus[monomialTerm[monomial], hole]],
 					leftCommutativity[plus, additionAssociativity, additionCommutativity, polynomialTerm[{rest}], monomialTerm[other], polynomialTerm[{others}]]
 				],
 				symmetric[additionAssociativity[monomialTerm[monomial], monomialTerm[other], plus[polynomialTerm[{rest}], polynomialTerm[{others}]]]],
-				congruentBoth[plus, Last[merged], Last[inner]]
+				congruentBoth[plus, Last[merged], Last[inner]],
+				Last[joined]
 			]}
 		],
 	(* (m + R) + B == m + (R + B) *)
 	monomialBeforeQ[monomial, other],
 		With[{inner = polynomialSum[{rest}, second]},
-			{Prepend[First[inner], monomial], transitive[
+			{prepended = prependedMonomial[monomial, First[inner]]},
+			{First[prepended], chain[
 				additionAssociativity[monomialTerm[monomial], polynomialTerm[{rest}], polynomialTerm[second]],
-				congruent[Function[hole, plus[monomialTerm[monomial], hole]], Last[inner]]
+				congruent[Function[hole, plus[monomialTerm[monomial], hole]], Last[inner]],
+				Last[prepended]
 			]}
 		],
 	(* A + (o + S) == o + (A + S) *)
 	True,
 		With[{inner = polynomialSum[first, {others}]},
-			{Prepend[First[inner], other], transitive[
+			{prepended = prependedMonomial[other, First[inner]]},
+			{First[prepended], chain[
 				leftCommutativity[plus, additionAssociativity, additionCommutativity, polynomialTerm[first], monomialTerm[other], polynomialTerm[{others}]],
-				congruent[Function[hole, plus[monomialTerm[other], hole]], Last[inner]]
+				congruent[Function[hole, plus[monomialTerm[other], hole]], Last[inner]],
+				Last[prepended]
 			]}
 		]
 ]
@@ -501,11 +656,14 @@ monomialInsertion[monomial_, {next_, rest___}] := Which[
 	Last[monomial] === Last[next],
 		With[{merged = likeMonomialSum[monomial, next]},
 			If[ {rest} === {},
-				{{First[merged]}, Last[merged]},
-				{{First[merged], rest}, transitive[
-					symmetric[additionAssociativity[monomialTerm[monomial], monomialTerm[next], polynomialTerm[{rest}]]],
-					congruent[Function[hole, plus[hole, polynomialTerm[{rest}]]], Last[merged]]
-				]}
+				merged,
+				With[{joined = joinedMonomials[First[merged], {rest}]},
+					{First[joined], chain[
+						symmetric[additionAssociativity[monomialTerm[monomial], monomialTerm[next], polynomialTerm[{rest}]]],
+						congruent[Function[hole, plus[hole, polynomialTerm[{rest}]]], Last[merged]],
+						Last[joined]
+					]}
+				]
 			]
 		],
 	monomialBeforeQ[monomial, next],
@@ -514,20 +672,32 @@ monomialInsertion[monomial_, {next_, rest___}] := Which[
 		{{next, monomial}, additionCommutativity[monomialTerm[monomial], monomialTerm[next]]},
 	True,
 		With[{inner = monomialInsertion[monomial, {rest}]},
-			{Prepend[First[inner], next], transitive[
+			{prepended = prependedMonomial[next, First[inner]]},
+			{First[prepended], chain[
 				leftCommutativity[plus, additionAssociativity, additionCommutativity, monomialTerm[monomial], monomialTerm[next], polynomialTerm[{rest}]],
-				congruent[Function[hole, plus[monomialTerm[next], hole]], Last[inner]]
+				congruent[Function[hole, plus[monomialTerm[next], hole]], Last[inner]],
+				Last[prepended]
 			]}
 		]
 ]
 
-(* c1 x... + c2 x... == (c1 + c2) x..., by distributivity, with the coefficient 1 shown first *)
-likeMonomialSum[{first_Integer, {}}, {second_Integer, {}}] := {{first + second, {}}, computed[plus[literal[first], literal[second]], literal[first + second]]}
+(* {D, term[m] + term[C] == term[D]} for a monomial m before those of C: m alone where C is empty *)
+prependedMonomial[monomial_, {}] := {{monomial}, additionZeroRight[monomialTerm[monomial]]}
+prependedMonomial[monomial_, polynomial_List] := {Prepend[polynomial, monomial], reflexive[plus[monomialTerm[monomial], polynomialTerm[polynomial]]]}
+
+(* {D, term[L] + term[C] == term[D]} for L no monomial or one before those of C *)
+joinedMonomials[{}, polynomial_List] := {polynomial, additionZeroLeft[polynomialTerm[polynomial]]}
+joinedMonomials[{monomial_}, polynomial_List] := prependedMonomial[monomial, polynomial]
+
+(* {L, c1 x... + c2 x... == term[L]}, L the monomial (c1 + c2) x..., by distributivity, with the coefficient
+   1 shown first; or no monomial, where the coefficients of the integers cancel *)
+likeMonomialSum[{first_Integer, {}}, {second_Integer, {}}] := {If[first + second == 0, {}, {{first + second, {}}}], $ring["LiteralSum"][first, second]}
 likeMonomialSum[{first_Integer, factors : {__}}, {second_Integer, factors : {__}}] := With[{product = productTerm[factors]},
-	{{first + second, factors}, chain[
+	{If[first + second == 0, {}, {{first + second, factors}}], chain[
 		congruentBoth[plus, coefficientShown[first, product], coefficientShown[second, product]],
 		symmetric[distributivityRight[literal[first], literal[second], product]],
-		computed[times[plus[literal[first], literal[second]], product], times[literal[first + second], product]]
+		congruent[Function[hole, times[hole, product]], $ring["LiteralSum"][first, second]],
+		If[first + second == 0, multiplicationZeroLeft[product], coefficientHidden[first + second, product]]
 	]}
 ]
 
@@ -638,9 +808,9 @@ factorInsertion[factor_, {next_, rest___}] := Which[
 (* x^a * x^b == x^(a + b), with the exponent 1 shown first *)
 likeFactorProduct[{atom_, first_Integer}, {atom_, second_Integer}] := {{atom, first + second}, chain[
 	congruentBoth[times, exponentShown[atom, first], exponentShown[atom, second]],
-	symmetric[powerAddition[atom, literal[first], literal[second]]],
-	computed[power[atom, plus[literal[first], literal[second]]], power[atom, literal[first + second]]]
+	symmetric[powerAddition[atom, exponent[first], exponent[second]]],
+	computed[power[atom, exponentSum[exponent[first], exponent[second]]], power[atom, exponent[first + second]]]
 ]}
 
 exponentShown[atom_, 1] := symmetric[powerOne[atom]]
-exponentShown[atom_, exponent_Integer] := reflexive[power[atom, literal[exponent]]]
+exponentShown[atom_, k_Integer] := reflexive[power[atom, exponent[k]]]

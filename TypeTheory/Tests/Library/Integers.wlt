@@ -152,3 +152,46 @@ VerificationTest[
 	{{}, {}, {}},
 	TestID -> "Squares-are-at-least-zero-and-give-inequalities"
 ]
+
+(* x^n of an integer and a natural number is the integers' power, and shows as x^n *)
+VerificationTest[
+	{
+		TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers]}, x^2 + 3 x^3], integers]],
+		TypeOf[TypeTheoryTerm[2^3, integers]],
+		WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[(-2)^3, Integers] == -8], integers]],
+		MatchQ[TypeTheoryTerm[Function[{Typed[x, Integers]}, x^2 + 3 x^3], integers], TypeTheoryTerm[Function[{Typed[y_, Integers]}, y_^2 + 3 y_^3], _]]
+	},
+	{
+		TypeTheoryTerm[TypeSpecifier[{Integers} -> Integers], integers],
+		TypeTheoryTerm[NonNegativeIntegers, integers],
+		TypeTheoryTerm["true", integers],
+		True
+	},
+	TestID -> "Powers-of-integers"
+]
+
+(* "Ring" normalizes integer polynomials with the integers' laws: literals of opposite signs, cancelling
+   monomials, powers, the integers of natural numbers and atoms that are no variables, with no induction
+   on classes *)
+VerificationTest[
+	{
+		TypeTheoryProof[ForAll[{Typed[x, Integers]}, 3 x - 5 x + 2 - 7 == -2 x - 5], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}]["Goals"],
+		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y)^2 == x^2 - 2 x y + y^2], integers, {TypeTheoryTactic["Introduce", x, y], TypeTheoryTactic["Ring"]}]["Goals"],
+		TypeTheoryProof[
+			ForAll[{Typed[a, Naturals], Typed[b, Naturals], Typed[x, Integers]}, (a + b)^2 - x == Typed[a^2, Integers] + 2 a b + b^2 - x],
+			integers,
+			{TypeTheoryTactic["Introduce", a, b, x], TypeTheoryTactic["Ring"]}
+		]["Goals"],
+		TypeTheoryProof[
+			ForAll[{Typed[f, TypeSpecifier[{Integers} -> Integers]], Typed[x, Integers]}, (f[x] + 1)^2 == f[x]^2 + 2 f[x] + 1],
+			integers,
+			{TypeTheoryTactic["Introduce", f, x], TypeTheoryTactic["Ring"]}
+		]["Goals"],
+		FreeQ[
+			TypeTheoryProof[ForAll[{Typed[x, Integers]}, (x + 1)^5 == x^5 + 5 x^4 + 10 x^3 + 10 x^2 + 5 x + 1], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}]["Term"],
+			QuotientInduction
+		]
+	},
+	{{}, {}, {}, {}, True},
+	TestID -> "Ring-normalizes-integer-polynomials-with-the-integers'-laws"
+]

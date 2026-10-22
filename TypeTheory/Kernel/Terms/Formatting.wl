@@ -27,7 +27,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Circle                              𝕊¹                   the circle of the HoTT environment
 	"and", "or", "not"                  a && b, a || b, !a   as Lean writes them for its Bool
 	Integers                            ℤ                    the integers of TypeTheoryEnvironment["Integers"]
-	"integerAddition" and the others    x + y, x y, x - y, -x, x ≤ y, ...   as the natural numbers' operations
+	"integerAddition" and the others    x + y, x y, x - y, -x, x^n, x ≤ y, ...   as the natural numbers' operations
 	"integerOfNatural"[n]               ↑n, or the literal n itself
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
@@ -208,6 +208,7 @@ displayApplication[syntaxString["integerMultiplication"], arguments_List] := dis
 	Replace[arguments, negative : syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["-" | "-("], ___}]}] :> delimited["(", negative, ")"], {1}]
 ]
 displayApplication[syntaxString["integerSubtraction"], arguments_List] := syntaxHead[Subtract, arguments]
+displayApplication[syntaxString["integerPower"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Power]], arguments]
 displayApplication[syntaxString["integerNegation"], {argument_}] := prefixed["-", argument]
 displayApplication[syntaxString["integerLessEqual"], arguments_List] := syntaxHead[LessEqual, arguments]
 displayApplication[syntaxString["integerLess"], arguments_List] := syntaxHead[Less, arguments]

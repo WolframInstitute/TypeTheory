@@ -51,9 +51,11 @@ VerificationTest[
 	{
 		sumOfSquaresProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 2 x y <= x x + y y], {x, y}]["Goals"],
 		sumOfSquaresProof[ForAll[{Typed[x, Integers]}, 0 <= x x - 2 x + 1], {x}]["Goals"],
-		sumOfSquaresProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], {x, y, z}]["Goals"]
+		sumOfSquaresProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], {x, y, z}]["Goals"],
+		sumOfSquaresProof[ForAll[{Typed[x, Integers]}, 4 x <= x^4 + 3], {x}]["Goals"],
+		sumOfSquaresProof[ForAll[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers], Typed[d, Integers]}, (a c + b d)^2 <= (a^2 + b^2) (c^2 + d^2)], {a, b, c, d}]["Goals"]
 	},
-	{{}, {}, {}},
+	{{}, {}, {}, {}, {}},
 	TestID -> "SumOfSquares-proves-inequalities-of-integers"
 ]
 

@@ -51,8 +51,9 @@ The tactics:
 	"Ring"                  proves an equation of natural numbers that holds in every commutative semiring, by
 	                        normal forms with proofs from the prelude's laws (Ring.wl); an equation of the
 	                        integers of TypeTheoryEnvironment["Integers"] that holds in every commutative ring,
-	                        by induction on the class of each integer variable, the soundness of quotients, and
-	                        the equation of natural numbers of the pairs
+	                        by normal forms with proofs from the integers' laws, or, in an environment without
+	                        all of them, by induction on the class of each integer variable, the soundness of
+	                        quotients, and the equation of natural numbers of the pairs
 	"PolynomialReduce"      proves an equation of natural numbers from the equations among the hypotheses by a
 	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks
 	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
@@ -119,7 +120,8 @@ a definition among h1, h2, ... unfolds where it computes, as Join does on ListPr
 TypeTheoryTactic[\"Decide\"] proves a closed statement by computing its decision, the instance of Decidable that elaboration finds: \
 the prelude's decide == and <= of natural numbers, And, Or, Not, True and False, and an environment may declare more.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
-TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2.\n\
+TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2, \
+and an equation of integers that holds in every commutative ring.\n\
 TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds.\n\
 TypeTheoryTactic[\"LinearArithmetic\"] proves an inequality, an equation or False, of natural numbers, from the inequalities and equations among the hypotheses, \
 by a linear combination of them that Wolfram finds.\n\
@@ -840,6 +842,11 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative semiring.", data, goal],
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; integerTypeQ[environment, type] && integerRingAvailableQ[environment] :>
+			Replace[integerRingEquationProof[left, right], {
+				None :> tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative ring.", data, goal],
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
+			}],
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; integerTypeQ[environment, type] :>
 			integerRing[data, goal, current],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers or of integers.", data, goal]
@@ -928,9 +935,11 @@ naturalNumberTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[e
 (* the integers of TypeTheoryEnvironment["Integers"], a quotient of pairs of natural numbers *)
 integerTypeQ[environment_, type_] := type === constantReference[HoldComplete[Integers], {}] && constantDeclaredQ[environment, HoldComplete["integerRelation"]]
 
-(* An equation of integers is one of classes once each integer variable it mentions is the class of a
-   pair: the soundness of quotients makes it the relation of the two pairs, an equation of natural numbers
-   that holds in every commutative semiring where the integers' holds in every commutative ring. The
+(* Where the environment lacks the laws the integers' normal forms are built from, as while the integers'
+   library is built: an equation of integers is one of classes once each integer variable it mentions is
+   the class of a pair, and the soundness of quotients makes it the relation of the two pairs, an equation
+   of natural numbers that holds in every commutative semiring where the integers' holds in every
+   commutative ring. The
    equation is first a goal with only the hypotheses it mentions, so that no other hypothesis is
    generalized with an integer variable into the goal of its classes. *)
 integerRing[data_, goal_, current_] := With[{narrowedGoal = freshMetavariableId[], context = neededContext[current["Context"], current["Type"]]},
@@ -1171,8 +1180,8 @@ closeIfSidesSame[data_, goal_, type_] := If[
    IntegerLessEqualOfMultiple takes the equation d (y - x) == c1 g1 g1 + ..., which "Ring" proves, and the
    proof that the sum is at least 0, made of IntegerSquareNonnegative, IntegerNonnegativeScaling and
    IntegerNonnegativeAddition. The atoms of the polynomials are the subterms that are no sum, difference,
-   product or negation of integers, nor the integer of a sum, product, power by a literal or literal of
-   natural numbers. An inequality of natural numbers is that of their integers, by
+   product, negation or power by a literal of integers, nor the integer of a sum, product, power by a
+   literal or literal of natural numbers. An inequality of natural numbers is that of their integers, by
    IntegerOfNaturalLessEqual, and a goal x >= y, x < y or x > y is the inequality it unfolds to. *)
 sumOfSquares[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[Join[$ringConstants, $sumOfSquaresConstants], Function[name, constantDeclaredQ[environment, name]]],
@@ -1255,7 +1264,7 @@ certifiedInequality[state_, target_, data_, goal_, {smaller_, larger_, d_Integer
 		)],
 		{
 			_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal],
-			solved_ :> Replace[catchKernelFailure[integerRing[solved, equationGoal, currentGoal[solved, equationGoal]]], _Failure :> tacticFailure[
+			solved_ :> Replace[catchKernelFailure[ring[solved, equationGoal]], _Failure :> tacticFailure[
 				"NotRingEquation",
 				"\"Ring\" does not prove the equation of the sum of squares that Wolfram finds for the goal `1`, as when an atom of its sides is not a variable.",
 				data,
@@ -1299,6 +1308,7 @@ integerPolynomial[term_] := Replace[term, {
 	application[application[constantReference[HoldComplete["integerSubtraction"], _], a_], b_] :> integerPolynomial[a] - integerPolynomial[b],
 	application[application[constantReference[HoldComplete["integerMultiplication"], _], a_], b_] :> integerPolynomial[a] * integerPolynomial[b],
 	application[constantReference[HoldComplete["integerNegation"], _], a_] :> -integerPolynomial[a],
+	application[application[constantReference[HoldComplete["integerPower"], _], a_], naturalLiteral[k_Integer]] :> integerPolynomial[a] ^ k,
 	application[constantReference[HoldComplete["integerOfNatural"], _], n_] :> naturalPolynomial[n],
 	_ :> integerAtom[term]
 }]

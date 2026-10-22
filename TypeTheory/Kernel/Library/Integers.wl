@@ -412,6 +412,101 @@ $integerDeclarations = {
 		{TypeTheoryTactic["Introduce", m, n], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
 	],
 
+	(* The laws "Ring" normalizes integer polynomials by, beside those of a commutative ring: zero and one
+	   on the left, distributivity on the right, negation as the product with -1, and the sums of literals
+	   of opposite signs, which are two pairs and so not equal by computation, as literals of the same sign
+	   are. A power by a natural number is a product, with the laws of powers, and the integers of the
+	   natural numbers keep powers. *)
+	integerTheorem["integerAdditionZeroLeft", ForAll[{Typed[x, Integers]}, 0 + x == x], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}],
+	integerTheorem["integerMultiplicationZeroLeft", ForAll[{Typed[x, Integers]}, 0 x == 0], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}],
+	integerTheorem["integerMultiplicationZeroRight", ForAll[{Typed[x, Integers]}, x 0 == 0], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}],
+	integerTheorem["integerMultiplicationOneLeft", ForAll[{Typed[x, Integers]}, 1 x == x], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}],
+	integerTheorem[
+		"integerDistributivityRight",
+		ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, (x + y) z == x z + y z],
+		{TypeTheoryTactic["Introduce", x, y, z], TypeTheoryTactic["Ring"]}
+	],
+	integerTheorem[
+		"integerNegationProduct",
+		ForAll[{Typed[x, Integers]}, "integerNegation"[x] == "integerMultiplication"["integerNegation"[1], x]],
+		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}
+	],
+	integerTheorem[
+		"integerLiteralDifferenceNonnegative",
+		ForAll[
+			{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]},
+			"integerOfNatural"[m + k] + "integerNegation"["integerOfNatural"[m]] == "integerOfNatural"[k]
+		],
+		{TypeTheoryTactic["Introduce", m, k], TypeTheoryTactic["Ring"]}
+	],
+	integerTheorem[
+		"integerLiteralDifferenceNegative",
+		ForAll[
+			{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]},
+			"integerOfNatural"[m] + "integerNegation"["integerOfNatural"[m + k]] == "integerNegation"["integerOfNatural"[k]]
+		],
+		{TypeTheoryTactic["Introduce", m, k], TypeTheoryTactic["Ring"]}
+	],
+	(* x^0 is 1 and x^(n + 1) is x^n x *)
+	TypeTheoryDefinition[
+		"integerPower",
+		Typed[
+			Function[{Typed[x, Integers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, Integers],
+				"integerOfNatural"[1],
+				Function[{Typed[k, NonNegativeIntegers], Typed[p, Integers]}, "integerMultiplication"[p, x]],
+				n
+			]],
+			TypeSpecifier[{Integers, NonNegativeIntegers} -> Integers]
+		]
+	],
+	integerTheorem["integerPowerZero", ForAll[{Typed[x, Integers]}, "integerPower"[x, 0] == 1], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Reflexivity"]}],
+	integerTheorem[
+		"integerPowerSuccessor",
+		ForAll[{Typed[x, Integers], Typed[n, NonNegativeIntegers]}, "integerPower"[x, n + 1] == "integerPower"[x, n] x],
+		{TypeTheoryTactic["Introduce", x, n], TypeTheoryTactic["Reflexivity"]}
+	],
+	integerTheorem[
+		"integerPowerOne",
+		ForAll[{Typed[x, Integers]}, "integerPower"[x, 1] == x],
+		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Exact", "integerMultiplicationOneLeft"[x]]}
+	],
+	TypeTheoryTheorem[
+		"integerPowerAddition",
+		ForAll[
+			{Typed[x, Integers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]},
+			"integerPower"[x, a + b] == "integerPower"[x, a] "integerPower"[x, b]
+		],
+		Function[{Typed[x, Integers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[c, NonNegativeIntegers]}, "integerPower"[x, a + c] == "integerPower"[x, a] "integerPower"[x, c]],
+			EqualitySymmetry[IntegerMultiplicationOne["integerPower"[x, a]]],
+			Function[
+				{Typed[c, NonNegativeIntegers], Typed[ih, "integerPower"[x, a + c] == "integerPower"[x, a] "integerPower"[x, c]]},
+				EqualityTransitivity[
+					EqualityCongruence[Function[{Typed[w, Integers]}, w x], ih],
+					IntegerMultiplicationAssociativity["integerPower"[x, a], "integerPower"[x, c], x]
+				]
+			],
+			b
+		]]
+	],
+	TypeTheoryTheorem[
+		"integerOfNaturalPower",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, "integerOfNatural"[m^n] == "integerPower"["integerOfNatural"[m], n]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[c, NonNegativeIntegers]}, "integerOfNatural"[m^c] == "integerPower"["integerOfNatural"[m], c]],
+			EqualityReflexivity["integerOfNatural"[1]],
+			Function[
+				{Typed[c, NonNegativeIntegers], Typed[ih, "integerOfNatural"[m^c] == "integerPower"["integerOfNatural"[m], c]]},
+				EqualityTransitivity[
+					IntegerOfNaturalMultiplication[m^c, m],
+					EqualityCongruence[Function[{Typed[w, Integers]}, w "integerOfNatural"[m]], ih]
+				]
+			],
+			n
+		]]
+	],
+
 	(* x is x plus 0 *)
 	integerTheorem[
 		IntegerLessEqualReflexivity,
