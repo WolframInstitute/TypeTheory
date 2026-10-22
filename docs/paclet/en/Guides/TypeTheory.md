@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, instances, type classes, coercions, Lean]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, InstancesAndCoercions, TheIntegers, RulesAndComputation, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
@@ -105,6 +105,16 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [IntegerSquareNonnegative](), [IntegerNonnegativeAddition](), [IntegerNonnegativeScaling]() squares, sums and natural multiples at least 0
 - [IntegerNonnegativeCancellation](), [IntegerLessEqualOfDifference](), [IntegerLessEqualOfMultiple]() inequalities from differences and their multiples, as `"SumOfSquares"` proves them
 - [IntegerOfNaturalLessEqual]() an inequality of natural numbers from that of their integers
+
+### The rationals
+
+- <code>[TypeTheoryEnvironment]()["Rationals"]</code> the integers with the rationals, classes of pairs of an integer and a natural number, where `+`, `*`, `-`, `/`, `^` and the comparisons are the rationals' wherever the types say so
+- [RationalAdditionCommutativity](), [RationalAdditionAssociativity](), [RationalAdditionZero](), [RationalAdditionNegation](), [RationalSubtractionNegation]() addition and negation
+- [RationalMultiplicationCommutativity](), [RationalMultiplicationAssociativity](), [RationalMultiplicationOne](), [RationalDistributivity]() multiplication
+- [RationalMultiplicationInverse](), [RationalInverseZero]() the inverse, which makes the rationals a field
+- [RationalOfIntegerAddition](), [RationalOfIntegerMultiplication]() the integers among the rationals
+- [RationalEqualityDecidable]() the instance deciding `==` of rationals
+- [RationalLessEqualReflexivity](), [RationalSquareNonnegative]() the order
 
 ### Cubical type theory
 

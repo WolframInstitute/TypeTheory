@@ -25,6 +25,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryEnvironment]()["Integers"]</code> gives the prelude with the integers, a quotient of pairs of natural numbers, and the laws of a commutative ring.
 
+<code>[TypeTheoryEnvironment]()["Rationals"]</code> gives the integers with the rationals, a quotient of pairs of an integer and a natural number, and the laws of a field.
+
 <code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
 
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
@@ -152,6 +154,16 @@ TypeTheoryEnvironment["Integers"]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 244 constants -->
+
+---
+
+The rationals extend the integers:
+
+```wl
+TypeTheoryEnvironment["Rationals"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 323 constants -->
 
 ## Properties and Relations
 
