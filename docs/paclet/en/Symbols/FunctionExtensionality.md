@@ -4,8 +4,8 @@ Name: FunctionExtensionality
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/FunctionExtensionality
-Keywords: [function extensionality, axiom, functions, equality, prelude, classical logic]
-SeeAlso: [PropositionalExtensionality, EqualityCongruence, Choice, DefinitionallyEqualQ]
+Keywords: [function extensionality, funext, quotient, functions, equality, prelude, classical logic]
+SeeAlso: [QuotientSoundness, QuotientLift, PropositionalExtensionality, EqualityCongruence, DefinitionallyEqualQ]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,9 +16,9 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [FunctionExtensionality]() is one of the three axioms of the prelude. Lean proves it from quotients, which the kernel does not have.
+- [FunctionExtensionality]() is a theorem of the prelude, proved from the axiom [QuotientSoundness]() as Lean proves `funext`: two functions equal at every point have the same class in the quotient of functions by that relation, and applying a class to a point with [QuotientLift]() gives the value there.
 - *f* and *g* may be dependent functions. Their domain, their codomain, *f* and *g* are implicit arguments, found from the type of *h*.
-- The constructive environment, <code>[TypeTheoryEnvironment]()["Constructive"]</code>, does not have it.
+- The constructive environment, <code>[TypeTheoryEnvironment]()["Constructive"]</code>, does not have it, since it does not have [QuotientSoundness]().
 
 ## Basic Examples
 

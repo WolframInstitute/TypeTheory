@@ -130,6 +130,7 @@ evaluates inside a term.
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]`; `{name -> type, ...}` declares mutually inductive types |
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
 | `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
+| `TypeTheoryQuotients[]` | the quotient types of Lean's kernel; `TypeTheoryQuotients[equality, {type, introduction, lift, induction}]` under other names |
 
 `TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the default environment, which is
 also the environment of any term or proof that names none: the prelude, until
@@ -170,9 +171,9 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-164 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
-three constants are axioms, propositional extensionality, function extensionality and choice, and the
-excluded middle is proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
+169 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+three constants are axioms, Lean's three, propositional extensionality, the soundness of quotients and
+choice, and function extensionality and the excluded middle are proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
 *The TypeTheory Prelude* on the documentation site goes through all of it.
 
@@ -183,6 +184,9 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Equality:** `Equal` (`EqualityReflexivity`, `EqualitySymmetry`, `EqualityTransitivity`,
   `EqualityCongruence`, `EqualitySubstitution`) and `Unequal`, `x != y`.
 - **Functions:** `Identity` and `Composition`.
+- **Quotients:** the quotient types of Lean's kernel, `QuotientType[r]`, with `QuotientIntroduction`,
+  `QuotientLift` and `QuotientInduction`, declared by `TypeTheoryQuotients[]`: a lift computes on a
+  class, and `QuotientSoundness`, Lean's `Quot.sound`, is an axiom.
 - **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `NaturalNumberZero`, `NaturalNumberSuccessor` and
   `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
   and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean, and computed
@@ -209,9 +213,10 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
   and their laws `JoinEmptyRight`, `JoinAssociativity`, `LengthJoin`, `LengthMap`, `MapJoin`,
   `MapComposition`, `ReverseJoin`, `ReverseReverse` and `LengthReverse`.
 - **Classical logic:** `Nonempty` (`NonemptyIntroduction`) and `Subtype` (`SubtypeIntroduction`); the
-  axioms `PropositionalExtensionality`, `FunctionExtensionality` (which Lean proves from quotients) and
-  `Choice`; `ChosenWitness` with `ChosenWitnessProperty`; and the theorems `ExcludedMiddle`, proved by
-  Diaconescu's argument, and `DoubleNegationElimination`.
+  axioms `PropositionalExtensionality`, `QuotientSoundness` and `Choice`; `ChosenWitness` with
+  `ChosenWitnessProperty`; and the theorems `FunctionExtensionality`, proved from the soundness of
+  quotients as Lean proves it, `ExcludedMiddle`, proved by Diaconescu's argument, and
+  `DoubleNegationElimination`.
 
 The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)` for propositions
 and `(a && b) && c` for Booleans. `True`, `False`, `Not`, `And` and `Or` are propositions or Booleans, as
@@ -331,16 +336,16 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 240 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 247 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
-from `Or`, data projected out of a proof, `Type : Type`, and tampered environment records; and, on the
-prelude's rules, the HoTT library proving False with an equality in Prop.
+from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
+equality that is not the identity type, and tampered environment records; and, on the prelude's rules,
+the HoTT library proving False with an equality in Prop.
 
 ## Not yet
 
-- The integers and the rationals, built as quotients once quotients are native.
-- Quotients are declared with a rewrite rule for their computation, as LeanLink imports Lean's;
-  induction on mutual or nested types, and on indexed families whose indices are not variables, in the
+- The integers and the rationals, built as quotients.
+- Induction on mutual or nested types, and on indexed families whose indices are not variables, in the
   tactic.
 - Cubical type theory, where univalence computes; truncations; translations between rules.
 - Higher-order unification beyond patterns.

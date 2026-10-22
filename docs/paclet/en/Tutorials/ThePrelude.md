@@ -5,7 +5,7 @@ Title: The TypeTheory Prelude
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/ThePrelude
-Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, decidability, Decidable, pairs, sums, options, lists, classical logic, axioms, choice, excluded middle, constructive]
+Keywords: [prelude, logic, equality, natural numbers, arithmetic, order, theorems, induction, Equivalent, LessEqual, Booleans, decidability, Decidable, quotients, pairs, sums, options, lists, classical logic, axioms, choice, excluded middle, constructive]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [InstancesAndCoercions, TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Theorem" -> 71, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 3|> -->
 
 It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
@@ -28,7 +28,7 @@ It is built when the paclet loads, and every declaration in it is checked by the
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
 ```
 
-<!-- => {PropositionalExtensionality, FunctionExtensionality, Choice} -->
+<!-- => {PropositionalExtensionality, QuotientSoundness, Choice} -->
 
 ## Propositions
 
@@ -130,6 +130,30 @@ DefinitionallyEqualQ[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity
 ```
 
 <!-- => True -->
+
+## Quotients
+
+The prelude has the quotient types of Lean's kernel, which [TypeTheoryQuotients]() declares: <code>[QuotientType]()[r]</code> is the type of the classes of a relation `r`, <code>[QuotientIntroduction]()[r, a]</code> is the class of `a`, [QuotientLift]() applies a function that respects `r` to a class, and [QuotientInduction]() proves a property of every class. Here is equality of natural numbers, as a relation:
+
+```wl
+equalNaturals = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m == n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+```
+
+<!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
+
+The successor respects it, so it lifts to the classes, and the lift computes on a class, as in Lean's kernel:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
+    Function[{Typed[k, Naturals]}, k + 1],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Function[{Typed[k, Naturals]}, k + 1], e]],
+    QuotientIntroduction[equalNaturals, 5]
+]]]
+```
+
+<!-- => 6 -->
+
+That the classes of related elements are equal is an axiom, [QuotientSoundness](), one of the three below.
 
 ## The Natural Numbers
 
@@ -350,7 +374,7 @@ TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroductio
 
 <!-- => True == (True ∧ True) -->
 
-[FunctionExtensionality]() makes functions equal that agree on every argument. Lean proves it from quotients, which the kernel does not have, so here it is an axiom:
+[QuotientSoundness]() makes the classes of related elements equal. From it the prelude proves [FunctionExtensionality](), as Lean proves `funext`: functions that agree on every argument are equal:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]]]
@@ -407,7 +431,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 155 constants -->
 
 It has no axioms:
 
@@ -431,7 +455,7 @@ Whatever is proved in it uses no axiom. Other axioms can be assumed there with [
 excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 152 constants -->
+<!-- => TypeTheoryEnvironment summary box: 156 constants -->
 
 Its one axiom:
 
@@ -443,4 +467,4 @@ Information[excludedMiddle, "Axioms"]
 
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. Type classes, coercions, the integers and the rationals are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types among it, and quotients as rewrite rules, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
+Lean's library is much larger than this prelude. The integers and the rationals are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types and quotients among it, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.

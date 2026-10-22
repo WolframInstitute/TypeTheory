@@ -22,13 +22,15 @@ Information[TypeTheoryEnvironment[], "Rules"]["Name"]
 
 <!-- => "CalculusOfInductiveConstructions" -->
 
-Those rules have a universe of propositions, Prop, and no rewrite rules:
+Those rules have a universe of propositions, Prop, quotient types, and no rewrite rules:
 
 ```wl
-{TypeTheoryRules["CalculusOfInductiveConstructions"]["Prop"], TypeTheoryRules["CalculusOfInductiveConstructions"]["RewriteRules"]}
+TypeTheoryRules["CalculusOfInductiveConstructions"] /@ {"Prop", "Quotients", "RewriteRules"}
 ```
 
-<!-- => {True, False} -->
+<!-- => {True, True, False} -->
+
+Without quotient types, they are the rules of Rocq's kernel.
 
 Martin-Löf type theory has no Prop:
 
@@ -46,7 +48,7 @@ Under any rules, a definition unfolds to its value. Here is the prelude with a d
 double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 `Double[4]` unfolds and computes:
 
@@ -72,13 +74,25 @@ WeakHeadNormalForm[TypeTheoryTerm[123456789 * 987654321 + 2^64]]
 
 <!-- => 18568676704822186885 -->
 
+The quotient types of Lean's kernel compute too: lifting a function to the classes of a relation and applying the lift to a class gives the function's value. Here the classes are those of the relation that relates any two numbers, and the constant function 7 respects it:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
+    Function[{Typed[k, Naturals]}, 7],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, True]}, EqualityReflexivity[7]],
+    QuotientIntroduction[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, True], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]], 5]
+]]]
+```
+
+<!-- => 7 -->
+
 An axiom never unfolds: it has no value.
 
 ```wl
 mystery = TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stops at the recursor, waiting for a constructor the axiom never gives:
 
@@ -142,22 +156,22 @@ Proof irrelevance, with an equality in Prop eliminating into any type, is what m
 
 ## Axioms That Compute
 
-Lean's kernel has quotient types built in. Their constructor and lift are constants with no definition, and the kernel adds one computation rule: lifting a function to the quotient and applying it to a class gives the function's value. In TypeTheory the quotient is declared with axioms, and the rule with a [TypeTheoryRewriteRule](), which needs rules that allow rewrite rules.
+Lean's kernel has quotient types built in. Their constructor and lift are constants with no definition, and the kernel adds one computation rule: lifting a function to the quotient and applying it to a class gives the function's value. TypeTheory's kernel has the same rule for the prelude's [QuotientLift](), as above. A kernel without quotient types, as Rocq's, can still have them, with axioms for the constants and a [TypeTheoryRewriteRule]() for the rule, which needs rules that allow rewrite rules.
 
-The axioms, as Lean states them:
+The axioms, as Lean states its quotient types, under names of their own:
 
 ```wl
 quotientDeclarations = {
-    TypeTheoryAxiom[QuotientType, ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]]}, TypeUniverse[u]]],
-    TypeTheoryAxiom[QuotientClass, ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[a, A]}, QuotientType[r]]],
-    TypeTheoryAxiom[QuotientLift, ForAll[
+    TypeTheoryAxiom[Classes, ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]]}, TypeUniverse[u]]],
+    TypeTheoryAxiom[ClassOf, ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[a, A]}, Classes[r]]],
+    TypeTheoryAxiom[ClassLift, ForAll[
         {TypedImplicit[A, TypeUniverse[u]], TypedImplicit[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], TypedImplicit[B, TypeUniverse[v]],
-            Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], f[a] == f[b]]]], Typed[q, QuotientType[r]]},
+            Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], f[a] == f[b]]]], Typed[q, Classes[r]]},
         B
     ]],
-    TypeTheoryAxiom[QuotientSound, ForAll[
+    TypeTheoryAxiom[ClassSoundness, ForAll[
         {TypedImplicit[A, TypeUniverse[u]], TypedImplicit[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], TypedImplicit[a, A], TypedImplicit[b, A]},
-        Implies[r[a, b], QuotientClass[r, a] == QuotientClass[r, b]]
+        Implies[r[a, b], ClassOf[r, a] == ClassOf[r, b]]
     ]]
 };
 ```
@@ -165,10 +179,10 @@ quotientDeclarations = {
 The computation rule:
 
 ```wl
-liftClass = TypeTheoryRewriteRule[QuotientLiftClass, ForAll[
+liftClass = TypeTheoryRewriteRule[ClassLiftComputes, ForAll[
     {Typed[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[B, TypeUniverse[v]],
         Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], f[a] == f[b]]]], Typed[a, A]},
-    QuotientLift[f, h, QuotientClass[r, a]] -> f[a]
+    ClassLift[f, h, ClassOf[r, a]] -> f[a]
 ]];
 ```
 
@@ -178,7 +192,7 @@ The prelude's rules allow no rewrite rules, so the declarations of the prelude, 
 rewriting = TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "RewriteRules" -> True], Normal[TypeTheoryEnvironment["Prelude"]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 164 constants -->
+<!-- => TypeTheoryEnvironment summary box: 169 constants -->
 
 There the quotient is declared with its rule:
 
@@ -186,15 +200,15 @@ There the quotient is declared with its rule:
 quotient = TypeTheoryEnvironment[rewriting, Append[quotientDeclarations, liftClass]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 169 constants -->
+<!-- => TypeTheoryEnvironment summary box: 174 constants -->
 
 The rule, as declared:
 
 ```wl
-quotient[QuotientLiftClass]
+quotient[ClassLiftComputes]
 ```
 
-<!-- => rewrite QuotientLiftClass : ∀_A∶Sort u ∀_r∶A → A → Prop ∀_B∶Sort v ∀_f∶A → B ∀_h∶∀_a∶A ∀_b∶A r[a, b] ⇒ f[a] == f[b] ∀_a∶A QuotientLift[f, h, QuotientClass[r, a]] ⟶ f[a] -->
+<!-- => rewrite ClassLiftComputes : ∀_A∶Sort u ∀_r∶A → A → Prop ∀_B∶Sort v ∀_f∶A → B ∀_h∶∀_a∶A ∀_b∶A r[a, b] ⇒ f[a] == f[b] ∀_a∶A ClassLift[f, h, ClassOf[r, a]] ⟶ f[a] -->
 
 Negation respects equality of Booleans, so it lifts to the quotient by equality. The relation:
 
@@ -215,7 +229,15 @@ respects = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans], Type
 On a class the lift computes. [Not]() and [True]() stand for the Booleans' negation and truth here, since the types say so:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], quotient]]
+WeakHeadNormalForm[TypeTheoryTerm[ClassLift[Not, respects, ClassOf[same, True]], quotient]]
+```
+
+<!-- => false -->
+
+The prelude's quotient types compute the same way without a rewrite rule, by the kernel's own rule:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientIntroduction[same, True]], quotient]]
 ```
 
 <!-- => false -->
@@ -226,15 +248,15 @@ The same axioms on the prelude, with no rule, declare the quotient as well:
 stuck = TypeTheoryEnvironment[quotientDeclarations]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 168 constants -->
+<!-- => TypeTheoryEnvironment summary box: 173 constants -->
 
 But the lift is stuck:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[Not, respects, QuotientClass[same, True]], stuck]]
+WeakHeadNormalForm[TypeTheoryTerm[ClassLift[Not, respects, ClassOf[same, True]], stuck]]
 ```
 
-<!-- => QuotientLift[not, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[not, e], QuotientClass[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->
+<!-- => ClassLift[not, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[not, e], ClassOf[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->
 
 And the prelude's rules refuse the rule:
 
@@ -269,7 +291,7 @@ flips = TypeTheoryEnvironment[rewriting, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 176 constants -->
 
 By the first rule, `Flip[BitZero]` computes to `BitOne`:
 
@@ -300,7 +322,7 @@ confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 172 constants -->
+<!-- => TypeTheoryEnvironment summary box: 177 constants -->
 
 The theorem it declares:
 
@@ -318,4 +340,5 @@ Rules that do not overlap and always terminate, such as the quotient's and the c
 | --- | --- | --- | --- | --- |
 | a definition, a recursor on a constructor | computes | computes | computes | computes |
 | two proofs of a proposition | equal by computation | equal by computation | no Prop: two paths need not be equal | equal by computation |
-| an axiom | stuck | computes by its rewrite rules | computes by its rewrite rules, where the rules allow them | stuck, except the quotient's built-in rule |
+| an axiom | stuck | computes by its rewrite rules | computes by its rewrite rules, where the rules allow them | stuck |
+| a quotient's lift on a class | computes | computes | no quotient types | computes |

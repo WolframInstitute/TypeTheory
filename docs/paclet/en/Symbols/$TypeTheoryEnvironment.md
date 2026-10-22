@@ -27,7 +27,7 @@ The default environment is the prelude:
 $TypeTheoryEnvironment
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 164 constants -->
+<!-- => TypeTheoryEnvironment summary box: 169 constants -->
 
 Declarations without an environment extend the default, here the constructive environment for one computation:
 
@@ -35,4 +35,4 @@ Declarations without an environment extend the default, here the constructive en
 Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryEnvironment[{TypeTheoryAxiom[Unprovable, False]}]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 152 constants -->
+<!-- => TypeTheoryEnvironment summary box: 156 constants -->

@@ -35,7 +35,8 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryInductiveType]() declares an inductive type with its constructors, or mutually inductive types
 - [TypeTheoryNaturalNumbers]() registers the natural numbers that literals belong to, and the operations the kernel computes on them
 - [TypeTheoryRewriteRule]() makes an axiom compute, where the rules allow it
-- [TypeTheoryRules]() the rules an environment follows: the calculus of inductive constructions, or Martin-Löf type theory without Prop
+- [TypeTheoryQuotients]() declares the quotient types of Lean's kernel
+- [TypeTheoryRules]() the rules an environment follows: the calculus of inductive constructions, with quotients, or Martin-Löf type theory without Prop
 
 ### Checking and computing
 
@@ -59,9 +60,17 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [EqualityReflexivity](), [EqualitySymmetry](), [EqualityTransitivity](), [EqualityCongruence](), [EqualitySubstitution]() equality, with [Unequal]() its negation
 - [Identity](), [Composition]() the identity function and composition
 
+### The prelude: quotients
+
+- [QuotientType]() the type of the classes of a relation, Lean's `Quot`
+- [QuotientIntroduction]() the class of an element
+- [QuotientLift]() a function that respects the relation, applied to classes, computing on a class
+- [QuotientInduction]() a property of every class, from the classes of the elements
+
 ### The prelude: classical logic
 
-- [PropositionalExtensionality](), [FunctionExtensionality](), [Choice]() the axioms of the prelude
+- [PropositionalExtensionality](), [QuotientSoundness](), [Choice]() the axioms of the prelude, Lean's three
+- [FunctionExtensionality]() functions equal at every point are equal, proved from [QuotientSoundness]()
 - [NonemptyIntroduction]() proving [Nonempty](), which [Choice]() takes to an element
 - [SubtypeIntroduction]() an element of a [Subtype](), with a proof of its property
 - [ChosenWitness](), [ChosenWitnessProperty]() a witness chosen from a proof of [Exists](), and its property

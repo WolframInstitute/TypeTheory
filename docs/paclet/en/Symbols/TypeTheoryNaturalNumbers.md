@@ -110,7 +110,7 @@ shifted = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 The shift computes on literals at once:
 

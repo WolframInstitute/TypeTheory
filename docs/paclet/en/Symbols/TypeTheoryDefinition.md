@@ -33,7 +33,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 Compute with it:
 
@@ -61,7 +61,7 @@ identity = TypeTheoryEnvironment[
 ]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 A universe-polymorphic definition is used at each universe:
 
@@ -89,7 +89,7 @@ composite = TypeTheoryEnvironment[TypeTheoryDefinition[Composite,
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 [MakeBoxes]() definitions give a definition a notation. A term shows the arguments that are not implicit, so the rule matches those:
 
@@ -114,7 +114,7 @@ inhabited = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 169 constants -->
+<!-- => TypeTheoryEnvironment summary box: 174 constants -->
 
 `Default` where a natural number is expected finds the instance:
 
@@ -134,7 +134,7 @@ coerced = TypeTheoryEnvironment[
 ]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 A Boolean where a natural number is expected is coerced:
 

@@ -28,7 +28,7 @@ The prelude assumes three axioms:
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
 ```
 
-<!-- => {PropositionalExtensionality, FunctionExtensionality, Choice} -->
+<!-- => {PropositionalExtensionality, QuotientSoundness, Choice} -->
 
 ---
 
@@ -40,7 +40,7 @@ excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 152 constants -->
+<!-- => TypeTheoryEnvironment summary box: 156 constants -->
 
 Applied to a proposition, the axiom proves it or its negation:
 
@@ -66,7 +66,7 @@ Assume a function on the natural numbers:
 measured = TypeTheoryEnvironment[TypeTheoryAxiom[Measure, TypeSpecifier[{Naturals} -> Naturals]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 165 constants -->
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 [Format]() gives an axiom's symbol a display, which its declaration and every term use:
 
