@@ -72,6 +72,37 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[{secret = Append[prelude, TypeTheoryDefinition[Secret, Typed[42, NonNegativeIntegers], "Opaque" -> True]]},
+		{
+			TypeOf[TypeTheoryTerm[Secret, secret]] === TypeTheoryTerm[NonNegativeIntegers, secret],
+			WeakHeadNormalForm[TypeTheoryTerm[Secret, secret]] === TypeTheoryTerm[Secret, secret],
+			DefinitionallyEqualQ[TypeTheoryTerm[Secret, secret], TypeTheoryTerm[42, secret]],
+			secret[Secret],
+			Information[secret, "Kinds"]["Opaque"]
+		}
+	],
+	{True, True, False, TypeTheoryDefinition[Secret, Typed[42, NonNegativeIntegers], "Opaque" -> True], 1},
+	TestID -> "An-opaque-definition-has-its-type-but-never-unfolds"
+]
+
+VerificationTest[
+	With[{secret = Append[prelude, TypeTheoryDefinition[Secret, Typed[42, NonNegativeIntegers], "Opaque" -> True]]},
+		{
+			Head[Append[secret, TypeTheoryTheorem[SecretItself, Secret == Secret, EqualityReflexivity[Secret]]]],
+			Head[Append[secret, TypeTheoryTheorem[SecretValue, Secret == 42, EqualityReflexivity[42]]]]
+		}
+	],
+	{TypeTheoryEnvironment, Failure},
+	TestID -> "An-opaque-definition-equals-only-itself"
+]
+
+VerificationTest[
+	Head[Append[prelude, TypeTheoryDefinition[Forged, Typed[TrueIntroduction, NonNegativeIntegers], "Opaque" -> True]]],
+	Failure,
+	TestID -> "An-opaque-definition-whose-value-has-another-type-gives-a-Failure"
+]
+
+VerificationTest[
 	With[{arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]},
 		TypeOf[TypeTheoryTerm[TwoPlusTwo, arithmetic]] === TypeTheoryTerm[2 + 2 == 4, arithmetic]
 	],

@@ -10,6 +10,7 @@ evaluates, and it means nothing until it is added to an environment:
 
 	TypeTheoryAxiom[name, type]
 	TypeTheoryDefinition[name, value]                           value may be Typed[v, type]
+	TypeTheoryDefinition[name, value, "Opaque" -> True]         checked as a definition, but never unfolded
 	TypeTheoryTheorem[name, statement, proof]
 	TypeTheoryTheorem[name, proof]                              proof a finished TypeTheoryProof
 	TypeTheoryInductiveType[name, type, {constructor -> type, ...}]
@@ -87,7 +88,8 @@ TypeTheoryDefinition[name, Typed[value, type]] gives the definition the given ty
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear. \
 The option \"Instance\" -> True makes the definition an instance of its type's class, the constant its type applies at the end, which elaboration finds \
 for an argument of an instance-implicit binder. The option \"Coercion\" -> True makes a function of one explicit argument a coercion, which elaboration \
-applies to a term whose type is the function's domain where its codomain is expected."
+applies to a term whose type is the function's domain where its codomain is expected. The option \"Opaque\" -> True makes the definition opaque, \
+as Lean's opaque constants are: its value is checked against its type, but it never unfolds, so it equals only itself."
 TypeTheoryTheorem::usage = "TypeTheoryTheorem[name, statement, proof] declares name as a theorem: proof must prove statement when it is added to a TypeTheoryEnvironment. \
 statement must be a proposition, or under rules without Prop any type; a theorem is never unfolded.\n\
 TypeTheoryTheorem[name, proof] declares the statement of the finished TypeTheoryProof proof.\n\
@@ -116,7 +118,7 @@ declareAxiom::usage = "declareAxiom[environment, HoldComplete[name], {HoldComple
 declareDefinition::usage = "declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value] checks the core value against the core type \
 and gives environment with the definition name added.\n\
 declareDefinition[environment, HoldComplete[name], {HoldComplete[u], ...}, type, value, <|\"Instance\" -> True, \"Coercion\" -> True|>] adds it as an instance or \
-a coercion for elaboration, which the kernel checks as any definition."
+a coercion for elaboration, which the kernel checks as any definition. With \"Opaque\" -> True its record is of the kind \"Opaque\", which never unfolds."
 declareTheorem::usage = "declareTheorem[environment, HoldComplete[name], {HoldComplete[u], ...}, statement, proof] checks that statement is a proposition, or \
 under rules without Prop a type, and that proof proves it, and gives environment with the theorem name added."
 declareRewriteRule::usage = "declareRewriteRule[environment, HoldComplete[name], {HoldComplete[u], ...}, numberOfVariables, left, right] checks the rewrite rule \
@@ -138,7 +140,7 @@ $emptyEnvironment::usage = "$emptyEnvironment is the environment with no constan
 
 
 Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic}
-Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False}
+Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False, "Opaque" -> False}
 Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
@@ -198,20 +200,22 @@ addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : Optio
 	declareDefinition[environment, HoldComplete[name], universeParameters, betaNormalize[Last[elaborated]], First[elaborated], definitionRoles[Hold[options], betaNormalize[Last[elaborated]]]]
 ]
 
-(* the roles the options give a definition for elaboration: an instance's type, under its binders, is a
-   constant applied to arguments, its class; a coercion's type, under its implicit binders, is a function
-   of an explicit argument *)
+(* the roles the options give a definition: for elaboration, an instance's type, under its binders, is a
+   constant applied to arguments, its class, and a coercion's type, under its implicit binders, is a
+   function of an explicit argument; for the kernel, a definition of any type may be opaque *)
 definitionRoles[heldOptions_Hold, type_] := Select[
 	<|
 		"Instance" -> roleOption[heldOptions, "Instance", MatchQ[First @ applicationSpine[functionTypeConclusion[type]], _constantReference],
 			"InstanceTypeExpected", "The type of an instance must be a class, a constant applied to arguments, under its binders."],
 		"Coercion" -> roleOption[heldOptions, "Coercion", MatchQ[explicitFunctionType[type], dependentFunctionType[_, _, _, binder_ /; binderKind[binder] === "Explicit"]],
-			"CoercionTypeExpected", "The type of a coercion must be a function of an explicit argument, under its implicit binders."]
+			"CoercionTypeExpected", "The type of a coercion must be a function of an explicit argument, under its implicit binders."],
+		"Opaque" -> roleOption[heldOptions, "Opaque"]
 	|>,
 	TrueQ
 ]
 
-roleOption[heldOptions_Hold, option_String, fitsQ_, tag_String, message_String] := Replace[heldOptionValue[TypeTheoryDefinition, heldOptions, option], {
+roleOption[heldOptions_Hold, option_String] := roleOption[heldOptions, option, True, None, None]
+roleOption[heldOptions_Hold, option_String, fitsQ_, tag_, message_] := Replace[heldOptionValue[TypeTheoryDefinition, heldOptions, option], {
 	HoldComplete[False] -> False,
 	HoldComplete[True] /; fitsQ -> True,
 	HoldComplete[True] :> kernelFailure[tag, message, {}],
@@ -443,14 +447,16 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] :=
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>|>]
 ]
 
-(* an instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other *)
+(* An instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other.
+   An opaque definition is checked as any other too, but its record is of the kind "Opaque", which
+   nothing unfolds: like an axiom it equals only itself, and unlike one its type has an element. *)
 declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withKernelCaches[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
 	checkHasType[environment, <||>, value, type];
 	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
 	addConstantRecords[environment, <|name -> Join[
-		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
+		<|"Kind" -> If[TrueQ[roles["Opaque"]], "Opaque", "Definition"], "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
 		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ]
 	]|>]
 ]

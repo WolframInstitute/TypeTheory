@@ -126,7 +126,7 @@ evaluates inside a term.
 | Constructor | Declares |
 | --- | --- |
 | `TypeTheoryAxiom[name, type]` | an axiom |
-| `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]`; `"Instance" -> True` makes it an instance of its type's class, and `"Coercion" -> True` a coercion |
+| `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]`; `"Instance" -> True` makes it an instance of its type's class, `"Coercion" -> True` a coercion, and `"Opaque" -> True` a definition checked as any other that never unfolds, as Lean's `opaque` |
 | `TypeTheoryTheorem[name, statement, proof]` | a theorem; `TypeTheoryTheorem[name, proof]` takes the statement of a finished proof |
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]`; `{name -> type, ...}` declares mutually inductive types |
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
@@ -412,7 +412,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 297 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 301 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, a definition that copies an affine variable, a recursion on an

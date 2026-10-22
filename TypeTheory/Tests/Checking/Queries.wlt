@@ -126,3 +126,22 @@ VerificationTest[
 	"TypeMismatch",
 	TestID -> "A-forged-addition-is-caught"
 ]
+
+(* an opaque definition never unfolds, but its value is checked as a definition's *)
+VerificationTest[
+	With[
+		{
+			secret = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+				TypeTheoryInductiveType[Truth, TypeUniverse[1], {Yes -> Truth, No -> Truth}],
+				TypeTheoryDefinition[Secret, Typed[Yes, Truth], "Opaque" -> True]
+			}]
+		},
+		{
+			Normal[secret][[-1]],
+			MatchQ[TypeTheoryCheck[TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[secret]]], _Success],
+			First @ TypeTheoryCheck[forge[secret, HoldComplete[Secret], Function[record, Append[record, "Value" -> constantReference[HoldComplete[Truth], {}]]]]]
+		}
+	],
+	{TypeTheoryDefinition[Secret, Typed[Yes, Truth], "Opaque" -> True], True, "TypeMismatch"},
+	TestID -> "An-opaque-definition-comes-back-from-Normal-and-a-forged-value-is-caught"
+]

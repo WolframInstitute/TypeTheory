@@ -322,9 +322,9 @@ TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, Type
 TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, value_, options___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[declaration, definitionKeyword[Hold[options]], {{toSyntax[name], None, toSyntax[value]}}, form]
 
-(* an instance or a coercion is named so, as Lean's instance and @[coe] *)
+(* an opaque definition, an instance or a coercion is named so, as Lean's opaque, instance and @[coe] *)
 definitionKeyword[heldOptions_Hold] := Replace[
-	Select[{"Instance", "Coercion"}, Function[role, MemberQ[heldOptions, (Rule | RuleDelayed)[role, True]]]],
+	Select[{"Opaque", "Instance", "Coercion"}, Function[role, MemberQ[heldOptions, (Rule | RuleDelayed)[role, True]]]],
 	{{} -> "definition", roles_ :> ToLowerCase[StringRiffle[roles, " "]]}
 ]
 

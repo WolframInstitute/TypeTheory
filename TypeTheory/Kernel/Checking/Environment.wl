@@ -22,10 +22,11 @@ undone without bookkeeping. The records are joined, not copied: the new store sh
 terms and all. The handle is small, so terms and proofs carry their environment with them. A store lives
 for the session: Normal[environment] gives the declarations to rebuild it from.
 
-A record is an Association with "Kind" (one of "Axiom", "Definition", "Theorem", "InductiveType",
-"Constructor", "Recursor", "RewriteRule"), "Type" (a core term, or None for a rewrite rule, which is not a
-term), "UniverseParameters" ({HoldComplete[u], ...}) and the fields of its kind:
-	Definition, Theorem    "Value"
+A record is an Association with "Kind" (one of "Axiom", "Definition", "Opaque", "Theorem",
+"InductiveType", "Constructor", "Recursor", "RewriteRule"), "Type" (a core term, or None for a rewrite
+rule, which is not a term), "UniverseParameters" ({HoldComplete[u], ...}) and the fields of its kind:
+	Definition, Opaque     "Value", and "Instance" -> True or "Coercion" -> True for elaboration
+	Theorem                "Value"
 	InductiveType          "NumberOfParameters", "NumberOfIndices", "Constructors", "LargeElimination", "Recursive",
 	                       "Block" (the types declared together with it, itself among them, in order)
 	Constructor            "InductiveType", "ConstructorIndex", "NumberOfParameters", "NumberOfFields"
