@@ -17,6 +17,19 @@ An environment's store can be changed by hand. TypeTheoryCheck[environment] is h
 it replays every declaration in order on the empty environment of the same rules with the core
 declaration functions, and compares each record with the one the replay produces. Axioms and rewrite
 rules are taken on trust, as their name says.
+
+TypeTheoryTranslate[environment, rules] replays the declarations the same way on the empty environment
+of other rules, whose kernel checks each of them again: a translation is trusted no more than the
+declarations it gives. Where the rules lose Prop, Prop becomes the lowest universe of types, Type, and the
+other universes stay: a level l becomes max(l, 1), which commutes with instantiating universe parameters.
+A recursor's motive goes into Sort u with Prop and into Sort (u + 1) without it, so the universe level a
+recursor is applied at moves down by one where the rules lose Prop, and up by one where they gain it,
+and a recursor that eliminates into Prop alone gets the level 0; a declaration whose motives go into
+Prop itself, as a proof that 0 is no successor does, is tried again with the levels kept. An inductive
+proposition lives in the universe of its largest field, as Exists does. What needs Prop's impredicativity
+or proof irrelevance, or a recursor at a universe parameter that may be 0, then fails to check, and is
+left out with every declaration that mentions it. A theorem of rules without Prop states a type, so where
+the rules gain Prop it becomes a definition.
 *)
 
 
@@ -25,6 +38,7 @@ rules are taken on trust, as their name says.
 
 
 PackageExported[TypeTheoryCheck]
+PackageExported[TypeTheoryTranslate]
 PackageExported[DefinitionallyEqualQ]
 PackageExported[WeakHeadNormalForm]
 
@@ -47,6 +61,11 @@ TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheory
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
 or a Failure for the first declaration that does not check."
+TypeTheoryTranslate::usage = "TypeTheoryTranslate[environment, rules] translates the declarations of the TypeTheoryEnvironment environment to the \
+TypeTheoryRules rules, whose kernel checks them again, and gives a Success whose \"Environment\" is the environment of rules with each declaration that \
+checks there, and whose \"Failures\" gives the failure of each declaration left out, those that mention one included.\n\
+Where rules have no Prop, Prop becomes the lowest universe of types, Type. Axioms are left out, since one that holds of propositions need not hold of \
+types, as propositional extensionality does not; the option \"Axioms\" -> True keeps them."
 DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
@@ -335,6 +354,132 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	],
 	kind_ :> kernelFailure["UnknownDeclaration", "The record of `1` has the unknown kind `2`.", {HoldForm @@ name, kind}]
 }]
+
+(* ::Subsection:: *)
+(*Translations between rules*)
+
+
+Options[TypeTheoryTranslate] = {"Axioms" -> False}
+
+TypeTheoryTranslate[environment_?environmentQ, rules_?rulesQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ With[
+	{
+		direction = Replace[{TrueQ[rulesSetting[environment, "Prop"]], TrueQ[rules["Prop"]]}, {{True, False} -> "LoseProp", {False, True} -> "GainProp", _ -> "SameProp"}],
+		axiomsQ = TrueQ[OptionValue["Axioms"]],
+		primary = primaryNames[environment]
+	},
+	{
+		result = Fold[
+			Function[{state, name}, translateDeclaration[environment, state, name, direction, axiomsQ]],
+			<|"Environment" -> emptyEnvironmentOf[rules], "Failures" -> <||>|>,
+			primary
+		]
+	},
+	Success["Translated", <|
+		"MessageTemplate" -> "`1` of the `2` declarations translate to the rules `3`.",
+		"MessageParameters" -> {Length[primary] - Length[result["Failures"]], Length[primary], rules["Name"]},
+		"Environment" -> result["Environment"],
+		"Failures" -> KeyMap[ReleaseHold, result["Failures"]]
+	|>]
+]
+
+(* the declaration of name redeclared in the environment of the other rules, or its failure recorded *)
+translateDeclaration[original_, state_Association, name_, direction_String, axiomsQ_] := With[{record = constantRecord[original, name]},
+	If[ record["Kind"] === "Axiom" && ! axiomsQ,
+		Append[state, "Failures" -> Append[state["Failures"], name -> Failure["AxiomLeftOut", <|
+			"MessageTemplate" -> "`1` is an axiom, which a translation keeps only with \"Axioms\" -> True.",
+			"MessageParameters" -> {HoldForm @@ name}
+		|>]]],
+		Replace[catchKernelFailure[translatedDeclaration[original, state["Environment"], name, record, direction]], {
+			failure_Failure :> Append[state, "Failures" -> Append[state["Failures"], name -> failure]],
+			extended_ :> Append[state, "Environment" -> Replace[catchKernelFailure[registerWhenDeclared[extended, naturalNumberSettings[original]]], _Failure -> extended]]
+		}]
+	]
+]
+
+(* the recursors' levels lowered, or else kept, where the rules lose Prop *)
+translatedDeclaration[original_, target_, name_, record_, direction_String] := With[
+	{attempt = Function[mode, catchKernelFailure[translatedRecord[original, target, name, record, direction, Function[term, translatedTerm[original, target, direction, mode, term]]]]]},
+	Replace[attempt["Lowered"], failure_Failure /; direction === "LoseProp" :> Replace[attempt["Kept"], _Failure -> failure]]
+]
+
+translatedRecord[original_, target_, name_, record_, direction_, translate_] := Replace[record["Kind"], {
+	"Axiom" :> declareAxiom[target, name, record["UniverseParameters"], translate[record["Type"]]],
+	"Definition" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]], KeyTake[record, {"Instance", "Coercion"}]],
+	"Theorem" /; direction === "GainProp" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],
+	"Theorem" :> declareTheorem[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],
+	"RewriteRule" :> declareRewriteRule[target, name, record["UniverseParameters"], record["NumberOfVariables"], translate[record["LeftHandSide"]], translate[record["RightHandSide"]]],
+	"Quotient" :> declareQuotients[target, record["Equality"], record["QuotientNames"]],
+	"InductiveType" :> With[
+		{
+			constructorTypes = Function[constructor, constructor -> translate[constantRecord[original, constructor]["Type"]]] /@
+				Catenate[Function[member, constantRecord[original, member]["Constructors"]] /@ record["Block"]]
+		},
+		declareInductiveTypes[
+			target,
+			record["UniverseParameters"],
+			record["NumberOfParameters"],
+			Function[member, member -> raisedProposition[original, target, direction, record, constructorTypes, member, translate[constantRecord[original, member]["Type"]]]] /@ record["Block"],
+			constructorTypes
+		]
+	],
+	kind_ :> kernelFailure["UnknownDeclaration", "The record of `1` has the unknown kind `2`.", {HoldForm @@ name}]
+}]
+
+(* an inductive proposition, where the rules lose Prop, lives in the universe of its largest field that is
+   not of a type of its block, and in Type at least *)
+raisedProposition[original_, target_, "LoseProp", record_, constructorTypes_List, member_, type_] /; conclusionSort[constantRecord[original, member]["Type"]] === universeSort[0] :=
+	withConclusion[type, universeSort[normalizeLevel[levelMaximum @@ Prepend[
+		Catenate[Function[constructor, fieldLevels[target, <||>, record["NumberOfParameters"], record["Block"], Last[constructor], {}]] /@ constructorTypes],
+		1
+	]]]]
+raisedProposition[_, _, _, _, _, _, type_] := type
+
+conclusionSort[dependentFunctionType[_, _, codomain_, _]] := conclusionSort[codomain]
+conclusionSort[sort_] := sort
+
+withConclusion[dependentFunctionType[name_, domain_, codomain_, binder_], sort_] := dependentFunctionType[name, domain, withConclusion[codomain, sort], binder]
+withConclusion[_, sort_] := sort
+
+(* the universes of a constructor's fields, its parameters skipped *)
+fieldLevels[target_, context_, skipped_Integer, block_List, dependentFunctionType[name_, domain_, codomain_, binder_], levels_List] := With[{id = freshFreeVariable[]},
+	fieldLevels[
+		target,
+		extendContext[context, id, name, domain, binder],
+		Max[skipped - 1, 0],
+		block,
+		instantiateBoundVariable[codomain, freeVariable[id]],
+		If[ skipped > 0 || ! FreeQ[domain, constantReference[Alternatives @@ block, _]], levels, Append[levels, sortLevel[target, context, domain]]]
+	]
+]
+fieldLevels[_, _, _, _, _, levels_List] := levels
+
+(* Where the rules lose Prop, Prop becomes Type, the lowest universe of types, and every other sort stays: a
+   level l becomes max(l, 1), so a constant keeps its universe levels, its own sorts lifted the same way. A
+   recursor's level moves with the meaning of its motive's universe. *)
+translatedTerm[original_, target_, direction_, mode_, term_] := ReplaceAll[term, {
+	universeSort[level_] /; direction === "LoseProp" :> universeSort[normalizeLevel[levelMaximum[level, 1]]],
+	constantReference[name : HoldComplete[_InductiveRecursor], levels_List] :> constantReference[name, recursorLevels[original, target, direction, mode, name, levels]]
+}]
+
+(* the levels of a recursor in the other rules: its first is the universe its motive goes into, if it has one *)
+recursorLevels[original_, target_, direction_, mode_, name_, levels_List] := With[
+	{
+		sourceUniverse = TrueQ[constantRecord[original, name]["EliminationUniverse"]],
+		targetUniverse = constantDeclaredQ[target, name] && TrueQ[constantRecord[target, name]["EliminationUniverse"]]
+	},
+	Which[
+		direction === "LoseProp" && sourceUniverse && targetUniverse && mode === "Lowered", Prepend[Rest[levels], loweredUniverse[First[levels]]],
+		direction === "LoseProp" && ! sourceUniverse && targetUniverse, Prepend[levels, 0],
+		direction === "GainProp" && sourceUniverse && targetUniverse, Prepend[Rest[levels], normalizeLevel[levelSuccessor[First[levels], 1]]],
+		True, levels
+	]
+]
+
+(* the level u with Sort (u + 1) the translation of Sort l, max(l, 1): l less one, or 0 for Prop; a universe
+   parameter that may be 0 has none, and stays, so what uses it fails to check *)
+loweredUniverse[level_Integer] := Max[level, 1] - 1
+loweredUniverse[levelSuccessor[base_, k_Integer]] /; k >= 1 := normalizeLevel[levelSuccessor[base, k - 1]]
+loweredUniverse[level_] := level
 
 (* each registration of the natural numbers is replayed as soon as the constants it names are declared *)
 registerWhenDeclared[replayed_, settings_Association] := With[

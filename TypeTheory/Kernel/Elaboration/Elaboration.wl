@@ -1499,9 +1499,23 @@ unifyLevels[a_, b_] := With[{first = normalizeLevel[instantiateLevels[a]], secon
 			unifyLevels[First[first], loweredLevel[second, Last[first]]],
 		MatchQ[second, levelSuccessor[_levelMetavariable, _]] && loweredLevel[first, Last[second]] =!= None,
 			unifyLevels[First[second], loweredLevel[first, Last[second]]],
+		(* max(?u, 1) = 1 holds for ?u at most 1, and ?u = 1 is taken, as a translation that keeps Type at least
+		   writes its universes *)
+		boundedMaximumQ[first, second],
+			assignLevel[SelectFirst[List @@ first, MatchQ[_levelMetavariable]], second],
+		boundedMaximumQ[second, first],
+			assignLevel[SelectFirst[List @@ second, MatchQ[_levelMetavariable]], first],
 		True,
 			levelEquivalentQ[first, second]
 	]
+]
+
+(* a maximum of one unsolved metavariable and parts that are all at most the other level *)
+boundedMaximumQ[maximum_, other_] := And[
+	MatchQ[maximum, _levelMaximum],
+	Count[List @@ maximum, _levelMetavariable] == 1,
+	FreeQ[other, _levelMetavariable],
+	AllTrue[DeleteCases[List @@ maximum, _levelMetavariable], Function[part, levelLessEqualQ[part, other]]]
 ]
 
 (* a normal level less k, where every part of it is at least k: max(u + 1, v + 1) less 1 is max(u, v);
