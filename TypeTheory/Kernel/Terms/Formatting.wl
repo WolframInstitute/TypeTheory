@@ -235,6 +235,11 @@ displayApplication[syntaxString["rationalGreaterEqual"], arguments_List] := synt
 displayApplication[syntaxString["rationalGreater"], arguments_List] := syntaxHead[Greater, arguments]
 displayApplication[syntaxString["rationalOfInteger"], {literal : syntaxInteger[_Integer]}] := literal
 displayApplication[syntaxString["rationalOfInteger"], {negative : syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["-"], syntaxInteger[_Integer]}]}]}] := negative
+(* a natural number cast to an integer and then to a rational shows as Lean shows it, ↑↑n *)
+displayApplication[
+	syntaxString["rationalOfInteger"],
+	{syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["\[UpArrow]"], inner_}]}]}
+] := prefixed["\[UpArrow]\[UpArrow]", inner]
 displayApplication[syntaxString["rationalOfInteger"], {argument_}] := prefixed["\[UpArrow]", argument]
 (* a class of a pair with a literal denominator shows as the fraction it stands for, as computation gives it too *)
 displayApplication[
