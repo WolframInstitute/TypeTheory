@@ -104,3 +104,55 @@ VerificationTest[
 	"NoCombination",
 	TestID -> "PolynomialReduce-fails-where-no-combination-gives-the-goal"
 ]
+
+VerificationTest[
+	With[
+		{
+			bound = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, Implies[2 x + 3 y <= 12, Implies[4 <= x, y <= 1]]], prelude, {
+				TypeTheoryTactic["Introduce", x, y, h, k],
+				TypeTheoryTactic["LinearArithmetic"]
+			}],
+			equation = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, Implies[x <= y, Implies[y <= x, x == y]]], prelude, {
+				TypeTheoryTactic["Introduce", x, y, h, k],
+				TypeTheoryTactic["LinearArithmetic"]
+			}],
+			contradiction = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, Implies[x < y, Implies[y < x + 1, False]]], prelude, {
+				TypeTheoryTactic["Introduce", x, y, h, k],
+				TypeTheoryTactic["LinearArithmetic"]
+			}],
+			nonnegative = TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x + 2 y <= z, x <= z]], prelude, {
+				TypeTheoryTactic["Introduce", x, y, z, h],
+				TypeTheoryTactic["LinearArithmetic"]
+			}]
+		},
+		{
+			bound["Goals"],
+			equation["Goals"],
+			contradiction["Goals"],
+			nonnegative["Goals"],
+			MatchQ[
+				TypeTheoryCheck[TypeTheoryEnvironment[prelude, {
+					TypeTheoryTheorem[Bound, bound],
+					TypeTheoryTheorem[EquationFromBounds, equation],
+					TypeTheoryTheorem[NoNumberBetween, contradiction],
+					TypeTheoryTheorem[DroppedTerm, nonnegative]
+				}]],
+				_Success
+			]
+		}
+	],
+	{{}, {}, {}, {}, True},
+	TestID -> "LinearArithmetic-combines-inequalities-with-multipliers-the-kernel-checks"
+]
+
+VerificationTest[
+	First /@ {
+		TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, Implies[x <= y, y <= x]], prelude, {
+			TypeTheoryTactic["Introduce", x, y, h],
+			TypeTheoryTactic["LinearArithmetic"]
+		}],
+		TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers]}, x <= x x + 1], prelude, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["LinearArithmetic"]}]
+	},
+	{"NoLinearCombination", "NoLinearCombination"},
+	TestID -> "LinearArithmetic-fails-where-the-goal-does-not-follow-linearly"
+]

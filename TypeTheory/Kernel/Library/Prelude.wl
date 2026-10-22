@@ -114,6 +114,9 @@ PackageExported[SuccessorNotLessEqualZero]
 PackageExported[LessEqualPredecessor]
 PackageExported[LessIrreflexivity]
 PackageExported[LessEqualAntisymmetry]
+PackageExported[AdditionMonotonicity]
+PackageExported[MultiplicationMonotonicity]
+PackageExported[LessEqualTotality]
 PackageExported[NonemptyIntroduction]
 PackageExported[SubtypeIntroduction]
 PackageExported[Nonempty]
@@ -236,6 +239,9 @@ SuccessorNotLessEqualZero::usage = "SuccessorNotLessEqualZero[n] proves Not[n + 
 LessEqualPredecessor::usage = "LessEqualPredecessor[h] proves n <= m from a proof h of n + 1 <= m + 1."
 LessIrreflexivity::usage = "LessIrreflexivity[n] proves Not[n < n]."
 LessEqualAntisymmetry::usage = "LessEqualAntisymmetry[h1, h2] proves a == b from proofs h1 of a <= b and h2 of b <= a."
+AdditionMonotonicity::usage = "AdditionMonotonicity[h1, h2] proves a + c <= b + d from proofs h1 of a <= b and h2 of c <= d."
+MultiplicationMonotonicity::usage = "MultiplicationMonotonicity[k, h] proves a * k <= b * k from a proof h of a <= b."
+LessEqualTotality::usage = "LessEqualTotality[m, n] proves Or[m <= n, n < m]."
 Nonempty::usage = "Nonempty[a] is the proposition that the type a has an element."
 NonemptyIntroduction::usage = "NonemptyIntroduction[x] proves Nonempty[a] from an element x of a."
 Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]."
@@ -848,6 +854,68 @@ $constructiveDeclarations = {
 		LessEqualAntisymmetry,
 		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers]}, Implies[a <= b, Implies[b <= a, a == b]]],
 		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= a]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j]}, Implies[j <= a, a == j]], Function[{Typed[r, a <= a]}, EqualityReflexivity[a]], Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j], Typed[ih, Implies[j <= a, a == j]], Typed[r, NaturalNumberSuccessor[j] <= a]}, FalseElimination[LessIrreflexivity[j][LessEqualTransitivity[r, t]]]], h][k]]
+	],
+	(* sums and products of inequalities *)
+	TypeTheoryTheorem[
+		AdditionMonotonicity,
+		ForAll[
+			{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers], TypedImplicit[d, NonNegativeIntegers]},
+			Implies[a <= b, Implies[c <= d, a + c <= b + d]]
+		],
+		Function[
+			{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers], TypedImplicit[d, NonNegativeIntegers], Typed[h, a <= b], Typed[k, c <= d]},
+			InductiveRecursor[LessEqual][
+				Function[{Typed[t, NonNegativeIntegers], Typed[e, c <= t]}, a + c <= b + t],
+				InductiveRecursor[LessEqual][
+					Function[{Typed[t, NonNegativeIntegers], Typed[e, a <= t]}, a + c <= t + c],
+					LessEqualReflexivity,
+					Function[{Typed[t, NonNegativeIntegers], Typed[e, a <= t], Typed[r, a + c <= t + c]},
+						Construct[EqualitySubstitution,
+							NonNegativeIntegers,
+							Function[{Typed[s, NonNegativeIntegers]}, a + c <= s],
+							t + c + 1,
+							t + 1 + c,
+							EqualitySymmetry[AdditionSuccessorLeft[t, c]],
+							LessEqualStep[r]
+						]
+					],
+					h
+				],
+				Function[{Typed[t, NonNegativeIntegers], Typed[e, c <= t], Typed[r, a + c <= b + t]}, LessEqualStep[r]],
+				k
+			]
+		]
+	],
+	TypeTheoryTheorem[
+		MultiplicationMonotonicity,
+		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[a <= b, a * k <= b * k]],
+		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers], Typed[h, a <= b]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[t, NonNegativeIntegers]}, a * t <= b * t],
+			LessEqualReflexivity,
+			Function[{Typed[t, NonNegativeIntegers], Typed[r, a * t <= b * t]}, AdditionMonotonicity[r, h]],
+			k
+		]]
+	],
+	(* either m <= n or n < m *)
+	TypeTheoryTheorem[
+		LessEqualTotality,
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Or[m <= n, n < m]],
+		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Or[a <= n, n < a]]],
+			Function[{Typed[n, NonNegativeIntegers]}, OrIntroductionLeft[LessEqualZero[n]]],
+			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Or[a <= n, n < a]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[c, NonNegativeIntegers]}, Or[a + 1 <= c, c < a + 1]],
+				OrIntroductionRight[LessEqualSuccessor[LessEqualZero[a]]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Or[a + 1 <= c, c < a + 1]]}, InductiveRecursor[Or][
+					Function[{Typed[s, Or[a <= c, c < a]]}, Or[a + 1 <= c + 1, c + 1 < a + 1]],
+					Function[{Typed[g, a <= c]}, OrIntroductionLeft[LessEqualSuccessor[g]]],
+					Function[{Typed[g, c < a]}, OrIntroductionRight[LessEqualSuccessor[g]]],
+					ih[c]
+				]],
+				n
+			]]],
+			m
+		]]
 	],
 
 	(* the Booleans, with false before true and the operations by cases on the first argument, as Lean's

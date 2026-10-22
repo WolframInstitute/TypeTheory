@@ -29,6 +29,13 @@ degree up to the goal's, d clearing their denominators. Then d l + X == d r + X'
 commutative semiring, with X the sum of the pi bi and qi ai, and X' that of the pi ai and qi bi; the
 hypotheses make X' equal to X, taking X from both sides leaves d l == d r, and MultiplicationCancellation
 leaves l == r.
+
+Linear arithmetic proves l <= r from hypotheses a1 <= b1, ..., each monomial of the atoms counted as a
+variable. LessEqualTotality gives l <= r or r < l, and the second is refuted: Wolfram's FindInstance
+finds natural multipliers yi of r + 1 <= l and the hypotheses with y1 (a1 - b1) + ... a positive
+constant c. The inequalities, multiplied by MultiplicationMonotonicity and added by AdditionMonotonicity,
+give A <= B, where B + c == A holds in every commutative semiring, so B + c <= B, which is
+(B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1), and LessIrreflexivity refutes it.
 *)
 
 
@@ -39,6 +46,9 @@ leaves l == r.
 PackageScoped[ringNormalForm]
 PackageScoped[ringEquationProof]
 PackageScoped[ringCombinationProof]
+PackageScoped[ringLinearProof]
+PackageScoped[ringContradictionProof]
+PackageScoped[ringEquationInequalities]
 
 
 (* ::Section:: *)
@@ -50,6 +60,11 @@ the term normal of that polynomial, and a proof of term == normal from the laws 
 ringEquationProof::usage = "ringEquationProof[left, right] gives a proof of left == right for core terms of natural numbers with the same normal form, or None."
 ringCombinationProof::usage = "ringCombinationProof[left, right, {{a, b, proof}, ...}] gives a proof of left == right from proofs of equations a == b of natural numbers, \
 by a polynomial combination of them that Wolfram's PolynomialReduce finds, or None."
+ringLinearProof::usage = "ringLinearProof[left, right, {{a, b, proof}, ...}] gives a proof of left <= right from proofs of inequalities a <= b of natural numbers that \
+imply it linearly, or None."
+ringContradictionProof::usage = "ringContradictionProof[{{a, b, proof}, ...}] gives a proof of False from proofs of inequalities a <= b of natural numbers that contradict \
+each other linearly, or None."
+ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {{a, b, proof1}, {b, a, proof2}}, the inequalities a <= b and b <= a, from a proof of a == b."
 
 
 (* ::Section:: *)
@@ -160,6 +175,122 @@ cancelled[left_, right_, difference : {primed_, unprimed_, _}] := Replace[ringEq
 
 
 (* ::Subsection:: *)
+(*Linear arithmetic*)
+
+
+ringLinearProof[left_, right_, inequalities_List] := With[{id = freshFreeVariable[]},
+	Replace[ringContradictionProof[Prepend[inequalities, {plus[right, literal[1]], left, freeVariable[id]}]], {
+		None -> None,
+		contradiction_ :> makeApplication[constantReference[recursorName[HoldComplete[Or]], {}], {
+			lessEqual[left, right],
+			less[right, left],
+			lambdaAbstraction[HoldComplete[t], or[lessEqual[left, right], less[right, left]], lessEqual[left, right], "Explicit"],
+			lambdaAbstraction[HoldComplete[h], lessEqual[left, right], boundVariable[0], "Explicit"],
+			lambdaAbstraction[
+				HoldComplete[g],
+				less[right, left],
+				makeApplication[constantReference[HoldComplete[FalseElimination], {}], {lessEqual[left, right], abstractFreeVariable[contradiction, id]}],
+				"Explicit"
+			],
+			makeApplication[constantReference[HoldComplete[LessEqualTotality], {}], {left, right}]
+		}]
+	}]
+]
+
+(* every natural number is at least 0, so each monomial m of the inequalities adds 0 <= m *)
+ringContradictionProof[given_List] := Module[{inequalities, forms, atoms, variables, differences, multipliers},
+	inequalities = Join[given, nonnegativity[Function[inequality, Function[term, First @ ringNormalForm[term]] /@ Most[inequality]] /@ given]];
+	forms = Function[inequality, Function[term, First @ ringNormalForm[term]] /@ Most[inequality]] /@ inequalities;
+	atoms = DeleteDuplicates @ Catenate[Function[monomial, First /@ Last[monomial]] /@ Catenate[Catenate[forms]]];
+	variables = Table[Subscript[\[FormalX], k], {k, Length[atoms]}];
+	differences = Function[pair, Expand[Subtract @@ (Function[polynomial, wolframPolynomial[polynomial, AssociationThread[atoms, variables]]] /@ pair)]] /@ forms;
+	multipliers = contradictionMultipliers[differences, variables];
+	If[multipliers === None, None, contradiction[inequalities, multipliers, Expand[multipliers . differences]]]
+]
+
+nonnegativity[forms_List] := Function[factors, With[{term = productTerm[factors]},
+	{literal[0], term, makeApplication[constantReference[HoldComplete[LessEqualZero], {}], {term}]}
+]] /@ DeleteCases[DeleteDuplicates[Last /@ Catenate[Catenate[forms]]], {}]
+
+(* natural numbers y with y . differences a positive constant, or None *)
+contradictionMultipliers[differences_List, variables_List] := With[{multipliers = Table[\[FormalY][i], {i, Length[differences]}]},
+	{rules = CoefficientRules[Expand[multipliers . differences], variables]},
+	Replace[
+		TimeConstrained[
+			Quiet @ FindInstance[
+				And @@ Join[
+					Thread[(Last /@ Select[rules, Function[rule, Total[First[rule]] > 0]]) == 0],
+					{Total[Last /@ Select[rules, Function[rule, Total[First[rule]] == 0]]] >= 1},
+					Thread[multipliers >= 0]
+				],
+				multipliers,
+				Integers
+			],
+			10,
+			$Aborted
+		],
+		{
+			{solution_List, ___} :> ReplaceAll[multipliers, solution],
+			_ :> None
+		}
+	]
+]
+
+(* the inequalities multiplied and added give A <= B, and B + c == A *)
+contradiction[inequalities_List, multipliers_List, constant_Integer] := With[
+	{scaled = DeleteCases[MapThread[scaledInequality, {inequalities, multipliers}], None]},
+	{sum = Fold[Function[{accumulated, inequality}, addedInequalities[inequality, accumulated]], Last[scaled], Reverse[Most[scaled]]]},
+	Replace[sum, {small_, large_, proof_} :> Replace[ringEquation[plus[large, literal[constant]], small], {
+		None -> None,
+		identity_ :> irreflexivityContradiction[large, constant, makeApplication[constantReference[HoldComplete[EqualitySubstitution], {1}], {
+			$naturals,
+			lambdaAbstraction[HoldComplete[t], $naturals, lessEqual[boundVariable[0], large], "Explicit"],
+			small,
+			plus[large, literal[constant]],
+			Last[symmetric[identity]],
+			proof
+		}]]
+	}]]
+]
+
+scaledInequality[_, 0] := None
+scaledInequality[inequality_List, 1] := inequality
+scaledInequality[{a_, b_, proof_}, multiplier_Integer] :=
+	{times[a, literal[multiplier]], times[b, literal[multiplier]], makeApplication[constantReference[HoldComplete[MultiplicationMonotonicity], {}], {a, b, literal[multiplier], proof}]}
+
+addedInequalities[{a_, b_, proof_}, {c_, d_, otherProof_}] :=
+	{plus[a, c], plus[b, d], makeApplication[constantReference[HoldComplete[AdditionMonotonicity], {}], {a, b, c, d, proof, otherProof}]}
+
+(* False from a proof of B + c <= B, c >= 1: it is (B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1) *)
+irreflexivityContradiction[large_, constant_Integer, proof_] := application[
+	makeApplication[constantReference[HoldComplete[LessIrreflexivity], {}], {plus[large, literal[constant - 1]]}],
+	makeApplication[constantReference[HoldComplete[LessEqualTransitivity], {}], {
+		plus[large, literal[constant]],
+		large,
+		plus[large, literal[constant - 1]],
+		proof,
+		makeApplication[constantReference[HoldComplete[LessEqualAddition], {}], {large, literal[constant - 1]}]
+	}]
+]
+
+(* a <= b and b <= a, each from a <= a carried along a == b *)
+ringEquationInequalities[a_, b_, proof_] := {
+	{a, b, carriedReflexivity[a, b, proof, Function[side, lessEqual[a, side]]]},
+	{b, a, carriedReflexivity[a, b, proof, Function[side, lessEqual[side, a]]]}
+}
+
+(* predicate[b] from predicate[a], which is a <= a *)
+carriedReflexivity[a_, b_, proof_, predicate_] := makeApplication[constantReference[HoldComplete[EqualitySubstitution], {1}], {
+	$naturals,
+	lambdaAbstraction[HoldComplete[t], $naturals, predicate[boundVariable[0]], "Explicit"],
+	a,
+	b,
+	proof,
+	application[constantReference[HoldComplete[LessEqualReflexivity], {}], a]
+}]
+
+
+(* ::Subsection:: *)
 (*Terms*)
 
 
@@ -170,6 +301,9 @@ plus[a_, b_] := application[application[constantReference[HoldComplete[Plus], {}
 times[a_, b_] := application[application[constantReference[HoldComplete[Times], {}], a], b]
 power[a_, b_] := application[application[constantReference[HoldComplete[Power], {}], a], b]
 subtract[a_, b_] := application[application[constantReference[HoldComplete[Subtract], {}], a], b]
+lessEqual[a_, b_] := application[application[constantReference[HoldComplete[LessEqual], {}], a], b]
+less[a_, b_] := application[application[constantReference[HoldComplete[Less], {}], a], b]
+or[p_, q_] := application[application[constantReference[HoldComplete[Or], {}], p], q]
 
 factorTerm[{atom_, 1}] := atom
 factorTerm[{atom_, exponent_Integer}] := power[atom, literal[exponent]]

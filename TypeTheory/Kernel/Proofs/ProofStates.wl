@@ -52,6 +52,9 @@ The tactics:
 	                        normal forms with proofs from the prelude's laws (Ring.wl)
 	"PolynomialReduce"      proves an equation of natural numbers from the equations among the hypotheses by a
 	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks
+	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
+	                        from the inequalities and equations among the hypotheses, with multipliers Wolfram
+	                        finds
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -108,7 +111,9 @@ a definition among h1, h2, ... unfolds where it computes, as Join does on ListPr
 TypeTheoryTactic[\"Decide\"] proves a closed statement built from == and <= of natural numbers, And, Or, Not, True and False by computing its decision.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
 TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2.\n\
-TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds."
+TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds.\n\
+TypeTheoryTactic[\"LinearArithmetic\"] proves an inequality, an equation or False, of natural numbers, from the inequalities and equations among the hypotheses, \
+by a linear combination of them that Wolfram finds."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -295,6 +300,7 @@ runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
 runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
+runTactic["LinearArithmetic", Hold[], data_, goal_] := linearArithmetic[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
@@ -1054,6 +1060,49 @@ polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], envir
 			}],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers.", data, goal]
 	}]
+]
+
+(* "LinearArithmetic": an inequality, an equation or False, of natural numbers, that follows linearly
+   from the inequalities and equations among the hypotheses, each monomial counted as a variable;
+   Wolfram's FindInstance finds the multipliers, and "Ring" checks the sum (Ring.wl) *)
+linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[Join[$ringConstants, $linearConstants], Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
+	];
+	With[{inequalities = inequalityHypotheses[environment, current["Context"]]},
+		Replace[
+			Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
+				application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :> ringLinearProof[left, right, inequalities],
+				application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[environment, current["Context"], type] :>
+					With[{one = ringLinearProof[left, right, inequalities], other = ringLinearProof[right, left, inequalities]},
+						If[one === None || other === None, None, makeApplication[constantReference[HoldComplete[LessEqualAntisymmetry], {}], {left, right, one, other}]]
+					],
+				constantReference[HoldComplete[False], _] :> ringContradictionProof[inequalities],
+				_ :> tacticFailure["InequalityExpected", "The goal `1` is not an inequality or an equation of natural numbers, or False.", data, goal]
+			}],
+			{
+				None :> tacticFailure["NoLinearCombination", "Wolfram finds no linear combination of the inequalities among the hypotheses that gives the goal `1`.", data, goal],
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
+			}
+		]
+	]
+]
+
+$linearConstants = HoldComplete /@ Unevaluated[{
+	LessEqual, Less, Or, FalseElimination, EqualitySubstitution, LessEqualReflexivity, LessEqualZero, LessEqualTotality, AdditionMonotonicity, MultiplicationMonotonicity,
+	LessEqualTransitivity, LessEqualAddition, LessIrreflexivity, LessEqualAntisymmetry
+}]
+
+(* {{a, b, proof}, ...} for the hypotheses that are inequalities a <= b of natural numbers, an equation
+   giving two *)
+inequalityHypotheses[environment_, context_] := Catenate @ KeyValueMap[
+	Function[{id, entry}, Replace[weakHeadNormalForm[environment, context, entry["Type"]], {
+		application[application[constantReference[HoldComplete[LessEqual], _], a_], b_] :> {{a, b, freeVariable[id]}},
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; naturalNumberTypeQ[environment, context, type] :>
+			ringEquationInequalities[a, b, freeVariable[id]],
+		_ :> {}
+	}]],
+	context
 ]
 
 (* {{a, b, proof}, ...} for the hypotheses that are equations a == b of natural numbers *)
