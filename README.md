@@ -401,6 +401,12 @@ environment uses only under cubical rules. Elaboration and tactics produce terms
 left, so a mistake outside the kernel can make a proof fail but cannot make a false statement a theorem.
 Kernel answers are `Failure` objects, never messages.
 
+Definitional equality unfolds definitions lazily, as Lean's kernel does: of two applications of different
+definitions, the one whose definition is higher, defined in terms of the other, unfolds one step, and the
+two are compared again, so that two applications of the same definition are compared by their arguments
+before either computes. A definition's height is one more than the greatest height of the definitions
+its value mentions.
+
 A store can be changed by hand. `TypeTheoryCheck[environment]` replays every declaration from scratch
 and compares each stored record with the record that checking it produces, so a forged theorem or
 recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the design decisions, and
@@ -412,7 +418,7 @@ recursor is caught. See [docs/notes/Kernel.md](docs/notes/Kernel.md) for the des
 wolframscript -f scripts/run_tests.wls
 ```
 
-The suite has 301 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
+The suite has 303 tests in `TypeTheory/Tests/`, mirroring the kernel layout. They include rejecting
 forged declarations: a wrong proof, a negative occurrence, an oversized universe, large elimination
 from `Or`, data projected out of a proof, `Type : Type`, a lift of a quotient whose proof is wrong, an
 equality that is not the identity type, a definition that copies an affine variable, a recursion on an

@@ -639,18 +639,46 @@ sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applic
 	]
 ]
 
+(* Lean's lazy delta reduction. Where neither side reduces further without unfolding a definition, the
+   side whose definition at its head is higher, defined in terms of the other's, unfolds one step, or
+   both do at the same height, and the two sides are compared again: an application of a definition
+   defined by another meets an application of that other before either unfolds into what may be a long
+   computation. Where neither has a definition at its head, both are in weak head normal form. *)
 reducedEqualQ[environment_, context_, a_, b_] := With[
 	{coreA = reducedHeadWithoutUnfolding[environment, context, a], coreB = reducedHeadWithoutUnfolding[environment, context, b]},
 	If[ coreA =!= a || coreB =!= b,
 		definitionallyEqualQ[environment, context, coreA, coreB],
-		With[{reducedA = weakHeadNormalForm[environment, context, a], reducedB = weakHeadNormalForm[environment, context, b]},
-			If[ reducedA =!= a || reducedB =!= b,
-				definitionallyEqualQ[environment, context, reducedA, reducedB],
-				normalFormsEqualQ[environment, context, a, b]
-			]
-		]
+		Replace[lazyDeltaStep[environment, context, a, b], {
+			{unfoldedA_, unfoldedB_} :> definitionallyEqualQ[environment, context, unfoldedA, unfoldedB],
+			None :> normalFormsEqualQ[environment, context, a, b]
+		}]
 	]
 ]
+
+lazyDeltaStep[environment_, context_, a_, b_] := With[{heightA = headDefinitionHeight[environment, a], heightB = headDefinitionHeight[environment, b]},
+	Which[
+		heightA === None && heightB === None,
+			None,
+		heightB === None || heightA =!= None && heightA > heightB,
+			{unfoldedHead[environment, context, a], b},
+		heightA === None || heightA < heightB,
+			{a, unfoldedHead[environment, context, b]},
+		True,
+			{unfoldedHead[environment, context, a], unfoldedHead[environment, context, b]}
+	]
+]
+
+(* the height of the definition at the head of term, or None if no definition that unfolds is at its head *)
+headDefinitionHeight[environment_, term_] := Replace[First[applicationSpine[term]], {
+	constantReference[name_, _] /; constantRecord[environment, name]["Kind"] === "Definition" :> Lookup[constantRecord[environment, name], "Height", 0],
+	_ -> None
+}]
+
+(* the definition at the head of term unfolded, and reduced as far as it reduces without unfolding another *)
+unfoldedHead[environment_, context_, term_] := Replace[applicationSpine[term], {
+	{constantReference[name_, levels_], arguments_List} :>
+		reducedHeadWithoutUnfolding[environment, context, unfoldDefinition[constantRecord[environment, name], levels, arguments]]
+}]
 
 normalFormsEqualQ[environment_, context_, a_, b_] := Which[
 	MatchQ[a, _lambdaAbstraction],

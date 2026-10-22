@@ -26,10 +26,15 @@ type. Proof irrelevance and K-like reduction call it too, so they re-check terms
 checked. Lean has an infer-only mode for those calls; adding one is the first performance step, and is
 sound only where the term is known to be well typed.
 
-Reduction is β, ζ, δ for definitions (theorems are never unfolded), ι, K-like ι, and addition of two
-literals on integers. Definitional equality tries, in order: `SameQ`, sorts, binders, the same constant
-on equal arguments, reduction followed by η, literals against constructors and spines, and finally
-proof irrelevance. There are no definitional heights and no caches yet.
+Reduction is β, ζ, δ for definitions (theorems and opaque definitions are never unfolded), ι, K-like ι,
+and the registered operations on natural number literals, on integers. Definitional equality tries, in
+order: `SameQ`, sorts, binders, the same constant on equal arguments, proof irrelevance, then reduction
+without unfolding a definition, then Lean's lazy delta reduction, and finally η, literals against
+constructors, spines, η for structures and unit types. Lazy delta reduction unfolds one definition at a
+time: of two definitions at the heads of the sides, the higher one, where a definition's height is one
+more than the greatest height of the definitions its value mentions, or both at the same height, and
+compares the sides again. The kernel remembers inferred types, weak head normal forms and definitional
+equalities for the length of a check.
 
 A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
 with `catchKernelFailure`, so a user sees a `Failure` and never a message.

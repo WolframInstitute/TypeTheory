@@ -179,6 +179,28 @@ VerificationTest[
 	TestID -> "Equal-applications-are-compared-before-their-definitions-unfold"
 ]
 
+(* Parity[100000] unfolds into a recursion 100000 deep, which the comparison needs not do: ParityAgain is
+   defined by Parity, so it is higher and unfolds first, and then both sides are Parity[100000] *)
+VerificationTest[
+	With[
+		{
+			parity = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition[Parity, Function[{Typed[n, Naturals]},
+					InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "not"[r]], n]
+				]],
+				TypeTheoryDefinition[ParityAgain, Function[{Typed[n, Naturals]}, Parity[n]]]
+			}]
+		},
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm[ParityAgain[100000], parity], TypeTheoryTerm[Parity[100000], parity]],
+			DefinitionallyEqualQ[TypeTheoryTerm[ParityAgain[4], parity], TypeTheoryTerm["true", parity]],
+			DefinitionallyEqualQ[TypeTheoryTerm[ParityAgain[3], parity], TypeTheoryTerm[Parity[4], parity]]
+		}
+	],
+	{True, True, False},
+	TestID -> "Of-two-definitions-the-higher-unfolds-first"
+]
+
 VerificationTest[
 	{
 		DefinitionallyEqualQ[TypeTheoryTerm[1935], TypeTheoryTerm[1936]],

@@ -120,9 +120,10 @@ VerificationTest[
 	TestID -> "A-forged-recursor-is-caught"
 ]
 
-(* addition forged as the first projection: well typed, and trusted on literals, so a theorem about it catches it *)
+(* addition forged as the first projection, with the height of that value: well typed, and trusted on
+   literals, so a theorem about it catches it *)
 VerificationTest[
-	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, "Value" -> firstProjection]]]],
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {"Value" -> firstProjection, "Height" -> 1}]]]],
 	"TypeMismatch",
 	TestID -> "A-forged-addition-is-caught"
 ]
@@ -144,4 +145,24 @@ VerificationTest[
 	],
 	{TypeTheoryDefinition[Secret, Typed[Yes, Truth], "Opaque" -> True], True, "TypeMismatch"},
 	TestID -> "An-opaque-definition-comes-back-from-Normal-and-a-forged-value-is-caught"
+]
+
+(* the height of a definition decides which of two unfolds first; checking the environment again gives it again *)
+VerificationTest[
+	With[
+		{
+			flips = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+				TypeTheoryInductiveType[Truth, TypeUniverse[1], {Yes -> Truth, No -> Truth}],
+				TypeTheoryDefinition[Flip, Function[{Typed[t, Truth]}, InductiveRecursor[Truth][Function[{Typed[s, Truth]}, Truth], No, Yes, t]]],
+				TypeTheoryDefinition[FlipTwice, Function[{Typed[t, Truth]}, Flip[Flip[t]]]]
+			}]
+		},
+		{
+			First[flips]["Records"][HoldComplete[Flip]]["Height"],
+			First[flips]["Records"][HoldComplete[FlipTwice]]["Height"],
+			First @ TypeTheoryCheck[forge[flips, HoldComplete[FlipTwice], Function[record, Append[record, "Height" -> 1]]]]
+		}
+	],
+	{1, 2, "DeclarationMismatch"},
+	TestID -> "A-definition-is-higher-than-those-it-is-defined-by-and-a-forged-height-is-caught"
 ]

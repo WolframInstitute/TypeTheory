@@ -449,7 +449,9 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] :=
 
 (* An instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other.
    An opaque definition is checked as any other too, but its record is of the kind "Opaque", which
-   nothing unfolds: like an axiom it equals only itself, and unlike one its type has an element. *)
+   nothing unfolds: like an axiom it equals only itself, and unlike one its type has an element. A
+   definition that unfolds has a height, which decides which of two definitions unfolds first when the
+   kernel compares them (TypeChecking.wl). *)
 declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withKernelCaches[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
@@ -457,8 +459,15 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
 	addConstantRecords[environment, <|name -> Join[
 		<|"Kind" -> If[TrueQ[roles["Opaque"]], "Opaque", "Definition"], "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
+		If[TrueQ[roles["Opaque"]], <||>, <|"Height" -> definitionHeight[environment, value]|>],
 		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ]
 	]|>]
+]
+
+(* a definition's height, as Lean's: one more than the greatest height of the definitions its value
+   mentions, so a definition is higher than each definition it is defined by *)
+definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[constantRecord[environment, constant], "Height", 0]] /@
+	DeleteDuplicates[Cases[value, constantReference[name_, _] :> name, {0, Infinity}]]
 ]
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)

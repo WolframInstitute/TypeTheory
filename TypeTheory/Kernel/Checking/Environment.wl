@@ -25,7 +25,8 @@ for the session: Normal[environment] gives the declarations to rebuild it from.
 A record is an Association with "Kind" (one of "Axiom", "Definition", "Opaque", "Theorem",
 "InductiveType", "Constructor", "Recursor", "RewriteRule"), "Type" (a core term, or None for a rewrite
 rule, which is not a term), "UniverseParameters" ({HoldComplete[u], ...}) and the fields of its kind:
-	Definition, Opaque     "Value", and "Instance" -> True or "Coercion" -> True for elaboration
+	Definition, Opaque     "Value", and "Instance" -> True or "Coercion" -> True for elaboration; a definition
+	                       "Height" too, one more than the greatest height of the definitions its value mentions
 	Theorem                "Value"
 	InductiveType          "NumberOfParameters", "NumberOfIndices", "Constructors", "LargeElimination", "Recursive",
 	                       "Block" (the types declared together with it, itself among them, in order)
