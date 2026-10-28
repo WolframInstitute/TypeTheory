@@ -100,9 +100,9 @@ SetTypeTheoryEnvironment::usage = "SetTypeTheoryEnvironment[environment] makes e
 proofs and declarations that name none, and gives it.\n\
 SetTypeTheoryEnvironment[spec] makes TypeTheoryEnvironment[spec] the default: \"Prelude\" sets the prelude back, and {declaration1, ...} extends the default with the declarations."
 $TypeTheoryEnvironment::usage = "$TypeTheoryEnvironment is the default environment, of the terms, proofs and declarations that name none: the prelude, unless \
-SetTypeTheoryEnvironment set another. Block[{$TypeTheoryEnvironment = environment}, expr] makes environment the default while expr evaluates."
+SetTypeTheoryEnvironment set another. Block[{$TypeTheoryEnvironment = environment}, expr] makes environment the default while expr evaluates; a name such as \"Constructive\" stands for TypeTheoryEnvironment[name]."
 emptyEnvironment::usage = "emptyEnvironment[] gives an environment with no constants and the default rules; emptyEnvironment[rules] gives one with the given rules."
-defaultEnvironment::usage = "defaultEnvironment[] gives $TypeTheoryEnvironment, or the prelude if it is not an environment."
+defaultEnvironment::usage = "defaultEnvironment[] gives $TypeTheoryEnvironment, the environment a library name in it stands for, or else the prelude."
 environmentRules::usage = "environmentRules[environment] gives the TypeTheoryRules environment follows."
 addRewriteRuleRecord::usage = "addRewriteRuleRecord[environment, HoldComplete[name], record] gives a new environment with the rewrite rule name added to the rules of its head."
 rewriteRuleRecords::usage = "rewriteRuleRecords[environment, HoldComplete[axiom]] gives the records of the rewrite rules of axiom, in the order they were declared."
@@ -163,7 +163,18 @@ environmentRules[TypeTheoryEnvironment[store_Symbol]] := store["Rules"]
    FinalEvaluations.wl sets to the prelude once the prelude is built. It is a value like any other: setting
    it chooses the environment, and declarations never change it. *)
 
-defaultEnvironment[] := If[environmentQ[$TypeTheoryEnvironment], $TypeTheoryEnvironment, preludeEnvironment[]]
+(* a name of a library environment, as SetTypeTheoryEnvironment takes it, stands for that environment in a Block too,
+   built once; anything else that is no environment leaves the prelude *)
+defaultEnvironment[] := Which[
+	environmentQ[$TypeTheoryEnvironment],
+		$TypeTheoryEnvironment,
+	MemberQ[$environmentNames, $TypeTheoryEnvironment],
+		TypeTheoryEnvironment[$TypeTheoryEnvironment],
+	True,
+		preludeEnvironment[]
+]
+
+$environmentNames = {"Prelude", "Constructive", "HomotopyTypeTheory", "Integers", "Rationals", "Cubical"}
 
 SetTypeTheoryEnvironment[environment_?environmentQ] := ($TypeTheoryEnvironment = environment)
 

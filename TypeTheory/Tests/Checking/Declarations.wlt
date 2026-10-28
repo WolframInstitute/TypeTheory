@@ -255,3 +255,15 @@ VerificationTest[
 	{True, False, True, "NotAnEnvironment"},
 	TestID -> "The-default-environment-is-the-prelude-and-Block-scopes-it"
 ]
+
+(* a library environment's name stands for it in a Block, as in SetTypeTheoryEnvironment; any other value that is no
+   environment leaves the prelude *)
+VerificationTest[
+	{
+		Block[{$TypeTheoryEnvironment = "Constructive"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], ExcludedMiddle]],
+		Block[{$TypeTheoryEnvironment = "Integers"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], IntegerAdditionCommutativity]],
+		Block[{$TypeTheoryEnvironment = "Classical"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], ExcludedMiddle]]
+	},
+	{False, True, True},
+	TestID -> "A-library-environment-name-stands-for-it-in-a-Block"
+]
