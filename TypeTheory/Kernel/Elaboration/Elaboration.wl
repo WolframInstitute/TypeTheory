@@ -1688,14 +1688,25 @@ etaReducedSolution[ids_List, value_] := With[{valueSpine = applicationSpine[valu
 
 (* A solution must have the metavariable's type; unifying the two types is what solves universe levels,
    such as the level of Equal in a == b once the type of a is known. It names only variables of the
-   context the metavariable was made in. *)
-assignMetavariable[metavariable[id_], value_] := If[ ! FreeQ[value, metavariable[id]] || ! withinContextQ[value, Lookup[$metavariableContexts, id, All]],
-	False,
-	$metavariableAssignments[id] = value;
-	With[{valueType = Quiet @ catchKernelFailure[inferType[$elaborationEnvironment, $elaborationContext, value]]},
-		FailureQ[valueType] || ! KeyExistsQ[$metavariableTypes, id] || unify[$metavariableTypes[id], valueType]
-	]
+   context the metavariable was made in. A value that names another variable, or the metavariable itself,
+   only inside a redex is beta reduced first, as Lean's unifier reduces it: ?b against ((t) ↦ N)[o], the
+   codomain of a function of o, is N. *)
+assignMetavariable[metavariable[id_], value_] := Replace[admissibleSolution[id, value], {
+	None -> False,
+	solution_ :> (
+		$metavariableAssignments[id] = solution;
+		With[{valueType = Quiet @ catchKernelFailure[inferType[$elaborationEnvironment, $elaborationContext, solution]]},
+			FailureQ[valueType] || ! KeyExistsQ[$metavariableTypes, id] || unify[$metavariableTypes[id], valueType]
+		]
+	)
+}]
+
+admissibleSolution[id_, value_] := If[ admissibleSolutionQ[id, value],
+	value,
+	With[{reduced = betaNormalize[value]}, If[reduced =!= value && admissibleSolutionQ[id, reduced], reduced, None]]
 ]
+
+admissibleSolutionQ[id_, value_] := FreeQ[value, metavariable[id]] && withinContextQ[value, Lookup[$metavariableContexts, id, All]]
 
 (* the term an attempt gives, or None with the solutions it recorded undone *)
 SetAttributes[attemptOrNone, HoldFirst]

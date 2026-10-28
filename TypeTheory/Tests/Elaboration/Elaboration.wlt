@@ -281,3 +281,18 @@ VerificationTest[
 	{TypeTheoryTerm[TypeUniverse[0], prelude], True},
 	TestID -> "Exists-with-several-binders-is-one-Exists-in-another"
 ]
+
+(* a metavariable's solution that names a variable out of its scope only inside a redex is beta reduced: the codomain
+   ((t) ↦ N)[o] of a function of o is N, so the function passes where A → ?b is expected, and a getter built with the
+   recursor proves the injectivity of OptionSome *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryCheck[TypeTheoryTerm[EqualityCongruence[Function[{Typed[o, Option[NonNegativeIntegers]]}, Typed[0, Function[{Typed[t, Option[NonNegativeIntegers]]}, NonNegativeIntegers][o]]], EqualityReflexivity[OptionSome[3]]]]], TypeTheoryTerm[0 == 0]],
+		TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[OptionSome[m] == OptionSome[n], m == n]], {
+			TypeTheoryTactic["Introduce", m, n, e],
+			TypeTheoryTactic["Exact", EqualityCongruence[Function[{Typed[o, Option[NonNegativeIntegers]]}, InductiveRecursor[Option][Function[{Typed[t, Option[NonNegativeIntegers]]}, NonNegativeIntegers], 0, Function[{Typed[k, NonNegativeIntegers]}, k], o]], e]]
+		}]["Goals"]
+	},
+	{True, {}},
+	TestID -> "A-solution-out-of-scope-only-inside-a-redex-is-beta-reduced"
+]
