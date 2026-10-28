@@ -43,6 +43,7 @@ PackageScoped[inferType]
 PackageScoped[withKernelCaches]
 PackageScoped[withCheckedTerms]
 PackageScoped[$termsChecked]
+PackageScoped[projectionFunctionQ]
 PackageScoped[weakHeadNormalForm]
 PackageScoped[reducedHeadWithoutUnfolding]
 PackageScoped[definitionallyEqualQ]
@@ -75,6 +76,8 @@ withCheckedTerms::usage = "withCheckedTerms[body] evaluates body with the kernel
 so that definitional equality and reduction infer the types they ask without checking them."
 $termsChecked::usage = "$termsChecked is True where every term the kernel compares is checked or a reduct of a checked term, as inside withCheckedTerms; \
 elaboration and tactics set it to False, as their terms are not checked until elaboration finishes."
+projectionFunctionQ::usage = "projectionFunctionQ[value] gives True if the core term value takes arguments and projects a field out of the last, \
+as a structure's projection function does: a definition with such a value is an abbreviation, which lazy delta unfolds first."
 extendContext::usage = "extendContext[context, id, HoldComplete[name], type, binder] gives context with freeVariable[id] of type type."
 extendLocalDefinition::usage = "extendLocalDefinition[context, id, HoldComplete[name], type, value] gives context with freeVariable[id] of type type standing for value."
 makeLambda::usage = "makeLambda[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into functions."
@@ -743,15 +746,28 @@ lazyDeltaEqualQ[environment_, context_, a_, b_] := Module[{pair = {a, b}, step},
 	]
 ]
 
-(* the next pair, True for one definition at both heads applied to equal arguments, or None where
-   neither side has a definition at its head *)
-lazyDeltaStep[environment_, context_, a_, b_] := With[{heightA = headDefinitionHeight[environment, a], heightB = headDefinitionHeight[environment, b]},
+(* The next pair, True for one definition at both heads applied to equal arguments, or None where
+   neither side has a definition at its head. As Lean's compare of hints, an abbreviation, as a projection
+   function is, unfolds before a regular definition, and two abbreviations unfold together without their
+   arguments compared: x.toRingHom against a long composition reads the field before the composition
+   unfolds. Of two regular definitions the higher unfolds first, or both at one height. *)
+lazyDeltaStep[environment_, context_, a_, b_] := With[{definitionA = headDefinition[environment, a], definitionB = headDefinition[environment, b]},
 	Which[
-		heightA === None && heightB === None,
+		definitionA === None && definitionB === None,
 			None,
-		heightB === None || heightA =!= None && heightA > heightB,
+		definitionB === None,
 			{unfoldedHead[environment, context, a], b},
-		heightA === None || heightA < heightB,
+		definitionA === None,
+			{a, unfoldedHead[environment, context, b]},
+		Last[definitionA] && Last[definitionB],
+			{unfoldedHead[environment, context, a], unfoldedHead[environment, context, b]},
+		Last[definitionA],
+			{unfoldedHead[environment, context, a], b},
+		Last[definitionB],
+			{a, unfoldedHead[environment, context, b]},
+		First[definitionA] > First[definitionB],
+			{unfoldedHead[environment, context, a], b},
+		First[definitionA] < First[definitionB],
 			{a, unfoldedHead[environment, context, b]},
 		sameHeadArgumentsEqualQ[environment, context, a, b],
 			True,
@@ -760,11 +776,18 @@ lazyDeltaStep[environment_, context_, a_, b_] := With[{heightA = headDefinitionH
 	]
 ]
 
-(* the height of the definition at the head of term, or None if no definition that unfolds is at its head *)
-headDefinitionHeight[environment_, term_] := Replace[First[applicationSpine[term]], {
-	constantReference[name_, _] /; constantRecord[environment, name]["Kind"] === "Definition" :> Lookup[constantRecord[environment, name], "Height", 0],
+(* {height, abbreviation} of the definition at the head of term, or None if no definition that unfolds is at its head *)
+headDefinition[environment_, term_] := Replace[First[applicationSpine[term]], {
+	constantReference[name_, _] :> With[{record = constantRecord[environment, name]},
+		If[record["Kind"] === "Definition", {Lookup[record, "Height", 0], Lookup[record, "Hint", None] === "Abbreviation"}, None]
+	],
 	_ -> None
 }]
+
+(* a projection function: a value that takes arguments and projects a field out of the last, as Lean's structure
+   projections do, which Lean gives abbreviation hints *)
+projectionFunctionQ[value_] := MatchQ[value, _lambdaAbstraction] &&
+	MatchQ[NestWhile[Function[term, term[[3]]], value, MatchQ[#, _lambdaAbstraction]&], projection[_, _, boundVariable[0]]]
 
 (* the definition at the head of term unfolded, and reduced as far as it reduces without unfolding another *)
 unfoldedHead[environment_, context_, term_] := Replace[applicationSpine[term], {

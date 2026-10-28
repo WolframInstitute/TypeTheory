@@ -456,7 +456,8 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] :=
    An opaque definition is checked as any other too, but its record is of the kind "Opaque", which
    nothing unfolds: like an axiom it equals only itself, and unlike one its type has an element. A
    definition that unfolds has a height, which decides which of two definitions unfolds first when the
-   kernel compares them (TypeChecking.wl). *)
+   kernel compares them (TypeChecking.wl), and a projection function is an abbreviation, which unfolds
+   before the others, as Lean's hints have it. *)
 declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
@@ -465,6 +466,7 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 	addConstantRecords[environment, <|name -> Join[
 		<|"Kind" -> If[TrueQ[roles["Opaque"]], "Opaque", "Definition"], "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
 		If[TrueQ[roles["Opaque"]], <||>, <|"Height" -> definitionHeight[environment, value]|>],
+		If[! TrueQ[roles["Opaque"]] && projectionFunctionQ[value], <|"Hint" -> "Abbreviation"|>, <||>],
 		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ]
 	]|>]
 ]

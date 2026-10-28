@@ -133,6 +133,14 @@ VerificationTest[
 	TestID -> "A-forged-addition-is-caught"
 ]
 
+(* the abbreviation hint is the kernel's to give, to projection functions: one forged on addition, which projects
+   nothing, does not come out of checking its declaration again *)
+VerificationTest[
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, "Hint" -> "Abbreviation"]]]],
+	"DeclarationMismatch",
+	TestID -> "A-forged-abbreviation-hint-is-caught"
+]
+
 (* An application's arguments are checked along its spine, each against its binder's domain with the arguments
    before it put in: EqualitySymmetry with x = 1 and y = 2 needs a proof of 1 == 2, and gets one of 1 == 1. A
    spine with more arguments than its function's type has binders, even after reducing it, applies a value that

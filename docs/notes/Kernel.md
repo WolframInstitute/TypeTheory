@@ -36,20 +36,25 @@ which of the two its terms are. A test in `Queries.wlt` forges theorems whose il
 only through proof irrelevance, and the declaration's own check catches each one.
 
 Reduction is β, ζ, δ for definitions (theorems and opaque definitions are never unfolded), ι, K-like ι,
-and the registered operations on natural number literals, on integers. Definitional equality decides
-in Lean's order. First come `SameQ`, sorts, literals and binders. Then each side is reduced without
+and the registered operations on natural number literals, on integers. Definitional equality decides in
+Lean's order. First come `SameQ`, sorts, literals and binders. Then each side is reduced without
 unfolding a definition, and the reducts are compared again if either changed. Where neither changes,
 proof irrelevance answers for proofs: True for proofs of one proposition, False for proofs of two
 different ones. Otherwise Lean's lazy delta reduction runs, and finally η, literals against
-constructors, spines, η for structures and unit types. Lazy delta reduction unfolds one definition
-at a time: of two definitions at the heads of the sides, the higher one, where a definition's height
-is one more than the greatest height of the definitions its value mentions, or both at the same
-height. As in Lean's kernel it is a loop that compares the sides between steps only by identity, and
-by their arguments where one definition is at both heads, from the first pair on. It stops when
-neither side has a definition at its head, and that last pair is compared in full. Proof irrelevance
-is not asked again between steps, since unfolding leaves a proof a proof of the same proposition.
-The kernel remembers inferred types, weak head normal forms and definitional equalities for the
-length of a check.
+constructors, spines, η for structures and unit types. Lazy delta reduction unfolds one definition at a
+time. A projection function, a definition whose value projects a field out of its last argument, is an
+abbreviation (its record says `"Hint" -> "Abbreviation"`), as Lean gives its structure projections
+abbreviation hints. An abbreviation unfolds before a regular definition, and two abbreviations unfold
+together. Of two regular definitions the higher one unfolds, where a definition's height is one more
+than the greatest height of the definitions its value mentions, or both at the same height. With the
+abbreviations, the root of `IntermediateField.Lifts.le_union` checks in 14.5 s, against 170 s by
+heights alone and 25 ms in Lean: `x.toRingHom` against a long composition reads the field before the
+composition unfolds. As in Lean's kernel, lazy delta reduction is a loop that compares the sides
+between steps only by identity, and by their arguments where one regular definition is at both heads,
+from the first pair on. It stops when neither side has a definition at its head, and that last pair is
+compared in full. Proof irrelevance is not asked again between steps, since unfolding leaves a proof a
+proof of the same proposition. The kernel remembers inferred types, weak head normal forms and
+definitional equalities for the length of a check.
 
 A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
 with `catchKernelFailure`, so a user sees a `Failure` and never a message.

@@ -201,6 +201,32 @@ VerificationTest[
 	TestID -> "Of-two-definitions-the-higher-unfolds-first"
 ]
 
+(* FirstOfPair reads a field of a pair, so it is an abbreviation, as Lean's projections are, and unfolds before a regular
+   definition: FirstOfPair[Pair[ParityAgain[100000], "false"]] is ParityAgain[100000] at once, where unfolding the higher
+   ParityAgain first would run Parity's recursion 100000 deep *)
+VerificationTest[
+	With[
+		{
+			pairs = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition[Parity, Function[{Typed[n, Naturals]},
+					InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "not"[r]], n]
+				]],
+				TypeTheoryDefinition[ParityAgain, Function[{Typed[n, Naturals]}, Parity[n]]],
+				TypeTheoryDefinition[FirstOfPair, Function[{Typed[p, CartesianProduct[Booleans, Booleans]]}, p[[1]]]]
+			}]
+		},
+		{
+			Lookup[WolframInstitute`TypeTheory`PackageScope`constantRecord[pairs, HoldComplete[FirstOfPair]], "Hint", None],
+			Lookup[WolframInstitute`TypeTheory`PackageScope`constantRecord[pairs, HoldComplete[ParityAgain]], "Hint", None],
+			DefinitionallyEqualQ[TypeTheoryTerm[FirstOfPair[Pair[ParityAgain[100000], "false"]], pairs], TypeTheoryTerm[ParityAgain[100000], pairs]]
+		}
+	],
+	{"Abbreviation", None, True},
+	TimeConstraint -> 10,
+	MemoryConstraint -> 2*^9,
+	TestID -> "A-projection-function-is-an-abbreviation-and-unfolds-first"
+]
+
 (* a variable whose type is a definition that reduces to a function type is applied to as many arguments as that
    type takes, which the kernel finds by reducing the type in the middle of the spine *)
 VerificationTest[
