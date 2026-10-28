@@ -171,15 +171,59 @@ The differences that can cost minutes:
   lazy δ, for definitions at equal height, and on weak head normal forms (`is_def_eq_app`). A
   recursor application that ι-reduces at once is compared argument by argument first.
 
-## 7. What to try, in order
+## 7. What was tried, and the order from here
 
-1. Projections of the same index compared by their structures before either is reduced. That
-   takes projections left unreduced in `reducedHeadWithoutUnfolding`, as Lean's cheap projections
-   are. Measure it on `IntermediateField.Lifts.le_union` and `exists_lift_of_splits'`.
-2. Hint kinds from the import, abbreviations first and opaque hints last, if the import drops them.
-3. The `decide` shortcut, on the five `ZMod` constants.
-4. The cache, keyed by an ordered pair without the environment, and asked between lazy-δ steps.
-5. The failure set for `sameHeadArgumentsEqualQ` inside `lazyDeltaStep`, if the profile still shows
-   repeated argument comparisons after 1–4.
+### 7.1 Five checks under five variants
+
+These are the slow failing checks the documentation's examples met, with one passing check for
+comparison. All ran in one Wolfram 15.1.0 kernel, with a peak of 777 MB, with each variant
+installed over the kernel's definitions. Every variant gives every check the same answer.
+
+| Check | Kernel | Projections | Irrelevance first | Irrelevance first, infer-only | Lean's order |
+|---|---|---|---|---|---|
+| a rational lemma applied to the wrong side (`TypeMismatch`) | 100 s | 105 s | 112 s | 37 s | 2.3 s |
+| the integer lemma, likewise | 3.8 s | 4.0 s | 4.2 s | 1.6 s | 0.35 s |
+| `3/4 + -3/4` against 0 (`False`) | 55 s | 55 s | 55 s | 1.4 s | 0.48 s |
+| a cancellation off by one (`TypeMismatch`) | 103 s | 118 s | 116 s | 42 s | 4.4 s |
+| the rational lemma on the right side (passes) | 0.07 s | 0.07 s | 0.07 s | 0.05 s | 0.04 s |
+
+The variants:
+- **Projections:** projections of one field compared by their structures and arguments before
+  either is reduced (§6).
+- **Irrelevance first:** proof irrelevance is asked before anything else. It answers `False` for
+  proofs of two different propositions, as Lean's `is_def_eq_proof_irrel` does, and only then
+  come same-head arguments, projections and reduction.
+- **Infer-only:** the type queries of proof irrelevance and reduction infer without checking,
+  from a cache of their own (§1).
+- **Lean's order:** irrelevance first with infer-only queries, then projections and reduction.
+  Same-head arguments are compared only inside lazy δ, for one definition at both heads, from the
+  first step on.
+
+What they show:
+- **Failures carry the cost.** The passing check is fast under every variant.
+- **Irrelevance first needs infer-only queries.** It buys nothing while its type queries check
+  each term again. With infer-only queries it gives up to 40×, and Lean's order brings the rest:
+  11× to 115× against the kernel.
+- **The projection rule moves none of these.** Its case is `le_union`'s chain of structure
+  comparisons, where it takes the root alone from over 300 s to 181 s. Lean takes 25 ms there.
+
+### 7.2 The order from here
+
+1. **Lean's order with infer-only queries,** in `TypeChecking.wl`:
+   - a cache of their own for the infer-only queries;
+   - full checking at every declaration;
+   - a comment at every call of `definitionallyEqualQ` saying why its arguments are checked terms
+     or reducts of them, keeping the checking queries where that cannot be said;
+   - forged-proof tests, among them an ill-typed subterm reachable only through a
+     proof-irrelevance comparison.
+2. **Projections of one field compared by their structures,** with the abbreviation hints of
+   projection functions, on top of 1. Measure both on `le_union`.
+3. **The `decide` shortcut,** on the five `ZMod` constants.
+4. **The cache,** keyed by an ordered pair without the environment, and asked between lazy-δ steps.
+5. **Hint kinds from the import.**
+6. **The failure set inside `lazyDeltaStep`,** if the profile still shows repeated argument
+   comparisons.
+7. **Literal arithmetic for closed rational terms,** as Lean's kernel computes `Nat` literals, if
+   failing comparisons of numerals stay slow.
 
 Lean's union-find closure is not worth adding: its own kernel no longer has it.
