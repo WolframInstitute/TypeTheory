@@ -223,7 +223,21 @@ displayApplication[syntaxString["integerOfNatural"], {literal : syntaxInteger[_I
 displayApplication[syntaxString["integerOfNatural"], {argument_}] := prefixed["\[UpArrow]", argument]
 (* the rationals' operations show as the integers' do, an inverse as x^-1 and a division as x / y *)
 displayApplication[syntaxString["rationalAddition"], arguments_List] := displayApplication[syntaxString["integerAddition"], arguments]
-displayApplication[syntaxString["rationalMultiplication"], arguments_List] := displayApplication[syntaxString["integerMultiplication"], arguments]
+(* A factor that is itself a fraction is parenthesized in a product of rationals, (x/2) 1 and (1/2) 2 3. A literal n/d
+   is the product n d^-1, which shows as the fraction n/d, as Power[d, -1] does; as a factor of a larger product the
+   Wolfram Language would merge it with the other factors into one fraction, x/2 and 2 3/2, losing the factor 1
+   and the grouping. A lone inverse may merge: x d^-1 is x/d. *)
+displayApplication[syntaxString["rationalMultiplication"], arguments_List] := displayApplication[
+	syntaxString["integerMultiplication"],
+	Replace[arguments, fraction_ ? fractionSyntaxQ :> delimited["(", fraction, ")"], {1}]
+]
+
+fractionSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Divide]], _]] := True
+fractionSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Times]], factors_List]] := AnyTrue[factors, inverseSyntaxQ]
+fractionSyntaxQ[_] := False
+
+inverseSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Power]], {_, syntaxInteger[_Integer ? Negative]}]] := True
+inverseSyntaxQ[_] := False
 displayApplication[syntaxString["rationalSubtraction"], arguments_List] := syntaxHead[Subtract, arguments]
 displayApplication[syntaxString["rationalPower"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Power]], arguments]
 displayApplication[syntaxString["rationalNegation"], {argument_}] := prefixed["-", argument]

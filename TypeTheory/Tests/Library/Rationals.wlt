@@ -94,3 +94,21 @@ VerificationTest[
 	{TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, "RowDefault"], TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, "RowDefault"]},
 	TestID -> "A-natural-number-among-the-rationals-shows-as-Lean-shows-it"
 ]
+
+(* a factor that is itself a fraction is parenthesized in a product: (1/2) 1 keeps its factor 1, which merged into one
+   fraction it lost, and (2/3) 5 == 5 (2/3) shows which factor is which *)
+VerificationTest[
+	With[
+		{
+			parenthesized = TemplateBox[{"\"(\"", FractionBox["1", "2"], "\")\""}, "RowDefault"],
+			one = ToBoxes[TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationOne[1/2], rationals]]],
+			swapped = ToBoxes[TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationCommutativity[2/3, 5], rationals]]]
+		},
+		{
+			Cases[one, RowBox[{parenthesized, " ", "1"}], Infinity] =!= {},
+			Length[Cases[swapped, TemplateBox[{"\"(\"", FractionBox["2", "3"], "\")\""}, "RowDefault"], Infinity]]
+		}
+	],
+	{True, 2},
+	TestID -> "A-fraction-among-the-factors-of-a-product-is-parenthesized"
+]
