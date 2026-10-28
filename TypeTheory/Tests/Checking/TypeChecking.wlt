@@ -212,7 +212,7 @@ VerificationTest[
 					InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "not"[r]], n]
 				]],
 				TypeTheoryDefinition[ParityAgain, Function[{Typed[n, Naturals]}, Parity[n]]],
-				TypeTheoryDefinition[FirstOfPair, Function[{Typed[p, CartesianProduct[Booleans, Booleans]]}, p[[1]]]]
+				TypeTheoryDefinition[FirstOfPair, Function[{Typed[p, CartesianProductType[Booleans, Booleans]]}, p[[1]]]]
 			}]
 		},
 		{

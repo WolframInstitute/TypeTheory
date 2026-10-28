@@ -36,7 +36,7 @@ The relation, an equation of integers:
 rationals["rationalRelation"]
 ```
 
-<!-- => definition rationalRelation : CartesianProduct[ℤ, ℕ] → CartesianProduct[ℤ, ℕ] → Prop := (p ∶ CartesianProduct[ℤ, ℕ]) (q ∶ CartesianProduct[ℤ, ℕ]) ↦ p〚1〛 ↑(q〚2〛 + 1) == q〚1〛 ↑(p〚2〛 + 1) -->
+<!-- => definition rationalRelation : CartesianProductType[ℤ, ℕ] → CartesianProductType[ℤ, ℕ] → Prop := (p ∶ CartesianProductType[ℤ, ℕ]) (q ∶ CartesianProductType[ℤ, ℕ]) ↦ p〚1〛 ↑(q〚2〛 + 1) == q〚1〛 ↑(p〚2〛 + 1) -->
 
 An integer x is the class of (x, 0), the fraction x/1, which shows as x, and the function that takes it there is a coercion, inserted where an integer, or a natural number by way of the integers, stands for a rational:
 

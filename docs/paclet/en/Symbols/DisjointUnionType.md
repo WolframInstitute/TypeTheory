@@ -1,30 +1,30 @@
 ---
 Template: Symbol
-Name: DisjointUnion
+Name: DisjointUnionType
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
-URI: WolframInstitute/TypeTheory/ref/DisjointUnion
+URI: WolframInstitute/TypeTheory/ref/DisjointUnionType
 Keywords: [disjoint union, sum, coproduct, prelude, inductive type]
-SeeAlso: [LeftInjection, RightInjection, CartesianProduct, Option]
+SeeAlso: [LeftInjection, RightInjection, CartesianProductType, Option]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
 
 ## Usage
 
-<code>[DisjointUnion]()[*α*, *β*]</code> is the type of the elements of *α* and of *β*, each tagged with its side.
+<code>[DisjointUnionType]()[*α*, *β*]</code> is the type of the elements of *α* and of *β*, each tagged with its side.
 
 ## Details & Options
 
-- [DisjointUnion]() is an inductive type of the prelude, with the constructors [LeftInjection]() and [RightInjection](), as Lean's `Sum`.
-- For *α* in `Type u` and *β* in `Type v`, <code>[DisjointUnion]()[*α*, *β*]</code> is in `Type (max u v)`.
+- [DisjointUnionType]() is an inductive type of the prelude, with the constructors [LeftInjection]() and [RightInjection](), as Lean's `Sum`.
+- For *α* in `Type u` and *β* in `Type v`, <code>[DisjointUnionType]()[*α*, *β*]</code> is in `Type (max u v)`.
 
 ## Basic Examples
 
-The type of [DisjointUnion]():
+The type of [DisjointUnionType]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DisjointUnion]]
+TypeTheoryCheck[TypeTheoryTerm[DisjointUnionType]]
 ```
 
 <!-- => Type u → Type v → Type (max u v) -->
@@ -34,28 +34,28 @@ TypeTheoryCheck[TypeTheoryTerm[DisjointUnion]]
 A natural number on the left of a disjoint union with the Booleans:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnion[Naturals, Booleans]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnionType[Naturals, Booleans]]]]
 ```
 
-<!-- => DisjointUnion[ℕ, 𝔹] -->
+<!-- => DisjointUnionType[ℕ, 𝔹] -->
 
 ## Scope
 
 A disjoint union of two types in `Type` is in `Type`:
 
 ```wl
-TypeOf[TypeTheoryTerm[DisjointUnion[Naturals, Booleans]]]
+TypeOf[TypeTheoryTerm[DisjointUnionType[Naturals, Booleans]]]
 ```
 
 <!-- => Type -->
 
 ## Applications
 
-A function defined by cases on the side, with the recursor of [DisjointUnion](): a number stays as it is, and a Boolean gives 0:
+A function defined by cases on the side, with the recursor of [DisjointUnionType](): a number stays as it is, and a Boolean gives 0:
 
 ```wl
-sides = TypeTheoryEnvironment[{TypeTheoryDefinition[SideNumber, Function[{Typed[s, DisjointUnion[Naturals, Booleans]]},
-    InductiveRecursor[DisjointUnion][Function[{Typed[t, DisjointUnion[Naturals, Booleans]]}, Naturals], Function[{Typed[n, Naturals]}, n], Function[{Typed[b, Booleans]}, 0], s]
+sides = TypeTheoryEnvironment[{TypeTheoryDefinition[SideNumber, Function[{Typed[s, DisjointUnionType[Naturals, Booleans]]},
+    InductiveRecursor[DisjointUnionType][Function[{Typed[t, DisjointUnionType[Naturals, Booleans]]}, Naturals], Function[{Typed[n, Naturals]}, n], Function[{Typed[b, Booleans]}, 0], s]
 ]]}]
 ```
 
@@ -82,7 +82,7 @@ WeakHeadNormalForm[TypeTheoryTerm[SideNumber[RightInjection["true"]], sides]]
 Every element is on one side: `"Cases"` gives a goal for each, which [OrIntroductionLeft]() and [OrIntroductionRight]() prove:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, DisjointUnion[Naturals, Booleans]]}, Or[Exists[{Typed[n, Naturals]}, s == LeftInjection[n]], Exists[{Typed[b, Booleans]}, s == RightInjection[b]]]], {
+TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exists[{Typed[n, Naturals]}, s == LeftInjection[n]], Exists[{Typed[b, Booleans]}, s == RightInjection[b]]]], {
     TypeTheoryTactic["Introduce", s],
     TypeTheoryTactic["Cases", s],
     TypeTheoryTactic["Introduce", n],
@@ -99,7 +99,7 @@ TypeTheoryProof[ForAll[{Typed[s, DisjointUnion[Naturals, Booleans]]}, Or[Exists[
 The sides are types: propositions such as [True]() and [False]() are not in `Type u`, and [Or]() is their disjunction:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DisjointUnion[True, False]]]
+TypeTheoryCheck[TypeTheoryTerm[DisjointUnionType[True, False]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

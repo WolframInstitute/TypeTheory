@@ -58,7 +58,7 @@ VerificationTest[
 VerificationTest[
 	{
 		translated["Failures"],
-		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[CartesianProduct], prelude]]],
+		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[CartesianProductType], prelude]]],
 		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers], prelude]]],
 		quantities[TypeOf[TypeTheoryTerm[Pair, prelude]]],
 		Information[prelude, "Kinds"]["Quotient"]

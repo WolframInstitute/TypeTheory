@@ -37,7 +37,7 @@ Pairs of natural numbers with the same difference, from which the integers are m
 
 ```wl
 differences = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[SameDifference, Function[{Typed[p, CartesianProduct[Naturals, Naturals]], Typed[q, CartesianProduct[Naturals, Naturals]]}, p[[1]] + q[[2]] == q[[1]] + p[[2]]]]
+    TypeTheoryDefinition[SameDifference, Function[{Typed[p, CartesianProductType[Naturals, Naturals]], Typed[q, CartesianProductType[Naturals, Naturals]]}, p[[1]] + q[[2]] == q[[1]] + p[[2]]]]
 }]
 ```
 

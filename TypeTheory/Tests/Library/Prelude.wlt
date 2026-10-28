@@ -208,13 +208,13 @@ VerificationTest[
 VerificationTest[
 	{
 		TypeOf[TypeTheoryTerm[Pair[1, "true"][[2]], prelude]],
-		TypeOf[TypeTheoryTerm[Typed[LeftInjection[3], DisjointUnion[NonNegativeIntegers, Booleans]], prelude]],
+		TypeOf[TypeTheoryTerm[Typed[LeftInjection[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
 		TypeOf[TypeTheoryTerm[OptionSome[5], prelude]],
 		TypeOf[TypeTheoryTerm[ListPrepend[1, EmptyList], prelude]]
 	},
 	{
 		TypeTheoryTerm[Booleans, prelude],
-		TypeTheoryTerm[DisjointUnion[NonNegativeIntegers, Booleans], prelude],
+		TypeTheoryTerm[DisjointUnionType[NonNegativeIntegers, Booleans], prelude],
 		TypeTheoryTerm[Option[NonNegativeIntegers], prelude],
 		TypeTheoryTerm[Lists[NonNegativeIntegers], prelude]
 	},

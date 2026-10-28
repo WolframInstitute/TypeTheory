@@ -70,7 +70,7 @@ pairs = TypeTheoryEnvironment[inhabited, {
         ],
         ForAll[
             {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"], Annotation[Typed[k, Inhabited[\[Beta]]], "InstanceImplicit"]},
-            Inhabited[CartesianProduct[\[Alpha], \[Beta]]]
+            Inhabited[CartesianProductType[\[Alpha], \[Beta]]]
         ]
     ], "Instance" -> True]
 }]
@@ -81,7 +81,7 @@ pairs = TypeTheoryEnvironment[inhabited, {
 A default pair of a number and a list of Booleans comes from three instances:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProduct[Naturals, Lists[Booleans]]], pairs]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[Naturals, Lists[Booleans]]], pairs]]
 ```
 
 <!-- => Pair[NaturalsInhabited〚1〛, ListsInhabited〚1〛] -->
@@ -112,7 +112,7 @@ defaultPairs = TypeTheoryEnvironment[pairs, {
 At the naturals it is a pair of zeros:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProduct[Naturals, Naturals]], defaultPairs], TypeTheoryTerm[Pair[0, 0], defaultPairs]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProductType[Naturals, Naturals]], defaultPairs], TypeTheoryTerm[Pair[0, 0], defaultPairs]]
 ```
 
 <!-- => True -->

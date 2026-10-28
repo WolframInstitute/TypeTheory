@@ -120,7 +120,7 @@ $integerDeclarations = {
 	(* pairs (a, b) and (c, d) are related when a + d == c + b *)
 	TypeTheoryDefinition[
 		"integerRelation",
-		Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+		Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			p[[1]] + q[[2]] == q[[1]] + p[[2]]
 		]
 	],
@@ -128,8 +128,8 @@ $integerDeclarations = {
 	TypeTheoryDefinition[
 		"integerOfPair",
 		Typed[
-			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, QuotientIntroduction["integerRelation", p]],
-			TypeSpecifier[{CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]} -> Integers]
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, QuotientIntroduction["integerRelation", p]],
+			TypeSpecifier[{CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]} -> Integers]
 		]
 	],
 	TypeTheoryDefinition[
@@ -141,7 +141,7 @@ $integerDeclarations = {
 	(* swapping a pair, adding two and multiplying two respect the relation *)
 	integerTheorem[
 		"integerNegationRespects",
-		ForAll[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+		ForAll[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies["integerRelation"[p, q], "integerRelation"[Pair[p[[2]], p[[1]]], Pair[q[[2]], q[[1]]]]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, h], TypeTheoryTactic["LinearArithmetic"]}
@@ -149,7 +149,7 @@ $integerDeclarations = {
 	integerTheorem[
 		"integerAdditionRespectsLeft",
 		ForAll[
-			{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies["integerRelation"[p, q], "integerRelation"[Pair[p[[1]] + s[[1]], p[[2]] + s[[2]]], Pair[q[[1]] + s[[1]], q[[2]] + s[[2]]]]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, s, h], TypeTheoryTactic["LinearArithmetic"]}
@@ -157,7 +157,7 @@ $integerDeclarations = {
 	integerTheorem[
 		"integerAdditionRespectsRight",
 		ForAll[
-			{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies["integerRelation"[q, s], "integerRelation"[Pair[p[[1]] + q[[1]], p[[2]] + q[[2]]], Pair[p[[1]] + s[[1]], p[[2]] + s[[2]]]]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, s, h], TypeTheoryTactic["LinearArithmetic"]}
@@ -165,7 +165,7 @@ $integerDeclarations = {
 	integerTheorem[
 		"integerMultiplicationRespectsLeft",
 		ForAll[
-			{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies[
 				"integerRelation"[p, q],
 				"integerRelation"[
@@ -179,7 +179,7 @@ $integerDeclarations = {
 	integerTheorem[
 		"integerMultiplicationRespectsRight",
 		ForAll[
-			{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies[
 				"integerRelation"[q, s],
 				"integerRelation"[
@@ -198,9 +198,9 @@ $integerDeclarations = {
 		"integerNegation",
 		Typed[
 			Function[{Typed[x, Integers]}, QuotientLift[
-				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerOfPair"[Pair[p[[2]], p[[1]]]]],
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerOfPair"[Pair[p[[2]], p[[1]]]]],
 				Function[
-					{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
+					{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
 					QuotientSoundness["integerNegationRespects"[p, q, e]]
 				],
 				x
@@ -211,30 +211,30 @@ $integerDeclarations = {
 	TypeTheoryDefinition[
 		"integerAdditionOfPair",
 		Typed[
-			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
-				Function[{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerOfPair"[Pair[p[[1]] + q[[1]], p[[2]] + q[[2]]]]],
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerOfPair"[Pair[p[[1]] + q[[1]], p[[2]] + q[[2]]]]],
 				Function[
-					{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
+					{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
 					QuotientSoundness["integerAdditionRespectsRight"[p, q, s, e]]
 				],
 				y
 			]],
-			TypeSpecifier[{CartesianProduct[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Integers]
+			TypeSpecifier[{CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Integers]
 		]
 	],
 	TypeTheoryDefinition[
 		"integerAddition",
 		Typed[
 			Function[{Typed[x, Integers], Typed[y, Integers]}, QuotientLift[
-				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerAdditionOfPair"[p, y]],
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerAdditionOfPair"[p, y]],
 				Function[
-					{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
+					{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
 					Construct[
 						QuotientInduction,
-						CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+						CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
 						"integerRelation",
 						Function[{Typed[z, Integers]}, "integerAdditionOfPair"[p, z] == "integerAdditionOfPair"[q, z]],
-						Function[{Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, QuotientSoundness["integerAdditionRespectsLeft"[p, q, s, e]]],
+						Function[{Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, QuotientSoundness["integerAdditionRespectsLeft"[p, q, s, e]]],
 						y
 					]
 				],
@@ -246,30 +246,30 @@ $integerDeclarations = {
 	TypeTheoryDefinition[
 		"integerMultiplicationOfPair",
 		Typed[
-			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
-				Function[{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerOfPair"[Pair[p[[1]] q[[1]] + p[[2]] q[[2]], p[[1]] q[[2]] + p[[2]] q[[1]]]]],
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerOfPair"[Pair[p[[1]] q[[1]] + p[[2]] q[[2]], p[[1]] q[[2]] + p[[2]] q[[1]]]]],
 				Function[
-					{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
+					{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
 					QuotientSoundness["integerMultiplicationRespectsRight"[p, q, s, e]]
 				],
 				y
 			]],
-			TypeSpecifier[{CartesianProduct[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Integers]
+			TypeSpecifier[{CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Integers]
 		]
 	],
 	TypeTheoryDefinition[
 		"integerMultiplication",
 		Typed[
 			Function[{Typed[x, Integers], Typed[y, Integers]}, QuotientLift[
-				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerMultiplicationOfPair"[p, y]],
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerMultiplicationOfPair"[p, y]],
 				Function[
-					{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
+					{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
 					Construct[
 						QuotientInduction,
-						CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+						CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
 						"integerRelation",
 						Function[{Typed[z, Integers]}, "integerMultiplicationOfPair"[p, z] == "integerMultiplicationOfPair"[q, z]],
-						Function[{Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, QuotientSoundness["integerMultiplicationRespectsLeft"[p, q, s, e]]],
+						Function[{Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, QuotientSoundness["integerMultiplicationRespectsLeft"[p, q, s, e]]],
 						y
 					]
 				],
@@ -555,7 +555,7 @@ $integerDeclarations = {
 	],
 	integerTheorem[
 		"integerEqualRespectsRight",
-		ForAll[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+		ForAll[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies["integerRelation"[q, s], Equivalent[p[[1]] + q[[2]] == q[[1]] + p[[2]], p[[1]] + s[[2]] == s[[1]] + p[[2]]]]
 		],
 		{
@@ -567,7 +567,7 @@ $integerDeclarations = {
 	],
 	integerTheorem[
 		"integerEqualRespectsLeft",
-		ForAll[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+		ForAll[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies["integerRelation"[p, q], Equivalent[p[[1]] + s[[2]] == s[[1]] + p[[2]], q[[1]] + s[[2]] == s[[1]] + q[[2]]]]
 		],
 		{
@@ -580,28 +580,28 @@ $integerDeclarations = {
 	TypeTheoryDefinition[
 		"integerEqualOfPair",
 		Typed[
-			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
-				Function[{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "equal"[p[[1]] + q[[2]], q[[1]] + p[[2]]]],
-				Function[{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "equal"[p[[1]] + q[[2]], q[[1]] + p[[2]]]],
+				Function[{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
 					"equalOfEquivalent"[p[[1]] + q[[2]], q[[1]] + p[[2]], p[[1]] + s[[2]], s[[1]] + p[[2]], "integerEqualRespectsRight"[p, q, s, e]]
 				],
 				y
 			]],
-			TypeSpecifier[{CartesianProduct[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Booleans]
+			TypeSpecifier[{CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Booleans]
 		]
 	],
 	TypeTheoryDefinition[
 		"integerEqual",
 		Typed[
 			Function[{Typed[x, Integers], Typed[y, Integers]}, QuotientLift[
-				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, "integerEqualOfPair"[p, y]],
-				Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerEqualOfPair"[p, y]],
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
 					Construct[
 						QuotientInduction,
-						CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+						CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
 						"integerRelation",
 						Function[{Typed[z, Integers]}, "integerEqualOfPair"[p, z] == "integerEqualOfPair"[q, z]],
-						Function[{Typed[s, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+						Function[{Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 							"equalOfEquivalent"[p[[1]] + s[[2]], s[[1]] + p[[2]], q[[1]] + s[[2]], s[[1]] + q[[2]], "integerEqualRespectsLeft"[p, q, s, e]]
 						],
 						y
@@ -737,10 +737,10 @@ $integerDeclarations = {
 		ForAll[{Typed[z, Integers]}, 0 <= z z],
 		Function[{Typed[z, Integers]}, Construct[
 			QuotientInduction,
-			CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+			CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
 			"integerRelation",
 			Function[{Typed[w, Integers]}, 0 <= w w],
-			Function[{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]}, InductiveRecursor[Exists][
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, InductiveRecursor[Exists][
 				Function[
 					{Typed[o, Exists[{Typed[n, NonNegativeIntegers]}, p[[1]] p[[1]] + p[[2]] p[[2]] == n + (p[[1]] p[[2]] + p[[2]] p[[1]])]]},
 					0 <= "integerOfPair"[p] "integerOfPair"[p]
@@ -799,13 +799,13 @@ $integerDeclarations = {
 	TypeTheoryTheorem[
 		"integerExact",
 		ForAll[
-			{Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[r, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]]},
+			{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[r, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
 			Implies["integerOfPair"[q] == "integerOfPair"[r], "integerRelation"[q, r]]
 		],
 		Function[
 			{
-				Typed[q, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]],
-				Typed[r, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]],
+				Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]],
+				Typed[r, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]],
 				Typed[e, "integerOfPair"[q] == "integerOfPair"[r]]
 			},
 			"equalTrue"[q[[1]] + r[[2]], r[[1]] + q[[2]], EqualityTransitivity[
@@ -834,11 +834,11 @@ $integerDeclarations = {
 		Function[{Typed[d, NonNegativeIntegers], Typed[x, Integers], Typed[h, 0 <= "integerOfNatural"[d + 1] x]},
 			Construct[
 				QuotientInduction,
-				CartesianProduct[NonNegativeIntegers, NonNegativeIntegers],
+				CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
 				"integerRelation",
 				Function[{Typed[w, Integers]}, Implies[0 <= "integerOfNatural"[d + 1] w, 0 <= w]],
 				Function[
-					{Typed[p, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], Typed[g, 0 <= "integerOfNatural"[d + 1] "integerOfPair"[p]]},
+					{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[g, 0 <= "integerOfNatural"[d + 1] "integerOfPair"[p]]},
 					InductiveRecursor[Exists][
 						Function[{Typed[o, 0 <= "integerOfNatural"[d + 1] "integerOfPair"[p]]}, 0 <= "integerOfPair"[p]],
 						Function[{Typed[k, NonNegativeIntegers], Typed[e, "integerOfNatural"[d + 1] "integerOfPair"[p] == 0 + "integerOfNatural"[k]]},

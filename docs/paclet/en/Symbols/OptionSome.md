@@ -47,7 +47,7 @@ An optional value of any type, here a pair of a number and a Boolean:
 TypeTheoryCheck[TypeTheoryTerm[OptionSome[Pair[1, "true"]]]]
 ```
 
-<!-- => Option[CartesianProduct[ℕ, 𝔹]] -->
+<!-- => Option[CartesianProductType[ℕ, 𝔹]] -->
 
 ## Applications
 

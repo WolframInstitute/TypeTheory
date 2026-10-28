@@ -31,7 +31,7 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Decidable[p]               decisions, with Decide, DecideSoundness, and the instances deciding == and <= of
 	                           natural numbers, True, False, the connectives and == of Booleans, the last three
 	                           named "trueDecidable", "falseDecidable" and "booleanEqualityDecidable"
-	CartesianProduct, DisjointUnion, Option, Lists
+	CartesianProductType, DisjointUnionType, Option, Lists
 	                           pairs, sums, optional values and lists, with Join, Length, Map, Append and Reverse
 
 	Nonempty[a], Subtype[P]    with NonemptyIntroduction, and SubtypeIntroduction, an element and its proof
@@ -136,9 +136,9 @@ PackageExported[Decidable]
 PackageExported[DecidableFalse]
 PackageExported[DecidableTrue]
 PackageExported[Decide]
-PackageExported[CartesianProduct]
+PackageExported[CartesianProductType]
 PackageExported[Pair]
-PackageExported[DisjointUnion]
+PackageExported[DisjointUnionType]
 PackageExported[LeftInjection]
 PackageExported[RightInjection]
 PackageExported[Option]
@@ -265,11 +265,11 @@ DecidableFalse::usage = "DecidableFalse[h] decides p false, given a proof h of N
 DecidableTrue::usage = "DecidableTrue[h] decides p true, given a proof h of p."
 Decide::usage = "Decide[p] is the Boolean that the decision of the proposition p computes, False for DecidableFalse and True for DecidableTrue, \
 the decision being the instance of Decidable[p] that elaboration finds."
-CartesianProduct::usage = "CartesianProduct[a, b] is the type of the pairs of an element of the type a and one of the type b; p[[1]] and p[[2]] project a pair p."
-Pair::usage = "Pair[x, y] is the element of CartesianProduct[a, b] made of x of type a and y of type b."
-DisjointUnion::usage = "DisjointUnion[a, b] is the type of the elements of the type a or of the type b, each tagged with its side."
-LeftInjection::usage = "LeftInjection[x] is the element x of the type a in DisjointUnion[a, b]."
-RightInjection::usage = "RightInjection[y] is the element y of the type b in DisjointUnion[a, b]."
+CartesianProductType::usage = "CartesianProductType[a, b] is the type of the pairs of an element of the type a and one of the type b; p[[1]] and p[[2]] project a pair p."
+Pair::usage = "Pair[x, y] is the element of CartesianProductType[a, b] made of x of type a and y of type b."
+DisjointUnionType::usage = "DisjointUnionType[a, b] is the type of the elements of the type a or of the type b, each tagged with its side."
+LeftInjection::usage = "LeftInjection[x] is the element x of the type a in DisjointUnionType[a, b]."
+RightInjection::usage = "RightInjection[y] is the element y of the type b in DisjointUnionType[a, b]."
 Option::usage = "Option[a] is the type of optional elements of the type a: OptionNone, or OptionSome[x] with x of type a."
 OptionNone::usage = "OptionNone is the element of Option[a] with no element of a."
 OptionSome::usage = "OptionSome[x] is the element of Option[a] holding x of type a."
@@ -1203,21 +1203,21 @@ $constructiveDeclarations = {
 
 	(* pairs, sums, optional values and lists, laid out as Lean's Prod, Sum, Option and List *)
 	TypeTheoryInductiveType[
-		CartesianProduct,
+		CartesianProductType,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
 		{
 			Pair -> ForAll[
 				{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]], Typed[y, \[Beta]]},
-				CartesianProduct[\[Alpha], \[Beta]]
+				CartesianProductType[\[Alpha], \[Beta]]
 			]
 		}
 	],
 	TypeTheoryInductiveType[
-		DisjointUnion,
+		DisjointUnionType,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
 		{
-			LeftInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]]}, DisjointUnion[\[Alpha], \[Beta]]],
-			RightInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[y, \[Beta]]}, DisjointUnion[\[Alpha], \[Beta]]]
+			LeftInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]]}, DisjointUnionType[\[Alpha], \[Beta]]],
+			RightInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[y, \[Beta]]}, DisjointUnionType[\[Alpha], \[Beta]]]
 		}
 	],
 	TypeTheoryInductiveType[

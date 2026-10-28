@@ -206,7 +206,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 == x], TypeTheoryEnvironment[
 }]
 ```
 
-<!-- => Proof, 1 goal: case QuotientIntroduction ⊢ ∀_a∶CartesianProduct[ℕ, ℕ] QuotientIntroduction[integerRelation, a] + 0 == QuotientIntroduction[integerRelation, a] -->
+<!-- => Proof, 1 goal: case QuotientIntroduction ⊢ ∀_a∶CartesianProductType[ℕ, ℕ] QuotientIntroduction[integerRelation, a] + 0 == QuotientIntroduction[integerRelation, a] -->
 
 ---
 

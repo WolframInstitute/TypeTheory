@@ -104,7 +104,7 @@ addRationalDeclaration[environment_, rationalTheorem[name_, statement_, tactics_
 	TypeTheoryEnvironment[environment, {TypeTheoryTheorem[name, TypeTheoryProof[statement, environment, tactics]]}]
 addRationalDeclaration[environment_, declaration_] := TypeTheoryEnvironment[environment, {declaration}]
 
-$rationalDeclarations = With[{pairs = CartesianProduct[Integers, NonNegativeIntegers], differences = CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]}, {
+$rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegativeIntegers], differences = CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]}, {
 	(* Integers first. The class of (n + k, n) is k, and that of (n, n + k) is -k. *)
 	rationalTheorem[
 		"integerOfDifference",

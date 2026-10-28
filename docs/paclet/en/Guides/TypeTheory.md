@@ -131,8 +131,8 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: pairs, sums, options and lists
 
-- [CartesianProduct]() pairs, made with [Pair]()
-- [DisjointUnion]() sums, made with [LeftInjection]() and [RightInjection]()
+- [CartesianProductType]() pairs, made with [Pair]()
+- [DisjointUnionType]() sums, made with [LeftInjection]() and [RightInjection]()
 - [Option]() optional values, [OptionNone]() and [OptionSome]()
 - [Lists]() lists, built from [EmptyList]() by [ListPrepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
 - [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse](), [LengthReverse]() the laws of lists

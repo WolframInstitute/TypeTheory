@@ -5,18 +5,18 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Pair
 Keywords: [pair, constructor, product, prelude]
-SeeAlso: [CartesianProduct, LeftInjection, OptionSome]
+SeeAlso: [CartesianProductType, LeftInjection, OptionSome]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
 
 ## Usage
 
-<code>[Pair]()[*x*, *y*]</code> is the pair of *x* and *y*, an element of <code>[CartesianProduct]()[*α*, *β*]</code>.
+<code>[Pair]()[*x*, *y*]</code> is the pair of *x* and *y*, an element of <code>[CartesianProductType]()[*α*, *β*]</code>.
 
 ## Details & Options
 
-- [Pair]() is the constructor of [CartesianProduct]().
+- [Pair]() is the constructor of [CartesianProductType]().
 - *α* and *β* are implicit arguments, found from the types of *x* and *y*.
 
 ## Basic Examples
@@ -27,7 +27,7 @@ The statement of [Pair]():
 TypeTheoryCheck[TypeTheoryTerm[Pair]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → β → CartesianProduct[α, β] -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → β → CartesianProductType[α, β] -->
 
 ---
 
@@ -37,7 +37,7 @@ A pair of natural numbers:
 TypeTheoryCheck[TypeTheoryTerm[Pair[2, 3]]]
 ```
 
-<!-- => CartesianProduct[ℕ, ℕ] -->
+<!-- => CartesianProductType[ℕ, ℕ] -->
 
 ## Properties and Relations
 

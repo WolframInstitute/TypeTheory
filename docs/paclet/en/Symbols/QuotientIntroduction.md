@@ -36,7 +36,7 @@ The class of the pair (2, 5), the integer -3:
 
 ```wl
 differences = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[SameDifference, Function[{Typed[p, CartesianProduct[Naturals, Naturals]], Typed[q, CartesianProduct[Naturals, Naturals]]}, p[[1]] + q[[2]] == q[[1]] + p[[2]]]]
+    TypeTheoryDefinition[SameDifference, Function[{Typed[p, CartesianProductType[Naturals, Naturals]], Typed[q, CartesianProductType[Naturals, Naturals]]}, p[[1]] + q[[2]] == q[[1]] + p[[2]]]]
 }]
 ```
 
@@ -54,7 +54,7 @@ The pairs with the same difference again:
 
 ```wl
 differences = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[SameDifference, Function[{Typed[p, CartesianProduct[Naturals, Naturals]], Typed[q, CartesianProduct[Naturals, Naturals]]}, p[[1]] + q[[2]] == q[[1]] + p[[2]]]]
+    TypeTheoryDefinition[SameDifference, Function[{Typed[p, CartesianProductType[Naturals, Naturals]], Typed[q, CartesianProductType[Naturals, Naturals]]}, p[[1]] + q[[2]] == q[[1]] + p[[2]]]]
 }]
 ```
 

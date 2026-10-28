@@ -55,14 +55,14 @@ TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[TrueIntroduction]]]
 An element of a type gives a pair: `"Cases"` takes a proof of [Nonempty]() apart, which it may, since the goal is a proposition:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[h, Nonempty[A]]}, Nonempty[CartesianProduct[A, A]]], {
+proof = TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[h, Nonempty[A]]}, Nonempty[CartesianProductType[A, A]]], {
     TypeTheoryTactic["Introduce", A, h],
     TypeTheoryTactic["Cases", h],
     TypeTheoryTactic["Introduce", x]
 }]
 ```
 
-<!-- => Proof, 1 goal: A ∶ Type, x ∶ A ⊢ Nonempty[CartesianProduct[A, A]] -->
+<!-- => Proof, 1 goal: A ∶ Type, x ∶ A ⊢ Nonempty[CartesianProductType[A, A]] -->
 
 The pair of the element with itself:
 

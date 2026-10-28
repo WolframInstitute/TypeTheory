@@ -332,7 +332,7 @@ The tutorial *Instances and Coercions* shows how an environment adds instances o
 
 ## Pairs, Sums and Options
 
-<code>[CartesianProduct]()[α, β]</code> is the type of pairs, made with [Pair](), whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnion]()[α, β]</code> has the elements of `α` on the left, with [LeftInjection](), and those of `β` on the right, with [RightInjection](); and <code>[Option]()[α]</code> has [OptionNone]() and the values <code>[OptionSome]()[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
+<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with [Pair](), whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with [LeftInjection](), and those of `β` on the right, with [RightInjection](); and <code>[Option]()[α]</code> has [OptionNone]() and the values <code>[OptionSome]()[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[1]]]]

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Option
 Keywords: [option, optional value, maybe, prelude, inductive type]
-SeeAlso: [OptionNone, OptionSome, DisjointUnion, Lists]
+SeeAlso: [OptionNone, OptionSome, DisjointUnionType, Lists]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---

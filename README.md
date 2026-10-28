@@ -289,7 +289,7 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
   through the Boolean comparisons `"equal"` and `"lessEqual"`, which the kernel computes on literals;
   `NotDecidable`, `AndDecidable` and `OrDecidable` combine decisions, and `"trueDecidable"`,
   `"falseDecidable"` and `"booleanEqualityDecidable"` decide `True`, `False` and equations of Booleans.
-- **Pairs, sums, options and lists:** `CartesianProduct` (`Pair`), `DisjointUnion` (`LeftInjection`,
+- **Pairs, sums, options and lists:** `CartesianProductType` (`Pair`), `DisjointUnionType` (`LeftInjection`,
   `RightInjection`), `Option` (`OptionNone`, `OptionSome`) and `Lists` (`EmptyList`, `ListPrepend`), as
   Lean's `Prod`, `Sum`, `Option` and `List`; `Join`, `Length`, `Map`, `Append` and `Reverse` on lists,
   and their laws `JoinEmptyRight`, `JoinAssociativity`, `LengthJoin`, `LengthMap`, `MapJoin`,

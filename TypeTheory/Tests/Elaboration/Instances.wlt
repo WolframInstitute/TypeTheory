@@ -32,7 +32,7 @@ environment = TypeTheoryEnvironment[prelude, {
 		],
 		ForAll[
 			{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"], Annotation[Typed[k, Inhabited[\[Beta]]], "InstanceImplicit"]},
-			Inhabited[CartesianProduct[\[Alpha], \[Beta]]]
+			Inhabited[CartesianProductType[\[Alpha], \[Beta]]]
 		]
 	], "Instance" -> True],
 	TypeTheoryDefinition[NaturalOfBoolean, Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, NonNegativeIntegers], 0, 1, b]], "Coercion" -> True],
@@ -57,7 +57,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProduct[NonNegativeIntegers, Lists[Booleans]]], environment]],
+	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[NonNegativeIntegers, Lists[Booleans]]], environment]],
 	TypeTheoryTerm[Pair[NaturalsInhabited[[1]], ListsInhabited[[1]]], environment],
 	TestID -> "An-instance-finds-its-own-instance-arguments"
 ]
@@ -81,7 +81,7 @@ VerificationTest[
 		},
 		{
 			MatchQ[TypeTheoryCheck[pairs], _Success],
-			DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProduct[NonNegativeIntegers, NonNegativeIntegers]], pairs], TypeTheoryTerm[Pair[0, 0], pairs]]
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], pairs], TypeTheoryTerm[Pair[0, 0], pairs]]
 		}
 	],
 	{True, True},
