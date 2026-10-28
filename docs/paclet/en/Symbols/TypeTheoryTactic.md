@@ -33,7 +33,7 @@ RelatedGuides: [TypeTheory]
 | `"Rewrite", h, "At" -> k` | rewrites the hypothesis `k` instead of the goal; `"RightToLeft"` can come before `"At" -> k` |
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
-| `"Decide"` | proves a closed statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's decide `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False]() |
+| `"Decide"` | proves a statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's decide `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False](). A closed statement always computes; one with variables computes only where its decision does not depend on them |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
@@ -290,7 +290,7 @@ TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Change", 4 == 4]}]
 
 ---
 
-`"Decide"` proves a closed statement by computing its decision, which it finds among the instances of [Decidable]():
+`"Decide"` proves a statement by computing its decision, which it finds among the instances of [Decidable](); a closed statement always computes:
 
 ```wl
 TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
@@ -401,13 +401,21 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
 
 ---
 
-`"Decide"` needs a closed statement; with a variable there is nothing to compute:
+`"Decide"` needs a decision that computes. With a variable it computes only where the decision does not depend on the variable, and the decision of `n <= n + 1` depends on `n`:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n <= n + 1], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Decide"]}]
 ```
 
 <!-- => Failure["NotDecided", ...] -->
+
+The decision of `n + 1 != 0` does not depend on `n`, since a successor is never 0, so it computes:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 1 != 0], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->
 
 ---
 
