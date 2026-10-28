@@ -21,23 +21,34 @@ false one.
 
 ## The kernel
 
-`inferType` always checks: an application checks its argument, a binder checks that its domain is a
-type. Proof irrelevance and K-like reduction call it too, so they re-check terms that were already
-checked. Lean has an infer-only mode for those calls; adding one is the first performance step, and is
-sound only where the term is known to be well typed.
+`inferType` checks: an application checks its argument, a binder checks that its domain is a type, a
+local definition checks its value. Proof irrelevance, K-like reduction, η for structures and unit types
+ask types too (`typeQuery`). Inside a declaration's check they infer them without checking, as Lean's
+kernel does in infer-only mode: arguments are not checked against their binders, nor domains as types,
+nor local values against their types. That is sound only where every term compared is checked or a
+reduct of a checked term. A declaration's check is such a place, since it checks the type before the
+value and each subterm before comparing the types of its parts. `withCheckedTerms` marks such a place:
+the declarations, inductive blocks, quotients and cubical primitives, and `DefinitionallyEqualQ`, whose
+terms are checked as their elaboration finishes. Elsewhere, in the elaborator and in tactics, the
+queries check. A type inferred without checking goes to a cache of its own, so a check never takes it
+for a checked one. Every call of `definitionallyEqualQ` outside `TypeChecking.wl` says in a comment
+which of the two its terms are. A test in `Queries.wlt` forges theorems whose ill-typed proof is reached
+only through proof irrelevance, and the declaration's own check catches each one.
 
 Reduction is β, ζ, δ for definitions (theorems and opaque definitions are never unfolded), ι, K-like ι,
-and the registered operations on natural number literals, on integers. Definitional equality tries, in
-order: `SameQ`, sorts, binders, the same constant on equal arguments, proof irrelevance, then reduction
-without unfolding a definition, then Lean's lazy delta reduction, and finally η, literals against
-constructors, spines, η for structures and unit types. Lazy delta reduction unfolds one definition at a
-time: of two definitions at the heads of the sides, the higher one, where a definition's height is one
-more than the greatest height of the definitions its value mentions, or both at the same height. As in
-Lean's kernel it is a loop that compares the sides between steps only by identity, and by their
-arguments where one definition is at both heads, until neither side has a definition at its head; that
-last pair is compared in full. Proof irrelevance is not asked again between steps, since unfolding
-leaves a proof a proof of the same proposition. The kernel remembers inferred types, weak head normal
-forms and definitional equalities for the length of a check.
+and the registered operations on natural number literals, on integers. Definitional equality decides
+in Lean's order. First come `SameQ`, sorts, literals and binders. Then each side is reduced without
+unfolding a definition, and the reducts are compared again if either changed. Where neither changes,
+proof irrelevance answers for proofs: True for proofs of one proposition, False for proofs of two.
+Otherwise Lean's lazy delta reduction runs, and finally η, literals against constructors, spines, η
+for structures and unit types. Lazy delta reduction unfolds one definition at a time: of two
+definitions at the heads of the sides, the higher one, where a definition's height is one more than
+the greatest height of the definitions its value mentions, or both at the same height. As in Lean's
+kernel it is a loop that compares the sides between steps only by identity, and by their arguments
+where one definition is at both heads, from the first pair on. It stops when neither side has a
+definition at its head, and that last pair is compared in full. Proof irrelevance is not asked again
+between steps, since unfolding leaves a proof a proof of the same proposition. The kernel remembers
+inferred types, weak head normal forms and definitional equalities for the length of a check.
 
 A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
 with `catchKernelFailure`, so a user sees a `Failure` and never a message.

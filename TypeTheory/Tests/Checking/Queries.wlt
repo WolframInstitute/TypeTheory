@@ -15,6 +15,8 @@ boundVariable = Symbol["WolframInstitute`TypeTheory`PackageScope`boundVariable"]
 
 application = Symbol["WolframInstitute`TypeTheory`PackageScope`application"]
 naturalLiteral = Symbol["WolframInstitute`TypeTheory`PackageScope`naturalLiteral"]
+dependentFunctionType = Symbol["WolframInstitute`TypeTheory`PackageScope`dependentFunctionType"]
+localDefinition = Symbol["WolframInstitute`TypeTheory`PackageScope`localDefinition"]
 
 natural = constantReference[HoldComplete[NonNegativeIntegers], {}]
 firstProjection = lambdaAbstraction[HoldComplete[m], natural, lambdaAbstraction[HoldComplete[n], natural, boundVariable[1], "Explicit"], "Explicit"]
@@ -147,6 +149,49 @@ VerificationTest[
 	},
 	{"TypeMismatch", "FunctionExpected"},
 	TestID -> "A-forged-argument-is-caught-against-the-domain-its-earlier-arguments-give"
+]
+
+(* Inside a check, proof irrelevance compares two proofs by propositions inferred without checking the proofs, as
+   in Lean's kernel. h of ForAll[{Typed[m, NonNegativeIntegers]}, True] applied to a proof is ill typed, yet
+   inferred so it is a proof of True, which irrelevance finds equal to h[0]. Each forged proof of AdditionZeroLeft
+   below is its own proof under a redex that binds such an h and reaches h[TrueIntroduction] only through that
+   comparison: as an argument, as a function's domain, and as a local definition's value. The statement is kept,
+   so no later declaration fails in its place, and the theorem's own check catches each one. *)
+VerificationTest[
+	With[
+		{
+			true = constantReference[HoldComplete[True], {}],
+			trivial = constantReference[HoldComplete[TrueIntroduction], {}],
+			equal = Function[{x, y}, Fold[application, constantReference[HoldComplete[Equal], {0}], {constantReference[HoldComplete[True], {}], x, y}]],
+			reflexivity = Function[x, Fold[application, constantReference[HoldComplete[EqualityReflexivity], {0}], {constantReference[HoldComplete[True], {}], x}]],
+			family = dependentFunctionType[HoldComplete[m], natural, constantReference[HoldComplete[True], {}], "Explicit"]
+		},
+		(* Function[{Typed[n, NonNegativeIntegers]}, Function[{Typed[h, family]}, inner][Function[{Typed[m, NonNegativeIntegers]}, TrueIntroduction]] *)
+		With[
+			{
+				forgedProof = Function[inner, Function[record, Append[record, "Value" -> lambdaAbstraction[HoldComplete[n], natural, application[
+					lambdaAbstraction[HoldComplete[h], family, inner[record["Value"]], "Explicit"],
+					lambdaAbstraction[HoldComplete[m], natural, trivial, "Explicit"]
+				], "Explicit"]]]]
+			},
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[AdditionZeroLeft], forgedProof[#]]]& /@ {
+				Function[proof, application[
+					lambdaAbstraction[HoldComplete[e], equal[application[boundVariable[0], naturalLiteral[0]], application[boundVariable[0], naturalLiteral[0]]], application[proof, boundVariable[2]], "Explicit"],
+					reflexivity[application[boundVariable[0], trivial]]
+				]],
+				Function[proof, application[
+					lambdaAbstraction[HoldComplete[e], equal[application[boundVariable[0], trivial], application[boundVariable[0], naturalLiteral[0]]], application[proof, boundVariable[2]], "Explicit"],
+					reflexivity[application[boundVariable[0], naturalLiteral[0]]]
+				]],
+				Function[proof, localDefinition[HoldComplete[y], true, application[boundVariable[0], trivial], application[
+					lambdaAbstraction[HoldComplete[e], equal[boundVariable[0], application[boundVariable[1], naturalLiteral[0]]], application[proof, boundVariable[3]], "Explicit"],
+					reflexivity[application[boundVariable[1], naturalLiteral[0]]]
+				]]]
+			}
+		]
+	],
+	{"TypeMismatch", "TypeMismatch", "TypeMismatch"},
+	TestID -> "An-ill-typed-proof-reached-only-through-proof-irrelevance-is-caught-by-its-declaration"
 ]
 
 (* an opaque definition never unfolds, but its value is checked as a definition's *)

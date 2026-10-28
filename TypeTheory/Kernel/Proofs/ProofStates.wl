@@ -290,10 +290,11 @@ TypeTheoryTactic[name_String, arguments___][TypeTheoryProof[data_Association]] :
 	{goal_, ___} :> withOpenGoals[data, proofState[runTactic[name, Hold[arguments], data, goal]]]
 }]
 
-(* the open goals of the proof, as the metavariables a tactic's elaboration may meet, each with its type and hypotheses *)
+(* the open goals of the proof, as the metavariables a tactic's elaboration may meet, each with its type and hypotheses;
+   a tactic's terms are not checked until it checks them, so the kernel's type queries check *)
 SetAttributes[withOpenGoals, HoldRest]
 withOpenGoals[data_, body_] := With[{goalTypes = openGoalTypes[data]},
-	Block[{$metavariableTypes = goalTypes, $goalMetavariableTypes = goalTypes, $goalMetavariableContexts = openGoalContexts[data]},
+	Block[{$metavariableTypes = goalTypes, $goalMetavariableTypes = goalTypes, $goalMetavariableContexts = openGoalContexts[data], $termsChecked = False},
 		body
 	]
 ]
@@ -412,6 +413,7 @@ applyUntilUnified[data_, goal_, term_, type_, target_] := If[ attemptOrRestore[u
 ]
 
 
+(* like every tactic's comparison, outside the kernel's check, so the type queries check *)
 reflexivity[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
 		application[application[application[constantReference[equality_, levels_], type_], left_], right_] /; equalityTypeQ[environment, equality] :> If[
@@ -437,6 +439,7 @@ equalityTypeQ[environment_, name_HoldComplete] := With[{record = constantRecord[
 ]
 
 
+(* outside the kernel's check, so the type queries check *)
 assumption[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	Replace[
 		SelectFirst[
@@ -765,7 +768,8 @@ rewriteMotive[context_, equality_, levels_List, elementType_, start_, motiveBody
 
 
 (* The goal replaced by a statement equal to it by computation, which a rewrite can then reach into: the
-   new goal's solution solves the goal as it is. *)
+   new goal's solution solves the goal as it is. The comparison is outside the kernel's check, so its type
+   queries check. *)
 change[data_, goal_, held_HoldComplete] := With[
 	{current = currentGoal[data, goal], environment = data["Environment"], goalTypes = openGoalTypes[data], newGoal = freshMetavariableId[]},
 	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
@@ -1234,7 +1238,7 @@ findEquationalProof[data_, goal_] := With[{current = currentGoal[data, goal], en
 ]
 
 (* {{id, binderCount}, ...}: the hypotheses that are equations of the type for all values of their
-   variables, all of the type *)
+   variables, all of the type, compared outside the kernel's check, so the type queries check *)
 equationalHypotheses[environment_, context_, type_] := KeyValueMap[
 	Function[{id, entry}, Replace[universalEquationBinders[environment, context, entry["Type"], type, 0], {count_Integer :> {id, count}, None :> Nothing}]],
 	context

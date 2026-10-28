@@ -191,7 +191,7 @@ $cubicalNames = <|
 (* the arguments a primitive must have before it is a term: those with rules of their own *)
 $saturatedArity = <|"Transport" -> 3, "Composition" -> 3, "GlueType" -> 2, "GlueIntroduction" -> 4, "GlueElimination" -> 3|>
 
-declareCubical[environment_, sum_HoldComplete] := withKernelCaches[
+declareCubical[environment_, sum_HoldComplete] := withCheckedTerms[
 	(* the live check of quantities does not count the uses in a system, so the two do not go together *)
 	If[ ! TrueQ[rulesSetting[environment, "Cubical"]] || TrueQ[rulesSetting[environment, "Prop"]] || TrueQ[rulesSetting[environment, "Quantities"]],
 		kernelFailure["CubicalNotAllowed", "The rules of the environment are not cubical: they need \"Cubical\" -> True, no Prop and no quantities.", {}]
@@ -305,7 +305,8 @@ glueSort[] := universeSort[levelSuccessor[levelParameter[HoldComplete[u]], 1]]
 
 
 (* the dependent sum: a structure of a type A in Type u and a family B over it in Type v, with the pair of an
-   a and a b : B[a] *)
+   a and a b : B[a]; its records were checked when declared, and the types they are compared with are built
+   closed here *)
 sumQ[environment_, sum_HoldComplete] := And[
 	constantDeclaredQ[environment, sum],
 	structureLikeQ[environment, sum],
@@ -475,7 +476,8 @@ restrictedContext[context_Association, substitution_Association] := If[ substitu
 	Map[Function[entry, Association @ KeyValueMap[Function[{key, value}, key -> If[MemberQ[{"Type", "Value"}, key], restricted[value, substitution], value]], entry]], context]
 ]
 
-(* term and other are equal wherever face holds *)
+(* term and other are equal wherever face holds; every caller checks both first, or compares parts of two terms
+   compared, so the terms restricted are checked terms with endpoints put in *)
 equalUnderFaceQ[environment_, context_, face_, term_, other_] := AllTrue[
 	faceConjunctions[environment, context, face],
 	Function[substitution, definitionallyEqualQ[environment, restrictedContext[context, substitution], restricted[term, substitution], restricted[other, substitution]]]
@@ -563,7 +565,8 @@ applicationTypeOf[environment_, context_, type_, argument_] := Replace[weakHeadN
 	other_ :> Replace[pathApplicationType[environment, context, other, argument], None :> kernelFailure["FunctionExpected", "`1` is not a function type.", {displayCoreTerm[environment, context, other]}]]
 }]
 
-(* CubicalTransport[A, φ, a]: a line of types in a universe, a face where it is constant, and an element of A[0] *)
+(* CubicalTransport[A, φ, a]: a line of types in a universe, a face where it is constant, and an element of A[0];
+   the line is checked before it is compared with itself at 0 *)
 saturatedType[environment_, context_, "Transport", {level_}, {line_, face_, value_}] := (
 	checkHasType[environment, context, line, lineOf[level]];
 	checkHasType[environment, context, face, $interval];
@@ -715,7 +718,8 @@ pathApplicationType[environment_, context_, type_, argument_] := If[ ! cubicalDe
 	}]
 ]
 
-(* a function of the interval with the right values at the endpoints is a path, and a path is a function of the interval *)
+(* a function of the interval with the right values at the endpoints is a path, and a path is a function of the interval;
+   as in checkHasType, which asks this, the term is checked, actual is its type, and expected is checked by the caller *)
 cubicalFitQ[environment_, context_, term_, actual_, expected_] := cubicalDeclaredQ[environment] && With[
 	{actualForm = weakHeadNormalForm[environment, context, actual], expectedForm = weakHeadNormalForm[environment, context, expected]},
 	Replace[{actualForm, pathTypeArguments[environment, expectedForm], expectedForm, pathTypeArguments[environment, actualForm]}, {

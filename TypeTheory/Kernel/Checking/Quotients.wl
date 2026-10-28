@@ -70,7 +70,7 @@ reduced one step if it is a lift or an induction applied to a class, and term ot
 (*Declaration*)
 
 
-declareQuotients[environment_, equality_HoldComplete, names : {_HoldComplete, _HoldComplete, _HoldComplete, _HoldComplete}] := withKernelCaches[
+declareQuotients[environment_, equality_HoldComplete, names : {_HoldComplete, _HoldComplete, _HoldComplete, _HoldComplete}] := withCheckedTerms[
 	If[ ! TrueQ[rulesSetting[environment, "Quotients"]] || ! TrueQ[rulesSetting[environment, "Prop"]],
 		kernelFailure["QuotientsNotAllowed", "The rules of the environment do not have quotient types.", {}]
 	];
@@ -98,7 +98,8 @@ equalityQ[environment_, equality_HoldComplete] := And[
 			record = constantRecord[environment, equality],
 			level = levelParameter[First[constantRecord[environment, equality]["UniverseParameters"]]]
 		},
-		(* under rules with quantities the constructor's parameters are erased, which changes nothing here *)
+		(* under rules with quantities the constructor's parameters are erased, which changes nothing here; the
+		   records were checked when declared, and the types they are compared with are built closed here *)
 		And[
 			definitionallyEqualQ[environment, <||>, withoutQuantities[record["Type"]], equalityType[level]],
 			definitionallyEqualQ[environment, <||>, withoutQuantities[constantRecord[environment, First[record["Constructors"]]]["Type"]], reflexivityType[equality, level]]

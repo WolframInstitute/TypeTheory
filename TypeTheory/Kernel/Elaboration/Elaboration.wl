@@ -141,9 +141,12 @@ $instanceIndex = <||>
 $coercions = True
 
 
+(* elaboration compares terms not checked yet, with metavariables, so the kernel's type queries check here even
+   where a declaration elaborates inside a check of checked terms *)
 SetAttributes[withElaborationState, HoldRest]
 withElaborationState[{environment_, context_, scope_, universeParameters_}, body_] := Block[
 	{
+		$termsChecked = False,
 		$metavariableTypes = $goalMetavariableTypes,
 		$metavariableContexts = $goalMetavariableContexts,
 		$metavariableAssignments = <||>,
@@ -188,8 +191,9 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 	If[ unsolvedMetavariables[finalTerm] =!= {},
 		kernelFailure["UnsolvedImplicitArgument", "Could not infer every implicit argument and universe level of `1`.", {displayCoreTerm[environment, context, finalTerm]}]
 	];
-	(* the kernel checks the elaborated term on its own, with no metavariables but the open goals of a proof *)
-	Block[{$metavariableTypes = $goalMetavariableTypes, $metavariableAssignments = <||>},
+	(* the kernel checks the elaborated term on its own, with no metavariables but the open goals of a proof, and
+	   with type queries that check, as the term is not checked yet *)
+	Block[{$metavariableTypes = $goalMetavariableTypes, $metavariableAssignments = <||>, $termsChecked = False},
 		withKernelCaches[
 			If[ expected === None,
 				{finalTerm, inferType[environment, context, finalTerm]},
@@ -752,7 +756,8 @@ expectedMeaning[{integer : HoldComplete["integerNegation"], rational___}, _, exp
 	]
 expectedMeaning[_, _, _] := None
 
-(* the type is the declared number type name, with no metavariable left to decide it *)
+(* the type is the declared number type name, with no metavariable left to decide it; an elaborated type is not
+   checked yet, so the type queries of the comparison check *)
 numberTypeQ[type_, name_HoldComplete] := And[
 	constantDeclaredQ[$elaborationEnvironment, name],
 	unassignedFreeQ[type],
@@ -1797,8 +1802,10 @@ unifyNormalized[a_, b_] := With[
 			unifyEta[a, b],
 		MatchQ[b, _lambdaAbstraction],
 			unifyEta[b, a],
+		(* the terms elaborated are checked only as elaboration finishes, so the type queries here check; with no
+		   metavariable in either, and none solved while the kernel compares, its caches serve this one comparison *)
 		FreeQ[{a, b}, _metavariable | _levelMetavariable],
-			definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, a, b],
+			withKernelCaches[definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, a, b]],
 		True,
 			False
 	]

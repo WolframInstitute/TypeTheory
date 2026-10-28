@@ -134,14 +134,16 @@ TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure 
 ]
 
 
+(* the kernel checks each term as elaboration finishes, so the two compared are checked *)
 DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := TrueQ @ catchKernelFailure @ With[
 	{environment = sharedEnvironment[first, second], universeParameters = universeParameterNames[{termSyntax[first], termSyntax[second]}]},
-	definitionallyEqualQ[
-		environment,
-		<||>,
-		First @ elaborateQueryTerm[environment, first, None, universeParameters],
-		First @ elaborateQueryTerm[environment, second, None, universeParameters]
-	]
+	{
+		terms = {
+			First @ elaborateQueryTerm[environment, first, None, universeParameters],
+			First @ elaborateQueryTerm[environment, second, None, universeParameters]
+		}
+	},
+	withCheckedTerms[definitionallyEqualQ[environment, <||>, First[terms], Last[terms]]]
 ]
 
 

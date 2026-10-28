@@ -91,7 +91,7 @@ declareInductiveType[environment_, name_HoldComplete, universeParameters_List, n
 	declareInductiveTypes[environment, universeParameters, numberOfParameters, {name -> type}, constructors]
 
 declareInductiveTypes[environment_, universeParameters_List, numberOfParameters_Integer, types : {(_HoldComplete -> _) ..}, constructors_List] :=
-	withKernelCaches[declareBlock[environment, universeParameters, numberOfParameters, types, constructors]]
+	withCheckedTerms[declareBlock[environment, universeParameters, numberOfParameters, types, constructors]]
 
 declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, types_List, constructors_List] := Module[
 	{
@@ -165,7 +165,8 @@ blockType[environment_, typeContext_, parameterIds_, name_, type_, constant_, ne
 	|>
 ]
 
-(* a leading binder takes the parameter's place when their types agree *)
+(* a leading binder takes the parameter's place when their types agree; both are binder types of the block's
+   types, checked first in declareBlock, or of the auxiliary types built from them *)
 instantiateLeadingParameter[environment_, typeContext_, remaining_, parameterId_, failure_] := Replace[
 	weakHeadNormalForm[environment, typeContext, remaining],
 	{

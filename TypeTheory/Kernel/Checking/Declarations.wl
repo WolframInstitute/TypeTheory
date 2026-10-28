@@ -387,6 +387,8 @@ constructorParameterCount[environment_, typeContext_, typeIds_List, constructorT
 	commonPrefixLength[Last @ applicationSpine[conclusion], freeVariable /@ Take[typeIds, matched]]
 ]
 
+(* the types are elaborated and checked (closedType), but compared outside the block's check, so the type
+   queries of the comparison check *)
 matchLeadingBinders[_, _, {}, constructorType_, count_Integer] := {count, constructorType}
 matchLeadingBinders[environment_, typeContext_, {id_, rest___}, constructorType_, count_Integer] := Replace[
 	weakHeadNormalForm[environment, typeContext, constructorType],
@@ -442,7 +444,9 @@ levelParameterNames[_] := {}
 (*Core declarations*)
 
 
-declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] := withKernelCaches[
+(* A declaration's type is checked before its value, so every comparison in its check is of checked terms or
+   their reducts, where definitional equality infers the types it asks without checking (withCheckedTerms). *)
+declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type}];
 	sortLevel[environment, <||>, type];
 	addConstantRecords[environment, <|name -> <|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>|>]
@@ -453,7 +457,7 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] :=
    nothing unfolds: like an axiom it equals only itself, and unlike one its type has an element. A
    definition that unfolds has a height, which decides which of two definitions unfolds first when the
    kernel compares them (TypeChecking.wl). *)
-declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withKernelCaches[
+declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	sortLevel[environment, <||>, type];
 	checkHasType[environment, <||>, value, type];
@@ -472,7 +476,7 @@ definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[c
 ]
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
-declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_] := withKernelCaches[
+declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
 		kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]

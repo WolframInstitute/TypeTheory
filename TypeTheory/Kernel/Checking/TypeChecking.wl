@@ -10,14 +10,20 @@ Every function takes the environment and a local context, an Association
 giving the type of each freeVariable[id]. Going under a binder replaces its bound variable with a
 fresh free variable, so the kernel never manipulates loose bound variables.
 
-inferType always checks: an application checks its argument against the domain, a binder checks that
-its domain is a type. Reduction implements beta, zeta (local definitions), delta (unfolding
-definitions; theorems are never unfolded), iota (a recursor applied to a constructor, natural literals
-read as constructors, and K-like recursors such as that of Equal), a quotient's lift or induction
-applied to a class (Quotients.wl), and addition of natural literals
-on Wolfram Language integers when the environment registers an addition, and the rewrite rules of an
-axiom where the environment's rules allow them. Definitional equality adds eta for functions and proof
-irrelevance: two proofs of the same proposition are equal.
+inferType checks: an application checks its argument against the domain, a binder checks that its
+domain is a type. Definitional equality and reduction ask the types of the terms they compare, and
+inside a declaration's check, where those terms are checked or reducts of checked terms, they infer
+them without checking, as Lean's kernel does in its infer-only mode.
+
+Reduction implements beta, zeta (local definitions), delta (unfolding definitions; theorems are never
+unfolded), iota (a recursor applied to a constructor, natural literals read as constructors, and
+K-like recursors such as that of Equal), a quotient's lift or induction applied to a class
+(Quotients.wl), and addition of natural literals on Wolfram Language integers when the environment
+registers an addition, and the rewrite rules of an axiom where the environment's rules allow them.
+Definitional equality adds eta for functions and proof irrelevance: two proofs of the same proposition
+are equal. It decides in the order of Lean's kernel: each side reduced without unfolding a definition,
+then proof irrelevance, then lazy delta, which compares the arguments of one definition at both heads
+before unfolding it.
 
 Under rules without Prop, every universe level must be at least 1 whatever its universe parameters are,
 so no type is a proposition, and proof irrelevance and K-like reduction never apply. Under rules with
@@ -35,6 +41,8 @@ $metavariableTypes and $metavariableAssignments, which the elaborator binds.
 
 PackageScoped[inferType]
 PackageScoped[withKernelCaches]
+PackageScoped[withCheckedTerms]
+PackageScoped[$termsChecked]
 PackageScoped[weakHeadNormalForm]
 PackageScoped[reducedHeadWithoutUnfolding]
 PackageScoped[definitionallyEqualQ]
@@ -63,6 +71,10 @@ sortLevel::usage = "sortLevel[environment, context, type] gives the level of the
 checkHasType::usage = "checkHasType[environment, context, term, type] throws a kernel failure unless term has a type definitionally equal to type."
 freshFreeVariable::usage = "freshFreeVariable[] gives an identifier no free variable has used."
 withKernelCaches::usage = "withKernelCaches[body] evaluates body remembering the kernel's inferred types, weak head normal forms and definitional equalities, unless an enclosing check already does."
+withCheckedTerms::usage = "withCheckedTerms[body] evaluates body with the kernel's caches, where every term compared is checked or a reduct of a checked term, \
+so that definitional equality and reduction infer the types they ask without checking them."
+$termsChecked::usage = "$termsChecked is True where every term the kernel compares is checked or a reduct of a checked term, as inside withCheckedTerms; \
+elaboration and tactics set it to False, as their terms are not checked until elaboration finishes."
 extendContext::usage = "extendContext[context, id, HoldComplete[name], type, binder] gives context with freeVariable[id] of type type."
 extendLocalDefinition::usage = "extendLocalDefinition[context, id, HoldComplete[name], type, value] gives context with freeVariable[id] of type type standing for value."
 makeLambda::usage = "makeLambda[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into functions."
@@ -86,15 +98,35 @@ $freeVariableCounter = 0
    forms it has computed and the definitional equalities it has decided, for a proof meets the same
    subterms again and again. The free variables of a term are fresh for each binder opened, so a term
    means the same wherever it occurs in one check of one environment; outside a check, while elaborating,
-   metavariables get solved, and nothing is remembered. *)
+   metavariables get solved, and nothing is remembered. A type inferred without checking is remembered
+   apart, so that a check never takes it for a checked one. *)
 $inferTypeCache = None
+$uncheckedTypeCache = None
 $weakHeadNormalFormCache = None
 $definitionalEqualityCache = None
 
 SetAttributes[withKernelCaches, HoldFirst]
 withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
 	body,
-	Block[{$inferTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>}, body]
+	Block[{$inferTypeCache = <||>, $uncheckedTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>}, body]
+]
+
+(* Lean's kernel infers the types that definitional equality and reduction ask in infer-only mode: an
+   application's arguments are not checked against their binders, nor a function's domain as a type, nor a
+   local definition's value against its type. That is sound where every term compared is checked, or a reduct
+   of a checked term. A declaration's check is such a place: it checks the declaration's type before its
+   value, and every subterm before comparing the types of its parts, so a comparison meets only the types of
+   checked terms, the binder types of checked types, and their reducts. $termsChecked says the kernel is in
+   such a place; elsewhere, as while elaborating, the queries check. *)
+$termsChecked = False
+$inferOnly = False
+
+SetAttributes[withCheckedTerms, HoldFirst]
+withCheckedTerms[body_] := withKernelCaches[Block[{$termsChecked = True}, body]]
+
+typeQuery[environment_, context_, term_] := If[ $termsChecked,
+	Block[{$inferOnly = True}, inferType[environment, context, term]],
+	inferType[environment, context, term]
 ]
 
 freshFreeVariable[] := ++$freeVariableCounter
@@ -118,9 +150,18 @@ makeDependentFunctionType[context_Association, ids_List, body_] := Fold[
 (*Type inference*)
 
 
-inferType[environment_, context_, term_] := If[ AssociationQ[$inferTypeCache],
-	Lookup[$inferTypeCache, Key[{environment, term}], $inferTypeCache[{environment, term}] = inferTypeOf[environment, context, term]],
-	inferTypeOf[environment, context, term]
+(* a checked type answers a query that does not check, never the other way *)
+inferType[environment_, context_, term_] := Which[
+	! AssociationQ[$inferTypeCache],
+		inferTypeOf[environment, context, term],
+	$inferOnly,
+		Lookup[
+			$inferTypeCache,
+			Key[{environment, term}],
+			Lookup[$uncheckedTypeCache, Key[{environment, term}], $uncheckedTypeCache[{environment, term}] = inferTypeOf[environment, context, term]]
+		],
+	True,
+		Lookup[$inferTypeCache, Key[{environment, term}], $inferTypeCache[{environment, term}] = inferTypeOf[environment, context, term]]
 ]
 
 inferTypeOf[environment_, context_, term_] := Replace[term, {
@@ -178,10 +219,11 @@ naturalNumberType[environment_] := Replace[naturalNumberSettings[environment], {
 	_ :> kernelFailure["NoNaturalNumbers", "A natural number literal needs an environment with natural numbers registered.", {}]
 }]
 
-(* An application's arguments are checked in one pass along its spine, as Lean's kernel infers a spine in infer-only
-   mode: each argument against its binder's domain, instantiated with the arguments before it, and the codomain
-   instantiated with all of them once at the end. Taking one argument at a time instead, each argument instantiated
-   the whole rest of the function's type, so a spine of n arguments cost n substitutions of its telescope. *)
+(* An application's arguments are checked in one pass along its spine, as Lean's kernel infers a spine: each argument
+   against its binder's domain, instantiated with the arguments before it, and the codomain instantiated with all of
+   them once at the end. Taking one argument at a time instead, each argument instantiated the whole rest of the
+   function's type, so a spine of n arguments cost n substitutions of its telescope. In infer-only mode the arguments
+   are not checked, and only the codomain is instantiated. *)
 spineType[environment_, context_, term_] := With[{spine = applicationSpine[term]},
 	spineTypeFrom[environment, context, First[spine], inferType[environment, context, First[spine]], {}, Last[spine]]
 ]
@@ -190,7 +232,7 @@ spineType[environment_, context_, term_] := With[{spine = applicationSpine[term]
    last reduction, whose bound variables stand for the pending arguments, innermost last *)
 spineTypeFrom[environment_, context_, prefix_, type_, pending_List, {}] := instantiateBoundVariables[type, pending]
 spineTypeFrom[environment_, context_, prefix_, dependentFunctionType[_, domain_, codomain_, _], pending_List, {argument_, rest___}] := (
-	checkHasType[environment, context, argument, instantiateBoundVariables[domain, pending]];
+	If[! $inferOnly, checkHasType[environment, context, argument, instantiateBoundVariables[domain, pending]]];
 	spineTypeFrom[environment, context, application[prefix, argument], codomain, Append[pending, argument], {rest}]
 )
 (* a type that is not a function type as it stands may reduce to one *)
@@ -209,6 +251,10 @@ spineTypeFrom[environment_, context_, prefix_, type_, pending_List, arguments : 
 	}
 ]
 
+(* Inside a declaration's check both sides of the comparison are checked: the term's type is inferred from the term,
+   checked just now, and the expected type is the caller's: a binder's domain in a checked function type, with checked
+   arguments put in (spineTypeFrom), a local definition's type, checked just before (localDefinitionType), or the
+   declaration's type, checked before its value (Declarations.wl). *)
 checkHasType[environment_, context_, term_, expected_] := With[{actual = inferType[environment, context, term]},
 	If[ ! definitionallyEqualQ[environment, context, actual, expected] && ! cubicalFitQ[environment, context, term, actual, expected],
 		kernelFailure[
@@ -222,7 +268,7 @@ checkHasType[environment_, context_, term_, expected_] := With[{actual = inferTy
 (* a function of the interval of cubical type theory is a path between its values at the endpoints *)
 lambdaType[environment_, context_, name_, domain_, body_, binder_] := With[{id = freshFreeVariable[]},
 	checkBinderQuantity[environment, name, binder];
-	checkIntervalDomain[environment, context, domain];
+	If[! $inferOnly, checkIntervalDomain[environment, context, domain]];
 	With[{bodyContext = extendContext[context, id, name, domain, binder]},
 		With[{bodyType = inferType[environment, bodyContext, instantiateBoundVariable[body, freeVariable[id]]]},
 			Replace[intervalLambdaType[environment, bodyContext, id, name, domain, body, bodyType], None :>
@@ -249,8 +295,10 @@ functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := 
 (* The body is inferred with the variable in the context, its value beside it for computation to unfold,
    as in Lean's kernel: putting the value in the body would infer its type again at every use. *)
 localDefinitionType[environment_, context_, name_, type_, value_, body_] := (
-	sortLevel[environment, context, type];
-	checkHasType[environment, context, value, type];
+	If[ ! $inferOnly,
+		sortLevel[environment, context, type];
+		checkHasType[environment, context, value, type]
+	];
 	With[{id = freshFreeVariable[]},
 		instantiateBoundVariable[
 			abstractFreeVariable[inferType[environment, extendLocalDefinition[context, id, name, type, value], instantiateBoundVariable[body, freeVariable[id]]], id],
@@ -355,9 +403,10 @@ weakHeadNormalForm[environment_, context_, term_] := If[ AssociationQ[$weakHeadN
 reducedHead[environment_, context_, term_] := Block[{$unfoldDefinitions = True}, FixedPoint[Function[current, reduceHead[environment, context, current]], term]]
 
 (* reduced as far as it reduces without unfolding a definition, as Lean's whnf_core: an equation is
-   compared at this point before its definitions unfold, as two applications of the same constant often are
-   equal by their arguments, and unfolding first can mean a long computation, as Nat.sub on a variable and a
-   large literal is *)
+   compared at this point before its definitions unfold, by proof irrelevance and then by the arguments of
+   one definition at both heads, as two applications of the same constant often are equal by their
+   arguments, and unfolding first can mean a long computation, as Nat.sub on a variable and a large
+   literal is *)
 reducedHeadWithoutUnfolding[environment_, context_, term_] := Block[{$unfoldDefinitions = False}, FixedPoint[Function[current, reduceHead[environment, context, current]], term]]
 
 $unfoldDefinitions = True
@@ -420,7 +469,8 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Rep
 (* An axiom applied to arguments that match the left side of one of its rewrite rules gives the right
    side: a variable of the rule takes the argument at its place, a part without variables must equal the
    argument there, and a constant applied to patterns must be the argument's head after reduction. The
-   first rule that matches is taken. *)
+   first rule that matches is taken. The comparisons are of the arguments of the term reduced, and of
+   closed parts of a rule, checked with the rule. *)
 rewriteAxiom[environment_, context_, term_, name_, levels_, arguments_] :=
 	firstRewrite[environment, context, term, levels, arguments, rewriteRuleRecords[environment, name]]
 
@@ -566,7 +616,7 @@ reduceRecursorApplication[environment_, context_, term_, record_, levels_, {para
 structureFields[environment_, context_, record_, major_] := With[{name = record["InductiveType"]},
 	If[ ! structureLikeQ[environment, name],
 		None,
-		With[{majorType = weakHeadNormalForm[environment, context, inferType[environment, context, major]]},
+		With[{majorType = weakHeadNormalForm[environment, context, typeQuery[environment, context, major]]},
 			If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || propositionTypeQ[environment, context, majorType],
 				None,
 				Table[projection[name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
@@ -575,7 +625,7 @@ structureFields[environment_, context_, record_, major_] := With[{name = record[
 	]
 ]
 
-propositionTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, inferType[environment, context, type]], universeSort[level_] /; levelEquivalentQ[level, 0]]
+propositionTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, typeQuery[environment, context, type]], universeSort[level_] /; levelEquivalentQ[level, 0]]
 
 constructorApplicationQ[record_, constructor_, constructorArguments_] := And[
 	KeyExistsQ[record["Rules"], constructor],
@@ -588,14 +638,16 @@ applyRecursorRule[record_, levels_, parameters_, motives_List, minors_, construc
 ]
 
 (* K-like: the inductive is a proposition with one constructor and no fields, so its recursor reduces
-   on any major premise whose type matches the constructor's, not only on the constructor itself. *)
+   on any major premise whose type matches the constructor's, not only on the constructor itself. The
+   types compared are those of the major premise and of the constructor applied to the parameters, all
+   arguments of the recursor application reduced. *)
 reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_] := With[
 	{
 		constructor = First[Keys[record["Rules"]]],
 		inductiveLevels = If[TrueQ[record["EliminationUniverse"]], Rest[levels], levels]
 	},
 	With[{constructorApplication = makeApplication[constantReference[constructor, inductiveLevels], parameters]},
-		If[ definitionallyEqualQ[environment, context, inferType[environment, context, major], inferType[environment, context, constructorApplication]],
+		If[ definitionallyEqualQ[environment, context, typeQuery[environment, context, major], typeQuery[environment, context, constructorApplication]],
 			applyRecursorRule[record, levels, parameters, motives, minors, constructor, {}, rest],
 			term
 		]
@@ -607,6 +659,9 @@ reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motive
 (*Definitional equality*)
 
 
+(* Every comparison below is of the two terms first compared, their arguments, their binders' domains and bodies
+   opened with a fresh variable, their reducts, or the types of these: checked terms or reducts of checked terms
+   when the first two are, so the type queries may infer only (typeQuery). *)
 definitionallyEqualQ[environment_, context_, a_, b_] := a === b || If[ AssociationQ[$definitionalEqualityCache],
 	Lookup[$definitionalEqualityCache, Key[{environment, a, b}], $definitionalEqualityCache[{environment, a, b}] = definitionallyEqualCases[environment, context, a, b]],
 	definitionallyEqualCases[environment, context, a, b]
@@ -635,16 +690,24 @@ definitionallyEqualCases[_, _, _cubicalSystem, _] := False
 definitionallyEqualCases[_, _, _, _cubicalSystem] := False
 definitionallyEqualCases[_, _, _intervalUniverse, _] := False
 definitionallyEqualCases[_, _, _, _intervalUniverse] := False
-(* proofs of the same proposition are equal before either is reduced, as Lean's kernel decides them; two
-   elements of the interval are equal by their normal forms *)
+(* two elements of the interval are equal by their normal forms *)
 definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 	cubicalDeclaredQ[environment] && intervalEqualQ[environment, context, a, b],
-	sameHeadArgumentsEqualQ[environment, context, a, b],
-	proofIrrelevantEqualQ[environment, context, a, b],
 	reducedEqualQ[environment, context, a, b]
 ]
 
-(* the same constant applied to equal arguments, tried before unfolding the constant *)
+(* Lean's order: each side reduced as far as it reduces without unfolding a definition, then, where neither
+   reduces, proof irrelevance, which decides two proofs by their propositions, then lazy delta. Proof
+   irrelevance is asked once for the two sides as they reduce no further, never of the sides on the way. *)
+reducedEqualQ[environment_, context_, a_, b_] := With[
+	{coreA = reducedHeadWithoutUnfolding[environment, context, a], coreB = reducedHeadWithoutUnfolding[environment, context, b]},
+	If[ coreA =!= a || coreB =!= b,
+		definitionallyEqualQ[environment, context, coreA, coreB],
+		Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]
+	]
+]
+
+(* one definition applied to equal arguments at both heads, tried before unfolding it *)
 sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applicationSpine[a], spineB = applicationSpine[b]},
 	And[
 		MatchQ[First[spineA], _constantReference],
@@ -655,29 +718,20 @@ sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applic
 	]
 ]
 
-reducedEqualQ[environment_, context_, a_, b_] := With[
-	{coreA = reducedHeadWithoutUnfolding[environment, context, a], coreB = reducedHeadWithoutUnfolding[environment, context, b]},
-	If[ coreA =!= a || coreB =!= b,
-		definitionallyEqualQ[environment, context, coreA, coreB],
-		lazyDeltaEqualQ[environment, context, a, b]
-	]
-]
-
 (* Lean's lazy delta reduction. Where neither side reduces further without unfolding a definition, the
    side whose definition at its head is higher, defined in terms of the other's, unfolds one step, or
    both do at the same height, until the sides are the same or neither has a definition at its head: an
    application of a definition defined by another meets an application of that other before either
    unfolds into what may be a long computation. As in Lean's kernel the steps are a loop, and between
    them the sides are compared only by identity, and by their arguments where one definition is at both
-   heads; unfolding leaves a proof a proof of the same proposition, so proof irrelevance, asked of the
-   first pair, is not asked again. The last pair is compared in full, or by its weak head normal forms
-   where nothing unfolded. *)
+   heads, from the first pair on; unfolding leaves a proof a proof of the same proposition, so proof
+   irrelevance, asked of the first pair, is not asked again. The last pair is compared in full, or by
+   its weak head normal forms where nothing unfolded. *)
 lazyDeltaEqualQ[environment_, context_, a_, b_] := Module[{pair = {a, b}, step},
-	(* the arguments of one definition at both heads of the first pair are compared already *)
-	step = lazyDeltaStep[environment, context, a, b, False];
+	step = lazyDeltaStep[environment, context, a, b];
 	While[ ListQ[step] && step[[1]] =!= step[[2]],
 		pair = step;
-		step = lazyDeltaStep[environment, context, pair[[1]], pair[[2]], True]
+		step = lazyDeltaStep[environment, context, pair[[1]], pair[[2]]]
 	];
 	Which[
 		step =!= None,
@@ -691,7 +745,7 @@ lazyDeltaEqualQ[environment_, context_, a_, b_] := Module[{pair = {a, b}, step},
 
 (* the next pair, True for one definition at both heads applied to equal arguments, or None where
    neither side has a definition at its head *)
-lazyDeltaStep[environment_, context_, a_, b_, compareArguments_] := With[{heightA = headDefinitionHeight[environment, a], heightB = headDefinitionHeight[environment, b]},
+lazyDeltaStep[environment_, context_, a_, b_] := With[{heightA = headDefinitionHeight[environment, a], heightB = headDefinitionHeight[environment, b]},
 	Which[
 		heightA === None && heightB === None,
 			None,
@@ -699,7 +753,7 @@ lazyDeltaStep[environment_, context_, a_, b_, compareArguments_] := With[{height
 			{unfoldedHead[environment, context, a], b},
 		heightA === None || heightA < heightB,
 			{a, unfoldedHead[environment, context, b]},
-		compareArguments && sameHeadArgumentsEqualQ[environment, context, a, b],
+		sameHeadArgumentsEqualQ[environment, context, a, b],
 			True,
 		True,
 			{unfoldedHead[environment, context, a], unfoldedHead[environment, context, b]}
@@ -738,7 +792,7 @@ structureEtaQ[environment_, context_, constructorApplication_, other_] := With[{
 				fields = Drop[Last[spine], constantRecord[environment, constructor]["NumberOfParameters"]]
 			},
 			And[
-				definitionallyEqualQ[environment, context, inferType[environment, context, constructorApplication], inferType[environment, context, other]],
+				definitionallyEqualQ[environment, context, typeQuery[environment, context, constructorApplication], typeQuery[environment, context, other]],
 				AllTrue[
 					Transpose[{Range[0, Length[fields] - 1], fields}],
 					Function[pair, definitionallyEqualQ[environment, context, Last[pair], projection[structure, First[pair], other]]]
@@ -761,10 +815,10 @@ structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := 
    decides; a type is never one, nor is a path type, whose line inferring its type would open again *)
 unitEqualQ[_, _, _universeSort | _dependentFunctionType | _intervalUniverse, _] := False
 unitEqualQ[environment_, context_, a_, _] /; cubicalDeclaredQ[environment] && pathTypeArguments[environment, a] =!= None := False
-unitEqualQ[environment_, context_, a_, b_] := With[{type = weakHeadNormalForm[environment, context, inferType[environment, context, a]]},
+unitEqualQ[environment_, context_, a_, b_] := With[{type = weakHeadNormalForm[environment, context, typeQuery[environment, context, a]]},
 	Replace[First @ applicationSpine[type], {
 		constantReference[structure_, _] /; structureLikeQ[environment, structure] && unitStructureQ[environment, structure] :>
-			definitionallyEqualQ[environment, context, type, inferType[environment, context, b]],
+			definitionallyEqualQ[environment, context, type, typeQuery[environment, context, b]],
 		_ :> False
 	}]
 ]
@@ -803,12 +857,15 @@ headsEqualQ[environment_, context_, projection[structure_, index_, first_], proj
 	definitionallyEqualQ[environment, context, first, second]
 headsEqualQ[_, _, _, _] := False
 
-proofIrrelevantEqualQ[environment_, context_, a_, b_] /; ! rulesSetting[environment, "Prop"] := False
-proofIrrelevantEqualQ[environment_, context_, a_, b_] := With[{typeA = inferType[environment, context, a]},
-	And[
-		propositionQ[environment, context, typeA],
-		definitionallyEqualQ[environment, context, typeA, inferType[environment, context, b]]
+(* As Lean's is_def_eq_proof_irrel: True for proofs of one proposition, False for proofs of two, since equal terms
+   have equal types, and None where the first term is no proof, as no type and no literal is *)
+proofIrrelevance[_, _, _universeSort | _dependentFunctionType | _naturalLiteral, _] := None
+proofIrrelevance[environment_, _, _, _] /; ! rulesSetting[environment, "Prop"] := None
+proofIrrelevance[environment_, context_, a_, b_] := With[{typeA = typeQuery[environment, context, a]},
+	If[ propositionQ[environment, context, typeA],
+		definitionallyEqualQ[environment, context, typeA, typeQuery[environment, context, b]],
+		None
 	]
 ]
 
-propositionQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, inferType[environment, context, type]], universeSort[0]]
+propositionQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, typeQuery[environment, context, type]], universeSort[0]]
