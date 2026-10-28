@@ -254,11 +254,13 @@ which agree within 3% but for one run of `binaryRec` with the abbreviations, 9.2
 for the last column. That column has the evaluator's walks of terms as trees taken out
 (`EvaluationCosts.md`).
 
-| Cone | Constants | Eager order | Spine | And Lean's order | And the abbreviations | And no walks | Lean | TypeTheory / Lean |
-|---|---|---|---|---|---|---|---|---|
-| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 7.51 s | 5.41 s | 60 ms | 90× |
-| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 10.52 s | 7.23 s | 75 ms | 96× |
-| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 21.35 s | 15.87 s | 170 ms | 93× |
+| Cone | Constants | Eager order | Spine | And Lean's order | And the abbreviations | And no walks | And the caches | Lean | TypeTheory / Lean |
+|---|---|---|---|---|---|---|---|---|---|
+| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 7.51 s | 5.41 s | 4.92 s | 60 ms | 82× |
+| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 10.52 s | 7.23 s | 6.54 s | 75 ms | 87× |
+| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 21.35 s | 15.87 s | 14.20 s | 170 ms | 84× |
+
+"The caches" are the universe instantiations a check remembers (`EvaluationCosts.md` §4).
 
 The spine is the inference of an application's type along its spine at once (`spineType`), as
 Lean's kernel infers one: each argument is checked against its binder's domain with the arguments

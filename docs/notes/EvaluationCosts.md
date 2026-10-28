@@ -10,9 +10,9 @@ written so that neither happens. Times are Wolfram 15.1 on an Apple M3 Max.
 ## 1. Evaluating a term after an assignment
 
 Wolfram 15 marks an expression it has evaluated and skips it the next time, but an assignment
-between two evaluations, such as a cache's `store[key] = value`, takes the marks away. The next evaluation of a
-term then walks it per occurrence. Passing a shared term of 2^20 leaves to a function, with one
-assignment before each call:
+between two evaluations, such as a cache's `store[key] = value`, takes the marks away. The next
+evaluation of a term then walks it per occurrence. Passing a shared term of 2^20 leaves to a
+function, with one assignment before each call:
 
 | The term's heads | One call |
 |---|---:|
@@ -92,3 +92,20 @@ is unchanged at 1.2, 1.5 and 3.3 s:
 §1 alone moves little: its walks come after assignments, and §2's come at every step. Both together
 remove the doubling, and what remains of the cones is the evaluator's cost for each call
 (`DefinitionalEquality.md` §7.5).
+
+## 4. Caches where the walks were
+
+With the walks gone, work that a cache saves shows. `Decide` reduces its decision under the kernel's
+caches: the instance search and the check stay outside, so no cache outlives a metavariable's
+assignment. A check remembers the universe instantiations it makes (`$universeInstantiationCache`,
+keyed by the term, its parameters and the levels, the terms being the records' own objects, so a
+lookup costs a pointer's comparison). With both:
+- `Decide` on a sum of k integers takes 0.033 s at k = 16, 0.115 s at 64 and 0.461 s at 256, at
+  the default recursion limit;
+- the Euler characteristics take 0.020 s and 0.043 s;
+- Jacobi's two squares, `r2[n] == 4 DivisorSum[n, χ4]`, takes 0.344 s at n = 12 and 0.879 s at
+  n = 20; without the universe cache, 0.38 s and 0.97 s;
+- the cones check in 4.92 s, 6.54 s and 14.20 s, 35%, 39% and 33% under the first column above.
+
+A map of the universe instantiation over the distinct subterms alone, in place of the cache,
+measured from neutral to 2% faster on the cones, whose types are small.
