@@ -31,6 +31,13 @@ Levels are a non-negative Integer, levelParameter[HoldComplete[u]], levelMetavar
 levelSuccessor[level, k] (level + k for an Integer k >= 1), levelMaximum[level, ...] and
 levelImpredicativeMaximum[a, b], which is 0 when b is 0 and the maximum of a and b otherwise.
 normalizeLevel brings a level to a canonical form, so equal canonical forms mean equal levels.
+
+The composite heads, application, lambdaAbstraction, dependentFunctionType, localDefinition, projection and
+cubicalSystem, hold their parts completely, so evaluating a term stops at its head however large the term is.
+A term is built from parts computed first, with Construct or With: a call written inside a composite head
+stays a call, and a Module or Block variable stays a symbol. A replacement rule puts its right side into the
+term as written, so a rule that computes does so as it matches, With[{value = ...}, value /; True].
+withTermConstructionCheck finds a construction that leaves a part uncomputed.
 *)
 
 
@@ -78,6 +85,11 @@ PackageScoped[normalizeLevel]
 PackageScoped[levelEquivalentQ]
 PackageScoped[levelLessEqualQ]
 PackageScoped[levelNeverZeroQ]
+
+PackageScoped[withTermConstructionCheck]
+PackageScoped[installTermConstructionCheck]
+PackageScoped[removeTermConstructionCheck]
+PackageScoped[$termConstructionSites]
 
 
 (* ::Section:: *)
@@ -128,9 +140,30 @@ levelLessEqualQ::usage = "levelLessEqualQ[a, b] gives True if a <= b holds for e
 inequality it cannot prove, never True for a false one."
 levelNeverZeroQ::usage = "levelNeverZeroQ[level] gives True if level is at least 1 for every value of the universe parameters."
 
+withTermConstructionCheck::usage = "withTermConstructionCheck[expr] evaluates expr while every construction of a composite term that leaves a part \
+uncomputed is caught, computed and recorded, and gives {result, <|place -> count, ...|>}."
+installTermConstructionCheck::usage = "installTermConstructionCheck[] catches, computes and records in $termConstructionSites every construction of a \
+composite term that leaves a part uncomputed, until removeTermConstructionCheck[]."
+removeTermConstructionCheck::usage = "removeTermConstructionCheck[] stops the check that installTermConstructionCheck[] started."
+$termConstructionSites::usage = "$termConstructionSites is the Association of the places where a composite term was built with a part uncomputed, \
+counted, while the construction check is on."
+
 
 (* ::Section:: *)
 (*Function Definitions*)
+
+
+(* ::Subsection:: *)
+(*Composite terms*)
+
+
+(* After any assignment, W15's evaluator evaluates an expression's parts again where it meets it, so a term passed
+   on was walked as the tree it writes out to: a term of a million leaves and forty distinct nodes took
+   887 us to pass, 0.8 us with its heads holding their parts completely. HoldAll does not stop the walk, since it
+   still looks into the parts for Sequence and Unevaluated. *)
+SetAttributes[{application, lambdaAbstraction, dependentFunctionType, localDefinition, projection, cubicalSystem}, HoldAllComplete]
+
+$compositeHeads = {application, lambdaAbstraction, dependentFunctionType, localDefinition, projection, cubicalSystem}
 
 
 (* ::Subsection:: *)
@@ -148,7 +181,8 @@ quantifiedBinder[kind_String, quantity_] := {kind, quantity}
 
 withoutQuantities[term_] := ReplaceAll[
 	term,
-	(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, {kind_String, _}] :> head[name, withoutQuantities[domain], withoutQuantities[body], kind]
+	(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, {kind_String, _}] :>
+		With[{bare = Construct[head, name, withoutQuantities[domain], withoutQuantities[body], kind]}, bare /; True]
 ]
 
 
@@ -199,15 +233,15 @@ liftShared[term_, amount_, cutoff_] := If[ looseBoundRange[term] <= cutoff,
 ]
 
 liftNode[boundVariable[index_], amount_, cutoff_] := boundVariable[If[index >= cutoff, index + amount, index]]
-liftNode[application[function_, argument_], amount_, cutoff_] := application[liftShared[function, amount, cutoff], liftShared[argument, amount, cutoff]]
+liftNode[application[function_, argument_], amount_, cutoff_] := Construct[application, liftShared[function, amount, cutoff], liftShared[argument, amount, cutoff]]
 liftNode[lambdaAbstraction[name_, domain_, body_, binder_], amount_, cutoff_] :=
-	lambdaAbstraction[name, liftShared[domain, amount, cutoff], liftShared[body, amount, cutoff + 1], binder]
+	Construct[lambdaAbstraction, name, liftShared[domain, amount, cutoff], liftShared[body, amount, cutoff + 1], binder]
 liftNode[dependentFunctionType[name_, domain_, codomain_, binder_], amount_, cutoff_] :=
-	dependentFunctionType[name, liftShared[domain, amount, cutoff], liftShared[codomain, amount, cutoff + 1], binder]
+	Construct[dependentFunctionType, name, liftShared[domain, amount, cutoff], liftShared[codomain, amount, cutoff + 1], binder]
 liftNode[localDefinition[name_, type_, value_, body_], amount_, cutoff_] :=
-	localDefinition[name, liftShared[type, amount, cutoff], liftShared[value, amount, cutoff], liftShared[body, amount, cutoff + 1]]
-liftNode[projection[structure_, index_, term_], amount_, cutoff_] := projection[structure, index, liftShared[term, amount, cutoff]]
-liftNode[cubicalSystem[branches_List], amount_, cutoff_] := cubicalSystem[Map[Function[part, liftShared[part, amount, cutoff]], branches, {2}]]
+	Construct[localDefinition, name, liftShared[type, amount, cutoff], liftShared[value, amount, cutoff], liftShared[body, amount, cutoff + 1]]
+liftNode[projection[structure_, index_, term_], amount_, cutoff_] := Construct[projection, structure, index, liftShared[term, amount, cutoff]]
+liftNode[cubicalSystem[branches_List], amount_, cutoff_] := Construct[cubicalSystem, Map[Function[part, liftShared[part, amount, cutoff]], branches, {2}]]
 liftNode[term_, _, _] := term
 
 
@@ -234,15 +268,15 @@ substituteNode[boundVariable[index_], values_, depth_] := Which[
 		boundVariable[index - Length[values]]
 ]
 substituteNode[application[function_, argument_], values_, depth_] :=
-	application[substituteShared[function, values, depth], substituteShared[argument, values, depth]]
+	Construct[application, substituteShared[function, values, depth], substituteShared[argument, values, depth]]
 substituteNode[lambdaAbstraction[name_, domain_, body_, binder_], values_, depth_] :=
-	lambdaAbstraction[name, substituteShared[domain, values, depth], substituteShared[body, values, depth + 1], binder]
+	Construct[lambdaAbstraction, name, substituteShared[domain, values, depth], substituteShared[body, values, depth + 1], binder]
 substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], values_, depth_] :=
-	dependentFunctionType[name, substituteShared[domain, values, depth], substituteShared[codomain, values, depth + 1], binder]
+	Construct[dependentFunctionType, name, substituteShared[domain, values, depth], substituteShared[codomain, values, depth + 1], binder]
 substituteNode[localDefinition[name_, type_, definedValue_, body_], values_, depth_] :=
-	localDefinition[name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
-substituteNode[projection[structure_, index_, term_], values_, depth_] := projection[structure, index, substituteShared[term, values, depth]]
-substituteNode[cubicalSystem[branches_List], values_, depth_] := cubicalSystem[Map[Function[part, substituteShared[part, values, depth]], branches, {2}]]
+	Construct[localDefinition, name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
+substituteNode[projection[structure_, index_, term_], values_, depth_] := Construct[projection, structure, index, substituteShared[term, values, depth]]
+substituteNode[cubicalSystem[branches_List], values_, depth_] := Construct[cubicalSystem, Map[Function[part, substituteShared[part, values, depth]], branches, {2}]]
 substituteNode[term_, _, _] := term
 
 
@@ -252,15 +286,15 @@ abstractShared[term : (_boundVariable | _universeSort | _constantReference | _na
 abstractShared[term_, id_, depth_] := Lookup[$abstractionMemo, Key[{term, depth}], $abstractionMemo[{term, depth}] = abstractAt[term, id, depth]]
 
 abstractAt[freeVariable[id_], id_, depth_] := boundVariable[depth]
-abstractAt[application[function_, argument_], id_, depth_] := application[abstractShared[function, id, depth], abstractShared[argument, id, depth]]
+abstractAt[application[function_, argument_], id_, depth_] := Construct[application, abstractShared[function, id, depth], abstractShared[argument, id, depth]]
 abstractAt[lambdaAbstraction[name_, domain_, body_, binder_], id_, depth_] :=
-	lambdaAbstraction[name, abstractShared[domain, id, depth], abstractShared[body, id, depth + 1], binder]
+	Construct[lambdaAbstraction, name, abstractShared[domain, id, depth], abstractShared[body, id, depth + 1], binder]
 abstractAt[dependentFunctionType[name_, domain_, codomain_, binder_], id_, depth_] :=
-	dependentFunctionType[name, abstractShared[domain, id, depth], abstractShared[codomain, id, depth + 1], binder]
+	Construct[dependentFunctionType, name, abstractShared[domain, id, depth], abstractShared[codomain, id, depth + 1], binder]
 abstractAt[localDefinition[name_, type_, value_, body_], id_, depth_] :=
-	localDefinition[name, abstractShared[type, id, depth], abstractShared[value, id, depth], abstractShared[body, id, depth + 1]]
-abstractAt[projection[structure_, index_, term_], id_, depth_] := projection[structure, index, abstractShared[term, id, depth]]
-abstractAt[cubicalSystem[branches_List], id_, depth_] := cubicalSystem[Map[Function[part, abstractShared[part, id, depth]], branches, {2}]]
+	Construct[localDefinition, name, abstractShared[type, id, depth], abstractShared[value, id, depth], abstractShared[body, id, depth + 1]]
+abstractAt[projection[structure_, index_, term_], id_, depth_] := Construct[projection, structure, index, abstractShared[term, id, depth]]
+abstractAt[cubicalSystem[branches_List], id_, depth_] := Construct[cubicalSystem, Map[Function[part, abstractShared[part, id, depth]], branches, {2}]]
 abstractAt[term_, _, _] := term
 
 
@@ -288,10 +322,10 @@ makeApplication[head_, arguments_List] := Fold[application, head, arguments]
 
 (* beta reduction alone terminates on well-typed terms; it gives the readable form of a type *)
 betaNormalize[application[function_, argument_]] := betaApply[betaNormalize[function], betaNormalize[argument]]
-betaNormalize[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := head[name, betaNormalize[domain], betaNormalize[body], binder]
-betaNormalize[localDefinition[name_, type_, value_, body_]] := localDefinition[name, betaNormalize[type], betaNormalize[value], betaNormalize[body]]
-betaNormalize[projection[structure_, index_, term_]] := projection[structure, index, betaNormalize[term]]
-betaNormalize[cubicalSystem[branches_List]] := cubicalSystem[Map[betaNormalize, branches, {2}]]
+betaNormalize[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, betaNormalize[domain], betaNormalize[body], binder]
+betaNormalize[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, betaNormalize[type], betaNormalize[value], betaNormalize[body]]
+betaNormalize[projection[structure_, index_, term_]] := Construct[projection, structure, index, betaNormalize[term]]
+betaNormalize[cubicalSystem[branches_List]] := Construct[cubicalSystem, Map[betaNormalize, branches, {2}]]
 betaNormalize[term_] := term
 
 betaApply[lambdaAbstraction[_, _, body_, _], argument_] := betaNormalize[instantiateBoundVariable[body, argument]]
@@ -302,8 +336,8 @@ instantiateUniverseParameters[term_, {}, {}] := term
 instantiateUniverseParameters[term_, parameters_List, levels_List] /; Length[parameters] == Length[levels] := With[
 	{rules = Thread[(levelParameter /@ parameters) -> levels]},
 	term /. {
-		universeSort[level_] :> universeSort[normalizeLevel[level /. rules]],
-		constantReference[name_, constantLevels_List] :> constantReference[name, normalizeLevel /@ (constantLevels /. rules)]
+		universeSort[level_] :> With[{instantiated = normalizeLevel[level /. rules]}, universeSort[instantiated] /; True],
+		constantReference[name_, constantLevels_List] :> With[{instantiated = normalizeLevel /@ (constantLevels /. rules)}, constantReference[name, instantiated] /; True]
 	}
 ]
 
@@ -371,3 +405,116 @@ componentLessEqualQ[{base_, offset_}, b_List] /; MemberQ[b, {base, other_ /; oth
 componentLessEqualQ[{levelImpredicativeMaximum[x_, y_], offset_}, b_List] :=
 	componentsLessEqualQ[levelComponents[levelSuccessor[x, offset]], b] && componentsLessEqualQ[levelComponents[levelSuccessor[y, offset]], b]
 componentLessEqualQ[{_, _}, _List] := False
+
+
+(* ::Subsection:: *)
+(*Construction check*)
+
+
+(* The check is a rule on each composite head that fires when a part of the term is not a term yet: the parts
+   are computed, the term is built from them, and the place is recorded, by the kind of the first part found
+   uncomputed and the kernel functions being evaluated. A part that evaluation leaves as it is but that is no
+   term, as a pending abstraction in a proof under construction, is recorded as data and taken as it is. *)
+
+SetAttributes[withTermConstructionCheck, HoldFirst]
+withTermConstructionCheck[expr_] := Block[{$termConstructionSites = <||>, $readyTerms = <||>},
+	installTermConstructionCheck[];
+	WithCleanup[{expr, $termConstructionSites}, removeTermConstructionCheck[]]
+]
+
+installTermConstructionCheck[] := (
+	If[ ! AssociationQ[$termConstructionSites], $termConstructionSites = <||>];
+	If[ ! AssociationQ[$readyTerms], $readyTerms = <||>];
+	Scan[Function[head, head[parts___] /; ! readyTermQ[head[parts]] := checkedConstruction[head, parts]], $compositeHeads]
+)
+
+removeTermConstructionCheck[] := Scan[Function[head, DownValues[head] = {}], $compositeHeads]
+
+$termConstructionSites = None
+
+$readyTerms = None
+
+SetAttributes[{readyTermQ, rememberReady, readyCompositeQ, readyLevelQ, readyLevelsQ, readyBinderQ, readyBranchesQ}, HoldAllComplete]
+
+(* a term none of whose parts is left to compute, checked without evaluating it; a composite found ready is
+   remembered, so a term built from checked parts is checked at its own parts alone *)
+readyTermQ[term : _application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _cubicalSystem] :=
+	Lookup[$readyTerms, Key[HoldComplete[term]], rememberReady[term]]
+readyTermQ[boundVariable[_Integer] | freeVariable[_Integer] | metavariable[_Integer] | naturalLiteral[_Integer] | intervalUniverse[]] := True
+readyTermQ[universeSort[level_]] := readyLevelQ[level]
+readyTermQ[constantReference[HoldComplete[_], {levels___}]] := readyLevelsQ[levels]
+readyTermQ[_] := False
+
+rememberReady[term_] := (
+	If[Length[$readyTerms] > 1000000, $readyTerms = <||>];
+	$readyTerms[HoldComplete[term]] = readyCompositeQ[term]
+)
+
+readyCompositeQ[application[function_, argument_]] := readyTermQ[function] && readyTermQ[argument]
+readyCompositeQ[(lambdaAbstraction | dependentFunctionType)[HoldComplete[_], domain_, body_, binder_]] := readyTermQ[domain] && readyTermQ[body] && readyBinderQ[binder]
+readyCompositeQ[localDefinition[HoldComplete[_], type_, value_, body_]] := readyTermQ[type] && readyTermQ[value] && readyTermQ[body]
+readyCompositeQ[projection[HoldComplete[_], _Integer, term_]] := readyTermQ[term]
+readyCompositeQ[cubicalSystem[{branches___}]] := readyBranchesQ[branches]
+readyCompositeQ[_] := False
+
+readyLevelQ[_Integer | levelParameter[HoldComplete[_]] | levelMetavariable[_Integer]] := True
+readyLevelQ[levelSuccessor[level_, _Integer]] := readyLevelQ[level]
+readyLevelQ[(levelMaximum | levelImpredicativeMaximum)[levels___]] := readyLevelsQ[levels]
+readyLevelQ[_] := False
+
+readyLevelsQ[] := True
+readyLevelsQ[level_, levels___] := readyLevelQ[level] && readyLevelsQ[levels]
+
+readyBinderQ[_String | {_String, 0 | 1}] := True
+readyBinderQ[_] := False
+
+readyBranchesQ[] := True
+readyBranchesQ[{face_, term_}, branches___] := readyTermQ[face] && readyTermQ[term] && readyBranchesQ[branches]
+readyBranchesQ[___] := False
+
+SetAttributes[{checkedConstruction, constructionPlace, uncomputedPart, describeUncomputed, kernelFunctionQ}, HoldAllComplete]
+
+(* a pattern, as MatchQ and Cases evaluate one, is neither *)
+checkedConstruction[head_, parts___] := Replace[HoldComplete @@ {parts}, HoldComplete[computed___] :> (
+	Which[
+		HoldComplete[computed] =!= HoldComplete[parts],
+			recordConstruction[constructionPlace["Uncomputed", head, parts]],
+		FreeQ[HoldComplete[parts], $patternHeads],
+			$readyTerms[HoldComplete[head[computed]]] = True;
+			recordConstruction[constructionPlace["Data", head, parts]],
+		True,
+			$readyTerms[HoldComplete[head[computed]]] = True
+	];
+	head[computed]
+)]
+
+$patternHeads = _Pattern | _Blank | _BlankSequence | _BlankNullSequence | _Alternatives | _Condition | _PatternTest | _Optional | _Verbatim | _Except | _HoldPattern
+
+recordConstruction[place_] := $termConstructionSites[place] = Lookup[$termConstructionSites, Key[place], 0] + 1
+
+constructionPlace[kind_, head_, parts___] := {
+	kind,
+	SymbolName[Unevaluated[head]],
+	uncomputedPart[parts],
+	With[{functions = Select[Stack[], kernelFunctionQ]}, Take[functions, -Min[3, Length[functions]]]]
+}
+
+kernelFunctionQ[function_Symbol] := StringStartsQ[Context[Unevaluated[function]], "WolframInstitute`TypeTheory`"] &&
+	! MemberQ[Join[$compositeHeads, {checkedConstruction, constructionPlace, recordConstruction, uncomputedPart, describeUncomputed, kernelFunctionQ}], Unevaluated[function]]
+kernelFunctionQ[_] := False
+
+(* the first part left to compute, looked for inside composites, leaves and lists, named by its head *)
+uncomputedPart[parts___] := FirstCase[List @@ (describeUncomputed /@ HoldComplete[parts]), _String, "none"]
+
+describeUncomputed[part_] := Replace[HoldComplete[part], {
+	HoldComplete[ready_] /; readyTermQ[ready] || readyBinderQ[ready] || readyLevelQ[ready] :> None,
+	HoldComplete[HoldComplete[_] | _Integer | _String] :> None,
+	HoldComplete[symbol_Symbol] :> "symbol " <> SymbolName[Unevaluated[symbol]],
+	HoldComplete[(application | lambdaAbstraction | dependentFunctionType | localDefinition | projection | cubicalSystem | universeSort | constantReference | levelSuccessor | levelMaximum | levelImpredicativeMaximum | List)[inner___]] :>
+		uncomputedPart[inner],
+	HoldComplete[(head_Symbol)[___]] :> "call " <> SymbolName[Unevaluated[head]],
+	HoldComplete[(table_Association)[key_]] :> "lookup in an Association of " <> ToString[Length[table]] <> " keys, the first " <>
+		ToString[Short[Take[Keys[table], UpTo[2]], 1], InputForm] <> ", at a " <> ToString[Head[Unevaluated[key]]],
+	HoldComplete[(head_)[___]] :> "call of a " <> ToString[Head[Unevaluated[head]]],
+	_ :> "call"
+}]

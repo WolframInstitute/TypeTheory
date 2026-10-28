@@ -137,13 +137,13 @@ freshFreeVariable[] := ++$freeVariableCounter
 extendContext[context_Association, id_Integer, name_, type_, binder : (_String | {_String, _})] := Append[context, id -> <|"Name" -> name, "Type" -> type, "Binder" -> binder|>]
 
 makeLambda[context_Association, ids_List, body_] := Fold[
-	Function[{accumulated, id}, With[{entry = context[id]}, lambdaAbstraction[entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
+	Function[{accumulated, id}, With[{entry = context[id]}, Construct[lambdaAbstraction, entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
 	body,
 	Reverse[ids]
 ]
 
 makeDependentFunctionType[context_Association, ids_List, body_] := Fold[
-	Function[{accumulated, id}, With[{entry = context[id]}, dependentFunctionType[entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
+	Function[{accumulated, id}, With[{entry = context[id]}, Construct[dependentFunctionType, entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
 	body,
 	Reverse[ids]
 ]
@@ -275,7 +275,7 @@ lambdaType[environment_, context_, name_, domain_, body_, binder_] := With[{id =
 	With[{bodyContext = extendContext[context, id, name, domain, binder]},
 		With[{bodyType = inferType[environment, bodyContext, instantiateBoundVariable[body, freeVariable[id]]]},
 			Replace[intervalLambdaType[environment, bodyContext, id, name, domain, body, bodyType], None :>
-				dependentFunctionType[name, domain, abstractFreeVariable[bodyType, id], binder]
+				Construct[dependentFunctionType, name, domain, abstractFreeVariable[bodyType, id], binder]
 			]
 		]
 	]
@@ -569,7 +569,7 @@ reduceProjection[environment_, context_, term_, structure_, index_, structureTer
 
 toConstructorForm[environment_, naturalLiteral[n_Integer]] := Replace[naturalNumberSettings[environment], {
 	settings_Association /; n == 0 :> constantReference[settings["Zero"], {}],
-	settings_Association :> application[constantReference[settings["Successor"], {}], naturalLiteral[n - 1]],
+	settings_Association :> Construct[application, constantReference[settings["Successor"], {}], naturalLiteral[n - 1]],
 	_ :> naturalLiteral[n]
 }]
 toConstructorForm[_, term_] := term
@@ -622,7 +622,7 @@ structureFields[environment_, context_, record_, major_] := With[{name = record[
 		With[{majorType = weakHeadNormalForm[environment, context, typeQuery[environment, context, major]]},
 			If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || propositionTypeQ[environment, context, majorType],
 				None,
-				Table[projection[name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
+				Table[Construct[projection, name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
 			]
 		]
 	]
@@ -818,7 +818,7 @@ structureEtaQ[environment_, context_, constructorApplication_, other_] := With[{
 				definitionallyEqualQ[environment, context, typeQuery[environment, context, constructorApplication], typeQuery[environment, context, other]],
 				AllTrue[
 					Transpose[{Range[0, Length[fields] - 1], fields}],
-					Function[pair, definitionallyEqualQ[environment, context, Last[pair], projection[structure, First[pair], other]]]
+					Function[pair, definitionallyEqualQ[environment, context, Last[pair], Construct[projection, structure, First[pair], other]]]
 				]
 			]
 		],

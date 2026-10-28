@@ -256,9 +256,10 @@ ringLinearProof[left_, right_, inequalities_List] := With[{id = freshFreeVariabl
 		contradiction_ :> makeApplication[constantReference[recursorName[HoldComplete[Or]], {}], {
 			lessEqual[left, right],
 			less[right, left],
-			lambdaAbstraction[HoldComplete[t], or[lessEqual[left, right], less[right, left]], lessEqual[left, right], "Explicit"],
-			lambdaAbstraction[HoldComplete[h], lessEqual[left, right], boundVariable[0], "Explicit"],
-			lambdaAbstraction[
+			Construct[lambdaAbstraction, HoldComplete[t], or[lessEqual[left, right], less[right, left]], lessEqual[left, right], "Explicit"],
+			Construct[lambdaAbstraction, HoldComplete[h], lessEqual[left, right], boundVariable[0], "Explicit"],
+			Construct[
+				lambdaAbstraction,
 				HoldComplete[g],
 				less[right, left],
 				makeApplication[constantReference[HoldComplete[FalseElimination], {}], {lessEqual[left, right], abstractFreeVariable[contradiction, id]}],
@@ -316,7 +317,7 @@ contradiction[inequalities_List, multipliers_List, constant_Integer] := With[
 		None -> None,
 		identity_ :> irreflexivityContradiction[large, constant, makeApplication[constantReference[HoldComplete[EqualitySubstitution], {1}], {
 			$naturals,
-			lambdaAbstraction[HoldComplete[t], $naturals, lessEqual[boundVariable[0], large], "Explicit"],
+			Construct[lambdaAbstraction, HoldComplete[t], $naturals, lessEqual[boundVariable[0], large], "Explicit"],
 			small,
 			plus[large, literal[constant]],
 			Last[symmetric[identity]],
@@ -334,7 +335,8 @@ addedInequalities[{a_, b_, proof_}, {c_, d_, otherProof_}] :=
 	{plus[a, c], plus[b, d], makeApplication[constantReference[HoldComplete[AdditionMonotonicity], {}], {a, b, c, d, proof, otherProof}]}
 
 (* False from a proof of B + c <= B, c >= 1: it is (B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1) *)
-irreflexivityContradiction[large_, constant_Integer, proof_] := application[
+irreflexivityContradiction[large_, constant_Integer, proof_] := Construct[
+	application,
 	makeApplication[constantReference[HoldComplete[LessIrreflexivity], {}], {plus[large, literal[constant - 1]]}],
 	makeApplication[constantReference[HoldComplete[LessEqualTransitivity], {}], {
 		plus[large, literal[constant]],
@@ -354,7 +356,7 @@ ringEquationInequalities[a_, b_, proof_] := {
 (* predicate[b] from predicate[a], which is a <= a *)
 carriedReflexivity[a_, b_, proof_, predicate_] := makeApplication[constantReference[HoldComplete[EqualitySubstitution], {1}], {
 	$naturals,
-	lambdaAbstraction[HoldComplete[t], $naturals, predicate[boundVariable[0]], "Explicit"],
+	Construct[lambdaAbstraction, HoldComplete[t], $naturals, predicate[boundVariable[0]], "Explicit"],
 	a,
 	b,
 	proof,
@@ -434,7 +436,7 @@ literal[n_Integer] := $ring["Literal"][n]
 plus[a_, b_] := ringOperation["Plus", a, b]
 times[a_, b_] := ringOperation["Times", a, b]
 power[a_, b_] := ringOperation["Power", a, b]
-ringOperation[name_String, a_, b_] := application[application[constantReference[$ring["Operations"][name], {}], a], b]
+ringOperation[name_String, a_, b_] := makeApplication[constantReference[$ring["Operations"][name], {}], {a, b}]
 subtract[a_, b_] := application[application[constantReference[HoldComplete[Subtract], {}], a], b]
 
 (* an exponent and a sum of exponents, natural numbers in either ring *)
@@ -501,7 +503,7 @@ congruent[context_, {left_, right_, proof_}] := {
 	context[right],
 	makeApplication[
 		constantReference[HoldComplete[EqualityCongruence], {1, 1}],
-		{$ring["Type"], $ring["Type"], left, right, lambdaAbstraction[HoldComplete[x], $ring["Type"], context[boundVariable[0]], "Explicit"], proof}
+		{$ring["Type"], $ring["Type"], left, right, Construct[lambdaAbstraction, HoldComplete[x], $ring["Type"], context[boundVariable[0]], "Explicit"], proof}
 	]
 }
 

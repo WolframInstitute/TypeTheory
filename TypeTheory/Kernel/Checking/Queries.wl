@@ -454,7 +454,7 @@ raisedProposition[_, _, _, _, _, _, type_] := type
 conclusionSort[dependentFunctionType[_, _, codomain_, _]] := conclusionSort[codomain]
 conclusionSort[sort_] := sort
 
-withConclusion[dependentFunctionType[name_, domain_, codomain_, binder_], sort_] := dependentFunctionType[name, domain, withConclusion[codomain, sort], binder]
+withConclusion[dependentFunctionType[name_, domain_, codomain_, binder_], sort_] := Construct[dependentFunctionType, name, domain, withConclusion[codomain, sort], binder]
 withConclusion[_, sort_] := sort
 
 (* the universes of a constructor's fields, its parameters skipped *)
@@ -474,8 +474,8 @@ fieldLevels[_, _, _, _, _, levels_List] := levels
    level l becomes max(l, 1), so a constant keeps its universe levels, its own sorts lifted the same way. A
    recursor's level moves with the meaning of its motive's universe. *)
 translatedTerm[original_, target_, direction_, mode_, term_] := ReplaceAll[If[TrueQ[rulesSetting[target, "Quantities"]], term, withoutQuantities[term]], {
-	universeSort[level_] /; direction === "LoseProp" :> universeSort[normalizeLevel[levelMaximum[level, 1]]],
-	constantReference[name : HoldComplete[_InductiveRecursor], levels_List] :> constantReference[name, recursorLevels[original, target, direction, mode, name, levels]]
+	universeSort[level_] /; direction === "LoseProp" :> With[{lifted = normalizeLevel[levelMaximum[level, 1]]}, universeSort[lifted] /; True],
+	constantReference[name : HoldComplete[_InductiveRecursor], levels_List] :> With[{moved = recursorLevels[original, target, direction, mode, name, levels]}, constantReference[name, moved] /; True]
 }]
 
 (* the levels of a recursor in the other rules: its first is the universe its motive goes into, if it has one *)

@@ -208,14 +208,16 @@ resultTerm[environment_, name_, value : True | False] := With[
 booleansOf[dependentFunctionType[_, _, dependentFunctionType[_, _, constantReference[booleans_, {}], _], _]] := booleans
 
 (* a literal, the zero, or successors of either *)
-literalValue[environment_, context_, settings_, term_] := Module[{current = weakHeadNormalForm[environment, context, term], successors = 0},
-	While[MatchQ[current, application[constantReference[settings["Successor"], {}], _]],
-		successors++;
-		current = weakHeadNormalForm[environment, context, Last[current]]
-	];
-	Replace[current, {
-		naturalLiteral[n_Integer] :> n + successors,
-		constantReference[settings["Zero"], {}] :> successors,
-		_ :> None
-	}]
+literalValue[environment_, context_, settings_, term_] := With[{successor = constantReference[settings["Successor"], {}]},
+	Module[{current = weakHeadNormalForm[environment, context, term], successors = 0},
+		While[MatchQ[current, application[successor, _]],
+			successors++;
+			current = weakHeadNormalForm[environment, context, Last[current]]
+		];
+		Replace[current, {
+			naturalLiteral[n_Integer] :> n + successors,
+			constantReference[settings["Zero"], {}] :> successors,
+			_ :> None
+		}]
+	]
 ]

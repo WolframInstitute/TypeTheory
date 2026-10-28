@@ -10,13 +10,14 @@ Needs["WolframInstitute`TypeTheory`"]
 prelude = TypeTheoryEnvironment["Prelude"]
 
 constantReference = Symbol["WolframInstitute`TypeTheory`PackageScope`constantReference"]
-lambdaAbstraction = Symbol["WolframInstitute`TypeTheory`PackageScope`lambdaAbstraction"]
 boundVariable = Symbol["WolframInstitute`TypeTheory`PackageScope`boundVariable"]
-
-application = Symbol["WolframInstitute`TypeTheory`PackageScope`application"]
 naturalLiteral = Symbol["WolframInstitute`TypeTheory`PackageScope`naturalLiteral"]
-dependentFunctionType = Symbol["WolframInstitute`TypeTheory`PackageScope`dependentFunctionType"]
-localDefinition = Symbol["WolframInstitute`TypeTheory`PackageScope`localDefinition"]
+
+(* the composite heads hold their parts, so a term written here is built from its parts computed first *)
+application[parts___] := Construct[Symbol["WolframInstitute`TypeTheory`PackageScope`application"], parts]
+lambdaAbstraction[parts___] := Construct[Symbol["WolframInstitute`TypeTheory`PackageScope`lambdaAbstraction"], parts]
+dependentFunctionType[parts___] := Construct[Symbol["WolframInstitute`TypeTheory`PackageScope`dependentFunctionType"], parts]
+localDefinition[parts___] := Construct[Symbol["WolframInstitute`TypeTheory`PackageScope`localDefinition"], parts]
 
 natural = constantReference[HoldComplete[NonNegativeIntegers], {}]
 firstProjection = lambdaAbstraction[HoldComplete[m], natural, lambdaAbstraction[HoldComplete[n], natural, boundVariable[1], "Explicit"], "Explicit"]

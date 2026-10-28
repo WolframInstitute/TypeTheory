@@ -501,7 +501,7 @@ elaborateProjection[structureSyntax_, index_Integer] := With[{elaborated = elabo
 		},
 		(* the solutions found so far go in first: the kernel infers the projection's type, and would see a
 		   solved universe level metavariable as an unknown *)
-		{projected = projection[structure, index - 1, instantiateMetavariables[First[elaborated]]]},
+		{projected = Construct[projection, structure, index - 1, instantiateMetavariables[First[elaborated]]]},
 		{projected, inferType[$elaborationEnvironment, $elaborationContext, projected]}
 	]
 ]
@@ -1044,7 +1044,7 @@ explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[head : ForAll | Functio
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[With]], {bindings_, body_}], scope_] := explicitDefinitions[listElements[bindings], body, scope]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}], _] := universeSort[elaborateLevel[level]]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}], scope_] :=
-	With[{structureCore = explicitCore[structureTerm, scope]}, projection[explicitStructure[structureCore, scope], index - 1, structureCore]]
+	With[{structureCore = explicitCore[structureTerm, scope]}, Construct[projection, explicitStructure[structureCore, scope], index - 1, structureCore]]
 explicitCore[syntaxInteger[n_Integer?NonNegative], _] /; naturalNumberSettings[$elaborationEnvironment] =!= None := naturalLiteral[n]
 explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {_, __}]), scope_] := onItsOwn[explicitHead[syntax, scope]]
 (* A -> B, written as Implies or TypeSpecifier: its binders are anonymous, as the elaborator writes them *)
@@ -1144,7 +1144,7 @@ explicitHeadType[lambda_lambdaAbstraction, _] := lambdaBinders[lambda]
 explicitHeadType[_, _] := None
 
 (* a function as written takes the binders of its lambdas *)
-lambdaBinders[lambdaAbstraction[name_, domain_, body_, binder_]] := dependentFunctionType[name, domain, lambdaBinders[body], binder]
+lambdaBinders[lambdaAbstraction[name_, domain_, body_, binder_]] := Construct[dependentFunctionType, name, domain, lambdaBinders[body], binder]
 lambdaBinders[_] := None
 
 (* True or False when the type as written decides, None when it does not *)
@@ -1192,7 +1192,7 @@ explicitBinders[head_, binders_List, body_, scope_] := Module[{entries = {}, inn
 		binders
 	];
 	Fold[
-		Function[{core, entry}, Replace[head, {ForAll -> dependentFunctionType, Function -> lambdaAbstraction}][First[entry], entry[[2]], core, Last[entry]]],
+		Function[{core, entry}, Construct[Replace[head, {ForAll -> dependentFunctionType, Function -> lambdaAbstraction}], First[entry], entry[[2]], core, Last[entry]]],
 		explicitCore[body, inner],
 		Reverse[entries]
 	]
@@ -1277,9 +1277,9 @@ newLevelMetavariable[] := levelMetavariable[++$levelMetavariableCounter]
 
 instantiateLevels[level_] := ReplaceRepeated[level, levelMetavariable[id_] /; KeyExistsQ[$levelAssignments, id] :> $levelAssignments[id]]
 
-instantiateMetavariables[term_] := ReplaceRepeated[term, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id] :> $metavariableAssignments[id]] /. {
-	universeSort[level_] :> universeSort[normalizeLevel[instantiateLevels[level]]],
-	constantReference[name_, levels_List] :> constantReference[name, Function[level, normalizeLevel[instantiateLevels[level]]] /@ levels]
+instantiateMetavariables[term_] := ReplaceRepeated[term, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id] :> With[{assigned = $metavariableAssignments[id]}, assigned /; True]] /. {
+	universeSort[level_] :> With[{instantiated = normalizeLevel[instantiateLevels[level]]}, universeSort[instantiated] /; True],
+	constantReference[name_, levels_List] :> With[{instantiated = Function[level, normalizeLevel[instantiateLevels[level]]] /@ levels}, constantReference[name, instantiated] /; True]
 }
 
 unsolvedMetavariables[term_] := Union[Cases[term, _metavariable | _levelMetavariable, {0, Infinity}]]
@@ -1403,11 +1403,14 @@ refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArg
 		given = Take[arguments, count]
 	},
 	{prefix = makeApplication[recursor, Function[argument, instantiateBoundVariables[argument, given]] /@ Most[recursorArguments]]},
-	{reduced = reducedHeadWithoutUnfolding[environment, context, application[prefix, First[Drop[given, position - 1]]]]},
+	{reduced = reducedHeadWithoutUnfolding[environment, context, Construct[application, prefix, First[Drop[given, position - 1]]]]},
 	If[ MatchQ[reduced, application[Verbatim[prefix], _]],
 		None,
 		makeApplication[
-			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Drop[given, position]]]],
+			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> With[
+				{call = makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Drop[given, position]]]},
+				call /; True
+			]],
 			Drop[arguments, count]
 		]
 	]
@@ -1441,26 +1444,29 @@ intervalSyntaxQ[_] := False
 
 (* a path type is a function type of the interval, to elaborate a function or an application against *)
 asIntervalFunction[type_] := Replace[If[cubicalElaborationQ[], pathTypeArguments[$elaborationEnvironment, type], None], {
-	{line_, _, _} :> dependentFunctionType[HoldComplete[i], intervalConstantTerm["Interval"], application[liftBoundVariables[line, 1, 0], boundVariable[0]], "Explicit"],
+	{line_, _, _} :> Construct[dependentFunctionType, HoldComplete[i], intervalConstantTerm["Interval"], Construct[application, liftBoundVariables[line, 1, 0], boundVariable[0]], "Explicit"],
 	None :> type
 }]
 
 (* A line of types, {line, level}: a function of the interval into a universe, a type, which is the constant
    line, or a path of types. *)
 elaborateLine[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function]], _]] := With[{level = newLevelMetavariable[]},
-	{checkAgainst[syntax, dependentFunctionType[HoldComplete[i], intervalConstantTerm["Interval"], universeSort[level], "Explicit"]], level}
+	{checkAgainst[syntax, Construct[dependentFunctionType, HoldComplete[i], intervalConstantTerm["Interval"], universeSort[level], "Explicit"]], level}
 ]
 elaborateLine[syntax_] := With[{result = elaborateSyntax[syntax, None]},
 	Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[result]]], {
-		universeSort[level_] :> {lambdaAbstraction[HoldComplete[i], intervalConstantTerm["Interval"], liftBoundVariables[First[result], 1, 0], "Explicit"], level},
+		universeSort[level_] :> {Construct[lambdaAbstraction, HoldComplete[i], intervalConstantTerm["Interval"], liftBoundVariables[First[result], 1, 0], "Explicit"], level},
 		dependentFunctionType[_, domain_, codomain_, _] /; intervalTypeQ[$elaborationEnvironment, domain] :> Replace[
 			weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateBoundVariable[codomain, intervalEndpoint[0]]],
 			{universeSort[level_] :> {First[result], level}, _ :> elaborationFailure["`1` is no line of types.", syntax]}
 		],
 		type_ /; pathTypeArguments[$elaborationEnvironment, type] =!= None :> Replace[
-			weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, application[First[pathTypeArguments[$elaborationEnvironment, type]], intervalEndpoint[0]]],
+			weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, Construct[application, First[pathTypeArguments[$elaborationEnvironment, type]], intervalEndpoint[0]]],
 			{
-				universeSort[level_] :> {lambdaAbstraction[HoldComplete[i], intervalConstantTerm["Interval"], application[liftBoundVariables[First[result], 1, 0], boundVariable[0]], "Explicit"], level},
+				universeSort[level_] :> {
+					Construct[lambdaAbstraction, HoldComplete[i], intervalConstantTerm["Interval"], Construct[application, liftBoundVariables[First[result], 1, 0], boundVariable[0]], "Explicit"],
+					level
+				},
 				_ :> elaborationFailure["`1` is no path of types.", syntax]
 			}
 		],
@@ -1471,8 +1477,8 @@ elaborateLine[syntax_] := With[{result = elaborateSyntax[syntax, None]},
 elaboratePath[lineSyntax_, leftSyntax_, rightSyntax_] := Replace[elaborateLine[lineSyntax], {line_, level_} :> {
 	makeApplication[constantReference[$cubicalNames["Path"], {level}], {
 		line,
-		checkAgainst[leftSyntax, betaNormalize[application[line, intervalEndpoint[0]]]],
-		checkAgainst[rightSyntax, betaNormalize[application[line, intervalEndpoint[1]]]]
+		checkAgainst[leftSyntax, betaNormalize[Construct[application, line, intervalEndpoint[0]]]],
+		checkAgainst[rightSyntax, betaNormalize[Construct[application, line, intervalEndpoint[1]]]]
 	}],
 	universeSort[level]
 }]
@@ -1481,9 +1487,9 @@ elaborateTransport[lineSyntax_, faceSyntax_, valueSyntax_] := Replace[elaborateL
 	makeApplication[constantReference[$cubicalNames["Transport"], {level}], {
 		line,
 		elaborateFace[faceSyntax],
-		checkAgainst[valueSyntax, betaNormalize[application[line, intervalEndpoint[0]]]]
+		checkAgainst[valueSyntax, betaNormalize[Construct[application, line, intervalEndpoint[0]]]]
 	}],
-	betaNormalize[application[line, intervalEndpoint[1]]]
+	betaNormalize[Construct[application, line, intervalEndpoint[1]]]
 }]
 
 (* CubicalComposition[A, Function[{i}, {face -> side, ...}], base]: each side is elaborated against A as it is
@@ -1516,7 +1522,7 @@ elaborateTube[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_,
 				$elaborationContext = extendContext[$elaborationContext, id, parsed["Name"], intervalConstantTerm["Interval"], "Explicit"],
 				$elaborationScope = Append[$elaborationScope, parsed["Name"] -> {freeVariable[id], intervalConstantTerm["Interval"]}]
 			},
-			With[{system = cubicalSystem[Function[branch, elaborateBranch[branch, type]] /@ branches]},
+			With[{system = Construct[cubicalSystem, Function[branch, elaborateBranch[branch, type]] /@ branches]},
 				liftMetavariables[{id}, {system}];
 				makeLambda[instantiateContext[$elaborationContext], {id}, instantiateMetavariables[system]]
 			]
@@ -1550,7 +1556,7 @@ elaborateGlueType[baseSyntax_, syntaxApplication[syntaxSymbol[HoldComplete[List]
 	{
 		makeApplication[constantReference[$cubicalNames["GlueType"], {level}], {
 			base,
-			cubicalSystem[Function[branch, elaborateGlueBranch[branch, gluePairType[cubicalSum[$elaborationEnvironment], level, base]]] /@ branches]
+			Construct[cubicalSystem, Function[branch, elaborateGlueBranch[branch, gluePairType[cubicalSum[$elaborationEnvironment], level, base]]] /@ branches]
 		}],
 		universeSort[normalizeLevel[levelSuccessor[level, 1]]]
 	}
@@ -1585,7 +1591,7 @@ elaborateGlueIntroduction[given_, syntaxApplication[syntaxSymbol[HoldComplete[Li
 		makeApplication[constantReference[$cubicalNames["GlueIntroduction"], {level}], {
 			base,
 			system,
-			cubicalSystem[MapThread[
+			Construct[cubicalSystem, MapThread[
 				Function[{pair, branch}, {First[pair], checkAgainst[branchValueSyntax[branch], faceRestrictedType[First[pair], pairType[cubicalSum[$elaborationEnvironment], Last[pair]]]]}],
 				{pairs, branches}
 			]],
@@ -1615,7 +1621,7 @@ elaborateGlueElimination[given_, gluedSyntax_] := Module[{glued, arguments},
 (* a face: r == 0 and r == 1, And and Or of faces, True and False, or an element of the interval *)
 elaborateFace[syntaxApplication[syntaxSymbol[HoldComplete[Equal]], {variable_, syntaxInteger[endpoint : 0 | 1]}]] := With[
 	{element = checkAgainst[variable, intervalConstantTerm["Interval"]]},
-	If[endpoint === 1, element, application[intervalConstantTerm["Reverse"], element]]
+	If[endpoint === 1, element, Construct[application, intervalConstantTerm["Reverse"], element]]
 ]
 elaborateFace[syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], faces_List]] /; faces =!= {} := Fold[
 	Function[{accumulated, next}, makeApplication[intervalConstantTerm[Replace[head, {And -> "Meet", Or -> "Join"}]], {accumulated, next}]],

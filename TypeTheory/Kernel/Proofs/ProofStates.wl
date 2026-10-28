@@ -222,12 +222,12 @@ completedProofTerm[TypeTheoryProof[data_Association]] := If[ data["Goals"] =!= {
 
 instantiateProofTerm[data_, term_] := resolvePendingAbstractions @ ReplaceRepeated[
 	term,
-	metavariable[id_] /; KeyExistsQ[data["Assignments"], id] :> data["Assignments"][id]
+	metavariable[id_] /; KeyExistsQ[data["Assignments"], id] :> With[{assigned = data["Assignments"][id]}, assigned /; True]
 ]
 
 resolvePendingAbstractions[term_] := ReplaceRepeated[
 	term,
-	pendingAbstraction[context_, ids_, body_] /; FreeQ[body, _pendingAbstraction] :> makeLambda[context, ids, body]
+	pendingAbstraction[context_, ids_, body_] /; FreeQ[body, _pendingAbstraction] :> With[{function = makeLambda[context, ids, body]}, function /; True]
 ]
 
 (* a goal with the solutions found so far filled into its hypotheses and type *)
@@ -572,7 +572,7 @@ rewriteHypothesis[data_, goal_, current_, goalTypes_, rewritten_Association, dir
 	solveGoal[
 		keepSolvedGoals[data, goalTypes],
 		goal,
-		application[pendingAbstraction[newContext, {newId}, metavariable[newGoal]], proof],
+		Construct[application, pendingAbstraction[newContext, {newId}, metavariable[newGoal]], proof],
 		{newGoal -> <|"Context" -> newContext, "Type" -> current["Type"], "Case" -> None|>}
 	]
 ]
@@ -590,12 +590,13 @@ transportForward[rewritten_Association, context_, m_] := makeApplication[rewritt
 
 (* m, a proof of P[rhs], carried back to a proof of P[lhs]: the recursor with the motive (y, t) ↦ P[y] -> P[lhs]
    and the identity as its minor premise gives a function from P[rhs] to P[lhs] *)
-transportBackward[rewritten_Association, context_, m_] := application[
+transportBackward[rewritten_Association, context_, m_] := Construct[
+	application,
 	makeApplication[rewritten["Recursor"], {
 		rewritten["Type"],
 		rewritten["Left"],
 		rewriteMotive[context, rewritten["Equality"], rewritten["Levels"], rewritten["Type"], rewritten["Left"], rewritten["Motive"], rewritten["Left"]],
-		lambdaAbstraction[HoldComplete[p], instantiateBoundVariable[rewritten["Motive"], rewritten["Left"]], boundVariable[0], "Explicit"],
+		Construct[lambdaAbstraction, HoldComplete[p], instantiateBoundVariable[rewritten["Motive"], rewritten["Left"]], boundVariable[0], "Explicit"],
 		rewritten["Right"],
 		rewritten["Proof"]
 	}],
@@ -664,12 +665,12 @@ abstractInstance[term_, instanceQ_, depth_] := Lookup[
 ]
 
 abstractInstanceBelow[application[function_, argument_], instanceQ_, depth_] :=
-	application[abstractInstance[function, instanceQ, depth], abstractInstance[argument, instanceQ, depth]]
+	Construct[application, abstractInstance[function, instanceQ, depth], abstractInstance[argument, instanceQ, depth]]
 abstractInstanceBelow[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], instanceQ_, depth_] :=
-	head[name, abstractInstance[domain, instanceQ, depth], abstractInstance[body, instanceQ, depth + 1], binder]
+	Construct[head, name, abstractInstance[domain, instanceQ, depth], abstractInstance[body, instanceQ, depth + 1], binder]
 abstractInstanceBelow[localDefinition[name_, type_, value_, body_], instanceQ_, depth_] :=
-	localDefinition[name, abstractInstance[type, instanceQ, depth], abstractInstance[value, instanceQ, depth], abstractInstance[body, instanceQ, depth + 1]]
-abstractInstanceBelow[projection[structure_, index_, inner_], instanceQ_, depth_] := projection[structure, index, abstractInstance[inner, instanceQ, depth]]
+	Construct[localDefinition, name, abstractInstance[type, instanceQ, depth], abstractInstance[value, instanceQ, depth], abstractInstance[body, instanceQ, depth + 1]]
+abstractInstanceBelow[projection[structure_, index_, inner_], instanceQ_, depth_] := Construct[projection, structure, index, abstractInstance[inner, instanceQ, depth]]
 abstractInstanceBelow[term_, _, _] := term
 
 (* The subterms a rewrite takes for its instance, as Lean's kabstract takes them: a copy, or a subterm with no
@@ -758,7 +759,7 @@ rewriteMotive[context_, equality_, levels_List, elementType_, start_, motiveBody
 		makeLambda[local, {variable, equation}, If[
 			result === None,
 			atVariable,
-			dependentFunctionType[HoldComplete[p], atVariable, instantiateBoundVariable[motiveBody, result], "Explicit"]
+			Construct[dependentFunctionType, HoldComplete[p], atVariable, instantiateBoundVariable[motiveBody, result], "Explicit"]
 		]]
 	]
 ]
@@ -937,8 +938,8 @@ integerArithmeticReduced[environment_, context_, term_] := Replace[term, {
 		makeApplication[head, {integerArithmeticReduced[environment, context, a], integerArithmeticReduced[environment, context, b]}],
 	application[application[head : constantReference[HoldComplete["integerPower"], _], a_], b_] :>
 		makeApplication[head, {integerArithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b]}],
-	application[head : constantReference[HoldComplete["integerNegation"], _], a_] :> application[head, integerArithmeticReduced[environment, context, a]],
-	application[head : constantReference[HoldComplete["integerOfNatural"], _], a_] :> application[head, arithmeticReduced[environment, context, a]],
+	application[head : constantReference[HoldComplete["integerNegation"], _], a_] :> Construct[application, head, integerArithmeticReduced[environment, context, a]],
+	application[head : constantReference[HoldComplete["integerOfNatural"], _], a_] :> Construct[application, head, arithmeticReduced[environment, context, a]],
 	_ :> With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
 		If[reduced === term, term, integerArithmeticReduced[environment, context, reduced]]
 	]
@@ -951,7 +952,7 @@ integerArithmeticReduced[environment_, context_, term_] := Replace[term, {
 arithmeticReduced[environment_, context_, term_] := Replace[term, {
 	application[application[head : constantReference[HoldComplete[Plus | Times | Power], _], a_], b_] :>
 		makeApplication[head, {arithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b]}],
-	application[head : constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :> application[head, arithmeticReduced[environment, context, a]],
+	application[head : constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :> Construct[application, head, arithmeticReduced[environment, context, a]],
 	_ :> With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
 		If[reduced === term, term, arithmeticReduced[environment, context, reduced]]
 	]

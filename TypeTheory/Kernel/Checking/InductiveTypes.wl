@@ -314,9 +314,9 @@ eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, 
 		{head_, {}} :> replaceParts[head],
 		{head_, arguments_} :> makeApplication[replaceParts[head], replaceNested /@ arguments]
 	}];
-	replaceParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := head[name, replaceNested[domain], replaceNested[body], binder];
-	replaceParts[localDefinition[name_, type_, value_, body_]] := localDefinition[name, replaceNested[type], replaceNested[value], replaceNested[body]];
-	replaceParts[projection[structure_, fieldIndex_, structureTerm_]] := projection[structure, fieldIndex, replaceNested[structureTerm]];
+	replaceParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, replaceNested[domain], replaceNested[body], binder];
+	replaceParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, replaceNested[type], replaceNested[value], replaceNested[body]];
+	replaceParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, replaceNested[structureTerm]];
 	replaceParts[other_] := other;
 	nestedApplication[inductive_, inductiveLevels_, arguments_] := Module[
 		{numberOfNestedParameters = constantRecord[environment, inductive]["NumberOfParameters"], parameters, auxiliary},
@@ -403,9 +403,9 @@ restoreNested[blockTypes_, numberOfParameters_][term_] := Module[
 		{head_, {}} :> restoreParts[head],
 		{head_, arguments_} :> makeApplication[restoreParts[head], restore /@ arguments]
 	}];
-	restoreParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := head[name, restore[domain], restore[body], binder];
-	restoreParts[localDefinition[name_, type_, value_, body_]] := localDefinition[name, restore[type], restore[value], restore[body]];
-	restoreParts[projection[structure_, fieldIndex_, structureTerm_]] := projection[structure, fieldIndex, restore[structureTerm]];
+	restoreParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, restore[domain], restore[body], binder];
+	restoreParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, restore[type], restore[value], restore[body]];
+	restoreParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, restore[structureTerm]];
 	restoreParts[other_] := other;
 	restore[term]
 ]
@@ -626,7 +626,7 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 
 (* with quantities, a constructor's parameters are erased: the value it builds does not hold them *)
 erasedParameters[dependentFunctionType[name_, domain_, codomain_, binder_], count_Integer?Positive] :=
-	dependentFunctionType[name, domain, erasedParameters[codomain, count - 1], quantifiedBinder[binderKind[binder], 0]]
+	Construct[dependentFunctionType, name, domain, erasedParameters[codomain, count - 1], quantifiedBinder[binderKind[binder], 0]]
 erasedParameters[type_, _] := type
 
 ownerPosition[blockTypes_, constructor_] := First[FirstPosition[Lookup[blockTypes, "Name"], Verbatim[constructor["Owner"]], {0}, {1}, Heads -> False]]

@@ -238,63 +238,74 @@ $intervalOne := cubicalConstant["One"]
 
 intervalMeet[r_, s_] := makeApplication[cubicalConstant["Meet"], {r, s}]
 intervalJoin[r_, s_] := makeApplication[cubicalConstant["Join"], {r, s}]
-intervalReverse[r_] := application[cubicalConstant["Reverse"], r]
+intervalReverse[r_] := Construct[application, cubicalConstant["Reverse"], r]
 
 (* the types of the primitives, written with bound variables counted from the innermost binder; each comment
    gives the type as a term would write it, the universe parameter u a sort level *)
 cubicalType["Interval"] := intervalUniverse[]
 cubicalType["Zero" | "One"] := $interval
-cubicalType["Meet" | "Join"] := dependentFunctionType[HoldComplete[r], $interval, dependentFunctionType[HoldComplete[s], $interval, $interval, "Explicit"], "Explicit"]
-cubicalType["Reverse"] := dependentFunctionType[HoldComplete[r], $interval, $interval, "Explicit"]
+cubicalType["Meet" | "Join"] := With[{interval = $interval},
+	dependentFunctionType[HoldComplete[r], interval, dependentFunctionType[HoldComplete[s], interval, interval, "Explicit"], "Explicit"]
+]
+cubicalType["Reverse"] := With[{interval = $interval}, dependentFunctionType[HoldComplete[r], interval, interval, "Explicit"]]
 (* ForAll[{Typed[A, ForAll[{Typed[i, Interval]}, Sort u]], Typed[a, A[0]], Typed[b, A[1]]}, Sort u] *)
-cubicalType["Path"] := dependentFunctionType[HoldComplete[A], lineType[],
-	dependentFunctionType[HoldComplete[a], application[boundVariable[0], $intervalZero],
-		dependentFunctionType[HoldComplete[b], application[boundVariable[1], $intervalOne], universeSort[levelParameter[HoldComplete[u]]], "Explicit"],
+cubicalType["Path"] := With[{line = lineType[], zero = $intervalZero, one = $intervalOne},
+	dependentFunctionType[HoldComplete[A], line,
+		dependentFunctionType[HoldComplete[a], application[boundVariable[0], zero],
+			dependentFunctionType[HoldComplete[b], application[boundVariable[1], one], universeSort[levelParameter[HoldComplete[u]]], "Explicit"],
+			"Explicit"
+		],
 		"Explicit"
-	],
-	"Explicit"
+	]
 ]
 (* ForAll[{Typed[A, ForAll[{Typed[i, Interval]}, Sort u]], Typed[φ, Interval], Typed[a, A[0]]}, A[1]] *)
-cubicalType["Transport"] := dependentFunctionType[HoldComplete[A], lineType[],
-	dependentFunctionType[HoldComplete[\[Phi]], $interval,
-		dependentFunctionType[HoldComplete[a], application[boundVariable[1], $intervalZero], application[boundVariable[2], $intervalOne], "Explicit"],
+cubicalType["Transport"] := With[{line = lineType[], interval = $interval, zero = $intervalZero, one = $intervalOne},
+	dependentFunctionType[HoldComplete[A], line,
+		dependentFunctionType[HoldComplete[\[Phi]], interval,
+			dependentFunctionType[HoldComplete[a], application[boundVariable[1], zero], application[boundVariable[2], one], "Explicit"],
+			"Explicit"
+		],
 		"Explicit"
-	],
-	"Explicit"
+	]
 ]
 (* ForAll[{Typed[A, Sort u], Typed[tube, ForAll[{Typed[i, Interval]}, A]], Typed[a, A]}, A]: the sides are a system, which the kernel checks itself *)
-cubicalType["Composition"] := dependentFunctionType[HoldComplete[A], universeSort[levelParameter[HoldComplete[u]]],
-	dependentFunctionType[HoldComplete[tube], dependentFunctionType[HoldComplete[i], $interval, boundVariable[1], "Explicit"],
-		dependentFunctionType[HoldComplete[a], boundVariable[1], boundVariable[2], "Explicit"],
+cubicalType["Composition"] := With[{interval = $interval},
+	dependentFunctionType[HoldComplete[A], universeSort[levelParameter[HoldComplete[u]]],
+		dependentFunctionType[HoldComplete[tube], dependentFunctionType[HoldComplete[i], interval, boundVariable[1], "Explicit"],
+			dependentFunctionType[HoldComplete[a], boundVariable[1], boundVariable[2], "Explicit"],
+			"Explicit"
+		],
 		"Explicit"
-	],
-	"Explicit"
+	]
 ]
 
-lineType[] := dependentFunctionType[HoldComplete[i], $interval, universeSort[levelParameter[HoldComplete[u]]], "Explicit"]
+lineType[] := Construct[dependentFunctionType, HoldComplete[i], $interval, universeSort[levelParameter[HoldComplete[u]]], "Explicit"]
 
 (* the Glue primitives' types only name their arguments: the systems, which no type describes, are checked by
    the kernel itself. ForAll[{TypedImplicit[A, Type u], TypedImplicit[system, Type u]}, Type u] and so on *)
-cubicalType["GlueType"] := dependentFunctionType[HoldComplete[A], glueSort[],
-	dependentFunctionType[HoldComplete[system], glueSort[], glueSort[], "Explicit"],
-	"Explicit"
+cubicalType["GlueType"] := With[{sort = glueSort[]},
+	dependentFunctionType[HoldComplete[A], sort, dependentFunctionType[HoldComplete[system], sort, sort, "Explicit"], "Explicit"]
 ]
-cubicalType["GlueIntroduction"] := dependentFunctionType[HoldComplete[A], glueSort[],
-	dependentFunctionType[HoldComplete[system], glueSort[],
-		dependentFunctionType[HoldComplete[terms], glueSort[],
-			dependentFunctionType[HoldComplete[a], boundVariable[2], glueSort[], "Explicit"],
-			"Explicit"
+cubicalType["GlueIntroduction"] := With[{sort = glueSort[]},
+	dependentFunctionType[HoldComplete[A], sort,
+		dependentFunctionType[HoldComplete[system], sort,
+			dependentFunctionType[HoldComplete[terms], sort,
+				dependentFunctionType[HoldComplete[a], boundVariable[2], sort, "Explicit"],
+				"Explicit"
+			],
+			"Implicit"
 		],
 		"Implicit"
-	],
-	"Implicit"
+	]
 ]
-cubicalType["GlueElimination"] := dependentFunctionType[HoldComplete[A], glueSort[],
-	dependentFunctionType[HoldComplete[system], glueSort[],
-		dependentFunctionType[HoldComplete[b], glueSort[], boundVariable[2], "Explicit"],
+cubicalType["GlueElimination"] := With[{sort = glueSort[]},
+	dependentFunctionType[HoldComplete[A], sort,
+		dependentFunctionType[HoldComplete[system], sort,
+			dependentFunctionType[HoldComplete[b], sort, boundVariable[2], "Explicit"],
+			"Implicit"
+		],
 		"Implicit"
-	],
-	"Implicit"
+	]
 ]
 
 glueSort[] := universeSort[levelSuccessor[levelParameter[HoldComplete[u]], 1]]
@@ -324,40 +335,38 @@ sumQ[environment_, sum_HoldComplete] := And[
 ]
 
 (* ForAll[{Typed[A, Type u], Typed[B, A -> Type v]}, Type (max u v)] *)
-expectedSumType[{u_, v_}] := dependentFunctionType[HoldComplete[A], typeAt[u],
-	dependentFunctionType[HoldComplete[B], dependentFunctionType[HoldComplete[x], boundVariable[0], typeAt[v], "Explicit"],
-		universeSort[normalizeLevel[levelMaximum[levelSuccessor[u, 1], levelSuccessor[v, 1]]]],
+expectedSumType[{u_, v_}] := With[{typeU = typeAt[u], typeV = typeAt[v], level = normalizeLevel[levelMaximum[levelSuccessor[u, 1], levelSuccessor[v, 1]]]},
+	dependentFunctionType[HoldComplete[A], typeU,
+		dependentFunctionType[HoldComplete[B], dependentFunctionType[HoldComplete[x], boundVariable[0], typeV, "Explicit"], universeSort[level], "Explicit"],
 		"Explicit"
-	],
-	"Explicit"
+	]
 ]
 
 (* ForAll[{TypedImplicit[A, Type u], TypedImplicit[B, A -> Type v], Typed[a, A], Typed[b, B[a]]}, sum[A, B]] *)
-expectedPairType[sum_, {u_, v_}] := dependentFunctionType[HoldComplete[A], typeAt[u],
-	dependentFunctionType[HoldComplete[B], dependentFunctionType[HoldComplete[x], boundVariable[0], typeAt[v], "Explicit"],
-		dependentFunctionType[HoldComplete[a], boundVariable[1],
-			dependentFunctionType[HoldComplete[b], application[boundVariable[1], boundVariable[0]],
-				makeApplication[constantReference[sum, {u, v}], {boundVariable[3], boundVariable[2]}],
+expectedPairType[sum_, {u_, v_}] := With[{typeU = typeAt[u], typeV = typeAt[v], pairs = makeApplication[constantReference[sum, {u, v}], {boundVariable[3], boundVariable[2]}]},
+	dependentFunctionType[HoldComplete[A], typeU,
+		dependentFunctionType[HoldComplete[B], dependentFunctionType[HoldComplete[x], boundVariable[0], typeV, "Explicit"],
+			dependentFunctionType[HoldComplete[a], boundVariable[1],
+				dependentFunctionType[HoldComplete[b], application[boundVariable[1], boundVariable[0]], pairs, "Explicit"],
 				"Explicit"
 			],
-			"Explicit"
+			"Implicit"
 		],
 		"Implicit"
-	],
-	"Implicit"
+	]
 ]
 
 typeAt[level_] := universeSort[normalizeLevel[levelSuccessor[level, 1]]]
 
 (* terms built with fresh variables, abstracted at the end *)
 binding[head_, name_, domain_, body_] := With[{id = freshFreeVariable[]},
-	head[HoldComplete[name], domain, abstractFreeVariable[body[freeVariable[id]], id], "Explicit"]
+	Construct[head, HoldComplete[name], domain, abstractFreeVariable[body[freeVariable[id]], id], "Explicit"]
 ]
 
 sumOf[sum_, {u_, v_}, domain_, family_] := makeApplication[constantReference[sum, {u, v}], {domain, family}]
 
 constantPath[level_, type_, left_, right_] := makeApplication[cubicalConstant["Path", normalizeLevel[levelSuccessor[level, 1]]], {
-	lambdaAbstraction[HoldComplete[i], $interval, liftBoundVariables[type, 1, 0], "Explicit"],
+	Construct[lambdaAbstraction, HoldComplete[i], $interval, liftBoundVariables[type, 1, 0], "Explicit"],
 	left,
 	right
 }]
@@ -467,7 +476,10 @@ consistentConjunctionQ[conjunction_List] := DuplicateFreeQ[First /@ conjunction]
 faceTrueQ[environment_, context_, face_] := MemberQ[faceConjunctions[environment, context, face], <||>]
 
 (* the restriction of a term, or a context, to a conjunction: its variables replaced by endpoints *)
-restricted[term_, substitution_Association] := If[substitution === <||>, term, ReplaceAll[term, freeVariable[id_] /; KeyExistsQ[substitution, id] :> substitution[id]]]
+restricted[term_, substitution_Association] := If[ substitution === <||>,
+	term,
+	ReplaceAll[term, freeVariable[id_] /; KeyExistsQ[substitution, id] :> With[{value = substitution[id]}, value /; True]]
+]
 
 restrictedTerm[term_, substitution_Association] := restricted[term, substitution]
 
@@ -570,21 +582,21 @@ applicationTypeOf[environment_, context_, type_, argument_] := Replace[weakHeadN
 saturatedType[environment_, context_, "Transport", {level_}, {line_, face_, value_}] := (
 	checkHasType[environment, context, line, lineOf[level]];
 	checkHasType[environment, context, face, $interval];
-	checkHasType[environment, context, value, application[line, $intervalZero]];
+	checkHasType[environment, context, value, Construct[application, line, $intervalZero]];
 	Scan[
 		Function[substitution, With[{id = freshFreeVariable[], restrictedLine = restricted[line, substitution]},
 			If[ ! definitionallyEqualQ[
 					environment,
 					extendContext[restrictedContext[context, substitution], id, HoldComplete[i], $interval, "Explicit"],
 					application[restrictedLine, freeVariable[id]],
-					application[restrictedLine, $intervalZero]
+					Construct[application, restrictedLine, $intervalZero]
 				],
 				kernelFailure["TransportNotConstant", "The line of a transport must be constant where its face holds.", {}]
 			]
 		]],
 		faceConjunctions[environment, context, face]
 	];
-	application[line, $intervalOne]
+	Construct[application, line, $intervalOne]
 )
 
 (* CubicalComposition[A, Function[{i}, system], a]: the sides are lines in A over their faces, and are a at 0 *)
@@ -619,7 +631,7 @@ saturatedType[environment_, context_, "GlueIntroduction", {level_}, {base_, syst
 			MapThread[
 				Function[{pair, element}, (
 					checkUnderFace[environment, context, First[pair], Last[element], pairType[sum, Last[pair]]];
-					If[ ! equalUnderFaceQ[environment, context, First[pair], application[pairFunction[sum, Last[pair]], Last[element]], value],
+					If[ ! equalUnderFaceQ[environment, context, First[pair], Construct[application, pairFunction[sum, Last[pair]], Last[element]], value],
 						kernelFailure["GlueMismatch", "The equivalence of a Glue type must take each term of the element to the element of the base under it.", {}]
 					]
 				)],
@@ -655,7 +667,7 @@ checkGlueSystem[environment_, context_, level_, base_, cubicalSystem[branches_Li
 )
 checkGlueSystem[_, _, _, _, _] := kernelFailure["GlueSystemExpected", "A Glue type takes a system of pairs, {face -> pair, ...}.", {}]
 
-lineOf[level_] := dependentFunctionType[HoldComplete[i], $interval, universeSort[level], "Explicit"]
+lineOf[level_] := Construct[dependentFunctionType, HoldComplete[i], $interval, universeSort[level], "Explicit"]
 
 (* the endpoints are normalized, without unfolding definitions, so that a path between two variables reads as
    one: the value of a path at 0 is the start of its type, and a function that applies another to its
@@ -665,7 +677,7 @@ intervalLambdaType[environment_, bodyContext_, id_, name_, domain_, body_, bodyT
 	Replace[weakHeadNormalForm[environment, bodyContext, inferType[environment, bodyContext, bodyType]], {
 		universeSort[level_] :> With[{outerContext = KeyDrop[bodyContext, id]},
 			makeApplication[cubicalConstant["Path", level], {
-				lambdaAbstraction[name, $interval, abstractFreeVariable[bodyType, id], "Explicit"],
+				Construct[lambdaAbstraction, name, $interval, abstractFreeVariable[bodyType, id], "Explicit"],
 				normalizedTerm[environment, outerContext, instantiateBoundVariable[body, $intervalZero]],
 				normalizedTerm[environment, outerContext, instantiateBoundVariable[body, $intervalOne]]
 			}]
@@ -677,7 +689,8 @@ intervalLambdaType[environment_, bodyContext_, id_, name_, domain_, body_, bodyT
 normalizedTerm[environment_, context_, term_] := With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
 	Replace[reduced, {
 		lambdaAbstraction[name_, domain_, body_, binder_] :> With[{id = freshFreeVariable[]},
-			etaContracted[lambdaAbstraction[
+			etaContracted[Construct[
+				lambdaAbstraction,
 				name,
 				normalizedTerm[environment, context, domain],
 				abstractFreeVariable[normalizedTerm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]], id],
@@ -685,7 +698,8 @@ normalizedTerm[environment_, context_, term_] := With[{reduced = reducedHeadWith
 			]]
 		],
 		dependentFunctionType[name_, domain_, codomain_, binder_] :> With[{id = freshFreeVariable[]},
-			dependentFunctionType[
+			Construct[
+				dependentFunctionType,
 				name,
 				normalizedTerm[environment, context, domain],
 				abstractFreeVariable[normalizedTerm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]]], id],
@@ -731,8 +745,8 @@ cubicalFitQ[environment_, context_, term_, actual_, expected_] := cubicalDeclare
 					instantiateBoundVariable[codomain, freeVariable[id]],
 					application[line, freeVariable[id]]
 				],
-				definitionallyEqualQ[environment, context, application[term, $intervalZero], left],
-				definitionallyEqualQ[environment, context, application[term, $intervalOne], right]
+				definitionallyEqualQ[environment, context, Construct[application, term, $intervalZero], left],
+				definitionallyEqualQ[environment, context, Construct[application, term, $intervalOne], right]
 			]
 		],
 		{_, _, dependentFunctionType[name_, domain_, codomain_, _], {line_, _, _}} /; intervalTypeQ[environment, domain] :> With[{id = freshFreeVariable[]},
@@ -773,7 +787,7 @@ reduceCubical[environment_, context_, term_, record_, levels_, arguments_] := Re
 		{None :> term, {_, element_} :> makeApplication[element, {rest}]}
 	],
 	{"GlueElimination", {_, cubicalSystem[branches_List], glued_, rest___}} :> Replace[trueBranch[environment, context, branches], {
-		{_, pair_} :> makeApplication[application[pairFunction[record["Sum"], pair], glued], {rest}],
+		{_, pair_} :> makeApplication[Construct[application, pairFunction[record["Sum"], pair], glued], {rest}],
 		None :> Replace[applicationSpine[weakHeadNormalForm[environment, context, glued]], {
 			{constantReference[name_, _], {_, _, _, value_}} /; cubicalRole[environment, name] === "GlueIntroduction" :> makeApplication[value, {rest}],
 			_ :> term
@@ -824,7 +838,7 @@ openedLine[environment_, context_, line_] := With[{id = freshFreeVariable[]},
 ]
 
 (* a function of the interval variable id, from a term in which it is free *)
-intervalLambda[name_, id_, body_] := lambdaAbstraction[name, $interval, abstractFreeVariable[body, id], "Explicit"]
+intervalLambda[name_, id_, body_] := Construct[lambdaAbstraction, name, $interval, abstractFreeVariable[body, id], "Explicit"]
 
 (* the term with the variable id replaced *)
 substitutedVariable[term_, id_, value_] := instantiateBoundVariable[abstractFreeVariable[term, id], value]
@@ -870,7 +884,7 @@ functionTransport[environment_, context_, lineContext_, id_, face_, value_, name
 	makeLambda[outerContext, {argumentId}, makeApplication[cubicalConstant["Transport", codomainLevel], {
 		intervalLambda[HoldComplete[i], id, instantiateBoundVariable[codomain, back[freeVariable[id]]]],
 		face,
-		application[value, back[$intervalZero]]
+		Construct[application, value, back[$intervalZero]]
 	}]]
 ]
 
@@ -897,14 +911,14 @@ pathTransport[environment_, context_, lineContext_, id_, level_, face_, value_, 
    where they are, and of the base transported along all of A. The sides are lines, functions of the interval. *)
 heterogeneousComposition[environment_, context_, level_, line_, branches_List, cap_] := With[{id = freshFreeVariable[]},
 	makeApplication[cubicalConstant["Composition", level], {
-		application[line, $intervalOne],
-		lambdaAbstraction[HoldComplete[i], $interval, abstractFreeVariable[cubicalSystem[Function[branch, {
+		Construct[application, line, $intervalOne],
+		Construct[lambdaAbstraction, HoldComplete[i], $interval, abstractFreeVariable[Construct[cubicalSystem, Function[branch, {
 			First[branch],
 			With[{kd = freshFreeVariable[]},
 				makeApplication[cubicalConstant["Transport", level], {
-					intervalLambda[HoldComplete[k], kd, application[line, intervalJoin[freeVariable[id], freeVariable[kd]]]],
+					intervalLambda[HoldComplete[k], kd, Construct[application, line, intervalJoin[freeVariable[id], freeVariable[kd]]]],
 					freeVariable[id],
-					application[Last[branch], freeVariable[id]]
+					Construct[application, Last[branch], freeVariable[id]]
 				}]
 			]
 		}] /@ branches], id], "Explicit"],
@@ -952,8 +966,8 @@ pathComposition[environment_, context_, level_, opened_, {innerLine_, left_, rig
 ]
 
 (* the tube of a composition with each side changed, and further branches constant in the tube's variable *)
-systemTube[opened_, change_, extra_List] := lambdaAbstraction[HoldComplete[i], $interval, abstractFreeVariable[
-	cubicalSystem[Join[Transpose[{opened["Faces"], change /@ opened["Sides"]}], extra]],
+systemTube[opened_, change_, extra_List] := Construct[lambdaAbstraction, HoldComplete[i], $interval, abstractFreeVariable[
+	Construct[cubicalSystem, Join[Transpose[{opened["Faces"], change /@ opened["Sides"]}], extra]],
 	opened["Id"]
 ], "Explicit"]
 
@@ -974,8 +988,8 @@ glueTransport[environment_, context_, lineContext_, id_, level_, face_, value_, 
 
 glueTransportReduct[environment_, id_, level_, value_, glueLevel_, base_, branches_List] := Module[
 	{sum = cubicalSum[environment], startSystem, endSystem, endBase, under, centers},
-	startSystem = cubicalSystem[Map[Function[part, substitutedVariable[part, id, $intervalZero]], branches, {2}]];
-	endSystem = cubicalSystem[Map[Function[part, substitutedVariable[part, id, $intervalOne]], branches, {2}]];
+	startSystem = Construct[cubicalSystem, Map[Function[part, substitutedVariable[part, id, $intervalZero]], branches, {2}]];
+	endSystem = Construct[cubicalSystem, Map[Function[part, substitutedVariable[part, id, $intervalOne]], branches, {2}]];
 	endBase = substitutedVariable[base, id, $intervalOne];
 	under = makeApplication[cubicalConstant["Transport", level], {
 		intervalLambda[HoldComplete[i], id, base],
@@ -986,12 +1000,12 @@ glueTransportReduct[environment_, id_, level_, value_, glueLevel_, base_, branch
 	makeApplication[cubicalConstant["GlueIntroduction", glueLevel], {
 		endBase,
 		endSystem,
-		cubicalSystem[Transpose[{First /@ First[endSystem], Function[center, projection[sum, 0, center]] /@ centers}]],
+		Construct[cubicalSystem, Transpose[{First /@ First[endSystem], Function[center, Construct[projection, sum, 0, center]] /@ centers}]],
 		With[{jd = freshFreeVariable[]},
 			makeApplication[cubicalConstant["Composition", level], {
 				endBase,
-				lambdaAbstraction[HoldComplete[j], $interval, abstractFreeVariable[
-					cubicalSystem[Transpose[{First /@ First[endSystem], Function[center, application[projection[sum, 1, center], intervalReverse[freeVariable[jd]]]] /@ centers}]],
+				Construct[lambdaAbstraction, HoldComplete[j], $interval, abstractFreeVariable[
+					Construct[cubicalSystem, Transpose[{First /@ First[endSystem], Function[center, Construct[application, Construct[projection, sum, 1, center], intervalReverse[freeVariable[jd]]]] /@ centers}]],
 					jd
 				], "Explicit"],
 				under

@@ -114,9 +114,8 @@ equalityType[level_] := dependentFunctionType[HoldComplete[\[Alpha]], universeSo
 ]
 
 (* ForAll[{TypedImplicit[α, TypeUniverse[u]], Typed[x, α]}, equality[x, x]] *)
-reflexivityType[equality_, level_] := dependentFunctionType[HoldComplete[\[Alpha]], universeSort[level],
-	dependentFunctionType[HoldComplete[x], boundVariable[0], makeApplication[constantReference[equality, {level}], {boundVariable[1], boundVariable[0], boundVariable[0]}], "Explicit"],
-	"Implicit"
+reflexivityType[equality_, level_] := With[{equal = makeApplication[constantReference[equality, {level}], {boundVariable[1], boundVariable[0], boundVariable[0]}]},
+	dependentFunctionType[HoldComplete[\[Alpha]], universeSort[level], dependentFunctionType[HoldComplete[x], boundVariable[0], equal, "Explicit"], "Implicit"]
 ]
 
 
@@ -153,74 +152,79 @@ quotientRecord[role_String, universeParameters_List, type_, equality_, names : {
 |>
 
 (* alpha -> alpha -> Prop, alpha a term where the binder starts *)
-relationType[alpha_] := dependentFunctionType[HoldComplete[a], alpha, dependentFunctionType[HoldComplete[b], liftBoundVariables[alpha, 1, 0], universeSort[0], "Explicit"], "Explicit"]
+relationType[alpha_] := With[{lifted = liftBoundVariables[alpha, 1, 0]},
+	dependentFunctionType[HoldComplete[a], alpha, dependentFunctionType[HoldComplete[b], lifted, universeSort[0], "Explicit"], "Explicit"]
+]
 
 quotientOf[type_, level_, alpha_, relation_] := makeApplication[constantReference[type, {level}], {alpha, relation}]
 
 (* ForAll[{TypedImplicit[α, TypeUniverse[u]], Typed[r, α -> α -> Prop]}, TypeUniverse[u]] *)
-quotientTypeType[u_] := dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
-	dependentFunctionType[HoldComplete[r], relationType[boundVariable[0]], universeSort[u], "Explicit"],
-	"Implicit"
+quotientTypeType[u_] := With[{relation = relationType[boundVariable[0]]},
+	dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u], dependentFunctionType[HoldComplete[r], relation, universeSort[u], "Explicit"], "Implicit"]
 ]
 
 (* ForAll[{TypedImplicit[α, TypeUniverse[u]], Typed[r, α -> α -> Prop], Typed[a, α]}, QuotientType[r]] *)
-introductionType[type_, u_] := dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
-	dependentFunctionType[HoldComplete[r], relationType[boundVariable[0]],
-		dependentFunctionType[HoldComplete[a], boundVariable[1], quotientOf[type, u, boundVariable[2], boundVariable[1]], "Explicit"],
-		"Explicit"
-	],
-	"Implicit"
+introductionType[type_, u_] := With[{relation = relationType[boundVariable[0]], quotient = quotientOf[type, u, boundVariable[2], boundVariable[1]]},
+	dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
+		dependentFunctionType[HoldComplete[r], relation, dependentFunctionType[HoldComplete[a], boundVariable[1], quotient, "Explicit"], "Explicit"],
+		"Implicit"
+	]
 ]
 
 (* ForAll[{TypedImplicit[α, TypeUniverse[u]], TypedImplicit[r, α -> α -> Prop], TypedImplicit[β, TypeUniverse[v]], Typed[f, α -> β]},
 	(ForAll[{Typed[a, α], Typed[b, α]}, Implies[r[a, b], f[a] == f[b]]]) -> QuotientType[r] -> β] *)
-liftType[type_, equality_, u_, v_] := dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
-	dependentFunctionType[HoldComplete[r], relationType[boundVariable[0]],
-		dependentFunctionType[HoldComplete[\[Beta]], universeSort[v],
-			dependentFunctionType[HoldComplete[f], dependentFunctionType[HoldComplete[x], boundVariable[2], boundVariable[1], "Explicit"],
-				dependentFunctionType[HoldComplete[h], respectsType[equality, v],
-					dependentFunctionType[HoldComplete[q], quotientOf[type, u, boundVariable[4], boundVariable[3]], boundVariable[3], "Explicit"],
+liftType[type_, equality_, u_, v_] := With[
+	{relation = relationType[boundVariable[0]], respects = respectsType[equality, v], quotient = quotientOf[type, u, boundVariable[4], boundVariable[3]]},
+	dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
+		dependentFunctionType[HoldComplete[r], relation,
+			dependentFunctionType[HoldComplete[\[Beta]], universeSort[v],
+				dependentFunctionType[HoldComplete[f], dependentFunctionType[HoldComplete[x], boundVariable[2], boundVariable[1], "Explicit"],
+					dependentFunctionType[HoldComplete[h], respects, dependentFunctionType[HoldComplete[q], quotient, boundVariable[3], "Explicit"], "Explicit"],
 					"Explicit"
 				],
-				"Explicit"
+				"Implicit"
 			],
 			"Implicit"
 		],
 		"Implicit"
-	],
-	"Implicit"
+	]
 ]
 
 (* ForAll[{Typed[a, α], Typed[b, α]}, Implies[r[a, b], f[a] == f[b]]], under α, r, β and f *)
-respectsType[equality_, v_] := dependentFunctionType[HoldComplete[a], boundVariable[3],
-	dependentFunctionType[HoldComplete[b], boundVariable[4],
-		dependentFunctionType[HoldComplete[e], makeApplication[boundVariable[4], {boundVariable[1], boundVariable[0]}],
-			makeApplication[constantReference[equality, {v}], {boundVariable[4], application[boundVariable[3], boundVariable[2]], application[boundVariable[3], boundVariable[1]]}],
-			"Explicit"
-		],
+respectsType[equality_, v_] := With[
+	{
+		related = makeApplication[boundVariable[4], {boundVariable[1], boundVariable[0]}],
+		equal = makeApplication[constantReference[equality, {v}], {boundVariable[4], application[boundVariable[3], boundVariable[2]], application[boundVariable[3], boundVariable[1]]}]
+	},
+	dependentFunctionType[HoldComplete[a], boundVariable[3],
+		dependentFunctionType[HoldComplete[b], boundVariable[4], dependentFunctionType[HoldComplete[e], related, equal, "Explicit"], "Explicit"],
 		"Explicit"
-	],
-	"Explicit"
+	]
 ]
 
 (* ForAll[{TypedImplicit[α, TypeUniverse[u]], TypedImplicit[r, α -> α -> Prop], TypedImplicit[β, QuotientType[r] -> Prop],
 	Typed[premise, ForAll[{Typed[a, α]}, β[QuotientIntroduction[r, a]]]], Typed[q, QuotientType[r]]}, β[q]] *)
-inductionType[type_, introduction_, u_] := dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
-	dependentFunctionType[HoldComplete[r], relationType[boundVariable[0]],
-		dependentFunctionType[HoldComplete[\[Beta]], dependentFunctionType[HoldComplete[q], quotientOf[type, u, boundVariable[1], boundVariable[0]], universeSort[0], "Explicit"],
-			dependentFunctionType[HoldComplete[premise],
-				dependentFunctionType[HoldComplete[a], boundVariable[2],
-					application[boundVariable[1], makeApplication[constantReference[introduction, {u}], {boundVariable[3], boundVariable[2], boundVariable[0]}]],
+inductionType[type_, introduction_, u_] := With[
+	{
+		relation = relationType[boundVariable[0]],
+		motiveQuotient = quotientOf[type, u, boundVariable[1], boundVariable[0]],
+		introduced = makeApplication[constantReference[introduction, {u}], {boundVariable[3], boundVariable[2], boundVariable[0]}],
+		quotient = quotientOf[type, u, boundVariable[3], boundVariable[2]]
+	},
+	dependentFunctionType[HoldComplete[\[Alpha]], universeSort[u],
+		dependentFunctionType[HoldComplete[r], relation,
+			dependentFunctionType[HoldComplete[\[Beta]], dependentFunctionType[HoldComplete[q], motiveQuotient, universeSort[0], "Explicit"],
+				dependentFunctionType[HoldComplete[premise],
+					dependentFunctionType[HoldComplete[a], boundVariable[2], application[boundVariable[1], introduced], "Explicit"],
+					dependentFunctionType[HoldComplete[q], quotient, application[boundVariable[2], boundVariable[0]], "Explicit"],
 					"Explicit"
 				],
-				dependentFunctionType[HoldComplete[q], quotientOf[type, u, boundVariable[3], boundVariable[2]], application[boundVariable[2], boundVariable[0]], "Explicit"],
-				"Explicit"
+				"Implicit"
 			],
 			"Implicit"
 		],
 		"Implicit"
-	],
-	"Implicit"
+	]
 ]
 
 
