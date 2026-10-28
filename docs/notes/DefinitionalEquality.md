@@ -118,10 +118,12 @@ Compared with Lean's caches:
    at the cost of spines and lookups. Lean's current kernel has no congruence closure either, and
    still checks the two `IntermediateField` constants in milliseconds, so the closure is not what
    they need.
-5. **The environment in the key.** It is fixed within a check, so it only adds work to each lookup:
-   hashing a list that holds the whole environment, and comparing it. Measure whether Wolfram
-   caches that hash and shares the object, so it costs nothing, or not. If not, key on `{a, b}`
-   inside the block.
+5. **The environment in the key costs nothing.** Wolfram keeps an expression's hash once it is
+   made, and a lookup with the very object stored compares pointers: on `balanceL`'s cone, 0.17 µs
+   for its largest pair of terms (832,173 and 141,006 leaves) and for a small one alike, with the
+   environment in the key or not. Only a structurally equal copy, a term rebuilt rather than
+   reused, is hashed and compared in full: 9.2 ms for that largest pair. Interning equal terms as
+   one object (hash-consing) would remove that, if rebuilt copies show up in the caches.
 
 The caches account for constant factors. Minutes against milliseconds on constants that pass
 under eager unfolding point instead at the order of unfolding: §6.
@@ -248,13 +250,15 @@ The kernel has the abbreviations. In three warm runs of `typetheory_benchmark.wl
 
 LeanLink's `typetheory_benchmark.wls` checks the cone of a declaration, every constant it depends
 on, in TypeTheory and in Lean's kernel. The times are of checking, the median of three warm runs,
-which agree within 3% but for one run of `binaryRec` with the abbreviations, 9.2 s.
+which agree within 3% but for one run of `binaryRec` with the abbreviations, 9.2 s, and of two
+for the last column. That column has the evaluator's walks of terms as trees taken out
+(`EvaluationCosts.md`).
 
-| Cone | Constants | Eager order | Spine | And Lean's order | And the abbreviations | Lean | TypeTheory / Lean |
-|---|---|---|---|---|---|---|---|
-| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 7.51 s | 60 ms | 125× |
-| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 10.52 s | 75 ms | 140× |
-| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 21.35 s | 170 ms | 126× |
+| Cone | Constants | Eager order | Spine | And Lean's order | And the abbreviations | And no walks | Lean | TypeTheory / Lean |
+|---|---|---|---|---|---|---|---|---|
+| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 7.51 s | 5.41 s | 60 ms | 90× |
+| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 10.52 s | 7.23 s | 75 ms | 96× |
+| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 21.35 s | 15.87 s | 170 ms | 93× |
 
 The spine is the inference of an application's type along its spine at once (`spineType`), as
 Lean's kernel infers one: each argument is checked against its binder's domain with the arguments
@@ -267,23 +271,55 @@ What they show:
 - **The abbreviations cost `binaryRec` 6%,** beyond the runs' spread (its fastest run went from
   7.01 s to 7.42 s), and move the other two by under 1%. Where a projection function unfolds
   first, heights may have decided sooner; the profile is to show whether that is the cause.
-- **The rest of the gap is elsewhere,** in parts no measurement has divided yet: inference that
-  checks, the infer-only queries, weak head normal forms, instantiation, and hashing the caches'
-  keys (§5, item 5).
+- **Taking out the evaluator's walks gives 25% to 33%,** the most of any step on passing cones.
+- **The rest of the gap is the cost of each step,** not their number (§7.5).
 
 ### 7.4 The order from here
 
-1. **A profile of `balanceL`'s check,** dividing its 21 s among the parts §7.3 names, and of
-   `binaryRec`'s 6%.
-2. **Hint kinds from the import:** Lean's `ReducibilityHints`, passed by the bridge as a role of
+1. **Hint kinds from the import:** Lean's `ReducibilityHints`, passed by the bridge as a role of
    `TypeTheoryDefinition` and kept through replay, so that every abbreviation Lean has unfolds
-   first and opaque hints unfold last.
-3. **The `decide` shortcut,** on the five `ZMod` constants.
-4. **The cache,** keyed by an ordered pair without the environment, and asked between lazy-δ steps.
-5. **The failure set inside `lazyDeltaStep`,** if the profile still shows repeated argument
-   comparisons.
-6. **Literal arithmetic for closed rational terms,** as Lean's kernel computes `Nat` literals, if
-   failing comparisons of numerals stay slow.
+   first and opaque hints unfold last, once a count of the kinds in the cones shows they matter
+   there.
+2. **The `decide` shortcut,** on the five `ZMod` constants.
+3. **The cache asked between lazy-δ steps,** its key keeping the environment (§5, item 5).
+4. **The failure set inside `lazyDeltaStep`,** if a profile shows repeated argument comparisons.
+5. **Literal arithmetic for closed integer and rational terms,** as Lean's kernel computes `Nat`
+   literals, if failing comparisons of numerals stay slow.
+6. **One dispatch for each node of a substitution,** in place of three, for at most 10% to 20%
+   (§7.5).
 
-Neither Lean's union-find closure, which its own kernel no longer has, nor cheap projections
-(§7.2) is worth adding.
+None of these is worth adding:
+- Lean's union-find closure, which its own kernel no longer has;
+- cheap projections (§7.2);
+- substitution by the bound variables' positions (§7.5).
+
+### 7.5 Where `balanceL`'s time goes
+
+A profile of `balanceL`'s check, its calls each timed, takes 74.7 s against 21.86 s unprofiled,
+with the 6.7 µs that timing a call costs subtracted:
+- **Inference:** 241,677 calls, 67.6 s inclusive. The infer-only queries are 16,242 of them,
+  1.25 s, so on passing cones infer-only inference has nothing more to give.
+- **Reduction:** `weakHeadNormalForm` takes 76% of its 67,091 calls from its cache.
+- **Substitution:** `instantiateBoundVariables` makes 271,478 calls, 37.0 s inclusive, half the
+  profiled time. The loose-variable range cache answers 82% of its 2.9 million questions.
+- **Per constant:** 108 definitional-equality calls, 13.7 of them computed; 157 inferences, 68
+  computed; 176 instantiations. That is one walk of each declaration with caches, as Lean's
+  kernel makes, not a blow-up. The gap is the cost of each call: about 40 µs for an
+  instantiation, against Lean's under one.
+
+Substitution's variants, `balanceL` checked three times each, the median:
+
+| Variant | Checking |
+|---|---:|
+| the kernel's walk, memoized for each distinct subterm | 21.85 s |
+| constants, sorts, literals and variables answered without the range cache | 21.54 s |
+| the bound variables found by `Position`, replaced by one `ReplacePart` | over 300 s |
+| no loose-variable range cache | 87.45 s |
+
+- **The positions** give every answer of the walk, 0 differences in 271,478 substitutions. But
+  `Position` and `ReplacePart` work on the tree a term writes out to, and the walk on its distinct
+  subterms, far fewer.
+- **The range cache** pays for itself four times over.
+- **The leaves' fast path** gains 1.5%, consistently, and is built.
+
+What remains of a step is the evaluator's cost for each call.

@@ -14,6 +14,12 @@ are identical expressions, so `SameQ` and `Association` keys compare them struct
 Every name is held, `HoldComplete[name]`, in binders and in constant references, because the prelude's
 constants are built-in symbols (`Equal`, `Plus`) and user names may have values.
 
+The composite heads, `application`, `lambdaAbstraction`, `dependentFunctionType`, `localDefinition`,
+`projection` and `cubicalSystem`, are `HoldAllComplete`, so evaluating a term stops at its head, and every
+construction computes its parts first. The kernel's steps keep their locals in `Block` and dispatch on
+their definitions' patterns, never substituting into a term. Wolfram 15's evaluator would otherwise walk a
+term as the tree it writes out to, which doubles with each integer added: `EvaluationCosts.md`.
+
 A universe level is normalized to a maximum of components, each an integer or a base with an offset.
 `levelEquivalentQ` compares normal forms. `levelLessEqualQ` is sound but incomplete: it can reject a
 true inequality between levels with parameters, which would reject a valid declaration, never accept a
