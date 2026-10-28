@@ -570,3 +570,32 @@ VerificationTest[
 	{"NoInstance", "NotTranslatable", "ExistentialExpected"},
 	TestID -> "FindInstance-fails-without-an-instance-or-on-what-it-cannot-translate"
 ]
+
+(* the side of an equation may meet its instance only by computation: m 2 is m (1 + 1), so the rewrite takes it,
+   where it used to leave the goal unchanged without a word; a side with no instance at all still fails *)
+VerificationTest[
+	With[
+		{
+			rewritten = TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m * 2 == m + m], {
+				TypeTheoryTactic["Introduce", m],
+				TypeTheoryTactic["Rewrite", MultiplicationSuccessorRight[m, 1]]
+			}]
+		},
+		{
+			MatchQ[rewritten["Goals"], {TypeTheoryTerm[_ ⊢ m * 1 + m == m + m, _]}],
+			TypeTheoryTactic["Rewrite", MultiplicationOneRight[m]][rewritten]["Goals"],
+			First @ TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m * 2 == m + m], {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["Rewrite", AdditionCommutativity[m, 5]]}]
+		}
+	],
+	{True, {}, "NoInstance"},
+	TestID -> "Rewrite-takes-an-instance-equal-to-the-side-by-computation"
+]
+
+(* a premise P[x] whose P the goal fixes as a function is beta reduced in the new goal, not left as a redex *)
+VerificationTest[
+	With[{applied = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, x + 1 == 3], {TypeTheoryTactic["Apply", ExistsIntroduction]}]},
+		{FreeQ[applied["Goals"], Function], TypeTheoryTactic["Exact", EqualityReflexivity[3]][applied]["Goals"]}
+	],
+	{True, {}},
+	TestID -> "Apply-states-its-new-goals-beta-reduced"
+]

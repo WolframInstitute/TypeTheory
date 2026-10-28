@@ -378,7 +378,9 @@ applyTerm[data_, goal_, held_HoldComplete] := With[
 				newIds = DeleteDuplicates @ Cases[applied, metavariable[id_] /; ! KeyExistsQ[goalTypes, id] :> id, {0, Infinity}],
 				updated = keepSolvedGoals[data, goalTypes]
 			},
-			{newTypes = AssociationMap[Function[id, instantiateMetavariables[$metavariableTypes[id]]], newIds]},
+			(* a premise P[x] whose P the conclusion fixed as a function is a redex until beta reduced, which the new
+			   goal states it as, as the other tactics state theirs *)
+			{newTypes = AssociationMap[Function[id, betaNormalize[instantiateMetavariables[$metavariableTypes[id]]]], newIds]},
 			If[ ! FreeQ[{applied, Values[newTypes]}, _levelMetavariable],
 				tacticFailure["UnsolvedUniverseLevel", "Could not infer every universe level while applying to the goal `1`.", data, goal]
 			];
@@ -505,7 +507,12 @@ rewrittenStatement[data_, goal_, current_, goalTypes_, syntax_, direction_String
 		tacticFailure["UnsolvedImplicitArgument", "Could not infer every argument of the equation used to rewrite the goal `1`.", data, goal]
 	];
 	instance = If[direction === "LeftToRight", left, right];
-	motiveBody = abstractInstances[instantiateMetavariables[target], instance];
+	(* the subterm the side unified with may be equal to the instance only by computation, as m 2 is to m (1 + 1),
+	   so every subterm equal to it is abstracted, not only its copies; a goal with none left has no instance *)
+	motiveBody = withKernelCaches[abstractInstances[instantiateMetavariables[target], instance, instanceOfQ[environment, context, instance]]];
+	If[ ! boundVariableOccursQ[motiveBody, 0],
+		tacticFailure["NoInstance", "The goal `1` has no instance of `2`.", data, goal, {displayCoreTerm[environment, context, instance]}]
+	];
 	<|
 		"Left" -> left,
 		"Right" -> right,
@@ -642,23 +649,34 @@ sowInstanceCandidates[term_] := sowInstanceCandidate[term]
 
 sowInstanceCandidate[term_] := If[looseBoundRange[term] == 0, Sow[term, "candidate"]]
 
-(* term with every copy of instance replaced by the variable of a binder just outside it *)
-abstractInstances[term_, instance_] := Block[{$instanceMemo = <||>}, abstractInstance[term, instance, 0]]
+(* term with every copy of instance, or with a test every subterm the test takes, replaced by the variable of a
+   binder just outside it *)
+abstractInstances[term_, instance_] := abstractInstances[term, instance, Function[candidate, candidate === instance]]
+abstractInstances[term_, instance_, instanceQ_] := Block[{$instanceMemo = <||>}, abstractInstance[term, instanceQ, 0]]
 
-abstractInstance[term_, instance_, depth_] := Lookup[
+abstractInstance[term_, instanceQ_, depth_] := Lookup[
 	$instanceMemo,
 	Key[{term, depth}],
-	$instanceMemo[{term, depth}] = If[term === instance, boundVariable[depth], abstractInstanceBelow[term, instance, depth]]
+	$instanceMemo[{term, depth}] = If[instanceQ[term], boundVariable[depth], abstractInstanceBelow[term, instanceQ, depth]]
 ]
 
-abstractInstanceBelow[application[function_, argument_], instance_, depth_] :=
-	application[abstractInstance[function, instance, depth], abstractInstance[argument, instance, depth]]
-abstractInstanceBelow[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], instance_, depth_] :=
-	head[name, abstractInstance[domain, instance, depth], abstractInstance[body, instance, depth + 1], binder]
-abstractInstanceBelow[localDefinition[name_, type_, value_, body_], instance_, depth_] :=
-	localDefinition[name, abstractInstance[type, instance, depth], abstractInstance[value, instance, depth], abstractInstance[body, instance, depth + 1]]
-abstractInstanceBelow[projection[structure_, index_, inner_], instance_, depth_] := projection[structure, index, abstractInstance[inner, instance, depth]]
+abstractInstanceBelow[application[function_, argument_], instanceQ_, depth_] :=
+	application[abstractInstance[function, instanceQ, depth], abstractInstance[argument, instanceQ, depth]]
+abstractInstanceBelow[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_], instanceQ_, depth_] :=
+	head[name, abstractInstance[domain, instanceQ, depth], abstractInstance[body, instanceQ, depth + 1], binder]
+abstractInstanceBelow[localDefinition[name_, type_, value_, body_], instanceQ_, depth_] :=
+	localDefinition[name, abstractInstance[type, instanceQ, depth], abstractInstance[value, instanceQ, depth], abstractInstance[body, instanceQ, depth + 1]]
+abstractInstanceBelow[projection[structure_, index_, inner_], instanceQ_, depth_] := projection[structure, index, abstractInstance[inner, instanceQ, depth]]
 abstractInstanceBelow[term_, _, _] := term
+
+(* the subterms a rewrite takes for its instance, as Lean's kabstract: a copy, or a subterm with no variable of a
+   binder inside the goal and no hole, with the instance's head and number of arguments, equal to it by computation *)
+instanceOfQ[environment_, context_, instance_] := With[{key = instancePatternKey[instance], closedQ = FreeQ[instance, _metavariable]},
+	Function[candidate, Or[
+		candidate === instance,
+		closedQ && looseBoundRange[candidate] == 0 && FreeQ[candidate, _metavariable] && instancePatternKey[candidate] === key && definitionallyEqualQ[environment, context, candidate, instance]
+	]]
+]
 
 (* the recursor of the type of equations, eliminating into the sort of the goal *)
 equationRecursor[data_, goal_, context_, equality_, levels_List, target_] := With[
