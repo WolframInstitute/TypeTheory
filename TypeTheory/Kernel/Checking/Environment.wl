@@ -222,12 +222,12 @@ setNaturalNumberSettings[TypeTheoryEnvironment[store_Symbol], settings_] := newE
 (* The stores body created become unreachable once body is done, except through its value, so the
    others are removed. The kept ones are reported to an enclosing withStoreCleanup in turn. *)
 SetAttributes[withStoreCleanup, HoldFirst]
-withStoreCleanup[body_] := Module[{result, created, kept},
-	{result, created} = Reap[body, $storeTag];
-	kept = Cases[result, TypeTheoryEnvironment[store_Symbol] :> store, {0, Infinity}];
-	Scan[Remove, Complement[Flatten[created], kept]];
-	Scan[Function[store, Sow[store, $storeTag]], Intersection[Flatten[created], kept]];
-	result
+withStoreCleanup[body_] := Block[{cleanupResult, cleanupCreated, cleanupKept},
+	{cleanupResult, cleanupCreated} = Reap[body, $storeTag];
+	cleanupKept = Cases[cleanupResult, TypeTheoryEnvironment[store_Symbol] :> store, {0, Infinity}];
+	Scan[Remove, Complement[Flatten[cleanupCreated], cleanupKept]];
+	Scan[Function[store, Sow[store, $storeTag]], Intersection[Flatten[cleanupCreated], cleanupKept]];
+	cleanupResult
 ]
 
 SetAttributes[withoutStoreTracking, HoldFirst]
@@ -250,8 +250,11 @@ kernelFailure[tag_String, template_String, parameters_List] := throwFailure[
 
 throwFailure[failure_Failure] := Throw[failure, $kernelFailureTag]
 
+(* The kernel recurses as deep as the term it reduces nests: Decide on a sum of 128 integers goes past 1024 calls
+   deep. Lean's kernel has no limit of its own, so a check runs with a limit of at least 20000, as the benchmark
+   of Mathlib's cones does. *)
 SetAttributes[catchKernelFailure, HoldFirst]
-catchKernelFailure[expr_] := Catch[expr, $kernelFailureTag]
+catchKernelFailure[expr_] := Block[{$RecursionLimit = Max[$RecursionLimit, 20000]}, Catch[expr, $kernelFailureTag]]
 
 
 TypeTheoryEnvironment /: MakeBoxes[environment : TypeTheoryEnvironment[store_Symbol], format : StandardForm] /; environmentQ[environment] := With[

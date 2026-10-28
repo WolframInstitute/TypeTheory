@@ -233,16 +233,16 @@ inductionType[type_, introduction_, u_] := With[
 
 
 (* a lift or an induction applied to a class takes the class's element, as Lean's kernel reduces them *)
-reduceQuotient[environment_, context_, term_, record_, arguments_List] := Replace[{record["QuotientRole"], arguments}, {
-	{"Lift", {_, _, _, function_, _, major_, rest___}} :> quotientComputation[environment, context, term, record, function, major, {rest}],
-	{"Induction", {_, _, _, premise_, major_, rest___}} :> quotientComputation[environment, context, term, record, premise, major, {rest}],
-	_ :> term
-}]
+reduceQuotient[environment_, context_, term_, record_, arguments_List] := quotientReduct[environment, context, term, record, record["QuotientRole"], arguments]
 
-quotientComputation[environment_, context_, term_, record_, function_, major_, rest_List] := Replace[
-	applicationSpine[weakHeadNormalForm[environment, context, major]],
-	{
-		{constantReference[introduction_, _], {_, _, element_}} /; introduction === record["Introduction"] :> makeApplication[function, Prepend[rest, element]],
-		_ :> term
-	}
-]
+(* by the patterns of definitions, not of rules: a rule that matches puts its variables into its right side by
+   walking it, the term there included, which W15 does as for the tree the term writes out to *)
+quotientReduct[environment_, context_, term_, record_, "Lift", {_, _, _, function_, _, major_, rest___}] := quotientComputation[environment, context, term, record, function, major, {rest}]
+quotientReduct[environment_, context_, term_, record_, "Induction", {_, _, _, premise_, major_, rest___}] := quotientComputation[environment, context, term, record, premise, major, {rest}]
+quotientReduct[_, _, term_, _, _, _] := term
+
+quotientComputation[environment_, context_, term_, record_, function_, major_, rest_List] :=
+	classReduct[term, record["Introduction"], function, rest, applicationSpine[weakHeadNormalForm[environment, context, major]]]
+
+classReduct[_, introduction_, function_, rest_, {constantReference[introduction_, _], {_, _, element_}}] := makeApplication[function, Prepend[rest, element]]
+classReduct[term_, _, _, _, _] := term

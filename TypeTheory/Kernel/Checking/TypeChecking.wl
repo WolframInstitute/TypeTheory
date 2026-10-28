@@ -197,7 +197,9 @@ cubicalSpineType[environment_, context_, term_] := If[ ! cubicalDeclaredQ[enviro
 	}]
 ]
 
-constantType[environment_, name_, levels_List] := With[{record = constantRecord[environment, name]},
+constantType[environment_, name_, levels_List] := constantTypeOf[environment, name, levels, constantRecord[environment, name]]
+
+constantTypeOf[environment_, name_, levels_, record_] := (
 	Which[
 		record["Kind"] === "RewriteRule",
 			kernelFailure["RewriteRuleTerm", "`1` is a rewrite rule, not a term.", {HoldForm @@ name}],
@@ -208,7 +210,7 @@ constantType[environment_, name_, levels_List] := With[{record = constantRecord[
 		True,
 			instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]
 	]
-]
+)
 
 noPropFailure[_, 0] := kernelFailure["NoProp", "TypeUniverse[0] is Prop, which the rules of this environment do not have.", {}]
 noPropFailure[environment_, level_] := kernelFailure[
@@ -227,9 +229,9 @@ naturalNumberType[environment_] := Replace[naturalNumberSettings[environment], {
    them once at the end. Taking one argument at a time instead, each argument instantiated the whole rest of the
    function's type, so a spine of n arguments cost n substitutions of its telescope. In infer-only mode the arguments
    are not checked, and only the codomain is instantiated. *)
-spineType[environment_, context_, term_] := With[{spine = applicationSpine[term]},
-	spineTypeFrom[environment, context, First[spine], inferType[environment, context, First[spine]], {}, Last[spine]]
-]
+spineType[environment_, context_, term_] := spineTypeOf[environment, context, applicationSpine[term]]
+
+spineTypeOf[environment_, context_, {head_, arguments_}] := spineTypeFrom[environment, context, head, inferType[environment, context, head], {}, arguments]
 
 (* prefix: the head applied to the arguments taken so far; type: the head's type under the binders passed since the
    last reduction, whose bound variables stand for the pending arguments, innermost last *)
@@ -258,7 +260,9 @@ spineTypeFrom[environment_, context_, prefix_, type_, pending_List, arguments : 
    checked just now, and the expected type is the caller's: a binder's domain in a checked function type, with checked
    arguments put in (spineTypeFrom), a local definition's type, checked just before (localDefinitionType), or the
    declaration's type, checked before its value (Declarations.wl). *)
-checkHasType[environment_, context_, term_, expected_] := With[{actual = inferType[environment, context, term]},
+checkHasType[environment_, context_, term_, expected_] := checkInferredType[environment, context, term, inferType[environment, context, term], expected]
+
+checkInferredType[environment_, context_, term_, actual_, expected_] := (
 	If[ ! definitionallyEqualQ[environment, context, actual, expected] && ! cubicalFitQ[environment, context, term, actual, expected],
 		kernelFailure[
 			"TypeMismatch",
@@ -266,18 +270,16 @@ checkHasType[environment_, context_, term_, expected_] := With[{actual = inferTy
 			{displayCoreTerm[environment, context, term], displayCoreTerm[environment, context, actual], displayCoreTerm[environment, context, expected]}
 		]
 	]
-]
+)
 
 (* a function of the interval of cubical type theory is a path between its values at the endpoints *)
-lambdaType[environment_, context_, name_, domain_, body_, binder_] := With[{id = freshFreeVariable[]},
+lambdaType[environment_, context_, name_, domain_, body_, binder_] := Block[{lambdaId = freshFreeVariable[], lambdaContext, lambdaBodyType},
 	checkBinderQuantity[environment, name, binder];
 	If[! $inferOnly, checkIntervalDomain[environment, context, domain]];
-	With[{bodyContext = extendContext[context, id, name, domain, binder]},
-		With[{bodyType = inferType[environment, bodyContext, instantiateBoundVariable[body, freeVariable[id]]]},
-			Replace[intervalLambdaType[environment, bodyContext, id, name, domain, body, bodyType], None :>
-				Construct[dependentFunctionType, name, domain, abstractFreeVariable[bodyType, id], binder]
-			]
-		]
+	lambdaContext = extendContext[context, lambdaId, name, domain, binder];
+	lambdaBodyType = inferType[environment, lambdaContext, instantiateBoundVariable[body, freeVariable[lambdaId]]];
+	Replace[intervalLambdaType[environment, lambdaContext, lambdaId, name, domain, body, lambdaBodyType], None :>
+		Construct[dependentFunctionType, name, domain, abstractFreeVariable[lambdaBodyType, lambdaId], binder]
 	]
 ]
 
@@ -287,11 +289,11 @@ functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] /; 
 	checkBinderQuantity[environment, name, binder];
 	intervalUniverse[]
 )
-functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := With[{id = freshFreeVariable[]},
+functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := Block[{functionTypeId = freshFreeVariable[]},
 	checkBinderQuantity[environment, name, binder];
 	universeSort[normalizeLevel[levelImpredicativeMaximum[
 		sortLevel[environment, context, domain],
-		sortLevel[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]]]
+		sortLevel[environment, extendContext[context, functionTypeId, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[functionTypeId]]]
 	]]]
 ]
 
@@ -341,28 +343,28 @@ structureLikeQ[environment_, name_HoldComplete] := And[
    parameters and the earlier fields, as projections of the term, filled in. A proof of a proposition
    only yields proofs, nor a proof whose type depends on a field that is data: projecting data out of a
    proof would contradict proof irrelevance. These are the rules of Lean 4's kernel. *)
-projectionType[environment_, context_, structure_, index_, structureTerm_] := Module[
-	{structureType, head, parameters, record, fieldsType, fieldType, propositionQ},
-	structureType = weakHeadNormalForm[environment, context, inferType[environment, context, structureTerm]];
-	{head, parameters} = applicationSpine[structureType];
-	If[ ! MatchQ[head, constantReference[structure, _]] || ! structureLikeQ[environment, structure],
+projectionType[environment_, context_, structure_, index_, structureTerm_] := Block[
+	{projectedType, projectedHead, projectedParameters, projectedRecord, projectedFieldsType, projectedFieldType, projectedFromProofQ},
+	projectedType = weakHeadNormalForm[environment, context, inferType[environment, context, structureTerm]];
+	{projectedHead, projectedParameters} = applicationSpine[projectedType];
+	If[ ! MatchQ[projectedHead, constantReference[structure, _]] || ! structureLikeQ[environment, structure],
 		kernelFailure["ProjectionType", "The type of `1` is not the structure `2`.", {displayCoreTerm[environment, context, structureTerm], HoldForm @@ structure}]
 	];
-	record = constantRecord[environment, structure];
-	fieldsType = Fold[
+	projectedRecord = constantRecord[environment, structure];
+	projectedFieldsType = Fold[
 		Function[{type, value}, instantiateLeadingBinder[environment, context, type, value]],
-		instantiateUniverseParameters[constantRecord[environment, First[record["Constructors"]]]["Type"], record["UniverseParameters"], Last[head]],
-		parameters
+		instantiateUniverseParameters[constantRecord[environment, First[projectedRecord["Constructors"]]]["Type"], projectedRecord["UniverseParameters"], Last[projectedHead]],
+		projectedParameters
 	];
-	propositionQ = levelEquivalentQ[sortLevel[environment, context, structureType], 0];
-	fieldType = Fold[
-		Function[{type, earlier}, instantiateEarlierField[environment, context, structure, structureTerm, propositionQ, type, earlier]],
-		fieldsType,
+	projectedFromProofQ = levelEquivalentQ[sortLevel[environment, context, projectedType], 0];
+	projectedFieldType = Fold[
+		Function[{type, earlier}, instantiateEarlierField[environment, context, structure, structureTerm, projectedFromProofQ, type, earlier]],
+		projectedFieldsType,
 		Range[0, index - 1]
 	];
-	Replace[weakHeadNormalForm[environment, context, fieldType], {
+	Replace[weakHeadNormalForm[environment, context, projectedFieldType], {
 		dependentFunctionType[_, domain_, _, _] :> (
-			If[ propositionQ && ! levelEquivalentQ[sortLevel[environment, context, domain], 0],
+			If[ projectedFromProofQ && ! levelEquivalentQ[sortLevel[environment, context, domain], 0],
 				projectionFromProofFailure[environment, context, structureTerm]
 			];
 			domain
@@ -414,21 +416,23 @@ reducedHeadWithoutUnfolding[environment_, context_, term_] := Block[{$unfoldDefi
 
 $unfoldDefinitions = True
 
+(* A step of reduction passes its values on in calls. W15 renames the variables of a scoping construct nested in
+   another, a With in a With or a rule in a With, by walking the inner body, and a term put there by the outer
+   pattern is walked as the tree it writes out to: a term that shares its subterms many times over, as a sum of
+   integers does, costs each step twice the step before. *)
+reduceHead[environment_, context_, term_] := reduceSpineOf[environment, context, term, applicationSpine[term]]
+
+reduceSpineOf[environment_, context_, term_, {head_, arguments_}] := endpointOrReduced[environment, context, term, head, arguments, reduceSpine[environment, context, term, head, arguments]]
+
 (* in cubical type theory, a path that is stuck at an endpoint is that endpoint of its type *)
-reduceHead[environment_, context_, term_] := With[{spine = applicationSpine[term]},
-	With[{reduced = reduceSpine[environment, context, term, First[spine], Last[spine]]},
-		If[ reduced === term && Last[spine] =!= {} && cubicalDeclaredQ[environment],
-			reducePathEndpoint[environment, context, term, First[spine], Last[spine]],
-			reduced
-		]
-	]
+endpointOrReduced[environment_, context_, term_, head_, arguments_, reduced_] := If[ reduced === term && arguments =!= {} && cubicalDeclaredQ[environment],
+	reducePathEndpoint[environment, context, term, head, arguments],
+	reduced
 ]
 
 (* a function of several variables applied to arguments for them takes them all in one substitution, as in
    Lean's kernel, not one substitution each *)
-reduceSpine[_, _, _, function_lambdaAbstraction, arguments : {__}] := With[{peeled = peelFunctions[function, Length[arguments]]},
-	makeApplication[instantiateBoundVariables[First[peeled], Take[arguments, Last[peeled]]], Drop[arguments, Last[peeled]]]
-]
+reduceSpine[_, _, _, function_lambdaAbstraction, arguments : {__}] := betaReduced[peelFunctions[function, Length[arguments]], arguments]
 reduceSpine[_, _, _, localDefinition[_, _, value_, body_], arguments_List] := makeApplication[instantiateBoundVariable[body, value], arguments]
 reduceSpine[_, _, _, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id], arguments_List] :=
 	makeApplication[$metavariableAssignments[id], arguments]
@@ -439,6 +443,8 @@ reduceSpine[environment_, context_, term_, projection[structure_, index_, struct
 reduceSpine[_, context_, _, freeVariable[id_], arguments_List] /; KeyExistsQ[Lookup[context, id, <||>], "Value"] := makeApplication[context[id]["Value"], arguments]
 reduceSpine[_, _, term_, _, _] := term
 
+betaReduced[{body_, count_}, arguments_] := makeApplication[instantiateBoundVariables[body, Take[arguments, count]], Drop[arguments, count]]
+
 (* {body, count}: the body under the outermost functions nested in term, count of them and at most limit *)
 peelFunctions[term_, limit_Integer] := NestWhile[
 	Function[state, {state[[1, 3]], state[[2]] + 1}],
@@ -447,26 +453,26 @@ peelFunctions[term_, limit_Integer] := NestWhile[
 ]
 
 (* a registered operation on natural numbers computes on literals before it unfolds *)
-reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := Replace[
-	literalOperationResult[environment, context, name, arguments],
-	None :> With[{record = constantRecord[environment, name]},
-		Which[
-			record["Kind"] === "Definition" && $unfoldDefinitions,
-				unfoldDefinition[record, levels, arguments],
-			record["Kind"] === "Definition",
-				term,
-			record["Kind"] === "Recursor",
-				reduceRecursor[environment, context, term, record, levels, arguments],
-			record["Kind"] === "Axiom",
-				rewriteAxiom[environment, context, term, name, levels, arguments],
-			record["Kind"] === "Quotient",
-				reduceQuotient[environment, context, term, record, arguments],
-			record["Kind"] === "Cubical",
-				reduceCubical[environment, context, term, record, levels, arguments],
-			True,
-				term
-		]
-	]
+reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := constantReduct[environment, context, term, name, levels, arguments, literalOperationResult[environment, context, name, arguments]]
+
+constantReduct[environment_, context_, term_, name_, levels_, arguments_, None] := reduceByKind[environment, context, term, name, levels, arguments, constantRecord[environment, name]]
+constantReduct[_, _, _, _, _, _, result_] := result
+
+reduceByKind[environment_, context_, term_, name_, levels_, arguments_, record_] := Which[
+	record["Kind"] === "Definition" && $unfoldDefinitions,
+		unfoldDefinition[record, levels, arguments],
+	record["Kind"] === "Definition",
+		term,
+	record["Kind"] === "Recursor",
+		reduceRecursor[environment, context, term, record, levels, arguments],
+	record["Kind"] === "Axiom",
+		rewriteAxiom[environment, context, term, name, levels, arguments],
+	record["Kind"] === "Quotient",
+		reduceQuotient[environment, context, term, record, arguments],
+	record["Kind"] === "Cubical",
+		reduceCubical[environment, context, term, record, levels, arguments],
+	True,
+		term
 ]
 
 (* An axiom applied to arguments that match the left side of one of its rewrite rules gives the right
@@ -556,16 +562,16 @@ unfoldDefinition[record_, levels_, arguments_] :=
 	makeApplication[instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels], arguments]
 
 (* a projection of the constructor applied to its parameters and fields is that field *)
-reduceProjection[environment_, context_, term_, structure_, index_, structureTerm_, arguments_List] := With[
-	{record = constantRecord[environment, structure]},
-	Replace[applicationSpine[weakHeadNormalForm[environment, context, structureTerm]], {
-		{constantReference[constructor_, _], constructorArguments_List} /; And[
-			record["Constructors"] === {constructor},
-			Length[constructorArguments] == record["NumberOfParameters"] + constantRecord[environment, constructor]["NumberOfFields"]
-		] :> makeApplication[First @ Drop[constructorArguments, record["NumberOfParameters"] + index], arguments],
-		_ :> term
-	}]
-]
+reduceProjection[environment_, context_, term_, structure_, index_, structureTerm_, arguments_List] :=
+	projectedField[environment, term, index, arguments, constantRecord[environment, structure], applicationSpine[weakHeadNormalForm[environment, context, structureTerm]]]
+
+projectedField[environment_, term_, index_, arguments_, record_, spine_] := Replace[spine, {
+	{constantReference[constructor_, _], constructorArguments_List} /; And[
+		record["Constructors"] === {constructor},
+		Length[constructorArguments] == record["NumberOfParameters"] + constantRecord[environment, constructor]["NumberOfFields"]
+	] :> makeApplication[First @ Drop[constructorArguments, record["NumberOfParameters"] + index], arguments],
+	_ :> term
+}]
 
 toConstructorForm[environment_, naturalLiteral[n_Integer]] := Replace[naturalNumberSettings[environment], {
 	settings_Association /; n == 0 :> constantReference[settings["Zero"], {}],
@@ -577,55 +583,43 @@ toConstructorForm[_, term_] := term
 
 (* A recursor applied to all its arguments up to the major premise: parameters, motives, one for each type
    of its block, minor premises, indices, major premise, then any further arguments. *)
-reduceRecursor[environment_, context_, term_, record_, levels_, arguments_] := With[
-	{
-		numberOfParameters = record["NumberOfParameters"],
-		numberOfMotives = record["NumberOfMotives"],
-		numberOfMinors = record["NumberOfMinors"],
-		numberOfIndices = record["NumberOfIndices"]
-	},
-	If[ Length[arguments] < numberOfParameters + numberOfMotives + numberOfMinors + numberOfIndices + 1,
-		term,
-		reduceRecursorApplication[
-			environment,
-			context,
-			term,
-			record,
-			levels,
-			TakeList[arguments, {numberOfParameters, numberOfMotives, numberOfMinors, numberOfIndices, 1, All}]
-		]
-	]
+reduceRecursor[environment_, context_, term_, record_, levels_, arguments_] :=
+	reduceRecursorOf[environment, context, term, record, levels, arguments, Lookup[record, {"NumberOfParameters", "NumberOfMotives", "NumberOfMinors", "NumberOfIndices"}]]
+
+reduceRecursorOf[environment_, context_, term_, record_, levels_, arguments_, counts_List] := If[ Length[arguments] < Total[counts] + 1,
+	term,
+	reduceRecursorApplication[environment, context, term, record, levels, TakeList[arguments, Join[counts, {1, All}]]]
 ]
 
 (* the constructor's own parameters come before its fields: those of the block, or of the nested type
    whose recursor this is *)
-reduceRecursorApplication[environment_, context_, term_, record_, levels_, {parameters_, motives_, minors_, indices_, {major_}, rest_}] := Replace[
-	applicationSpine[toConstructorForm[environment, weakHeadNormalForm[environment, context, major]]],
-	{
-		{constantReference[constructor_, _], constructorArguments_} /; constructorApplicationQ[record, constructor, constructorArguments] :>
-			applyRecursorRule[record, levels, parameters, motives, minors, constructor, Drop[constructorArguments, record["Rules"][constructor]["NumberOfParameters"]], rest],
-		_ /; TrueQ[record["KLike"]] :>
-			reduceKLike[environment, context, term, record, levels, parameters, motives, minors, major, rest],
-		_ :> Replace[structureFields[environment, context, record, major], {
-			fields_List :> applyRecursorRule[record, levels, parameters, motives, minors, First[Keys[record["Rules"]]], fields, rest],
-			None :> term
-		}]
-	}
+reduceRecursorApplication[environment_, context_, term_, record_, levels_, {parameters_, motives_, minors_, indices_, {major_}, rest_}] := recursorReduct[
+	environment, context, term, record, levels, parameters, motives, minors, major, rest,
+	applicationSpine[toConstructorForm[environment, weakHeadNormalForm[environment, context, major]]]
 ]
+
+recursorReduct[_, _, _, record_, levels_, parameters_, motives_, minors_, _, rest_, {constantReference[constructor_, _], constructorArguments_}] /;
+	constructorApplicationQ[record, constructor, constructorArguments] :=
+	applyRecursorRule[record, levels, parameters, motives, minors, constructor, Drop[constructorArguments, record["Rules"][constructor]["NumberOfParameters"]], rest]
+recursorReduct[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_, _] /; TrueQ[record["KLike"]] :=
+	reduceKLike[environment, context, term, record, levels, parameters, motives, minors, major, rest]
+recursorReduct[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_, _] :=
+	structureReduct[term, record, levels, parameters, motives, minors, rest, structureFields[environment, context, record, major]]
+
+structureReduct[_, record_, levels_, parameters_, motives_, minors_, rest_, fields_List] := applyRecursorRule[record, levels, parameters, motives, minors, First[Keys[record["Rules"]]], fields, rest]
+structureReduct[term_, _, _, _, _, _, _, None] := term
 
 (* Eta for structures, as Lean's kernel reduces a recursor: a major premise of a structure type that is
    not a constructor application is the constructor applied to its projections, so a match on a pair p
    computes with p.1 and p.2. A proposition is left alone, since data cannot be projected out of a proof. *)
-structureFields[environment_, context_, record_, major_] := With[{name = record["InductiveType"]},
-	If[ ! structureLikeQ[environment, name],
-		None,
-		With[{majorType = weakHeadNormalForm[environment, context, typeQuery[environment, context, major]]},
-			If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || propositionTypeQ[environment, context, majorType],
-				None,
-				Table[Construct[projection, name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
-			]
-		]
-	]
+structureFields[environment_, context_, record_, major_] := If[ ! structureLikeQ[environment, record["InductiveType"]],
+	None,
+	projectionsOf[environment, context, record, record["InductiveType"], major, weakHeadNormalForm[environment, context, typeQuery[environment, context, major]]]
+]
+
+projectionsOf[environment_, context_, record_, name_, major_, majorType_] := If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || propositionTypeQ[environment, context, majorType],
+	None,
+	Table[Construct[projection, name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
 ]
 
 propositionTypeQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, typeQuery[environment, context, type]], universeSort[level_] /; levelEquivalentQ[level, 0]]
@@ -644,17 +638,16 @@ applyRecursorRule[record_, levels_, parameters_, motives_List, minors_, construc
    on any major premise whose type matches the constructor's, not only on the constructor itself. The
    types compared are those of the major premise and of the constructor applied to the parameters, all
    arguments of the recursor application reduced. *)
-reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_] := With[
-	{
-		constructor = First[Keys[record["Rules"]]],
-		inductiveLevels = If[TrueQ[record["EliminationUniverse"]], Rest[levels], levels]
-	},
-	With[{constructorApplication = makeApplication[constantReference[constructor, inductiveLevels], parameters]},
-		If[ definitionallyEqualQ[environment, context, typeQuery[environment, context, major], typeQuery[environment, context, constructorApplication]],
-			applyRecursorRule[record, levels, parameters, motives, minors, constructor, {}, rest],
-			term
-		]
-	]
+reduceKLike[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_] := reduceKLikeAt[
+	environment, context, term, record, levels, parameters, motives, minors, major, rest,
+	First[Keys[record["Rules"]]],
+	makeApplication[constantReference[First[Keys[record["Rules"]]], If[TrueQ[record["EliminationUniverse"]], Rest[levels], levels]], parameters]
+]
+
+reduceKLikeAt[environment_, context_, term_, record_, levels_, parameters_, motives_, minors_, major_, rest_, constructor_, constructorApplication_] := If[
+	definitionallyEqualQ[environment, context, typeQuery[environment, context, major], typeQuery[environment, context, constructorApplication]],
+	applyRecursorRule[record, levels, parameters, motives, minors, constructor, {}, rest],
+	term
 ]
 
 
@@ -702,23 +695,22 @@ definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 (* Lean's order: each side reduced as far as it reduces without unfolding a definition, then, where neither
    reduces, proof irrelevance, which decides two proofs by their propositions, then lazy delta. Proof
    irrelevance is asked once for the two sides as they reduce no further, never of the sides on the way. *)
-reducedEqualQ[environment_, context_, a_, b_] := With[
-	{coreA = reducedHeadWithoutUnfolding[environment, context, a], coreB = reducedHeadWithoutUnfolding[environment, context, b]},
-	If[ coreA =!= a || coreB =!= b,
-		definitionallyEqualQ[environment, context, coreA, coreB],
-		Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]
-	]
+reducedEqualQ[environment_, context_, a_, b_] := coresEqualQ[environment, context, a, b, reducedHeadWithoutUnfolding[environment, context, a], reducedHeadWithoutUnfolding[environment, context, b]]
+
+coresEqualQ[environment_, context_, a_, b_, coreA_, coreB_] := If[ coreA =!= a || coreB =!= b,
+	definitionallyEqualQ[environment, context, coreA, coreB],
+	Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]
 ]
 
 (* one definition applied to equal arguments at both heads, tried before unfolding it *)
-sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applicationSpine[a], spineB = applicationSpine[b]},
-	And[
-		MatchQ[First[spineA], _constantReference],
-		Last[spineA] =!= {},
-		Length[Last[spineA]] == Length[Last[spineB]],
-		headsEqualQ[environment, context, First[spineA], First[spineB]],
-		argumentsEqualQ[environment, context, Last[spineA], Last[spineB]]
-	]
+sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := sameHeadSpinesEqualQ[environment, context, applicationSpine[a], applicationSpine[b]]
+
+sameHeadSpinesEqualQ[environment_, context_, {headA_, argumentsA_}, {headB_, argumentsB_}] := And[
+	MatchQ[headA, _constantReference],
+	argumentsA =!= {},
+	Length[argumentsA] == Length[argumentsB],
+	headsEqualQ[environment, context, headA, headB],
+	argumentsEqualQ[environment, context, argumentsA, argumentsB]
 ]
 
 (* Lean's lazy delta reduction. Where neither side reduces further without unfolding a definition, the
@@ -730,19 +722,19 @@ sameHeadArgumentsEqualQ[environment_, context_, a_, b_] := With[{spineA = applic
    heads, from the first pair on; unfolding leaves a proof a proof of the same proposition, so proof
    irrelevance, asked of the first pair, is not asked again. The last pair is compared in full, or by
    its weak head normal forms where nothing unfolded. *)
-lazyDeltaEqualQ[environment_, context_, a_, b_] := Module[{pair = {a, b}, step},
-	step = lazyDeltaStep[environment, context, a, b];
-	While[ ListQ[step] && step[[1]] =!= step[[2]],
-		pair = step;
-		step = lazyDeltaStep[environment, context, pair[[1]], pair[[2]]]
+lazyDeltaEqualQ[environment_, context_, a_, b_] := Block[{lazyDeltaPair = {a, b}, lazyDeltaNext},
+	lazyDeltaNext = lazyDeltaStep[environment, context, a, b];
+	While[ ListQ[lazyDeltaNext] && lazyDeltaNext[[1]] =!= lazyDeltaNext[[2]],
+		lazyDeltaPair = lazyDeltaNext;
+		lazyDeltaNext = lazyDeltaStep[environment, context, lazyDeltaPair[[1]], lazyDeltaPair[[2]]]
 	];
 	Which[
-		step =!= None,
+		lazyDeltaNext =!= None,
 			True,
-		pair === {a, b},
+		lazyDeltaPair === {a, b},
 			normalFormsEqualQ[environment, context, a, b],
 		True,
-			definitionallyEqualQ[environment, context, pair[[1]], pair[[2]]]
+			definitionallyEqualQ[environment, context, lazyDeltaPair[[1]], lazyDeltaPair[[2]]]
 	]
 ]
 
@@ -751,7 +743,9 @@ lazyDeltaEqualQ[environment_, context_, a_, b_] := Module[{pair = {a, b}, step},
    function is, unfolds before a regular definition, and two abbreviations unfold together without their
    arguments compared: x.toRingHom against a long composition reads the field before the composition
    unfolds. Of two regular definitions the higher unfolds first, or both at one height. *)
-lazyDeltaStep[environment_, context_, a_, b_] := With[{definitionA = headDefinition[environment, a], definitionB = headDefinition[environment, b]},
+lazyDeltaStep[environment_, context_, a_, b_] := lazyDeltaStepOf[environment, context, a, b, headDefinition[environment, a], headDefinition[environment, b]]
+
+lazyDeltaStepOf[environment_, context_, a_, b_, definitionA_, definitionB_] := (
 	Which[
 		definitionA === None && definitionB === None,
 			None,
@@ -774,7 +768,7 @@ lazyDeltaStep[environment_, context_, a_, b_] := With[{definitionA = headDefinit
 		True,
 			{unfoldedHead[environment, context, a], unfoldedHead[environment, context, b]}
 	]
-]
+)
 
 (* {height, abbreviation} of the definition at the head of term, or None if no definition that unfolds is at its head *)
 headDefinition[environment_, term_] := Replace[First[applicationSpine[term]], {
@@ -807,66 +801,68 @@ normalFormsEqualQ[environment_, context_, a_, b_] := Which[
 ]
 
 (* eta for structures: S.mk[params, fields] equals t of the same type when each field equals that projection of t *)
-structureEtaQ[environment_, context_, constructorApplication_, other_] := With[{spine = applicationSpine[constructorApplication]},
-	Replace[First[spine], {
-		constantReference[constructor_, _] /; structureConstructorQ[environment, constructor, Length[Last[spine]]] :> With[
-			{
-				structure = constantRecord[environment, constructor]["InductiveType"],
-				fields = Drop[Last[spine], constantRecord[environment, constructor]["NumberOfParameters"]]
-			},
-			And[
-				definitionallyEqualQ[environment, context, typeQuery[environment, context, constructorApplication], typeQuery[environment, context, other]],
-				AllTrue[
-					Transpose[{Range[0, Length[fields] - 1], fields}],
-					Function[pair, definitionallyEqualQ[environment, context, Last[pair], Construct[projection, structure, First[pair], other]]]
-				]
-			]
-		],
-		_ :> False
-	}]
+structureEtaQ[environment_, context_, constructorApplication_, other_] := structureEtaSpineQ[environment, context, constructorApplication, other, applicationSpine[constructorApplication]]
+
+structureEtaSpineQ[environment_, context_, constructorApplication_, other_, {constantReference[constructor_, _], arguments_}] /; structureConstructorQ[environment, constructor, Length[arguments]] :=
+	structureFieldsEqualQ[
+		environment,
+		context,
+		constructorApplication,
+		other,
+		constantRecord[environment, constructor]["InductiveType"],
+		Drop[arguments, constantRecord[environment, constructor]["NumberOfParameters"]]
+	]
+structureEtaSpineQ[_, _, _, _, _] := False
+
+structureFieldsEqualQ[environment_, context_, constructorApplication_, other_, structure_, fields_] := And[
+	definitionallyEqualQ[environment, context, typeQuery[environment, context, constructorApplication], typeQuery[environment, context, other]],
+	AllTrue[
+		Transpose[{Range[0, Length[fields] - 1], fields}],
+		Function[pair, definitionallyEqualQ[environment, context, Last[pair], Construct[projection, structure, First[pair], other]]]
+	]
 ]
 
-structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := With[{record = constantRecord[environment, constructor]},
-	And[
-		record["Kind"] === "Constructor",
-		structureLikeQ[environment, record["InductiveType"]],
-		numberOfArguments == record["NumberOfParameters"] + record["NumberOfFields"]
-	]
+structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := structureConstructorRecordQ[environment, constantRecord[environment, constructor], numberOfArguments]
+
+structureConstructorRecordQ[environment_, record_, numberOfArguments_] := And[
+	record["Kind"] === "Constructor",
+	structureLikeQ[environment, record["InductiveType"]],
+	numberOfArguments == record["NumberOfParameters"] + record["NumberOfFields"]
 ]
 
 (* any two terms of a structure with no fields are equal, unless it is a proposition, where proof irrelevance
    decides; a type is never one, nor is a path type, whose line inferring its type would open again *)
 unitEqualQ[_, _, _universeSort | _dependentFunctionType | _intervalUniverse, _] := False
 unitEqualQ[environment_, context_, a_, _] /; cubicalDeclaredQ[environment] && pathTypeArguments[environment, a] =!= None := False
-unitEqualQ[environment_, context_, a_, b_] := With[{type = weakHeadNormalForm[environment, context, typeQuery[environment, context, a]]},
-	Replace[First @ applicationSpine[type], {
-		constantReference[structure_, _] /; structureLikeQ[environment, structure] && unitStructureQ[environment, structure] :>
-			definitionallyEqualQ[environment, context, type, typeQuery[environment, context, b]],
-		_ :> False
-	}]
-]
+unitEqualQ[environment_, context_, a_, b_] := unitTypeEqualQ[environment, context, b, weakHeadNormalForm[environment, context, typeQuery[environment, context, a]]]
+
+unitTypeEqualQ[environment_, context_, b_, type_] := Replace[First @ applicationSpine[type], {
+	constantReference[structure_, _] /; structureLikeQ[environment, structure] && unitStructureQ[environment, structure] :>
+		definitionallyEqualQ[environment, context, type, typeQuery[environment, context, b]],
+	_ :> False
+}]
 
 unitStructureQ[environment_, structure_] := constantRecord[environment, First[constantRecord[environment, structure]["Constructors"]]]["NumberOfFields"] === 0
 
-etaEqualQ[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_], other_] := With[{id = freshFreeVariable[]},
-	definitionallyEqualQ[
-		environment,
-		extendContext[context, id, name, domain, binder],
-		instantiateBoundVariable[body, freeVariable[id]],
-		application[other, freeVariable[id]]
-	]
+etaEqualQ[environment_, context_, function : lambdaAbstraction[name_, domain_, body_, binder_], other_] := etaEqualAtQ[environment, context, function, other, freshFreeVariable[]]
+
+etaEqualAtQ[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_], other_, id_] := definitionallyEqualQ[
+	environment,
+	extendContext[context, id, name, domain, binder],
+	instantiateBoundVariable[body, freeVariable[id]],
+	application[other, freeVariable[id]]
 ]
 
-literalEqualQ[environment_, context_, a_, b_] := With[{formA = toConstructorForm[environment, a], formB = toConstructorForm[environment, b]},
-	(formA =!= a || formB =!= b) && definitionallyEqualQ[environment, context, formA, formB]
-]
+literalEqualQ[environment_, context_, a_, b_] := constructorFormsEqualQ[environment, context, a, b, toConstructorForm[environment, a], toConstructorForm[environment, b]]
 
-spinesEqualQ[environment_, context_, a_, b_] := With[{spineA = applicationSpine[a], spineB = applicationSpine[b]},
-	And[
-		Length[Last[spineA]] == Length[Last[spineB]],
-		headsEqualQ[environment, context, First[spineA], First[spineB]],
-		argumentsEqualQ[environment, context, Last[spineA], Last[spineB]]
-	]
+constructorFormsEqualQ[environment_, context_, a_, b_, formA_, formB_] := (formA =!= a || formB =!= b) && definitionallyEqualQ[environment, context, formA, formB]
+
+spinesEqualQ[environment_, context_, a_, b_] := spinePairEqualQ[environment, context, applicationSpine[a], applicationSpine[b]]
+
+spinePairEqualQ[environment_, context_, {headA_, argumentsA_}, {headB_, argumentsB_}] := And[
+	Length[argumentsA] == Length[argumentsB],
+	headsEqualQ[environment, context, headA, headB],
+	argumentsEqualQ[environment, context, argumentsA, argumentsB]
 ]
 
 argumentsEqualQ[environment_, context_, arguments_List, otherArguments_List] :=
@@ -884,11 +880,11 @@ headsEqualQ[_, _, _, _] := False
    have equal types, and None where the first term is no proof, as no type and no literal is *)
 proofIrrelevance[_, _, _universeSort | _dependentFunctionType | _naturalLiteral, _] := None
 proofIrrelevance[environment_, _, _, _] /; ! rulesSetting[environment, "Prop"] := None
-proofIrrelevance[environment_, context_, a_, b_] := With[{typeA = typeQuery[environment, context, a]},
-	If[ propositionQ[environment, context, typeA],
-		definitionallyEqualQ[environment, context, typeA, typeQuery[environment, context, b]],
-		None
-	]
+proofIrrelevance[environment_, context_, a_, b_] := proofIrrelevanceOf[environment, context, b, typeQuery[environment, context, a]]
+
+proofIrrelevanceOf[environment_, context_, b_, typeA_] := If[ propositionQ[environment, context, typeA],
+	definitionallyEqualQ[environment, context, typeA, typeQuery[environment, context, b]],
+	None
 ]
 
 propositionQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, typeQuery[environment, context, type]], universeSort[0]]

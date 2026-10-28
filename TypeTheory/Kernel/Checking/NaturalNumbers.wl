@@ -179,10 +179,11 @@ booleansQ[_, _] := False
 
 (* The trusted literal extension: an operation registered for a role, applied to arguments that reduce
    to literals, gives what the role's function computes on their integers, instead of unfolding. *)
-literalOperationResult[environment_, context_, name_HoldComplete, arguments_List] := Replace[naturalNumberSettings[environment], {
-	settings_Association /; KeyExistsQ[settings["Roles"], name] :> operationResult[environment, context, settings, name, settings["Roles"][name], arguments],
-	_ :> None
-}]
+literalOperationResult[environment_, context_, name_HoldComplete, arguments_List] := literalOperationOf[environment, context, name, arguments, naturalNumberSettings[environment]]
+
+literalOperationOf[environment_, context_, name_, arguments_, settings_Association] /; KeyExistsQ[settings["Roles"], name] :=
+	operationResult[environment, context, settings, name, settings["Roles"][name], arguments]
+literalOperationOf[_, _, _, _, _] := None
 
 operationResult[environment_, context_, settings_, name_, role_, arguments_] := If[ Length[arguments] == First[$naturalNumberOperations[role]],
 	Replace[literalValues[environment, context, settings, arguments], {
@@ -208,16 +209,15 @@ resultTerm[environment_, name_, value : True | False] := With[
 booleansOf[dependentFunctionType[_, _, dependentFunctionType[_, _, constantReference[booleans_, {}], _], _]] := booleans
 
 (* a literal, the zero, or successors of either *)
-literalValue[environment_, context_, settings_, term_] := With[{successor = constantReference[settings["Successor"], {}]},
-	Module[{current = weakHeadNormalForm[environment, context, term], successors = 0},
-		While[MatchQ[current, application[successor, _]],
-			successors++;
-			current = weakHeadNormalForm[environment, context, Last[current]]
-		];
-		Replace[current, {
-			naturalLiteral[n_Integer] :> n + successors,
-			constantReference[settings["Zero"], {}] :> successors,
-			_ :> None
-		}]
-	]
+literalValue[environment_, context_, settings_, term_] := Block[
+	{literalSuccessor = constantReference[settings["Successor"], {}], literalCurrent = weakHeadNormalForm[environment, context, term], literalSuccessors = 0},
+	While[MatchQ[literalCurrent, application[successor_, _] /; successor === literalSuccessor],
+		literalSuccessors++;
+		literalCurrent = weakHeadNormalForm[environment, context, Last[literalCurrent]]
+	];
+	Replace[literalCurrent, {
+		naturalLiteral[n_Integer] :> n + literalSuccessors,
+		constantReference[settings["Zero"], {}] :> literalSuccessors,
+		_ :> None
+	}]
 ]
