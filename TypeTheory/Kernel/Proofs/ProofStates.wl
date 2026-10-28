@@ -666,8 +666,29 @@ equationRecursor[data_, goal_, context_, equality_, levels_List, target_] := Wit
 	If[ ! TrueQ[record["EliminationUniverse"]] && ! levelEquivalentQ[eliminationLevel, 0],
 		tacticFailure["LargeElimination", "In the goal `1`, the equation can only rewrite a proposition.", data, goal]
 	];
-	constantReference[recursorName[equality], If[TrueQ[record["EliminationUniverse"]], Prepend[levels, eliminationLevel], levels]]
+	constantReference[recursorName[equality], If[TrueQ[record["EliminationUniverse"]], Prepend[levels, motiveUniverse[data, goal, eliminationLevel]], levels]]
 ]
+
+(* The universe parameter of a recursor whose motive goes into a goal of level level. Under rules with Prop a
+   motive goes into Sort u, so u is the goal's level; without Prop it goes into Type u, which is Sort (u + 1),
+   so u is one level less (InductiveTypes.wl builds the motive so). *)
+motiveUniverse[data_, goal_, level_] := If[ rulesSetting[data["Environment"], "Prop"],
+	level,
+	Replace[levelPredecessor[normalizeLevel[level]], None :> tacticFailure[
+		"MotiveUniverse",
+		"In the goal `1`, the universe level `2` of the goal has no level below it, which a motive into a Type needs.",
+		data,
+		goal,
+		{level}
+	]]
+]
+
+(* l - 1 for a canonical level l >= 1 that has one, or None, as for a parameter u, which may be 0 *)
+levelPredecessor[n_Integer /; n >= 1] := n - 1
+levelPredecessor[levelSuccessor[base_, 1]] := base
+levelPredecessor[levelSuccessor[base_, k_Integer /; k > 1]] := levelSuccessor[base, k - 1]
+levelPredecessor[levelMaximum[levels__]] := With[{predecessors = levelPredecessor /@ {levels}}, If[MemberQ[predecessors, None], None, normalizeLevel[levelMaximum @@ predecessors]]]
+levelPredecessor[_] := None
 
 (* (y, t) ↦ P[y] -> P[result], or (y, t) ↦ P[y] when result is None, t being a proof that start equals y *)
 rewriteMotive[context_, equality_, levels_List, elementType_, start_, motiveBody_, result_] := With[
@@ -1475,7 +1496,7 @@ inductiveElimination[data_, goal_, variableName_HoldComplete, mode : "Induction"
 	If[ ! TrueQ[recursorRecord["EliminationUniverse"]] && ! levelEquivalentQ[eliminationLevel, 0],
 		tacticFailure["LargeElimination", "In the goal `1`, `2` can only be eliminated into a proposition.", data, goal, {HoldForm @@ inductiveName}]
 	];
-	recursorLevels = If[TrueQ[recursorRecord["EliminationUniverse"]], Prepend[Last[head], eliminationLevel], Last[head]];
+	recursorLevels = If[TrueQ[recursorRecord["EliminationUniverse"]], Prepend[Last[head], motiveUniverse[data, goal, eliminationLevel]], Last[head]];
 	motive = makeLambda[context, eliminated, goalBody];
 	minorTypes = minorPremiseTypes[
 		instantiateUniverseParameters[recursorRecord["Type"], recursorRecord["UniverseParameters"], recursorLevels],

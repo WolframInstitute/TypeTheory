@@ -94,3 +94,29 @@ VerificationTest[
 	{"CalculusOfInductiveConstructions", True},
 	TestID -> "On-the-rules-of-the-prelude-the-same-axioms-prove-False"
 ]
+
+(* without Prop a motive goes into Type u, which is Sort (u + 1), so the tactics that eliminate into the goal pass
+   the level below the goal's; a rewrite and an induction both finish, and their proofs declare *)
+VerificationTest[
+	With[
+		{
+			rewritten = TypeTheoryProof[ForAll[{Typed[a, Booleans], Typed[b, Booleans]}, Implies[a == b, "not"[a] == "not"[b]]], hott, {
+				TypeTheoryTactic["Introduce", a, b, h],
+				TypeTheoryTactic["Rewrite", h]
+			}],
+			inducted = TypeTheoryProof[ForAll[{Typed[b, Booleans]}, "not"["not"[b]] == b], hott, {
+				TypeTheoryTactic["Introduce", b],
+				TypeTheoryTactic["Induction", b],
+				TypeTheoryTactic["Reflexivity"],
+				TypeTheoryTactic["Reflexivity"]
+			}]
+		},
+		{
+			rewritten["Goals"],
+			inducted["Goals"],
+			Length[TypeTheoryEnvironment[hott, {TypeTheoryTheorem[NegationRespectsPaths, rewritten], TypeTheoryTheorem[NegationTwiceByInduction, inducted]}]] - Length[hott]
+		}
+	],
+	{{}, {}, 2},
+	TestID -> "Rewrite-and-induction-eliminate-into-Type-without-Prop"
+]
