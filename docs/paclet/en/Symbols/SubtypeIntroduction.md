@@ -47,7 +47,7 @@ TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction[4, LessEqualStep[LessEqualSte
 TypeTheoryCheck[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]]]
 ```
 
-<!-- => Subtype[(n ∶ ℕ) ↦ 2 ≤ n] -->
+<!-- => {n ∶ ℕ // 2 ≤ n} -->
 
 ## Applications
 
@@ -57,7 +57,7 @@ A function on the numbers of at least 2 takes the number from the first field:
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]}, s[[1]] - 2]]]
 ```
 
-<!-- => Subtype[(n ∶ ℕ) ↦ 2 ≤ n] → ℕ -->
+<!-- => {n ∶ ℕ // 2 ≤ n} → ℕ -->
 
 Applied to 4 with its proof, it computes:
 

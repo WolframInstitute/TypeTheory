@@ -54,7 +54,7 @@ Univalence glues along the equivalence at 0 and the identity at 1:
 cubical[EquivalenceToPath]
 ```
 
-<!-- => definition EquivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->DependentPair[A,e],i == 1->DependentPair[B,IdentityEquivalence[B]]}] -->
+<!-- => definition EquivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->〈A,e〉,i == 1->〈B,IdentityEquivalence[B]〉}] -->
 
 ## Possible Issues
 

@@ -36,7 +36,7 @@ The relation:
 integers["integerRelation"]
 ```
 
-<!-- => definition integerRelation : CartesianProductType[ℕ, ℕ] → CartesianProductType[ℕ, ℕ] → Prop := (p ∶ CartesianProductType[ℕ, ℕ]) (q ∶ CartesianProductType[ℕ, ℕ]) ↦ p〚1〛 + q〚2〛 == q〚1〛 + p〚2〛 -->
+<!-- => definition integerRelation : ℕ × ℕ → ℕ × ℕ → Prop := (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) ↦ p〚1〛 + q〚2〛 == q〚1〛 + p〚2〛 -->
 
 A natural number n is the class of (n, 0), and the function that takes it there is a coercion, inserted where a natural number stands for an integer:
 
@@ -44,7 +44,7 @@ A natural number n is the class of (n, 0), and the function that takes it there 
 integers["integerOfNatural"]
 ```
 
-<!-- => coercion integerOfNatural : ℕ → ℤ := (n ∶ ℕ) ↦ integerOfPair[Pair[n, 0]] -->
+<!-- => coercion integerOfNatural : ℕ → ℤ := (n ∶ ℕ) ↦ integerOfPair[(n, 0)] -->
 
 ## Arithmetic
 
@@ -126,7 +126,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
 }]
 ```
 
-<!-- => Proof, 1 goal: p ∶ CartesianProductType[ℕ, ℕ], q ∶ CartesianProductType[ℕ, ℕ] ⊢ QuotientIntroduction[integerRelation, p] QuotientIntroduction[integerRelation, q] == QuotientIntroduction[integerRelation, q] QuotientIntroduction[integerRelation, p] -->
+<!-- => Proof, 1 goal: p ∶ ℕ × ℕ, q ∶ ℕ × ℕ ⊢ QuotientIntroduction[integerRelation, p] QuotientIntroduction[integerRelation, q] == QuotientIntroduction[integerRelation, q] QuotientIntroduction[integerRelation, p] -->
 
 The product of two classes computes to the class of a pair, so [QuotientSoundness]() leaves the relation of two pairs, an equation of natural numbers:
 
@@ -139,7 +139,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
 }]
 ```
 
-<!-- => Proof, 1 goal: p ∶ CartesianProductType[ℕ, ℕ], q ∶ CartesianProductType[ℕ, ℕ] ⊢ integerRelation[Pair[p〚1〛 q〚1〛 + p〚2〛 q〚2〛, p〚1〛 q〚2〛 + p〚2〛 q〚1〛], Pair[q〚1〛 p〚1〛 + q〚2〛 p〚2〛, q〚1〛 p〚2〛 + q〚2〛 p〚1〛]] -->
+<!-- => Proof, 1 goal: p ∶ ℕ × ℕ, q ∶ ℕ × ℕ ⊢ integerRelation[(p〚1〛 q〚1〛 + p〚2〛 q〚2〛, p〚1〛 q〚2〛 + p〚2〛 q〚1〛), (q〚1〛 p〚1〛 + q〚2〛 p〚2〛, q〚1〛 p〚2〛 + q〚2〛 p〚1〛)] -->
 
 `"Ring"` proves it, taking the fields of the pairs as atoms:
 

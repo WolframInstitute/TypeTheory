@@ -36,7 +36,7 @@ For the list of 1 and 2:
 TypeTheoryCheck[TypeTheoryTerm[LengthReverse[ListPrepend[1, ListPrepend[2, EmptyList]]]]]
 ```
 
-<!-- => Length[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]] == Length[ListPrepend[1, ListPrepend[2, EmptyList]]] -->
+<!-- => Length[Reverse[{1, 2}]] == Length[{1, 2}] -->
 
 ## Applications
 

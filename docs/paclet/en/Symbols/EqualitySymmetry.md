@@ -67,7 +67,7 @@ Turn a theorem around, here [JoinEmptyRight]():
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, Lists[Naturals]]}, EqualitySymmetry[JoinEmptyRight[l]]]]]
 ```
 
-<!-- => ∀_l∶Lists[ℕ] l == Join[l, EmptyList] -->
+<!-- => ∀_l∶Lists[ℕ] l == Join[l, {}] -->
 
 ## Properties and Relations
 

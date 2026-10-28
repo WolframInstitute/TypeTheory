@@ -18,6 +18,7 @@ RelatedTutorials: [CubicalTypeTheory]
 
 - *A* and *B* are implicit, found from the type expected.
 - Its fields are <code>*p*[[1]]</code> and <code>*p*[[2]]</code>.
+- <code>[DependentPair]()[*a*, *b*]</code> displays as 〈*a*, *b*〉, as Lean writes `⟨a, b⟩`.
 
 ## Basic Examples
 
@@ -53,7 +54,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", Function[{i}, "true"]], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Path[Booleans, b, b]]]], cubical]]
 ```
 
-<!-- => DependentSum[𝔹, (b ∶ 𝔹) ↦ b ≡ b] -->
+<!-- => Σ_b∶𝔹 b ≡ b -->
 
 ## Applications
 
@@ -71,7 +72,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", Function[{i}, "false"]], Fiber["not", "false"]], cubical]]
 ```
 
-<!-- => DependentSum[𝔹, (x ∶ 𝔹) ↦ !x ≡ false] -->
+<!-- => Σ_x∶𝔹 !x ≡ false -->
 
 ## Properties and Relations
 

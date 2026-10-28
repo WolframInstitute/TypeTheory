@@ -169,7 +169,7 @@ proof = TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] =
 }]
 ```
 
-<!-- => Proof, 2 goals: case EmptyList ⊢ Join[EmptyList, EmptyList] == EmptyList; case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, EmptyList] == l ⇒ Join[ListPrepend[x, l], EmptyList] == ListPrepend[x, l] -->
+<!-- => Proof, 2 goals: case EmptyList ⊢ Join[{}, {}] == {}; case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
 
 `"Simplify"` unfolds [Join]() on the empty list, and the sides are then the same:
 
@@ -177,7 +177,7 @@ proof = TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] =
 proof = TypeTheoryTactic["Simplify", {Join}][proof]
 ```
 
-<!-- => Proof, 1 goal: case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, EmptyList] == l ⇒ Join[ListPrepend[x, l], EmptyList] == ListPrepend[x, l] -->
+<!-- => Proof, 1 goal: case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
 
 Introduce the first element, the rest and the induction hypothesis:
 
@@ -185,7 +185,7 @@ Introduce the first element, the rest and the induction hypothesis:
 proof = TypeTheoryTactic["Introduce", x, rest, ih][proof]
 ```
 
-<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ Lists[ℕ], ih ∶ Join[rest, EmptyList] == rest ⊢ Join[ListPrepend[x, rest], EmptyList] == ListPrepend[x, rest] -->
+<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ Lists[ℕ], ih ∶ Join[rest, {}] == rest ⊢ Join[ListPrepend[x, rest], {}] == ListPrepend[x, rest] -->
 
 Unfolding [Join]() once more brings out `Join[rest, EmptyList]`, which the induction hypothesis rewrites:
 
@@ -206,7 +206,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 == x], TypeTheoryEnvironment[
 }]
 ```
 
-<!-- => Proof, 1 goal: case QuotientIntroduction ⊢ ∀_a∶CartesianProductType[ℕ, ℕ] QuotientIntroduction[integerRelation, a] + 0 == QuotientIntroduction[integerRelation, a] -->
+<!-- => Proof, 1 goal: case QuotientIntroduction ⊢ ∀_a∶ℕ × ℕ QuotientIntroduction[integerRelation, a] + 0 == QuotientIntroduction[integerRelation, a] -->
 
 ---
 

@@ -35,7 +35,7 @@ Its definition:
 cubical[IsContractible]
 ```
 
-<!-- => definition IsContractible : Type u → Type u := (A ∶ Type u) ↦ DependentSum[A, (c ∶ A) ↦ ∀_z∶A c ≡ z] -->
+<!-- => definition IsContractible : Type u → Type u := (A ∶ Type u) ↦ Σ_c∶A ∀_z∶A c ≡ z -->
 
 ## Scope
 
@@ -55,7 +55,7 @@ The statement, unfolded:
 WeakHeadNormalForm[TypeTheoryTerm[IsContractible[Booleans], cubical]]
 ```
 
-<!-- => DependentSum[𝔹, (c∶𝔹) ↦ ∀_z∶𝔹 c ≡ z] -->
+<!-- => Σ_c∶𝔹 ∀_z∶𝔹 c ≡ z -->
 
 ## Applications
 
@@ -83,7 +83,7 @@ The center of that fiber is `"true"` with the constant path:
 WeakHeadNormalForm[TypeTheoryTerm[IdentityEquivalence[Booleans][[2]]["true"][[1]], cubical]]
 ```
 
-<!-- => DependentPair[true, (j∶Interval) ↦ true] -->
+<!-- => 〈true, (j∶Interval) ↦ true〉 -->
 
 ## Properties and Relations
 

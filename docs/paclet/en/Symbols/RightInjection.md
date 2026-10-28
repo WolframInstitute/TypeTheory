@@ -27,7 +27,7 @@ The statement of [RightInjection]():
 TypeTheoryCheck[TypeTheoryTerm[RightInjection]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} β → DisjointUnionType[α, β] -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} β → α ⊕ β -->
 
 ---
 
@@ -37,7 +37,7 @@ The Boolean `"true"` on the right:
 TypeTheoryCheck[TypeTheoryTerm[Typed[RightInjection["true"], DisjointUnionType[Naturals, Booleans]]]]
 ```
 
-<!-- => DisjointUnionType[ℕ, 𝔹] -->
+<!-- => ℕ ⊕ 𝔹 -->
 
 ## Applications
 
@@ -67,7 +67,7 @@ swap = TypeTheoryTerm[Function[{Typed[s, DisjointUnionType[Naturals, Booleans]]}
 ]]]
 ```
 
-<!-- => (s ∶ DisjointUnionType[ℕ, 𝔹]) ↦ DisjointUnion_rec[(t ∶ DisjointUnionType[ℕ, 𝔹]) ↦ DisjointUnionType[𝔹, ℕ], (n ∶ ℕ) ↦ RightInjection[n], (b ∶ 𝔹) ↦ LeftInjection[b], s] -->
+<!-- => (s ∶ ℕ ⊕ 𝔹) ↦ DisjointUnion_rec[(t ∶ ℕ ⊕ 𝔹) ↦ 𝔹 ⊕ ℕ, (n ∶ ℕ) ↦ RightInjection[n], (b ∶ 𝔹) ↦ LeftInjection[b], s] -->
 
 Its type:
 
@@ -75,7 +75,7 @@ Its type:
 TypeTheoryCheck[swap]
 ```
 
-<!-- => DisjointUnionType[ℕ, 𝔹] → DisjointUnionType[𝔹, ℕ] -->
+<!-- => ℕ ⊕ 𝔹 → 𝔹 ⊕ ℕ -->
 
 The swap moves `"true"` from the right side to the left:
 

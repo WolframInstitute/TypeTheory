@@ -147,7 +147,7 @@ An equivalence is a function whose fibers are contractible, [Equivalence]():
 cubical[Equivalence]
 ```
 
-<!-- => definition Equivalence : Type u → Type u → Type u := (A ∶ Type u) (B ∶ Type u) ↦ DependentSum[A → B, (f ∶ A → B) ↦ IsEquivalence[f]] -->
+<!-- => definition Equivalence : Type u → Type u → Type u := (A ∶ Type u) (B ∶ Type u) ↦ Σ_f∶A → B IsEquivalence[f] -->
 
 A [GlueType]() over `B` is, where each face of its system holds, a type glued to `B` along an equivalence. Univalence, [EquivalenceToPath](), is the line of Glue types over `B` that is `A` at 0, glued along the equivalence `e`, and `B` at 1, glued along the identity:
 
@@ -155,7 +155,7 @@ A [GlueType]() over `B` is, where each face of its system holds, a type glued to
 cubical[EquivalenceToPath]
 ```
 
-<!-- => definition EquivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->DependentPair[A,e],i == 1->DependentPair[B,IdentityEquivalence[B]]}] -->
+<!-- => definition EquivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->〈A,e〉,i == 1->〈B,IdentityEquivalence[B]〉}] -->
 
 Transport along it applies the equivalence. Negation is an equivalence of the Booleans, [NegationEquivalence](), made from the isomorphism it is with itself by [IsomorphismEquivalence]():
 

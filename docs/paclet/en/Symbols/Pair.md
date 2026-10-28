@@ -18,6 +18,7 @@ RelatedTutorials: [ThePrelude]
 
 - [Pair]() is the constructor of [CartesianProductType]().
 - *α* and *β* are implicit arguments, found from the types of *x* and *y*.
+- <code>[Pair]()[*x*, *y*]</code> displays as (*x*, *y*), and <code>[Pair]()[*x*, [Pair]()[*y*, *z*]]</code> as (*x*, *y*, *z*), as Lean writes them.
 
 ## Basic Examples
 
@@ -27,7 +28,7 @@ The statement of [Pair]():
 TypeTheoryCheck[TypeTheoryTerm[Pair]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → β → CartesianProductType[α, β] -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → β → α × β -->
 
 ---
 
@@ -37,7 +38,7 @@ A pair of natural numbers:
 TypeTheoryCheck[TypeTheoryTerm[Pair[2, 3]]]
 ```
 
-<!-- => CartesianProductType[ℕ, ℕ] -->
+<!-- => ℕ × ℕ -->
 
 ## Properties and Relations
 

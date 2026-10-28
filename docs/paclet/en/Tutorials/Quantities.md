@@ -114,7 +114,7 @@ The kernel gives the constructors and recursors of an inductive type their quant
 TypeTheoryCheck[TypeTheoryTerm[Pair, affinePrelude]]
 ```
 
-<!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} α → β → CartesianProductType[α, β] -->
+<!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} α → β → α × β -->
 
 A recursor's parameters, motives and indices are erased too. The recursor of a type without a recursive field takes the value it matches, and its minor premises, once:
 
@@ -122,7 +122,7 @@ A recursor's parameters, motives and indices are erased too. The recursor of a t
 TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[CartesianProductType], affinePrelude]]
 ```
 
-<!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} ∀_0 m∶CartesianProductType[α, β] → Sort w ∀_1 Pair∶∀_x∶α ∀_y∶β m[Pair[x, y]] ∀_1 t∶CartesianProductType[α, β] m[t] -->
+<!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} ∀_0 m∶α × β → Sort w ∀_1 Pair∶∀_x∶α ∀_y∶β m[(x, y)] ∀_1 t∶α × β m[t] -->
 
 The recursor of a recursive type takes them any number of times, since a recursive call uses the parts of its argument again:
 

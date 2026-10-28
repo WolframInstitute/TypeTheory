@@ -19,6 +19,7 @@ RelatedTutorials: [ThePrelude]
 - [CartesianProductType]() is an inductive type of the prelude, with the one constructor [Pair](), as Lean's `Prod`.
 - It is a structure: a pair `p` has the fields `p[[1]]` and `p[[2]]`.
 - For *α* in `Type u` and *β* in `Type v`, <code>[CartesianProductType]()[*α*, *β*]</code> is in `Type (max u v)`.
+- <code>[CartesianProductType]()[*α*, *β*]</code> displays as *α* × *β*, as Lean writes `Prod`, and a product nested to the right, <code>[CartesianProductType]()[*α*, [CartesianProductType]()[*β*, *γ*]]</code>, as *α* × *β* × *γ*.
 
 ## Basic Examples
 
@@ -38,7 +39,7 @@ A pair of natural numbers:
 TypeTheoryCheck[TypeTheoryTerm[Pair[2, 3]]]
 ```
 
-<!-- => CartesianProductType[ℕ, ℕ] -->
+<!-- => ℕ × ℕ -->
 
 ## Scope
 
@@ -58,4 +59,4 @@ A function takes the second field of any pair:
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, CartesianProductType[Naturals, Booleans]]}, p[[2]]]]]
 ```
 
-<!-- => CartesianProductType[ℕ, 𝔹] → 𝔹 -->
+<!-- => ℕ × 𝔹 → 𝔹 -->

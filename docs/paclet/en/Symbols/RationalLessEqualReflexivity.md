@@ -72,7 +72,7 @@ TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x + 0 <= x], TypeTheoryEnvironment
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, Typed[ExistsIntroduction[0, ExistsIntroduction[0, EqualitySymmetry[RationalAdditionZero[x]]]], x <= x]], TypeTheoryEnvironment["Rationals"]]]
 ```
 
-<!-- => ∀_x∶ℚ ∃_n∶ℕ ∃_d∶ℕ x == x + rationalOfPair[Pair[↑n, d]] -->
+<!-- => ∀_x∶ℚ ∃_n∶ℕ ∃_d∶ℕ x == x + rationalOfPair[(↑n, d)] -->
 
 ## Possible Issues
 

@@ -18,6 +18,7 @@ RelatedTutorials: [ThePrelude]
 
 - [DisjointUnionType]() is an inductive type of the prelude, with the constructors [LeftInjection]() and [RightInjection](), as Lean's `Sum`.
 - For *α* in `Type u` and *β* in `Type v`, <code>[DisjointUnionType]()[*α*, *β*]</code> is in `Type (max u v)`.
+- <code>[DisjointUnionType]()[*α*, *β*]</code> displays as *α* ⊕ *β*, as Lean writes `Sum`; × binds tighter than ⊕, so *α* × *β* ⊕ *γ* is a sum of a product.
 
 ## Basic Examples
 
@@ -37,7 +38,7 @@ A natural number on the left of a disjoint union with the Booleans:
 TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnionType[Naturals, Booleans]]]]
 ```
 
-<!-- => DisjointUnionType[ℕ, 𝔹] -->
+<!-- => ℕ ⊕ 𝔹 -->
 
 ## Scope
 

@@ -47,7 +47,7 @@ differences = TypeTheoryEnvironment[{
 TypeTheoryCheck[TypeTheoryTerm[Typed[QuotientSoundness[EqualityReflexivity[8]], QuotientIntroduction[SameDifference, Pair[2, 5]] == QuotientIntroduction[SameDifference, Pair[3, 6]]], differences]]
 ```
 
-<!-- => QuotientIntroduction[SameDifference, Pair[2, 5]] == QuotientIntroduction[SameDifference, Pair[3, 6]] -->
+<!-- => QuotientIntroduction[SameDifference, (2, 5)] == QuotientIntroduction[SameDifference, (3, 6)] -->
 
 ## Properties and Relations
 

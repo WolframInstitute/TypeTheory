@@ -26,7 +26,7 @@ The statement of [JoinEmptyRight]():
 TypeTheoryCheck[TypeTheoryTerm[JoinEmptyRight]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_l∶Lists[α] Join[l, EmptyList] == l -->
+<!-- => ∀_{α ∶ Type u} ∀_l∶Lists[α] Join[l, {}] == l -->
 
 ---
 
@@ -36,7 +36,7 @@ For lists of natural numbers:
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, Lists[Naturals]]}, JoinEmptyRight[l]]]]
 ```
 
-<!-- => ∀_l∶Lists[ℕ] Join[l, EmptyList] == l -->
+<!-- => ∀_l∶Lists[ℕ] Join[l, {}] == l -->
 
 ## Scope
 

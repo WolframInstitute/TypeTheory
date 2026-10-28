@@ -27,7 +27,7 @@ The statement of [LeftInjection]():
 TypeTheoryCheck[TypeTheoryTerm[LeftInjection]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → DisjointUnionType[α, β] -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → α ⊕ β -->
 
 ---
 
@@ -37,7 +37,7 @@ TypeTheoryCheck[TypeTheoryTerm[LeftInjection]]
 TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnionType[Naturals, Booleans]]]]
 ```
 
-<!-- => DisjointUnionType[ℕ, 𝔹] -->
+<!-- => ℕ ⊕ 𝔹 -->
 
 ## Scope
 
@@ -47,7 +47,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnionType[Natural
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, Typed[LeftInjection[n], DisjointUnionType[Naturals, Booleans]]]]]
 ```
 
-<!-- => ℕ → DisjointUnionType[ℕ, 𝔹] -->
+<!-- => ℕ → ℕ ⊕ 𝔹 -->
 
 ## Applications
 

@@ -35,7 +35,7 @@ Its definition:
 cubical[Fiber]
 ```
 
-<!-- => definition Fiber : ∀_{A∶Type u} ∀_{B∶Type u} (A→B)→B→Type u := {A∶Type u} {B∶Type u} (f∶A→B) (y∶B)↦DependentSum[A,(x∶A)↦f[x]≡y] -->
+<!-- => definition Fiber : ∀_{A∶Type u} ∀_{B∶Type u} (A→B)→B→Type u := {A∶Type u} {B∶Type u} (f∶A→B) (y∶B)↦Σ_x∶A f[x]≡y -->
 
 ## Scope
 
@@ -55,7 +55,7 @@ The fiber, unfolded:
 WeakHeadNormalForm[TypeTheoryTerm[Fiber["not", "true"], cubical]]
 ```
 
-<!-- => DependentSum[𝔹, (x∶𝔹) ↦ !x ≡ true] -->
+<!-- => Σ_x∶𝔹 !x ≡ true -->
 
 ## Applications
 
@@ -95,7 +95,7 @@ The center of the fiber of [NegationEquivalence]() over `"true"`:
 WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[2]]["true"][[1]], cubical]]
 ```
 
-<!-- => DependentPair[!true, NegationInvolution[true]] -->
+<!-- => 〈!true, NegationInvolution[true]〉 -->
 
 ## Possible Issues
 

@@ -19,6 +19,7 @@ RelatedTutorials: [ThePrelude]
 - [Subtype]() is an inductive type of the prelude, with the one constructor [SubtypeIntroduction](). The type of the elements is an implicit argument, found from the type of *P*.
 - An element `s` of <code>[Subtype]()[*P*]</code> is a structure: `s[[1]]` is the element and `s[[2]]` the proof of its property.
 - For elements in `Sort u`, <code>[Subtype]()[*P*]</code> is in `Sort (max 1 u)`: it is a type of data even when its elements are proofs.
+- <code>[Subtype]()[[Function]()[{[Typed]()[*x*, *A*]}, *p*]]</code> displays as `{x ∶ A // p}`, as Lean writes `{ x // p }`.
 
 ## Basic Examples
 
@@ -38,7 +39,7 @@ The second field of an element proves the property of the first:
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]}, s[[2]]]]]
 ```
 
-<!-- => ∀_s∶Subtype[(n∶ℕ) ↦ 2 ≤ n] 2 ≤ s〚1〛 -->
+<!-- => ∀_s∶{n∶ℕ // 2 ≤ n} 2 ≤ s〚1〛 -->
 
 ## Scope
 

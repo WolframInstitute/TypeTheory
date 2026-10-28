@@ -18,6 +18,7 @@ RelatedTutorials: [ThePrelude]
 
 - [EmptyList]() is the first constructor of [Lists](), as Lean's `List.nil`.
 - *α* is an implicit argument, found from the expected type.
+- [EmptyList]() displays as `{}`, and a list it ends, <code>[ListPrepend]()[1, [ListPrepend]()[2, [EmptyList]()]]</code>, as `{1, 2}`.
 
 ## Basic Examples
 

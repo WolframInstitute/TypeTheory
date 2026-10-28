@@ -66,7 +66,7 @@ The classes of (2, 5) and (3, 6) are equal by [QuotientSoundness](), since 2 + 6
 TypeTheoryCheck[TypeTheoryTerm[Typed[QuotientSoundness[EqualityReflexivity[8]], QuotientIntroduction[SameDifference, Pair[2, 5]] == QuotientIntroduction[SameDifference, Pair[3, 6]]], differences]]
 ```
 
-<!-- => QuotientIntroduction[SameDifference, Pair[2, 5]] == QuotientIntroduction[SameDifference, Pair[3, 6]] -->
+<!-- => QuotientIntroduction[SameDifference, (2, 5)] == QuotientIntroduction[SameDifference, (3, 6)] -->
 
 They are not equal by computation:
 

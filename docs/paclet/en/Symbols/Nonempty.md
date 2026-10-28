@@ -62,7 +62,7 @@ proof = TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[h, Nonempty[A]]
 }]
 ```
 
-<!-- => Proof, 1 goal: A ∶ Type, x ∶ A ⊢ Nonempty[CartesianProductType[A, A]] -->
+<!-- => Proof, 1 goal: A ∶ Type, x ∶ A ⊢ Nonempty[A × A] -->
 
 The pair of the element with itself:
 

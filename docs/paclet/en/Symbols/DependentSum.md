@@ -19,6 +19,7 @@ RelatedTutorials: [CubicalTypeTheory]
 - It is a structure: <code>*p*[[1]]</code> and <code>*p*[[2]]</code> are the fields of a pair *p*.
 - [TypeTheoryCubical]() names it, and the kernel writes the equivalences of Glue types with it.
 - It is a constant of <code>[TypeTheoryEnvironment]()["Cubical"]</code>.
+- <code>[DependentSum]()[*A*, [Function]()[{[Typed]()[*x*, *A*]}, *B*]]</code> displays as `Σ_x∶A B`, with the binder under Σ as ∀ has it, as Lean writes `(x : A) × B`.
 
 ## Basic Examples
 
@@ -72,7 +73,7 @@ A pair of two Booleans:
 TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Booleans]]], cubical]]
 ```
 
-<!-- => DependentSum[𝔹, (b ∶ 𝔹) ↦ 𝔹] -->
+<!-- => Σ_b∶𝔹 𝔹 -->
 
 Its second field:
 
@@ -98,7 +99,7 @@ A fiber of *f* over *y* is the dependent sum of the elements *x* with a path fro
 cubical[Fiber]
 ```
 
-<!-- => definition Fiber : ∀_{A ∶ Type u} ∀_{B ∶ Type u} (A → B) → B → Type u := {A ∶ Type u} {B ∶ Type u} (f ∶ A → B) (y ∶ B) ↦ DependentSum[A, (x ∶ A) ↦ f[x] ≡ y] -->
+<!-- => definition Fiber : ∀_{A ∶ Type u} ∀_{B ∶ Type u} (A → B) → B → Type u := {A ∶ Type u} {B ∶ Type u} (f ∶ A → B) (y ∶ B) ↦ Σ_x∶A f[x] ≡ y -->
 
 ## Possible Issues
 
