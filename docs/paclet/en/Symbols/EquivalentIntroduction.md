@@ -39,3 +39,51 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]}, EquivalentI
 ```
 
 <!-- => ∀_p∶Prop (p ∧ p ⧦ p) -->
+
+## Scope
+
+`"Apply"` leaves a goal for each implication:
+
+```wl
+TypeTheoryProof[Equivalent[True, 1 + 1 == 2], {TypeTheoryTactic["Apply", EquivalentIntroduction]}]
+```
+
+<!-- => Proof, 2 goals: ⊢ True ⇒ 1 + 1 == 2; ⊢ 1 + 1 == 2 ⇒ True -->
+
+---
+
+[EquivalentIntroduction]() is the one constructor of [Equivalent](), so `"Constructor"` applies it, and each implication is then proved in turn:
+
+```wl
+TypeTheoryProof[Equivalent[True, 1 + 1 == 2], {
+    TypeTheoryTactic["Constructor"],
+    TypeTheoryTactic["Introduce", h],
+    TypeTheoryTactic["Reflexivity"],
+    TypeTheoryTactic["Introduce", h],
+    TypeTheoryTactic["Exact", TrueIntroduction]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Applications
+
+With [PropositionalExtensionality](), an equivalence makes two propositions equal, here `p && True` and `p`:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
+    PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, p && True]}, AndEliminationLeft[h]], Function[{Typed[h, p]}, AndIntroduction[h, TrueIntroduction]]]]
+]]]
+```
+
+<!-- => ∀_p∶Prop (p ∧ True) == p -->
+
+## Possible Issues
+
+The second implication must go back the other way, so two in the same direction do not make an equivalence:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[EquivalentIntroduction[Function[{Typed[h, True]}, EqualityReflexivity[1]], Function[{Typed[h, True]}, EqualityReflexivity[1]]]]]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->

@@ -37,3 +37,99 @@ cubical[NegationEquivalence]
 ```
 
 <!-- => definition NegationEquivalence : Equivalence[𝔹, 𝔹] := IsomorphismEquivalence[not, not, NegationInvolution, NegationInvolution] -->
+
+## Scope
+
+[IsomorphismEquivalence]() takes a function, its inverse, and the two paths that make them inverse.
+
+The cubical environment:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+
+The type of [IsomorphismEquivalence]():
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[IsomorphismEquivalence, cubical]]
+```
+
+<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type u} ∀_f∶A → B ∀_g∶B → A (∀_b∶B f[g[b]] ≡ b) → (∀_a∶A g[f[a]] ≡ a) → Equivalence[A, B] -->
+
+## Applications
+
+In a proof of an equivalence, applying [IsomorphismEquivalence]() to a function and its inverse leaves the two paths to give.
+
+The cubical environment:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+
+Negation, with negation as its inverse:
+
+```wl
+proof = TypeTheoryProof[Equivalence[Booleans, Booleans], cubical, {TypeTheoryTactic["Apply", IsomorphismEquivalence["not", "not"]]}]
+```
+
+<!-- => Proof, 2 goals: ⊢ ∀_b∶𝔹 !!b ≡ b; ⊢ ∀_a∶𝔹 !!a ≡ a -->
+
+[NegationInvolution]() gives the first path:
+
+```wl
+proof = TypeTheoryTactic["Exact", NegationInvolution][proof]
+```
+
+<!-- => Proof, 1 goal: ⊢ ∀_a∶𝔹 !!a ≡ a -->
+
+And the second:
+
+```wl
+TypeTheoryTactic["Exact", NegationInvolution][proof]
+```
+
+<!-- => Proof complete -->
+
+---
+
+Univalence computes on the equivalence of an isomorphism: transport along its path, [EquivalenceToPath](), applies the function.
+
+The cubical environment:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+
+Transport along the path of negation takes `"false"` to `"true"`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[IsomorphismEquivalence["not", "not", NegationInvolution, NegationInvolution]], 0, "false"], cubical]]
+```
+
+<!-- => true -->
+
+## Possible Issues
+
+[IsomorphismEquivalence]() is a definition of the cubical environment only. In the HoTT environment an equivalence is made with [EquivalenceIntroduction]() and [EquivalenceProof]().
+
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
+[IsomorphismEquivalence]() is not one of its constants:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[IsomorphismEquivalence, hott]]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->

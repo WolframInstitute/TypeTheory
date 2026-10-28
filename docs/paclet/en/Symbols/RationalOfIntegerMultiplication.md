@@ -39,3 +39,50 @@ TypeTheoryCheck[TypeTheoryTerm[RationalOfIntegerMultiplication[2, -5], TypeTheor
 ```
 
 <!-- => ↑(2 (-5)) == 2 (-5) -->
+
+## Scope
+
+An instance with a variable:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalOfIntegerMultiplication[a, a]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_a∶ℤ ↑(a a) == ↑a ↑a -->
+
+## Applications
+
+`"Rewrite"` with the law turns the rational of a product into a product of rationals, here a square, which [RationalSquareNonnegative]() bounds:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Integers]}, 0 <= "rationalOfInteger"[a a]], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", a],
+    TypeTheoryTactic["Rewrite", RationalOfIntegerMultiplication],
+    TypeTheoryTactic["Exact", RationalSquareNonnegative[a]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+The laws of the integers apply inside the coercion, such as [IntegerMultiplicationCommutativity]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Integers], Typed[b, Integers]}, "rationalOfInteger"[a b] == "rationalOfInteger"[b a]], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", a, b],
+    TypeTheoryTactic["Rewrite", IntegerMultiplicationCommutativity[a, b]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+`Typed[a b, Rationals]` is the product of the rationals of `a` and `b`, not the rational of their product, which is written with the coercion `"rationalOfInteger"`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Integers], Typed[b, Integers]}, Typed[a b, Rationals] == a b], TypeTheoryEnvironment["Rationals"]]
+```
+
+<!-- => Proof, 1 goal: ⊢ ∀_a∶ℤ ∀_b∶ℤ ↑a ↑b == ↑a ↑b -->

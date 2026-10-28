@@ -42,3 +42,57 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, Implies[0 <= 2 x, 0 <= x]], TypeThe
 ```
 
 <!-- => Proof complete -->
+
+## Scope
+
+`"Apply"` with `d` and `x` leaves `0 <= (d + 1) x` to prove, with the factor shown as `↑(d + 1)`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, Implies[0 <= 3 x, 0 <= x]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, h],
+    TypeTheoryTactic["Apply", IntegerNonnegativeCancellation[2, x]]
+}]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℤ, h ∶ 0 ≤ 3 x ⊢ 0 ≤ ↑(2 + 1) x -->
+
+`↑(2 + 1)` computes to 3, so the hypothesis proves it:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, Implies[0 <= 3 x, 0 <= x]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, h],
+    TypeTheoryTactic["Apply", IntegerNonnegativeCancellation[2, x]],
+    TypeTheoryTactic["Exact", h]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Applications
+
+An integer whose double is a square is at least 0, with `"Change"` writing the factor `↑(1 + 1)` as 2 so that `"Rewrite"` finds the left side of the hypothesis:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[2 x == y y, 0 <= x]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, h],
+    TypeTheoryTactic["Apply", IntegerNonnegativeCancellation[1, x]],
+    TypeTheoryTactic["Change", 0 <= 2 x],
+    TypeTheoryTactic["Rewrite", h],
+    TypeTheoryTactic["Exact", IntegerSquareNonnegative[y]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+[IntegerNonnegativeScaling]() goes the other way, so a positive factor can be traded for another:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, Implies[0 <= 2 x, 0 <= 5 x]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, h],
+    TypeTheoryTactic["Exact", IntegerNonnegativeScaling[5, IntegerNonnegativeCancellation[1, x, h]]]
+}]
+```
+
+<!-- => Proof complete -->

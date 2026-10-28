@@ -37,3 +37,39 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationSuccessorRight[3, 4]]]
 ```
 
 <!-- => 3 (4 + 1) == 3 × 4 + 3 -->
+
+## Scope
+
+The tactic `"Reflexivity"` proves it, since it is how multiplication computes:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m * (n + 1) == m * n + m], {
+    TypeTheoryTactic["Introduce", m, n],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+Applied again and again, it turns a product by a literal into a sum, so `m * 3` is `0 + m + m + m` by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[m, Naturals]}, m * 3]], TypeTheoryTerm[Function[{Typed[m, Naturals]}, 0 + m + m + m]]]
+```
+
+<!-- => True -->
+
+## Properties and Relations
+
+The successor on the left is not by computation, so `"Reflexivity"` does not prove [MultiplicationSuccessorLeft]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, (m + 1) * n == m * n + n], {
+    TypeTheoryTactic["Introduce", m, n],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Failure["NotReflexive", ...] -->

@@ -38,3 +38,55 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals],
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ x + 1 ≤ y + 1 -->
+
+## Scope
+
+The tactic `"Apply"` leaves the inequality without the successors as the goal:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x + 1 <= y + 1]], {
+    TypeTheoryTactic["Introduce", x, y, h],
+    TypeTheoryTactic["Apply", LessEqualSuccessor]
+}]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℕ, y ∶ ℕ, h ∶ x ≤ y ⊢ x ≤ y -->
+
+---
+
+`x < y + 1` unfolds to `x + 1 <= y + 1`, so it proves a strict inequality:
+
+```wl
+TypeTheoryCheck[
+    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualSuccessor[h]]],
+    TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x < y + 1]]]
+]
+```
+
+<!-- => Success["TypeChecked", ...] -->
+
+## Properties and Relations
+
+[AdditionMonotonicity]() with [LessEqualReflexivity]() proves the same statement:
+
+```wl
+TypeTheoryCheck[
+    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, AdditionMonotonicity[h, LessEqualReflexivity]]],
+    TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x + 1 <= y + 1]]]
+]
+```
+
+<!-- => Success["TypeChecked", ...] -->
+
+---
+
+The tactic `"LinearArithmetic"` proves it too:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x + 1 <= y + 1]], {
+    TypeTheoryTactic["Introduce", x, y, h],
+    TypeTheoryTactic["LinearArithmetic"]
+}]
+```
+
+<!-- => Proof complete -->

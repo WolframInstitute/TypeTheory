@@ -42,3 +42,65 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, Implies[Typed[m
 ```
 
 <!-- => Proof complete -->
+
+## Scope
+
+`"Apply"` turns an inequality of natural numbers into one of their integers:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals]}, m <= m + 1], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m],
+    TypeTheoryTactic["Apply", IntegerOfNaturalLessEqual]
+}]
+```
+
+<!-- => Proof, 1 goal: m ∶ ℕ ⊢ ↑m ≤ ↑(m + 1) -->
+
+`"SumOfSquares"` proves that one:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals]}, m <= m + 1], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m],
+    TypeTheoryTactic["Apply", IntegerOfNaturalLessEqual],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Applications
+
+`"SumOfSquares"` applies the law itself, proving an inequality of natural numbers as that of their integers:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, 4 a b <= (a + b)^2], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", a, b],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+A difference of natural numbers stops at 0, so `"Apply"` leaves the integer of `m - n`, which is not `↑m - ↑n`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m - n <= m], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m, n],
+    TypeTheoryTactic["Apply", IntegerOfNaturalLessEqual]
+}]
+```
+
+<!-- => Proof, 1 goal: m ∶ ℕ, n ∶ ℕ ⊢ ↑(m - n) ≤ ↑m -->
+
+`"SumOfSquares"` takes it as an atom, and finds no sum of squares:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m - n <= m], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m, n],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Failure["NoSumOfSquares", ...] -->

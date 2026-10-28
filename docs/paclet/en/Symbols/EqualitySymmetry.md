@@ -37,3 +37,74 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 0 == x
 ```
 
 <!-- => ∀_x∶ℕ x + 0 == x ⇒ x == x + 0 -->
+
+## Scope
+
+`"Apply"` turns the goal around, so a theorem stated the other way finishes it:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n == 0 + n], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Apply", EqualitySymmetry]
+}]
+```
+
+<!-- => Proof, 1 goal: n ∶ ℕ ⊢ 0 + n == n -->
+
+[AdditionZeroLeft]() proves the new goal:
+
+```wl
+TypeTheoryTactic["Exact", AdditionZeroLeft[n]][proof]
+```
+
+<!-- => Proof complete -->
+
+## Applications
+
+Turn a theorem around, here [JoinEmptyRight]():
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, Lists[Naturals]]}, EqualitySymmetry[JoinEmptyRight[l]]]]]
+```
+
+<!-- => ∀_l∶Lists[ℕ] l == Join[l, EmptyList] -->
+
+## Properties and Relations
+
+Rewriting with the equation turned around replaces *b* by *a*, as `"Rewrite"` with `"RightToLeft"` does:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a == b, Implies[a + 1 == 3, b + 1 == 3]]], {
+    TypeTheoryTactic["Introduce", a, b, h, k],
+    TypeTheoryTactic["Rewrite", EqualitySymmetry[h]],
+    TypeTheoryTactic["Exact", k]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+In the HoTT environment [EqualitySymmetry]() is a definition, the inverse of a path, so it computes:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
+The inverse of reflexivity is reflexivity:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[EqualitySymmetry[EqualityReflexivity["true"]], hott]]
+```
+
+<!-- => EqualityReflexivity[true] -->
+
+In the prelude it is a theorem, which does not compute:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[EqualitySymmetry[EqualityReflexivity[3]]]]
+```
+
+<!-- => EqualitySymmetry[EqualityReflexivity[3]] -->

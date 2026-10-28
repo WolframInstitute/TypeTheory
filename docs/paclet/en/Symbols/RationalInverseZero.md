@@ -30,3 +30,37 @@ TypeTheoryCheck[TypeTheoryTerm[RationalInverseZero, TypeTheoryEnvironment["Ratio
 ```
 
 <!-- => 1/0 == 0 -->
+
+## Scope
+
+A division by 0 is a product with the inverse of 0, so it is 0 by computation too:
+
+```wl
+TypeTheoryProof[Typed[5/0, Rationals] == 0, TypeTheoryEnvironment["Rationals"], {TypeTheoryTactic["Reflexivity"]}]
+```
+
+<!-- => Proof complete -->
+
+## Applications
+
+Every rational divided by 0 is 0, since `"Rewrite"` with the law leaves a product with 0, which `"Ring"` proves is 0:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x / 0 == 0], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Rewrite", RationalInverseZero],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+The product of 0 and its inverse is 0, not 1, which is why [RationalMultiplicationInverse]() asks that its rational not be 0:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[0 0^-1, Rationals] == 1], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => false -->

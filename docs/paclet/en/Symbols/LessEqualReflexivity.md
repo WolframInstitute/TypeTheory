@@ -38,3 +38,54 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualReflexivity], TypeTheoryTerm[3 <= 3]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
+
+## Scope
+
+The tactic `"Constructor"` applies it, the first constructor of [LessEqual]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals]}, x <= x], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Constructor"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+It proves `a <= b` whenever *a* and *b* are equal by computation:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[LessEqualReflexivity], TypeTheoryTerm[2 + 2 <= 4]]
+```
+
+<!-- => Success["TypeChecked", ...] -->
+
+## Possible Issues
+
+*n* is implicit, so [LessEqualReflexivity]() takes no argument:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[LessEqualReflexivity[3]]]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->
+
+[Construct]() gives *n* explicitly:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Construct[LessEqualReflexivity, 3]]]
+```
+
+<!-- => 3 ≤ 3 -->
+
+---
+
+`0 + x` is not *x* by computation, so it does not prove `0 + x <= x`:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals]}, LessEqualReflexivity]], TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, 0 + x <= x]]]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->

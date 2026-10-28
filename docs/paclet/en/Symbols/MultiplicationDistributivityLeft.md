@@ -37,3 +37,52 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationDistributivityLeft[2, 3, 4]]]
 ```
 
 <!-- => 2 (3 + 4) == 2 × 3 + 2 × 4 -->
+
+## Scope
+
+The tactic `"Rewrite"` multiplies out a product inside a goal, and the goal closes:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals], Typed[c, Naturals]}, a * (b + c) + 1 == a * b + a * c + 1], {
+    TypeTheoryTactic["Introduce", a, b, c],
+    TypeTheoryTactic["Rewrite", MultiplicationDistributivityLeft[a, b, c]]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+With `"RightToLeft"`, `"Rewrite"` collects a common factor instead:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, x * y + x * y == x * (y + y)], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Rewrite", MultiplicationDistributivityLeft[x, y, y], "RightToLeft"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+The tactic `"Ring"` proves the same statement without naming the law:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals], Typed[c, Naturals]}, a * (b + c) == a * b + a * c], {
+    TypeTheoryTactic["Introduce", a, b, c],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+The integers have the same law, [IntegerDistributivity]():
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[IntegerDistributivity, TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ ∀_y∶ℤ ∀_z∶ℤ x (y + z) == x y + x z -->

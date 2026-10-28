@@ -39,3 +39,55 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerLessEqualReflexivity[-4], TypeTheoryEnviro
 ```
 
 <!-- => -4 ≤ -4 -->
+
+## Scope
+
+An instance with a difference:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerLessEqualReflexivity[x - y]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ ∀_y∶ℤ x - y ≤ x - y -->
+
+## Applications
+
+Once `"Rewrite"` makes the two sides the same, the law closes the goal:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 <= x], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Rewrite", IntegerAdditionZero],
+    TypeTheoryTactic["Exact", IntegerLessEqualReflexivity[x]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`x <= x` unfolds to a natural number `n` with `x == x + n`, and the proof gives 0 for `n`, with [IntegerAdditionZero]():
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers]}, Typed[ExistsIntroduction[0, EqualitySymmetry[IntegerAdditionZero[x]]], x <= x]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ ∃_n∶ℕ x == x + ↑n -->
+
+## Possible Issues
+
+`"Decide"` does not prove an inequality of integers, which has no instance of [Decidable]():
+
+```wl
+TypeTheoryProof[Typed[-4, Integers] <= -4, TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Failure["NotDecidable", ...] -->
+
+The law proves it:
+
+```wl
+TypeTheoryProof[Typed[-4, Integers] <= -4, TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Exact", IntegerLessEqualReflexivity[-4]]}]
+```
+
+<!-- => Proof complete -->

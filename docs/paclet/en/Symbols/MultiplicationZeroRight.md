@@ -37,3 +37,49 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationZeroRight[9]]]
 ```
 
 <!-- => 9 × 0 == 0 -->
+
+## Scope
+
+The tactic `"Reflexivity"` proves it, since `n * 0` computes to 0:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n * 0 == 0], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+Since `0^(n + 1)` computes to `0^n * 0`, an instance proves that a positive power of 0 is 0:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0^(n + 1) == 0], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Exact", MultiplicationZeroRight[0^n]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+Multiplying by 0 on the right is the constant function 0 by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n * 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0]]]
+```
+
+<!-- => True -->
+
+## Possible Issues
+
+On the left, 0 does not compute away, so it needs [MultiplicationZeroLeft]():
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 * n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0]]]
+```
+
+<!-- => False -->

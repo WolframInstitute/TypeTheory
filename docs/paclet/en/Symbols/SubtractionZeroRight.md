@@ -38,3 +38,46 @@ TypeTheoryCheck[TypeTheoryTerm[SubtractionZeroRight[6]]]
 ```
 
 <!-- => 6 - 0 == 6 -->
+
+## Scope
+
+The tactic `"Reflexivity"` proves it, since `n - 0` computes to *n*:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n - 0 == n], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+Subtracting 0 is the identity function by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
+```
+
+<!-- => True -->
+
+---
+
+Subtracting 1 is [NaturalNumberPredecessor]() by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 1]], TypeTheoryTerm[NaturalNumberPredecessor]]
+```
+
+<!-- => True -->
+
+## Possible Issues
+
+On the left, 0 does not compute away, so `0 - n` is not 0 by computation and needs [SubtractionZeroLeft]():
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 - n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0]]]
+```
+
+<!-- => False -->

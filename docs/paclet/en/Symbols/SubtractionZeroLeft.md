@@ -37,3 +37,40 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, SubtractionZeroLef
 ```
 
 <!-- => ∀_n∶ℕ 0 - n == 0 -->
+
+## Scope
+
+The tactic `"Rewrite"` replaces `0 - n` by 0, and [AdditionZeroLeft]() finishes the proof:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 - n + 5 == 5], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Rewrite", SubtractionZeroLeft[n]],
+    TypeTheoryTactic["Apply", AdditionZeroLeft]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+On literals, subtraction computes, and stops at 0 when the second number is the larger:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[3 - 5]]
+```
+
+<!-- => 0 -->
+
+## Possible Issues
+
+The tactic `"Reflexivity"` does not prove `0 - n == 0` for a variable *n*, since subtraction recurses on its second argument:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 - n == 0], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Failure["NotReflexive", ...] -->

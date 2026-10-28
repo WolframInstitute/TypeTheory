@@ -38,3 +38,59 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[RightInjection["true"], DisjointUnion[Natur
 ```
 
 <!-- => DisjointUnion[ℕ, 𝔹] -->
+
+## Applications
+
+The recursor of [DisjointUnion]() takes a function for each side, and applies the right one to the element of a [RightInjection]():
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[DisjointUnion][
+    Function[{Typed[t, DisjointUnion[Naturals, Booleans]]}, Naturals],
+    Function[{Typed[n, Naturals]}, n + 1],
+    Function[{Typed[b, Booleans]}, 0],
+    RightInjection["true"]
+]]]
+```
+
+<!-- => 0 -->
+
+---
+
+With [LeftInjection](), it swaps the sides of a disjoint union:
+
+```wl
+swap = TypeTheoryTerm[Function[{Typed[s, DisjointUnion[Naturals, Booleans]]}, InductiveRecursor[DisjointUnion][
+    Function[{Typed[t, DisjointUnion[Naturals, Booleans]]}, DisjointUnion[Booleans, Naturals]],
+    Function[{Typed[n, Naturals]}, RightInjection[n]],
+    Function[{Typed[b, Booleans]}, LeftInjection[b]],
+    s
+]]]
+```
+
+<!-- => (s ∶ DisjointUnion[ℕ, 𝔹]) ↦ DisjointUnion_rec[(t ∶ DisjointUnion[ℕ, 𝔹]) ↦ DisjointUnion[𝔹, ℕ], (n ∶ ℕ) ↦ RightInjection[n], (b ∶ 𝔹) ↦ LeftInjection[b], s] -->
+
+Its type:
+
+```wl
+TypeTheoryCheck[swap]
+```
+
+<!-- => DisjointUnion[ℕ, 𝔹] → DisjointUnion[𝔹, ℕ] -->
+
+The swap moves `"true"` from the right side to the left:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[swap[RightInjection["true"]]]]
+```
+
+<!-- => LeftInjection[true] -->
+
+## Possible Issues
+
+Without an expected type, the left side is unknown:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[RightInjection["true"]]]
+```
+
+<!-- => Failure["UnsolvedImplicitArgument", ...] -->

@@ -39,3 +39,65 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerSquareNonnegative[2 - 5], TypeTheoryEnviro
 ```
 
 <!-- => 0 ≤ (2 - 5) (2 - 5) -->
+
+## Scope
+
+An instance with a difference:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerSquareNonnegative[x - y]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ ∀_y∶ℤ 0 ≤ (x - y) (x - y) -->
+
+## Applications
+
+An integer is at most itself plus a square, by [IntegerLessEqualOfMultiple]() with the square as the sum it needs:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[z, Integers]}, x <= x + z z], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, z],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfMultiple[0, z z]],
+    TypeTheoryTactic["Ring"],
+    TypeTheoryTactic["Exact", IntegerSquareNonnegative[z]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`"SumOfSquares"` proves inequalities with the law, here `2 x <= x^2 + 1` from the square of `x - 1`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, 2 x <= x^2 + 1], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+`x^2` is a power, not the product `x x`, so `"Exact"` with the law does not prove `0 <= x^2`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, 0 <= x^2], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Exact", IntegerSquareNonnegative[x]]
+}]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
+
+`"SumOfSquares"` proves it:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, 0 <= x^2], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->

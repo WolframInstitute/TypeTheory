@@ -44,7 +44,7 @@ double = TypeTheoryTerm[Function[{Typed[n, Naturals]}, InductiveRecursor[Natural
 ]]]
 ```
 
-<!-- => (n ∶ ℕ) ↦ rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ)(r ∶ ℕ) ↦ r + 2, n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ)(r ∶ ℕ) ↦ r + 2, n] -->
 
 Applied to 5, it computes:
 

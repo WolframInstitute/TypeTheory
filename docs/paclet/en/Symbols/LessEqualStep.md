@@ -38,3 +38,49 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualStep[LessEqualStep[LessEqualReflexivity]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
+
+## Scope
+
+The tactic `"Constructor"` applies it where [LessEqualReflexivity]() does not, and leaves the inequality one lower:
+
+```wl
+TypeTheoryProof[3 <= 5, {TypeTheoryTactic["Constructor"]}]
+```
+
+<!-- => Proof, 1 goal: ⊢ 3 ≤ 4 -->
+
+---
+
+For a variable, two steps prove `x <= x + 2`:
+
+```wl
+TypeTheoryCheck[
+    TypeTheoryTerm[Function[{Typed[x, Naturals]}, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]],
+    TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, x <= x + 2]]
+]
+```
+
+<!-- => Success["TypeChecked", ...] -->
+
+## Properties and Relations
+
+The tactic `"Decide"` proves an inequality of literals by computation, without building the steps:
+
+```wl
+TypeTheoryProof[3 <= 5, {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+It adds 1 on the right as `m + 1`, and `1 + y` is not that by computation:
+
+```wl
+TypeTheoryCheck[
+    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualStep[h]]],
+    TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x <= 1 + y]]]
+]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->

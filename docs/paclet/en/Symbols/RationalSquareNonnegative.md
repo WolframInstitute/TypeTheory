@@ -38,3 +38,57 @@ TypeTheoryCheck[TypeTheoryTerm[RationalSquareNonnegative[-1/2], TypeTheoryEnviro
 ```
 
 <!-- => 0 ≤ (-(1/2)) (-(1/2)) -->
+
+## Scope
+
+An instance with a difference:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalSquareNonnegative[x - 1/2]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_x∶ℚ 0 ≤ (x - 1/2) (x - 1/2) -->
+
+---
+
+An integer is coerced to a rational:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalSquareNonnegative[a]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_a∶ℤ 0 ≤ ↑a ↑a -->
+
+## Properties and Relations
+
+[IntegerSquareNonnegative](), which the law is proved from, states the same of an integer itself:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, IntegerSquareNonnegative[a]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_a∶ℤ 0 ≤ a a -->
+
+## Possible Issues
+
+`x^2` is a power, not the product `x x`, so `"Exact"` with the law does not prove `0 <= x^2`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, 0 <= x^2], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Exact", RationalSquareNonnegative[x]]
+}]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
+
+`"SumOfSquares"` proves inequalities of integers and natural numbers only:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, 0 <= x^2], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Failure["InequalityExpected", ...] -->

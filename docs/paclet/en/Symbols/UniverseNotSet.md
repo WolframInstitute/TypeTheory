@@ -37,3 +37,73 @@ TypeTheoryCheck[TypeTheoryTerm[UniverseNotSet, hott]]
 ```
 
 <!-- => ¬IsSet[Type] -->
+
+## Scope
+
+[Not]() is a function into [False](), so [UniverseNotSet]() takes a proof that the universe is a set to an element of [False]().
+
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
+The statement, unfolded:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Not[IsSet[TypeUniverse[1]]], hott]]
+```
+
+<!-- => IsSet[Type] → False -->
+
+## Applications
+
+From a proof that the universe is a set, anything follows: [UniverseNotSet]() gives an element of [False](), and [FalseElimination]() an element of any type.
+
+The homotopy type theory environment:
+
+```wl
+hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+
+If the universe is a set, `"true"` equals `"false"`:
+
+```wl
+TypeTheoryProof[Implies[IsSet[TypeUniverse[1]], "true" == "false"], hott, {
+    TypeTheoryTactic["Introduce", s],
+    TypeTheoryTactic["Exact", FalseElimination[UniverseNotSet[s]]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+Under the prelude's rules the universe is a set: an equation is a proposition, and any two proofs of a proposition are equal by computation.
+
+In the prelude, `"Reflexivity"` proves that any two proofs of an equation between types are equal:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, TypeUniverse[1]], Typed[y, TypeUniverse[1]], Typed[p, x == y], Typed[q, x == y]}, p == q], {
+    TypeTheoryTactic["Introduce", x, y, p, q],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+[UniverseNotSet]() is a theorem of the HoTT environment only. A term without an environment is in the prelude, which does not have it.
+
+The statement of [UniverseNotSet](), in the prelude:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[UniverseNotSet]]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->

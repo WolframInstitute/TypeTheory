@@ -36,3 +36,83 @@ cubical[IsContractible]
 ```
 
 <!-- => definition IsContractible : Type u → Type u := (A ∶ Type u) ↦ DependentSum[A, (c ∶ A) ↦ ∀_z∶A c ≡ z] -->
+
+## Scope
+
+What [IsContractible]() says of the Booleans: an element `c` with a path from `c` to every Boolean.
+
+The cubical environment:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+
+The statement, unfolded:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[IsContractible[Booleans], cubical]]
+```
+
+<!-- => DependentSum[𝔹, (c∶𝔹) ↦ ∀_z∶𝔹 c ≡ z] -->
+
+## Applications
+
+The fibers of an equivalence are contractible: [IdentityEquivalence]() proves it for the fiber of the identity of the Booleans over `"true"`.
+
+The cubical environment:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+
+The proof:
+
+```wl
+TypeTheoryProof[IsContractible[Fiber[Function[{Typed[x, Booleans]}, x], "true"]], cubical, {TypeTheoryTactic["Exact", IdentityEquivalence[Booleans][[2]]["true"]]}]
+```
+
+<!-- => Proof complete -->
+
+The center of that fiber is `"true"` with the constant path:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[IdentityEquivalence[Booleans][[2]]["true"][[1]], cubical]]
+```
+
+<!-- => DependentPair[true, (j∶Interval) ↦ true] -->
+
+## Properties and Relations
+
+In the cubical environment, [IsEquivalence]() asks every fiber of a function to be contractible.
+
+The cubical environment:
+
+```wl
+cubical = TypeTheoryEnvironment["Cubical"]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+
+What it says of negation:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[IsEquivalence["not"], cubical]]
+```
+
+<!-- => ∀_y∶𝔹 IsContractible[Fiber[not, y]] -->
+
+## Possible Issues
+
+A term without an environment is in the prelude, which has no [IsContractible]().
+
+The contractibility of the Booleans, in the prelude:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[IsContractible[Booleans]]]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->

@@ -38,3 +38,47 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, Typ
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ⧦ q) ⇒ (q ⧦ p) -->
+
+## Scope
+
+`"Apply"` turns the goal around:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[Equivalent[p, q], Equivalent[q, p]]], {
+    TypeTheoryTactic["Introduce", p, q, h],
+    TypeTheoryTactic["Apply", EquivalentSymmetry]
+}]
+```
+
+<!-- => Proof, 1 goal: p ∶ Prop, q ∶ Prop, h ∶ p ⧦ q ⊢ p ⧦ q -->
+
+The hypothesis is the new goal:
+
+```wl
+TypeTheoryTactic["Exact", h][proof]
+```
+
+<!-- => Proof complete -->
+
+## Applications
+
+Two propositions equivalent to the same third are equivalent to each other, with [EquivalentTransitivity]():
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[
+    {Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[r, TypeUniverse[0]], Typed[h1, Equivalent[p, r]], Typed[h2, Equivalent[q, r]]},
+    EquivalentTransitivity[h1, EquivalentSymmetry[h2]]
+]]]
+```
+
+<!-- => ∀_p∶Prop ∀_q∶Prop ∀_r∶Prop (p ⧦ r) ⇒ (q ⧦ r) ⇒ (p ⧦ q) -->
+
+## Properties and Relations
+
+It swaps the two implications: the first field of the result is the second of *h*:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentSymmetry[h][[1]]]]]
+```
+
+<!-- => (True ⧦ 1 == 1) ⇒ 1 == 1 ⇒ True -->

@@ -39,3 +39,55 @@ TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[0]], TypeTheoryTerm[Nonempty
 ```
 
 <!-- => Success["TypeChecked", ...] -->
+
+## Scope
+
+The type may be a proposition: a proof of [True]() shows that [True]() has a proof:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[TrueIntroduction]]]
+```
+
+<!-- => Nonempty[True] -->
+
+## Applications
+
+An element of a type gives a pair: `"Cases"` takes a proof of [Nonempty]() apart, which it may, since the goal is a proposition:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[h, Nonempty[A]]}, Nonempty[CartesianProduct[A, A]]], {
+    TypeTheoryTactic["Introduce", A, h],
+    TypeTheoryTactic["Cases", h],
+    TypeTheoryTactic["Introduce", x]
+}]
+```
+
+<!-- => Proof, 1 goal: A ∶ Type, x ∶ A ⊢ Nonempty[CartesianProduct[A, A]] -->
+
+The pair of the element with itself:
+
+```wl
+TypeTheoryTactic["Exact", NonemptyIntroduction[Pair[x, x]]][proof]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+[Choice]() takes a proof of [Nonempty]() to an element:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Nonempty[Naturals]]}, Choice[h]]]]
+```
+
+<!-- => Nonempty[ℕ] → ℕ -->
+
+## Possible Issues
+
+A proof of [Nonempty]() can be taken apart only to prove a proposition, not to compute data such as a natural number; [Choice]() gives an element instead:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[h, Nonempty[Naturals]]}, Naturals], {TypeTheoryTactic["Introduce", h], TypeTheoryTactic["Cases", h]}]
+```
+
+<!-- => Failure["LargeElimination", ...] -->

@@ -45,3 +45,56 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 2 x y <= x x + 
 ```
 
 <!-- => Proof complete -->
+
+## Scope
+
+With `d` = 1 the multiple is twice the difference, here a sum of three squares, and `"Apply"` leaves the equation and the bound to prove:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfMultiple[1, (x - y) (x - y) + (y - z) (y - z) + (z - x) (z - x)]]
+}]
+```
+
+<!-- => Proof, 2 goals: x ∶ ℤ, y ∶ ℤ, z ∶ ℤ ⊢ ↑(1 + 1) ((x x + y y + z z) - (x y + y z + z x)) == (x - y) (x - y) + (y - z) (y - z) + (z - x) (z - x); the same hypotheses ⊢ 0 ≤ (x - y) (x - y) + (y - z) (y - z) + (z - x) (z - x) -->
+
+`"Ring"` proves the equation, and the bound nests [IntegerNonnegativeAddition]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x x + y y + z z], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfMultiple[1, (x - y) (x - y) + (y - z) (y - z) + (z - x) (z - x)]],
+    TypeTheoryTactic["Ring"],
+    TypeTheoryTactic["Exact", IntegerNonnegativeAddition[IntegerNonnegativeAddition[IntegerSquareNonnegative[x - y], IntegerSquareNonnegative[y - z]], IntegerSquareNonnegative[z - x]]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`"SumOfSquares"` finds `d` and `s` itself:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 2 x y <= x x + y y], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+The equation must hold in every commutative ring, so `"Ring"` fails where `s` is not the multiple:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 2 x y <= x x + y y], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfMultiple[0, (x + y) (x + y)]],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Failure["NotRingEquation", ...] -->

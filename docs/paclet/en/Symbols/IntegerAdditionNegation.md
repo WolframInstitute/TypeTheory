@@ -39,3 +39,58 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerAdditionNegation[4], TypeTheoryEnvironment
 ```
 
 <!-- => 4 + -4 == 0 -->
+
+## Scope
+
+An instance with a product, `x y`:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerAdditionNegation[x y]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ ∀_y∶ℤ x y + -(x y) == 0 -->
+
+## Applications
+
+The negation on the left follows with [IntegerAdditionCommutativity]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, -x + x == 0], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Rewrite", IntegerAdditionCommutativity],
+    TypeTheoryTactic["Exact", IntegerAdditionNegation[x]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`x - x` is `x + -x` by computation, so the law proves `x - x == 0` as it stands:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 0], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Exact", IntegerAdditionNegation[x]]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`4 + -4` and `0` are the classes of two different pairs, (4, 4) and (0, 0), so they are not equal by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[4 + -4, Integers], TypeTheoryEnvironment["Integers"]], TypeTheoryTerm[Typed[0, Integers], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => False -->
+
+`"Decide"` proves them equal:
+
+```wl
+TypeTheoryProof[Typed[4 + -4, Integers] == 0, TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->

@@ -38,3 +38,46 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[10]]]
 ```
 
 <!-- => 9 -->
+
+## Scope
+
+At a successor of a variable it computes, so the number before `n + 1` is *n* by `"Reflexivity"`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, NaturalNumberPredecessor[n + 1] == n], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+At a literal it computes, however large the literal:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[10^20]]]
+```
+
+<!-- => 99999999999999999999 -->
+
+## Properties and Relations
+
+Subtracting 1 is the predecessor by computation, which is why the predecessor of *n* shows as `n - 1`:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 1]], TypeTheoryTerm[NaturalNumberPredecessor]]
+```
+
+<!-- => True -->
+
+## Possible Issues
+
+The predecessor of 0 is 0, so adding 1 back gives 1, not 0:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[0] + 1]]
+```
+
+<!-- => 1 -->

@@ -39,3 +39,47 @@ TypeTheoryCheck[TypeTheoryTerm[RationalOfIntegerAddition[2, -5], TypeTheoryEnvir
 ```
 
 <!-- => ↑(2 + -5) == 2 + -5 -->
+
+## Scope
+
+An instance with a variable:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalOfIntegerAddition[a, 1]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_a∶ℤ ↑(a + 1) == ↑a + 1 -->
+
+---
+
+Natural numbers are rationals by way of the integers, so their coercion shows as `↑↑`:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, RationalOfIntegerAddition[m, n]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_m∶ℕ ∀_n∶ℕ ↑(↑m + ↑n) == ↑↑m + ↑↑n -->
+
+## Applications
+
+`"Rewrite"` with the law splits the rational of a sum, so that the laws of the rationals apply to its parts:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Integers], Typed[b, Integers], Typed[x, Rationals]}, "rationalOfInteger"[a + b] + x == a + (b + x)], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", a, b, x],
+    TypeTheoryTactic["Rewrite", RationalOfIntegerAddition],
+    TypeTheoryTactic["Rewrite", RationalAdditionAssociativity]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+`Typed[a + b, Rationals]` is the sum of the rationals of `a` and `b`, not the rational of their sum, which is written with the coercion `"rationalOfInteger"`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Integers], Typed[b, Integers]}, Typed[a + b, Rationals] == a + b], TypeTheoryEnvironment["Rationals"]]
+```
+
+<!-- => Proof, 1 goal: ⊢ ∀_a∶ℤ ∀_b∶ℤ ↑a + ↑b == ↑a + ↑b -->

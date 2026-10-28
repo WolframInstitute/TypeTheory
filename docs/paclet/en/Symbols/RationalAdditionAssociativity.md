@@ -39,3 +39,52 @@ TypeTheoryCheck[TypeTheoryTerm[RationalAdditionAssociativity[1/2, 1/3, 1/6], Typ
 ```
 
 <!-- => 1/2 + 1/3 + 1/6 == 1/2 + (1/3 + 1/6) -->
+
+## Scope
+
+An instance with fractions of a variable:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalAdditionAssociativity[x, x / 2, x / 3]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_x∶ℚ x + x/2 + x/3 == x + (x/2 + x/3) -->
+
+## Applications
+
+`"Rewrite"` with `"RightToLeft"` regroups a sum the other way:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, x + (y + z) == (x + y) + z], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["Rewrite", RationalAdditionAssociativity, "RightToLeft"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`"Ring"` proves an identity that regroups a sum and adds its fractions:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, (x + 1/2) + 1/2 == x + 1], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+For rational variables the two sides are not equal by computation, so `"Reflexivity"` does not prove the law:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, (x + y) + z == x + (y + z)], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Failure["NotReflexive", ...] -->

@@ -39,3 +39,50 @@ TypeTheoryCheck[TypeTheoryTerm[RationalAdditionNegation[3/4], TypeTheoryEnvironm
 ```
 
 <!-- => 3/4 + -(3/4) == 0 -->
+
+## Scope
+
+An instance with a fraction of a variable:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalAdditionNegation[x / 2]], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_x∶ℚ x/2 + -(x/2) == 0 -->
+
+## Applications
+
+The negation on the left follows with [RationalAdditionCommutativity]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, -x + x == 0], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Rewrite", RationalAdditionCommutativity],
+    TypeTheoryTactic["Exact", RationalAdditionNegation[x]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`x - x` is `x + -x` by computation, so the law proves `x - x == 0` as it stands:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x - x == 0], TypeTheoryEnvironment["Rationals"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Exact", RationalAdditionNegation[x]]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+An instance of literals is decided by `"Decide"`, since [RationalEqualityDecidable]() decides equations of rationals:
+
+```wl
+TypeTheoryProof[Typed[3/4 + -3/4, Rationals] == 0, TypeTheoryEnvironment["Rationals"], {TypeTheoryTactic["Decide"]}]
+```
+
+<!-- => Proof complete -->

@@ -39,3 +39,64 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerDistributivity[2, -1, 3], TypeTheoryEnviro
 ```
 
 <!-- => 2 (-1 + 3) == 2 (-1) + 2 3 -->
+
+## Scope
+
+An instance with variables:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers]}, IntegerDistributivity[x, x, 1]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ x (x + 1) == x x + x 1 -->
+
+## Applications
+
+With [IntegerMultiplicationOne](), `"Rewrite"` multiplies out `x (y + 1)`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x (y + 1) == x y + x], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Rewrite", IntegerDistributivity],
+    TypeTheoryTactic["Rewrite", IntegerMultiplicationOne]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`"Ring"`, whose proofs are built from this law and the other laws of the integers, multiplies out products of sums:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x + y) (x - y) == x^2 - y^2], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+The law multiplies a sum on the left, so `"Exact"` with it does not prove `(x + y) z == x z + y z`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, (x + y) z == x z + y z], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["Exact", IntegerDistributivity[z, x, y]]
+}]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
+
+`"Ring"` proves it:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, (x + y) z == x z + y z], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, z],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->

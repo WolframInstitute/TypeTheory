@@ -41,3 +41,70 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[0 <= y 
 ```
 
 <!-- => Proof complete -->
+
+## Scope
+
+`"Apply"` turns an inequality into the statement that the difference of its sides is at least 0:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x <= x + y y], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfDifference]
+}]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℤ, y ∶ ℤ ⊢ 0 ≤ (x + y y) - x -->
+
+## Applications
+
+An inequality whose difference is a square, given by a hypothesis:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, Implies[y - x == z z, x <= y]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y, z, h],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfDifference],
+    TypeTheoryTactic["Rewrite", h],
+    TypeTheoryTactic["Exact", IntegerSquareNonnegative[z]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`x <= y` means that `y` is `x` plus a natural number, so where that number is at hand, [ExistsIntroduction]() proves the inequality directly:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x <= x + 3], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Exact", ExistsIntroduction[3, EqualityReflexivity[x + 3]]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+`"Ring"` proves equations only, so it does not finish the difference that `"Apply"` leaves:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x <= x + y y], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfDifference],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Failure["EquationExpected", ...] -->
+
+`"SumOfSquares"` does:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x <= x + y y], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Apply", IntegerLessEqualOfDifference],
+    TypeTheoryTactic["SumOfSquares"]
+}]
+```
+
+<!-- => Proof complete -->

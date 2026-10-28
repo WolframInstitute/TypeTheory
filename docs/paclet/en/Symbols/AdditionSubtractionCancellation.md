@@ -37,3 +37,53 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals]}
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ (x + y) - y == x -->
+
+## Scope
+
+The tactic `"Rewrite"` cancels `y` inside a goal, and the goal closes:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, (x + y) - y + 1 == x + 1], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Rewrite", AdditionSubtractionCancellation[x, y]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+With [AdditionCommutativity](), the number added first cancels too:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, (y + x) - y == x], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Rewrite", AdditionCommutativity[y, x]],
+    TypeTheoryTactic["Exact", AdditionSubtractionCancellation[x, y]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+Subtraction stops at 0, so subtracting first and adding back does not cancel, and `(2 - 5) + 5` is 5:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[(2 - 5) + 5]]
+```
+
+<!-- => 5 -->
+
+---
+
+The tactic `"Ring"` does not prove it, since subtraction is not an operation of a semiring:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, (x + y) - y == x], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Failure["NotRingEquation", ...] -->

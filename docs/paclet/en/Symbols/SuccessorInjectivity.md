@@ -38,3 +38,47 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 1 == 5
 ```
 
 <!-- => ∀_x∶ℕ x + 1 == 5 ⇒ x == 4 -->
+
+## Scope
+
+The tactic `"Apply"` leaves the equation of the successors as the goal:
+
+```wl
+proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + 1 == y + 1, x == y]], {
+    TypeTheoryTactic["Introduce", x, y, h],
+    TypeTheoryTactic["Apply", SuccessorInjectivity]
+}]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℕ, y ∶ ℕ, h ∶ x + 1 == y + 1 ⊢ x + 1 == y + 1 -->
+
+The hypothesis proves it:
+
+```wl
+TypeTheoryTactic["Assumption"][proof]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+It is [EqualityCongruence]() with [NaturalNumberPredecessor](), which takes both sides back to the numbers before them:
+
+```wl
+TypeTheoryCheck[
+    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x + 1 == y + 1]}, EqualityCongruence[NaturalNumberPredecessor, h]]],
+    TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + 1 == y + 1, x == y]]]
+]
+```
+
+<!-- => Success["TypeChecked", ...] -->
+
+## Possible Issues
+
+`1 + x` is not a successor by computation, since addition recurses on its second argument, so an equation `1 + x == 1 + y` does not fit:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, 1 + x == 1 + y]}, SuccessorInjectivity[h]]]]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->

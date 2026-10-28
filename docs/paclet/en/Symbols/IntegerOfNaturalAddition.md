@@ -39,3 +39,50 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerOfNaturalAddition[2, 3], TypeTheoryEnviron
 ```
 
 <!-- => ↑(2 + 3) == 2 + 3 -->
+
+## Scope
+
+An instance with a variable:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, IntegerOfNaturalAddition[n, 1]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_n∶ℕ ↑(n + 1) == ↑n + 1 -->
+
+## Applications
+
+`"Rewrite"` with the law splits the integer of a sum, so that the laws of the integers apply to its parts:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals], Typed[x, Integers]}, "integerOfNatural"[m + n] + x == m + (n + x)], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m, n, x],
+    TypeTheoryTactic["Rewrite", IntegerOfNaturalAddition],
+    TypeTheoryTactic["Rewrite", IntegerAdditionAssociativity]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`"Ring"` takes the integer of a sum apart with the law, here inside a power:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, "integerOfNatural"[(m + n)^2] == m^2 + 2 m n + n^2], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m, n],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+`Typed[m + n, Integers]` is the sum of the integers of `m` and `n`, not the integer of their sum, which is written with the coercion `"integerOfNatural"`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, Typed[m + n, Integers] == m + n], TypeTheoryEnvironment["Integers"]]
+```
+
+<!-- => Proof, 1 goal: ⊢ ∀_m∶ℕ ∀_n∶ℕ ↑m + ↑n == ↑m + ↑n -->

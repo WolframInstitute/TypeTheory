@@ -39,3 +39,53 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerMultiplicationOne[-7], TypeTheoryEnvironme
 ```
 
 <!-- => (-7) 1 == -7 -->
+
+## Scope
+
+An instance with a sum:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerMultiplicationOne[x + y]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_x∶ℤ ∀_y∶ℤ (x + y) 1 == x + y -->
+
+## Applications
+
+`"Rewrite"` removes a factor 1 inside a sum:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x 1 + y == x + y], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Rewrite", IntegerMultiplicationOne]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+One on the left follows with [IntegerMultiplicationCommutativity]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, 1 x == x], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Rewrite", IntegerMultiplicationCommutativity],
+    TypeTheoryTactic["Exact", IntegerMultiplicationOne[x]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+For an integer variable `x 1 == x` does not hold by computation, so `"Reflexivity"` does not prove it:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x 1 == x], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x],
+    TypeTheoryTactic["Reflexivity"]
+}]
+```
+
+<!-- => Failure["NotReflexive", ...] -->

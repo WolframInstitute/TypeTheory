@@ -41,3 +41,55 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, 0 <= 3 (x x)], TypeTheoryEnvironmen
 ```
 
 <!-- => Proof complete -->
+
+## Scope
+
+The factor can be a natural number variable:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[k, Naturals], Typed[x, Integers]}, 0 <= k (x x)], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", k, x],
+    TypeTheoryTactic["Exact", IntegerNonnegativeScaling[k, IntegerSquareNonnegative[x]]]
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`"Apply"` with the factor alone finds `x` from the goal and leaves `0 <= x` to prove:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, Implies[0 <= x, 0 <= 4 x]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, h],
+    TypeTheoryTactic["Apply", IntegerNonnegativeScaling[4]]
+}]
+```
+
+<!-- => Proof, 1 goal: x ∶ ℤ, h ∶ 0 ≤ x ⊢ 0 ≤ x -->
+
+## Applications
+
+A weighted sum of squares is at least 0, with [IntegerNonnegativeAddition]():
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 0 <= 2 (x x) + 5 (y y)], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", x, y],
+    TypeTheoryTactic["Exact", IntegerNonnegativeAddition[IntegerNonnegativeScaling[2, IntegerSquareNonnegative[x]], IntegerNonnegativeScaling[5, IntegerSquareNonnegative[y]]]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+The factor is a natural number, so an integer factor does not fit, even one known to be at least 0:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[c, Integers], Typed[x, Integers]}, Implies[0 <= c, 0 <= c (x x)]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", c, x, h],
+    TypeTheoryTactic["Exact", IntegerNonnegativeScaling[c, IntegerSquareNonnegative[x]]]
+}]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->

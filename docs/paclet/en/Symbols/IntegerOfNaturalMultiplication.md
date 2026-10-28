@@ -39,3 +39,50 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerOfNaturalMultiplication[2, 3], TypeTheoryE
 ```
 
 <!-- => ↑(2 3) == 2 3 -->
+
+## Scope
+
+An instance with a variable:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, IntegerOfNaturalMultiplication[n, n]], TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => ∀_n∶ℕ ↑(n n) == ↑n ↑n -->
+
+## Applications
+
+`"Rewrite"` with the law turns the integer of a product into a product of integers, here a square, which [IntegerSquareNonnegative]() bounds:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 <= "integerOfNatural"[n n]], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", n],
+    TypeTheoryTactic["Rewrite", IntegerOfNaturalMultiplication],
+    TypeTheoryTactic["Exact", IntegerSquareNonnegative[n]]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Properties and Relations
+
+`"Ring"` takes the integer of a product apart with the law:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals], Typed[x, Integers]}, "integerOfNatural"[m n] x == n (m x)], TypeTheoryEnvironment["Integers"], {
+    TypeTheoryTactic["Introduce", m, n, x],
+    TypeTheoryTactic["Ring"]
+}]
+```
+
+<!-- => Proof complete -->
+
+## Possible Issues
+
+`Typed[m n, Integers]` is the product of the integers of `m` and `n`, not the integer of their product, which is written with the coercion `"integerOfNatural"`:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, Typed[m n, Integers] == m n], TypeTheoryEnvironment["Integers"]]
+```
+
+<!-- => Proof, 1 goal: ⊢ ∀_m∶ℕ ∀_n∶ℕ ↑m ↑n == ↑m ↑n -->
