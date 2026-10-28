@@ -591,6 +591,20 @@ VerificationTest[
 	TestID -> "Rewrite-takes-an-instance-equal-to-the-side-by-computation"
 ]
 
+(* Rewrite compares its candidates without unfolding a definition, as Lean's kabstract at instances transparency:
+   (2 + 2) + 1 is an instance of 4 + 1 by arithmetic on literals, but Doubled[2] + 1 is none, equal to it only once
+   Doubled unfolds *)
+VerificationTest[
+	With[{doubled = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]}]},
+		{
+			MatchQ[TypeTheoryProof[(2 + 2) + 1 == 5, doubled, {TypeTheoryTactic["Rewrite", AdditionCommutativity[4, 1]]}]["Goals"], {TypeTheoryTerm[_ ⊢ 1 + 4 == 5, _]}],
+			First @ TypeTheoryProof[Doubled[2] + 1 == 5, doubled, {TypeTheoryTactic["Rewrite", AdditionCommutativity[4, 1]]}]
+		}
+	],
+	{True, "NoInstance"},
+	TestID -> "Rewrite-takes-no-instance-that-needs-a-definition-unfolded"
+]
+
 (* a premise P[x] whose P the goal fixes as a function is beta reduced in the new goal, not left as a redex *)
 VerificationTest[
 	With[{applied = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, x + 1 == 3], {TypeTheoryTactic["Apply", ExistsIntroduction]}]},

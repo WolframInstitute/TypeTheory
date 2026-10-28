@@ -669,13 +669,43 @@ abstractInstanceBelow[localDefinition[name_, type_, value_, body_], instanceQ_, 
 abstractInstanceBelow[projection[structure_, index_, inner_], instanceQ_, depth_] := projection[structure, index, abstractInstance[inner, instanceQ, depth]]
 abstractInstanceBelow[term_, _, _] := term
 
-(* the subterms a rewrite takes for its instance, as Lean's kabstract: a copy, or a subterm with no variable of a
-   binder inside the goal and no hole, with the instance's head and number of arguments, equal to it by computation *)
+(* The subterms a rewrite takes for its instance, as Lean's kabstract takes them: a copy, or a subterm with no
+   variable of a binder inside the goal and no hole, with the instance's head and number of arguments, equal to it
+   without unfolding a definition. Lean compares them at instances transparency, so a subterm equal to the instance
+   only once a definition unfolds is no instance: a full test could unfold far, and leave a motive that is not well
+   typed. *)
 instanceOfQ[environment_, context_, instance_] := With[{key = instancePatternKey[instance], closedQ = FreeQ[instance, _metavariable]},
 	Function[candidate, Or[
 		candidate === instance,
-		closedQ && looseBoundRange[candidate] == 0 && FreeQ[candidate, _metavariable] && instancePatternKey[candidate] === key && definitionallyEqualQ[environment, context, candidate, instance]
+		closedQ && looseBoundRange[candidate] == 0 && FreeQ[candidate, _metavariable] && instancePatternKey[candidate] === key && equalWithoutUnfoldingQ[environment, context, candidate, instance]
 	]]
+]
+
+(* two closed terms equal without unfolding a definition: the same, the same number by arithmetic on literals, or
+   the same head applied to arguments equal in the same way. m 2 and m (1 + 1) are; Doubled[2] + 1 and 4 + 1 are not,
+   as Doubled must unfold, which reducing the head Plus would do to its arguments. *)
+equalWithoutUnfoldingQ[environment_, context_, a_, b_] := Or[
+	a === b,
+	With[{valueA = literalValue[environment, context, a]}, valueA =!= None && valueA === literalValue[environment, context, b]],
+	With[{spineA = applicationSpine[a], spineB = applicationSpine[b]},
+		And[
+			Last[spineA] =!= {},
+			First[spineA] === First[spineB],
+			Length[Last[spineA]] == Length[Last[spineB]],
+			AllTrue[Transpose[{Last[spineA], Last[spineB]}], Function[pair, equalWithoutUnfoldingQ[environment, context, First[pair], Last[pair]]]]
+		]
+	]
+]
+
+(* the literal a term computes to by the registered operations on literals alone, or None *)
+literalValue[_, _, literal_naturalLiteral] := literal
+literalValue[environment_, context_, term_] := With[{spine = applicationSpine[term]},
+	If[ MatchQ[First[spine], _constantReference] && Last[spine] =!= {},
+		With[{arguments = Function[argument, literalValue[environment, context, argument]] /@ Last[spine]},
+			If[FreeQ[arguments, None], Replace[literalOperationResult[environment, context, First[First[spine]], arguments], Except[_naturalLiteral] -> None], None]
+		],
+		None
+	]
 ]
 
 (* the recursor of the type of equations, eliminating into the sort of the goal *)
