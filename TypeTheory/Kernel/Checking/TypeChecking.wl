@@ -111,7 +111,10 @@ $definitionalEqualityCache = None
 SetAttributes[withKernelCaches, HoldFirst]
 withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
 	body,
-	Block[{$inferTypeCache = <||>, $uncheckedTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>}, body]
+	Block[
+		{$inferTypeCache = <||>, $uncheckedTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>, $universeInstantiationCache = <||>},
+		body
+	]
 ]
 
 (* Lean's kernel infers the types that definitional equality and reduction ask in infer-only mode: an

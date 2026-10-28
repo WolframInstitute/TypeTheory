@@ -78,6 +78,7 @@ PackageScoped[instantiateBoundVariables]
 PackageScoped[abstractFreeVariable]
 PackageScoped[boundVariableOccursQ]
 PackageScoped[instantiateUniverseParameters]
+PackageScoped[$universeInstantiationCache]
 PackageScoped[applicationSpine]
 PackageScoped[makeApplication]
 PackageScoped[betaNormalize]
@@ -131,6 +132,7 @@ instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ...
 abstractFreeVariable::usage = "abstractFreeVariable[term, id] replaces freeVariable[id] by a bound variable, ready to be wrapped in a binder."
 boundVariableOccursQ::usage = "boundVariableOccursQ[body, index] gives True if body refers to boundVariable[index] counted from its own top."
 instantiateUniverseParameters::usage = "instantiateUniverseParameters[term, {u, ...}, {level, ...}] replaces each universe parameter u by its level."
+$universeInstantiationCache::usage = "$universeInstantiationCache is the Association of universe instantiations remembered while the kernel checks a declaration, or None."
 applicationSpine::usage = "applicationSpine[term] gives {head, {argument, ...}}, unwinding nested applications."
 makeApplication::usage = "makeApplication[head, {argument, ...}] applies head to the arguments in turn."
 betaNormalize::usage = "betaNormalize[term] reduces every application of a function in term, unfolding nothing."
@@ -332,14 +334,22 @@ betaApply[lambdaAbstraction[_, _, body_, _], argument_] := betaNormalize[instant
 betaApply[function_, argument_] := application[function, argument]
 
 
+(* A check instantiates the same constant's type, value or recursor rule at the same levels again and again, one
+   reduction step after another, and each is a term the environment's record holds, so a check remembers them. *)
 instantiateUniverseParameters[term_, {}, {}] := term
-instantiateUniverseParameters[term_, parameters_List, levels_List] /; Length[parameters] == Length[levels] := With[
-	{rules = Thread[(levelParameter /@ parameters) -> levels]},
-	term /. {
-		universeSort[level_] :> With[{instantiated = normalizeLevel[level /. rules]}, universeSort[instantiated] /; True],
-		constantReference[name_, constantLevels_List] :> With[{instantiated = normalizeLevel /@ (constantLevels /. rules)}, constantReference[name, instantiated] /; True]
-	}
+instantiateUniverseParameters[term_, parameters_List, levels_List] /; Length[parameters] == Length[levels] := If[ AssociationQ[$universeInstantiationCache],
+	Lookup[$universeInstantiationCache, Key[{term, parameters, levels}], $universeInstantiationCache[{term, parameters, levels}] = universesReplaced[term, parameters, levels]],
+	universesReplaced[term, parameters, levels]
 ]
+
+$universeInstantiationCache = None
+
+universesReplaced[term_, parameters_, levels_] := levelRulesApplied[term, Thread[(levelParameter /@ parameters) -> levels]]
+
+levelRulesApplied[term_, rules_] := term /. {
+	universeSort[level_] :> With[{instantiated = normalizeLevel[level /. rules]}, universeSort[instantiated] /; True],
+	constantReference[name_, constantLevels_List] :> With[{instantiated = normalizeLevel /@ (constantLevels /. rules)}, constantReference[name, instantiated] /; True]
+}
 
 
 (* ::Subsection:: *)
