@@ -883,7 +883,8 @@ decide[data_, goal_] := With[{current = currentGoal[data, goal], environment = d
 		If[ decision === None,
 			tacticFailure["NotDecidable", "No instance of Decidable decides the goal `1`.", data, goal]
 		];
-		Replace[weakHeadNormalForm[environment, current["Context"], makeApplication[preludeConstant[Decide], {current["Type"], decision}]], {
+		(* the computation of a closed decision remembers its steps, as a kernel check does *)
+		Replace[withKernelCaches[weakHeadNormalForm[environment, current["Context"], makeApplication[preludeConstant[Decide], {current["Type"], decision}]]], {
 			constantReference[HoldComplete["true"], _] :> solveGoal[data, goal, makeApplication[preludeConstant[DecideSoundness], {
 				current["Type"],
 				decision,
