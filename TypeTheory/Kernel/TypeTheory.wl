@@ -16,3 +16,8 @@ PackageInitialize["WolframInstitute`TypeTheory`",
 		"IgnoreFiles" -> {}
 	|>
 ]
+
+(* When another loaded package defines a name TypeTheory exports and both contexts are on the context path, the
+   loader sets up its shadowing message by parsing "General::shdw = ..." in TypeTheory's context with an empty
+   context path, which creates a symbol General there; it is removed, so that General is System's. *)
+Quiet[Remove["WolframInstitute`TypeTheory`General"]]
