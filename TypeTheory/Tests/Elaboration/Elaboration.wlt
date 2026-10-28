@@ -81,6 +81,23 @@ VerificationTest[
 	TestID -> "Elaboration-errors-are-Failures"
 ]
 
+(* A proof where data belongs: the list's element type would be True, a proposition, not a type of TypeUniverse[u].
+   The solution that fails is undone, so the expected type is the hole, and the two sorts are named, where the
+   message used to read "TrueIntroduction has type True, but the expected type is True". Types of one sort keep the
+   plain message. *)
+VerificationTest[
+	{
+		Lookup[Last[TypeOf[TypeTheoryTerm[ListPrepend[TrueIntroduction, EmptyList], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
+			StringContainsQ[template, "whose sort is"],
+			Length[parameters],
+			ToString[parameters[[3]]] =!= "True"
+		},
+		Length[Last[TypeOf[TypeTheoryTerm[Typed[TrueIntroduction, False], prelude]]]["MessageParameters"]]
+	},
+	{{True, 5, True}, 3},
+	TestID -> "A-proof-where-data-belongs-is-told-apart-by-its-sort"
+]
+
 VerificationTest[
 	MatchQ[TypeTheoryCheck[
 		TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]},

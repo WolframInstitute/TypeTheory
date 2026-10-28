@@ -1695,15 +1695,16 @@ etaReducedSolution[ids_List, value_] := With[{valueSpine = applicationSpine[valu
    such as the level of Equal in a == b once the type of a is known. It names only variables of the
    context the metavariable was made in. A value that names another variable, or the metavariable itself,
    only inside a redex is beta reduced first, as Lean's unifier reduces it: ?b against ((t) ↦ N)[o], the
-   codomain of a function of o, is N. *)
+   codomain of a function of o, is N. A solution whose type does not fit is undone, with what unifying the
+   types solved, so that no failure is reported with it in place. *)
 assignMetavariable[metavariable[id_], value_] := Replace[admissibleSolution[id, value], {
 	None -> False,
-	solution_ :> (
+	solution_ :> attemptOrRestore[
 		$metavariableAssignments[id] = solution;
 		With[{valueType = Quiet @ catchKernelFailure[inferType[$elaborationEnvironment, $elaborationContext, solution]]},
 			FailureQ[valueType] || ! KeyExistsQ[$metavariableTypes, id] || unify[$metavariableTypes[id], valueType]
 		]
-	)
+	]
 }]
 
 admissibleSolution[id_, value_] := If[ admissibleSolutionQ[id, value],
@@ -1873,14 +1874,34 @@ assignLevel[levelMetavariable[id_], level_] := (
 	True
 )
 
+(* Types in two different sorts are told apart by their sorts, as True, a proposition, where a type of TypeUniverse[u]
+   is expected: the types themselves may read the same. *)
 unifyOrFail[actual_, expected_, syntax_] := If[ ! unify[actual, expected],
-	kernelFailure[
-		"TypeMismatch",
-		"`1` has type `2`, but the expected type is `3`.",
+	With[
 		{
-			HoldForm @@ heldFromSyntax[syntax],
-			displayCoreTerm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[actual]],
-			displayCoreTerm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]
-		}
+			types = instantiateMetavariables /@ {actual, expected},
+			sorts = Quiet @ catchKernelFailure[inferType[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[#]]]& /@ {actual, expected}
+		},
+		If[ NoneTrue[sorts, FailureQ] && ! unifiableSortsQ @@ sorts,
+			kernelFailure[
+				"TypeMismatch",
+				"`1` has type `2`, whose sort is `4`, but the expected type is `3`, whose sort is `5`.",
+				Join[{HoldForm @@ heldFromSyntax[syntax]}, displayCoreTerm[$elaborationEnvironment, $elaborationContext, #]& /@ Join[types, sorts]]
+			],
+			kernelFailure[
+				"TypeMismatch",
+				"`1` has type `2`, but the expected type is `3`.",
+				Join[{HoldForm @@ heldFromSyntax[syntax]}, displayCoreTerm[$elaborationEnvironment, $elaborationContext, #]& /@ types]
+			]
+		]
+	]
+]
+
+(* two sorts that unifying could make the same; unifying them here would solve their levels, so only a trial *)
+unifiableSortsQ[first_, second_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments},
+	With[{unifiable = TrueQ[unify[first, second]]},
+		$metavariableAssignments = assignments;
+		$levelAssignments = levels;
+		unifiable
 	]
 ]
