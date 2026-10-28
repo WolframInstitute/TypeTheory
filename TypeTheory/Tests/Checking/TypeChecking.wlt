@@ -201,6 +201,25 @@ VerificationTest[
 	TestID -> "Of-two-definitions-the-higher-unfolds-first"
 ]
 
+(* a variable whose type is a definition that reduces to a function type is applied to as many arguments as that
+   type takes, which the kernel finds by reducing the type in the middle of the spine *)
+VerificationTest[
+	With[
+		{
+			operations = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition[NaturalOperation, Typed[TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers], TypeUniverse[1]]],
+				TypeTheoryDefinition[NaturalOperationOf, Typed[Function[{Typed[n, NonNegativeIntegers]}, NaturalOperation], TypeSpecifier[{NonNegativeIntegers} -> TypeUniverse[1]]]]
+			}]
+		},
+		{
+			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperation]}, f[1, 2]], operations]] === TypeTheoryTerm[TypeSpecifier[{NaturalOperation} -> NonNegativeIntegers], operations],
+			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperationOf[3]]}, f[1, 2] + f[2, 1]], operations]] === TypeTheoryTerm[TypeSpecifier[{NaturalOperationOf[3]} -> NonNegativeIntegers], operations]
+		}
+	],
+	{True, True},
+	TestID -> "A-function-type-behind-a-definition-is-applied-to-all-its-arguments"
+]
+
 VerificationTest[
 	{
 		DefinitionallyEqualQ[TypeTheoryTerm[1935], TypeTheoryTerm[1936]],

@@ -13,6 +13,9 @@ constantReference = Symbol["WolframInstitute`TypeTheory`PackageScope`constantRef
 lambdaAbstraction = Symbol["WolframInstitute`TypeTheory`PackageScope`lambdaAbstraction"]
 boundVariable = Symbol["WolframInstitute`TypeTheory`PackageScope`boundVariable"]
 
+application = Symbol["WolframInstitute`TypeTheory`PackageScope`application"]
+naturalLiteral = Symbol["WolframInstitute`TypeTheory`PackageScope`naturalLiteral"]
+
 natural = constantReference[HoldComplete[NonNegativeIntegers], {}]
 firstProjection = lambdaAbstraction[HoldComplete[m], natural, lambdaAbstraction[HoldComplete[n], natural, boundVariable[1], "Explicit"], "Explicit"]
 
@@ -126,6 +129,24 @@ VerificationTest[
 	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {"Value" -> firstProjection, "Height" -> 1}]]]],
 	"TypeMismatch",
 	TestID -> "A-forged-addition-is-caught"
+]
+
+(* An application's arguments are checked along its spine, each against its binder's domain with the arguments
+   before it put in: EqualitySymmetry with x = 1 and y = 2 needs a proof of 1 == 2, and gets one of 1 == 1. A
+   spine with more arguments than its function's type has binders, even after reducing it, applies a value that
+   is no function. *)
+VerificationTest[
+	{
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete[AdditionZeroLeft], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete[EqualitySymmetry], {1}], {
+			natural,
+			naturalLiteral[1],
+			naturalLiteral[2],
+			application[application[constantReference[HoldComplete[EqualityReflexivity], {1}], natural], naturalLiteral[1]]
+		}]]]]],
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete[AdditionZeroLeft], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete[NaturalNumberSuccessor], {}], {naturalLiteral[1], naturalLiteral[2]}]]]]]
+	},
+	{"TypeMismatch", "FunctionExpected"},
+	TestID -> "A-forged-argument-is-caught-against-the-domain-its-earlier-arguments-give"
 ]
 
 (* an opaque definition never unfolds, but its value is checked as a definition's *)

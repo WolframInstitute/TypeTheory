@@ -134,7 +134,7 @@ inferTypeOf[environment_, context_, term_] := Replace[term, {
 	constantReference[name_, levels_List] :> constantType[environment, name, levels],
 	naturalLiteral[_Integer?NonNegative] :> naturalNumberType[environment],
 	(* a primitive of cubical type theory with rules of its own types its arguments together *)
-	application[function_, argument_] :> Replace[cubicalSpineType[environment, context, term], None :> applicationType[environment, context, function, argument]],
+	application[_, _] :> Replace[cubicalSpineType[environment, context, term], None :> spineType[environment, context, term]],
 	lambdaAbstraction[name_, domain_, body_, binder_] :> lambdaType[environment, context, name, domain, body, binder],
 	dependentFunctionType[name_, domain_, codomain_, binder_] :> functionTypeSort[environment, context, name, domain, codomain, binder],
 	localDefinition[name_, type_, value_, body_] :> localDefinitionType[environment, context, name, type, value, body],
@@ -178,18 +178,34 @@ naturalNumberType[environment_] := Replace[naturalNumberSettings[environment], {
 	_ :> kernelFailure["NoNaturalNumbers", "A natural number literal needs an environment with natural numbers registered.", {}]
 }]
 
-applicationType[environment_, context_, function_, argument_] := Replace[
-	weakHeadNormalForm[environment, context, inferType[environment, context, function]],
+(* An application's arguments are checked in one pass along its spine, as Lean's kernel infers a spine in infer-only
+   mode: each argument against its binder's domain, instantiated with the arguments before it, and the codomain
+   instantiated with all of them once at the end. Taking one argument at a time instead, each argument instantiated
+   the whole rest of the function's type, so a spine of n arguments cost n substitutions of its telescope. *)
+spineType[environment_, context_, term_] := With[{spine = applicationSpine[term]},
+	spineTypeFrom[environment, context, First[spine], inferType[environment, context, First[spine]], {}, Last[spine]]
+]
+
+(* prefix: the head applied to the arguments taken so far; type: the head's type under the binders passed since the
+   last reduction, whose bound variables stand for the pending arguments, innermost last *)
+spineTypeFrom[environment_, context_, prefix_, type_, pending_List, {}] := instantiateBoundVariables[type, pending]
+spineTypeFrom[environment_, context_, prefix_, dependentFunctionType[_, domain_, codomain_, _], pending_List, {argument_, rest___}] := (
+	checkHasType[environment, context, argument, instantiateBoundVariables[domain, pending]];
+	spineTypeFrom[environment, context, application[prefix, argument], codomain, Append[pending, argument], {rest}]
+)
+(* a type that is not a function type as it stands may reduce to one *)
+spineTypeFrom[environment_, context_, prefix_, type_, pending_List, arguments : {argument_, rest___}] := Replace[
+	weakHeadNormalForm[environment, context, instantiateBoundVariables[type, pending]],
 	{
-		dependentFunctionType[_, domain_, codomain_, _] :> (
-			checkHasType[environment, context, argument, domain];
-			instantiateBoundVariable[codomain, argument]
-		),
-		functionType_ :> Replace[pathApplicationType[environment, context, functionType, argument], None :> kernelFailure[
-			"FunctionExpected",
-			"`1` is applied to an argument, but its type `2` is not a function type.",
-			{displayCoreTerm[environment, context, function], displayCoreTerm[environment, context, functionType]}
-		]]
+		functionType_dependentFunctionType :> spineTypeFrom[environment, context, prefix, functionType, {}, arguments],
+		functionType_ :> Replace[pathApplicationType[environment, context, functionType, argument], {
+			None :> kernelFailure[
+				"FunctionExpected",
+				"`1` is applied to an argument, but its type `2` is not a function type.",
+				{displayCoreTerm[environment, context, prefix], displayCoreTerm[environment, context, functionType]}
+			],
+			pathType_ :> spineTypeFrom[environment, context, application[prefix, argument], pathType, {}, {rest}]
+		}]
 	}
 ]
 
