@@ -167,26 +167,25 @@ inferType[environment_, context_, term_] := Which[
 		Lookup[$inferTypeCache, Key[{environment, term}], $inferTypeCache[{environment, term}] = inferTypeOf[environment, context, term]]
 ]
 
-inferTypeOf[environment_, context_, term_] := Replace[term, {
-	boundVariable[index_] :> kernelFailure["LooseBoundVariable", "A bound variable with index `1` occurs outside its binder.", {index}],
-	freeVariable[id_] :> Lookup[context, id, kernelFailure["UnknownVariable", "The free variable `1` is not in the local context.", {id}]]["Type"],
-	metavariable[id_] :> Lookup[$metavariableTypes, id, kernelFailure["Metavariable", "The term contains an unsolved metavariable.", {}]],
-	universeSort[level_] :> (
-		If[ ! rulesSetting[environment, "Prop"] && FreeQ[level, _levelMetavariable] && ! levelNeverZeroQ[level], noPropFailure[environment, level]];
-		universeSort[normalizeLevel[levelSuccessor[level, 1]]]
-	),
-	constantReference[name_, levels_List] :> constantType[environment, name, levels],
-	naturalLiteral[_Integer?NonNegative] :> naturalNumberType[environment],
-	(* a primitive of cubical type theory with rules of its own types its arguments together *)
-	application[_, _] :> Replace[cubicalSpineType[environment, context, term], None :> spineType[environment, context, term]],
-	lambdaAbstraction[name_, domain_, body_, binder_] :> lambdaType[environment, context, name, domain, body, binder],
-	dependentFunctionType[name_, domain_, codomain_, binder_] :> functionTypeSort[environment, context, name, domain, codomain, binder],
-	localDefinition[name_, type_, value_, body_] :> localDefinitionType[environment, context, name, type, value, body],
-	projection[structure_, index_Integer?NonNegative, structureTerm_] :> projectionType[environment, context, structure, index, structureTerm],
-	_cubicalSystem :> kernelFailure["SystemTerm", "A system has no type of its own: it is only the side of a composition or a Glue type.", {}],
-	_intervalUniverse :> kernelFailure["IntervalUniverseTerm", "The sort of the interval has no type.", {}],
-	_ :> kernelFailure["IllFormedTerm", "`1` is not a term.", {term}]
-}]
+(* by the patterns of definitions: a rule that matched would put its variables into a right side holding the term *)
+inferTypeOf[_, _, boundVariable[index_]] := kernelFailure["LooseBoundVariable", "A bound variable with index `1` occurs outside its binder.", {index}]
+inferTypeOf[_, context_, freeVariable[id_]] := Lookup[context, id, kernelFailure["UnknownVariable", "The free variable `1` is not in the local context.", {id}]]["Type"]
+inferTypeOf[_, _, metavariable[id_]] := Lookup[$metavariableTypes, id, kernelFailure["Metavariable", "The term contains an unsolved metavariable.", {}]]
+inferTypeOf[environment_, _, universeSort[level_]] := (
+	If[ ! rulesSetting[environment, "Prop"] && FreeQ[level, _levelMetavariable] && ! levelNeverZeroQ[level], noPropFailure[environment, level]];
+	universeSort[normalizeLevel[levelSuccessor[level, 1]]]
+)
+inferTypeOf[environment_, _, constantReference[name_, levels_List]] := constantType[environment, name, levels]
+inferTypeOf[environment_, _, naturalLiteral[_Integer?NonNegative]] := naturalNumberType[environment]
+(* a primitive of cubical type theory with rules of its own types its arguments together *)
+inferTypeOf[environment_, context_, term : application[_, _]] := Replace[cubicalSpineType[environment, context, term], None :> spineType[environment, context, term]]
+inferTypeOf[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_]] := lambdaType[environment, context, name, domain, body, binder]
+inferTypeOf[environment_, context_, dependentFunctionType[name_, domain_, codomain_, binder_]] := functionTypeSort[environment, context, name, domain, codomain, binder]
+inferTypeOf[environment_, context_, localDefinition[name_, type_, value_, body_]] := localDefinitionType[environment, context, name, type, value, body]
+inferTypeOf[environment_, context_, projection[structure_, index_Integer?NonNegative, structureTerm_]] := projectionType[environment, context, structure, index, structureTerm]
+inferTypeOf[_, _, _cubicalSystem] := kernelFailure["SystemTerm", "A system has no type of its own: it is only the side of a composition or a Glue type.", {}]
+inferTypeOf[_, _, _intervalUniverse] := kernelFailure["IntervalUniverseTerm", "The sort of the interval has no type.", {}]
+inferTypeOf[_, _, term_] := kernelFailure["IllFormedTerm", "`1` is not a term.", {term}]
 
 cubicalSpineType[environment_, context_, term_] := If[ ! cubicalDeclaredQ[environment],
 	None,
