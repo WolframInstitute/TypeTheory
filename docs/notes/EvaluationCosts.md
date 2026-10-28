@@ -108,4 +108,5 @@ lookup costs a pointer's comparison). With both:
 - the cones check in 4.92 s, 6.54 s and 14.20 s, 35%, 39% and 33% under the first column above.
 
 A map of the universe instantiation over the distinct subterms alone, in place of the cache,
-measured from neutral to 2% faster on the cones, whose types are small.
+measured from 1% faster to 2% slower on the cones (`balanceL` 15.87 s against 16.23 s), whose
+types are small.
