@@ -38,6 +38,13 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	IntervalZero, IntervalOne           0, 1                 the endpoints of the interval of cubical type theory
 	IntervalMeet, IntervalJoin, IntervalReverse   r ∧ s, r ∨ s, ~r
 	Path[Function[{i}, A], a, b]        a ≡ b                Congruent, where the line is constant
+	CartesianProductType[A, B]          A × B                Cross, which takes ×; A × B × C for A × (B × C)
+	DisjointUnionType[A, B]             A ⊕ B                CirclePlus; A ⊕ B ⊕ C for A ⊕ (B ⊕ C)
+	Pair[a, Pair[b, c]]                 (a, b, c)
+	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
+	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
+	ListPrepend[1, ListPrepend[2, EmptyList]]   {1, 2}     EmptyList as {}, in braces: [1, 2] in f[[1, 2]] would read as Part
+	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
 The display rewrites the syntax tree of the term with these operators, rebuilds it held, and takes its
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
@@ -75,7 +82,7 @@ typeTheoryBoxes[syntax_, form_] := Block[
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]]
 	},
-	quantifiedOperandBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
+	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
 
 TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, ___], form : StandardForm | TraditionalForm] := With[
@@ -119,6 +126,17 @@ logicalOperatorBoxes[boxes_] := Replace[
 	{0, Infinity}
 ]
 
+(* A product of types and a dependent sum show as Cross and NotExists, which bind as × and a quantifier do,
+   and then take the symbols × and Σ. CircleTimes is left to the types named by it, which show as ⊗. *)
+typeOperatorBoxes[boxes_] := Replace[
+	boxes,
+	{
+		RowBox[operands : {_, "\[Cross]", __}] :> RowBox[Replace[operands, "\[Cross]" -> "\[Times]", {1}]],
+		SubscriptBox["\[NotExists]", binder_] :> SubscriptBox["\[CapitalSigma]", binder]
+	},
+	{0, Infinity}
+]
+
 (* A quantifier reaches as far right as it can, as Lean reads it, but for MakeBoxes ∀ binds tighter than
    ∧, ∨ and ⧦, so (∀x, p) ∧ q would show as ∀_x p ∧ q. An operand of those that ends with a quantifier,
    other than the last, is parenthesized, as MakeBoxes already does before ⇒ and ==; a notation given
@@ -151,6 +169,17 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 
 (* the arguments are rewritten first, so each rule sees displayed arguments *)
 displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[head, displaySyntax /@ arguments]
+(* products, sums, pairs and lists nested to the right show as one row, as Lean shows them *)
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[CartesianProductType]], {_, _}]] :=
+	syntaxHead[Cross, displaySyntax /@ rightNested[CartesianProductType, syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DisjointUnionType]], {_, _}]] :=
+	syntaxHead[CirclePlus, displaySyntax /@ rightNested[DisjointUnionType, syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, _}]] := tupleDisplay["(", displaySyntax /@ rightNested[Pair, syntax], ")"]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DependentPair]], {_, _}]] :=
+	tupleDisplay["\[LeftAngleBracket]", displaySyntax /@ rightNested[DependentPair, syntax], "\[RightAngleBracket]"]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {_, _}]] /; listLiteralQ[syntax] :=
+	tupleDisplay["{", displaySyntax /@ Most[rightNested[ListPrepend, syntax]], "}"]
+displaySyntax[syntaxSymbol[HoldComplete[EmptyList]]] := syntaxString["{}"]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]
@@ -255,14 +284,15 @@ displayApplication[
 	{syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["\[UpArrow]"], inner_}]}]}
 ] := prefixed["\[UpArrow]\[UpArrow]", inner]
 displayApplication[syntaxString["rationalOfInteger"], {argument_}] := prefixed["\[UpArrow]", argument]
-(* a class of a pair with a literal denominator shows as the fraction it stands for, as computation gives it too *)
-displayApplication[
+(* A class of a pair with a literal denominator shows as the fraction it stands for, as computation gives it too.
+   These rules read the pair before it is rewritten as a tuple, so they rewrite the syntax, not displayed arguments. *)
+displaySyntax[syntaxApplication[
 	syntaxSymbol[HoldComplete[QuotientIntroduction]],
 	{syntaxString["rationalRelation"], pair : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, syntaxInteger[_Integer]}]}
-] := displayApplication[syntaxString["rationalOfPair"], {pair}]
-displayApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[0]}]}] := numerator
-displayApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[denominator_Integer]}]}] :=
-	syntaxHead[Divide, {numerator, syntaxInteger[denominator + 1]}]
+]] := displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {pair}]]
+displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[0]}]}]] := displaySyntax[numerator]
+displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[denominator_Integer]}]}]] :=
+	syntaxHead[Divide, {displaySyntax[numerator], syntaxInteger[denominator + 1]}]
 
 (* -x and ↑x, with an argument that is no name or number in parentheses, so x + -y keeps its sign and
    ↑(m + n) its sum *)
@@ -281,6 +311,30 @@ displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successo
 displayApplication[head_, arguments_List] := syntaxApplication[displaySyntax[head], arguments]
 
 delimited[left_String, syntax_, right_String] := syntaxHead[Row, {syntaxHead[List, {syntaxString[left], syntax, syntaxString[right]}]}]
+
+tupleDisplay[left_String, elements_List, right_String] := delimited[left, syntaxHead[Row, {syntaxHead[List, elements], syntaxString[", "]}], right]
+
+(* the elements of head[a, head[b, c]]: a, b and c *)
+rightNested[head_Symbol, syntaxApplication[syntaxSymbol[HoldComplete[head_]], {first_, rest_}]] := Prepend[rightNested[head, rest], first]
+rightNested[_Symbol, last_] := {last}
+
+listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {_, rest_}]] := listLiteralQ[rest]
+listLiteralQ[syntaxSymbol[HoldComplete[EmptyList]]] := True
+(* the elements give the type an ascribed empty list states *)
+listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[HoldComplete[EmptyList]], _}]] := True
+listLiteralQ[_] := False
+
+(* a dependent sum over a function of one variable shows its binder, as ∀ does *)
+displayApplication[
+	syntaxSymbol[HoldComplete[DependentSum]],
+	{_, syntaxApplication[syntaxSymbol[HoldComplete[RightTeeArrow]], {binder : syntaxApplication[syntaxSymbol[HoldComplete[Colon]], _], body_}]}
+] := syntaxHead[NotExists, {binder, body}]
+
+(* a subtype of a predicate of one variable shows as Lean shows it, {x ∶ A // p} *)
+displayApplication[
+	syntaxSymbol[HoldComplete[Subtype]],
+	{syntaxApplication[syntaxSymbol[HoldComplete[RightTeeArrow]], {binder : syntaxApplication[syntaxSymbol[HoldComplete[Colon]], _], body_}]}
+] := delimited["{", syntaxHead[Row, {syntaxHead[List, {binder, syntaxString[" // "], body}]}], "}"]
 
 (* several binders are each parenthesized, unless their brackets already delimit them *)
 binderRow[{binder_}] := binder

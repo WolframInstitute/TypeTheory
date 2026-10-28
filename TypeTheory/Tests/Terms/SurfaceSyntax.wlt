@@ -205,3 +205,64 @@ VerificationTest[
 	{False, True},
 	TestID -> "Naturals-shows-as-the-natural-numbers-unless-a-binder-has-its-name"
 ]
+
+VerificationTest[
+	{
+		Cases[ToBoxes[TypeTheoryTerm[CartesianProductType[NonNegativeIntegers, CartesianProductType[Booleans, Integers]]]], RowBox[{_, "\[Times]", _, "\[Times]", _}], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[CartesianProductType[CartesianProductType[NonNegativeIntegers, Booleans], Integers]]], RowBox[{RowBox[{"(", _, ")"}], "\[Times]", _}], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[DisjointUnionType[CartesianProductType[NonNegativeIntegers, Booleans], Booleans]]], RowBox[{RowBox[{_, "\[Times]", _}], "\[CirclePlus]", _}], Infinity] =!= {},
+		FreeQ[ToBoxes[TypeTheoryTerm[DisjointUnionType[NonNegativeIntegers, CartesianProductType[NonNegativeIntegers, Booleans]]]], "CartesianProductType" | "DisjointUnionType" | "\[Cross]"],
+		Cases[ToBoxes[TypeTheoryTerm[CircleTimes[A, B]]], RowBox[{"A", "\[CircleTimes]", "B"}], Infinity] =!= {}
+	},
+	{True, True, True, True, True},
+	TestID -> "Products-and-sums-of-types-show-as-times-and-circle-plus"
+]
+
+VerificationTest[
+	{
+		Cases[ToBoxes[TypeTheoryTerm[Pair[1, Pair[2, 3]]]], TemplateBox[{"\"(\"", TemplateBox[{", ", "\", \"", "1", "2", "3"}, "RowWithSeparators"], "\")\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[DependentPair[1, 2]]], TemplateBox[{"\"\[LeftAngleBracket]\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"\[RightAngleBracket]\""}, "RowDefault"], Infinity] =!= {}
+	},
+	{True, True},
+	TestID -> "Pairs-show-as-tuples-and-dependent-pairs-in-angle-brackets"
+]
+
+VerificationTest[
+	{
+		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, Typed[EmptyList, Lists[NonNegativeIntegers]]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[Join[l, EmptyList]]], "\"{}\"", Infinity],
+		FreeQ[ToBoxes[TypeTheoryTerm[ListPrepend[1, l]]], "ListPrepend"]
+	},
+	{True, True, {"\"{}\""}, False},
+	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
+]
+
+VerificationTest[
+	Cases[
+		ToBoxes[TypeTheoryTerm[DependentSum[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, n == n]]]],
+		SubscriptBox["\[CapitalSigma]", RowBox[{"n", "\[Colon]", _}]],
+		Infinity
+	] =!= {},
+	True,
+	TestID -> "A-dependent-sum-shows-as-sigma-over-its-binder"
+]
+
+VerificationTest[
+	{
+		ToBoxes[TypeTheoryTerm["rationalOfPair"[Pair[3, 0]]]],
+		Cases[ToBoxes[TypeTheoryTerm[QuotientIntroduction["rationalRelation", Pair[5, 1]]]], FractionBox["5", "2"], Infinity, 1]
+	},
+	{InterpretationBox["3", TypeTheoryTerm["rationalOfPair"[Pair[3, 0]]]], {FractionBox["5", "2"]}},
+	TestID -> "A-class-of-a-pair-with-a-literal-denominator-still-shows-as-a-fraction"
+]
+
+VerificationTest[
+	Cases[
+		ToBoxes[TypeTheoryTerm[Subtype[Function[{Typed[n, NonNegativeIntegers]}, 2 <= n]]]],
+		TemplateBox[{"\"{\"", TemplateBox[{RowBox[{"n", "\[Colon]", _}], "\" // \"", _}, "RowDefault"], "\"}\""}, "RowDefault"],
+		Infinity
+	] =!= {},
+	True,
+	TestID -> "A-subtype-shows-as-Lean-shows-it"
+]
