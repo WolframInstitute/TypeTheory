@@ -129,22 +129,26 @@ under eager unfolding point instead at the order of unfolding: §6.
 | 1. quick: success set (or equivalence manager); binders, sorts, literals of the same kind | `===`, the cache; `definitionallyEqualCases`' rules for sorts, literals and binders |
 | 2. `decide`: if `t` has no free variables (or under `eagerReduce`) and `s` is `Bool.true`, `whnf(t)` and compare with `Bool.true` | none |
 | — | the same constant applied to equal arguments (`sameHeadArgumentsEqualQ`), before any reduction |
-| 3. `whnf_core` of both, without δ and with cheap projections; the quick check again if either changed | `reducedEqualQ`: `reducedHeadWithoutUnfolding` of both; the whole of `definitionallyEqualQ` if either changed |
+| 3. `whnf_core` of both, without δ and with cheap projections; the quick check again if either changed | `reducedEqualQ`: `reducedHeadWithoutUnfolding` of both, without δ, but its projection case (`reduceProjection`) reduces the structure by `weakHeadNormalForm`, δ included, as Lean's `whnf_core` with `cheap_proj = false` would; the whole of `definitionallyEqualQ` if either changed |
 | 4. proof irrelevance | `proofIrrelevantEqualQ`, before reduction |
-| 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: heights only; no projection rule; the argument comparison at the same height, but for the first step; identity between steps |
+| 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: heights only; no projection rule, nor a need for one, since 3 reduced every projection it could; the argument comparison at the same height, but for the first step; identity between steps |
 | 6. the same constant with equal levels; the same free variable | in `headsEqualQ`, under `spinesEqualQ` |
-| 7. projections of the same index: `lazy_delta_proj_reduction` of the structures | `headsEqualQ` compares the structure terms |
+| 7. projections of the same index: `lazy_delta_proj_reduction` of the structures | `headsEqualQ` compares the structure terms, but only of projections whose structures 3 left stuck |
 | 8. `whnf_core` with projections reduced by `whnf`; again from the top if either changed | none at this point |
 | 9. `is_def_eq_app` on the weak head normal forms | `spinesEqualQ` in `normalFormsEqualQ` |
 | 10. η, η for structures, string literals, unit-like types | `etaEqualQ`, `structureEtaQ`, `literalEqualQ`, `unitEqualQ` |
 
 The differences that can cost minutes:
-- **The projection rule (5).** Lean's `try_unfold_proj_app`: when one side has a definition at its
-  head and the other is a projection application, Lean reduces the projection application first.
-  Its comment names the case, `expensive_term =?= instFoo.1 a`, where unfolding `expensive_term`
-  (well-founded recursion, for one) never ends in time. `headDefinitionHeight` gives `None` for a
-  `projection[…]` head, so `lazyDeltaStep` unfolds the definition side. Instance projections are
-  everywhere in `IntermediateField`, so this is the first thing to test on the two constants.
+- **Projections (3, 7).** TypeTheory reduces a projection's structure with δ at the step where
+  Lean uses cheap projections.
+  - **No case for Lean's projection rule.** Lean's `try_unfold_proj_app` reduces a projection
+    application before the definition on the other side (its comment's case is
+    `expensive_term =?= instFoo.1 a`). In TypeTheory, `instFoo.1 a` is reduced before lazy δ
+    begins.
+  - **The risk runs the other way.** For `x.i =?= y.i`, with `x` and `y` different terms that are
+    equal, TypeTheory unfolds both structures in full. Lean compares `x` with `y` first, lazily
+    (`lazy_delta_proj_reduction`), and reduces them only if that fails. Instance projections are
+    everywhere in `IntermediateField`, so this is the first thing to test on the two constants.
 - **Hint kinds (5).** In Lean's `compare` (`declaration.cpp`):
   - two regular definitions unfold the higher first, or both at equal height;
   - an abbreviation unfolds before a regular definition;
@@ -169,8 +173,9 @@ The differences that can cost minutes:
 
 ## 7. What to try, in order
 
-1. The projection rule, measured on `IntermediateField.Lifts.le_union` and
-   `exists_lift_of_splits'`.
+1. Projections of the same index compared by their structures before either is reduced. That
+   takes projections left unreduced in `reducedHeadWithoutUnfolding`, as Lean's cheap projections
+   are. Measure it on `IntermediateField.Lifts.le_union` and `exists_lift_of_splits'`.
 2. Hint kinds from the import, abbreviations first and opaque hints last, if the import drops them.
 3. The `decide` shortcut, on the five `ZMod` constants.
 4. The cache, keyed by an ordered pair without the environment, and asked between lazy-δ steps.
