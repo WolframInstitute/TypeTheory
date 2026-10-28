@@ -134,7 +134,7 @@ under eager unfolding point instead at the order of unfolding: §6.
 | 2. `decide`: if `t` has no free variables (or under `eagerReduce`) and `s` is `Bool.true`, `whnf(t)` and compare with `Bool.true` | none |
 | 3. `whnf_core` of both, without δ and with cheap projections; the quick check again if either changed | `reducedEqualQ`: `reducedHeadWithoutUnfolding` of both, without δ, but its projection case (`reduceProjection`) reduces the structure by `weakHeadNormalForm`, δ included, as Lean's `whnf_core` with `cheap_proj = false` would; the whole of `definitionallyEqualQ` if either changed |
 | 4. proof irrelevance | `proofIrrelevance` in `reducedEqualQ`, where neither side reduced; inside a check its type queries infer only (`typeQuery`) |
-| 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: heights only; no projection rule, nor a need for one, since 3 reduced every projection it could; the arguments of one definition at both heads, from the first step on (`sameHeadArgumentsEqualQ` in `lazyDeltaStep`); identity between steps |
+| 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: a projection function is an abbreviation (`"Hint" -> "Abbreviation"`), which unfolds before a regular definition, two of them together; of two regular definitions the higher first; no projection rule, nor a need for one, since 3 reduced every projection it could; the arguments of one regular definition at both heads, from the first step on (`sameHeadArgumentsEqualQ` in `lazyDeltaStep`); identity between steps |
 | 6. the same constant with equal levels; the same free variable | in `headsEqualQ`, under `spinesEqualQ` |
 | 7. projections of the same index: `lazy_delta_proj_reduction` of the structures | `headsEqualQ` compares the structure terms, but only of projections whose structures 3 left stuck |
 | 8. `whnf_core` with projections reduced by `whnf`; again from the top if either changed | none at this point |
@@ -148,18 +148,22 @@ The differences that can cost minutes:
     application before the definition on the other side (its comment's case is
     `expensive_term =?= instFoo.1 a`). In TypeTheory, `instFoo.1 a` is reduced before lazy δ
     begins.
-  - **The risk runs the other way.** For `x.i =?= y.i`, with `x` and `y` different terms that are
+  - **Structures compared in full.** For `x.i =?= y.i`, with `x` and `y` different terms that are
     equal, TypeTheory unfolds both structures in full. Lean compares `x` with `y` first, lazily
-    (`lazy_delta_proj_reduction`), and reduces them only if that fails. Instance projections are
-    everywhere in `IntermediateField`, so this is the first thing to test on the two constants.
+    (`lazy_delta_proj_reduction`), and reduces them only if that fails.
+
+  Lean's cheap projections and projection rule together gain nothing on `le_union` (§7.2), where
+  the abbreviation hints decide.
 - **Hint kinds (5).** In Lean's `compare` (`declaration.cpp`):
   - two regular definitions unfold the higher first, or both at equal height;
   - an abbreviation unfolds before a regular definition;
   - a definition with opaque hints unfolds last;
   - two of one kind other than regular unfold together.
 
-  TypeTheory has heights only. Check what the Mathlib import does with `ReducibilityHints.abbrev`
-  and `ReducibilityHints.opaque`.
+  TypeTheory has heights, and the abbreviation hint of a projection function, which it finds by
+  the shape of its value (`projectionFunctionQ`). Lean's other hints come with the import (§7.4):
+  those of `abbrev` definitions and of parent projections that are not subobjects, and the opaque
+  hints.
   - **Opaque hints.** Lean's `is_delta` unfolds every constant with a value. A definition with
     opaque hints is still unfolded, unlike an `opaque` declaration, which TypeTheory's `"Opaque"`
     kind matches.
@@ -206,23 +210,51 @@ What they show:
   each term again. With infer-only queries it gives up to 40×, and Lean's order brings the rest:
   11× to 115× against the eager order.
 - **The projection rule moves none of these.** Its case is `le_union`'s chain of structure
-  comparisons, where it takes the root alone from over 300 s to 181 s. Lean takes 25 ms there.
+  comparisons (§7.2), where it takes the eager order's root from over 300 s to 181 s.
 
 The kernel decides in Lean's own order (§6): reduction without unfolding, then proof irrelevance
 where neither side reduces, then lazy δ, with infer-only queries inside a check. It takes the four
 failing checks in 0.39 s, 0.14 s, 0.09 s and 1.69 s, 27× to 611× faster than the eager order.
 
-### 7.2 Whole cones against Lean
+### 7.2 `le_union`'s root
+
+`IntermediateField.Lifts.le_union` is the check that took minutes. Its root alone, after its cone
+of 5005 constants is imported (185 s under Lean's order, 206 s under the eager order), each order
+run once in one kernel, every answer the same:
+
+| Order | The root |
+|---|---|
+| eager order | over 300 s |
+| Lean's order | 170.6 s |
+| Lean's order, cheap projections | 178.9 s |
+| Lean's order, projection functions as abbreviations | 14.5 s |
+| both | 14.2 s |
+| Lean | 22 ms |
+
+- **Cheap projections:** reduction without unfolding reduces a projection's structure without δ,
+  lazy δ unfolds a projection application before the definition on the other side
+  (`try_unfold_proj_app`), and a last pass reduces projections in full before the spines are
+  compared (§6, rows 3, 5 and 8).
+- **Projection functions as abbreviations:** a definition whose value projects a field out of its
+  last argument unfolds before a regular definition, and two of them unfold together without
+  their arguments compared, as Lean's hints order its structure projections. `x.toRingHom`
+  against a long composition then reads the field before the composition unfolds, where heights
+  alone unfold the higher composition first.
+
+The kernel has the abbreviations. In three warm runs of `typetheory_benchmark.wls` the root takes
+14.1 s: 10.17 s of checking, 462× Lean's 22 ms, and 3.95 s of translating.
+
+### 7.3 Whole cones against Lean
 
 LeanLink's `typetheory_benchmark.wls` checks the cone of a declaration, every constant it depends
 on, in TypeTheory and in Lean's kernel. The times are of checking, the median of three warm runs,
-which agree within 3%.
+which agree within 3% but for one run of `binaryRec` with the abbreviations, 9.2 s.
 
-| Cone | Constants | Eager order | Spine | Spine and Lean's order | Lean | TypeTheory / Lean |
-|---|---|---|---|---|---|---|
-| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 59 ms | 120× |
-| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 75 ms | 141× |
-| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 172 ms | 124× |
+| Cone | Constants | Eager order | Spine | And Lean's order | And the abbreviations | Lean | TypeTheory / Lean |
+|---|---|---|---|---|---|---|---|
+| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 7.51 s | 60 ms | 125× |
+| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 10.52 s | 75 ms | 140× |
+| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 21.35 s | 170 ms | 126× |
 
 The spine is the inference of an application's type along its spine at once (`spineType`), as
 Lean's kernel infers one: each argument is checked against its binder's domain with the arguments
@@ -232,27 +264,26 @@ argument at a time, a spine of n arguments cost n substitutions of its function 
 What they show:
 - **The spine gives 8% to 12%, and Lean's order 3% to 10% more.** These cones pass, so failing
   comparisons, where Lean's order gives its 27× to 611×, are rare in them.
+- **The abbreviations cost `binaryRec` 6%,** beyond the runs' spread (its fastest run went from
+  7.01 s to 7.42 s), and move the other two by under 1%. Where a projection function unfolds
+  first, heights may have decided sooner; the profile is to show whether that is the cause.
 - **The rest of the gap is elsewhere,** in parts no measurement has divided yet: inference that
   checks, the infer-only queries, weak head normal forms, instantiation, and hashing the caches'
   keys (§5, item 5).
 
-### 7.3 The order from here
+### 7.4 The order from here
 
-1. **Projections of one field compared by their structures,** with the abbreviation hints of
-   projection functions, measured on `le_union` in three forms:
-   - cheap projections: reduction without unfolding reduces a projection's structure without δ,
-     lazy δ unfolds a projection application before the definition on the other side
-     (`try_unfold_proj_app`), and a last pass reduces projections in full before the spines are
-     compared (§6, rows 3, 5 and 8);
-   - projection functions as abbreviations;
-   - both.
-2. **A profile of `balanceL`'s check,** dividing its 21 s among the parts §7.2 names.
+1. **A profile of `balanceL`'s check,** dividing its 21 s among the parts §7.3 names, and of
+   `binaryRec`'s 6%.
+2. **Hint kinds from the import:** Lean's `ReducibilityHints`, passed by the bridge as a role of
+   `TypeTheoryDefinition` and kept through replay, so that every abbreviation Lean has unfolds
+   first and opaque hints unfold last.
 3. **The `decide` shortcut,** on the five `ZMod` constants.
 4. **The cache,** keyed by an ordered pair without the environment, and asked between lazy-δ steps.
-5. **Hint kinds from the import.**
-6. **The failure set inside `lazyDeltaStep`,** if the profile still shows repeated argument
+5. **The failure set inside `lazyDeltaStep`,** if the profile still shows repeated argument
    comparisons.
-7. **Literal arithmetic for closed rational terms,** as Lean's kernel computes `Nat` literals, if
+6. **Literal arithmetic for closed rational terms,** as Lean's kernel computes `Nat` literals, if
    failing comparisons of numerals stay slow.
 
-Lean's union-find closure is not worth adding: its own kernel no longer has it.
+Neither Lean's union-find closure, which its own kernel no longer has, nor cheap projections
+(§7.2) is worth adding.
