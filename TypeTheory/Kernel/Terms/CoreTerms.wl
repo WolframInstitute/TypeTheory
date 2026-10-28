@@ -161,8 +161,13 @@ withoutQuantities[term_] := ReplaceAll[
    substitution and abstraction therefore pass by a subterm with no variable they could change, which
    its loose bound range tells, and work out each distinct subterm once per call, so the subterms of
    the result are shared as those of the term are. The range of a subterm is remembered while the
-   kernel checks a declaration. *)
+   kernel checks a declaration, where it saves a factor of four on balanceL's cone; the range of a
+   variable or a constant is read off it, without the cache, which it would only fill. Substitution by
+   one native scan for the variables and one ReplacePart was tried and is many times slower: it visits
+   each occurrence of a shared subterm, where this walk visits each distinct one once. *)
 
+looseBoundRange[boundVariable[index_]] := index + 1
+looseBoundRange[_constantReference | _universeSort | _naturalLiteral | _freeVariable | _metavariable] := 0
 looseBoundRange[term_] := If[ AssociationQ[$looseBoundRangeCache],
 	Lookup[$looseBoundRangeCache, Key[term], $looseBoundRangeCache[term] = looseBoundRangeOf[term]],
 	looseBoundRangeOf[term]

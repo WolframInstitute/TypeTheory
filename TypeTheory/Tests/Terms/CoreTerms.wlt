@@ -57,6 +57,59 @@ VerificationTest[
 	TestID -> "Substitution-under-a-binder-lifts-the-value"
 ]
 
+(* Substitution decides what the kernel accepts, so it is checked against a plain walk on random terms: binders,
+   local definitions, projections and applications over bound, loose and free variables, instantiated with one
+   to three values that have loose variables of their own. The body can be a single variable, and variables
+   bound further out than the values are lowered. The walk lifts a value past each binder it goes under. *)
+naiveLift[term_, amount_, cutoff_] := Replace[term, {
+	boundVariable[index_] :> boundVariable[If[index >= cutoff, index + amount, index]],
+	scoped["application"][function_, argument_] :> scoped["application"][naiveLift[function, amount, cutoff], naiveLift[argument, amount, cutoff]],
+	(head : scoped["lambdaAbstraction"] | scoped["dependentFunctionType"])[name_, domain_, body_, binder_] :>
+		head[name, naiveLift[domain, amount, cutoff], naiveLift[body, amount, cutoff + 1], binder],
+	scoped["localDefinition"][name_, type_, value_, body_] :>
+		scoped["localDefinition"][name, naiveLift[type, amount, cutoff], naiveLift[value, amount, cutoff], naiveLift[body, amount, cutoff + 1]],
+	scoped["projection"][structure_, index_, structureTerm_] :> scoped["projection"][structure, index, naiveLift[structureTerm, amount, cutoff]]
+}]
+naiveSubstitute[term_, values_, depth_] := Replace[term, {
+	boundVariable[index_] :> Which[
+		index < depth, boundVariable[index],
+		index < depth + Length[values], naiveLift[values[[index - depth + 1]], depth, 0],
+		True, boundVariable[index - Length[values]]
+	],
+	scoped["application"][function_, argument_] :> scoped["application"][naiveSubstitute[function, values, depth], naiveSubstitute[argument, values, depth]],
+	(head : scoped["lambdaAbstraction"] | scoped["dependentFunctionType"])[name_, domain_, body_, binder_] :>
+		head[name, naiveSubstitute[domain, values, depth], naiveSubstitute[body, values, depth + 1], binder],
+	scoped["localDefinition"][name_, type_, value_, body_] :>
+		scoped["localDefinition"][name, naiveSubstitute[type, values, depth], naiveSubstitute[value, values, depth], naiveSubstitute[body, values, depth + 1]],
+	scoped["projection"][structure_, index_, structureTerm_] :> scoped["projection"][structure, index, naiveSubstitute[structureTerm, values, depth]]
+}]
+randomTerm[0] := Switch[RandomInteger[{1, 4}],
+	1, boundVariable[RandomInteger[5]],
+	2, freeVariable[RandomInteger[9]],
+	3, scoped["constantReference"][HoldComplete[c], {}],
+	_, universeSort[0]
+]
+randomTerm[n_] := Switch[RandomInteger[{1, 6}],
+	1, application[randomTerm[n - 1], randomTerm[n - 1]],
+	2, lambdaAbstraction[HoldComplete[x], randomTerm[n - 1], randomTerm[n - 1], "Explicit"],
+	3, scoped["dependentFunctionType"][HoldComplete[x], randomTerm[n - 1], randomTerm[n - 1], "Explicit"],
+	4, scoped["localDefinition"][HoldComplete[y], randomTerm[n - 1], randomTerm[n - 1], randomTerm[n - 1]],
+	5, scoped["projection"][HoldComplete[S], 0, randomTerm[n - 1]],
+	_, randomTerm[0]
+]
+
+VerificationTest[
+	BlockRandom[
+		SeedRandom[2026];
+		Select[
+			Table[{randomTerm[RandomInteger[{0, 4}]], Table[randomTerm[RandomInteger[2]], {RandomInteger[{1, 3}]}]}, {1000}],
+			Function[case, instantiateBoundVariables @@ case =!= naiveSubstitute[First[case], Reverse[Last[case]], 0]]
+		]
+	],
+	{},
+	TestID -> "Substitution-agrees-with-a-plain-walk-on-random-terms"
+]
+
 VerificationTest[
 	abstractFreeVariable[lambdaAbstraction[HoldComplete[\[FormalX]], universeSort[0], application[freeVariable[5], boundVariable[0]], "Explicit"], 5],
 	lambdaAbstraction[HoldComplete[\[FormalX]], universeSort[0], application[boundVariable[1], boundVariable[0]], "Explicit"],
