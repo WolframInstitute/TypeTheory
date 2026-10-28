@@ -15,7 +15,7 @@ $docsDirectory = FileNameJoin[{$repoDirectory, "docs", "paclet", "en"}]
 
 $siteAccount = "wolframinstitute@wolframinstitute.org"
 
-$minimumPacletPage = "0.3.11"
+$minimumPacletPage = "0.3.40"
 
 $pacletPageResource = "https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/PacletPage"
 
@@ -87,8 +87,10 @@ buildDocumentation[] := (
 $resourceOptions = {}
 
 (* Feedback sent through the site's form is readable by the site's owner, by signed-in
-   wolframinstitute.org accounts, and by the readers listed. *)
-
+   wolframinstitute.org accounts, and by the readers listed. The site shows the paclet's version
+   under its name, and PacletPage's footer. *)
 $siteOptions = {
-	"FeedbackOptions" -> {"Domains" -> {"wolframinstitute.org"}, "Readers" -> {"nikm@wolfram.com"}}
+	"FeedbackOptions" -> {"Domains" -> {"wolframinstitute.org"}, "Readers" -> {"nikm@wolfram.com"}},
+	"VersionLabel" -> True,
+	"Footer" -> True
 }
