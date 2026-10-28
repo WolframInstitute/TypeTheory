@@ -97,6 +97,10 @@ whole procedure, not only of one shortcut.
 
 **Lifetime.** One `withKernelCaches` block, one declaration's check, as Lean's state.
 
+**Types inferred without checking.** The type queries inside a check infer only (§6, row 4), and
+remember what they infer in a cache of their own, `$uncheckedTypeCache`, as Lean's second
+`m_infer_type` table does. A checked type answers such a query, never the other way.
+
 Compared with Lean's caches:
 1. **No symmetry.** `{environment, b, a}` is another key, so `b ≡ a` is decided again after `a ≡ b`.
    Storing and looking up the pair in a canonical order fixes it, for example the two terms in
@@ -128,10 +132,9 @@ under eager unfolding point instead at the order of unfolding: §6.
 |---|---|
 | 1. quick: success set (or equivalence manager); binders, sorts, literals of the same kind | `===`, the cache; `definitionallyEqualCases`' rules for sorts, literals and binders |
 | 2. `decide`: if `t` has no free variables (or under `eagerReduce`) and `s` is `Bool.true`, `whnf(t)` and compare with `Bool.true` | none |
-| — | the same constant applied to equal arguments (`sameHeadArgumentsEqualQ`), before any reduction |
 | 3. `whnf_core` of both, without δ and with cheap projections; the quick check again if either changed | `reducedEqualQ`: `reducedHeadWithoutUnfolding` of both, without δ, but its projection case (`reduceProjection`) reduces the structure by `weakHeadNormalForm`, δ included, as Lean's `whnf_core` with `cheap_proj = false` would; the whole of `definitionallyEqualQ` if either changed |
-| 4. proof irrelevance | `proofIrrelevantEqualQ`, before reduction |
-| 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: heights only; no projection rule, nor a need for one, since 3 reduced every projection it could; the argument comparison at the same height, but for the first step; identity between steps |
+| 4. proof irrelevance | `proofIrrelevance` in `reducedEqualQ`, where neither side reduced; inside a check its type queries infer only (`typeQuery`) |
+| 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: heights only; no projection rule, nor a need for one, since 3 reduced every projection it could; the arguments of one definition at both heads, from the first step on (`sameHeadArgumentsEqualQ` in `lazyDeltaStep`); identity between steps |
 | 6. the same constant with equal levels; the same free variable | in `headsEqualQ`, under `spinesEqualQ` |
 | 7. projections of the same index: `lazy_delta_proj_reduction` of the structures | `headsEqualQ` compares the structure terms, but only of projections whose structures 3 left stuck |
 | 8. `whnf_core` with projections reduced by `whnf`; again from the top if either changed | none at this point |
@@ -166,20 +169,16 @@ The differences that can cost minutes:
 - **`decide` (2).** The five `decide` proofs on `ZMod` characters are the shape Lean's shortcut serves:
   `Eq.refl true : decide p = true`, decided by evaluating the closed side in one `whnf`.
   `TypeChecking.wl` has no such path, so the comparison runs through lazy δ.
-- **Arguments before reduction.** `sameHeadArgumentsEqualQ` runs first on every pair whose head is
-  a constant, recursors and constructors included. Lean compares same-head arguments only inside
-  lazy δ, for definitions at equal height, and on weak head normal forms (`is_def_eq_app`). A
-  recursor application that ι-reduces at once is compared argument by argument first.
 
-## 7. What was tried, and the order from here
+## 7. Measurements, and the order from here
 
 ### 7.1 Five checks under five variants
 
 These are the slow failing checks the documentation's examples met, with one passing check for
-comparison. All ran in one Wolfram 15.1.0 kernel, with a peak of 777 MB, with each variant
-installed over the kernel's definitions. Every variant gives every check the same answer.
+comparison. All ran in one Wolfram 15.1.0 kernel, with a peak of 777 MB, each variant installed
+over the eager order's definitions. Every variant gives every check the same answer.
 
-| Check | Kernel | Projections | Irrelevance first | Irrelevance first, infer-only | Lean's order |
+| Check | Eager order | Projections | Irrelevance first | Irrelevance first, infer-only | Lean's order |
 |---|---|---|---|---|---|
 | a rational lemma applied to the wrong side (`TypeMismatch`) | 100 s | 105 s | 112 s | 37 s | 2.3 s |
 | the integer lemma, likewise | 3.8 s | 4.0 s | 4.2 s | 1.6 s | 0.35 s |
@@ -188,6 +187,8 @@ installed over the kernel's definitions. Every variant gives every check the sam
 | the rational lemma on the right side (passes) | 0.07 s | 0.07 s | 0.07 s | 0.05 s | 0.04 s |
 
 The variants:
+- **Eager order:** same-head arguments compared and proof irrelevance asked before any
+  reduction, with type queries that check each term again. The others are written over it.
 - **Projections:** projections of one field compared by their structures and arguments before
   either is reduced (§6).
 - **Irrelevance first:** proof irrelevance is asked before anything else. It answers `False` for
@@ -203,21 +204,49 @@ What they show:
 - **Failures carry the cost.** The passing check is fast under every variant.
 - **Irrelevance first needs infer-only queries.** It buys nothing while its type queries check
   each term again. With infer-only queries it gives up to 40×, and Lean's order brings the rest:
-  11× to 115× against the kernel.
+  11× to 115× against the eager order.
 - **The projection rule moves none of these.** Its case is `le_union`'s chain of structure
   comparisons, where it takes the root alone from over 300 s to 181 s. Lean takes 25 ms there.
 
-### 7.2 The order from here
+The kernel decides in Lean's own order (§6): reduction without unfolding, then proof irrelevance
+where neither side reduces, then lazy δ, with infer-only queries inside a check. It takes the four
+failing checks in 0.39 s, 0.14 s, 0.09 s and 1.69 s, 27× to 611× faster than the eager order.
 
-1. **Lean's order with infer-only queries,** in `TypeChecking.wl`:
-   - a cache of their own for the infer-only queries;
-   - full checking at every declaration;
-   - a comment at every call of `definitionallyEqualQ` saying why its arguments are checked terms
-     or reducts of them, keeping the checking queries where that cannot be said;
-   - forged-proof tests, among them an ill-typed subterm reachable only through a
-     proof-irrelevance comparison.
-2. **Projections of one field compared by their structures,** with the abbreviation hints of
-   projection functions, on top of 1. Measure both on `le_union`.
+### 7.2 Whole cones against Lean
+
+LeanLink's `typetheory_benchmark.wls` checks the cone of a declaration, every constant it depends
+on, in TypeTheory and in Lean's kernel. The times are of checking, the median of three warm runs,
+which agree within 3%.
+
+| Cone | Constants | Eager order | Spine | Spine and Lean's order | Lean | TypeTheory / Lean |
+|---|---|---|---|---|---|---|
+| `binaryRec` | 721 | 8.93 s | 7.82 s | 7.07 s | 59 ms | 120× |
+| `omega` | 1008 | 12.01 s | 11.02 s | 10.59 s | 75 ms | 141× |
+| `balanceL` | 1544 | 24.8 s | 22.14 s | 21.38 s | 172 ms | 124× |
+
+The spine is the inference of an application's type along its spine at once (`spineType`), as
+Lean's kernel infers one: each argument is checked against its binder's domain with the arguments
+before it put in, and the codomain is instantiated with all of them once at the end. Taken one
+argument at a time, a spine of n arguments cost n substitutions of its function type's telescope.
+
+What they show:
+- **The spine gives 8% to 12%, and Lean's order 3% to 10% more.** These cones pass, so failing
+  comparisons, where Lean's order gives its 27× to 611×, are rare in them.
+- **The rest of the gap is elsewhere,** in parts no measurement has divided yet: inference that
+  checks, the infer-only queries, weak head normal forms, instantiation, and hashing the caches'
+  keys (§5, item 5).
+
+### 7.3 The order from here
+
+1. **Projections of one field compared by their structures,** with the abbreviation hints of
+   projection functions, measured on `le_union` in three forms:
+   - cheap projections: reduction without unfolding reduces a projection's structure without δ,
+     lazy δ unfolds a projection application before the definition on the other side
+     (`try_unfold_proj_app`), and a last pass reduces projections in full before the spines are
+     compared (§6, rows 3, 5 and 8);
+   - projection functions as abbreviations;
+   - both.
+2. **A profile of `balanceL`'s check,** dividing its 21 s among the parts §7.2 names.
 3. **The `decide` shortcut,** on the five `ZMod` constants.
 4. **The cache,** keyed by an ordered pair without the environment, and asked between lazy-δ steps.
 5. **Hint kinds from the import.**

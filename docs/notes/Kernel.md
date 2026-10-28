@@ -39,16 +39,17 @@ Reduction is β, ζ, δ for definitions (theorems and opaque definitions are nev
 and the registered operations on natural number literals, on integers. Definitional equality decides
 in Lean's order. First come `SameQ`, sorts, literals and binders. Then each side is reduced without
 unfolding a definition, and the reducts are compared again if either changed. Where neither changes,
-proof irrelevance answers for proofs: True for proofs of one proposition, False for proofs of two.
-Otherwise Lean's lazy delta reduction runs, and finally η, literals against constructors, spines, η
-for structures and unit types. Lazy delta reduction unfolds one definition at a time: of two
-definitions at the heads of the sides, the higher one, where a definition's height is one more than
-the greatest height of the definitions its value mentions, or both at the same height. As in Lean's
-kernel it is a loop that compares the sides between steps only by identity, and by their arguments
-where one definition is at both heads, from the first pair on. It stops when neither side has a
-definition at its head, and that last pair is compared in full. Proof irrelevance is not asked again
-between steps, since unfolding leaves a proof a proof of the same proposition. The kernel remembers
-inferred types, weak head normal forms and definitional equalities for the length of a check.
+proof irrelevance answers for proofs: True for proofs of one proposition, False for proofs of two
+different ones. Otherwise Lean's lazy delta reduction runs, and finally η, literals against
+constructors, spines, η for structures and unit types. Lazy delta reduction unfolds one definition
+at a time: of two definitions at the heads of the sides, the higher one, where a definition's height
+is one more than the greatest height of the definitions its value mentions, or both at the same
+height. As in Lean's kernel it is a loop that compares the sides between steps only by identity, and
+by their arguments where one definition is at both heads, from the first pair on. It stops when
+neither side has a definition at its head, and that last pair is compared in full. Proof irrelevance
+is not asked again between steps, since unfolding leaves a proof a proof of the same proposition.
+The kernel remembers inferred types, weak head normal forms and definitional equalities for the
+length of a check.
 
 A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
 with `catchKernelFailure`, so a user sees a `Failure` and never a message.
