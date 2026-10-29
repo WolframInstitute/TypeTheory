@@ -261,7 +261,7 @@ VerificationTest[
 			Information[TypeTheoryTerm[2 + Origin, signed], "Constants"]
 		}
 	],
-	{<|Origin -> "Signature"|>, <|OriginPositive -> "Proposition", Origin -> "Signature"|>, True, {Plus, Origin}},
+	{<|Origin -> "Signature"|>, <|OriginPositive -> "Proposition", Origin -> "Signature"|>, True, {Plus, Origin, NonNegativeIntegers}},
 	TestID -> "An-axiom-of-a-type-is-a-signature-and-an-axiom-of-a-proposition-a-proposition"
 ]
 
@@ -279,4 +279,13 @@ VerificationTest[
 	],
 	{Choice, PropositionalExtensionality, QuotientSoundness},
 	TestID -> "Every-constant-of-the-rationals-rests-on-Lean's-three-axioms-at-most"
+]
+
+VerificationTest[
+	{
+		Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]], "Constants"],
+		Information[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]], "Constants"]
+	},
+	{{Equal, NonNegativeIntegers, Plus, EqualityReflexivity}, {NonNegativeIntegers, Equal, Plus}},
+	TestID -> "The-constants-of-a-constant-are-those-of-its-type-and-value"
 ]

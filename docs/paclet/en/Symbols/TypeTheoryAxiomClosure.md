@@ -19,7 +19,7 @@ RelatedGuides: [TypeTheory]
 - An axiom is `"Proposition"` when its type is a proposition, such as [PropositionalExtensionality](), and `"Signature"` otherwise: an axiom of a type, such as a constant of [NonNegativeIntegers]() or a type of its own, which a theorem holds for whatever it stands for, as for a variable. [Choice](), whose value is an element of a type, is a signature by this rule.
 - A rewrite rule of a constant the closure reaches is listed as `"RewriteRule"`: the kernel computes with it, so it is trusted as an axiom is.
 - A theorem that rests on no axiom has the closure <code><\|\|></code>.
-- <code>[Information]()[*term*, "AxiomClosure"]</code> gives the same, and <code>[Information]()[*term*, "Constants"]</code> gives the constants *term* mentions directly.
+- <code>[Information]()[*term*, "AxiomClosure"]</code> gives the same, and <code>[Information]()[*term*, "Constants"]</code> gives the constants the type and the value of *term* mention, those of a constant's declaration for a constant.
 
 ## Basic Examples
 
@@ -89,13 +89,23 @@ Information[TypeTheoryTerm[ExcludedMiddle], "AxiomClosure"] === TypeTheoryAxiomC
 
 ---
 
-The constants a term mentions directly:
+The constants a statement mentions; its type, Prop, mentions none:
 
 ```wl
 Information[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]], "Constants"]
 ```
 
 <!-- => {NonNegativeIntegers, Equal, Plus} -->
+
+---
+
+The constants of a theorem are those of its statement and its proof, the closure's first step:
+
+```wl
+Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]], "Constants"]
+```
+
+<!-- => {Equal, NonNegativeIntegers, Plus, EqualityReflexivity} -->
 
 ---
 

@@ -120,7 +120,7 @@ checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameter
 
 TypeTheoryTerm /: TypeOf[term : TypeTheoryTerm[_, ___]] := TypeTheoryCheck[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := TypeTheoryAxiomClosure[term]
-TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ termConstants[queryCoreTerm[termEnvironment[term], term]]]
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ typeAndValueConstants[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Constants"}
 TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryCheck[TypeTheoryTerm[term, environment]]
 
@@ -384,6 +384,14 @@ visitRecord[environment_, name_, record_] := Switch[record["Kind"],
 visitTerm[environment_, term_] := Scan[Function[name, visitConstant[environment, name]], unseenConstants[term]]
 
 propositionTypeQ[environment_, type_] := MatchQ[weakHeadNormalForm[environment, <||>, inferType[environment, <||>, type]], universeSort[0]]
+
+(* the constants the type and the value of a term mention: of a constant, those of its declaration *)
+typeAndValueConstants[environment_, term_] := Replace[queryCoreTerm[environment, term], {
+	constantReference[name_, _] :> Block[{constantFields = constantRecord[environment, name]},
+		DeleteDuplicates[Join @@ Map[termConstants, DeleteMissing[Lookup[constantFields, {"Type", "Value"}]]]]
+	],
+	core_ :> DeleteDuplicates[Join[termConstants[core], termConstants[withKernelCaches[inferType[environment, <||>, core]]]]]
+}]
 
 (* the constants a core term mentions, each shared subterm visited once *)
 termConstants[term_] := Block[{$constantsSeen = <||>}, unseenConstants[term]]
