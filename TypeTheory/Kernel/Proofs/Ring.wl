@@ -285,7 +285,10 @@ nonnegativity[forms_List] := Function[factors, With[{term = productTerm[factors]
 	{literal[0], term, makeApplication[constantReference[HoldComplete[LessEqualZero], {}], {term}]}
 ]] /@ DeleteCases[DeleteDuplicates[Last /@ Catenate[Catenate[forms]]], {}]
 
-(* natural numbers y with y . differences a positive constant, or None *)
+(* Natural numbers y with y . differences a positive constant, or None. FindInstance's integer instance depends on how
+   the constraints are written and on the kernel, {0, 2, 2} on one and {0, 1, 1} on another; divided by their GCD,
+   which divides the constant too, the multipliers are the same for instances that are multiples of each other, and
+   the proof term with them. *)
 contradictionMultipliers[differences_List, variables_List] := With[{multipliers = Table[\[FormalY][i], {i, Length[differences]}]},
 	{rules = CoefficientRules[Expand[multipliers . differences], variables]},
 	Replace[
@@ -303,7 +306,7 @@ contradictionMultipliers[differences_List, variables_List] := With[{multipliers 
 			$Aborted
 		],
 		{
-			{solution_List, ___} :> ReplaceAll[multipliers, solution],
+			{solution_List, ___} :> With[{found = ReplaceAll[multipliers, solution]}, found / (GCD @@ found)],
 			_ :> None
 		}
 	]
