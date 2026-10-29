@@ -96,7 +96,21 @@ TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, ___], form : Stan
 $displayedNaturalNumbers = Automatic
 
 SetAttributes[withDisplayEnvironment, HoldRest]
-withDisplayEnvironment[environment_, expression_] := Block[{$displayedNaturalNumbers = settingsOrNone[environment]}, expression]
+withDisplayEnvironment[environment_, expression_] := Block[
+	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment]},
+	expression
+]
+
+(* the constants declared with "Overloads" -> operation, which show as the operation does: <|HoldComplete[constant] -> operation|> *)
+$displayedOverloads = <||>
+
+overloadsOrNone[environment_] := Replace[
+	Quiet @ Association @ Catenate @ Map[
+		Function[operation, Function[constant, constant -> First[operation]] /@ overloadingConstants[environment, operation]],
+		HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, Minus, LessEqual, Less, GreaterEqual, Greater}]
+	],
+	Except[_Association] -> <||>
+]
 
 displayedNaturalNumbers[] := Replace[$displayedNaturalNumbers, Automatic :> settingsOrNone[defaultEnvironment[]]]
 
@@ -329,7 +343,17 @@ displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication
 displayApplication[head_, {syntaxApplication[syntaxSymbol[HoldComplete[Plus]], summands_List]}] /; naturalNumberConstantQ[head, "Successor"] :=
 	syntaxHead[Plus, Append[summands, syntaxInteger[1]]]
 displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successor"] := syntaxHead[Plus, {argument, syntaxInteger[1]}]
+(* a constant declared with "Overloads" -> operation shows as the operation, as the integers' operations do *)
+displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), arguments : {_, _}] /; overloadedDisplayQ[head, 2] :=
+	displayApplication[syntaxSymbol[HoldComplete @@ {$displayedOverloads[displayedName[head]]}], arguments]
+displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; overloadedDisplayQ[head, 1] := prefixed["-", argument]
 displayApplication[head_, arguments_List] := syntaxApplication[displaySyntax[head], arguments]
+
+displayedName[syntaxSymbol[name_HoldComplete]] := name
+displayedName[syntaxString[name_String]] := HoldComplete[name]
+
+overloadedDisplayQ[head_, 2] := MemberQ[{Plus, Times, Subtract, Power, LessEqual, Less, GreaterEqual, Greater}, Lookup[$displayedOverloads, Key[displayedName[head]], None]]
+overloadedDisplayQ[head_, 1] := Lookup[$displayedOverloads, Key[displayedName[head]], None] === Minus
 
 delimited[left_String, syntax_, right_String] := syntaxHead[Row, {syntaxHead[List, {syntaxString[left], syntax, syntaxString[right]}]}]
 

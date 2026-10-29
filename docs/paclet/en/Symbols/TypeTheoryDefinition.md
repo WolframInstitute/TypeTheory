@@ -25,6 +25,7 @@ RelatedTutorials: [InstancesAndCoercions]
 - The option `"Coercion" -> True` makes a function of one explicit argument, after its implicit ones, a coercion, as Lean's `@[coe]`: where a term's type does not unify with the one expected, elaboration applies the coercion from the one to the other, or a chain of at most three.
 - An instance or a coercion is a definition as any other: the kernel checks it, and every term elaboration builds with it.
 - The option `"Opaque" -> True` makes the definition opaque, as Lean's `opaque`: the kernel checks *value* against the type, but the definition never unfolds, so it equals only itself. Unlike an axiom of its type, it cannot make the theory inconsistent, since *value* is an element of the type.
+- The option `"Overloads" -> *operation*`, for [Plus](), [Times](), [Subtract](), [Power](), [Minus](), [LessEqual](), [Less](), [GreaterEqual]() or [Greater](), makes the constant one more meaning of the operation, chosen by the types of its arguments and the type expected, as the integers' and rationals' operations are: an axiom `"polynomialAddition"` declared with `"Overloads" -> Plus` lets `p + q` add two polynomials, and shows as `p + q`.
 
 ## Basic Examples
 

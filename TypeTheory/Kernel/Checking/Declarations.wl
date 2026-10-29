@@ -139,8 +139,8 @@ $emptyEnvironment::usage = "$emptyEnvironment is the environment with no constan
 (*Function Definitions*)
 
 
-Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic, "Annotation" -> None}
-Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False, "Opaque" -> False}
+Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic, "Annotation" -> None, "Overloads" -> None}
+Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False, "Opaque" -> False, "Overloads" -> None}
 Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic, "Annotation" -> None}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
@@ -184,8 +184,23 @@ $emptyEnvironments = <||>
 
 addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryAxiom, Hold[options], {toSyntax[type]}]},
-	declareAxiom[environment, HoldComplete[name], universeParameters, closedType[environment, HoldComplete[type], universeParameters], declarationAnnotation[Hold[options]]]
+	declareAxiom[environment, HoldComplete[name], universeParameters, closedType[environment, HoldComplete[type], universeParameters], declarationAnnotation[Hold[options]], declarationOverloads[Hold[options]]]
 ]
+
+(* the operation an "Overloads" option names, one of those whose meanings elaboration chooses by the types *)
+declarationOverloads[Hold[options___]] := Replace[Cases[Hold[options], HoldPattern["Overloads" -> operation_] :> HoldComplete[operation], {1}], {
+	{} -> None,
+	{HoldComplete[None], ___} -> None,
+	{operation : HoldComplete[Plus | Times | Subtract | Power | Minus | LessEqual | Less | GreaterEqual | Greater], ___} :> operation,
+	{other_, ___} :> kernelFailure[
+		"OverloadedOperation",
+		"`1` cannot be overloaded: \"Overloads\" takes Plus, Times, Subtract, Power, Minus, LessEqual, Less, GreaterEqual or Greater.",
+		{HoldForm @@ other}
+	]
+}]
+
+overloadsField[None] := <||>
+overloadsField[operation_HoldComplete] := <|"Overloads" -> operation|>
 
 (* the "Annotation" given, evaluated, kept in the record as it is; None for none *)
 declarationAnnotation[Hold[options___]] := Replace[Cases[Hold[options], HoldPattern["Annotation" -> annotation_] :> annotation, {1}], {{} -> None, {annotation_, ___} :> annotation}]
@@ -198,13 +213,19 @@ annotationField[annotation_] := <|"Annotation" -> annotation|>
 addDeclaration[environment_, TypeTheoryDefinition[name_, Typed[value_, type_], options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[Typed[value, type]]}]},
 	{typeCore = closedType[environment, HoldComplete[type], universeParameters]},
-	declareDefinition[environment, HoldComplete[name], universeParameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, universeParameters], definitionRoles[Hold[options], typeCore]]
+	declareDefinition[
+		environment, HoldComplete[name], universeParameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, universeParameters],
+		Join[definitionRoles[Hold[options], typeCore], overloadsField[declarationOverloads[Hold[options]]]]
+	]
 ]
 
 addDeclaration[environment_, TypeTheoryDefinition[name_, value_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[value]}]},
 	{elaborated = elaborateClosedTerm[environment, HoldComplete[value], None, universeParameters]},
-	declareDefinition[environment, HoldComplete[name], universeParameters, betaNormalize[Last[elaborated]], First[elaborated], definitionRoles[Hold[options], betaNormalize[Last[elaborated]]]]
+	declareDefinition[
+		environment, HoldComplete[name], universeParameters, betaNormalize[Last[elaborated]], First[elaborated],
+		Join[definitionRoles[Hold[options], betaNormalize[Last[elaborated]]], overloadsField[declarationOverloads[Hold[options]]]]
+	]
 ]
 
 (* the roles the options give a definition: for elaboration, an instance's type, under its binders, is a
@@ -467,10 +488,10 @@ levelParameterNames[_] := {}
 
 (* A declaration's type is checked before its value, so every comparison in its check is of checked terms or
    their reducts, where definitional equality infers the types it asks without checking (withCheckedTerms). *)
-declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None] := withCheckedTerms[
+declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None, overloads_ : None] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type}];
 	sortLevel[environment, <||>, type];
-	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>, annotationField[annotation]]|>]
+	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>, annotationField[annotation], overloadsField[overloads]]|>]
 ]
 
 (* An instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other.
@@ -488,7 +509,8 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 		<|"Kind" -> If[TrueQ[roles["Opaque"]], "Opaque", "Definition"], "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
 		If[TrueQ[roles["Opaque"]], <||>, <|"Height" -> definitionHeight[environment, value]|>],
 		If[! TrueQ[roles["Opaque"]] && projectionFunctionQ[value], <|"Hint" -> "Abbreviation"|>, <||>],
-		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ]
+		Select[KeyTake[roles, {"Instance", "Coercion"}], TrueQ],
+		KeyTake[roles, {"Overloads"}]
 	]|>]
 ]
 

@@ -274,7 +274,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[syntaxHead[Subtract, {first, syntaxInteger[-k]}], expected],
 	(* -x, read as Times[-1, x], negates an integer or a rational, and a negative literal is an integer,
 	   where the environment has them *)
-	syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}] /; integersDeclaredQ[] :>
+	syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}] /; integersDeclaredQ[] || overloadingConstants[$elaborationEnvironment, HoldComplete[Minus]] =!= {} :>
 		elaborateSyntax[syntaxHead[Minus, {second}], expected],
 	syntaxInteger[k_Integer?Negative] /; integersDeclaredQ[] :>
 		elaborateSyntax[syntaxApplication[syntaxString["integerNegation"], {syntaxInteger[-k]}], expected],
@@ -765,6 +765,8 @@ $overloadedNames = <|
 	HoldComplete[Minus] -> {HoldComplete["integerNegation"], HoldComplete["rationalNegation"]}
 |>
 
+$builtInMeanings = DeleteDuplicates[Catenate[Values[$overloadedNames]]]
+
 (* the operations of the natural numbers, which an environment with the integers overloads *)
 $arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, LessEqual, Less, GreaterEqual, Greater}]
 
@@ -774,7 +776,11 @@ overloadedNameQ[environment_, name_HoldComplete] := With[{meanings = declaredMea
 	Length[meanings] > 1 || Length[meanings] == 1 && ! constantDeclaredQ[environment, name]
 ]
 
-declaredMeanings[environment_, name_HoldComplete] := Select[Lookup[$overloadedNames, name, {}], Function[meaning, constantDeclaredQ[environment, meaning]]]
+(* the meanings the paclet gives a name, then the constants declared with "Overloads" -> name *)
+declaredMeanings[environment_, name_HoldComplete] := DeleteDuplicates @ Join[
+	Select[Lookup[$overloadedNames, name, {}], Function[meaning, constantDeclaredQ[environment, meaning]]],
+	overloadingConstants[environment, name]
+]
 
 elaborateOverloaded[name_HoldComplete, arguments_List, syntax_, expected_] := Replace[
 	chosenMeaning[declaredMeanings[$elaborationEnvironment, name], arguments, expected],
@@ -789,7 +795,7 @@ elaborateOverloaded[name_HoldComplete, arguments_List, syntax_, expected_] := Re
    where the integers could take them, and of the operations that fit with coercions the first, so an
    integer plus a natural number is an integer; if none fits, the first, whose elaboration then says why *)
 chosenMeaning[meanings : {_, __}, arguments_List, expected_] := Replace[
-	expectedMeaning[meanings, arguments, expected],
+	expectedMeaning[Select[meanings, Function[meaning, MemberQ[$builtInMeanings, meaning]]], arguments, expected],
 	None :> Replace[Select[meanings, Function[meaning, Block[{$coercions = False}, meaningFitsQ[meaning, arguments, expected]]]], {
 		{only_} :> only,
 		{} :> Replace[Select[meanings, Function[meaning, meaningFitsQ[meaning, arguments, expected]]], {
