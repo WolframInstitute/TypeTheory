@@ -122,14 +122,14 @@ environmentBase[TypeTheoryEnvironment[store_Symbol]] := Replace[store["Library"]
 	_ -> None
 }]
 
-(* the contents of environment beyond base, its terms in a table of rows *)
+(* the contents of environment beyond base, its terms in a table of rows, sown as they are made *)
 environmentContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
-	{$nodeIndex = <||>, $nodes = CreateDataStructure["DynamicArray"], contentNames, contentRecords},
+	{$nodeIndex = <||>, $nodeCount = 0, contentNames, contentRecords, contentNodes},
 	contentNames = Drop[environmentNames[environment], Replace[base, {None -> 0, {_, baseEnvironment_} :> Length[environmentNames[baseEnvironment]]}]];
-	contentRecords = AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], contentNames];
+	{contentRecords, contentNodes} = Reap[AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], contentNames], $nodeTag];
 	<|
 		"Rules" -> environmentRules[environment],
-		"Nodes" -> Normal[$nodes],
+		"Nodes" -> Replace[contentNodes, {{nodes_List} :> nodes, {} -> {}}],
 		"Names" -> contentNames,
 		"Records" -> contentRecords,
 		"NaturalNumbers" -> store["NaturalNumbers"],
@@ -156,7 +156,7 @@ valueRefs[value_] := Which[
 
 (* the row of a composite term, its own added after the rows of its parts *)
 nodeRow[term_] := Lookup[$nodeIndex, Key[term], addNode[term]]
-addNode[term_] := Block[{node = termNode[term]}, $nodes["Append", node]; $nodeIndex[term] = $nodes["Length"]]
+addNode[term_] := Block[{node = termNode[term]}, Sow[node, $nodeTag]; $nodeIndex[term] = ++$nodeCount]
 
 part[term_] := If[compositeTermQ[term], termRef[nodeRow[term]], term]
 
@@ -297,12 +297,12 @@ environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Ass
 	loadedEnvironment
 ]
 
-(* Each row's term, built from the terms of the rows before it, in a dynamic array, which a row joins in constant time.
-   Filling a list made with placeholders would cost the length of the list at each row on W15: overwriting an element
-   that held a symbol rescans the list. *)
-rowTerms[nodes_List] := Block[{$rows = CreateDataStructure["DynamicArray"]},
-	Scan[Function[node, $rows["Append", rowNodeTerm[node]]], nodes];
-	Normal[$rows]
+(* Each row's term, built from the terms of the rows before it, kept in an Association by row: on W15, a list filled
+   in place costs its length at each row whose term holds earlier rows of the same list, whatever filled it first,
+   which made the rows cost the square of their number. *)
+rowTerms[nodes_List] := Block[{$rows = <||>},
+	Do[$rows[row] = rowNodeTerm[nodes[[row]]], {row, Length[nodes]}];
+	Values[$rows]
 ]
 
 (* the terms for the rows a value names, mapped so that each comes out evaluated, inside the Block of $rowTerms *)
@@ -311,7 +311,7 @@ termsFromRefs[association_Association] := Map[termsFromRefs, association]
 termsFromRefs[list_List] := Map[termsFromRefs, list]
 termsFromRefs[other_] := other
 
-rowPart[termRef[reference_Integer]] := $rows["Part", reference]
+rowPart[termRef[reference_Integer]] := $rows[reference]
 rowPart[leaf_] := leaf
 
 rowNodeTerm[{"a", function_, argument_}] := Construct[application, rowPart[function], rowPart[argument]]
