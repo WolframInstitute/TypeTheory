@@ -80,7 +80,8 @@ displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term
 typeTheoryBoxes[syntax_, form_] := Block[
 	{
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
-		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]]
+		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]],
+		$boundSymbols = boundSymbols[syntax]
 	},
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
@@ -157,6 +158,23 @@ quantifierEndedQ[RowBox[{"\[Not]", operand_}]] := quantifierEndedQ[operand]
 quantifierEndedQ[RowBox[{__, operator_String, last_}]] /; MemberQ[$looseOperators, operator] := quantifierEndedQ[last]
 quantifierEndedQ[_] := False
 
+(* the symbols the binders of a term name: of ForAll, Function, Exists and the hypotheses of a goal *)
+$boundSymbols = <||>
+
+boundSymbols[syntax_] := AssociationMap[True&, DeleteDuplicates @ Catenate @ Cases[
+	syntax,
+	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | Function | Exists | RightTee]], {binders_, __}] :> Catenate[binderSymbol /@ listElements[binders]],
+	{0, Infinity}
+]]
+
+binderSymbol[syntaxSymbol[name : HoldComplete[_Symbol]]] := {name}
+binderSymbol[syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[name : HoldComplete[_Symbol]], ___}]] := {name}
+binderSymbol[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, _}]] := binderSymbol[binder]
+binderSymbol[_] := {}
+
+SetAttributes[offPathQ, HoldAllComplete]
+offPathQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]}, context =!= $Context && ! MemberQ[$ContextPath, context]]
+
 SetAttributes[privateNameQ, HoldAllComplete]
 privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 	StringStartsQ[context, "WolframInstitute`TypeTheory`"] && context =!= "WolframInstitute`TypeTheory`"
@@ -190,6 +208,9 @@ displaySyntax[syntaxSymbol[HoldComplete[IntervalZero]]] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[IntervalOne]]] := syntaxInteger[1]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
+(* a variable the term binds shows by its name, as Lean prints one, also when it was read in a context the context
+   path leaves out, where the symbol would show its context *)
+displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] && offPathQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
 displaySyntax[syntax_] := syntax
 
 displayApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] := syntaxHead[Colon, {term, type}]

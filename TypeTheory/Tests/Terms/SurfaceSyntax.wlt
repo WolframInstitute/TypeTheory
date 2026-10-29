@@ -266,3 +266,11 @@ VerificationTest[
 	True,
 	TestID -> "A-subtype-shows-as-Lean-shows-it"
 ]
+
+VerificationTest[
+	With[{boxes = First[ToBoxes[TypeTheoryTerm[ForAll[{Typed[PrivateDisplay`k, Naturals]}, PrivateDisplay`k + 0 == PrivateDisplay`k]]]]},
+		{StringFreeQ[ToString[boxes, InputForm], "PrivateDisplay`"], ! FreeQ[boxes, "\"k\""]}
+	],
+	{True, True},
+	TestID -> "A-bound-variable-shows-by-its-name-whatever-its-context"
+]
