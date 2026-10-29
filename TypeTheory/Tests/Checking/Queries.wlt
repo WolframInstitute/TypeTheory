@@ -241,3 +241,42 @@ VerificationTest[
 	{1, 2, "DeclarationMismatch"},
 	TestID -> "A-definition-is-higher-than-those-it-is-defined-by-and-a-forged-height-is-caught"
 ]
+
+VerificationTest[
+	{
+		TypeTheoryAxiomClosure[TypeTheoryTerm[ExcludedMiddle]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm[EqualitySymmetry]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm[True]]
+	},
+	{<|Choice -> "Signature", QuotientSoundness -> "Proposition", PropositionalExtensionality -> "Proposition"|>, <||>, <||>},
+	TestID -> "The-axiom-closure-of-excluded-middle-is-Lean's-three-axioms"
+]
+
+VerificationTest[
+	With[{signed = TypeTheoryEnvironment[{TypeTheoryAxiom[Origin, Naturals], TypeTheoryAxiom[OriginPositive, 0 < Origin]}]},
+		{
+			TypeTheoryAxiomClosure[TypeTheoryTerm[Origin + 1, signed]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm[OriginPositive, signed]],
+			Information[TypeTheoryTerm[OriginPositive, signed], "AxiomClosure"] === TypeTheoryAxiomClosure[TypeTheoryTerm[OriginPositive, signed]],
+			Information[TypeTheoryTerm[2 + Origin, signed], "Constants"]
+		}
+	],
+	{<|Origin -> "Signature"|>, <|OriginPositive -> "Proposition", Origin -> "Signature"|>, True, {Plus, Origin}},
+	TestID -> "An-axiom-of-a-type-is-a-signature-and-an-axiom-of-a-proposition-a-proposition"
+]
+
+VerificationTest[
+	With[{closure = TypeTheoryAxiomClosure[TypeTheoryTerm[CircleInduction, TypeTheoryEnvironment["HomotopyTypeTheory"]]]},
+		{closure[CircleInductionBase], closure[CircleInduction]}
+	],
+	{"RewriteRule", "Signature"},
+	TestID -> "The-axiom-closure-lists-the-rewrite-rules-of-a-constant-reached"
+]
+
+VerificationTest[
+	With[{rationals = TypeTheoryEnvironment["Rationals"]},
+		Union @@ Map[Function[name, Keys[TypeTheoryAxiomClosure[TypeTheoryTerm[name, rationals]]]], Keys[rationals]]
+	],
+	{Choice, PropositionalExtensionality, QuotientSoundness},
+	TestID -> "Every-constant-of-the-rationals-rests-on-Lean's-three-axioms-at-most"
+]

@@ -40,6 +40,7 @@ quantity; where they gain them, the kernel gives the constructors and recursors 
 
 
 PackageExported[TypeTheoryCheck]
+PackageExported[TypeTheoryAxiomClosure]
 PackageExported[TypeTheoryTranslate]
 PackageExported[DefinitionallyEqualQ]
 PackageExported[WeakHeadNormalForm]
@@ -59,6 +60,9 @@ PackageScoped[declarationOf]
 (*Usage Messages*)
 
 
+TypeTheoryAxiomClosure::usage = "TypeTheoryAxiomClosure[term] gives the axioms the TypeTheoryTerm term rests on, through the types and values of the constants \
+it mentions and of the constants those mention, as <|axiom -> kind, ...|>: \"Proposition\" for an axiom that is a proposition, \"Signature\" for one whose \
+type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with."
 TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
@@ -115,6 +119,9 @@ checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameter
 
 
 TypeTheoryTerm /: TypeOf[term : TypeTheoryTerm[_, ___]] := TypeTheoryCheck[term]
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := TypeTheoryAxiomClosure[term]
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ termConstants[queryCoreTerm[termEnvironment[term], term]]]
+TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Constants"}
 TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryCheck[TypeTheoryTerm[term, environment]]
 
 
@@ -322,6 +329,80 @@ ruleSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, le
 
 readBack[environment_, term_, "Display"] := delaborate[environment, <||>, term]
 readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delaborate[environment, <||>, term]]
+
+
+(* ::Subsection:: *)
+(*The axioms a term rests on*)
+
+
+(* Lean's #print axioms: the constants a term mentions, then those in the type and value of each, until an axiom,
+   which is collected and its type followed, so that a signature's own parameters show; a constructor or recursor
+   leads to its inductive type, and an inductive type to its constructors. A rewrite rule of a constant reached is
+   trusted as an axiom is. An axiom is a proposition when its type is a proposition, and a signature otherwise:
+   a type, or a function into types, which a theorem holds for in every model, as for a variable. *)
+TypeTheoryAxiomClosure[term_TypeTheoryTerm] := catchKernelFailure @ Block[{closureEnvironment = termEnvironment[term]},
+	axiomClosure[closureEnvironment, queryCoreTerm[closureEnvironment, term]]
+]
+
+(* the core term of a query; a declared constant on its own is that constant, an overloaded name such as True included *)
+queryCoreTerm[environment_, term_] := Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
+	name_ /; constantDeclaredQ[environment, name] :> constantReference[name, {}],
+	_ :> First @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
+}]
+
+(* the subterms seen are shared by the whole closure, so a term the declarations share is walked once *)
+axiomClosure[environment_, term_] := Block[{$closureVisited = <||>, $closureAxioms = <||>, $constantsSeen = <||>},
+	withKernelCaches[visitTerm[environment, term]];
+	KeyMap[ReleaseHold, $closureAxioms]
+]
+
+visitConstant[environment_, name_] := If[ ! KeyExistsQ[$closureVisited, name],
+	$closureVisited[name] = True;
+	visitRecord[environment, name, constantRecord[environment, name]];
+	Scan[Function[rule, $closureAxioms[rule] = "RewriteRule"], rewriteRuleNames[environment, name]]
+]
+
+visitRecord[environment_, name_, record_] := Switch[record["Kind"],
+	"Axiom",
+		$closureAxioms[name] = If[propositionTypeQ[environment, record["Type"]], "Proposition", "Signature"];
+		visitTerm[environment, record["Type"]],
+	"Definition" | "Opaque" | "Theorem",
+		visitTerm[environment, record["Type"]];
+		visitTerm[environment, record["Value"]],
+	"InductiveType",
+		visitTerm[environment, record["Type"]];
+		Scan[Function[constructor, visitConstant[environment, constructor]], record["Constructors"]],
+	"Constructor" | "Recursor",
+		visitTerm[environment, record["Type"]];
+		visitConstant[environment, record["InductiveType"]],
+	"RewriteRule",
+		$closureAxioms[name] = "RewriteRule",
+	_,
+		visitTerm[environment, record["Type"]]
+]
+
+visitTerm[environment_, term_] := Scan[Function[name, visitConstant[environment, name]], unseenConstants[term]]
+
+propositionTypeQ[environment_, type_] := MatchQ[weakHeadNormalForm[environment, <||>, inferType[environment, <||>, type]], universeSort[0]]
+
+(* the constants a core term mentions, each shared subterm visited once *)
+termConstants[term_] := Block[{$constantsSeen = <||>}, unseenConstants[term]]
+
+(* the constants in the subterms of term not seen yet *)
+unseenConstants[term_] := Block[{$constantsFound = Internal`Bag[]},
+	collectConstants[term];
+	DeleteDuplicates[Internal`BagPart[$constantsFound, All]]
+]
+
+collectConstants[term_] := If[ ! KeyExistsQ[$constantsSeen, term], $constantsSeen[term] = True; constantsOf[term]]
+
+constantsOf[constantReference[name_, _]] := Internal`StuffBag[$constantsFound, name]
+constantsOf[application[function_, argument_]] := (collectConstants[function]; collectConstants[argument])
+constantsOf[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _]] := (collectConstants[domain]; collectConstants[body])
+constantsOf[localDefinition[_, type_, value_, body_]] := (collectConstants[type]; collectConstants[value]; collectConstants[body])
+constantsOf[projection[structure_, _, term_]] := (Internal`StuffBag[$constantsFound, structure]; collectConstants[term])
+constantsOf[cubicalSystem[branches_List]] := Scan[collectConstants, Flatten[branches, 1]]
+constantsOf[_] := Null
 
 
 (* ::Subsection:: *)

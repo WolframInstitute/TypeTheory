@@ -69,6 +69,7 @@ PackageScoped[defaultEnvironment]
 PackageScoped[environmentRules]
 PackageScoped[addRewriteRuleRecord]
 PackageScoped[rewriteRuleRecords]
+PackageScoped[rewriteRuleNames]
 PackageScoped[environmentQ]
 PackageScoped[constantRecord]
 PackageScoped[constantDeclaredQ]
@@ -112,6 +113,7 @@ defaultEnvironment::usage = "defaultEnvironment[] gives $TypeTheoryEnvironment, 
 environmentRules::usage = "environmentRules[environment] gives the TypeTheoryRules environment follows."
 addRewriteRuleRecord::usage = "addRewriteRuleRecord[environment, HoldComplete[name], record] gives a new environment with the rewrite rule name added to the rules of its head."
 rewriteRuleRecords::usage = "rewriteRuleRecords[environment, HoldComplete[axiom]] gives the records of the rewrite rules of axiom, in the order they were declared."
+rewriteRuleNames::usage = "rewriteRuleNames[environment, HoldComplete[head]] gives the names {HoldComplete[rule], ...} of the rewrite rules of head, in the order they were declared."
 environmentQ::usage = "environmentQ[expr] gives True if expr is a TypeTheoryEnvironment handle to a store."
 constantRecord::usage = "constantRecord[environment, HoldComplete[name]] gives the record of the constant name, or throws a kernel failure if it is not declared."
 constantDeclaredQ::usage = "constantDeclaredQ[environment, HoldComplete[name]] gives True if name is declared in environment."
@@ -223,6 +225,8 @@ addRewriteRuleRecord[environment : TypeTheoryEnvironment[store_Symbol], name_Hol
 ]
 
 rewriteRuleRecords[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name, store["Records"][name]] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
+
+rewriteRuleNames[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Lookup[store["RewriteRuleIndex"], Key[head], {}]
 
 
 naturalNumberSettings[TypeTheoryEnvironment[store_Symbol]] := store["NaturalNumbers"]
