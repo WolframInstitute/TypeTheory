@@ -140,6 +140,9 @@ $pendingInstances = {}
 $instanceIndex = <||>
 $coercions = True
 
+(* the metavariables standing for the types of variables written without one, by metavariable id, with the binder written *)
+$binderTypes = <||>
+
 
 (* elaboration compares terms not checked yet, with metavariables, so the kernel's type queries check here even
    where a declaration elaborates inside a check of checked terms *)
@@ -153,6 +156,7 @@ withElaborationState[{environment_, context_, scope_, universeParameters_}, body
 		$levelAssignments = <||>,
 		$pendingOverloads = {},
 		$pendingInstances = {},
+		$binderTypes = <||>,
 		$elaborationEnvironment = environment,
 		$elaborationContext = context,
 		$elaborationScope = scope,
@@ -188,6 +192,14 @@ elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_,
 ]
 
 finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = settleOverloads[term]},
+	(* a variable written without a type whose body did not decide one, its type a metavariable still or solved by
+	   one, is asked for by name *)
+	If[ unsolvedMetavariables[finalTerm] =!= {},
+		Replace[
+			Select[Keys[$binderTypes], Function[id, ! FreeQ[instantiateMetavariables[metavariable[id]], _metavariable]]],
+			{id_, ___} :> elaborationFailure["The type of the variable `1` is needed: write Typed[x, type].", $binderTypes[id]]
+		]
+	];
 	If[ unsolvedMetavariables[finalTerm] =!= {},
 		kernelFailure["UnsolvedImplicitArgument", "Could not infer every implicit argument and universe level of `1`.", {displayCoreTerm[environment, context, finalTerm]}]
 	];
@@ -234,6 +246,11 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[syntaxApplication[cubicalHeadSymbol[head], arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | RightTee]], {binders_, body_}] :> elaborateForAll[listElements[binders], body],
 	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, body_}] :> elaborateSyntax[nestedExistential[listElements[binders], body], expected],
+	(* ForAll[x, condition, body] and Exists[x, condition, body] read as in the Wolfram Language: every x with the
+	   condition has the body, and some x has both *)
+	syntaxApplication[syntaxSymbol[HoldComplete[ForAll]], {binders_, condition_, body_}] :> elaborateForAll[listElements[binders], syntaxHead[Implies, {condition, body}]],
+	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, condition_, body_}] :>
+		elaborateSyntax[nestedExistential[listElements[binders], syntaxHead[And, {condition, body}]], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :>
 		elaborateArrow[listElements[domains], codomain],
@@ -567,12 +584,19 @@ expectedQuantityBinder[parsed_, expected_] := If[ parsed["Quantity"] === Automat
 	parsed["Binder"]
 ]
 
+(* a variable written without a type takes the domain of the function type expected, or else a type to be
+   found from how the body uses it, as Lean leaves a binder's type to unification *)
 expectedDomain[expected_, binder_] := Replace[
 	If[expected === None, None, asIntervalFunction[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]]],
 	{
 		dependentFunctionType[_, domain_, _, _] :> domain,
-		_ :> elaborationFailure["The type of the variable `1` is needed: write Typed[x, type].", binder]
+		_ :> binderTypeMetavariable[binder]
 	}
+]
+
+binderTypeMetavariable[binder_] := Block[{binderType = newMetavariable[universeSort[newLevelMetavariable[]]]},
+	$binderTypes[First[binderType]] = binder;
+	binderType
 ]
 
 expectedBody[None, _] := None

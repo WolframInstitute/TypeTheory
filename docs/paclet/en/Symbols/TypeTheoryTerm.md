@@ -29,6 +29,7 @@ RelatedGuides: [TypeTheory]
 | <code>[Implies]()[A, B]</code>, <code>[TypeSpecifier]()[{A, ...} -> B]</code>, `A -> B` | a function type whose result does not depend on the argument |
 | <code>[TypedImplicit]()[x, A]</code> | an implicit binder, filled in by elaboration; <code>[Annotation]()[[Typed]()[x, A], *kind*]</code> with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds |
 | <code>[Exists]()[{[Typed]()[x, A]}, p]</code> | an existential statement |
+| <code>[ForAll]()[x, *condition*, B]</code>, <code>[Exists]()[x, *condition*, p]</code> | <code>[ForAll]()[x, [Implies]()[*condition*, B]]</code> and <code>[Exists]()[x, *condition* && p]</code>, as the Wolfram Language reads them |
 | <code>[Typed]()[e, A]</code> | `e`, checked against `A` |
 | <code>[With]()[{x = v}, b]</code> | `b` with `x` standing for `v` |
 | <code>[TypeUniverse]()[*level*]</code> | a universe |
@@ -39,6 +40,7 @@ RelatedGuides: [TypeTheory]
 | `0`, `1`, `2`, ... | natural number literals |
 | <code>[RightTee]()[{[Typed]()[x, A], ...}, B]</code> | a goal: hypotheses and a conclusion, read as [ForAll]() |
 
+- A binder written as a bare symbol, <code>[ForAll]()[{n}, n + 0 == n]</code> or <code>[ForAll]()[n, n + 0 == n]</code>, takes the type its body gives it, as Lean leaves a binder's type to unification; a binder whose type nothing decides gives a [Failure]() asking for <code>[Typed]()[x, *type*]</code>.
 - Any other symbol or string is a bound variable or a declared constant. A symbol whose value is a [TypeTheoryTerm]() stands for that term, and one whose value is a finished [TypeTheoryProof]() stands for its proof.
 - [True](), [False](), [Not](), [And]() and [Or](), and so `!`, `&&` and `||`, stand for the propositions or, in an environment that declares the Booleans, for its constants `"true"`, `"false"`, `"not"`, `"and"` and `"or"`, as the type allows: a proposition where a type or Prop is expected, a Boolean where [Booleans]() is. Elsewhere the arguments decide, or how the term is used. A term that nothing decides is ambiguous, and <code>[Typed]()[*e*, [TypeUniverse]()[0]]</code> or <code>[Typed]()[*e*, [Booleans]()]</code> says which it is, as the string `"true"` or `"not"` does for a Boolean.
 - In a notebook a term shows in mathematical notation, with the term itself behind the display.

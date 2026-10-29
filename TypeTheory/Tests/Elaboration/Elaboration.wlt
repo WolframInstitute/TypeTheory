@@ -313,3 +313,37 @@ VerificationTest[
 	{True, {}},
 	TestID -> "A-solution-out-of-scope-only-inside-a-redex-is-beta-reduced"
 ]
+
+(* a variable written without a type takes the type its body gives it, as Lean leaves a binder's type to unification *)
+VerificationTest[
+	{
+		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[{n}, n + 0 == n]]]],
+		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[n, n + 0 == n]]]],
+		First[TypeTheoryCheck[TypeTheoryTerm[Function[{x}, x + 1]]]],
+		MatchQ[TypeTheoryEnvironment[{TypeTheoryTheorem[AddZeroUntyped, ForAll[{n}, n + 0 == n], Function[{n}, EqualityReflexivity[n]]]}], _TypeTheoryEnvironment],
+		TypeTheoryCheck[TypeTheoryTerm[ForAll[{x}, x == x]]]["Tag"]
+	},
+	{
+		ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n],
+		ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n],
+		TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers],
+		True,
+		"ElaborationFailed"
+	},
+	TestID -> "A-binder-without-a-type-takes-the-type-its-body-gives-it"
+]
+
+(* ForAll[x, condition, body] and Exists[x, condition, body] read as in the Wolfram Language *)
+VerificationTest[
+	{
+		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 1 <= n, 0 < n]]]],
+		First[WeakHeadNormalForm[TypeTheoryTerm[Exists[{Typed[n, Naturals]}, 1 <= n, n == 2]]]],
+		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[n, 1 <= n, 0 < n]]]]
+	},
+	{
+		ForAll[{Typed[n, NonNegativeIntegers]}, Implies[1 <= n, 0 < n]],
+		Exists[{Typed[n, NonNegativeIntegers]}, 1 <= n && n == 2],
+		ForAll[{Typed[n, NonNegativeIntegers]}, Implies[1 <= n, 0 < n]]
+	},
+	TestID -> "ForAll-and-Exists-with-a-condition-read-as-in-the-Wolfram-Language"
+]
