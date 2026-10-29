@@ -29,9 +29,10 @@ records beyond the largest library environment it extends, its base, which it na
 Reading a file is a convenience, not a check: its records are taken as the file has them, as Lean takes an .olean.
 TypeTheoryEnvironment[File[...], "Check" -> True] reads the file and then replays every declaration with
 TypeTheoryCheck, as lean4checker replays an environment, and it is how to read a file another kernel wrote. The
-file is read held, with BinaryDeserialize[bytes, HoldComplete], and nothing in it evaluates: before any term is
-built, every row must name earlier rows only, and the records, names and settings may hold only core terms and
-inert data, so that no code a file carries can run.
+file is read held, with BinaryDeserialize[bytes, HoldComplete], and nothing in it evaluates before it is checked:
+every symbol it holds outside HoldComplete and HoldForm, keys included, must be one of those a saved environment is
+written with, and then every row must name earlier rows only, every name must be a name, and the records and
+settings may hold only core terms and inert data, so that no code a file carries can run.
 
 The paclet's own library environments are saved in its Environments directory when it is released, and read
 from there when they are first asked for if the kernel that wrote them is the one loading them; otherwise they
@@ -217,15 +218,36 @@ savedLibraryEnvironment[name_String, base_] := Quiet @ Block[{libraryFile = File
 	Replace[catchKernelFailure[environmentFromContents[base, libraryData, File[libraryFile]]], _Failure -> None]
 ]
 
-(* the file's data, read held and checked to be inert before anything in it is used *)
+(* The file's data, read held and checked before anything in it evaluates: taking an association out of HoldComplete
+   evaluates its values, and reading its keys or values evaluates them, so first every symbol the data holds, apart
+   from what HoldComplete or HoldForm holds in it, a name or an annotation's expression, must be one of the symbols
+   a saved environment is written with, its keys read held with Keys[association, HoldComplete], as Cases does not
+   look at keys. Then the data is taken out and checked in full. *)
 readEnvironmentFile[file_String] := Block[{fileBytes = Quiet[ReadByteArray[file]], fileData},
 	If[ ! ByteArrayQ[fileBytes], kernelFailure["SavedEnvironmentUnreadable", "`1` cannot be read.", {file}]];
 	fileData = Quiet[BinaryDeserialize[fileBytes, HoldComplete]];
-	If[ ! MatchQ[fileData, HoldComplete[_Association]] || ! savedDataQ[First[fileData]],
+	If[ ! MatchQ[fileData, HoldComplete[_Association]] || ! heldDataQ[fileData] || ! savedDataQ[First[fileData]],
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
 	];
 	First[fileData]
 ]
+
+heldDataQ[held_HoldComplete] := And[
+	writtenSymbolsQ[Replace[held, (HoldComplete | HoldForm)[_] -> 0, {2, Infinity}]],
+	AllTrue[
+		Cases[held, association_Association?AtomQ :> Keys[association, HoldComplete], {0, Infinity}],
+		Function[keys, writtenSymbolsQ[Replace[keys, (HoldComplete | HoldForm)[_] -> 0, {2, Infinity}]]]
+	]
+]
+
+writtenSymbolsQ[expression_] := SubsetQ[$writtenSymbols, DeleteDuplicates[Cases[expression, symbol_Symbol :> HoldComplete[symbol], {0, Infinity}, Heads -> True]]]
+
+$writtenSymbols = HoldComplete /@ Unevaluated[{
+	HoldComplete, Association, Rule, RuleDelayed, List, True, False, None, Null, Infinity, DirectedInfinity, DateObject, Missing, TypeTheoryRules,
+	termRef, boundVariable, freeVariable, universeSort, constantReference, naturalLiteral, intervalUniverse,
+	application, lambdaAbstraction, dependentFunctionType, localDefinition, projection, cubicalSystem,
+	levelParameter, levelSuccessor, levelMaximum, levelImpredicativeMaximum
+}]
 
 savedDataQ[data_Association] := And[
 	SubsetQ[Keys[data], {"Format", "FormatVersion", "KernelHash", "Rules", "Base", "Nodes", "Names", "Records", "NaturalNumbers", "RewriteRuleIndex", "Hash"}],

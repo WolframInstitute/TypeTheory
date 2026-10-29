@@ -91,17 +91,19 @@ VerificationTest[
 	TestID -> "A-file-whose-rows-were-changed-is-refused"
 ]
 
+(* a file written from an unevaluated expression, with calls in a value and in a key: taking the data out of
+   HoldComplete would make the calls, so reading the file must refuse it before *)
 VerificationTest[
-	Module[{data = savedData["arithmetic"], carrying = savedFile["carrying"], printed = {}},
-		(* a record with a call in it, written held so that it does not run here either *)
-		BinaryWrite[carrying, BinarySerialize[Unevaluated @@ Replace[
-			HoldComplete[Evaluate[data]],
-			record : KeyValuePattern["Kind" -> "Theorem"] :> RuleCondition[Append[record, "Extra" -> CarriedCall[1]]],
-			Infinity
-		] /. CarriedCall -> Print]];
-		Close[carrying];
-		Block[{Print = Function[Null, AppendTo[printed, {##}], HoldAll]},
-			{TypeTheoryEnvironment[File[carrying]]["Tag"], printed}
+	Module[{carrying = savedFile["carrying"], calls = {}},
+		Block[{carriedCall},
+			SetAttributes[carriedCall, HoldAll];
+			carriedCall[argument_] := AppendTo[calls, argument];
+			BinaryWrite[carrying, BinarySerialize[Unevaluated[Association[
+				"Format" -> "TypeTheoryEnvironment", "FormatVersion" -> 1, "KernelHash" -> "", "Rules" -> carriedCall[1], "Base" -> None,
+				"Nodes" -> {}, "Names" -> {}, "Records" -> Association[carriedCall[2] -> 1], "NaturalNumbers" -> None, "RewriteRuleIndex" -> Association[], "Hash" -> ""
+			]]]];
+			Close[carrying];
+			{TypeTheoryEnvironment[File[carrying]]["Tag"], calls}
 		]
 	],
 	{"SavedEnvironmentInvalid", {}},
