@@ -76,3 +76,22 @@ VerificationTest[
 	{True, <|"Citation" -> "nowhere", "Evaluation" -> HoldForm[2 + 2]|>},
 	TestID -> "A-saved-environment-keeps-its-holes-and-their-annotations"
 ]
+
+(* a theorem or an axiom keeps the annotation it is declared with, as a hole does *)
+VerificationTest[
+	With[{annotated = TypeTheoryEnvironment[{
+			TypeTheoryAxiom[Signature, TypeUniverse[1], "Annotation" -> <|"Statement" -> "a type of things"|>],
+			TypeTheoryTheorem[TwoPlusTwoAnnotated, 2 + 2 == 4, EqualityReflexivity[4], "Annotation" -> <|"Claims" -> {"Plus"}, "WolframStatement" -> HoldForm[2 + 2 == 4]|>]
+		}]},
+		{
+			Information[TypeTheoryTerm[TwoPlusTwoAnnotated, annotated], "Annotation"],
+			Information[TypeTheoryTerm[Signature, annotated], "Annotation"],
+			Information[TypeTheoryTerm[EqualitySymmetry, annotated], "Annotation"],
+			MatchQ[TypeTheoryCheck[annotated], _Success],
+			Normal[TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[annotated]]] === Normal[annotated],
+			MatchQ[Last[Normal[annotated]], TypeTheoryTheorem[TwoPlusTwoAnnotated, __, "Annotation" -> _Association]]
+		}
+	],
+	{<|"Claims" -> {"Plus"}, "WolframStatement" -> HoldForm[2 + 2 == 4]|>, <|"Statement" -> "a type of things"|>, None, True, True, True},
+	TestID -> "A-theorem-or-an-axiom-keeps-the-annotation-it-is-declared-with"
+]

@@ -301,13 +301,13 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 			},
 			universeOption
 		]],
-		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption]],
+		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption, annotationOptionSyntax[record]]],
 		"Definition" | "Opaque" :> syntaxHead[TypeTheoryDefinition, Join[
 			{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]},
 			universeOption,
 			Function[role, syntaxHead[Rule, {syntaxString[role], syntaxSymbol[HoldComplete[True]]}]] /@ Keys[Select[recordRoles[record], TrueQ]]
 		]],
-		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, readBack[environment, record["Value"], mode]}, universeOption]],
+		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, readBack[environment, record["Value"], mode]}, universeOption, annotationOptionSyntax[record]]],
 		"InductiveType" :> syntaxHead[TypeTheoryInductiveType, Join[
 			{
 				nameSyntax,
@@ -324,6 +324,8 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 
 (* the roles of a definition's record, as declareDefinition takes them *)
 recordRoles[record_] := Append[KeyTake[record, {"Instance", "Coercion"}], "Opaque" -> record["Kind"] === "Opaque"]
+
+annotationOptionSyntax[record_] := Replace[Lookup[record, "Annotation", None], {None -> {}, annotation_ :> {syntaxOther[HoldComplete["Annotation" -> annotation]]}}]
 
 universeOptionSyntax[record_] := Replace[record["UniverseParameters"], {
 	{} -> {},
@@ -477,10 +479,10 @@ replayDeclaration[original_, replayed_, name_ -> record_] := With[
 ]
 
 redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
-	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"]],
+	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"], Lookup[record, "Annotation", None]],
 	"Hole" :> declareHole[replayed, name, record["UniverseParameters"], record["Type"], record["Annotation"], record["Theorem"]],
 	"Definition" | "Opaque" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], recordRoles[record]],
-	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
+	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], Lookup[record, "Annotation", None]],
 	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
 	"Quotient" :> declareQuotients[replayed, record["Equality"], record["QuotientNames"]],
 	"Cubical" :> declareCubical[replayed, record["Sum"]],
@@ -542,11 +544,11 @@ translatedDeclaration[original_, target_, name_, record_, direction_String] := W
 ]
 
 translatedRecord[original_, target_, name_, record_, direction_, translate_] := Replace[record["Kind"], {
-	"Axiom" :> declareAxiom[target, name, record["UniverseParameters"], translate[record["Type"]]],
+	"Axiom" :> declareAxiom[target, name, record["UniverseParameters"], translate[record["Type"]], Lookup[record, "Annotation", None]],
 	"Hole" :> declareHole[target, name, record["UniverseParameters"], translate[record["Type"]], record["Annotation"], record["Theorem"]],
 	"Definition" | "Opaque" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]], recordRoles[record]],
 	"Theorem" /; direction === "GainProp" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],
-	"Theorem" :> declareTheorem[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],
+	"Theorem" :> declareTheorem[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]], Lookup[record, "Annotation", None]],
 	"RewriteRule" :> declareRewriteRule[target, name, record["UniverseParameters"], record["NumberOfVariables"], translate[record["LeftHandSide"]], translate[record["RightHandSide"]]],
 	"Quotient" :> declareQuotients[target, record["Equality"], record["QuotientNames"]],
 	"Cubical" :> declareCubical[target, record["Sum"]],

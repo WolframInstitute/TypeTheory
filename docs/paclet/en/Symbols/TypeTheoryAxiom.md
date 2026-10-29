@@ -19,6 +19,7 @@ RelatedGuides: [TypeTheory]
 - An axiom is assumed, not proved. <code>[Information]()[*env*, "Axioms"]</code> lists the axioms of an environment.
 - The prelude assumes [PropositionalExtensionality](), [FunctionExtensionality]() and [Choice](). <code>[TypeTheoryEnvironment]()["Constructive"]</code> is the prelude without them and the theorems proved from them, a start for other axioms.
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear.
+- The option `"Annotation" -> *data*` keeps *data* in the axiom's record as it is given: <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Annotation"]</code> gives it back, and [Normal]() and a saved environment keep it.
 
 ## Basic Examples
 

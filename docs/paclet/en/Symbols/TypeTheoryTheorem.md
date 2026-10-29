@@ -21,6 +21,7 @@ RelatedGuides: [TypeTheory]
 - The kernel checks *proof* against *statement* when the theorem is added; a proof that does not check gives a [Failure](). A theorem never unfolds.
 - A proof may leave parts to give with [TypeTheoryHole](), or with the tactic `"Hole"`, as Lean's `sorry`: the environment then holds a constant <code>[TypeTheoryHole]()[*name*, *k*]</code> for each hole, before the theorem, and <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Holes"]</code> lists them. A proof with goals still open is no proof and gives a [Failure]().
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear.
+- The option `"Annotation" -> *data*` keeps *data*, a citation, the statement in words or anything else, in the theorem's record as it is given: <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Annotation"]</code> gives it back, and [Normal]() and a saved environment keep it.
 
 ## Basic Examples
 

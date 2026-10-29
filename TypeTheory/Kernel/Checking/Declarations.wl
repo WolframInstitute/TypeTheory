@@ -139,9 +139,9 @@ $emptyEnvironment::usage = "$emptyEnvironment is the environment with no constan
 (*Function Definitions*)
 
 
-Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic}
+Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic, "Annotation" -> None}
 Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False, "Opaque" -> False}
-Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic}
+Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic, "Annotation" -> None}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
 
@@ -184,8 +184,14 @@ $emptyEnvironments = <||>
 
 addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryAxiom, Hold[options], {toSyntax[type]}]},
-	declareAxiom[environment, HoldComplete[name], universeParameters, closedType[environment, HoldComplete[type], universeParameters]]
+	declareAxiom[environment, HoldComplete[name], universeParameters, closedType[environment, HoldComplete[type], universeParameters], declarationAnnotation[Hold[options]]]
 ]
+
+(* the "Annotation" given, evaluated, kept in the record as it is; None for none *)
+declarationAnnotation[Hold[options___]] := Replace[Cases[Hold[options], HoldPattern["Annotation" -> annotation_] :> annotation, {1}], {{} -> None, {annotation_, ___} :> annotation}]
+
+annotationField[None] := <||>
+annotationField[annotation_] := <|"Annotation" -> annotation|>
 
 (* a definition keeps the type it is given, implicit binders included, and its value only has to have
    that type: Lean's projections, for one, take their parameters explicitly in the value *)
@@ -234,22 +240,28 @@ addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, option
 	{universeParameters = declarationUniverseParameters[TypeTheoryTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]},
 	{type = closedType[environment, HoldComplete[statement], universeParameters]},
 	Block[{$elaboratedHoles = {}},
-		declareTheoremWithHoles[environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters]]
+		declareTheoremWithHoles[
+			environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters],
+			declarationAnnotation[Hold[options]]
+		]
 	]
 ]
 
 (* the statement and universe parameters come from the proof, which is evaluated *)
 addDeclaration[environment_, TypeTheoryTheorem[name_, proof_, options : OptionsPattern[]]] := Replace[proof, {
 	state : TypeTheoryProof[_Association] :> Block[{$elaboratedHoles = {}},
-		declareTheoremWithHoles[environment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state]]
+		declareTheoremWithHoles[environment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state], declarationAnnotation[Hold[options]]]
 	],
 	failure_Failure :> throwFailure[failure],
 	other_ :> kernelFailure["ProofExpected", "`1` is not a TypeTheoryProof.", {Short[other]}]
 }]
 
-declareTheoremWithHoles[environment_, name_, universeParameters_, type_, value_] := If[ $elaboratedHoles === {},
-	declareTheorem[environment, name, universeParameters, type, value],
-	declareWithHoles[environment, name, universeParameters, value, $elaboratedHoles, Function[{extended, closedValue}, declareTheorem[extended, name, universeParameters, type, closedValue]]]
+declareTheoremWithHoles[environment_, name_, universeParameters_, type_, value_, annotation_] := If[ $elaboratedHoles === {},
+	declareTheorem[environment, name, universeParameters, type, value, annotation],
+	declareWithHoles[
+		environment, name, universeParameters, value, $elaboratedHoles,
+		Function[{extended, closedValue}, declareTheorem[extended, name, universeParameters, type, closedValue, annotation]]
+	]
 ]
 
 addDeclaration[environment_, TypeTheoryInductiveType[name_, type_, constructors_List, options : OptionsPattern[]]] :=
@@ -455,10 +467,10 @@ levelParameterNames[_] := {}
 
 (* A declaration's type is checked before its value, so every comparison in its check is of checked terms or
    their reducts, where definitional equality infers the types it asks without checking (withCheckedTerms). *)
-declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_] := withCheckedTerms[
+declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type}];
 	sortLevel[environment, <||>, type];
-	addConstantRecords[environment, <|name -> <|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>|>]
+	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>, annotationField[annotation]]|>]
 ]
 
 (* An instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other.
@@ -487,14 +499,14 @@ definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[c
 ]
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
-declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_] := withCheckedTerms[
+declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_, annotation_ : None] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type, value}];
 	If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
 		kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
 	];
 	checkHasType[environment, <||>, value, type];
 	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
-	addConstantRecords[environment, <|name -> <|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>|>]
+	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>, annotationField[annotation]]|>]
 ]
 
 (* The left side is an axiom applied to a pattern: each argument is a variable of the rule, a term
