@@ -79,8 +79,8 @@ cubicalEnvironment::usage = "cubicalEnvironment[] gives TypeTheoryEnvironment[\"
 (*Function Definitions*)
 
 
-cubicalEnvironment[] := cubicalEnvironment[] = withoutStoreTracking[withStoreCleanup[
-	TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"], $cubicalDeclarations]
+cubicalEnvironment[] := cubicalEnvironment[] = withoutStoreTracking[With[{empty = emptyEnvironmentOf[TypeTheoryRules["CubicalTypeTheory"]]},
+	libraryEnvironment["Cubical", empty, withStoreCleanup[TypeTheoryEnvironment[empty, $cubicalDeclarations]]]
 ]]
 
 $cubicalDeclarations = {

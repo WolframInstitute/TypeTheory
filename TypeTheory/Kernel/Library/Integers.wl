@@ -107,7 +107,9 @@ integersEnvironment::usage = "integersEnvironment[] gives the prelude with the i
 
 
 (* the declarations in order, each theorem proved by its tactics in the environment so far *)
-integersEnvironment[] := integersEnvironment[] = withoutStoreTracking[withStoreCleanup[Fold[addIntegerDeclaration, preludeEnvironment[], $integerDeclarations]]]
+integersEnvironment[] := integersEnvironment[] = withoutStoreTracking[
+	libraryEnvironment["Integers", preludeEnvironment[], withStoreCleanup[Fold[addIntegerDeclaration, preludeEnvironment[], $integerDeclarations]]]
+]
 
 SetAttributes[integerTheorem, HoldAll]
 

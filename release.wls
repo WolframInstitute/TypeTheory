@@ -1,6 +1,7 @@
 #!/usr/bin/env wolframscript
-(* Publish TypeTheory's documentation site with PacletPage, in one run: build the documentation (as
-   build_docs.wls does), build the paclet archive and check that it loads alone in a fresh kernel,
+(* Publish TypeTheory's documentation site with PacletPage, in one run: save the library environments (as
+   scripts/save_environments.wls does), build the documentation (as build_docs.wls does), build the paclet
+   archive and check that it loads alone in a fresh kernel,
    deploy the paclet resource, publish the site around it with its feedback form, and check the site as
    an anonymous reader sees it:
 
@@ -33,6 +34,8 @@ If[ ! dryRun && $WolframID =!= $siteAccount,
 	Print["FATAL: publishing needs a kernel connected as ", $siteAccount, " (WOLFRAM_ID / WOLFRAM_PASSWORD); this one is connected as ", $WolframID, ". Nothing was built or published."];
 	Exit[1]
 ]
+
+saveLibraryEnvironments[]
 
 buildDocumentation[]
 

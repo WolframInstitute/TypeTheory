@@ -95,7 +95,9 @@ rationalsEnvironment::usage = "rationalsEnvironment[] gives the environment of t
 
 
 (* the declarations in order, each theorem proved by its tactics in the environment so far *)
-rationalsEnvironment[] := rationalsEnvironment[] = withoutStoreTracking[withStoreCleanup[Fold[addRationalDeclaration, integersEnvironment[], $rationalDeclarations]]]
+rationalsEnvironment[] := rationalsEnvironment[] = withoutStoreTracking[
+	libraryEnvironment["Rationals", integersEnvironment[], withStoreCleanup[Fold[addRationalDeclaration, integersEnvironment[], $rationalDeclarations]]]
+]
 
 SetAttributes[rationalTheorem, HoldAll]
 

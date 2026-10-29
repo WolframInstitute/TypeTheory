@@ -112,8 +112,9 @@ $circleDeclarations::usage = "$circleDeclarations is the declarations of the cir
 
 $homotopyTypeTheoryRules = TypeTheoryRules["MartinLofTypeTheory", "RewriteRules" -> True]
 
-homotopyTypeTheoryEnvironment[] := homotopyTypeTheoryEnvironment[] =
-	withoutStoreTracking[TypeTheoryEnvironment[emptyEnvironmentOf[$homotopyTypeTheoryRules], Join[$univalentDeclarations, $circleDeclarations]]]
+homotopyTypeTheoryEnvironment[] := homotopyTypeTheoryEnvironment[] = withoutStoreTracking[With[{empty = emptyEnvironmentOf[$homotopyTypeTheoryRules]},
+	libraryEnvironment["HomotopyTypeTheory", empty, TypeTheoryEnvironment[empty, Join[$univalentDeclarations, $circleDeclarations]]]
+]]
 
 
 $univalentDeclarations = {

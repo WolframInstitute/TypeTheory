@@ -22,3 +22,6 @@ TypeTheory/Documentation/
 
 # PacletPage build output
 TypeTheory/build/
+
+# The library environments saved for the release (scripts/save_environments.wls)
+TypeTheory/Environments/

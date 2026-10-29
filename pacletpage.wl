@@ -24,6 +24,25 @@ versionKey[version_String] := PadRight[FromDigits /@ StringCases[version, DigitC
 newEnoughQ[paclet_PacletObject] := Order[versionKey[paclet["Version"]], versionKey[$minimumPacletPage]] <= 0
 newEnoughQ[_] := False
 
+(* The library environments, saved where the paclet reads them from: built here from this checkout, so that the
+   files name this checkout's kernel and the archive carries them. TypeTheoryEnvironment is named in full: this
+   file is read before TypeTheory is loaded. *)
+
+$libraryEnvironmentNames = {"Constructive", "Prelude", "Integers", "Rationals", "HomotopyTypeTheory", "Cubical"}
+
+saveLibraryEnvironments[] := Module[{directory = FileNameJoin[{$pacletDirectory, "Environments"}]},
+	PacletDirectoryLoad[$pacletDirectory];
+	Needs["WolframInstitute`TypeTheory`"];
+	If[! DirectoryQ[directory], CreateDirectory[directory]];
+	Scan[
+		Function[name, With[{file = Export[FileNameJoin[{directory, name <> ".wxf"}], WolframInstitute`TypeTheory`TypeTheoryEnvironment[name]]},
+			If[! MatchQ[file, File[_String]], Print["FATAL: ", name, " was not saved: ", file]; Exit[1]];
+			Print[name, ": ", Round[FileByteCount[First[file]] / 1024.], " KB"]
+		]],
+		$libraryEnvironmentNames
+	]
+]
+
 (* The newest PacletPage this machine has, with a checkout named by PACLETPAGE_DIR added to the
    candidates. Nothing is installed: a missing or older PacletPage stops the script with the line that
    installs the current release. *)

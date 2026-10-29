@@ -11,7 +11,8 @@ core terms.
 An environment behaves like an Association of its constants: environment[name] gives the declaration
 that introduced name, Keys gives the names in the order they were declared, and Length, KeyExistsQ and
 Normal work as for an Association, Normal giving the declarations themselves, in order. Information
-gives "Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers" and "Rules".
+gives "Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers", "Rules" and "Provenance", which says whether
+the environment was read from a file without checking it (SavedEnvironments.wl).
 
 An environment's store can be changed by hand. TypeTheoryCheck[environment] is how to trust it anyway:
 it replays every declaration in order on the empty environment of the same rules with the core
@@ -223,7 +224,7 @@ registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ he
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
-environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers", "Rules"}
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers", "Rules", "Provenance"}
 environmentInformation[environment_, "Constants"] := Keys[environment]
 environmentInformation[environment_, "Kinds"] := Counts[Function[name, constantRecord[environment, name]["Kind"]] /@ environmentNames[environment]]
 environmentInformation[environment_, "Axioms"] :=
@@ -235,6 +236,7 @@ environmentInformation[environment_, "NaturalNumbers"] := Replace[
 	settings_Association :> <|Map[ReleaseHold, KeyTake[settings, {"Type", "Zero", "Successor"}]], "Operations" -> Map[ReleaseHold, settings["Operations"]]|>
 ]
 environmentInformation[environment_, "Rules"] := environmentRules[environment]
+environmentInformation[environment_, "Provenance"] := environmentProvenance[environment]
 
 
 (* ::Subsection:: *)

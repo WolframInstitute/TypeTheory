@@ -15,6 +15,10 @@ the environment's contents. That is the Wolfram Language's own way of storing na
 	store["Identifier"]          a positive integer, marking store as an environment's store
 	store["Rules"]               the TypeTheoryRules the environment follows, set when it is started
 	store["RewriteRuleIndex"]    <|HoldComplete[axiom] -> {HoldComplete[rule], ...}|>: the rewrite rules of each axiom
+	store["Library"]             the store of the nearest library environment the records begin with, or None:
+	                             what a saved environment names as its base (SavedEnvironments.wl)
+	store["LibraryName"]         the name of a library environment, "Prelude" or "Integers", set on its own store
+	store["Provenance"]          for an environment read from a file, where it came from and whether it was checked
 
 An environment never changes. Adding constants gives a new environment, whose store holds the old
 records joined with the new ones, and leaves the old environment as it was, so a proof can branch or be
@@ -94,6 +98,8 @@ TypeTheoryEnvironment[\"Cubical\"] gives cubical type theory, with paths as func
 TypeTheoryEnvironment[{declaration1, declaration2, ...}] checks the declarations in turn and gives the default environment, $TypeTheoryEnvironment, extended with them.\n\
 TypeTheoryEnvironment[environment, {declaration1, ...}] gives environment extended with the declarations; Append[environment, declaration] adds one.\n\
 TypeTheoryEnvironment[rules] gives the environment with no constants that follows the TypeTheoryRules rules, and TypeTheoryEnvironment[rules, {declaration1, ...}] extends it.\n\
+TypeTheoryEnvironment[File[\"file.wxf\"]] reads an environment that Export[\"file.wxf\", environment] saved, without checking its declarations again; \
+the option \"Check\" -> True checks them.\n\
 environment[name] gives the declaration that introduced the constant name. Keys, Length, KeyExistsQ, Normal and Information[environment, property] also work."
 
 SetTypeTheoryEnvironment::usage = "SetTypeTheoryEnvironment[environment] makes environment the default environment, $TypeTheoryEnvironment, of the terms, \
@@ -143,10 +149,15 @@ newEnvironment[base_, records_Association, naturalNumbers_] := Module[{store},
 	store["Rules"] = base["Rules"];
 	store["RewriteRuleIndex"] = base["RewriteRuleIndex"];
 	store["NaturalNumbers"] = naturalNumbers;
+	store["Library"] = libraryOf[base];
 	store["Identifier"] = ++$storeCounter;
 	Sow[store, $storeTag];
 	TypeTheoryEnvironment[store]
 ]
+
+(* the nearest library environment whose records a new store's begin with: the base, if it is one *)
+libraryOf[base_Symbol] := If[StringQ[base["LibraryName"]], base, base["Library"]]
+libraryOf[_Association] := None
 
 emptyEnvironment[] := emptyEnvironment[$defaultRules]
 
