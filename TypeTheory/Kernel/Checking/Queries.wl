@@ -397,18 +397,18 @@ typeAndValueConstants[environment_, term_] := Replace[queryCoreTerm[environment,
 termConstants[term_] := Block[{$constantsSeen = <||>}, unseenConstants[term]]
 
 (* the constants in the subterms of term not seen yet *)
-unseenConstants[term_] := Block[{$constantsFound = Internal`Bag[]},
+unseenConstants[term_] := Block[{$constantsFound = CreateDataStructure["DynamicArray"]},
 	collectConstants[term];
-	DeleteDuplicates[Internal`BagPart[$constantsFound, All]]
+	DeleteDuplicates[Normal[$constantsFound]]
 ]
 
 collectConstants[term_] := If[ ! KeyExistsQ[$constantsSeen, term], $constantsSeen[term] = True; constantsOf[term]]
 
-constantsOf[constantReference[name_, _]] := Internal`StuffBag[$constantsFound, name]
+constantsOf[constantReference[name_, _]] := $constantsFound["Append", name]
 constantsOf[application[function_, argument_]] := (collectConstants[function]; collectConstants[argument])
 constantsOf[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _]] := (collectConstants[domain]; collectConstants[body])
 constantsOf[localDefinition[_, type_, value_, body_]] := (collectConstants[type]; collectConstants[value]; collectConstants[body])
-constantsOf[projection[structure_, _, term_]] := (Internal`StuffBag[$constantsFound, structure]; collectConstants[term])
+constantsOf[projection[structure_, _, term_]] := ($constantsFound["Append", structure]; collectConstants[term])
 constantsOf[cubicalSystem[branches_List]] := Scan[collectConstants, Flatten[branches, 1]]
 constantsOf[_] := Null
 

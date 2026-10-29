@@ -124,12 +124,12 @@ environmentBase[TypeTheoryEnvironment[store_Symbol]] := Replace[store["Library"]
 
 (* the contents of environment beyond base, its terms in a table of rows *)
 environmentContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
-	{$nodeIndex = <||>, $nodeBag = Internal`Bag[], contentNames, contentRecords},
+	{$nodeIndex = <||>, $nodes = CreateDataStructure["DynamicArray"], contentNames, contentRecords},
 	contentNames = Drop[environmentNames[environment], Replace[base, {None -> 0, {_, baseEnvironment_} :> Length[environmentNames[baseEnvironment]]}]];
 	contentRecords = AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], contentNames];
 	<|
 		"Rules" -> environmentRules[environment],
-		"Nodes" -> Internal`BagPart[$nodeBag, All],
+		"Nodes" -> Normal[$nodes],
 		"Names" -> contentNames,
 		"Records" -> contentRecords,
 		"NaturalNumbers" -> store["NaturalNumbers"],
@@ -156,7 +156,7 @@ valueRefs[value_] := Which[
 
 (* the row of a composite term, its own added after the rows of its parts *)
 nodeRow[term_] := Lookup[$nodeIndex, Key[term], addNode[term]]
-addNode[term_] := Block[{node = termNode[term]}, Internal`StuffBag[$nodeBag, node]; $nodeIndex[term] = Internal`BagLength[$nodeBag]]
+addNode[term_] := Block[{node = termNode[term]}, $nodes["Append", node]; $nodeIndex[term] = $nodes["Length"]]
 
 part[term_] := If[compositeTermQ[term], termRef[nodeRow[term]], term]
 
@@ -297,10 +297,12 @@ environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Ass
 	loadedEnvironment
 ]
 
-(* each row's term, built from the terms of the rows before it: a bag, which a row joins in constant time *)
-rowTerms[nodes_List] := Block[{$rowBag = Internal`Bag[]},
-	Scan[Function[node, Internal`StuffBag[$rowBag, rowNodeTerm[node]]], nodes];
-	Internal`BagPart[$rowBag, All]
+(* Each row's term, built from the terms of the rows before it, in a dynamic array, which a row joins in constant time.
+   Filling a list made with placeholders would cost the length of the list at each row on W15: overwriting an element
+   that held a symbol rescans the list. *)
+rowTerms[nodes_List] := Block[{$rows = CreateDataStructure["DynamicArray"]},
+	Scan[Function[node, $rows["Append", rowNodeTerm[node]]], nodes];
+	Normal[$rows]
 ]
 
 (* the terms for the rows a value names, mapped so that each comes out evaluated, inside the Block of $rowTerms *)
@@ -309,7 +311,7 @@ termsFromRefs[association_Association] := Map[termsFromRefs, association]
 termsFromRefs[list_List] := Map[termsFromRefs, list]
 termsFromRefs[other_] := other
 
-rowPart[termRef[reference_Integer]] := Internal`BagPart[$rowBag, reference]
+rowPart[termRef[reference_Integer]] := $rows["Part", reference]
 rowPart[leaf_] := leaf
 
 rowNodeTerm[{"a", function_, argument_}] := Construct[application, rowPart[function], rowPart[argument]]
