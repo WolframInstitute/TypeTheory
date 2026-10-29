@@ -38,6 +38,7 @@ RelatedGuides: [TypeTheory]
 | <code>[Subscript]()[c, *level*, ...]</code> | the constant `c` at explicit universe levels |
 | `t[[i]]` | field `i` of `t`, whose type is a structure |
 | `0`, `1`, `2`, ... | natural number literals |
+| `{a, b, ...}` | the list <code>[ListPrepend]()[a, [ListPrepend]()[b, ... [EmptyList]()]]</code>, in an environment with [Lists]() |
 | <code>[RightTee]()[{[Typed]()[x, A], ...}, B]</code> | a goal: hypotheses and a conclusion, read as [ForAll]() |
 
 - A binder written as a bare symbol, <code>[ForAll]()[{n}, n + 0 == n]</code> or <code>[ForAll]()[n, n + 0 == n]</code>, takes the type its body gives it, as Lean leaves a binder's type to unification; a binder whose type nothing decides gives a [Failure]() asking for <code>[Typed]()[x, *type*]</code>.

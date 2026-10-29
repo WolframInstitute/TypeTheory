@@ -289,6 +289,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
 	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] :> applyExplicitly[elaborateHead[head], {arguments}, head],
 	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
+	(* a list written as a term is the list of its elements, ListPrepend over EmptyList, as such a list shows *)
+	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
@@ -302,6 +304,14 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 integersDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["integerNegation"]]
 
 rationalsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["rationalInverse"]]
+
+listsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[ListPrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptyList]]
+
+listLiteralSyntax[elements_List] := Fold[
+	Function[{rest, element}, syntaxHead[ListPrepend, {element, rest}]],
+	syntaxSymbol[HoldComplete[EmptyList]],
+	Reverse[elements]
+]
 
 (* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], as in Lean, each Exists applied to a predicate *)
 nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]

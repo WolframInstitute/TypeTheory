@@ -347,3 +347,17 @@ VerificationTest[
 	},
 	TestID -> "ForAll-and-Exists-with-a-condition-read-as-in-the-Wolfram-Language"
 ]
+
+(* a list written as a term is the list of its elements, as a list ending in EmptyList shows *)
+VerificationTest[
+	{
+		First[TypeTheoryCheck[TypeTheoryTerm[{1, 2}]]],
+		First[WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Reverse[{1, 2}]], TypeTheoryTerm[{2, 1}]],
+		DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]],
+		First[TypeTheoryCheck[TypeTheoryTerm[Typed[{}, Lists[Naturals]]]]],
+		TypeTheoryCheck[TypeTheoryTerm[{1}, TypeTheoryEnvironment[]]]["Tag"]
+	},
+	{Lists[NonNegativeIntegers], 3, True, True, Lists[NonNegativeIntegers], "ElaborationFailed"},
+	TestID -> "A-list-written-as-a-term-is-the-list-of-its-elements"
+]
