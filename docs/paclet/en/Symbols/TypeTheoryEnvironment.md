@@ -31,6 +31,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
+<code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> reads the environment that <code>[Export]()["*file*.wxf", *env*]</code> saved, without checking its declarations again.
+
 ## Details & Options
 
 - A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers]() and [TypeTheoryRewriteRule](). Each is checked by the kernel in the environment so far, and the result is a new environment, or a [Failure]() for the first declaration that does not check.
@@ -39,9 +41,13 @@ RelatedGuides: [TypeTheory]
 - The prelude is classical: it assumes [PropositionalExtensionality](), [FunctionExtensionality]() and [Choice](), and proves [ExcludedMiddle]() from them. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
 - An environment never changes: adding declarations gives a new one and leaves the old one as it was. <code>[Append]()[*env*, *declaration*]</code> adds one declaration, and <code>[TypeTheoryEnvironment]()[*declaration*]</code> adds one to the default environment.
 - An environment behaves like an [Association]() of its constants. <code>*env*[*name*]</code> gives the declaration that introduced the constant *name*, and [Keys](), [Length](), [KeyExistsQ]() and [Normal]() work as for an [Association](). [Normal]() gives all the declarations, the prelude's included, written out exactly, so <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[[Information]()[*env*, "Rules"]], [Normal]()[*env*]]</code> rebuilds *env* on the empty environment of its rules.
-- <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Axioms"`, `"RewriteRules"`, `"NaturalNumbers"` and `"Rules"`.
+- <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Axioms"`, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"` and `"Provenance"`, which says whether *env* was read from a file without checking it.
 - An environment is a handle to a store: a symbol whose definitions, its [DownValues](), hold the constants. The handle is small, so terms and proofs carry their environment with them, and a store lasts for the session.
 - <code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of *env* again from scratch.
+- <code>[Export]()["*file*.wxf", *env*]</code> saves *env* in a file that holds each of its terms once, and only the constants beyond the library environment it extends, such as the prelude, which it names. A file reads back in a fraction of the time its declarations take to check.
+- Reading a file takes its declarations as checked, as Lean takes an `.olean` file it imports. The option `"Check" -> True` checks every declaration again with [TypeTheoryCheck]() as it reads the file. A file saved by another version of TypeTheory reads only with `"Check" -> True`.
+- A file is read without evaluating anything in it, and a file that holds anything but terms and plain data, or whose terms were changed out of order, is refused.
+- The library environments, from the prelude to the rationals, are read from files saved with the paclet, so loading the paclet does not check the prelude again.
 
 ## Basic Examples
 
@@ -164,6 +170,54 @@ TypeTheoryEnvironment["Rationals"]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 323 constants -->
+
+---
+
+An environment with a theorem:
+
+```wl
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+
+Save it in a file:
+
+```wl
+file = Export[FileNameJoin[{$TemporaryDirectory, "arithmetic.wxf"}], arithmetic]
+```
+
+<!-- => File[.../arithmetic.wxf] -->
+
+Read it back, with the same declarations:
+
+```wl
+saved = TypeTheoryEnvironment[file]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+
+```wl
+Normal[saved] === Normal[arithmetic]
+```
+
+<!-- => True -->
+
+The environment read from the file says where it came from, and that it was not checked:
+
+```wl
+Information[saved, "Provenance"]["Checked"]
+```
+
+<!-- => False -->
+
+`"Check" -> True` checks every declaration as it reads the file:
+
+```wl
+Information[TypeTheoryEnvironment[file, "Check" -> True], "Provenance"]["Checked"]
+```
+
+<!-- => True -->
 
 ## Properties and Relations
 
