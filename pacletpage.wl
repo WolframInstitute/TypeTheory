@@ -63,7 +63,11 @@ loadPacletPage[] := Module[{directory = Environment["PACLETPAGE_DIR"], paclet},
 	paclet["Version"]
 ]
 
-$buildOptions = {"Source" -> $docsDirectory}
+(* as many parallel kernels as PACLETPAGE_PARALLEL says when it is set, a small count on a machine other builds share *)
+$buildOptions = {
+	"Source" -> $docsDirectory,
+	"Parallel" -> Replace[Environment["PACLETPAGE_PARALLEL"], {count_String /; StringMatchQ[count, DigitCharacter ..] && FromDigits[count] > 0 :> FromDigits[count], _ -> Automatic}]
+}
 
 (* The tutorial Mathlib in TypeTheory runs LeanLink: the checkout next to this one when there is one,
    as LeanLink's scripts run this checkout, and otherwise LeanLink as installed. *)
