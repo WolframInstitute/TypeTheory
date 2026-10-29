@@ -194,7 +194,7 @@ loadEnvironment[file_String, check_] := Block[{loadData = readEnvironmentFile[fi
 	loaded = environmentFromContents[loadBase, loadData, File[file]];
 	If[ TrueQ[check],
 		Replace[TypeTheoryCheck[loaded], failure_Failure :> throwFailure[failure]];
-		First[loaded]["Provenance"] = Append[First[loaded]["Provenance"], "Checked" -> True]
+		With[{loadedStore = First[loaded]}, loadedStore["Provenance"] = Append[loadedStore["Provenance"], "Checked" -> True]]
 	];
 	loaded
 ]
@@ -203,7 +203,7 @@ loadEnvironment[file_String, check_] := Block[{loadData = readEnvironmentFile[fi
    it extends base, and otherwise built; either way marked with its name, which the environments built on it record. *)
 SetAttributes[libraryEnvironment, HoldRest]
 libraryEnvironment[name_String, base_, build_] := Block[{libraryResult = Replace[savedLibraryEnvironment[name, base], None :> build]},
-	First[libraryResult]["LibraryName"] = name;
+	With[{libraryStore = First[libraryResult]}, libraryStore["LibraryName"] = name];
 	libraryResult
 ]
 
