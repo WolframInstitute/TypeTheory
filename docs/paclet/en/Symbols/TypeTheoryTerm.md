@@ -43,6 +43,7 @@ RelatedGuides: [TypeTheory]
 - [True](), [False](), [Not](), [And]() and [Or](), and so `!`, `&&` and `||`, stand for the propositions or, in an environment that declares the Booleans, for its constants `"true"`, `"false"`, `"not"`, `"and"` and `"or"`, as the type allows: a proposition where a type or Prop is expected, a Boolean where [Booleans]() is. Elsewhere the arguments decide, or how the term is used. A term that nothing decides is ambiguous, and <code>[Typed]()[*e*, [TypeUniverse]()[0]]</code> or <code>[Typed]()[*e*, [Booleans]()]</code> says which it is, as the string `"true"` or `"not"` does for a Boolean.
 - In a notebook a term shows in mathematical notation, with the term itself behind the display.
 - A constant shows as its symbol or string, applied to its arguments that are not implicit. TypeTheory builds that expression, with its parts already shown, and gives it to [MakeBoxes](), so [MakeBoxes]() definitions give a constant a notation and [Format]() definitions give its symbol a display, in terms, declarations and proofs alike.
+- <code>[Information]()[*term*, "AxiomClosure"]</code> gives the axioms *term* rests on, as [TypeTheoryAxiomClosure]() does, and <code>[Information]()[*term*, "Constants"]</code> the constants it mentions.
 
 ## Basic Examples
 

@@ -42,6 +42,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Checking and computing
 
 - [TypeTheoryCheck]() the type of a term, a term checked against a type, or a whole environment checked again
+- [TypeTheoryAxiomClosure]() the axioms a term rests on, as Lean's `#print axioms`
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce
 
