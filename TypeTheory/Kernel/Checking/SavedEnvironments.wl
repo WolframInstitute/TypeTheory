@@ -32,7 +32,7 @@ TypeTheoryCheck, as lean4checker replays an environment, and it is how to read a
 file is read held, with BinaryDeserialize[bytes, HoldComplete], and nothing in it evaluates before it is checked:
 every symbol it holds outside HoldComplete and HoldForm, keys included, must be one of those a saved environment is
 written with, and then every row must name earlier rows only, every name must be a name, and the records and
-settings may hold only core terms and inert data, so that no code a file carries can run.
+settings may hold only core terms and inert data, and annotations only data, so that no code a file carries can run.
 
 The paclet's own library environments are saved in its Environments directory when it is released, and read
 from there when they are first asked for if the kernel that wrote them is the one loading them; otherwise they
@@ -287,6 +287,7 @@ levelQ[_] := False
 
 nameQ[HoldComplete[_Symbol | _String]] := True
 nameQ[HoldComplete[InductiveRecursor[_Symbol | _String, ___Integer]]] := True
+nameQ[HoldComplete[TypeTheoryHole[_Symbol | _String, _Integer?Positive]]] := True
 nameQ[_] := False
 
 binderQ["Explicit" | "Implicit" | "StrictImplicit" | "InstanceImplicit"] := True
@@ -294,10 +295,22 @@ binderQ[{"Explicit" | "Implicit" | "StrictImplicit" | "InstanceImplicit", 0 | 1}
 binderQ[_] := False
 
 recordQ[record_Association, rows_] := And[
-	MemberQ[{"Axiom", "Definition", "Opaque", "Theorem", "InductiveType", "Constructor", "Recursor", "RewriteRule", "Quotient", "Cubical"}, record["Kind"]],
-	inertQ[record, rows]
+	MemberQ[{"Axiom", "Definition", "Opaque", "Theorem", "InductiveType", "Constructor", "Recursor", "RewriteRule", "Quotient", "Cubical", "Hole"}, record["Kind"]],
+	inertQ[KeyDrop[record, "Annotation"], rows],
+	annotationQ[Lookup[record, "Annotation", None]]
 ]
 recordQ[_, _] := False
+
+(* An annotation is data as the user gave it, a citation or the evidence of a computation, and what evaluates when it
+   is read must be data too: strings, numbers, lists, associations and rules of such, dates, and anything held in
+   HoldForm or HoldComplete, where nothing evaluates. *)
+annotationQ[_String | _Integer | _Real | _Rational | True | False | None | Null] := True
+annotationQ[list_List] := AllTrue[list, annotationQ]
+annotationQ[association_Association] := AllTrue[Keys[association], annotationQ] && AllTrue[Values[association], annotationQ]
+annotationQ[(Rule | RuleDelayed)[key_, value_]] := annotationQ[key] && annotationQ[value]
+annotationQ[HoldForm[_] | HoldComplete[_]] := True
+annotationQ[(DateObject | Missing)[arguments___]] := AllTrue[{arguments}, annotationQ]
+annotationQ[_] := False
 
 (* data that holds nothing that could evaluate: strings, numbers, names, levels, core leaves and terms by row *)
 inertQ[_String | _Integer | True | False | None | Infinity, _] := True

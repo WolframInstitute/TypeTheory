@@ -229,19 +229,28 @@ functionTypeConclusion[type_] := type
 explicitFunctionType[dependentFunctionType[_, _, codomain_, binder_]] /; binderKind[binder] =!= "Explicit" := explicitFunctionType[codomain]
 explicitFunctionType[type_] := type
 
+(* a proof with holes declares a constant for each before the theorem (Holes.wl); the statement has none *)
 addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]},
 	{type = closedType[environment, HoldComplete[statement], universeParameters]},
-	declareTheorem[environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters]]
+	Block[{$elaboratedHoles = {}},
+		declareTheoremWithHoles[environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters]]
+	]
 ]
 
 (* the statement and universe parameters come from the proof, which is evaluated *)
 addDeclaration[environment_, TypeTheoryTheorem[name_, proof_, options : OptionsPattern[]]] := Replace[proof, {
-	state : TypeTheoryProof[_Association] :>
-		declareTheorem[environment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state]],
+	state : TypeTheoryProof[_Association] :> Block[{$elaboratedHoles = {}},
+		declareTheoremWithHoles[environment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state]]
+	],
 	failure_Failure :> throwFailure[failure],
 	other_ :> kernelFailure["ProofExpected", "`1` is not a TypeTheoryProof.", {Short[other]}]
 }]
+
+declareTheoremWithHoles[environment_, name_, universeParameters_, type_, value_] := If[ $elaboratedHoles === {},
+	declareTheorem[environment, name, universeParameters, type, value],
+	declareWithHoles[environment, name, universeParameters, value, $elaboratedHoles, Function[{extended, closedValue}, declareTheorem[extended, name, universeParameters, type, closedValue]]]
+]
 
 addDeclaration[environment_, TypeTheoryInductiveType[name_, type_, constructors_List, options : OptionsPattern[]]] :=
 	inductiveBlock[environment, {{HoldComplete[name], HoldComplete[type]}}, constructorSpecifications[constructors], Hold[options]]

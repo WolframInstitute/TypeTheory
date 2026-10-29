@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTheorem
 Keywords: [theorem, proof, declaration, proposition, kernel, environment]
-SeeAlso: [TypeTheoryProof, TypeTheoryEnvironment, TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryCheck]
+SeeAlso: [TypeTheoryProof, TypeTheoryEnvironment, TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryCheck, TypeTheoryHole]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -19,6 +19,7 @@ RelatedGuides: [TypeTheory]
 
 - *statement* must be a proposition, a type in <code>[TypeUniverse]()[0]</code>; under rules without Prop, as in the HoTT environment, it may be any type. *proof* is a term, a [TypeTheoryTerm](), or a finished [TypeTheoryProof]() written out or held in a symbol.
 - The kernel checks *proof* against *statement* when the theorem is added; a proof that does not check gives a [Failure](). A theorem never unfolds.
+- A proof may leave parts to give with [TypeTheoryHole](), or with the tactic `"Hole"`, as Lean's `sorry`: the environment then holds a constant <code>[TypeTheoryHole]()[*name*, *k*]</code> for each hole, before the theorem, and <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Holes"]</code> lists them. A proof with goals still open is no proof and gives a [Failure]().
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear.
 
 ## Basic Examples

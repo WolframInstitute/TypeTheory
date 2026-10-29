@@ -38,6 +38,7 @@ The tactics:
 	"Generalize", h, ...    moves the hypotheses h, ..., with those that depend on them, back into the goal
 	"Constructor"           applies the first constructor of the goal's inductive type that applies
 	"Assumption"            solves the goal with a hypothesis of the same type
+	"Hole", annotation      closes the goal with a hole, a proof left to give, which the theorem declares (Holes.wl)
 	"Rewrite", h            replaces the first instance in the goal of the left side of the equation h, and every
 	                        copy of it, by the right side; "Rewrite", h, "RightToLeft" replaces the right side;
 	                        with "At" -> k last, it rewrites the hypothesis k instead
@@ -210,8 +211,10 @@ TypeTheoryProof[data_Association]["Environment"] := data["Environment"]
 proofStatement[TypeTheoryProof[data_Association]] := data["Statement"]
 proofUniverseParameters[TypeTheoryProof[data_Association]] := data["UniverseParameters"]
 
+(* a proof's holes go to the declaration being made, which declares a constant for each (Holes.wl) *)
 completedProofTerm[TypeTheoryProof[data_Association]] := If[ data["Goals"] =!= {},
 	kernelFailure["ProofIncomplete", "The proof has `1` open goals.", {Length[data["Goals"]]}],
+	If[ListQ[$elaboratedHoles], $elaboratedHoles = Join[$elaboratedHoles, Values[Lookup[data, "Holes", <||>]]]];
 	instantiateProofTerm[data, metavariable[data["Root"]]]
 ]
 
@@ -250,6 +253,16 @@ solveGoal[data_, goal_, term_, newGoals_List] := Join[data, <|
 	"Metavariables" -> Join[data["Metavariables"], Association[newGoals]],
 	"Goals" -> Join[Keys[newGoals], DeleteCases[data["Goals"], goal]]
 |>]
+
+(* A goal closed with a hole: a metavariable of no context, of the type Π (hypotheses). goal, applied to the
+   hypotheses, which the theorem declared with this proof replaces with a constant (Holes.wl). *)
+holeTactic[data_, goal_, annotation_] := Block[{holeGoal = currentGoal[data, goal], holeId = freshMetavariableId[], holeType},
+	holeType = makeDependentFunctionType[holeGoal["Context"], Keys[holeGoal["Context"]], holeGoal["Type"]];
+	Join[
+		solveGoal[data, goal, makeApplication[metavariable[holeId], freeVariable /@ Keys[holeGoal["Context"]]], {}],
+		<|"Holes" -> Append[Lookup[data, "Holes", <||>], holeId -> <|"Id" -> holeId, "Type" -> holeType, "Annotation" -> annotation|>]|>
+	]
+]
 
 (* other open goals that unification solved while elaborating for this goal *)
 keepSolvedGoals[data_, goalTypes_Association] := With[
@@ -322,6 +335,7 @@ runTactic["LinearArithmetic", Hold[], data_, goal_] := linearArithmetic[data, go
 runTactic["FindEquationalProof", Hold[], data_, goal_] := findEquationalProof[data, goal]
 runTactic["SumOfSquares", Hold[], data_, goal_] := sumOfSquares[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
+runTactic["Hole", Hold[annotation___], data_, goal_] /; Length[{annotation}] <= 1 := holeTactic[data, goal, holeAnnotation[{annotation}]]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
 runTactic["Rewrite", Hold[term_, direction : "LeftToRight" | "RightToLeft"], data_, goal_] := rewrite[data, goal, HoldComplete[term], direction, None]
 runTactic["Rewrite", Hold[term_, "At" -> (hypothesis : _Symbol | _String)], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", HoldComplete[hypothesis]]

@@ -28,6 +28,7 @@ RelatedGuides: [TypeTheory]
 | `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
 | `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
 | `"Assumption"` | solves the goal with a hypothesis of the same type |
+| `"Hole"`, `"Hole", annotation` | closes the goal with a [TypeTheoryHole](), a proof left to give, which the theorem declared with the proof keeps |
 | `"Rewrite", h` | replaces the first instance of the left side of the equation `h` in the goal, and every copy of it, by the right side, then closes a goal whose sides are the same |
 | `"Rewrite", h, "RightToLeft"` | replaces the right side by the left |
 | `"Rewrite", h, "At" -> k` | rewrites the hypothesis `k` instead of the goal; `"RightToLeft"` can come before `"At" -> k` |

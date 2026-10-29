@@ -412,15 +412,28 @@ TypeTheoryProof /: MakeBoxes[proof : TypeTheoryProof[data_Association], form : S
 ]
 
 proofPanel[data_, form_] := Framed[
-	Column[Prepend[Function[goal, goalPanel[data, goal, form]] /@ data["Goals"], proofHeader[Length[data["Goals"]]]], Spacings -> 1.2],
+	Column[Prepend[Function[goal, goalPanel[data, goal, form]] /@ data["Goals"], proofHeader[Length[data["Goals"]], Length[Lookup[data, "Holes", <||>]]]], Spacings -> 1.2],
 	FrameStyle -> LightDarkSwitched[GrayLevel[0.8], GrayLevel[0.35]],
 	RoundingRadius -> 4,
 	FrameMargins -> 8
 ]
 
-proofHeader[0] := Style["Proof complete", Bold, StandardGreen]
-proofHeader[1] := Row[{Style["Proof", Bold], Style["  1 goal", StandardGray]}]
-proofHeader[n_Integer] := Row[{Style["Proof", Bold], Style["  " <> ToString[n] <> " goals", StandardGray]}]
+proofHeader[0, 0] := Style["Proof complete", Bold, StandardGreen]
+proofHeader[0, holes_Integer] := Row[{Style["Proof complete", Bold, StandardGreen], Style["  with " <> countText[holes, "hole"], StandardOrange]}]
+proofHeader[goals_Integer, 0] := Row[{Style["Proof", Bold], Style["  " <> countText[goals, "goal"], StandardGray]}]
+proofHeader[goals_Integer, holes_Integer] := Row[{Style["Proof", Bold], Style["  " <> countText[goals, "goal"], StandardGray], Style[", " <> countText[holes, "hole"], StandardOrange]}]
+
+countText[1, noun_String] := "1 " <> noun
+countText[n_Integer, noun_String] := ToString[n] <> " " <> noun <> "s"
+
+(* a hole shows as hole, with its annotation as a tooltip, and stays the hole behind the display *)
+TypeTheoryHole /: MakeBoxes[hole : TypeTheoryHole[annotation___], form : StandardForm | TraditionalForm] /; Length[{annotation}] <= 1 := With[
+	{
+		tooltip = Replace[{annotation}, {{} -> "\"no annotation\"", {given_} :> MakeBoxes[given, form]}],
+		color = StandardOrange
+	},
+	InterpretationBox[TooltipBox[StyleBox["hole", FontSlant -> Italic, FontColor -> color], tooltip], hole]
+]
 
 goalPanel[data_, goal_, form_] := Replace[Quiet @ catchKernelFailure[goalDisplaySyntax[data, goal]], {
 	{case_, hypotheses_List, target_} :> Column[Join[

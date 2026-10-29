@@ -32,6 +32,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryAxiom]() declares an axiom
 - [TypeTheoryDefinition]() declares a definition, an instance of a class or a coercion
 - [TypeTheoryTheorem]() declares a theorem with its proof
+- [TypeTheoryHole]() a part of a proof left to give, as Lean's `sorry`, with an annotation such as a citation
 - [TypeTheoryInductiveType]() declares an inductive type with its constructors, or mutually inductive types
 - [TypeTheoryNaturalNumbers]() registers the natural numbers that literals belong to, and the operations the kernel computes on them
 - [TypeTheoryRewriteRule]() makes an axiom compute, where the rules allow it

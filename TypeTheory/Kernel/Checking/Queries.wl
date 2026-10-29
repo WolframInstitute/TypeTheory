@@ -121,7 +121,9 @@ checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameter
 TypeTheoryTerm /: TypeOf[term : TypeTheoryTerm[_, ___]] := TypeTheoryCheck[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := TypeTheoryAxiomClosure[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ typeAndValueConstants[termEnvironment[term], term]]
-TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Constants"}
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
+TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation"}
 TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryCheck[TypeTheoryTerm[term, environment]]
 
 
@@ -183,8 +185,12 @@ TypeTheoryEnvironment /: Normal[environment : TypeTheoryEnvironment[_Symbol]?env
 	}]
 ]
 
-(* constructors and recursors come with their type, and the types of a block with its first *)
-primaryNames[environment_] := Select[environmentNames[environment], Function[name, ! generatedQ[constantRecord[environment, name], name]]]
+(* constructors and recursors come with their type, the types of a block with its first, and the holes of a theorem
+   with the theorem, whose proof reads back with them *)
+primaryNames[environment_] := Select[
+	environmentNames[environment],
+	Function[name, With[{record = constantRecord[environment, name]}, ! generatedQ[record, name] && record["Kind"] =!= "Hole"]]
+]
 
 generatedQ[record_, name_] := Or[
 	MatchQ[record["Kind"], "Constructor" | "Recursor"],
@@ -260,6 +266,7 @@ declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDec
 	Missing["KeyAbsent", ReleaseHold[name]],
 	Replace[constantRecord[environment, name], {
 		record : KeyValuePattern["Kind" -> "Constructor" | "Recursor"] :> declarationOf[environment, record["InductiveType"], mode],
+		record : KeyValuePattern["Kind" -> "Hole"] :> declarationOf[environment, record["Theorem"], mode],
 		record : KeyValuePattern["Kind" -> "Quotient"] :> quotientDeclaration[record],
 		record : KeyValuePattern["Kind" -> "Cubical"] :> Replace[record["Sum"], HoldComplete[sum_] :> TypeTheoryCubical[sum]],
 		record_ :> ReleaseHold @ heldFromSyntax @ declarationSyntax[environment, name, record, mode]
@@ -341,7 +348,7 @@ readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delabor
    trusted as an axiom is. An axiom is a proposition when its type is a proposition, and a signature otherwise:
    a type, or a function into types, which a theorem holds for in every model, as for a variable. *)
 TypeTheoryAxiomClosure[term_TypeTheoryTerm] := catchKernelFailure @ Block[{closureEnvironment = termEnvironment[term]},
-	axiomClosure[closureEnvironment, queryCoreTerm[closureEnvironment, term]]
+	First[closureOf[closureEnvironment, queryCoreTerm[closureEnvironment, term]]]
 ]
 
 (* the core term of a query; a declared constant on its own is that constant, an overloaded name such as True included *)
@@ -350,10 +357,34 @@ queryCoreTerm[environment_, term_] := Replace[aliasResolvedName[environment, hel
 	_ :> First @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 }]
 
-(* the subterms seen are shared by the whole closure, so a term the declarations share is walked once *)
-axiomClosure[environment_, term_] := Block[{$closureVisited = <||>, $closureAxioms = <||>, $constantsSeen = <||>},
+(* {axioms, holes} a term rests on: the axioms as <|name -> kind|>, the holes as <|HoldComplete[hole] -> record|>; the
+   subterms seen are shared by the whole closure, so a term the declarations share is walked once *)
+closureOf[environment_, term_] := Block[{$closureVisited = <||>, $closureAxioms = <||>, $closureHoles = <||>, $constantsSeen = <||>},
 	withKernelCaches[visitTerm[environment, term]];
-	KeyMap[ReleaseHold, $closureAxioms]
+	{KeyMap[ReleaseHold, $closureAxioms], $closureHoles}
+]
+
+termHoles[environment_, term_] := holeGroups[environment, Last[closureOf[environment, queryCoreTerm[environment, term]]]]
+
+(* the annotation of a constant's record: a hole's, or None *)
+termAnnotation[environment_, term_] := Replace[queryCoreTerm[environment, term], {
+	constantReference[name_, _] :> Lookup[constantRecord[environment, name], "Annotation", None],
+	_ :> None
+}]
+
+(* the holes by the theorem they are holes of, each with its statement and its annotation *)
+holeGroups[environment_, holes_Association] := GroupBy[
+	KeyValueMap[
+		Function[{name, record}, <|
+			"Theorem" -> ReleaseHold[record["Theorem"]],
+			"Hole" -> ReleaseHold[name],
+			"Statement" -> coreToTypeTheoryTerm[environment, <||>, record["Type"]],
+			"Annotation" -> record["Annotation"]
+		|>],
+		holes
+	],
+	Function[hole, hole["Theorem"]],
+	Map[Function[hole, KeyDrop[hole, "Theorem"]]]
 ]
 
 visitConstant[environment_, name_] := If[ ! KeyExistsQ[$closureVisited, name],
@@ -377,6 +408,9 @@ visitRecord[environment_, name_, record_] := Switch[record["Kind"],
 		visitConstant[environment, record["InductiveType"]],
 	"RewriteRule",
 		$closureAxioms[name] = "RewriteRule",
+	"Hole",
+		$closureHoles[name] = record;
+		visitTerm[environment, record["Type"]],
 	_,
 		visitTerm[environment, record["Type"]]
 ]
@@ -444,6 +478,7 @@ replayDeclaration[original_, replayed_, name_ -> record_] := With[
 
 redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"]],
+	"Hole" :> declareHole[replayed, name, record["UniverseParameters"], record["Type"], record["Annotation"], record["Theorem"]],
 	"Definition" | "Opaque" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], recordRoles[record]],
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"]],
 	"RewriteRule" :> declareRewriteRule[replayed, name, record["UniverseParameters"], record["NumberOfVariables"], record["LeftHandSide"], record["RightHandSide"]],
@@ -508,6 +543,7 @@ translatedDeclaration[original_, target_, name_, record_, direction_String] := W
 
 translatedRecord[original_, target_, name_, record_, direction_, translate_] := Replace[record["Kind"], {
 	"Axiom" :> declareAxiom[target, name, record["UniverseParameters"], translate[record["Type"]]],
+	"Hole" :> declareHole[target, name, record["UniverseParameters"], translate[record["Type"]], record["Annotation"], record["Theorem"]],
 	"Definition" | "Opaque" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]], recordRoles[record]],
 	"Theorem" /; direction === "GainProp" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],
 	"Theorem" :> declareTheorem[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],

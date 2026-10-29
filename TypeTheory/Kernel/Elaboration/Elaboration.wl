@@ -143,6 +143,10 @@ $coercions = True
 (* the metavariables standing for the types of variables written without one, by metavariable id, with the binder written *)
 $binderTypes = <||>
 
+(* the metavariables standing for holes, by metavariable id, with their annotations; a hole lifted out of a binder
+   passes its annotation to the metavariable it is lifted to *)
+$holeAnnotations = <||>
+
 
 (* elaboration compares terms not checked yet, with metavariables, so the kernel's type queries check here even
    where a declaration elaborates inside a check of checked terms *)
@@ -157,6 +161,7 @@ withElaborationState[{environment_, context_, scope_, universeParameters_}, body
 		$pendingOverloads = {},
 		$pendingInstances = {},
 		$binderTypes = <||>,
+		$holeAnnotations = <||>,
 		$elaborationEnvironment = environment,
 		$elaborationContext = context,
 		$elaborationScope = scope,
@@ -191,21 +196,21 @@ elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_,
 	]
 ]
 
-finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = settleOverloads[term]},
+finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = closeHoles[settleOverloads[term]]},
 	(* a variable written without a type whose body did not decide one, its type a metavariable still or solved by
 	   one, is asked for by name *)
-	If[ unsolvedMetavariables[finalTerm] =!= {},
+	If[ Complement[unsolvedMetavariables[finalTerm], metavariable /@ Keys[$holeAnnotations]] =!= {},
 		Replace[
 			Select[Keys[$binderTypes], Function[id, ! FreeQ[instantiateMetavariables[metavariable[id]], _metavariable]]],
 			{id_, ___} :> elaborationFailure["The type of the variable `1` is needed: write Typed[x, type].", $binderTypes[id]]
 		]
 	];
-	If[ unsolvedMetavariables[finalTerm] =!= {},
+	If[ Complement[unsolvedMetavariables[finalTerm], metavariable /@ Keys[$holeAnnotations]] =!= {},
 		kernelFailure["UnsolvedImplicitArgument", "Could not infer every implicit argument and universe level of `1`.", {displayCoreTerm[environment, context, finalTerm]}]
 	];
-	(* the kernel checks the elaborated term on its own, with no metavariables but the open goals of a proof, and
-	   with type queries that check, as the term is not checked yet *)
-	Block[{$metavariableTypes = $goalMetavariableTypes, $metavariableAssignments = <||>, $termsChecked = False},
+	(* the kernel checks the elaborated term on its own, with no metavariables but the open goals of a proof and its
+	   holes, and with type queries that check, as the term is not checked yet *)
+	Block[{$metavariableTypes = Join[$goalMetavariableTypes, closedHoleTypes[finalTerm]], $metavariableAssignments = <||>, $termsChecked = False},
 		withKernelCaches[
 			If[ expected === None,
 				{finalTerm, inferType[environment, context, finalTerm]},
@@ -289,6 +294,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
 	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] :> applyExplicitly[elaborateHead[head], {arguments}, head],
 	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
+	(* a hole stands for a term of the type expected, closed over the variables in scope when elaboration finishes *)
+	syntaxApplication[syntaxSymbol[HoldComplete[TypeTheoryHole]], arguments_List] /; Length[arguments] <= 1 :> elaborateHole[arguments, expected, syntax],
 	(* a list written as a term is the list of its elements, ListPrepend over EmptyList, as such a list shows *)
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
@@ -306,6 +313,44 @@ integersDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["
 rationalsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["rationalInverse"]]
 
 listsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[ListPrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptyList]]
+
+(* a hole is a metavariable of the type expected, in the variables in scope, which nothing solves *)
+elaborateHole[arguments_List, expected_, syntax_] := Which[
+	! ListQ[$elaboratedHoles],
+		elaborationFailure["`1` stands in the proof of a declared theorem: give it to TypeTheoryTheorem, or close a goal with TypeTheoryTactic[\"Hole\"].", syntax],
+	expected === None,
+		elaborationFailure["`1` stands for a term of the type expected, and none is expected here: write Typed[TypeTheoryHole[...], type].", syntax],
+	True,
+		Block[{hole = newMetavariable[expected]},
+			$holeAnnotations[First[hole]] = holeAnnotation[ReleaseHold /@ heldFromSyntax /@ arguments];
+			{hole, expected}
+		]
+]
+
+(* Each hole left in a finished term is closed over the variables in scope that it was not lifted out of, the context
+   a tactic elaborates in: a metavariable of no context, of the type Π (variables). goal, applied to them, which the
+   declaration replaces with a constant. *)
+closeHoles[term_] := Block[{openHoles = Select[Cases[unsolvedMetavariables[term], metavariable[id_] :> id], Function[id, KeyExistsQ[$holeAnnotations, id]]]},
+	Scan[closeHole, openHoles];
+	instantiateMetavariables[term]
+]
+
+closeHole[id_] := Block[{holeLocal = Lookup[$metavariableContexts, id, {}], closedHole},
+	closedHole = If[ holeLocal === {},
+		id,
+		First @ newMetavariable[makeDependentFunctionType[instantiateContext[$elaborationContext], holeLocal, instantiateMetavariables[$metavariableTypes[id]]], {}]
+	];
+	If[ closedHole =!= id,
+		$metavariableAssignments[id] = makeApplication[metavariable[closedHole], freeVariable /@ holeLocal];
+		$holeAnnotations[closedHole] = $holeAnnotations[id]
+	];
+	AppendTo[$elaboratedHoles, <|"Id" -> closedHole, "Type" -> instantiateMetavariables[$metavariableTypes[closedHole]], "Annotation" -> $holeAnnotations[closedHole]|>]
+]
+
+closedHoleTypes[term_] := Association[Function[id, id -> instantiateMetavariables[$metavariableTypes[id]]] /@ Select[
+	Cases[unsolvedMetavariables[term], metavariable[id_] :> id],
+	Function[id, KeyExistsQ[$holeAnnotations, id]]
+]]
 
 listLiteralSyntax[elements_List] := Fold[
 	Function[{rest, element}, syntaxHead[ListPrepend, {element, rest}]],
@@ -1345,6 +1390,7 @@ liftMetavariable[id_, local_List] := And[
 			]
 		},
 		$metavariableAssignments[id] = makeApplication[lifted, freeVariable /@ local];
+		If[KeyExistsQ[$holeAnnotations, id], $holeAnnotations[First[lifted]] = $holeAnnotations[id]];
 		True
 	]
 ]

@@ -181,10 +181,22 @@ delaborate[environment_, context_, term_] := Replace[term, {
 	dependentFunctionType[_, domain_, codomain_, "Explicit"] /; ! boundVariableOccursQ[codomain, 0] :>
 		delaborateArrow[environment, context, domain, codomain],
 	dependentFunctionType[___] :> delaborateBinders[environment, context, term, dependentFunctionType, ForAll],
+	(* a hole of a theorem applied to the variables in scope reads back as the TypeTheoryHole it was written as *)
+	_application | _constantReference /; holeOfContextQ[environment, context, term] :> holeSyntax[environment, First[applicationSpine[term]]],
 	_application | _constantReference :> delaborateApplication[environment, context, term],
 	cubicalSystem[branches_List] :> syntaxHead[List, Function[branch, syntaxHead[Rule, {faceSyntax[environment, context, First[branch]], delaborate[environment, context, Last[branch]]}]] /@ branches],
 	intervalUniverse[] :> syntaxString["IntervalUniverse"],
 	_ :> syntaxOther[HoldComplete[term]]
+}]
+
+holeOfContextQ[environment_, context_, term_] := MatchQ[applicationSpine[term], {constantReference[name_?holeNameQ, _], arguments_List} /; And[
+	constantDeclaredQ[environment, name],
+	arguments === (freeVariable /@ Keys[context])
+]]
+
+holeSyntax[environment_, constantReference[name_, _]] := Replace[constantRecord[environment, name]["Annotation"], {
+	None :> syntaxOther[HoldComplete[TypeTheoryHole[]]],
+	annotation_ :> syntaxOther[HoldComplete[TypeTheoryHole[annotation]]]
 }]
 
 (* a face of a system as conditions on its variables, i == 0 and i == 1, joined by And and Or *)
