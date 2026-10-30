@@ -75,6 +75,7 @@ PackageScoped[declarationUniverseParameters]
 PackageScoped[universeParameterNames]
 PackageScoped[heldOptionValue]
 PackageScoped[$emptyEnvironment]
+PackageScoped[$deferKernelChecks]
 
 
 (* ::Section:: *)
@@ -133,6 +134,8 @@ universeParameterNames::usage = "universeParameterNames[{syntax, ...}] gives the
 as {HoldComplete[u], ...} in the order they first appear."
 heldOptionValue::usage = "heldOptionValue[head, Hold[options], name] gives HoldComplete[value] for the option name among the held options, or among the defaults Options[head]."
 $emptyEnvironment::usage = "$emptyEnvironment is the environment with no constants, in which a TypeTheoryTerm without an environment is checked."
+$deferKernelChecks::usage = "$deferKernelChecks is True while declarations are added for the compiled kernel to check them all at once: axioms, definitions, \
+theorems and holes are added without the kernel's checks, inductive types with them."
 
 
 (* ::Section:: *)
@@ -170,8 +173,33 @@ TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[defaultEnviron
 TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[defaultEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]
 
-(* the stores of the steps in between are removed, and so are all of them when a declaration fails *)
-TypeTheoryEnvironment[environment_?environmentQ, declarations_List] := withStoreCleanup @ catchKernelFailure @ Fold[addDeclaration, environment, declarations]
+Options[TypeTheoryEnvironment] = {Method -> Automatic}
+
+(* the stores of the steps in between are removed, and so are all of them when a declaration fails; with
+   Method -> "Compiled" the compiled kernel checks the declarations at once, after they are all added *)
+TypeTheoryEnvironment[environment_?environmentQ, declarations_List, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ If[
+	OptionValue[Method] === "Compiled" && compiledKernelAvailableQ[],
+	compiledDeclarations[environment, declarations],
+	Fold[addDeclaration, environment, declarations]
+]
+
+(* Axioms, definitions, theorems and holes are added without the kernel's checks, and inductive types with them;
+   then the compiled kernel checks every declaration added, in order. Where adding one fails, or the compiled kernel
+   does not handle the environment, the declarations are added again with each one checked, so that a failure is
+   that of the first declaration in order that does not check. *)
+compiledDeclarations[environment_, declarations_List] := Replace[
+	catchKernelFailure[Block[{$deferKernelChecks = True}, Fold[addDeclaration, environment, declarations]]],
+	{
+		_Failure :> Fold[addDeclaration, environment, declarations],
+		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]]], {
+			failure_Failure :> throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]],
+			None :> Fold[addDeclaration, environment, declarations],
+			_Success :> extended
+		}]
+	}
+]
+
+$deferKernelChecks = False
 
 TypeTheoryEnvironment /: Append[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, declaration_] := TypeTheoryEnvironment[environment, {declaration}]
 
@@ -490,7 +518,7 @@ levelParameterNames[_] := {}
    their reducts, where definitional equality infers the types it asks without checking (withCheckedTerms). *)
 declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None, overloads_ : None] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type}];
-	sortLevel[environment, <||>, type];
+	If[! $deferKernelChecks, sortLevel[environment, <||>, type]];
 	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>, annotationField[annotation], overloadsField[overloads]]|>]
 ]
 
@@ -502,9 +530,11 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, an
    before the others, as Lean's hints have it. *)
 declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type, value}];
-	sortLevel[environment, <||>, type];
-	checkHasType[environment, <||>, value, type];
-	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
+	If[ ! $deferKernelChecks,
+		sortLevel[environment, <||>, type];
+		checkHasType[environment, <||>, value, type];
+		If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]]
+	];
 	addConstantRecords[environment, <|name -> Join[
 		<|"Kind" -> If[TrueQ[roles["Opaque"]], "Opaque", "Definition"], "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>,
 		If[TrueQ[roles["Opaque"]], <||>, <|"Height" -> definitionHeight[environment, value]|>],
@@ -523,11 +553,13 @@ definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[c
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
 declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_, annotation_ : None] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type, value}];
-	If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
-		kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
+	If[ ! $deferKernelChecks,
+		If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
+			kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
+		];
+		checkHasType[environment, <||>, value, type];
+		If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]]
 	];
-	checkHasType[environment, <||>, value, type];
-	If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]];
 	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> universeParameters, "Value" -> value|>, annotationField[annotation]]|>]
 ]
 

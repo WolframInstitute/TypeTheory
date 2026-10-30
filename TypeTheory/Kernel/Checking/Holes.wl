@@ -100,7 +100,7 @@ holeName[HoldComplete[theorem_], k_Integer] := HoldComplete[TypeTheoryHole[theor
 
 declareHole[environment_, name_HoldComplete, universeParameters_List, type_, annotation_, theorem_HoldComplete] := withCheckedTerms[
 	checkUniverseParameters[name, universeParameters, {type}];
-	sortLevel[environment, <||>, type];
+	If[! $deferKernelChecks, sortLevel[environment, <||>, type]];
 	addConstantRecords[environment, <|name -> <|
 		"Kind" -> "Hole",
 		"Type" -> type,
