@@ -474,14 +474,41 @@ TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup
 			{}
 		],
 		None :> replayEnvironment[environment, Function[{partial, name, record}, replayDeclaration[environment, partial, name -> record]]],
-		_Success :> replayEnvironment[environment, replayGenerated[environment]]
+		_Success :> replayRuns[environment]
 	}
 ]
 
-(* after the compiled kernel, the inductive types and quotients are declared again, and the other records added as they are *)
+(* after the compiled kernel, each run of records between inductive types and quotients is added at once, as it is,
+   and the natural numbers registered as far as its constants allow, before the next inductive type is declared *)
+replayRuns[environment_] := With[
+	{
+		replayed = Fold[
+			Function[{partial, run}, If[ generatedKindQ[constantRecord[environment, First[run]]],
+				Fold[Function[{inner, name}, replayGenerated[environment][inner, name, constantRecord[environment, name]]], partial, run],
+				registerWhenDeclared[addConstantRecords[partial, AssociationMap[Function[name, constantRecord[environment, name]], run]], naturalNumberSettings[environment]]
+			]],
+			emptyEnvironmentOf[environmentRules[environment]],
+			SplitBy[environmentNames[environment], Function[name, generatedKindQ[constantRecord[environment, name]]]]
+		]
+	},
+	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],
+		kernelFailure["DeclarationMismatch", "The natural numbers of the environment do not match its declarations.", {}]
+	];
+	Success["EnvironmentChecked", <|
+		"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
+		"MessageParameters" -> {Length[environmentNames[environment]]},
+		"Constants" -> Length[environmentNames[environment]]
+	|>]
+]
+
+generatedKindQ[record_] := MemberQ[{"InductiveType", "Constructor", "Recursor", "Quotient"}, record["Kind"]]
+
+(* after the compiled kernel, the inductive types and quotients are declared again, and the other records added as they
+   are; the compiled kernel has checked the types and rules the kernel generates, so declaring them again only compares
+   them with the records, as a batch declares them ($deferKernelChecks) *)
 replayGenerated[environment_][partial_, name_, record_] := If[
 	MemberQ[{"InductiveType", "Constructor", "Recursor", "Quotient"}, record["Kind"]],
-	replayDeclaration[environment, partial, name -> record],
+	Block[{$deferKernelChecks = True}, replayDeclaration[environment, partial, name -> record]],
 	registerWhenDeclared[addConstantRecords[partial, <|name -> record|>], naturalNumberSettings[environment]]
 ]
 
