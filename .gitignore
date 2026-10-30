@@ -25,3 +25,6 @@ TypeTheory/build/
 
 # The library environments saved for the release (scripts/save_environments.wls)
 TypeTheory/Environments/
+
+# The compiled kernel's library, built by scripts/compile_kernel.wls and by the release
+TypeTheory/LibraryResources/

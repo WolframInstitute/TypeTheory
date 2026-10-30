@@ -66,7 +66,8 @@ type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite 
 TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
-or a Failure for the first declaration that does not check."
+or a Failure for the first declaration that does not check. With Method -> \"Symbolic\" it replays every declaration with the kernel written in \
+Wolfram Language; by default it checks with the compiled kernel where one is available."
 TypeTheoryTranslate::usage = "TypeTheoryTranslate[environment, rules] translates the declarations of the TypeTheoryEnvironment environment to the \
 TypeTheoryRules rules, whose kernel checks them again, and gives a Success whose \"Environment\" is the environment of rules with each declaration that \
 checks there, and whose \"Failures\" gives the failure of each declaration left out, those that mention one included.\n\
@@ -453,14 +454,44 @@ constantsOf[_] := Null
 (*Checking an environment*)
 
 
-TypeTheoryCheck[environment_?environmentQ] := withStoreCleanup @ catchKernelFailure @ With[
+Options[TypeTheoryCheck] = {Method -> Automatic}
+
+(* The compiled kernel (CompiledKernel.wl) checks the declarations but inductive types, their constructors and
+   recursors, and quotient types, which are declared again after it, each after the records before it as they are.
+   Where it refuses a declaration, those before it are declared again first, so that the failure is that of the first
+   declaration in order that does not check. Where it does not handle the environment, or Method -> "Symbolic", every
+   declaration is replayed with the kernel of TypeChecking.wl. *)
+TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ Replace[
+	If[MemberQ[{Automatic, "Compiled"}, OptionValue[Method]], compiledKernelCheck[environment], None],
 	{
-		replayed = Fold[
-			Function[{partial, name}, replayDeclaration[environment, partial, name -> constantRecord[environment, name]]],
-			emptyEnvironmentOf[environmentRules[environment]],
-			environmentNames[environment]
-		]
-	},
+		failure_Failure :> (
+			replayNames[environment, Take[environmentNames[environment], failure["Position"] - 1], replayGenerated[environment]];
+			throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]]
+		),
+		None /; OptionValue[Method] === "Compiled" :> kernelFailure[
+			"CompiledKernelUnavailable",
+			"The compiled kernel has no library for this platform and version, or does not handle this environment.",
+			{}
+		],
+		None :> replayEnvironment[environment, Function[{partial, name, record}, replayDeclaration[environment, partial, name -> record]]],
+		_Success :> replayEnvironment[environment, replayGenerated[environment]]
+	}
+]
+
+(* after the compiled kernel, the inductive types and quotients are declared again, and the other records added as they are *)
+replayGenerated[environment_][partial_, name_, record_] := If[
+	MemberQ[{"InductiveType", "Constructor", "Recursor", "Quotient"}, record["Kind"]],
+	replayDeclaration[environment, partial, name -> record],
+	registerWhenDeclared[addConstantRecords[partial, <|name -> record|>], naturalNumberSettings[environment]]
+]
+
+replayNames[environment_, names_List, replay_] := Fold[
+	Function[{partial, name}, replay[partial, name, constantRecord[environment, name]]],
+	emptyEnvironmentOf[environmentRules[environment]],
+	names
+]
+
+replayEnvironment[environment_, replay_] := With[{replayed = replayNames[environment, environmentNames[environment], replay]},
 	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],
 		kernelFailure["DeclarationMismatch", "The natural numbers of the environment do not match its declarations.", {}]
 	];

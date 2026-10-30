@@ -51,6 +51,7 @@ PackageScoped[environmentProvenance]
 PackageScoped[environmentContentHash]
 PackageScoped[$kernelHash]
 PackageScoped[termRef]
+PackageScoped[environmentContents]
 
 
 (* ::Section:: *)
@@ -64,6 +65,8 @@ saveEnvironment::usage = "saveEnvironment[file, environment] writes environment 
 environmentContentHash::usage = "environmentContentHash[environment] gives the content hash of environment, the same in every session."
 $kernelHash::usage = "$kernelHash is the SHA-256 of the paclet's version and kernel sources, which a saved environment records."
 termRef::usage = "termRef[row] stands in a saved environment for the term of a row of its table."
+environmentContents::usage = "environmentContents[environment, base] gives the contents of environment beyond the library environment base, {name, environment} or None, as Export writes them: \
+<|\"Rules\" -> rules, \"Nodes\" -> rows, \"Names\" -> names, \"Records\" -> records, \"NaturalNumbers\" -> settings, \"RewriteRuleIndex\" -> index|>, the records' terms rows of the table."
 
 
 (* ::Section:: *)
