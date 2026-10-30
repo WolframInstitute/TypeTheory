@@ -254,3 +254,30 @@ VerificationTest[
 	{False, True},
 	TestID -> "Two-literals-are-compared-by-their-numbers"
 ]
+
+(* A remainder by unary recursion, as the dividend's successor steps, decided a few hundred steps deep: two hundred
+   compute, and a thousand recurse past what Wolfram's stack holds, which gives a failure, not a crashed process *)
+VerificationTest[
+	With[
+		{
+			remainders = TypeTheoryEnvironment[{
+				TypeTheoryDefinition["remainder", Function[{Typed[dividend, Naturals], Typed[divisor, Naturals]},
+					InductiveRecursor[Naturals][
+						Function[{Typed[n, Naturals]}, Naturals],
+						0,
+						Function[{Typed[n, Naturals], Typed[remainder, Naturals]},
+							InductiveRecursor[Booleans][Function[{Typed[reached, Booleans]}, Naturals], remainder + 1, 0, Decide[remainder + 1 == divisor]]
+						],
+						dividend
+					]
+				]]
+			}]
+		},
+		{
+			Head[TypeTheoryProof["remainder"[200, 7] == 4, remainders, {TypeTheoryTactic["Decide"]}]],
+			First[TypeTheoryProof["remainder"[1000, 7] == 6, remainders, {TypeTheoryTactic["Decide"]}]]
+		}
+	],
+	{TypeTheoryProof, "RecursionLimit"},
+	TestID -> "A-recursion-too-deep-for-the-stack-is-a-failure"
+]

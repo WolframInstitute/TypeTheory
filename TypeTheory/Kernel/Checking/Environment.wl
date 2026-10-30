@@ -133,7 +133,8 @@ checkUniverseParameters::usage = "checkUniverseParameters[HoldComplete[name], {H
 universe parameters are distinct and include every universe parameter the core terms mention."
 kernelFailure::usage = "kernelFailure[tag, template, {parameter, ...}] throws a Failure with the given tag and message, to be caught by catchKernelFailure."
 throwFailure::usage = "throwFailure[failure] throws failure, to be caught by catchKernelFailure."
-catchKernelFailure::usage = "catchKernelFailure[expr] evaluates expr and gives its value, or the Failure a kernel function threw."
+catchKernelFailure::usage = "catchKernelFailure[expr] evaluates expr and gives its value, or the Failure a kernel function threw, or Failure[\"RecursionLimit\", ...] \
+if expr recursed past $kernelRecursionLimit."
 $kernelFailureTag::usage = "$kernelFailureTag is the tag kernel failures are thrown with."
 
 
@@ -279,10 +280,24 @@ kernelFailure[tag_String, template_String, parameters_List] := throwFailure[
 throwFailure[failure_Failure] := Throw[failure, $kernelFailureTag]
 
 (* The kernel recurses as deep as the term it reduces nests: Decide on a sum of 128 integers goes past 1024 calls
-   deep. Lean's kernel has no limit of its own, so a check runs with a limit of at least 20000, as the benchmark
-   of Mathlib's cones does. *)
+   deep, past the default limit. Wolfram 15's own stack ends well before 20000 calls: a unary recursion three hundred
+   steps deep, reduced with that limit, ended the process at 12000. So a check runs with the limit $kernelRecursionLimit,
+   which a two-hundred-step recursion stays under, and reaching it is a kernel failure, as the compiled kernel refuses a
+   term too deep for it, not a terminated evaluation: the limit is a throw, which CheckAll catches; any other throw or
+   abort goes on as it was. *)
 SetAttributes[catchKernelFailure, HoldFirst]
-catchKernelFailure[expr_] := Block[{$RecursionLimit = Max[$RecursionLimit, 20000]}, Catch[expr, $kernelFailureTag]]
+catchKernelFailure[expr_] := Block[{$RecursionLimit = $kernelRecursionLimit},
+	Catch[Quiet[CheckAll[expr, recursionFailure], $RecursionLimit::reclim], $kernelFailureTag]
+]
+
+$kernelRecursionLimit = 8000
+
+recursionFailure[value_, Hold[]] := value
+recursionFailure[_, Hold[Throw[_, TerminatedEvaluation["RecursionLimit", ___]]]] := Failure["RecursionLimit", <|
+	"MessageTemplate" -> "The computation goes deeper than the kernel can recurse, `1` calls: a reduction this deep computes when its operation is registered, as TypeTheoryNaturalNumbers registers those of the natural numbers.",
+	"MessageParameters" -> {$kernelRecursionLimit}
+|>]
+recursionFailure[_, control_] := ReleaseHold[control]
 
 
 TypeTheoryEnvironment /: MakeBoxes[environment : TypeTheoryEnvironment[store_Symbol], format : StandardForm] /; environmentQ[environment] := With[
