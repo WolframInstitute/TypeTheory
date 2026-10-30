@@ -43,8 +43,9 @@ gives None and TypeTheoryCheck replays the environment with the kernel of TypeCh
 
 The library is compiled once for each platform, engine and version by scripts/compile_kernel.wls, which writes
 LibraryResources/<$SystemID>/TypeTheoryKernel-<engine>-<version> with the hash of the program beside it, the engine
-Wolfram or WolframKernel; release.wls builds it for the archive. Without a library whose hash is the program's, TypeTheoryCheck uses the kernel of
-TypeChecking.wl.
+Wolfram or WolframKernel; release.wls builds it for the archive. On WolframKernel, whose compiler builds the program in
+seconds, a session without a saved library compiles it. Otherwise, without a library whose hash is the program's,
+TypeTheoryCheck uses the kernel of TypeChecking.wl.
 *)
 
 
@@ -1378,7 +1379,15 @@ $compiledKernel = None
 
 compiledKernelFunction[] := Replace[$compiledKernel, None :> ($compiledKernel = loadCompiledKernel[])]
 
-loadCompiledKernel[] := Quiet @ Block[{metadata = Import[FileNameJoin[{$libraryDirectory, $libraryName <> ".json"}], "RawJSON"]},
+(* WolframKernel's compiler builds the program in seconds, and caches what it builds, so there it is compiled in the
+   session where no library is saved; Wolfram's takes minutes, so there a library is compiled once, beforehand *)
+loadCompiledKernel[] := Replace[savedCompiledKernel[], False /; $engineName === "WolframKernel" :> sessionCompiledKernel[]]
+
+sessionCompiledKernel[] := Quiet @ Block[{$RecursionLimit = 100000},
+	Replace[Replace[compiledKernelProgram[], Hold[declarations_, entry_] :> FunctionCompile[declarations, entry]], Except[_CompiledCodeFunction] -> False]
+]
+
+savedCompiledKernel[] := Quiet @ Block[{metadata = Import[FileNameJoin[{$libraryDirectory, $libraryName <> ".json"}], "RawJSON"]},
 	If[ AssociationQ[metadata] && metadata["Hash"] === compiledKernelHash[] && metadata["WolframVersion"] === $wolframVersion && FileExistsQ[FileNameJoin[{$libraryDirectory, metadata["Library"]}]],
 		Replace[LibraryFunctionLoad[FileNameJoin[{$libraryDirectory, metadata["Library"]}]], Except[_CompiledCodeFunction] -> False],
 		False
