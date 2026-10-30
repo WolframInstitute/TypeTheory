@@ -618,9 +618,11 @@ addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeCont
 		{blockTypes, recursorConstants, recursorTypes, rules}
 	];
 	extended = addConstantRecords[environment, Join[inductiveRecords, constructorRecords, recursorRecords]];
-	(* the generated recursors and rules are checked like any other term *)
-	Scan[Function[recursorType, sortLevel[extended, <||>, recursorType]], recursorTypes];
-	Scan[Function[rule, inferType[extended, <||>, rule["RightHandSide"]]], Catenate[Values /@ rules]];
+	(* the generated recursors and rules are checked like any other term, by the compiled kernel when it checks a batch *)
+	If[ ! $deferKernelChecks,
+		Scan[Function[recursorType, sortLevel[extended, <||>, recursorType]], recursorTypes];
+		Scan[Function[rule, inferType[extended, <||>, rule["RightHandSide"]]], Catenate[Values /@ rules]]
+	];
 	extended
 ]
 

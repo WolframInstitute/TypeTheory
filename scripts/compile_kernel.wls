@@ -2,8 +2,9 @@
 (* ::Package:: *)
 
 (* Compile the compiled kernel's library (Kernel/Checking/CompiledKernel.wl) into TypeTheory/LibraryResources/<$SystemID>/,
-   with the hash of the program beside it, so that TypeTheoryCheck checks with it. Run it after changing the program,
-   with the Wolfram version the paclet runs under; it takes about five minutes and six gigabytes of memory:
+   named by the engine and its version, with the hash of the program beside it, so that TypeTheoryCheck checks with it.
+   Run it after changing the program, with each engine and version the paclet runs under; on Wolfram 15.1 it takes about
+   five minutes and six gigabytes of memory:
 
        wl -f scripts/compile_kernel.wls *)
 
