@@ -110,6 +110,20 @@ VerificationTest[
 	TestID -> "A-file-that-carries-code-is-refused-without-running-it"
 ]
 
+(* an annotation may hold a computation, as the evidence of a check, and reading it back runs nothing: not even an
+   association it holds that is not made yet *)
+VerificationTest[
+	Module[{annotated = savedFile["annotated"], printed = {}, loaded},
+		Export[annotated, Append[prelude, TypeTheoryTheorem[Annotated, 1 == 1, EqualityReflexivity[1], "Annotation" -> <|"Check" -> HoldForm[Association[Print["evaluated while reading"]]]|>]]];
+		Block[{Print = Function[Null, AppendTo[printed, {##}], HoldAll]},
+			loaded = TypeTheoryEnvironment[File[annotated]]
+		];
+		{printed, Head[loaded], Information[TypeTheoryTerm[Annotated, loaded], "Annotation"]}
+	],
+	{{}, TypeTheoryEnvironment, <|"Check" -> HoldForm[Association[Print["evaluated while reading"]]]|>},
+	TestID -> "A-computation-an-annotation-holds-does-not-run-when-the-file-is-read"
+]
+
 VerificationTest[
 	Module[{again = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]},
 		Export[savedFile["again"], again];

@@ -232,10 +232,12 @@ readEnvironmentFile[file_String] := Block[{fileBytes = Quiet[ReadByteArray[file]
 	First[fileData]
 ]
 
+(* An association atom's keys are no parts that Cases sees, so they are checked apart. The test holds what it is given:
+   a PatternTest would evaluate an Association[...] not yet made, as one held in an annotation's HoldForm is. *)
 heldDataQ[held_HoldComplete] := And[
 	writtenSymbolsQ[Replace[held, (HoldComplete | HoldForm)[_] -> 0, {2, Infinity}]],
 	AllTrue[
-		Cases[held, association_Association?AtomQ :> Keys[association, HoldComplete], {0, Infinity}],
+		Cases[held, association_Association /; AtomQ[Unevaluated[association]] :> Keys[association, HoldComplete], {0, Infinity}],
 		Function[keys, writtenSymbolsQ[Replace[keys, (HoldComplete | HoldForm)[_] -> 0, {2, Infinity}]]]
 	]
 ]
