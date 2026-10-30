@@ -112,9 +112,7 @@ It inherits the hole, and rests on no axiom:
 
 <!-- => {{AllZero}, <||>} -->
 
----
-
-The theorem's declaration writes the hole as it was written:
+The declaration of the theorem with the hole writes the hole as it was written:
 
 ```wl
 uses[AllZero]
