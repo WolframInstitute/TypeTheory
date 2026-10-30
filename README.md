@@ -406,6 +406,7 @@ TypeTheory/Kernel/
   Checking/Environment.wl      environments as stores of definitions, and kernel failures
   Checking/Declarations.wl     the declaration constructors and environments built from them
   Checking/Queries.wl          TypeOf, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
+  Checking/CompiledKernel.wl   the kernel's checking compiled over hash-consed integer terms, for whole environments
   Elaboration/Elaboration.wl   implicit arguments, instances, coercions, universe levels, unification
   Proofs/ProofStates.wl        proof states and tactics
   Proofs/Ring.wl               polynomial identities, with proofs from the prelude's laws
@@ -424,6 +425,13 @@ The trusted part is `CoreTerms.wl`, `TypeChecking.wl`, `InductiveTypes.wl`, `Nat
 environment uses only under cubical rules. Elaboration and tactics produce terms that the kernel checks again with no metavariables
 left, so a mistake outside the kernel can make a proof fail but cannot make a false statement a theorem.
 Kernel answers are `Failure` objects, never messages.
+
+`CompiledKernel.wl` is the same checking, one function for each of `TypeChecking.wl`'s, compiled with
+`FunctionCompile` over terms interned as integers, and trusted as it is. `TypeTheoryCheck` checks a whole
+environment with it, and `TypeTheoryEnvironment[env, declarations, Method -> "Compiled"]` a batch of
+declarations, where the paclet has a library for the platform (`scripts/compile_kernel.wls` builds it): on
+Mathlib cones imported through LeanLink it checks faster than Lean's own kernel replays them, and a whole
+`TypeTheoryCheck` takes four to six times Lean's replay, against about sixty-five with `TypeChecking.wl`.
 
 Definitional equality unfolds definitions lazily, as Lean's kernel does: of two applications of different
 definitions, the one whose definition is higher, defined in terms of the other, unfolds one step, and the
