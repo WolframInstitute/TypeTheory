@@ -1,6 +1,7 @@
 #!/usr/bin/env wolframscript
 (* Publish TypeTheory's documentation site with PacletPage, in one run: save the library environments (as
-   scripts/save_environments.wls does), build the documentation (as build_docs.wls does), build the paclet
+   scripts/save_environments.wls does), build the compiled kernel's library for this platform where it is missing or
+   stale (as scripts/compile_kernel.wls does), build the documentation (as build_docs.wls does), build the paclet
    archive and check that it loads alone in a fresh kernel,
    deploy the paclet resource, publish the site around it with its feedback form, and check the site as
    an anonymous reader sees it:
@@ -36,6 +37,8 @@ If[ ! dryRun && $WolframID =!= $siteAccount,
 ]
 
 saveLibraryEnvironments[]
+
+ensureCompiledKernel[]
 
 buildDocumentation[]
 

@@ -43,6 +43,22 @@ saveLibraryEnvironments[] := Module[{directory = FileNameJoin[{$pacletDirectory,
 	]
 ]
 
+(* The compiled kernel's library for this platform, engine and version, built from this checkout unless the paclet has
+   one whose hash is the program's, so that the archive carries it; on other platforms TypeTheoryCheck uses the kernel
+   written in Wolfram Language. Building takes about five minutes and six gigabytes of memory. *)
+
+ensureCompiledKernel[] := (
+	PacletDirectoryLoad[$pacletDirectory];
+	Needs["WolframInstitute`TypeTheory`"];
+	If[ WolframInstitute`TypeTheory`PackageScope`compiledKernelAvailableQ[],
+		Print["compiled kernel: up to date"],
+		With[{library = WolframInstitute`TypeTheory`PackageScope`compileKernelLibrary[]},
+			If[! MatchQ[library, File[_String]], Print["FATAL: the compiled kernel was not built: ", library]; Exit[1]];
+			Print["compiled kernel: ", FileNameTake[First[library]]]
+		]
+	]
+)
+
 (* The newest PacletPage this machine has, with a checkout named by PACLETPAGE_DIR added to the
    candidates. Nothing is installed: a missing or older PacletPage stops the script with the line that
    installs the current release. *)
