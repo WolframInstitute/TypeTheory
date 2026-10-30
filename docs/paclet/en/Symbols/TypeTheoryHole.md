@@ -93,10 +93,13 @@ Take[Keys[TypeTheoryEnvironment[{TypeTheoryTheorem[BothZeroByTactics, proof]}]],
 
 ## Properties and Relations
 
-A theorem proved from one with a hole:
+A theorem with a hole, and a theorem proved from it:
 
 ```wl
-uses = Append[open, TypeTheoryTheorem[ThreeIsZero, 3 == 0, AllZero[3]]]
+uses = TypeTheoryEnvironment[{
+	TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]],
+	TypeTheoryTheorem[ThreeIsZero, 3 == 0, AllZero[3]]
+}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 172 constants -->
@@ -114,7 +117,7 @@ It inherits the hole, and rests on no axiom:
 The theorem's declaration writes the hole as it was written:
 
 ```wl
-open[AllZero]
+uses[AllZero]
 ```
 
 <!-- => TypeTheoryTheorem[AllZero, ∀_n∶ℕ n == 0, hole] -->
