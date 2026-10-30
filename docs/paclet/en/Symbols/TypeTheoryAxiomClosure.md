@@ -13,6 +13,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryAxiomClosure]()[*term*]</code> gives the axioms the [TypeTheoryTerm]() *term* rests on, as <code><\|*axiom* -> *kind*, ...\|></code>.
 
+<code>[TypeTheoryAxiomClosure]()[*proof*]</code> gives the axioms the finished [TypeTheoryProof]() *proof* rests on.
+
 ## Details & Options
 
 - The closure follows every constant *term* mentions, then the constants in the type and value of each of those, as Lean's `#print axioms` does. A constructor or recursor leads to its inductive type, and an inductive type to its constructors.
@@ -67,6 +69,16 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[OriginPositive, signed]]
 ```
 
 <!-- => <|OriginPositive -> Proposition, Origin -> Signature|> -->
+
+---
+
+A finished proof rests on the axioms of its own term, implicit arguments included, which the term it reads back as leaves out:
+
+```wl
+TypeTheoryAxiomClosure[TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Decide"]}]]
+```
+
+<!-- => <||> -->
 
 ---
 

@@ -62,7 +62,8 @@ PackageScoped[declarationOf]
 
 TypeTheoryAxiomClosure::usage = "TypeTheoryAxiomClosure[term] gives the axioms the TypeTheoryTerm term rests on, through the types and values of the constants \
 it mentions and of the constants those mention, as <|axiom -> kind, ...|>: \"Proposition\" for an axiom that is a proposition, \"Signature\" for one whose \
-type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with."
+type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with.\n\
+TypeTheoryAxiomClosure[proof] gives the axioms the finished TypeTheoryProof proof rests on."
 TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
@@ -355,6 +356,13 @@ readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delabor
    a type, or a function into types, which a theorem holds for in every model, as for a variable. *)
 TypeTheoryAxiomClosure[term_TypeTheoryTerm] := catchKernelFailure @ Block[{closureEnvironment = termEnvironment[term]},
 	First[closureOf[closureEnvironment, queryCoreTerm[closureEnvironment, term]]]
+]
+
+(* a finished proof's own core term: the term it reads back as leaves out implicit arguments, which elaborating it
+   again without its statement cannot always find *)
+TypeTheoryAxiomClosure[TypeTheoryProof[data_Association]] := catchKernelFailure @ If[ data["Goals"] =!= {},
+	kernelFailure["ProofIncomplete", "The proof has `1` goals left: its term is not finished.", {Length[data["Goals"]]}],
+	First[closureOf[data["Environment"], instantiateProofTerm[data, metavariable[data["Root"]]]]]
 ]
 
 (* the core term of a query; a declared constant on its own is that constant, an overloaded name such as True included *)

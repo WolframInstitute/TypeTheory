@@ -252,6 +252,16 @@ VerificationTest[
 	TestID -> "The-axiom-closure-of-excluded-middle-is-Lean's-three-axioms"
 ]
 
+(* a proof's term reads back without the implicit arguments elaboration can find from its statement, and not without it:
+   the closure of the proof itself is of its own core term *)
+VerificationTest[
+	With[{decided = TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Decide"]}]},
+		{TypeTheoryAxiomClosure[decided], FailureQ[TypeTheoryAxiomClosure[decided["Term"]]], First @ TypeTheoryAxiomClosure[TypeTheoryProof[2 + 2 == 4]]}
+	],
+	{<||>, True, "ProofIncomplete"},
+	TestID -> "The-axiom-closure-of-a-finished-proof-is-of-its-own-term"
+]
+
 VerificationTest[
 	With[{signed = TypeTheoryEnvironment[{TypeTheoryAxiom[Origin, Naturals], TypeTheoryAxiom[OriginPositive, 0 < Origin]}]},
 		{
