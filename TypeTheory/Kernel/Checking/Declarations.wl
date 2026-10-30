@@ -517,8 +517,10 @@ levelParameterNames[_] := {}
 (* A declaration's type is checked before its value, so every comparison in its check is of checked terms or
    their reducts, where definitional equality infers the types it asks without checking (withCheckedTerms). *)
 declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None, overloads_ : None] := withCheckedTerms[
-	checkUniverseParameters[name, universeParameters, {type}];
-	If[! $deferKernelChecks, sortLevel[environment, <||>, type]];
+	If[ ! $deferKernelChecks,
+		checkUniverseParameters[name, universeParameters, {type}];
+		sortLevel[environment, <||>, type]
+	];
 	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>, annotationField[annotation], overloadsField[overloads]]|>]
 ]
 
@@ -529,8 +531,8 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, an
    kernel compares them (TypeChecking.wl), and a projection function is an abbreviation, which unfolds
    before the others, as Lean's hints have it. *)
 declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withCheckedTerms[
-	checkUniverseParameters[name, universeParameters, {type, value}];
 	If[ ! $deferKernelChecks,
+		checkUniverseParameters[name, universeParameters, {type, value}];
 		sortLevel[environment, <||>, type];
 		checkHasType[environment, <||>, value, type];
 		If[rulesSetting[environment, "Quantities"], checkLiveUses[environment, value]]
@@ -552,8 +554,8 @@ definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[c
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
 declareTheorem[environment_, name_HoldComplete, universeParameters_List, type_, value_, annotation_ : None] := withCheckedTerms[
-	checkUniverseParameters[name, universeParameters, {type, value}];
 	If[ ! $deferKernelChecks,
+		checkUniverseParameters[name, universeParameters, {type, value}];
 		If[ ! levelEquivalentQ[sortLevel[environment, <||>, type], 0] && rulesSetting[environment, "Prop"],
 			kernelFailure["PropositionExpected", "The statement of the theorem `1` must be a proposition.", {HoldForm @@ name}]
 		];
