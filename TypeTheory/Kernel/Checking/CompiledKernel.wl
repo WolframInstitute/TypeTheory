@@ -1476,23 +1476,26 @@ termRowOf[_] := notHandled[]
    each code's from the rows of the parts, which come before. *)
 seedRows[None] := {}
 
-seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, indexed},
+seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, indexed, composite},
 	rowOf = ConstantArray[0, Length[terms]];
 	{rowOf[[1 ;; starts[[2]]]], leafRows} = Reap[termRow /@ terms[[1 ;; starts[[2]]]], compiledKernelInput];
+	(* the other terms come in order of depth, each after its parts, so they are numbered in order and their rows made
+	   at once, each code's from its parts' numbers *)
+	composite = Range[starts[[2]] + 1, Length[terms]];
+	rowOf[[composite]] = $termCount + Range[Length[composite]];
+	$termCount += Length[composite];
 	(* the terms the records hold, where the seed names them: indexing every term costs more than walking again the few
 	   parts that the kernel's generated terms, recursors and their rules, share with them, whose rows the arena merges *)
-	indexed = Replace[seed["Roots"], Except[_List] :> Range[starts[[2]] + 1, Length[terms]]];
-	With[{rows = Join[Replace[leafRows, {{rows_List} :> rows, {} -> {}}], Join @@ Table[seedDepthRows[starts[[depth]] + 1, starts[[depth + 1]]], {depth, 2, Length[starts] - 1}]]},
+	indexed = Replace[seed["Roots"], Except[_List] :> composite];
+	With[{rows = Join[Replace[leafRows, {{rows_List} :> rows, {} -> {}}], seedCompositeRows[composite]]},
 		$termIndex = Join[$termIndex, AssociationThread[terms[[indexed]], rowOf[[indexed]]]];
 		rows
 	]
 ]
 
-(* the rows of the terms from first to last, all of one depth, numbered in order after the rows before them *)
-seedDepthRows[first_Integer, last_Integer] := Block[{positions = Range[first, last], rows = ConstantArray[0, {last - first + 1, 4}]},
+seedCompositeRows[{}] := {}
+seedCompositeRows[positions_List] := Block[{rows = ConstantArray[0, {Length[positions], 4}]},
 	KeyValueMap[Function[{code, at}, rows[[at]] = seedCodeRows[code, positions[[at]]]], KeyDrop[PositionIndex[codes[[positions]]], 0]];
-	rowOf[[positions]] = $termCount + Range[Length[positions]];
-	$termCount += Length[positions];
 	rows
 ]
 
