@@ -1523,80 +1523,148 @@ termRowOf[naturalLiteral[n_Integer]] /; 0 <= n < 2^62 := {8, n, 0, 0}
 termRowOf[_] := notHandled[]
 
 (* The rows of the seed's terms, the first rows, and the terms put in the index, where the walk of the records finds them.
-   The leaves go through termRow, as a string literal is a term of parts; then the rows of each depth are made at once,
-   each code's from the rows of the parts, which come before. *)
+   The leaves come first; then the rows of the other terms are made at once from the rows of their parts, which come
+   before. *)
 seedRows[None] := {}
 
 seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, indexed, composite},
 	rowOf = ConstantArray[0, Length[terms]];
-	{rowOf[[1 ;; starts[[2]]]], leafRows} = Reap[termRow /@ terms[[1 ;; starts[[2]]]], compiledKernelInput];
-	(* the other terms come in order of depth, each after its parts, so they are numbered in order and their rows made
-	   at once, each code's from its parts' numbers *)
+	leafRows = seedLeafRows[Range[starts[[2]]]];
+	(* the other terms come in order of depth, each after its parts, so they are numbered in order *)
 	composite = Range[starts[[2]] + 1, Length[terms]];
 	rowOf[[composite]] = $termCount + Range[Length[composite]];
 	$termCount += Length[composite];
 	(* the terms the records hold, where the seed names them: indexing every term costs more than walking again the few
 	   parts that the kernel's generated terms, recursors and their rules, share with them, whose rows the arena merges *)
 	indexed = Replace[seed["Roots"], Except[_List] :> composite];
-	With[{rows = Join[Replace[leafRows, {{rows_List} :> rows, {} -> {}}], seedCompositeRows[composite]]},
+	With[{rows = Join[leafRows, seedCompositeRows[composite]]},
 		$termIndex = Join[$termIndex, AssociationThread[terms[[indexed]], rowOf[[indexed]]]];
 		rows
 	]
 ]
 
-seedCompositeRows[{}] := {}
-seedCompositeRows[positions_List] := Block[{rows = ConstantArray[0, {Length[positions], 4}]},
-	KeyValueMap[Function[{code, at}, rows[[at]] = seedCodeRows[code, positions[[at]]]], KeyDrop[PositionIndex[codes[[positions]]], 0]];
-	rows
+(* The leaves at positions, their row numbers put in rowOf: the constants, bound variables, sorts and natural number
+   literals are a row each, made with the others of their kind at once; any other leaf, as a string literal, which is
+   a term of parts, goes through termRow after them. *)
+$simpleLeafHeads = {constantReference, boundVariable, universeSort, naturalLiteral}
+
+seedLeafRows[positions_List] := Block[{leafKinds = PositionIndex[Head /@ terms[[positions]]], simpleAt, simpleRows, otherAt, otherRows},
+	simpleAt = Lookup[leafKinds, $simpleLeafHeads, {}];
+	simpleRows = Join @@ MapThread[Function[{head, at}, If[at === {}, {}, leafKindRows[head, terms[[positions[[at]]]]]]], {$simpleLeafHeads, simpleAt}];
+	otherAt = positions[[Complement[Range[Length[positions]], Join @@ simpleAt]]];
+	simpleAt = positions[[Join @@ simpleAt]];
+	rowOf[[simpleAt]] = $termCount + Range[Length[simpleAt]];
+	$termCount += Length[simpleAt];
+	$termIndex = Join[$termIndex, AssociationThread[terms[[simpleAt]], rowOf[[simpleAt]]]];
+	{rowOf[[otherAt]], otherRows} = Reap[termRow /@ terms[[otherAt]], compiledKernelInput];
+	Join[simpleRows, Replace[otherRows, {{rows_List} :> rows, {} -> {}}]]
 ]
 
-seedCodeRows[code : 4 | 5 | 6, positions_] := Transpose[{ConstantArray[code, Length[positions]], rowOf[[parts[[positions, 1]]]], rowOf[[parts[[positions, 2]]]], ConstantArray[0, Length[positions]]}]
-seedCodeRows[7, positions_] := Transpose[{ConstantArray[7, Length[positions]], rowOf[[parts[[positions, 1]]]], rowOf[[parts[[positions, 2]]]], rowOf[[parts[[positions, 3]]]]}]
-seedCodeRows[9, positions_] := Function[position, With[{term = terms[[position]]},
+(* the rows of leaves of one kind, as termRowOf gives them *)
+leafKindRows[constantReference, leaves_List] := Transpose[{
+	ConstantArray[3, Length[leaves]],
+	Lookup[$constantIndex, leaves[[All, 1]], notHandled[]],
+	distinctRows[levelListRow, leaves[[All, 2]]],
+	ConstantArray[0, Length[leaves]]
+}]
+leafKindRows[boundVariable, leaves_List] := With[{indices = leaves[[All, 1]]},
+	If[! VectorQ[indices, IntegerQ] || Min[indices] < 0, notHandled[]];
+	Transpose[{ConstantArray[1, Length[leaves]], indices, ConstantArray[0, Length[leaves]], ConstantArray[0, Length[leaves]]}]
+]
+leafKindRows[universeSort, leaves_List] := Transpose[{
+	ConstantArray[2, Length[leaves]],
+	distinctRows[levelRow, leaves[[All, 1]]],
+	ConstantArray[0, Length[leaves]],
+	ConstantArray[0, Length[leaves]]
+}]
+leafKindRows[naturalLiteral, leaves_List] := With[{numbers = leaves[[All, 1]]},
+	If[! VectorQ[numbers, IntegerQ] || Min[numbers] < 0 || Max[numbers] >= 2^62, notHandled[]];
+	Transpose[{ConstantArray[8, Length[leaves]], numbers, ConstantArray[0, Length[leaves]], ConstantArray[0, Length[leaves]]}]
+]
+
+(* the row of each of values, each distinct one made once *)
+distinctRows[row_, values_List] := With[{distinct = DeleteDuplicates[values]}, Lookup[AssociationThread[distinct, row /@ distinct], values]]
+
+(* the rows of the composite terms at positions: each a code and its parts' rows, a projection its structure and index *)
+seedCompositeRows[{}] := {}
+seedCompositeRows[positions_List] := Block[
+	{
+		compositeCodes = Developer`ToPackedArray[codes[[positions]]],
+		partRows = Partition[Developer`ToPackedArray[Prepend[rowOf, 0]][[Flatten[parts[[positions]]] + 1]], 3],
+		compositeRows,
+		projections
+	},
+	compositeRows = Join[Transpose[{compositeCodes}], partRows, 2];
+	projections = Flatten[Position[compositeCodes, 9, {1}]];
+	If[projections =!= {}, compositeRows[[projections]] = projectionRows[positions[[projections]]]];
+	compositeRows
+]
+
+projectionRows[positions_List] := Function[position, With[{term = terms[[position]]},
 	{9, Lookup[$constantIndex, Key[term[[1]]], notHandled[]], term[[2]], rowOf[[parts[[position, 1]]]]}
 ]] /@ positions
 
-flatAppend[values_List] := With[{start = Length[$flat] + 1}, $flat = Join[$flat, values]; start]
+(* the flat table's entries are sown, each run at the offset counted so far *)
+flatAppend[values_List] := With[{start = $flatCount + 1}, $flatCount += Length[values]; Sow[values, compiledKernelFlat]; start]
 
-constantRow[record_] := Block[{row = ConstantArray[0, 20]},
-	row[[1]] = Lookup[$kindCodes, record["Kind"], notHandled[]];
-	row[[2]] = termRow[record["Type"]];
-	row[[3]] = If[KeyExistsQ[record, "Value"], termRow[record["Value"]], 0];
-	row[[4]] = levelListRow[levelParameter /@ record["UniverseParameters"]];
-	row[[5]] = Length[record["UniverseParameters"]];
-	row[[6]] = Lookup[record, "Height", 0];
-	row[[7]] = Boole[Lookup[record, "Hint", None] === "Abbreviation"];
-	Switch[record["Kind"],
-		"InductiveType",
-			row[[8 ;; 13]] = {
-				record["NumberOfParameters"],
-				record["NumberOfIndices"],
-				Length[record["Constructors"]],
-				flatAppend[Lookup[$constantIndex, record["Constructors"]]],
-				Boole[TrueQ[record["Recursive"]]],
-				Boole[Length[record["Constructors"]] == 1 && record["NumberOfIndices"] == 0 && ! TrueQ[record["Recursive"]]]
-			},
-		"Constructor",
-			row[[8 ;; 11]] = {$constantIndex[record["InductiveType"]], record["ConstructorIndex"], record["NumberOfParameters"], record["NumberOfFields"]},
-		"Recursor",
-			row[[8 ;; 16]] = {
-				$constantIndex[record["InductiveType"]],
-				record["NumberOfParameters"],
-				record["NumberOfMotives"],
-				record["NumberOfMinors"],
-				record["NumberOfIndices"],
-				Boole[TrueQ[record["KLike"]]],
-				Boole[TrueQ[record["EliminationUniverse"]]],
-				Length[record["Rules"]],
-				flatAppend[Catenate[KeyValueMap[
-					Function[{constructor, rule}, {$constantIndex[constructor], rule["NumberOfParameters"], rule["NumberOfFields"], -termRow[rule["RightHandSide"]]}],
-					record["Rules"]
-				]]]
-			},
-		"Quotient",
-			row[[8 ;; 9]] = {$quotientRoleCodes[record["QuotientRole"]], $constantIndex[record["Introduction"]]}
-	];
-	row
+(* A row for each constant, its first columns made for all of them at once: kind, type, value, universe parameters,
+   their number, height and hint; then what an inductive type, a constructor, a recursor or a quotient adds. *)
+constantRows[records_List] := Block[{constantKinds = Lookup[$kindCodes, Lookup[records, "Kind"], notHandled[]], constantTable, special},
+	constantTable = Transpose[Join[
+		{
+			constantKinds,
+			termRows[Lookup[records, "Type"]],
+			termRows[Lookup[records, "Value", Missing["NoValue"]]],
+			distinctRows[Function[parameters, levelListRow[levelParameter /@ parameters]], Lookup[records, "UniverseParameters"]],
+			Length /@ Lookup[records, "UniverseParameters"],
+			Lookup[records, "Height", 0],
+			Function[hint, Boole[hint === "Abbreviation"]] /@ Lookup[records, "Hint", None]
+		},
+		ConstantArray[0, {13, Length[records]}]
+	]];
+	special = Flatten[Position[constantKinds, 5 | 6 | 7 | 8, {1}]];
+	If[special =!= {}, constantTable[[special, 8 ;; 16]] = kindColumns /@ records[[special]]];
+	constantTable
+]
+
+(* the rows of terms, those not yet in the index walked; a record without a value has 0 *)
+termRows[terms_List] := Block[{termRowValues = Lookup[$termIndex, terms, 0], walked},
+	walked = Pick[Range[Length[terms]], MapThread[Function[{row, term}, row === 0 && term =!= Missing["NoValue"]], {termRowValues, terms}]];
+	If[walked =!= {}, termRowValues[[walked]] = termRow /@ terms[[walked]]];
+	termRowValues
+]
+
+(* columns 8 to 16 of an inductive type's, a constructor's, a recursor's or a quotient's row *)
+kindColumns[record_] := Switch[record["Kind"],
+	"InductiveType",
+		{
+			record["NumberOfParameters"],
+			record["NumberOfIndices"],
+			Length[record["Constructors"]],
+			flatAppend[Lookup[$constantIndex, record["Constructors"]]],
+			Boole[TrueQ[record["Recursive"]]],
+			Boole[Length[record["Constructors"]] == 1 && record["NumberOfIndices"] == 0 && ! TrueQ[record["Recursive"]]],
+			0, 0, 0
+		},
+	"Constructor",
+		{$constantIndex[record["InductiveType"]], record["ConstructorIndex"], record["NumberOfParameters"], record["NumberOfFields"], 0, 0, 0, 0, 0},
+	"Recursor",
+		{
+			$constantIndex[record["InductiveType"]],
+			record["NumberOfParameters"],
+			record["NumberOfMotives"],
+			record["NumberOfMinors"],
+			record["NumberOfIndices"],
+			Boole[TrueQ[record["KLike"]]],
+			Boole[TrueQ[record["EliminationUniverse"]]],
+			Length[record["Rules"]],
+			flatAppend[Catenate[KeyValueMap[
+				Function[{constructor, rule}, {$constantIndex[constructor], rule["NumberOfParameters"], rule["NumberOfFields"], -termRow[rule["RightHandSide"]]}],
+				record["Rules"]
+			]]]
+		},
+	"Quotient",
+		{$quotientRoleCodes[record["QuotientRole"]], $constantIndex[record["Introduction"]], 0, 0, 0, 0, 0, 0, 0}
 ]
 
 (* the constructors false and true of the Booleans a comparison of natural numbers gives *)
@@ -1610,16 +1678,17 @@ functionBody[other_] := other
 
 environmentInput[environment_, trusted_Integer, capacityFactor_] := Catch[Block[
 	{
-		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flat = {},
-		names = environmentNames[environment], natural = naturalNumberSettings[environment], records, seeded, constants, nodes, capacity
+		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flatCount = 0,
+		names = environmentNames[environment], natural = naturalNumberSettings[environment], records, seeded, constants, nodes, flat, capacity
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];
 	$constantIndex = AssociationThread[names -> Range[Length[names]]];
 	$nilRow = addLevelRow["Nil", {7, 0, 0}];
 	records = AssociationMap[Function[name, constantRecord[environment, name]], names];
 	seeded = seedRows[$compiledKernelSeed];
-	{constants, nodes} = Reap[constantRow /@ Values[records], compiledKernelInput];
+	{constants, {nodes, flat}} = Reap[constantRows[Values[records]], {compiledKernelInput, compiledKernelFlat}];
 	nodes = Replace[Join[seeded, Replace[nodes, {{rows_List} :> rows, {} -> {}}]], {} -> {{8, 0, 0, 0}}];
+	flat = Catenate[Replace[flat, {{chunks_List} :> chunks, {} -> {}}]];
 	If[ AssociationQ[natural],
 		KeyValueMap[
 			Function[{operation, role}, With[{c = $constantIndex[operation]},
@@ -1636,7 +1705,7 @@ environmentInput[environment_, trusted_Integer, capacityFactor_] := Catch[Block[
 		"Nodes" -> Developer`ToPackedArray[nodes],
 		"Levels" -> Developer`ToPackedArray[Values[$levelRows]],
 		"Constants" -> Developer`ToPackedArray[constants],
-		"Flat" -> Developer`ToPackedArray[Append[$flat, 0]],
+		"Flat" -> Developer`ToPackedArray[Append[flat, 0]],
 		"Order" -> Developer`ToPackedArray[Function[index, If[index <= trusted, -index, index]] /@ Range[Length[names]]],
 		"Settings" -> Developer`ToPackedArray[{
 			capacity, 65536, 20000,
