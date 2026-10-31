@@ -188,7 +188,7 @@ TypeTheoryEnvironment[environment_?environmentQ, declarations_List, OptionsPatte
    does not handle the environment, the declarations are added again with each one checked, so that a failure is
    that of the first declaration in order that does not check. *)
 compiledDeclarations[environment_, declarations_List] := Replace[
-	catchKernelFailure[Block[{$deferKernelChecks = True}, Fold[addDeclaration, environment, declarations]]],
+	catchKernelFailure[Block[{$deferKernelChecks = True}, deferredDeclarations[environment, declarations]]],
 	{
 		_Failure :> Fold[addDeclaration, environment, declarations],
 		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]]], {
@@ -200,6 +200,55 @@ compiledDeclarations[environment_, declarations_List] := Replace[
 ]
 
 $deferKernelChecks = False
+
+(* With the checks deferred, a run of axioms, definitions and theorems given as core terms, with no option but their
+   universe parameters as strings and a definition's "Opaque", as an import writes them, gives its records at once,
+   the records declareAxiom, declareDefinition and declareTheorem give, and they are added in one step: adding each
+   would make a store of its own, and a declaration's options, elaboration and roles cost more than its record. Any
+   failure, as a name declared twice, sends the batch to the declarations one at a time, which report it. *)
+deferredDeclarations[environment_, declarations_List] := Fold[deferredRun, environment, SplitBy[declarations, coreDeclarationQ]]
+
+deferredRun[environment_, run : {first_, ___}] /; coreDeclarationQ[first] := addConstantRecords[environment, coreRecords[environment, run]]
+deferredRun[environment_, run_List] := Fold[addDeclaration, environment, run]
+
+With[{core = _application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _constantReference | _universeSort | _naturalLiteral},
+	coreDeclarationQ[TypeTheoryAxiom[_String, core, "UniverseParameters" -> {___String}]] := True;
+	coreDeclarationQ[TypeTheoryTheorem[_String, core, core, "UniverseParameters" -> {___String}]] := True;
+	coreDeclarationQ[TypeTheoryDefinition[_String, Typed[core, core], "UniverseParameters" -> {___String}, Repeated["Opaque" -> True | False, {0, 1}]]] := True
+]
+coreDeclarationQ[_] := False
+
+(* in order, so that a definition's height takes those of the definitions before it in the run *)
+coreRecords[environment_, run_List] := Block[{heights = <||>},
+	With[{names = Function[declaration, HoldComplete @@ Take[declaration, 1]] /@ run},
+		If[ ! DuplicateFreeQ[names],
+			kernelFailure["AlreadyDeclared", "`1` is already declared.", {HoldForm @@ First[Select[Tally[names], Function[pair, Last[pair] > 1]]][[1]]}]
+		];
+		AssociationThread[names, MapThread[coreRecord[environment], {names, run}]]
+	]
+]
+
+coreRecord[environment_][name_, TypeTheoryAxiom[_, type_, "UniverseParameters" -> parameters_]] := (
+	heights[name] = 0;
+	<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> HoldComplete /@ parameters|>
+)
+coreRecord[environment_][name_, TypeTheoryTheorem[_, statement_, proof_, "UniverseParameters" -> parameters_]] := (
+	heights[name] = 0;
+	<|"Kind" -> "Theorem", "Type" -> statement, "UniverseParameters" -> HoldComplete /@ parameters, "Value" -> proof|>
+)
+coreRecord[environment_][name_, TypeTheoryDefinition[_, Typed[value_, type_], "UniverseParameters" -> parameters_, "Opaque" -> True]] := (
+	heights[name] = 0;
+	<|"Kind" -> "Opaque", "Type" -> type, "UniverseParameters" -> HoldComplete /@ parameters, "Value" -> value|>
+)
+coreRecord[environment_][name_, TypeTheoryDefinition[_, Typed[value_, type_], "UniverseParameters" -> parameters_, ___]] := With[
+	{height = 1 + Max[0, Function[constant, Lookup[heights, Key[constant], Lookup[constantRecord[environment, constant], "Height", 0]]] /@
+		DeleteDuplicates[Cases[value, constantReference[constant_, _] :> constant, {0, Infinity}]]]},
+	heights[name] = height;
+	Join[
+		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> HoldComplete /@ parameters, "Value" -> value, "Height" -> height|>,
+		If[projectionFunctionQ[value], <|"Hint" -> "Abbreviation"|>, <||>]
+	]
+]
 
 TypeTheoryEnvironment /: Append[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, declaration_] := TypeTheoryEnvironment[environment, {declaration}]
 
