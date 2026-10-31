@@ -68,9 +68,10 @@ their constructors and recursors, and quotient types as the records their kernel
 is that declaration's, or None where the compiled kernel does not handle the environment or no library is available."
 compiledKernelAvailableQ::usage = "compiledKernelAvailableQ[] gives True if the compiled kernel's library for this platform and version is available."
 compileKernelLibrary::usage = "compileKernelLibrary[] compiles the kernel's library for this engine and version into LibraryResources/<$SystemID> of the paclet and gives its File."
-$compiledKernelSeed::usage = "$compiledKernelSeed is None, or <|\"Terms\" -> terms, \"Codes\" -> codes, \"Parts\" -> parts, \"Starts\" -> starts|>: distinct core terms that \
+$compiledKernelSeed::usage = "$compiledKernelSeed is None, or <|\"Terms\" -> terms, \"Codes\" -> codes, \"Parts\" -> parts, \"Starts\" -> starts, \"Roots\" -> roots|>: distinct core terms that \
 the records of the environment the compiled kernel checks hold, each after its parts, by depth from the position starts gives, with the row code of each, 0 for a \
-leaf, and the positions of its parts, so that their rows are written a depth at a time; an import that read its terms as a table gives it."
+leaf, the positions of its parts, so that their rows are written a depth at a time, and the positions of the terms the records hold; an import that read its terms \
+as a table gives it."
 
 
 (* ::Section:: *)
@@ -1475,12 +1476,14 @@ termRowOf[_] := notHandled[]
    each code's from the rows of the parts, which come before. *)
 seedRows[None] := {}
 
-seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, composite},
+seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, indexed},
 	rowOf = ConstantArray[0, Length[terms]];
 	{rowOf[[1 ;; starts[[2]]]], leafRows} = Reap[termRow /@ terms[[1 ;; starts[[2]]]], compiledKernelInput];
-	composite = starts[[2]] + 1 ;; Length[terms];
+	(* the terms the records hold, where the seed names them: indexing every term costs more than walking again the few
+	   parts that the kernel's generated terms, recursors and their rules, share with them, whose rows the arena merges *)
+	indexed = Replace[seed["Roots"], Except[_List] :> Range[starts[[2]] + 1, Length[terms]]];
 	With[{rows = Join[Replace[leafRows, {{rows_List} :> rows, {} -> {}}], Join @@ Table[seedDepthRows[starts[[depth]] + 1, starts[[depth + 1]]], {depth, 2, Length[starts] - 1}]]},
-		$termIndex = Join[$termIndex, AssociationThread[terms[[composite]], rowOf[[composite]]]];
+		$termIndex = Join[$termIndex, AssociationThread[terms[[indexed]], rowOf[[indexed]]]];
 		rows
 	]
 ]
