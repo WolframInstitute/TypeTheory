@@ -44,8 +44,12 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
 	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
 	ListPrepend[1, ListPrepend[2, EmptyList]]   {1, 2}     EmptyList as {}, in braces: [1, 2] in f[[1, 2]] would read as Part
+	Lists[A]                            List A               as Lean writes it, List (List A) for a list type of a list type
 	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
+A constant that is a type, or that builds one, its type ending in a sort other than Prop once its arguments are taken,
+shows in bold, as Polynomials, Lists or a type named by a string, so that it is not read as text or as a variable; a
+proposition, as True or And, shows as before.
 The display rewrites the syntax tree of the term with these operators, rebuilds it held, and takes its
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
 the prelude and of generated recursors are symbols of the paclet's private contexts, shown by their names.
@@ -81,7 +85,8 @@ typeTheoryBoxes[syntax_, form_] := Block[
 	{
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]],
-		$boundSymbols = boundSymbols[syntax]
+		$boundSymbols = boundSymbols[syntax],
+		$typeConstants = <||>
 	},
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
@@ -97,9 +102,14 @@ $displayedNaturalNumbers = Automatic
 
 SetAttributes[withDisplayEnvironment, HoldRest]
 withDisplayEnvironment[environment_, expression_] := Block[
-	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment]},
+	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment], $displayEnvironment = environment},
 	expression
 ]
+
+(* the environment whose constants a display looks up: the term's, and outside one the default environment *)
+$displayEnvironment = Automatic
+
+displayEnvironment[] := Replace[$displayEnvironment, Automatic :> defaultEnvironment[]]
 
 (* the constants declared with "Overloads" -> operation, which show as the operation does: <|HoldComplete[constant] -> operation|> *)
 $displayedOverloads = <||>
@@ -225,6 +235,7 @@ displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol]
 (* a variable the term binds shows by its name, as Lean prints one, also when it was read in a context the context
    path leaves out, where the symbol would show its context *)
 displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] && offPathQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
+displaySyntax[name : syntaxSymbol[HoldComplete[_Symbol]] | syntaxString[_String]] /; typeConstantQ[name] := bold[name]
 displaySyntax[syntax_] := syntax
 
 displayApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] := syntaxHead[Colon, {term, type}]
@@ -251,6 +262,7 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {syntaxApplication[synt
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :=
 	syntaxHead[RightTee, {syntaxHead[Row, {syntaxHead[List, listElements[hypotheses]], syntaxString[", "]}], goal}]
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
+displayApplication[syntaxSymbol[HoldComplete[Lists]], {element_}] := syntaxHead[Row, {syntaxHead[List, {bold[syntaxString["List"]], syntaxString[" "], juxtaposed[element]}]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_, syntaxInteger[index_Integer]}] := syntaxHead[Subscript, {type, syntaxString["rec_" <> ToString[index]]}]
 (* the operations of the interval show as cubical type theory writes them, and a path over a constant line as a ≡ b *)
@@ -356,6 +368,28 @@ overloadedDisplayQ[head_, 2] := MemberQ[{Plus, Times, Subtract, Power, LessEqual
 overloadedDisplayQ[head_, 1] := Lookup[$displayedOverloads, Key[displayedName[head]], None] === Minus
 
 delimited[left_String, syntax_, right_String] := syntaxHead[Row, {syntaxHead[List, {syntaxString[left], syntax, syntaxString[right]}]}]
+
+bold[syntax_] := syntaxHead[Style, {syntax, syntaxSymbol[HoldComplete[Bold]]}]
+
+(* an argument written after its function, as in List A, in parentheses unless it is a name or a number *)
+juxtaposed[syntax : syntaxSymbol[_] | syntaxString[_] | syntaxInteger[_]] := syntax
+juxtaposed[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Style]], {syntaxSymbol[_] | syntaxString[_], _}]] := syntax
+juxtaposed[syntax_] := delimited["(", syntax, ")"]
+
+(* A constant of the display's environment whose type ends in a sort other than Prop once its arguments are taken, which a
+   variable the term binds does not shadow; each name is looked up once a display. *)
+typeConstantQ[name_] := With[{held = displayedName[name]},
+	! KeyExistsQ[$boundSymbols, held] && Lookup[$typeConstants, Key[held], $typeConstants[held] = typeConstantRecordQ[held]]
+]
+
+typeConstantRecordQ[held_HoldComplete] := MatchQ[
+	Quiet[catchKernelFailure[constantRecord[displayEnvironment[], held]]],
+	KeyValuePattern["Type" -> type_ /; sortEndedQ[type]]
+]
+
+sortEndedQ[dependentFunctionType[_, _, codomain_, _]] := sortEndedQ[codomain]
+sortEndedQ[universeSort[level_]] := level =!= 0
+sortEndedQ[_] := False
 
 tupleDisplay[left_String, elements_List, right_String] := delimited[left, syntaxHead[Row, {syntaxHead[List, elements], syntaxString[", "]}], right]
 

@@ -238,6 +238,25 @@ VerificationTest[
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
 ]
 
+(* a list type shows as Lean writes it, and a type, or a constant that builds one, in bold, so that a type named by a
+   string is not read as text; a value of it, or a proposition, shows as before *)
+VerificationTest[
+	With[
+		{
+			lists = ToBoxes[TypeTheoryTerm[Lists[Lists[NonNegativeIntegers]]]],
+			named = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom["Polynomials", TypeUniverse[1]], TypeTheoryAxiom["zeroPolynomial", "Polynomials"]}]
+		},
+		{
+			Cases[lists, TemplateBox[{StyleBox["\"List\"", Bold, ___], "\" \"", TemplateBox[{"\"(\"", TemplateBox[{StyleBox["\"List\"", Bold, ___], "\" \"", "\"\[DoubleStruckCapitalN]\""}, "RowDefault"], "\")\""}, "RowDefault"]}, "RowDefault"], {0, Infinity}] =!= {},
+			Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> Lists["Polynomials"]], named]], StyleBox["\"Polynomials\"", Bold, ___], Infinity] // Length,
+			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox["\"zeroPolynomial\"", ___]],
+			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox]
+		}
+	],
+	{True, 2, True, True},
+	TestID -> "A-list-type-shows-as-List-A-and-a-type-in-bold"
+]
+
 VerificationTest[
 	Cases[
 		ToBoxes[TypeTheoryTerm[DependentSum[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, n == n]]]],
