@@ -238,23 +238,29 @@ VerificationTest[
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
 ]
 
-(* a list type shows as Lean writes it, and a type, or a constant that builds one, in bold, so that a type named by a
-   string is not read as text; a value of it, or a proposition, shows as before *)
+(* a list type shows as Lean writes it, its word List plain, as notation; a type named by a symbol shows in bold, so that it
+   is told apart from a constant named by a string, which shows as the string does, as a value does *)
 VerificationTest[
 	With[
 		{
 			lists = ToBoxes[TypeTheoryTerm[Lists[Lists[NonNegativeIntegers]]]],
-			named = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom["Polynomials", TypeUniverse[1]], TypeTheoryAxiom["zeroPolynomial", "Polynomials"]}]
+			named = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom[Polynomial, TypeUniverse[1]],
+				TypeTheoryAxiom["Polynomials", TypeUniverse[1]],
+				TypeTheoryAxiom["zeroPolynomial", "Polynomials"]
+			}]
 		},
 		{
-			Cases[lists, TemplateBox[{StyleBox["\"List\"", Bold, ___], "\" \"", TemplateBox[{"\"(\"", TemplateBox[{StyleBox["\"List\"", Bold, ___], "\" \"", "\"\[DoubleStruckCapitalN]\""}, "RowDefault"], "\")\""}, "RowDefault"]}, "RowDefault"], {0, Infinity}] =!= {},
-			Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> Lists["Polynomials"]], named]], StyleBox["\"Polynomials\"", Bold, ___], Infinity] // Length,
-			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox["\"zeroPolynomial\"", ___]],
+			Cases[lists, TemplateBox[{"\"List\"", "\" \"", TemplateBox[{"\"(\"", TemplateBox[{"\"List\"", "\" \"", "\"\[DoubleStruckCapitalN]\""}, "RowDefault"], "\")\""}, "RowDefault"]}, "RowDefault"], {0, Infinity}] =!= {},
+			FreeQ[lists, StyleBox],
+			Length[Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{Polynomial} -> Lists[Polynomial]], named]], StyleBox["Polynomial", Bold, ___], Infinity]],
+			FreeQ[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> Lists["Polynomials"]], named]], StyleBox],
+			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox]
 		}
 	],
-	{True, 2, True, True},
-	TestID -> "A-list-type-shows-as-List-A-and-a-type-in-bold"
+	{True, True, 2, True, True, True},
+	TestID -> "A-list-type-shows-as-List-A-and-a-type-named-by-a-symbol-in-bold"
 ]
 
 VerificationTest[
