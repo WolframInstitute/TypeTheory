@@ -49,14 +49,19 @@ VerificationTest[
 	TestID -> "A-file-holds-only-the-constants-beyond-the-library-environment-it-extends"
 ]
 
+(* a row's parts, by its code: {1, f, a, 0, 0}, {2 | 3, name, domain, body, binder}, {4, name, type, value, body} and
+   {5, structure, index, term, 0}, each part an earlier row, or a leaf negated *)
+rowParts[row_List] := row[[Replace[First[row], {1 -> {2, 3}, 2 | 3 -> {3, 4}, 4 -> {3, 4, 5}, 5 -> {4}}]]]
+
 VerificationTest[
 	With[{data = savedData["arithmetic"]},
-		AllTrue[
-			Range[Length[data["Nodes"]]],
-			Function[row, AllTrue[Cases[data["Nodes"][[row]], WolframInstitute`TypeTheory`PackageScope`termRef[reference_] :> reference, Infinity], Function[reference, reference < row]]]
-		]
+		{
+			data["FormatVersion"],
+			Developer`PackedArrayQ[data["Table"], Integer, 2],
+			AllTrue[Range[Length[data["Table"]]], Function[row, AllTrue[rowParts[data["Table"][[row]]], Function[part, part < row && part != 0 && part >= -Length[data["Leaves"]]]]]]
+		}
 	],
-	True,
+	{2, True, True},
 	TestID -> "Each-row-of-a-file-names-only-rows-before-it"
 ]
 
@@ -79,16 +84,58 @@ VerificationTest[
 	TestID -> "A-library-environment-saves-over-the-one-it-extends"
 ]
 
+changedFile[data_Association] := With[{changed = savedFile["changed"]},
+	BinaryWrite[changed, BinarySerialize[data]];
+	Close[changed];
+	{FailureQ[TypeTheoryEnvironment[File[changed]]], TypeTheoryEnvironment[File[changed]]["Tag"]}
+]
+
 VerificationTest[
-	Module[{data = savedData["arithmetic"], changed},
-		data["Nodes"] = Append[data["Nodes"], {"a", WolframInstitute`TypeTheory`PackageScope`termRef[Length[data["Nodes"]] + 5], WolframInstitute`TypeTheory`PackageScope`termRef[1]}];
-		changed = savedFile["changed"];
-		BinaryWrite[changed, BinarySerialize[data]];
-		Close[changed];
-		{FailureQ[TypeTheoryEnvironment[File[changed]]], TypeTheoryEnvironment[File[changed]]["Tag"]}
+	Module[{data = savedData["arithmetic"]},
+		data["Table"] = Developer`ToPackedArray[Append[data["Table"], {1, Length[data["Table"]] + 5, 1, 0, 0}]];
+		data["Depths"] = Developer`ToPackedArray[Append[data["Depths"], Max[data["Depths"]] + 1]];
+		changedFile[data]
 	],
 	{True, "SavedEnvironmentInvalid"},
 	TestID -> "A-file-whose-rows-were-changed-is-refused"
+]
+
+(* the rows are built a depth at a time, so a row must be deeper than each row it names *)
+VerificationTest[
+	Module[{data = savedData["arithmetic"]},
+		data["Depths"] = Developer`ToPackedArray[ConstantArray[1, Length[data["Depths"]]]];
+		changedFile[data]
+	],
+	{True, "SavedEnvironmentInvalid"},
+	TestID -> "A-file-whose-depths-were-changed-is-refused"
+]
+
+VerificationTest[
+	Module[{data = savedData["integers"]},
+		data["Labels"] = ReplacePart[data["Labels"], First[FirstPosition[data["Labels"], HoldComplete[_], None, {1}]] -> 1];
+		changedFile[data]
+	],
+	{True, "SavedEnvironmentInvalid"},
+	TestID -> "A-file-whose-names-were-changed-is-refused"
+]
+
+(* a cubical system's row has a form of its own, which only the format of rows holds *)
+VerificationTest[
+	Export[savedFile["cubical"], TypeTheoryEnvironment["Cubical"]];
+	With[{data = savedData["cubical"], loaded = TypeTheoryEnvironment[File[savedFile["cubical"]]]},
+		{data["FormatVersion"], Count[data["Nodes"], {"c", _}] > 0, Normal[loaded] === Normal[TypeTheoryEnvironment["Cubical"]]}
+	],
+	{1, True, True},
+	TestID -> "An-environment-with-cubical-systems-is-written-in-rows"
+]
+
+VerificationTest[
+	Module[{data = savedData["cubical"]},
+		data["Nodes"] = Append[data["Nodes"], {"a", WolframInstitute`TypeTheory`PackageScope`termRef[Length[data["Nodes"]] + 5], WolframInstitute`TypeTheory`PackageScope`termRef[1]}];
+		changedFile[data]
+	],
+	{True, "SavedEnvironmentInvalid"},
+	TestID -> "A-file-of-rows-whose-rows-were-changed-is-refused"
 ]
 
 (* a file written from an unevaluated expression, with calls in a value and in a key: taking the data out of

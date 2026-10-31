@@ -10,14 +10,22 @@ The library environments share their records with the environments built on them
 records beyond the largest library environment it extends, its base, which it names:
 
 	"Format"              "TypeTheoryEnvironment"
-	"FormatVersion"       1
+	"FormatVersion"       2, or 1 for an environment with a cubical system, whose table is "Nodes"
 	"TypeTheoryVersion"   the version of the paclet that wrote the file
 	"KernelHash"          SHA-256 of the paclet's version and kernel sources: a file reads fast only into the kernel that wrote it
 	"Host"                <|"VersionNumber", "ReleaseNumber", "Version"|> of the session that wrote it, for the record
 	"Rules"               the TypeTheoryRules
 	"Base"                None, or <|"Name" -> name, "Hash" -> content hash|> of the library environment it extends
-	"Nodes"               {node, ...}: {"a", f, a}, {"l", name, domain, body, binder}, {"p", name, domain, codomain, binder},
-	                      {"d", name, type, value, body}, {"j", structure, index, term}, {"c", {{face, term}, ...}}
+	"Table"               format 2: a packed array of the rows, five integers each, {code, x, y, z, w}: {1, f, a, 0, 0},
+	                      {2, name, domain, body, binder} for a function, {3, name, domain, codomain, binder} for a function
+	                      type, {4, name, type, value, body}, {5, structure, index, term, 0}; a part is the position of an
+	                      earlier row, or a leaf's position in "Leaves", negated, and a name, structure or binder its
+	                      position in "Labels"
+	"Depths"              format 2: a packed array of each row's depth, one more than its deepest row part's
+	"Leaves", "Labels"    format 2: the distinct leaf terms, and the names and binders, the rows name
+	"Nodes"               format 1: {node, ...}: {"a", f, a}, {"l", name, domain, body, binder}, {"p", name, domain,
+	                      codomain, binder}, {"d", name, type, value, body}, {"j", structure, index, term}, {"c", {{face,
+	                      term}, ...}}, a part being termRef[row] or a leaf
 	"Names", "Records"    the constants beyond the base, in the order they were declared
 	"NaturalNumbers", "RewriteRuleIndex"
 	"Hash"                the content hash: SHA-256 of all the environment's contents, base included, as the file would hold
@@ -31,8 +39,10 @@ TypeTheoryEnvironment[File[...], "Check" -> True] reads the file and then replay
 TypeTheoryCheck, as lean4checker replays an environment, and it is how to read a file another kernel wrote. The
 file is read held, with BinaryDeserialize[bytes, HoldComplete], and nothing in it evaluates before it is checked:
 every symbol it holds outside HoldComplete and HoldForm, keys included, must be one of those a saved environment is
-written with, and then every row must name earlier rows only, every name must be a name, and the records and
-settings may hold only core terms and inert data, and annotations only data, so that no code a file carries can run.
+written with, its packed integer arrays aside, and then every row must name earlier rows only, every name must be a
+name, and the records and settings may hold only core terms and inert data, and annotations only data, so that no
+code a file carries can run. Format 2 is that of tables: the rows are checked at once, as integers, and their terms
+built a depth at a time, where a file of format 1, still read, has each row checked and built on its own.
 
 The paclet's own library environments are saved in its Environments directory when it is released, and read
 from there when they are first asked for if the kernel that wrote them is the one loading them; otherwise they
@@ -70,7 +80,7 @@ termRef::usage = "termRef[row] stands in a saved environment for the term of a r
 (*Function Definitions*)
 
 
-$formatVersion = 1
+$formatVersion = 2
 
 $pacletDirectory = ParentDirectory[DirectoryName[$InputFileName], 2]
 
@@ -95,20 +105,23 @@ TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : 
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "WXF"] :=
 	saveEnvironment[Replace[file, File[path_] :> path], environment]
 
-saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], saveContents, saveStream},
+saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], saveContents, fileContents, saveStream},
 	saveContents = environmentContents[environment, saveBase];
+	(* with no base, the contents are those the content hash is taken of *)
+	If[saveBase === None, rememberContentHash[environment, saveContents]];
+	fileContents = packedContents[saveContents];
 	saveStream = OpenWrite[file, BinaryFormat -> True];
 	BinaryWrite[saveStream, BinarySerialize[
 		Join[
 			<|
 				"Format" -> "TypeTheoryEnvironment",
-				"FormatVersion" -> $formatVersion,
+				"FormatVersion" -> fileContents["FormatVersion"],
 				"TypeTheoryVersion" -> PacletObject[File[$pacletDirectory]]["Version"],
 				"KernelHash" -> $kernelHash,
 				"Host" -> <|"VersionNumber" -> $VersionNumber, "ReleaseNumber" -> $ReleaseNumber, "Version" -> $Version|>,
 				"Base" -> Replace[saveBase, {None -> None, {name_, base_} :> <|"Name" -> name, "Hash" -> environmentContentHash[base]|>}]
 			|>,
-			saveContents,
+			KeyDrop[fileContents, "FormatVersion"],
 			<|"Hash" -> environmentContentHash[environment]|>
 		],
 		PerformanceGoal -> "Size"
@@ -143,6 +156,51 @@ environmentContentHash[environment : TypeTheoryEnvironment[store_Symbol]] := Rep
 	store["ContentHash"],
 	_store :> (store["ContentHash"] = Hash[BinarySerialize[environmentContents[environment, None]], "SHA256", "HexString"])
 ]
+
+rememberContentHash[TypeTheoryEnvironment[store_Symbol], contents_Association] :=
+	If[! StringQ[store["ContentHash"]], store["ContentHash"] = Hash[BinarySerialize[contents], "SHA256", "HexString"]]
+
+(* The contents in the table form of format 2, the rows as integers with the leaves and labels they name, each row's depth
+   worked out; the content hash is still taken of the nodes. A cubical system's row has a form of its own, which only
+   format 1 holds. *)
+packedContents[contents_Association] := Block[{packedLabels = <||>, packedLeaves = <||>, packedRows},
+	If[ MemberQ[contents["Nodes"], {"c", _}],
+		Append[contents, "FormatVersion" -> 1],
+		packedRows = packedRow /@ contents["Nodes"];
+		Join[
+			KeyDrop[contents, "Nodes"],
+			<|
+				"FormatVersion" -> $formatVersion,
+				"Leaves" -> Keys[packedLeaves],
+				"Labels" -> Keys[packedLabels],
+				"Table" -> Developer`ToPackedArray[packedRows],
+				"Depths" -> Developer`ToPackedArray[rowDepths[packedRows]]
+			|>
+		]
+	]
+]
+
+packedRow[{"a", function_, argument_}] := {1, packedPart[function], packedPart[argument], 0, 0}
+packedRow[{"l", name_, domain_, body_, binder_}] := {2, packedLabel[name], packedPart[domain], packedPart[body], packedLabel[binder]}
+packedRow[{"p", name_, domain_, codomain_, binder_}] := {3, packedLabel[name], packedPart[domain], packedPart[codomain], packedLabel[binder]}
+packedRow[{"d", name_, type_, value_, body_}] := {4, packedLabel[name], packedPart[type], packedPart[value], packedPart[body]}
+packedRow[{"j", structure_, index_, term_}] := {5, packedLabel[structure], index, packedPart[term], 0}
+
+packedPart[termRef[row_Integer]] := row
+packedPart[leaf_] := -Lookup[packedLeaves, Key[leaf], packedLeaves[leaf] = Length[packedLeaves] + 1]
+
+packedLabel[label_] := Lookup[packedLabels, Key[label], packedLabels[label] = Length[packedLabels] + 1]
+
+rowDepths[rows_List] := Block[{computedDepths = ConstantArray[0, Length[rows]]},
+	Do[computedDepths[[row]] = 1 + Max[0, computedDepths[[Select[rowParts[rows[[row]]], Positive]]]], {row, Length[rows]}];
+	computedDepths
+]
+
+(* the parts of a row of the table, positions of rows or negated positions of leaves *)
+rowParts[{1, function_, argument_, _, _}] := {function, argument}
+rowParts[{2 | 3, _, domain_, body_, _}] := {domain, body}
+rowParts[{4, _, type_, value_, body_}] := {type, value, body}
+rowParts[{5, _, _, term_, _}] := {term}
 
 compositeTermQ[_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _cubicalSystem] := True
 compositeTermQ[_] := False
@@ -226,11 +284,25 @@ savedLibraryEnvironment[name_String, base_] := Quiet @ Block[{libraryFile = File
 readEnvironmentFile[file_String] := Block[{fileBytes = Quiet[ReadByteArray[file]], fileData},
 	If[ ! ByteArrayQ[fileBytes], kernelFailure["SavedEnvironmentUnreadable", "`1` cannot be read.", {file}]];
 	fileData = Quiet[BinaryDeserialize[fileBytes, HoldComplete]];
-	If[ ! MatchQ[fileData, HoldComplete[_Association]] || ! heldDataQ[fileData] || ! savedDataQ[First[fileData]],
+	If[ ! MatchQ[fileData, HoldComplete[_Association]] || ! heldDataQ[packedArraysBlanked[fileData]] || ! savedDataQ[First[fileData]],
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
 	];
 	First[fileData]
 ]
+
+(* A table and its depths, packed arrays of integers, hold no symbol, and the symbols are looked for in the rest: an
+   association atom's value is taken held, and replaced held *)
+packedArraysBlanked[held : HoldComplete[association_Association]] /; AtomQ[Unevaluated[association]] := Fold[
+	Function[{data, key},
+		If[ MatchQ[Quiet[Extract[data, {1, Key[key]}, HoldComplete]], HoldComplete[array_ /; Developer`PackedArrayQ[Unevaluated[array], Integer]]],
+			ReplacePart[data, {1, Key[key]} -> 0],
+			data
+		]
+	],
+	held,
+	{"Table", "Depths"}
+]
+packedArraysBlanked[held_] := held
 
 (* An association atom's keys are no parts that Cases sees, so they are checked apart. The test holds what it is given:
    a PatternTest would evaluate an Association[...] not yet made, as one held in an annotation's HoldForm is. *)
@@ -252,18 +324,70 @@ $writtenSymbols = HoldComplete /@ Unevaluated[{
 }]
 
 savedDataQ[data_Association] := And[
-	SubsetQ[Keys[data], {"Format", "FormatVersion", "KernelHash", "Rules", "Base", "Nodes", "Names", "Records", "NaturalNumbers", "RewriteRuleIndex", "Hash"}],
+	MemberQ[{1, $formatVersion}, data["FormatVersion"]],
+	SubsetQ[
+		Keys[data],
+		Join[
+			{"Format", "FormatVersion", "KernelHash", "Rules", "Base", "Names", "Records", "NaturalNumbers", "RewriteRuleIndex", "Hash"},
+			If[data["FormatVersion"] === 2, {"Leaves", "Labels", "Table", "Depths"}, {"Nodes"}]
+		]
+	],
 	data["Format"] === "TypeTheoryEnvironment",
-	data["FormatVersion"] === $formatVersion,
 	rulesQ[data["Rules"]],
 	MatchQ[data["Base"], None | KeyValuePattern[{"Name" -> _String, "Hash" -> _String}]],
-	ListQ[data["Nodes"]] && AllTrue[Range[Length[data["Nodes"]]], Function[row, nodeQ[data["Nodes"][[row]], row]]],
+	If[ data["FormatVersion"] === 2,
+		tableQ[data["Leaves"], data["Labels"], data["Table"], data["Depths"]],
+		ListQ[data["Nodes"]] && AllTrue[Range[Length[data["Nodes"]]], Function[row, nodeQ[data["Nodes"][[row]], row]]]
+	],
 	ListQ[data["Names"]] && AllTrue[data["Names"], nameQ],
 	AssociationQ[data["Records"]] && Keys[data["Records"]] === data["Names"],
-	AllTrue[Values[data["Records"]], Function[record, recordQ[record, Length[data["Nodes"]] + 1]]],
+	AllTrue[Values[data["Records"]], Function[record, recordQ[record, rowCount[data] + 1]]],
 	inertQ[data["NaturalNumbers"], 1] && inertQ[data["RewriteRuleIndex"], 1]
 ]
 savedDataQ[_] := False
+
+rowCount[data_Association] := If[data["FormatVersion"] === 2, Length[data["Table"]], Length[data["Nodes"]]]
+
+(* The table of format 2, checked at once, as integers: every code one of the five, every part an earlier row or a leaf,
+   every depth one more than a row part's at least, every name or structure label a name and every binder label a
+   binder, and the fields a code leaves unused 0; the leaves are checked one by one. *)
+tableQ[leaves_List, labels_List, {}, {}] := AllTrue[leaves, leafTermQ]
+tableQ[leaves_List, labels_List, table_, depths_] := And[
+	Developer`PackedArrayQ[table, Integer, 2] && Last[Dimensions[table]] == 5,
+	Developer`PackedArrayQ[depths, Integer, 1] && Length[depths] == Length[table] && Min[depths] >= 1 && Max[depths] <= Length[table],
+	SubsetQ[{1, 2, 3, 4, 5}, Union[table[[All, 1]]]],
+	tableRowsQ[leaves, labels, table, depths, PositionIndex[table[[All, 1]]]]
+]
+tableQ[_, _, _, _] := False
+
+tableRowsQ[leaves_List, labels_List, table_, depths_, byCode_Association] := With[{at = Function[codes, Join @@ Lookup[byCode, codes, {}]]},
+	And[
+		AllTrue[
+			{{at[{1}], 2}, {at[{1}], 3}, {at[{2, 3}], 3}, {at[{2, 3}], 4}, {at[{4}], 3}, {at[{4}], 4}, {at[{4}], 5}, {at[{5}], 4}},
+			Function[pair, tablePartsQ[table, depths, Length[leaves], First[pair], Last[pair]]]
+		],
+		labelIdsQ[labels, table[[at[{2, 3, 4, 5}], 2]], nameQ],
+		labelIdsQ[labels, table[[at[{2, 3}], 5]], binderQ],
+		Max[0, Abs[table[[at[{1}], {4, 5}]]]] == 0 && Max[0, Abs[table[[at[{5}], 5]]]] == 0 && Min[0, table[[at[{5}], 3]]] == 0,
+		AllTrue[leaves, leafTermQ]
+	]
+]
+
+(* the parts in a column of the rows: an earlier row, of a smaller depth, or a leaf *)
+tablePartsQ[table_, depths_, leafCount_Integer, rows_List, column_Integer] := With[{parts = table[[rows, column]]},
+	With[{rowParts = UnitStep[parts - 1], leafParts = UnitStep[-parts - 1]},
+		And[
+			Total[rowParts + leafParts] == Length[parts],
+			Max[-1, Pick[parts - rows, rowParts, 1]] < 0,
+			Min[0, Pick[parts, leafParts, 1]] >= -leafCount,
+			Min[1, Pick[depths[[rows]], rowParts, 1] - depths[[Pick[parts, rowParts, 1]]]] >= 1
+		]
+	]
+]
+
+labelIdsQ[labels_List, ids_, test_] := With[{distinct = Union[ids]},
+	distinct === {} || Min[distinct] >= 1 && Max[distinct] <= Length[labels] && AllTrue[labels[[distinct]], test]
+]
 
 nodeQ[{"a", function_, argument_}, row_] := partQ[function, row] && partQ[argument, row]
 nodeQ[{"l" | "p", name_, domain_, body_, binder_}, row_] := nameQ[name] && partQ[domain, row] && partQ[body, row] && binderQ[binder]
@@ -323,7 +447,7 @@ inertQ[value_, _] := nameQ[value] || levelQ[value] || leafTermQ[value]
 
 (* the environment of base extended with the file's constants, its terms built once from their rows *)
 environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Association, source_] := Block[
-	{$rowTerms = rowTerms[data["Nodes"]], loadedRecords, loadedEnvironment},
+	{$rowTerms = If[data["FormatVersion"] === 2, tableTerms[data], rowTerms[data["Nodes"]]], loadedRecords, loadedEnvironment},
 	loadedRecords = Map[termsFromRefs, data["Records"]];
 	loadedEnvironment = addConstantRecords[base, loadedRecords];
 	With[{loadedStore = First[loadedEnvironment]},
@@ -340,6 +464,37 @@ environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Ass
 rowTerms[nodes_List] := Block[{$rows = <||>},
 	Do[$rows[row] = rowNodeTerm[nodes[[row]]], {row, Length[nodes]}];
 	Values[$rows]
+]
+
+(* The terms of the table's rows, in order, built a depth at a time: the rows of a depth together, each code's with
+   MapThread, from the terms of their parts, rows of the depths before and leaves, each depth's a list of its own, which
+   nothing changes after. *)
+tableTerms[data_Association] := Block[
+	{savedLeaves = data["Leaves"], savedLabels = data["Labels"], savedTable = data["Table"], savedDepths = data["Depths"], savedOrder, savedStarts, savedIndexOf, savedLevelTerms = {}},
+	If[savedTable === {}, Return[{}, Block]];
+	savedOrder = Ordering[savedDepths];
+	savedStarts = Prepend[Accumulate[BinCounts[savedDepths, {1, Max[savedDepths] + 1, 1}]], 0];
+	savedIndexOf = ConstantArray[0, Length[savedTable]];
+	savedIndexOf[[savedOrder]] = Range[Length[savedTable]] - savedStarts[[savedDepths[[savedOrder]]]];
+	Do[AppendTo[savedLevelTerms, depthTerms[savedOrder[[savedStarts[[depth]] + 1 ;; savedStarts[[depth + 1]]]]]], {depth, Length[savedStarts] - 1}];
+	Extract[savedLevelTerms, Transpose[{savedDepths, savedIndexOf}]]
+]
+
+depthTerms[positions_List] := Block[{depthRows = savedTable[[positions]], depthValues = ConstantArray[Null, Length[positions]]},
+	KeyValueMap[Function[{code, at}, depthValues[[at]] = codeTerms[code, depthRows[[at]]]], PositionIndex[depthRows[[All, 1]]]];
+	depthValues
+]
+
+codeTerms[1, rows_] := MapThread[application, {partTerms[rows[[All, 2]]], partTerms[rows[[All, 3]]]}]
+codeTerms[2, rows_] := MapThread[lambdaAbstraction, {savedLabels[[rows[[All, 2]]]], partTerms[rows[[All, 3]]], partTerms[rows[[All, 4]]], savedLabels[[rows[[All, 5]]]]}]
+codeTerms[3, rows_] := MapThread[dependentFunctionType, {savedLabels[[rows[[All, 2]]]], partTerms[rows[[All, 3]]], partTerms[rows[[All, 4]]], savedLabels[[rows[[All, 5]]]]}]
+codeTerms[4, rows_] := MapThread[localDefinition, {savedLabels[[rows[[All, 2]]]], partTerms[rows[[All, 3]]], partTerms[rows[[All, 4]]], partTerms[rows[[All, 5]]]}]
+codeTerms[5, rows_] := MapThread[projection, {savedLabels[[rows[[All, 2]]]], rows[[All, 3]], partTerms[rows[[All, 4]]]}]
+
+partTerms[parts_] := Block[{partValues = ConstantArray[Null, Length[parts]], rowPositions = Flatten[Position[UnitStep[parts - 1], 1]], leafPositions = Flatten[Position[UnitStep[-parts - 1], 1]]},
+	If[rowPositions =!= {}, partValues[[rowPositions]] = Extract[savedLevelTerms, Transpose[{savedDepths[[parts[[rowPositions]]]], savedIndexOf[[parts[[rowPositions]]]]}]]];
+	If[leafPositions =!= {}, partValues[[leafPositions]] = savedLeaves[[-parts[[leafPositions]]]]];
+	partValues
 ]
 
 (* the terms for the rows a value names, mapped so that each comes out evaluated, inside the Block of $rowTerms *)
