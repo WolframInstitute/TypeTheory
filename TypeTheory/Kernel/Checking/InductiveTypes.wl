@@ -308,6 +308,16 @@ checkFieldUniverses[environment_, fieldContext_, fieldIds_, resultLevel_, constr
    auxiliary type, the same one for the same J ps. The original constructors are taken first, then the
    constructors of each auxiliary type in turn, which may nest further: Lean's kernel numbers the
    auxiliary types in this order. *)
+(* a type of the block nests in another inductive type only through a field or an index that mentions it: a block whose
+   constructors mention none of its types there, as a structure's do, has nothing nested, and its constructors go on as
+   the replacement below would rebuild them *)
+eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, names_, originalConstructors_] /;
+	AllTrue[originalConstructors, Function[constructor, FreeQ[constructorFieldsAndIndices[constructor["AfterParameters"]], constantReference[Alternatives @@ names, _]]]] :=
+	{originalConstructors, {}}
+
+constructorFieldsAndIndices[dependentFunctionType[_, domain_, body_, _]] := {domain, constructorFieldsAndIndices[body]}
+constructorFieldsAndIndices[conclusion_] := Last[applicationSpine[conclusion]]
+
 eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, names_, originalConstructors_] := Module[
 	{auxiliaries = {}, replaceNested, replaceParts, nestedApplication, replaced, index = 1},
 	replaceNested[term_] := Replace[applicationSpine[term], {
