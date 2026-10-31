@@ -102,7 +102,9 @@ declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, 
 	If[ ! DuplicateFreeQ[Join[names, recursorName /@ names, Keys[constructors]]],
 		kernelFailure["DuplicateConstructor", "The constructors of `1` must have distinct names, different from the types and their recursors.", {HoldForm @@ First[names]}]
 	];
-	Scan[Function[type, sortLevel[environment, <||>, type]], Values[types]];
+	(* that the types and the constructors' types are types the compiled kernel checks of their records, when it checks a
+	   batch; the levels of the fields, which the universe check and large elimination take, are found here either way *)
+	If[! $deferKernelChecks, Scan[Function[type, sortLevel[environment, <||>, type]], Values[types]]];
 	{typeContext, parameterIds} = blockParameters[environment, First[types], numberOfParameters];
 	originals = Function[entry, blockType[environment, typeContext, parameterIds, First[entry], Last[entry], constantReference[First[entry], levels], None]] /@ types;
 	(* the constructor types may mention the types being declared *)
@@ -203,7 +205,7 @@ provisionalRecord[type_, universeParameters_, numberOfParameters_] := <|
 (* a constructor with its parameters instantiated, and the type of the block it ends in *)
 originalConstructor[environment_, typeContext_, parameterIds_, originals_, constructorName_ -> constructorType_] := Module[
 	{afterParameters, conclusion, owner},
-	sortLevel[environment, <||>, constructorType];
+	If[! $deferKernelChecks, sortLevel[environment, <||>, constructorType]];
 	afterParameters = Fold[
 		Function[{remaining, parameterId}, instantiateLeadingParameter[environment, typeContext, remaining, parameterId, Function[
 			kernelFailure["ConstructorParameters", "The constructor `1` must take the parameters of its type first.", {HoldForm @@ constructorName}]
@@ -228,7 +230,7 @@ checkConstructor[environment_, typeContext_, parameterIds_, blockTypes_, resultL
 		names = Lookup[blockTypes, "Name"], owner = SelectFirst[blockTypes, Function[type, type["Name"] === constructor["Owner"]]],
 		fieldContext, fieldIds, conclusion, conclusionHead, conclusionArguments, conclusionIndices, recursiveFields
 	},
-	sortLevel[environment, typeContext, constructor["AfterParameters"]];
+	If[! $deferKernelChecks, sortLevel[environment, typeContext, constructor["AfterParameters"]]];
 	{fieldContext, fieldIds, conclusion} = typeTelescope[environment, typeContext, constructor["AfterParameters"]];
 	{conclusionHead, conclusionArguments} = applicationSpine[conclusion];
 	If[ conclusionHead =!= owner["Constant"] || Length[conclusionArguments] =!= Length[parameterIds] + Length[owner["IndexIds"]],
