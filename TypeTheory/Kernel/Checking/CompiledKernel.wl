@@ -1380,8 +1380,10 @@ $compiledKernel = None
 compiledKernelFunction[] := Replace[$compiledKernel, None :> ($compiledKernel = loadCompiledKernel[])]
 
 (* WolframKernel's compiler builds the program in seconds, and caches what it builds, so there it is compiled in the
-   session where no library is saved; Wolfram's takes minutes, so there a library is compiled once, beforehand *)
-loadCompiledKernel[] := Replace[savedCompiledKernel[], False /; $engineName === "WolframKernel" :> sessionCompiledKernel[]]
+   session where no library is saved, unless its compiler is off (WOLFRAM_KERNEL_JIT=0, the test WolframKernel's own
+   FunctionCompile makes), when the program would run on the evaluator, slower than TypeChecking.wl; Wolfram's
+   compiler takes minutes, so there a library is compiled once, beforehand *)
+loadCompiledKernel[] := Replace[savedCompiledKernel[], False /; $engineName === "WolframKernel" && Environment["WOLFRAM_KERNEL_JIT"] =!= "0" :> sessionCompiledKernel[]]
 
 sessionCompiledKernel[] := Quiet @ Block[{$RecursionLimit = 100000},
 	Replace[Replace[compiledKernelProgram[], Hold[declarations_, entry_] :> FunctionCompile[declarations, entry]], Except[_CompiledCodeFunction] -> False]
