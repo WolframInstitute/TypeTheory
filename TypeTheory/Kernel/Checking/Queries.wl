@@ -44,6 +44,7 @@ PackageExported[TypeTheoryAxiomClosure]
 PackageExported[TypeTheoryTranslate]
 PackageExported[DefinitionallyEqualQ]
 PackageExported[WeakHeadNormalForm]
+PackageExported[TypeTheoryProofTree]
 
 
 (* ::Section:: *)
@@ -77,6 +78,10 @@ types, as propositional extensionality does not; the option \"Axioms\" -> True k
 DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
+TypeTheoryProofTree::usage = "TypeTheoryProofTree[rule, claim, {premise, ...}] is a natural-deduction derivation of the TypeTheoryTerm claim by rule \
+from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \
+\"OrIntro\", \"OrElim\" or \"FalseElim\". Information[proof, \"ProofTree\"] gives the derivation of a proof of propositional logic; it shows \
+drawn, each conclusion under a line over its premises."
 
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
 heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
@@ -130,7 +135,8 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := 
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ typeAndValueConstants[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
-TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation"}
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := catchKernelFailure[proofTree[termEnvironment[term], term]]
+TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree"}
 
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
@@ -706,3 +712,99 @@ registerWhenDeclared[replayed_, settings_Association] := With[
 	]
 ]
 registerWhenDeclared[replayed_, None] := replayed
+
+
+(* ::Subsection:: *)
+(*Proof trees*)
+
+
+(* The natural-deduction derivation of a proof of propositional logic. Its leading functions of propositions bind its atoms;
+   then each part is a rule by its form, its claim the type the part has where it stands, which must be a formula over the
+   atoms: a hypothesis is an assumption, a function of a proof an implication introduced, AndIntroduction,
+   AndEliminationLeft and AndEliminationRight, the two introductions of Or, Or's recursor and FalseElimination their rules,
+   and any other application an implication eliminated. A constant applied to formulas, as ExcludedMiddle[p], is an open
+   assumption. A part whose claim is not a formula, as a proof of 2 == 2, or that has another form, makes the whole
+   Missing["Untranslatable"]. *)
+proofTree[environment_, term_] := Catch[
+	withCheckedTerms[atomsOpened[environment, <||>, First[checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]]],
+	untranslatable
+]
+
+atomsOpened[environment_, context_, lambdaAbstraction[name_, universeSort[0], body_, binder_]] :=
+	atomOpened[environment, context, name, binder, body, freshFreeVariable[]]
+atomsOpened[environment_, context_, term_] := derivation[environment, context, term]
+
+atomOpened[environment_, context_, name_, binder_, body_, id_] :=
+	atomsOpened[environment, extendContext[context, id, name, universeSort[0], binder], instantiateBoundVariable[body, freeVariable[id]]]
+
+notTranslated[] := Throw[Missing["Untranslatable"], untranslatable]
+
+propositionTypeQ[environment_, context_, type_] := levelEquivalentQ[sortLevel[environment, context, type], 0]
+
+(* a formula of propositional logic over the atoms: an atom, True, False, a conjunction, a disjunction, a negation, or an
+   implication, a function type whose codomain does not mention its binder *)
+formulaQ[context_, freeVariable[id_]] := MatchQ[Lookup[context, id, <||>], KeyValuePattern["Type" -> universeSort[0]]]
+formulaQ[_, constantReference[HoldComplete[True | False], {}]] := True
+formulaQ[context_, dependentFunctionType[_, domain_, codomain_, _]] := looseBoundRange[codomain] == 0 && formulaQ[context, domain] && formulaQ[context, codomain]
+formulaQ[context_, term_application] := connectiveFormulaQ[context, applicationSpine[term]]
+formulaQ[_, _] := False
+
+connectiveFormulaQ[context_, {constantReference[HoldComplete[And | Or], {}], {left_, right_}}] := formulaQ[context, left] && formulaQ[context, right]
+connectiveFormulaQ[context_, {constantReference[HoldComplete[Not], {}], {negated_}}] := formulaQ[context, negated]
+connectiveFormulaQ[_, _] := False
+
+(* the claim beta-normal, as a recursor's type is its motive applied to the major premise *)
+derivation[environment_, context_, term_] := derivationOf[environment, context, term, betaNormalize[inferType[environment, context, term]]]
+
+derivationOf[environment_, context_, term_, claim_] := If[formulaQ[context, claim], derivationNode[environment, context, term, claim], notTranslated[]]
+
+treeNode[environment_, context_, rule_String, claim_, premises_List] := TypeTheoryProofTree[rule, coreToTypeTheoryTerm[environment, context, claim], premises]
+
+derivationNode[environment_, context_, freeVariable[_], claim_] := treeNode[environment, context, "Assumption", claim, {}]
+derivationNode[environment_, context_, constantReference[_, _], claim_] := treeNode[environment, context, "Assumption", claim, {}]
+derivationNode[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_], claim_] := If[
+	propositionTypeQ[environment, context, domain],
+	treeNode[environment, context, "ImpliesIntro", claim, {assumed[environment, context, name, domain, binder, body, freshFreeVariable[]]}],
+	notTranslated[]
+]
+derivationNode[environment_, context_, term_application, claim_] := applicationDerivation[environment, context, applicationSpine[term], term, claim]
+derivationNode[___] := notTranslated[]
+
+(* the derivation of body with its bound variable, a proof of domain, among the hypotheses *)
+assumed[environment_, context_, name_, domain_, binder_, body_, id_] :=
+	derivation[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]]
+
+applicationDerivation[environment_, context_, {constantReference[HoldComplete[AndIntroduction], _], {_, _, left_, right_}}, _, claim_] :=
+	treeNode[environment, context, "AndIntro", claim, {derivation[environment, context, left], derivation[environment, context, right]}]
+applicationDerivation[environment_, context_, {constantReference[HoldComplete[AndEliminationLeft | AndEliminationRight], _], {_, _, conjunction_}}, _, claim_] :=
+	treeNode[environment, context, "AndElim", claim, {derivation[environment, context, conjunction]}]
+applicationDerivation[environment_, context_, {constantReference[HoldComplete[OrIntroductionLeft | OrIntroductionRight], _], {_, _, disjunct_}}, _, claim_] :=
+	treeNode[environment, context, "OrIntro", claim, {derivation[environment, context, disjunct]}]
+applicationDerivation[
+	environment_,
+	context_,
+	{constantReference[HoldComplete[InductiveRecursor[Or]], _], {left_, right_, _, leftCase_, rightCase_, disjunction_}},
+	_,
+	claim_
+] := treeNode[environment, context, "OrElim", claim, {
+	derivation[environment, context, disjunction],
+	caseDerivation[environment, context, left, leftCase],
+	caseDerivation[environment, context, right, rightCase]
+}]
+applicationDerivation[environment_, context_, {constantReference[HoldComplete[FalseElimination], _], {_, falsity_}}, _, claim_] :=
+	treeNode[environment, context, "FalseElim", claim, {derivation[environment, context, falsity]}]
+(* a constant applied to formulas is an open assumption, and any proofs it is applied to after them eliminate implications *)
+applicationDerivation[environment_, context_, {head_constantReference, arguments_List}, _, claim_] := If[
+	AllTrue[arguments, Function[argument, formulaQ[context, argument]]],
+	treeNode[environment, context, "Assumption", claim, {}],
+	treeNode[environment, context, "ImpliesElim", claim, {derivation[environment, context, makeApplication[head, Most[arguments]]], derivation[environment, context, Last[arguments]]}]
+]
+applicationDerivation[environment_, context_, _, application[function_, argument_], claim_] :=
+	treeNode[environment, context, "ImpliesElim", claim, {derivation[environment, context, function], derivation[environment, context, argument]}]
+
+(* a case of Or's recursor proves its claim from one disjunct: the body of a function of it, or the case applied to it *)
+caseDerivation[environment_, context_, _, lambdaAbstraction[name_, domain_, body_, binder_]] := assumed[environment, context, name, domain, binder, body, freshFreeVariable[]]
+caseDerivation[environment_, context_, disjunct_, case_] := caseApplied[environment, context, disjunct, case, freshFreeVariable[]]
+
+caseApplied[environment_, context_, disjunct_, case_, id_] :=
+	derivation[environment, extendContext[context, id, HoldComplete[h], disjunct, "Explicit"], makeApplication[case, {freeVariable[id]}]]

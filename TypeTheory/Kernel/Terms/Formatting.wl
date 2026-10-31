@@ -55,6 +55,8 @@ The display rewrites the syntax tree of the term with these operators, rebuilds 
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
 the prelude and of generated recursors are symbols of the paclet's private contexts, shown by their names.
 
+A TypeTheoryProofTree shows drawn, as natural deduction is written: each conclusion under a line over its premises, the
+rule named at the line's right, →I, →E, ∧I, ∧E, ∨I, ∨E or ⊥E, and an assumption bare.
 A TypeTheoryProof shows its open goals as a list of hypotheses over the goal, as in a proof assistant's
 goal view. A declaration shows as its keyword, its name and its type, as in a proof assistant's source;
 a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of function types.
@@ -575,3 +577,30 @@ declarationRow[{name_, type_, value_}, form_] := {nameBoxes[name, form], ":", Ro
 
 (* a declared name shows as itself: the constructor NaturalNumberZero is not shown as 0 where it is declared *)
 nameBoxes[name_, form_] := Block[{$displayedNaturalNumbers = <||>}, typeTheoryBoxes[name, form]]
+
+
+(* ::Subsection:: *)
+(*Proof trees*)
+
+
+TypeTheoryProofTree /: MakeBoxes[tree : TypeTheoryProofTree[_String, _, _List], form : StandardForm | TraditionalForm] :=
+	InterpretationBox[#, tree] & [derivationBoxes[tree, form]]
+
+$ruleLabels = <|
+	"ImpliesIntro" -> "\[RightArrow]I", "ImpliesElim" -> "\[RightArrow]E", "AndIntro" -> "\[And]I", "AndElim" -> "\[And]E",
+	"OrIntro" -> "\[Or]I", "OrElim" -> "\[Or]E", "FalseElim" -> "\[UpTee]E"
+|>
+
+derivationBoxes[TypeTheoryProofTree["Assumption", claim_, {}], form_] := MakeBoxes[claim, form]
+(* the script level is held, so that a deep derivation keeps one size *)
+derivationBoxes[TypeTheoryProofTree[rule_String, claim_, premises_List], form_] := RowBox[{
+	StyleBox[
+		FractionBox[
+			If[premises === {}, "", RowBox[Riffle[Map[Function[premise, derivationBoxes[premise, form]], premises], "\[ThickSpace]\[ThickSpace]\[ThickSpace]"]]],
+			MakeBoxes[claim, form]
+		],
+		ScriptLevel -> 0,
+		AllowScriptLevelChange -> False
+	],
+	StyleBox[Lookup[$ruleLabels, rule, rule], FontSize -> 10]
+}]

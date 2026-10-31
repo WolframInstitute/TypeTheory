@@ -299,3 +299,67 @@ VerificationTest[
 	{{Equal, NonNegativeIntegers, Plus, EqualityReflexivity}, {NonNegativeIntegers, Equal, Plus}},
 	TestID -> "The-constants-of-a-constant-are-those-of-its-type-and-value"
 ]
+
+(* the natural-deduction derivation of a proof of propositional logic: the functions of its propositions bind the atoms, a
+   constant applied to them, as ExcludedMiddle[a], is an open assumption, and a proof of anything else is untranslatable *)
+rules[tree_] := Cases[tree, TypeTheoryProofTree[rule_String, __] :> rule, {0, Infinity}]
+
+VerificationTest[
+	With[
+		{
+			k = Information[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[y, b]}, x], prelude], "ProofTree"],
+			swap = Information[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]}, AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]], prelude], "ProofTree"]
+		},
+		{
+			k[[1]], k[[2]] === TypeTheoryTerm[Implies[a, Implies[b, a]], prelude], rules[k],
+			swap[[1]], swap[[2]] === TypeTheoryTerm[Implies[And[a, b], And[b, a]], prelude], rules[swap]
+		}
+	],
+	{
+		"ImpliesIntro", True, {"Assumption", "ImpliesIntro", "ImpliesIntro"},
+		"ImpliesIntro", True, {"Assumption", "AndElim", "Assumption", "AndElim", "AndIntro", "ImpliesIntro"}
+	},
+	TestID -> "A-proof-of-propositional-logic-gives-its-natural-deduction-tree"
+]
+
+VerificationTest[
+	With[
+		{
+			peirce = Information[
+				TypeTheoryTerm[
+					Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[f, Implies[Implies[a, b], a]]},
+						InductiveRecursor[Or][
+							Function[{Typed[t, Or[a, Not[a]]]}, a],
+							Function[{Typed[x, a]}, x],
+							Function[{Typed[n, Not[a]]}, f[Function[{Typed[y, a]}, FalseElimination[n[y]]]]],
+							ExcludedMiddle[a]
+						]
+					],
+					prelude
+				],
+				"ProofTree"
+			]
+		},
+		{
+			rules[peirce],
+			MemberQ[Cases[peirce, TypeTheoryProofTree["Assumption", claim_, {}] :> claim, {0, Infinity}], TypeTheoryTerm[Or[a, Not[a]], prelude]],
+			MatchQ[ToBoxes[peirce], InterpretationBox[_, _TypeTheoryProofTree]] && ! FreeQ[First[ToBoxes[peirce]], FractionBox] && ! FreeQ[First[ToBoxes[peirce]], StyleBox["\[Or]E", ___]]
+		}
+	],
+	{
+		{"Assumption", "Assumption", "Assumption", "Assumption", "Assumption", "ImpliesElim", "FalseElim", "ImpliesIntro", "ImpliesElim", "OrElim", "ImpliesIntro"},
+		True,
+		True
+	},
+	TestID -> "Peirce's-law-by-excluded-middle-has-an-open-assumption-and-shows-drawn"
+]
+
+VerificationTest[
+	{
+		Information[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n], prelude], "ProofTree"],
+		Information[TypeTheoryTerm[EqualityReflexivity[2], prelude], "ProofTree"],
+		MemberQ[Information[TypeTheoryTerm[2, prelude], "Properties"], "ProofTree"]
+	},
+	{Missing["Untranslatable"], Missing["Untranslatable"], True},
+	TestID -> "A-proof-beyond-propositional-logic-has-no-proof-tree"
+]
