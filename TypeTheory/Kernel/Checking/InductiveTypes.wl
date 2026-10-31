@@ -68,7 +68,32 @@ recursorName::usage = "recursorName[HoldComplete[name]] gives HoldComplete[Induc
 (*Function Definitions*)
 
 
-typeTelescope[environment_, context_, type_] := telescopeFrom[environment, context, {}, weakHeadNormalForm[environment, context, type]]
+(* The binders type has as it stands are opened at once: each binder's type is instantiated with the variables before it,
+   and what follows with all of them, where opening one binder at a time would instantiate what follows each time; then
+   what follows is put in weak head normal form, as each binder's would be, and any binders that reveals are opened. *)
+typeTelescope[environment_, context_, type_] := Block[{telescopeChain = NestWhileList[#[[3]] &, type, Head[#] === dependentFunctionType &], telescopeIds, telescopeContext},
+	If[ Length[telescopeChain] == 1,
+		telescopeFrom[environment, context, {}, weakHeadNormalForm[environment, context, type]],
+		telescopeIds = Table[freshFreeVariable[], Length[telescopeChain] - 1];
+		telescopeContext = Fold[
+			Function[{accumulated, k}, extendContext[
+				accumulated,
+				telescopeIds[[k]],
+				telescopeChain[[k, 1]],
+				instantiateBoundVariables[telescopeChain[[k, 2]], freeVariable /@ Take[telescopeIds, k - 1]],
+				telescopeChain[[k, 4]]
+			]],
+			context,
+			Range[Length[telescopeIds]]
+		];
+		telescopeFrom[
+			environment,
+			telescopeContext,
+			telescopeIds,
+			weakHeadNormalForm[environment, telescopeContext, instantiateBoundVariables[Last[telescopeChain], freeVariable /@ telescopeIds]]
+		]
+	]
+]
 
 telescopeFrom[environment_, context_, ids_List, dependentFunctionType[name_, domain_, codomain_, binder_]] := With[{id = freshFreeVariable[]},
 	With[{extended = extendContext[context, id, name, domain, binder]},
@@ -146,13 +171,9 @@ blockParameters[environment_, name_ -> type_, numberOfParameters_Integer] := Mod
 ]
 
 blockType[environment_, typeContext_, parameterIds_, name_, type_, constant_, nested_] := Module[{afterParameters, context, indexIds, result},
-	afterParameters = Fold[
-		Function[{remaining, parameterId}, instantiateLeadingParameter[environment, typeContext, remaining, parameterId, Function[
-			kernelFailure["InductiveParameters", "The types of a block must take the same parameters first, and `1` does not.", {HoldForm @@ name}]
-		]]],
-		type,
-		parameterIds
-	];
+	afterParameters = leadingParametersInstantiated[environment, typeContext, type, parameterIds, Function[
+		kernelFailure["InductiveParameters", "The types of a block must take the same parameters first, and `1` does not.", {HoldForm @@ name}]
+	]];
 	{context, indexIds, result} = typeTelescope[environment, typeContext, afterParameters];
 	<|
 		"Name" -> name,
@@ -166,6 +187,25 @@ blockType[environment_, typeContext_, parameterIds_, name_, type_, constant_, ne
 		}],
 		"Nested" -> nested
 	|>
+]
+
+(* The leading binders of type take the parameters' places when their types agree. The binders type has as it stands
+   are compared at once, each binder's type instantiated with the parameters before it, and what follows them instantiated
+   with all of them; any parameters left take the binders a weak head normal form reveals, one at a time. *)
+leadingParametersInstantiated[environment_, typeContext_, type_, parameterIds_List, failure_] := Block[
+	{parameterChain = NestWhileList[#[[3]] &, type, Head[#] === dependentFunctionType &, 1, Length[parameterIds]], standingCount},
+	standingCount = Length[parameterChain] - 1;
+	Do[
+		If[ ! definitionallyEqualQ[environment, typeContext, instantiateBoundVariables[parameterChain[[k, 2]], freeVariable /@ Take[parameterIds, k - 1]], typeContext[parameterIds[[k]]]["Type"]],
+			failure[]
+		],
+		{k, standingCount}
+	];
+	Fold[
+		Function[{remaining, parameterId}, instantiateLeadingParameter[environment, typeContext, remaining, parameterId, failure]],
+		If[standingCount == 0, type, instantiateBoundVariables[Last[parameterChain], freeVariable /@ Take[parameterIds, standingCount]]],
+		Drop[parameterIds, standingCount]
+	]
 ]
 
 (* a leading binder takes the parameter's place when their types agree; both are binder types of the block's
@@ -207,15 +247,17 @@ provisionalRecord[type_, universeParameters_, numberOfParameters_] := <|
 originalConstructor[environment_, typeContext_, parameterIds_, originals_, constructorName_ -> constructorType_] := Module[
 	{afterParameters, conclusion, owner},
 	If[! $deferKernelChecks, sortLevel[environment, <||>, constructorType]];
-	afterParameters = Fold[
-		Function[{remaining, parameterId}, instantiateLeadingParameter[environment, typeContext, remaining, parameterId, Function[
-			kernelFailure["ConstructorParameters", "The constructor `1` must take the parameters of its type first.", {HoldForm @@ constructorName}]
-		]]],
-		constructorType,
-		parameterIds
-	];
-	conclusion = Last @ typeTelescope[environment, typeContext, afterParameters];
+	afterParameters = leadingParametersInstantiated[environment, typeContext, constructorType, parameterIds, Function[
+		kernelFailure["ConstructorParameters", "The constructor `1` must take the parameters of its type first.", {HoldForm @@ constructorName}]
+	]];
+	(* the type it ends in, after the binders it has as it stands, names its owner: a type of the block applied to
+	   arguments is in weak head normal form; anything else is put in it, as a telescope does *)
+	conclusion = Last[NestWhileList[#[[3]] &, afterParameters, Head[#] === dependentFunctionType &]];
 	owner = SelectFirst[originals, Function[type, First[applicationSpine[conclusion]] === type["Constant"]], None];
+	If[ owner === None,
+		conclusion = Last @ typeTelescope[environment, typeContext, afterParameters];
+		owner = SelectFirst[originals, Function[type, First[applicationSpine[conclusion]] === type["Constant"]], None]
+	];
 	If[ owner === None,
 		kernelFailure[
 			"ConstructorResult",
