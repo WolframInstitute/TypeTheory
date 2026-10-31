@@ -53,6 +53,7 @@ PackageScoped[freshFreeVariable]
 PackageScoped[extendContext]
 PackageScoped[extendLocalDefinition]
 PackageScoped[makeLambda]
+PackageScoped[$binderAbstractions]
 PackageScoped[makeDependentFunctionType]
 PackageScoped[toConstructorForm]
 PackageScoped[structureLikeQ]
@@ -81,6 +82,7 @@ as a structure's projection function does: a definition with such a value is an 
 extendContext::usage = "extendContext[context, id, HoldComplete[name], type, binder] gives context with freeVariable[id] of type type."
 extendLocalDefinition::usage = "extendLocalDefinition[context, id, HoldComplete[name], type, value] gives context with freeVariable[id] of type type standing for value."
 makeLambda::usage = "makeLambda[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into functions."
+$binderAbstractions::usage = "$binderAbstractions is None, or an Association in which makeLambda and makeDependentFunctionType keep each binder's type abstracted over the ids before it, while a block's recursors are made."
 makeDependentFunctionType::usage = "makeDependentFunctionType[context, {id, ...}, body] abstracts the free variables id, ..., innermost last, into a function type."
 toConstructorForm::usage = "toConstructorForm[environment, term] writes a natural literal as a constructor application, and gives any other term unchanged."
 structureLikeQ::usage = "structureLikeQ[environment, HoldComplete[name]] gives True if name is a structure: an inductive type with one constructor, \
@@ -147,11 +149,20 @@ makeDependentFunctionType[context_Association, ids_List, body_] := makeBinders[d
 
 makeBinders[head_, context_, ids_List, body_] := Fold[
 	Function[{accumulated, position}, With[{entry = context[ids[[position]]]},
-		Construct[head, entry["Name"], abstractFreeVariables[entry["Type"], Take[ids, position - 1]], accumulated, entry["Binder"]]
+		Construct[head, entry["Name"], binderTypeAbstracted[entry["Type"], Take[ids, position - 1]], accumulated, entry["Binder"]]
 	]],
 	abstractFreeVariables[body, ids],
 	Range[Length[ids], 1, -1]
 ]
+
+(* where $binderAbstractions is an Association, as while a block's recursors are made, a binder's type abstracted over the
+   same ids is kept: a recursor's type and its rules take the same parameters, motives and minor premises first *)
+binderTypeAbstracted[type_, ids_List] := If[ AssociationQ[$binderAbstractions],
+	Lookup[$binderAbstractions, Key[{type, ids}], $binderAbstractions[{type, ids}] = abstractFreeVariables[type, ids]],
+	abstractFreeVariables[type, ids]
+]
+
+$binderAbstractions = None
 
 
 (* ::Subsection:: *)

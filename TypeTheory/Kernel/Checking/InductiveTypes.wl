@@ -505,7 +505,10 @@ eliminationUniverseName[universeParameters_List] := With[{taken = displayedName 
 motiveNames[1] := {HoldComplete[m]}
 motiveNames[count_Integer] := Table[With[{motive = Symbol[Context[m] <> "m" <> ToString[index]]}, HoldComplete[motive]], {index, count}]
 
-addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeContext_, parameterIds_, names_, blockTypes_, resultLevel_, rawConstructors_, largeElimination_] := Module[
+addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeContext_, parameterIds_, names_, blockTypes_, resultLevel_, rawConstructors_, largeElimination_] :=
+	Block[{$binderAbstractions = <||>}, blockRecords[environment, universeParameters, numberOfParameters, typeContext, parameterIds, names, blockTypes, resultLevel, rawConstructors, largeElimination]]
+
+blockRecords[environment_, universeParameters_, numberOfParameters_, typeContext_, parameterIds_, names_, blockTypes_, resultLevel_, rawConstructors_, largeElimination_] := Module[
 	{
 		levels = levelParameter /@ universeParameters, restore, checkedConstructors, eliminationName, recursorUniverseParameters, eliminationLevel,
 		recursorConstants, motiveIds, majorIds, majorTypes, majorContexts, motiveContext, minorIds, ihIds, minorContext, minorTypes,
