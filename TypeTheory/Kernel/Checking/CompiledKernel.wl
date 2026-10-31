@@ -56,6 +56,7 @@ TypeTheoryCheck uses the kernel of TypeChecking.wl.
 PackageScoped[compiledKernelCheck]
 PackageScoped[compiledKernelAvailableQ]
 PackageScoped[compileKernelLibrary]
+PackageScoped[$compiledKernelSeed]
 
 
 (* ::Section:: *)
@@ -67,6 +68,9 @@ their constructors and recursors, and quotient types as the records their kernel
 is that declaration's, or None where the compiled kernel does not handle the environment or no library is available."
 compiledKernelAvailableQ::usage = "compiledKernelAvailableQ[] gives True if the compiled kernel's library for this platform and version is available."
 compileKernelLibrary::usage = "compileKernelLibrary[] compiles the kernel's library for this engine and version into LibraryResources/<$SystemID> of the paclet and gives its File."
+$compiledKernelSeed::usage = "$compiledKernelSeed is None, or <|\"Terms\" -> terms, \"Codes\" -> codes, \"Parts\" -> parts, \"Starts\" -> starts|>: distinct core terms that \
+the records of the environment the compiled kernel checks hold, each after its parts, by depth from the position starts gives, with the row code of each, 0 for a \
+leaf, and the positions of its parts, so that their rows are written a depth at a time; an import that read its terms as a table gives it."
 
 
 (* ::Section:: *)
@@ -1377,6 +1381,8 @@ $libraryName = "TypeTheoryKernel-" <> $engineName <> "-" <> $wolframVersion
 (* None until looked for, then the compiled function, or False without a library for this program and version *)
 $compiledKernel = None
 
+$compiledKernelSeed = None
+
 compiledKernelFunction[] := Replace[$compiledKernel, None :> ($compiledKernel = loadCompiledKernel[])]
 
 (* WolframKernel's compiler builds the program in seconds, and caches what it builds, so there it is compiled in the
@@ -1464,6 +1470,43 @@ termRowOf[constantReference[name_, levels_List]] := {3, Lookup[$constantIndex, K
 termRowOf[naturalLiteral[n_Integer]] /; 0 <= n < 2^62 := {8, n, 0, 0}
 termRowOf[_] := notHandled[]
 
+(* The rows of the seed's terms, the first rows, and the terms put in the index, where the walk of the records finds them.
+   The leaves go through termRow, as a string literal is a term of parts; then the rows of each depth are made at once,
+   each code's from the rows of the parts, which come before. *)
+seedRows[None] := {}
+
+seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, composite},
+	rowOf = ConstantArray[0, Length[terms]];
+	{rowOf[[1 ;; starts[[2]]]], leafRows} = Reap[termRow /@ terms[[1 ;; starts[[2]]]], compiledKernelInput];
+	composite = starts[[2]] + 1 ;; Length[terms];
+	With[{rows = Join[Replace[leafRows, {{rows_List} :> rows, {} -> {}}], Join @@ Table[seedDepthRows[starts[[depth]] + 1, starts[[depth + 1]]], {depth, 2, Length[starts] - 1}]]},
+		$termIndex = Join[$termIndex, AssociationThread[terms[[composite]], rowOf[[composite]]]];
+		rows
+	]
+]
+
+(* the rows of the terms from first to last, all of one depth, numbered in order after the rows before them *)
+seedDepthRows[first_Integer, last_Integer] := Block[{positions = Range[first, last], rows = ConstantArray[0, {last - first + 1, 4}], at},
+	Scan[
+		Function[code,
+			at = Flatten[Position[codes[[positions]], code, {1}, Heads -> False]];
+			If[ at =!= {},
+				rows[[at]] = seedCodeRows[code, positions[[at]]]
+			]
+		],
+		{4, 5, 6, 7, 9}
+	];
+	rowOf[[positions]] = $termCount + Range[Length[positions]];
+	$termCount += Length[positions];
+	rows
+]
+
+seedCodeRows[code : 4 | 5 | 6, positions_] := Transpose[{ConstantArray[code, Length[positions]], rowOf[[parts[[positions, 1]]]], rowOf[[parts[[positions, 2]]]], ConstantArray[0, Length[positions]]}]
+seedCodeRows[7, positions_] := Transpose[{ConstantArray[7, Length[positions]], rowOf[[parts[[positions, 1]]]], rowOf[[parts[[positions, 2]]]], rowOf[[parts[[positions, 3]]]]}]
+seedCodeRows[9, positions_] := Function[position, With[{term = terms[[position]]},
+	{9, Lookup[$constantIndex, Key[term[[1]]], notHandled[]], term[[2]], rowOf[[parts[[position, 1]]]]}
+]] /@ positions
+
 flatAppend[values_List] := With[{start = Length[$flat] + 1}, $flat = Join[$flat, values]; start]
 
 constantRow[record_] := Block[{row = ConstantArray[0, 20]},
@@ -1519,14 +1562,15 @@ functionBody[other_] := other
 environmentInput[environment_, trusted_Integer, capacityFactor_] := Catch[Block[
 	{
 		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flat = {},
-		names = environmentNames[environment], natural = naturalNumberSettings[environment], records, constants, nodes, capacity
+		names = environmentNames[environment], natural = naturalNumberSettings[environment], records, seeded, constants, nodes, capacity
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];
 	$constantIndex = AssociationThread[names -> Range[Length[names]]];
 	$nilRow = addLevelRow["Nil", {7, 0, 0}];
 	records = AssociationMap[Function[name, constantRecord[environment, name]], names];
+	seeded = seedRows[$compiledKernelSeed];
 	{constants, nodes} = Reap[constantRow /@ Values[records], compiledKernelInput];
-	nodes = Replace[nodes, {{rows_List} :> rows, {} -> {{8, 0, 0, 0}}}];
+	nodes = Replace[Join[seeded, Replace[nodes, {{rows_List} :> rows, {} -> {}}]], {} -> {{8, 0, 0, 0}}];
 	If[ AssociationQ[natural],
 		KeyValueMap[
 			Function[{operation, role}, With[{c = $constantIndex[operation]},
