@@ -120,13 +120,17 @@ checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameter
 ]
 
 
-TypeTheoryTerm /: TypeOf[term : TypeTheoryTerm[_, ___]] := TypeTheoryCheck[term]
+(* TypeOf's rules join TypeTheoryTerm's upvalues as they stand: defining them with /: makes the Wolfram Language load
+   TypeOf's own implementation, 1.6 s of loading TypeTheory, which only a session that calls TypeOf needs *)
+UpValues[TypeTheoryTerm] = Join[UpValues[TypeTheoryTerm], {
+	HoldPattern[TypeOf[term : TypeTheoryTerm[_, ___]]] :> TypeTheoryCheck[term],
+	HoldPattern[TypeOf[TypeTheoryTerm[term_], environment_?environmentQ]] :> TypeTheoryCheck[TypeTheoryTerm[term, environment]]
+}]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := TypeTheoryAxiomClosure[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ typeAndValueConstants[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation"}
-TypeTheoryTerm /: TypeOf[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryCheck[TypeTheoryTerm[term, environment]]
 
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
