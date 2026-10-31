@@ -139,16 +139,18 @@ freshFreeVariable[] := ++$freeVariableCounter
 
 extendContext[context_Association, id_Integer, name_, type_, binder : (_String | {_String, _})] := Append[context, id -> <|"Name" -> name, "Type" -> type, "Binder" -> binder|>]
 
-makeLambda[context_Association, ids_List, body_] := Fold[
-	Function[{accumulated, id}, With[{entry = context[id]}, Construct[lambdaAbstraction, entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
-	body,
-	Reverse[ids]
-]
+(* The binders wrap the body innermost first, as abstracting the ids one at a time does, but each part is walked once:
+   the body abstracting every id, and the type of the k-th binder the ids before it, which is all it can mention. *)
+makeLambda[context_Association, ids_List, body_] := makeBinders[lambdaAbstraction, context, ids, body]
 
-makeDependentFunctionType[context_Association, ids_List, body_] := Fold[
-	Function[{accumulated, id}, With[{entry = context[id]}, Construct[dependentFunctionType, entry["Name"], entry["Type"], abstractFreeVariable[accumulated, id], entry["Binder"]]]],
-	body,
-	Reverse[ids]
+makeDependentFunctionType[context_Association, ids_List, body_] := makeBinders[dependentFunctionType, context, ids, body]
+
+makeBinders[head_, context_, ids_List, body_] := Fold[
+	Function[{accumulated, position}, With[{entry = context[ids[[position]]]},
+		Construct[head, entry["Name"], abstractFreeVariables[entry["Type"], Take[ids, position - 1]], accumulated, entry["Binder"]]
+	]],
+	abstractFreeVariables[body, ids],
+	Range[Length[ids], 1, -1]
 ]
 
 

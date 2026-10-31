@@ -76,6 +76,7 @@ PackageScoped[$looseBoundRangeCache]
 PackageScoped[instantiateBoundVariable]
 PackageScoped[instantiateBoundVariables]
 PackageScoped[abstractFreeVariable]
+PackageScoped[abstractFreeVariables]
 PackageScoped[boundVariableOccursQ]
 PackageScoped[instantiateUniverseParameters]
 PackageScoped[$universeInstantiationCache]
@@ -130,6 +131,8 @@ $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loos
 instantiateBoundVariable::usage = "instantiateBoundVariable[body, value] replaces the variable bound just outside body by value."
 instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ..., valuek}] replaces the k variables bound just outside body by the values at once, the innermost by valuek."
 abstractFreeVariable::usage = "abstractFreeVariable[term, id] replaces freeVariable[id] by a bound variable, ready to be wrapped in a binder."
+abstractFreeVariables::usage = "abstractFreeVariables[term, {id, ...}] replaces each freeVariable[id] by the bound variable of a binder for it, the last id the innermost, \
+ready to be wrapped in those binders: what abstracting the ids one at a time, the last first, gives, in one walk of the term."
 boundVariableOccursQ::usage = "boundVariableOccursQ[body, index] gives True if body refers to boundVariable[index] counted from its own top."
 instantiateUniverseParameters::usage = "instantiateUniverseParameters[term, {u, ...}, {level, ...}] replaces each universe parameter u by its level."
 $universeInstantiationCache::usage = "$universeInstantiationCache is the Association of universe instantiations remembered while the kernel checks a declaration, or None."
@@ -283,6 +286,26 @@ substituteNode[term_, _, _] := term
 
 
 abstractFreeVariable[term_, id_] := Block[{$abstractionMemo = <||>}, abstractShared[term, id, 0]]
+
+abstractFreeVariables[term_, {}] := term
+abstractFreeVariables[term_, ids_List] := Block[{$abstractionMemo = <||>, $abstractionIndices = AssociationThread[ids, Reverse[Range[Length[ids]] - 1]]},
+	abstractManyShared[term, 0]
+]
+
+abstractManyShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _] := term
+abstractManyShared[term_, depth_] := Lookup[$abstractionMemo, Key[{term, depth}], $abstractionMemo[{term, depth}] = abstractManyAt[term, depth]]
+
+abstractManyAt[freeVariable[id_], depth_] := Replace[Lookup[$abstractionIndices, Key[id], None], {None -> freeVariable[id], index_Integer :> boundVariable[index + depth]}]
+abstractManyAt[application[function_, argument_], depth_] := Construct[application, abstractManyShared[function, depth], abstractManyShared[argument, depth]]
+abstractManyAt[lambdaAbstraction[name_, domain_, body_, binder_], depth_] :=
+	Construct[lambdaAbstraction, name, abstractManyShared[domain, depth], abstractManyShared[body, depth + 1], binder]
+abstractManyAt[dependentFunctionType[name_, domain_, codomain_, binder_], depth_] :=
+	Construct[dependentFunctionType, name, abstractManyShared[domain, depth], abstractManyShared[codomain, depth + 1], binder]
+abstractManyAt[localDefinition[name_, type_, value_, body_], depth_] :=
+	Construct[localDefinition, name, abstractManyShared[type, depth], abstractManyShared[value, depth], abstractManyShared[body, depth + 1]]
+abstractManyAt[projection[structure_, index_, term_], depth_] := Construct[projection, structure, index, abstractManyShared[term, depth]]
+abstractManyAt[cubicalSystem[branches_List], depth_] := Construct[cubicalSystem, Map[Function[part, abstractManyShared[part, depth]], branches, {2}]]
+abstractManyAt[term_, _] := term
 
 abstractShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _, _] := term
 abstractShared[term_, id_, depth_] := Lookup[$abstractionMemo, Key[{term, depth}], $abstractionMemo[{term, depth}] = abstractAt[term, id, depth]]
