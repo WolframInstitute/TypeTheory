@@ -7,7 +7,7 @@ An environment is a handle, TypeTheoryEnvironment[store], to a symbol of its own
 the environment's contents. That is the Wolfram Language's own way of storing named definitions:
 
 	store["Records"]             <|HoldComplete[name] -> record, ...|>, in the order the constants were declared
-	store["Names"]               {HoldComplete[name], ...}, the keys of store["Records"]
+	store["Names"]               {HoldComplete[name], ...}, the keys of store["Records"], made when it is read
 	store["NaturalNumbers"]      None | <|"Type" -> HoldComplete[type], "Zero" -> HoldComplete[zero],
 	                                "Successor" -> HoldComplete[successor], "Operations" -> <|role -> HoldComplete[operation]|>,
 	                                "Roles" -> <|HoldComplete[operation] -> role|>, "Registrations" -> {{role, ...}, ...}|>,
@@ -151,9 +151,12 @@ environmentQ[_] := False
 
 (* A fresh store: the contents of an existing store, as a store holds them or as an Association, with the
    new records joined to its records. Callers have checked the names, records and settings. *)
+(* The names are not kept as a list: a list in a store is evaluated again, element by element, whenever it is read after
+   any definition was made, and each declaration makes some, so keeping one cost a declaration the length of the
+   environment, while an Association is read whole. *)
 newEnvironment[base_, records_Association, naturalNumbers_] := Module[{store},
 	store["Records"] = Join[base["Records"], records];
-	store["Names"] = Join[base["Names"], Keys[records]];
+	store["Names"] := Keys[store["Records"]];
 	store["Rules"] = base["Rules"];
 	store["RewriteRuleIndex"] = base["RewriteRuleIndex"];
 	store["NaturalNumbers"] = naturalNumbers;
@@ -175,7 +178,7 @@ libraryOf[_Association] := None
 
 emptyEnvironment[] := emptyEnvironment[$defaultRules]
 
-emptyEnvironment[rules_TypeTheoryRules] := newEnvironment[<|"Records" -> <||>, "Names" -> {}, "Rules" -> rules, "RewriteRuleIndex" -> <||>|>, <||>, None]
+emptyEnvironment[rules_TypeTheoryRules] := newEnvironment[<|"Records" -> <||>, "Rules" -> rules, "RewriteRuleIndex" -> <||>|>, <||>, None]
 
 environmentRules[TypeTheoryEnvironment[store_Symbol]] := store["Rules"]
 
@@ -215,7 +218,7 @@ constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] :=
 
 constantDeclaredQ[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := KeyExistsQ[store["Records"], name]
 
-environmentNames[TypeTheoryEnvironment[store_Symbol]] := store["Names"]
+environmentNames[TypeTheoryEnvironment[store_Symbol]] := Keys[store["Records"]]
 
 
 addConstantRecords[environment : TypeTheoryEnvironment[store_Symbol], records_Association] := With[
