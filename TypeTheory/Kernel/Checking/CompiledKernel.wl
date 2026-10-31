@@ -1580,7 +1580,9 @@ environmentInput[environment_, trusted_Integer, capacityFactor_] := Catch[Block[
 			natural["Roles"]
 		]
 	];
-	capacity = capacityFactor Max[2^20, 8 Length[nodes]];
+	(* the nodes a check makes are kept to its end: a Mathlib cone of 724,000 nodes, Real.sqrt_nonneg's, makes more
+	   than 8 times as many, and a first run that runs out of room costs about as long as the run with room *)
+	capacity = capacityFactor Max[2^20, 16 Length[nodes]];
 	<|
 		"Nodes" -> Developer`ToPackedArray[nodes],
 		"Levels" -> Developer`ToPackedArray[Values[$levelRows]],
