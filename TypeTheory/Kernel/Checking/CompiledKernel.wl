@@ -1489,16 +1489,8 @@ seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"
 ]
 
 (* the rows of the terms from first to last, all of one depth, numbered in order after the rows before them *)
-seedDepthRows[first_Integer, last_Integer] := Block[{positions = Range[first, last], rows = ConstantArray[0, {last - first + 1, 4}], at},
-	Scan[
-		Function[code,
-			at = Flatten[Position[codes[[positions]], code, {1}, Heads -> False]];
-			If[ at =!= {},
-				rows[[at]] = seedCodeRows[code, positions[[at]]]
-			]
-		],
-		{4, 5, 6, 7, 9}
-	];
+seedDepthRows[first_Integer, last_Integer] := Block[{positions = Range[first, last], rows = ConstantArray[0, {last - first + 1, 4}]},
+	KeyValueMap[Function[{code, at}, rows[[at]] = seedCodeRows[code, positions[[at]]]], KeyDrop[PositionIndex[codes[[positions]]], 0]];
 	rowOf[[positions]] = $termCount + Range[Length[positions]];
 	$termCount += Length[positions];
 	rows
