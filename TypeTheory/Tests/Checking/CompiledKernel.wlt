@@ -102,3 +102,47 @@ VerificationTest[
 	{"TypeMismatch", "TypeMismatch"},
 	TestID -> "A-batch-with-a-declaration-that-does-not-check-fails-at-it"
 ]
+
+(* inductive types in a batch: the compiled kernel checks that each constructor takes its type's parameters first and
+   that its fields live in universes no larger than its type's *)
+inductiveDeclarations = {
+	TypeTheoryInductiveType[
+		PolymorphicList,
+		ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+		{
+			PolymorphicEmpty -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, PolymorphicList[A]],
+			PolymorphicCons -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[h, A], Typed[t, PolymorphicList[A]]}, PolymorphicList[A]]
+		}
+	],
+	TypeTheoryInductiveType[
+		NaturalVector,
+		ForAll[{Typed[n, NonNegativeIntegers]}, TypeUniverse[1]],
+		{VectorEmpty -> NaturalVector[0], VectorCons -> ForAll[{TypedImplicit[n, NonNegativeIntegers], Typed[h, NonNegativeIntegers], Typed[t, NaturalVector[n]]}, NaturalVector[n + 1]]}
+	],
+	TypeTheoryInductiveType[Box, TypeUniverse[2], {BoxIntroduction -> ForAll[{Typed[t, TypeUniverse[1]]}, Box]}]
+}
+
+VerificationTest[
+	With[{sequential = TypeTheoryEnvironment[prelude, inductiveDeclarations], batch = TypeTheoryEnvironment[prelude, inductiveDeclarations, Method -> compiledMethod]},
+		{Keys[batch] === Keys[sequential], First[batch]["Records"] === First[sequential]["Records"]}
+	],
+	{True, True},
+	TestID -> "A-batch-of-inductive-types-gives-the-same-environment"
+]
+
+VerificationTest[
+	With[{declarations = {TypeTheoryInductiveType[Big, TypeUniverse[1], {BigIntroduction -> ForAll[{Typed[t, TypeUniverse[1]]}, Big]}]}},
+		{First @ TypeTheoryEnvironment[prelude, declarations], First @ TypeTheoryEnvironment[prelude, declarations, Method -> compiledMethod]}
+	],
+	{"UniverseTooLarge", "UniverseTooLarge"},
+	TestID -> "A-batch-with-a-field-in-a-larger-universe-fails-at-it"
+]
+
+(* Box made a type of the smaller universe its field's type lives in, its record otherwise as it was, keys in order *)
+VerificationTest[
+	With[{boxes = Append[prelude, Last[inductiveDeclarations]], smaller = Append[prelude, TypeTheoryInductiveType[Box, TypeUniverse[1], {BoxIntroduction -> Box}]]},
+		bothKernels[forge[boxes, HoldComplete[Box], Function[record, ReplacePart[record, Key["Type"] -> First[smaller]["Records"][HoldComplete[Box]]["Type"]]]]]
+	],
+	{"UniverseTooLarge", "UniverseTooLarge"},
+	TestID -> "Both-kernels-catch-a-forged-universe-of-an-inductive-type"
+]

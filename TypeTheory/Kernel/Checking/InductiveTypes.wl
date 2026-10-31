@@ -103,7 +103,8 @@ declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, 
 		kernelFailure["DuplicateConstructor", "The constructors of `1` must have distinct names, different from the types and their recursors.", {HoldForm @@ First[names]}]
 	];
 	(* that the types and the constructors' types are types the compiled kernel checks of their records, when it checks a
-	   batch; the levels of the fields, which the universe check and large elimination take, are found here either way *)
+	   batch, and so are the universes of the constructors' fields; the levels of the fields large elimination takes are
+	   found here either way *)
 	If[! $deferKernelChecks, Scan[Function[type, sortLevel[environment, <||>, type]], Values[types]]];
 	{typeContext, parameterIds} = blockParameters[environment, First[types], numberOfParameters];
 	originals = Function[entry, blockType[environment, typeContext, parameterIds, First[entry], Last[entry], constantReference[First[entry], levels], None]] /@ types;
@@ -246,7 +247,10 @@ checkConstructor[environment_, typeContext_, parameterIds_, blockTypes_, resultL
 	recursiveFields = Flatten[
 		Function[fieldId, recursiveFieldData[environment, fieldContext, blockTypes, parameterIds, constructor, fieldId]] /@ fieldIds
 	];
-	checkFieldUniverses[environment, fieldContext, fieldIds, resultLevel, displayedConstructorName[constructor]];
+	(* an auxiliary type's constructor has no record for the compiled kernel to check *)
+	If[ ! $deferKernelChecks || constructor["Original"] =!= None,
+		checkFieldUniverses[environment, fieldContext, fieldIds, resultLevel, displayedConstructorName[constructor]]
+	];
 	<|
 		constructor,
 		"FieldIds" -> fieldIds,

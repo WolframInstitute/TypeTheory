@@ -135,7 +135,7 @@ as {HoldComplete[u], ...} in the order they first appear."
 heldOptionValue::usage = "heldOptionValue[head, Hold[options], name] gives HoldComplete[value] for the option name among the held options, or among the defaults Options[head]."
 $emptyEnvironment::usage = "$emptyEnvironment is the environment with no constants, in which a TypeTheoryTerm without an environment is checked."
 $deferKernelChecks::usage = "$deferKernelChecks is True while declarations are added for the compiled kernel to check them all at once: axioms, definitions, \
-theorems and holes are added without the kernel's checks, inductive types with them."
+theorems and holes are added without the kernel's checks, inductive types with them but the universes of their constructors' fields."
 
 
 (* ::Section:: *)
@@ -183,8 +183,8 @@ TypeTheoryEnvironment[environment_?environmentQ, declarations_List, OptionsPatte
 	Fold[addDeclaration, environment, declarations]
 ]
 
-(* Axioms, definitions, theorems and holes are added without the kernel's checks, and inductive types with them;
-   then the compiled kernel checks every declaration added, in order. Where adding one fails, or the compiled kernel
+(* Axioms, definitions, theorems and holes are added without the kernel's checks, and inductive types with them but
+   for the universes of their constructors' fields; then the compiled kernel checks every declaration added, in order. Where adding one fails, or the compiled kernel
    does not handle the environment, the declarations are added again with each one checked, so that a failure is
    that of the first declaration in order that does not check. *)
 compiledDeclarations[environment_, declarations_List] := Replace[

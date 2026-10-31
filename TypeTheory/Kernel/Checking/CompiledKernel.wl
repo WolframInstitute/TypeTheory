@@ -31,9 +31,9 @@ compiled code.
 What it checks: that the type of every constant is a type, that the value of every definition and theorem has its
 type, that a theorem's statement is a proposition, that every universe parameter a declaration mentions is one of
 its own, that every constant it mentions is declared before it, that a definition's height and hint are the ones
-its value gives, and that the rules of every recursor have types. That the inductive types, constructors and
-recursors are the records the kernel of InductiveTypes.wl generates, positive, in the right universes and with
-recursors of the right shape, and that the quotient types are those of Quotients.wl, is checked by declaring them
+its value gives, that every constructor takes its type's parameters first and has fields in universes no larger than
+its type's, and that the rules of every recursor have types. That the inductive types, constructors and recursors are
+the records the kernel of InductiveTypes.wl generates, positive and with recursors of the right shape, and that the quotient types are those of Quotients.wl, is checked by declaring them
 again with those kernels: TypeTheoryCheck does after the compiled kernel (Queries.wl), and a batch of declarations
 before it (Declarations.wl).
 
@@ -108,7 +108,7 @@ $codeConstants = {
 	cWidth -> 20, cKind -> 1, cType -> 2, cValue -> 3, cParams -> 4, cNumParams -> 5, cHeight -> 6, cHint -> 7,
 	cA -> 8, cB -> 9, cC -> 10, cD -> 11, cE -> 12, cF -> 13, cG -> 14, cH -> 15, cI -> 16, cNatRole -> 17, cBoolFalse -> 18, cBoolTrue -> 19, cDeclared -> 20,
 	eMismatch -> 1, eNotType -> 2, eNotFunction -> 3, eNotProp -> 4, eLooseBVar -> 5, eArity -> 6, eUnknownConstant -> 7, eProjType -> 8, eProjIndex -> 9,
-	eProjProof -> 10, eUndeclaredParam -> 11, eIllFormed -> 12, eDeclarationMismatch -> 13,
+	eProjProof -> 10, eUndeclaredParam -> 11, eIllFormed -> 12, eDeclarationMismatch -> 13, eUniverseTooLarge -> 14, eConstructorParameters -> 15,
 	eUnsupported -> 20, eDepth -> 21, eCapacity -> 22, eStack -> 23, eLevelCapacity -> 24, eLctxCapacity -> 25, eLiteralOverflow -> 26,
 	mask40 -> 1099511627775, litLimit -> 4611686018427387904
 }
@@ -1168,6 +1168,55 @@ $program = Hold[{
 		m["SetPart", hMarkGen, gen];
 		If[1 + arenaHeightWalk[m, value, gen] == arenaConstCell[m, c, cHeight] && arenaProjectionFunctionQ[m, value] == arenaConstCell[m, c, cHint], 1, 0]
 	]]],
+	(* the fields of a constructor live in universes no larger than its type's, unless its type is a proposition, as
+	   InductiveTypes.wl's checkFieldUniverses has them: its first binders are its type's parameters, whose types they
+	   must have, then come its fields, each in the context of those before *)
+	kfn[arenaConstructorUniverses, Function[{m, c}, Module[
+		{inductive = arenaConstCell[m, c, cA], p = arenaConstCell[m, c, cC], fields = arenaConstCell[m, c, cD], top = 0, u = 0, t = 0, fv = 0, level = 0, l = 0, i = 0},
+		top = arenaReserve[m, p];
+		If[top < 0, Return[0]];
+		(* the parameters as free variables, and the sort the type ends in *)
+		u = arenaWhnf[m, arenaConstCell[m, inductive, cType]];
+		Do[
+			If[arenaTagOf[m, u] != tPi, arenaRestore[m, top]; Return[arenaFail[m, eDeclarationMismatch]]];
+			fv = arenaNewFVar[m, arenaF1Of[m, u], 0];
+			If[fv == 0, arenaRestore[m, top]; Return[0]];
+			arenaStackSet[m, top + i - 1, fv];
+			u = arenaWhnf[m, arenaInstantiate1[m, arenaF2Of[m, u], fv]],
+			{i, p}
+		];
+		While[arenaTagOf[m, u] == tPi && arenaFailed[m] == 0,
+			fv = arenaNewFVar[m, arenaF1Of[m, u], 0];
+			u = arenaWhnf[m, arenaInstantiate1[m, arenaF2Of[m, u], fv]]
+		];
+		If[arenaFailed[m] == 1, arenaRestore[m, top]; Return[0]];
+		If[arenaTagOf[m, u] != tSort, arenaRestore[m, top]; Return[arenaFail[m, eDeclarationMismatch]]];
+		level = arenaF1Of[m, u];
+		t = arenaConstCell[m, c, cType];
+		Do[
+			t = arenaWhnf[m, t];
+			If[arenaTagOf[m, t] != tPi, arenaRestore[m, top]; Return[arenaFail[m, eConstructorParameters]]];
+			fv = arenaStackGet[m, top + i - 1];
+			If[arenaIsDefEq[m, arenaF1Of[m, t], arenaFvarType[m, arenaF1Of[m, fv]]] == 0, arenaRestore[m, top]; Return[arenaFail[m, eConstructorParameters]]];
+			t = arenaInstantiate1[m, arenaF2Of[m, t], fv],
+			{i, p}
+		];
+		arenaRestore[m, top];
+		Do[
+			t = arenaWhnf[m, t];
+			If[arenaTagOf[m, t] != tPi, Return[arenaFail[m, eDeclarationMismatch]]];
+			If[ level != m["Part", hLevelZero],
+				l = arenaSortLevel[m, arenaF1Of[m, t], 1];
+				If[l == 0, Return[0]];
+				If[arenaLevelLessEqual[m, l, level] == 0, Return[arenaFail[m, eUniverseTooLarge]]]
+			];
+			fv = arenaNewFVar[m, arenaF1Of[m, t], 0];
+			If[fv == 0, Return[0]];
+			t = arenaInstantiate1[m, arenaF2Of[m, t], fv],
+			{i, fields}
+		];
+		If[arenaFailed[m] == 1, 0, 1]
+	]]],
 	kfn[arenaCheckDeclaration, Function[{m, c}, Module[{kind = arenaConstCell[m, c, cKind], type = arenaConstCell[m, c, cType], value = arenaConstCell[m, c, cValue], l = 0},
 		m["SetPart", hCurrent, c];
 		If[arenaParamsDeclared[m, c] == 0, Return[arenaFail[m, eUndeclaredParam]]];
@@ -1184,9 +1233,11 @@ $program = Hold[{
 				If[l != m["Part", hLevelZero], Return[arenaFail[m, eNotProp]]];
 				If[arenaCheckHasType[m, value, type] == 0, Return[0]],
 			(* an inductive type, constructor or recursor is generated by the kernel of InductiveTypes.wl: its type is checked
-			   here, and a recursor's rules once every constant of its block is declared *)
+			   here, with the universes of a constructor's fields, and a recursor's rules once every constant of its block is
+			   declared *)
 			kind == kInductive || kind == kConstructor || kind == kRecursor,
-				If[arenaSortLevel[m, type, 0] == 0, Return[0]],
+				If[arenaSortLevel[m, type, 0] == 0, Return[0]];
+				If[kind == kConstructor && arenaConstructorUniverses[m, c] == 0, Return[0]],
 			True, Return[arenaFail[m, eUnsupported]]
 		];
 		1
@@ -1617,7 +1668,9 @@ $failureMessages = <|
 	10 -> {"ProjectionFromProof", "a projection takes data out of a proof"},
 	11 -> {"UndeclaredUniverseParameter", "it mentions a universe parameter that it does not declare"},
 	12 -> {"IllFormedTerm", "a part of it is not a term"},
-	13 -> {"DeclarationMismatch", "its record does not match the record that checking its declaration gives"}
+	13 -> {"DeclarationMismatch", "its record does not match the record that checking its declaration gives"},
+	14 -> {"UniverseTooLarge", "a field of the constructor lives in a larger universe than its type"},
+	15 -> {"ConstructorParameters", "the constructor does not take the parameters of its type first"}
 |>
 
 (* the reasons the compiled kernel cannot finish: capacity, for which it runs again with four times the memory,
