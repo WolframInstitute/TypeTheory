@@ -47,6 +47,9 @@ The tactics:
 	                        sides are equal by computation; a definition among them unfolds where it computes
 	"Decide"                proves a closed statement by computing its decision, the instance of Decidable found:
 	                        the prelude's decide equations and inequalities of natural numbers and the connectives
+	"Classical"             proves a statement of classical propositional logic from the hypotheses that are
+	                        propositions, by a truth table: each atom split by ExcludedMiddle, the goal built from
+	                        its cases under every assignment that makes the hypotheses true
 	"FindInstance"          proves an existential statement over the natural numbers with witnesses that
 	                        Wolfram's FindInstance finds, the instance proved by "Decide"
 	"Ring"                  proves an equation of natural numbers that holds in every commutative semiring, by
@@ -328,6 +331,7 @@ runTactic["Constructor", Hold[], data_, goal_] := constructorTactic[data, goal]
 runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldComplete[statement]]
 runTactic["Simplify", Hold[{lemmas___}], data_, goal_] := simplify[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
+runTactic["Classical", Hold[], data_, goal_] := classical[data, goal]
 runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
@@ -914,6 +918,139 @@ $decisionConstants = HoldComplete /@ Unevaluated[{Decidable, Decide, DecideSound
 
 SetAttributes[preludeConstant, HoldAll]
 preludeConstant[name_] := constantReference[HoldComplete[name], {}]
+
+
+(* ::Subsection:: *)
+(*Classical*)
+
+
+(* A goal of classical propositional logic, from the hypotheses that are propositions. Its atoms are the parts that no
+   connective builds: any proposition but a conjunction, a disjunction, a negation, an implication, True or False. A truth
+   table checks that every assignment of the atoms that makes the hypotheses true makes the goal true. Then each atom is
+   split by ExcludedMiddle, with the recursor of Or, and under each assignment a hypothesis false there proves the goal by
+   FalseElimination, and otherwise the goal, true there, is built from the atoms' cases by its connectives. *)
+classical[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[$classicalConstants, Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["ClassicalUnavailable", "The environment of the goal `1` lacks the connectives and the excluded middle of the prelude.", data, goal]
+	];
+	If[ ! propositionTermQ[environment, current["Context"], current["Type"]],
+		tacticFailure["NotAProposition", "The goal `1` is not a proposition.", data, goal]
+	];
+	classicalProof[data, goal, current["Type"], classicalFormula[environment, current["Context"], current["Type"]], classicalHypotheses[environment, current["Context"]]]
+]
+
+$classicalConstants = HoldComplete /@ Unevaluated[{
+	True, False, And, Or, Not, TrueIntroduction, AndIntroduction, AndEliminationLeft, AndEliminationRight, OrIntroductionLeft, OrIntroductionRight,
+	FalseElimination, ExcludedMiddle
+}]
+
+propositionTermQ[environment_, context_, type_] := levelEquivalentQ[sortLevel[environment, context, type], 0]
+
+(* {formula, proof} for each hypothesis that is a proposition *)
+classicalHypotheses[environment_, context_] := Cases[
+	KeyValueMap[Function[{id, entry}, If[propositionTermQ[environment, context, entry["Type"]], {classicalFormula[environment, context, entry["Type"]], freeVariable[id]}, Nothing]], context],
+	{_, _}
+]
+
+(* a proposition as a formula: {"Atom", term}, {"True", term}, {"False", term}, or {connective, term, operand, ...} *)
+classicalFormula[environment_, context_, term_] := Replace[term, {
+	constantReference[HoldComplete[True], {}] :> {"True", term},
+	constantReference[HoldComplete[False], {}] :> {"False", term},
+	dependentFunctionType[_, domain_, codomain_, _] /; looseBoundRange[codomain] == 0 && propositionTermQ[environment, context, domain] :>
+		{"Implies", term, classicalFormula[environment, context, domain], classicalFormula[environment, context, codomain]},
+	_application :> spineFormula[environment, context, term, applicationSpine[term]],
+	_ :> {"Atom", term}
+}]
+
+spineFormula[environment_, context_, term_, {constantReference[HoldComplete[connective : And | Or], {}], {left_, right_}}] :=
+	{SymbolName[connective], term, classicalFormula[environment, context, left], classicalFormula[environment, context, right]}
+spineFormula[environment_, context_, term_, {constantReference[HoldComplete[Not], {}], {negated_}}] := {"Not", term, classicalFormula[environment, context, negated]}
+spineFormula[_, _, term_, _] := {"Atom", term}
+
+(* the truth of a formula under an assignment of {truth, proof} to its atoms *)
+classicalTruth[{"Atom", term_}, assignment_] := First[assignment[term]]
+classicalTruth[{"True", _}, _] := True
+classicalTruth[{"False", _}, _] := False
+classicalTruth[{"And", _, left_, right_}, assignment_] := classicalTruth[left, assignment] && classicalTruth[right, assignment]
+classicalTruth[{"Or", _, left_, right_}, assignment_] := classicalTruth[left, assignment] || classicalTruth[right, assignment]
+classicalTruth[{"Not", _, negated_}, assignment_] := ! classicalTruth[negated, assignment]
+classicalTruth[{"Implies", _, domain_, codomain_}, assignment_] := ! classicalTruth[domain, assignment] || classicalTruth[codomain, assignment]
+
+classicalProof[data_, goal_, type_, formula_, hypotheses_List] := Block[
+	{classicalAtoms = DeleteDuplicates[Cases[Prepend[First /@ hypotheses, formula], {"Atom", atom_} :> atom, Infinity]]},
+	If[ Length[classicalAtoms] > 12,
+		tacticFailure["TooManyAtoms", "The goal `1` has `2` atoms, more than the 12 a truth table splits.", data, goal, {Length[classicalAtoms]}]
+	];
+	If[ AnyTrue[
+			Tuples[{True, False}, Length[classicalAtoms]],
+			Function[truths, With[{assignment = AssociationThread[classicalAtoms, List /@ truths]},
+				AllTrue[hypotheses, Function[hypothesis, classicalTruth[First[hypothesis], assignment]]] && ! classicalTruth[formula, assignment]
+			]]
+		],
+		tacticFailure["NotATautology", "The goal `1` does not follow from its hypotheses in classical propositional logic.", data, goal]
+	];
+	solveGoal[data, goal, classicalCases[<|"Goal" -> type, "Formula" -> formula, "Hypotheses" -> hypotheses|>, classicalAtoms, <||>], {}]
+]
+
+classicalCases[setting_, {}, assignment_] := classicalLeaf[setting, assignment]
+classicalCases[setting_, {atom_, rest___}, assignment_] := makeApplication[constantReference[HoldComplete[InductiveRecursor[Or]], {}], {
+	atom,
+	negationOf[atom],
+	classicalLambda[t, makeApplication[preludeConstant[Or], {atom, negationOf[atom]}], Function[ignored, setting["Goal"]]],
+	classicalLambda[h, atom, Function[proof, classicalCases[setting, {rest}, Append[assignment, atom -> {True, proof}]]]],
+	classicalLambda[h, negationOf[atom], Function[proof, classicalCases[setting, {rest}, Append[assignment, atom -> {False, proof}]]]],
+	makeApplication[preludeConstant[ExcludedMiddle], {atom}]
+}]
+
+negationOf[term_] := makeApplication[preludeConstant[Not], {term}]
+
+(* a function of a fresh variable of type domain, its name name, its body what body gives of the variable *)
+SetAttributes[classicalLambda, HoldFirst]
+classicalLambda[name_, domain_, body_] := With[{id = freshFreeVariable[]},
+	makeLambda[<|id -> <|"Name" -> HoldComplete[name], "Type" -> domain, "Binder" -> "Explicit"|>|>, {id}, body[freeVariable[id]]]
+]
+
+classicalLeaf[setting_, assignment_] := Replace[
+	SelectFirst[setting["Hypotheses"], Function[hypothesis, ! classicalTruth[First[hypothesis], assignment]], None],
+	{
+		None :> classicalPositive[setting["Formula"], assignment],
+		{formula_, proof_} :> makeApplication[preludeConstant[FalseElimination], {setting["Goal"], makeApplication[classicalNegative[formula, assignment], {proof}]}]
+	}
+]
+
+(* a proof of a formula true under the assignment *)
+classicalPositive[{"Atom", term_}, assignment_] := Last[assignment[term]]
+classicalPositive[{"True", _}, _] := preludeConstant[TrueIntroduction]
+classicalPositive[{"And", _, left_, right_}, assignment_] :=
+	makeApplication[preludeConstant[AndIntroduction], {left[[2]], right[[2]], classicalPositive[left, assignment], classicalPositive[right, assignment]}]
+classicalPositive[{"Or", _, left_, right_}, assignment_] := If[ classicalTruth[left, assignment],
+	makeApplication[preludeConstant[OrIntroductionLeft], {left[[2]], right[[2]], classicalPositive[left, assignment]}],
+	makeApplication[preludeConstant[OrIntroductionRight], {left[[2]], right[[2]], classicalPositive[right, assignment]}]
+]
+classicalPositive[{"Not", _, negated_}, assignment_] := classicalNegative[negated, assignment]
+classicalPositive[{"Implies", _, domain_, codomain_}, assignment_] := classicalLambda[x, domain[[2]], If[ classicalTruth[codomain, assignment],
+	Function[ignored, classicalPositive[codomain, assignment]],
+	Function[proof, makeApplication[preludeConstant[FalseElimination], {codomain[[2]], makeApplication[classicalNegative[domain, assignment], {proof}]}]]
+]]
+
+(* a proof that a formula false under the assignment implies False *)
+classicalNegative[{"Atom", term_}, assignment_] := Last[assignment[term]]
+classicalNegative[{"False", term_}, _] := classicalLambda[x, term, Function[proof, proof]]
+classicalNegative[{"And", term_, left_, right_}, assignment_] := classicalLambda[c, term, If[ ! classicalTruth[left, assignment],
+	Function[proof, makeApplication[classicalNegative[left, assignment], {makeApplication[preludeConstant[AndEliminationLeft], {left[[2]], right[[2]], proof}]}]],
+	Function[proof, makeApplication[classicalNegative[right, assignment], {makeApplication[preludeConstant[AndEliminationRight], {left[[2]], right[[2]], proof}]}]]
+]]
+classicalNegative[{"Or", term_, left_, right_}, assignment_] := classicalLambda[d, term, Function[proof, makeApplication[constantReference[HoldComplete[InductiveRecursor[Or]], {}], {
+	left[[2]],
+	right[[2]],
+	classicalLambda[t, term, Function[ignored, preludeConstant[False]]],
+	classicalNegative[left, assignment],
+	classicalNegative[right, assignment],
+	proof
+}]]]
+classicalNegative[{"Not", term_, negated_}, assignment_] := classicalLambda[n, term, Function[proof, makeApplication[proof, {classicalPositive[negated, assignment]}]]]
+classicalNegative[{"Implies", term_, domain_, codomain_}, assignment_] :=
+	classicalLambda[g, term, Function[proof, makeApplication[classicalNegative[codomain, assignment], {makeApplication[proof, {classicalPositive[domain, assignment]}]}]]]
 
 
 (* ::Subsection:: *)

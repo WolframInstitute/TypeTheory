@@ -613,3 +613,33 @@ VerificationTest[
 	{True, {}},
 	TestID -> "Apply-states-its-new-goals-beta-reduced"
 ]
+
+(* classical propositional logic by a truth table: each atom split by ExcludedMiddle, the hypotheses that are propositions
+   used, and an atom any proposition no connective builds *)
+VerificationTest[
+	With[
+		{
+			peirce = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[Implies[Implies[a, b], a], a]], prelude,
+				{TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Classical"]}],
+			doubleNegation = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]]}, Implies[Not[Not[a]], a]], prelude,
+				{TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Classical"]}],
+			syllogism = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[Or[a, b], Implies[Not[a], b]]], prelude,
+				{TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Classical"]}]
+		},
+		{
+			peirce["Goals"], Head[Append[prelude, TypeTheoryTheorem[ClassicalPeirce, peirce]]],
+			doubleNegation["Goals"], Head[Append[prelude, TypeTheoryTheorem[ClassicalDoubleNegation, doubleNegation]]],
+			syllogism["Goals"], Head[Append[prelude, TypeTheoryTheorem[ClassicalSyllogism, syllogism]]],
+			TypeTheoryProof[Or[2 + 2 == 4, Not[2 + 2 == 4]], prelude, {TypeTheoryTactic["Classical"]}]["Goals"]
+		}
+	],
+	{{}, TypeTheoryEnvironment, {}, TypeTheoryEnvironment, {}, TypeTheoryEnvironment, {}},
+	TestID -> "Classical-proves-the-tautologies-of-classical-propositional-logic"
+]
+
+VerificationTest[
+	First @ TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, b]], prelude,
+		{TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Classical"]}],
+	"NotATautology",
+	TestID -> "Classical-refuses-a-goal-its-hypotheses-do-not-imply"
+]
