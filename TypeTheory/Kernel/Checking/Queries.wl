@@ -283,7 +283,7 @@ declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDec
 		record : KeyValuePattern["Kind" -> "Hole"] :> declarationOf[environment, record["Theorem"], mode],
 		record : KeyValuePattern["Kind" -> "Quotient"] :> quotientDeclaration[record],
 		record : KeyValuePattern["Kind" -> "Cubical"] :> Replace[record["Sum"], HoldComplete[sum_] :> TypeTheoryCubical[sum]],
-		record_ :> ReleaseHold @ heldFromSyntax @ declarationSyntax[environment, name, record, mode]
+		record_ :> ReleaseHold @ heldFromSyntax @ If[mode === "Display", withoutAutomaticUniverses[#, record] &, Identity][declarationSyntax[environment, name, record, mode]]
 	}]
 ]
 
@@ -343,6 +343,20 @@ recordRoles[record_] := Join[Append[KeyTake[record, {"Instance", "Coercion"}], "
 overloadsOptionSyntax[record_] := Replace[Lookup[record, "Overloads", None], {None -> {}, operation_HoldComplete :> {syntaxHead[Rule, {syntaxString["Overloads"], toSyntax @@ operation}]}}]
 
 annotationOptionSyntax[record_] := Replace[Lookup[record, "Annotation", None], {None -> {}, annotation_ :> {syntaxOther[HoldComplete["Annotation" -> annotation]]}}]
+
+(* the option "UniverseParameters" of a declaration read back for display is left out where Automatic gives the same
+   list, the symbols and strings in the universe levels of its arguments in the order they appear; an exact read back,
+   which translations read, keeps it *)
+withoutAutomaticUniverses[syntax : syntaxApplication[head_, arguments_List], record_] := If[
+	universeParameterNames[Rest[Select[arguments, Function[argument, ! optionSyntaxQ[argument]]]]] === record["UniverseParameters"],
+	syntaxApplication[head, DeleteCases[arguments, syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxString["UniverseParameters"], _}]]],
+	syntax
+]
+withoutAutomaticUniverses[syntax_, _] := syntax
+
+optionSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxString[_], _}]] := True
+optionSyntaxQ[syntaxOther[HoldComplete[_String -> _]]] := True
+optionSyntaxQ[_] := False
 
 universeOptionSyntax[record_] := Replace[record["UniverseParameters"], {
 	{} -> {},

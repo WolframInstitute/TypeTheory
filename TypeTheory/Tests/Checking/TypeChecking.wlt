@@ -112,7 +112,7 @@ VerificationTest[
 
 VerificationTest[
 	{TypeOf[TypeTheoryTerm[Function[{Typed[p, NaturalPair]}, p[[2]]], pairs]], WeakHeadNormalForm[TypeTheoryTerm[NaturalPairIntroduction[3, 4][[2]], pairs]]},
-	{TypeTheoryTerm[TypeSpecifier[{NaturalPair} -> NonNegativeIntegers], pairs], TypeTheoryTerm[4, pairs]},
+	{TypeTheoryTerm[NaturalPair -> NonNegativeIntegers, pairs], TypeTheoryTerm[4, pairs]},
 	TestID -> "A-projection-has-the-field-type-and-reduces-on-the-constructor"
 ]
 
@@ -233,13 +233,13 @@ VerificationTest[
 	With[
 		{
 			operations = TypeTheoryEnvironment[prelude, {
-				TypeTheoryDefinition[NaturalOperation, Typed[TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers], TypeUniverse[1]]],
-				TypeTheoryDefinition[NaturalOperationOf, Typed[Function[{Typed[n, NonNegativeIntegers]}, NaturalOperation], TypeSpecifier[{NonNegativeIntegers} -> TypeUniverse[1]]]]
+				TypeTheoryDefinition[NaturalOperation, Typed[NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers, TypeUniverse[1]]],
+				TypeTheoryDefinition[NaturalOperationOf, Typed[Function[{Typed[n, NonNegativeIntegers]}, NaturalOperation], NonNegativeIntegers -> TypeUniverse[1]]]
 			}]
 		},
 		{
-			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperation]}, f[1, 2]], operations]] === TypeTheoryTerm[TypeSpecifier[{NaturalOperation} -> NonNegativeIntegers], operations],
-			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperationOf[3]]}, f[1, 2] + f[2, 1]], operations]] === TypeTheoryTerm[TypeSpecifier[{NaturalOperationOf[3]} -> NonNegativeIntegers], operations]
+			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperation]}, f[1, 2]], operations]] === TypeTheoryTerm[NaturalOperation -> NonNegativeIntegers, operations],
+			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperationOf[3]]}, f[1, 2] + f[2, 1]], operations]] === TypeTheoryTerm[NaturalOperationOf[3] -> NonNegativeIntegers, operations]
 		}
 	],
 	{True, True},

@@ -28,7 +28,7 @@ VerificationTest[
 VerificationTest[
 	With[{doubled = Append[prelude, TypeTheoryDefinition[Double, Function[{Typed[n, NonNegativeIntegers]}, n + n]]]},
 		{
-			TypeOf[TypeTheoryTerm[Double, doubled]] === TypeTheoryTerm[TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers], doubled],
+			TypeOf[TypeTheoryTerm[Double, doubled]] === TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers, doubled],
 			WeakHeadNormalForm[TypeTheoryTerm[Double[21], doubled]] === TypeTheoryTerm[42, doubled]
 		}
 	],
@@ -64,7 +64,7 @@ VerificationTest[
 	{
 		TypeTheoryDefinition[
 			ExplicitIdentity,
-			Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]]]
+			Typed[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x], ForAll[{TypedImplicit[A, TypeUniverse[1]]}, A -> A]]
 		],
 		True
 	},

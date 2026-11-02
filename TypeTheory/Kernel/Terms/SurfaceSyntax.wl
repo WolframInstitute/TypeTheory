@@ -275,11 +275,12 @@ numberedName[HoldComplete[name_String], index_Integer] := HoldComplete @@ {name 
 numberedName[HoldComplete[symbol_Symbol], index_Integer] :=
 	ToExpression[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]] <> ToString[index], InputForm, HoldComplete]
 
-(* A -> B: Implies between propositions, TypeSpecifier otherwise *)
+(* A -> B: Implies between propositions, a bare rule otherwise, as input takes it; TypeSpecifier[{A, ...} -> B], the
+   compiler's form, is input only *)
 delaborateArrow[environment_, context_, domain_, codomain_] := With[{result = liftedCodomain[codomain]},
 	If[ propositionTermQ[environment, context, domain] && propositionTermQ[environment, context, result],
 		syntaxHead[Implies, {delaborate[environment, context, domain], delaborate[environment, context, result]}],
-		syntaxHead[TypeSpecifier, {syntaxHead[Rule, {syntaxHead[List, {delaborate[environment, context, domain]}], delaborate[environment, context, result]}]}]
+		syntaxHead[Rule, {delaborate[environment, context, domain], delaborate[environment, context, result]}]
 	]
 ]
 

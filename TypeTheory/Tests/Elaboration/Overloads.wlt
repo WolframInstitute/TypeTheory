@@ -27,8 +27,8 @@ VerificationTest[
 		First[TypeTheoryCheck[TypeTheoryTerm[2 + 3, polynomials]]]
 	},
 	{
-		TypeSpecifier[{"Polynomials"} -> "Polynomials"],
-		TypeSpecifier[{"Polynomials"} -> "Polynomials"],
+		"Polynomials" -> "Polynomials",
+		"Polynomials" -> "Polynomials",
 		Function[{Typed[x, "Polynomials"]}, "polynomialAddition"["polynomialPower"[x, 2], x]],
 		NonNegativeIntegers
 	},
@@ -37,7 +37,7 @@ VerificationTest[
 
 VerificationTest[
 	First[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[e, FormSpace[4]], Typed[g, FormSpace[6]]}, e^3 + g^2], polynomials]]],
-	TypeSpecifier[{FormSpace[4]} -> TypeSpecifier[{FormSpace[6]} -> FormSpace[12]]],
+	FormSpace[4] -> FormSpace[6] -> FormSpace[12],
 	TestID -> "An-overload-with-an-implicit-argument-is-solved-through-computation"
 ]
 
@@ -54,6 +54,6 @@ VerificationTest[
 		polynomials["polynomialAddition"],
 		TypeTheoryEnvironment[{TypeTheoryAxiom["thing", Naturals, "Overloads" -> Sin]}]["Tag"]
 	},
-	{True, True, TypeTheoryAxiom["polynomialAddition", TypeSpecifier[{"Polynomials"} -> TypeSpecifier[{"Polynomials"} -> "Polynomials"]], "Overloads" -> Plus], "OverloadedOperation"},
+	{True, True, TypeTheoryAxiom["polynomialAddition", "Polynomials" -> "Polynomials" -> "Polynomials", "Overloads" -> Plus], "OverloadedOperation"},
 	TestID -> "Overloads-replay-read-back-and-name-only-the-operations-that-take-them"
 ]

@@ -47,7 +47,7 @@ VerificationTest[
 	{MatchQ[TypeTheoryCheck[bits], _Success], Last[Normal[bits]], Information[bits, "RewriteRules"]},
 	{
 		True,
-		TypeTheoryRewriteRule[TwiceRule, ForAll[{Typed[h, TypeSpecifier[{Bit} -> Bit]], Typed[x, Bit]}, Twice[h, x] -> h[h[x]]]],
+		TypeTheoryRewriteRule[TwiceRule, ForAll[{Typed[h, Bit -> Bit], Typed[x, Bit]}, Twice[h, x] -> h[h[x]]]],
 		{FlipZero, FlipOne, TwiceRule}
 	},
 	TestID -> "Rewrite-rules-are-replayed-and-read-back"

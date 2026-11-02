@@ -1148,10 +1148,11 @@ explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_
 	With[{structureCore = explicitCore[structureTerm, scope]}, Construct[projection, explicitStructure[structureCore, scope], index - 1, structureCore]]
 explicitCore[syntaxInteger[n_Integer?NonNegative], _] /; naturalNumberSettings[$elaborationEnvironment] =!= None := naturalLiteral[n]
 explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {_, __}]), scope_] := onItsOwn[explicitHead[syntax, scope]]
-(* A -> B, written as Implies or TypeSpecifier: its binders are anonymous, as the elaborator writes them *)
+(* A -> B, written as Implies, TypeSpecifier or a bare rule: its binders are anonymous, as the elaborator writes them *)
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}], scope_] := explicitArrow[{domain}, codomain, scope]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}], scope_] :=
 	explicitArrow[listElements[domains], codomain, scope]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}], scope_] := explicitArrow[listElements[domains], codomain, scope]
 (* f[a, ...] is exact when each binder of the type of f that an argument fills is explicit, for elaboration
    would fill an implicit one itself; but a declared constant named f[a, ...], as InductiveRecursor[Paint]
    is, is that constant, as elaboration reads it, after an overloaded name and a difference *)

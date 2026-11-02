@@ -34,7 +34,7 @@ quantities[TypeTheoryTerm[ForAll[binders_List, body_], ___]] := Join[
 	Replace[binders, {(Typed | TypedImplicit)[_, _, quantity_] :> quantity, _ -> Infinity}, {1}],
 	quantities[TypeTheoryTerm[body]]
 ]
-quantities[TypeTheoryTerm[TypeSpecifier[{_} -> body_], ___]] := Prepend[quantities[TypeTheoryTerm[body]], Infinity]
+quantities[TypeTheoryTerm[_ -> body_, ___]] := Prepend[quantities[TypeTheoryTerm[body]], Infinity]
 quantities[_] := {}
 
 (* a copy of the environment's store with one record changed by hand *)

@@ -36,9 +36,9 @@ VerificationTest[
 		TypeOf[TypeTheoryTerm[Typed[2 + 3, Integers], integers]]
 	},
 	{
-		TypeTheoryTerm[TypeSpecifier[{Integers} -> TypeSpecifier[{Integers} -> Integers]], integers],
-		TypeTheoryTerm[TypeSpecifier[{Integers} -> TypeSpecifier[{NonNegativeIntegers} -> Integers]], integers],
-		TypeTheoryTerm[TypeSpecifier[{Integers} -> TypeUniverse[0]], integers],
+		TypeTheoryTerm[Integers -> Integers -> Integers, integers],
+		TypeTheoryTerm[Integers -> NonNegativeIntegers -> Integers, integers],
+		TypeTheoryTerm[Integers -> TypeUniverse[0], integers],
 		TypeTheoryTerm[NonNegativeIntegers, integers],
 		TypeTheoryTerm[Integers, integers]
 	},
@@ -189,7 +189,7 @@ VerificationTest[
 		MatchQ[TypeTheoryTerm[Function[{Typed[x, Integers]}, x^2 + 3 x^3], integers], TypeTheoryTerm[Function[{Typed[y_, Integers]}, y_^2 + 3 y_^3], _]]
 	},
 	{
-		TypeTheoryTerm[TypeSpecifier[{Integers} -> Integers], integers],
+		TypeTheoryTerm[Integers -> Integers, integers],
 		TypeTheoryTerm[NonNegativeIntegers, integers],
 		TypeTheoryTerm["true", integers],
 		True

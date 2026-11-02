@@ -33,13 +33,13 @@ VerificationTest[
 
 VerificationTest[
 	TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]],
-	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]], prelude],
+	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, A -> A], prelude],
 	TestID -> "Types-read-back-with-binder-names-and-implicit-binders"
 ]
 
 VerificationTest[
 	TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]],
-	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]], prelude],
+	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, A -> A], prelude],
 	TestID -> "An-implicit-Annotation-is-the-same-binder-as-TypedImplicit"
 ]
 

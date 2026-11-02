@@ -123,7 +123,7 @@ Declarations read back with it:
 InputForm[identity[PolymorphicIdentity]]
 ```
 
-<!-- => TypeTheoryDefinition[PolymorphicIdentity, Typed[Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x], ForAll[{TypedImplicit[A, TypeUniverse[u]]}, TypeSpecifier[{A} -> A]]], "UniverseParameters" -> {u}] -->
+<!-- => TypeTheoryDefinition[PolymorphicIdentity, Typed[Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x], ForAll[{TypedImplicit[A, TypeUniverse[u]]}, A -> A]]] -->
 
 ---
 

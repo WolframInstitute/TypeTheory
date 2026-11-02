@@ -14,7 +14,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Exists[{b}, B]                      ∃_b B
 	Function[{b1, b2}, t]               (b1) (b2) ↦ t        RightTeeArrow
 	Implies[A, Implies[B, C]]           A ⇒ B ⇒ C            DoubleRightArrow
-	TypeSpecifier[{A, B} -> C]          A → B → C            RightArrow
+	A -> B -> C, TypeSpecifier[{A, B} -> C]  A → B → C       RightArrow
 	RightTee[{h1, h2}, T]               h1, h2 ⊢ T
 	TypeUniverse[0], [1], [u + 1], [u]  Prop, Type, Type u, Sort u
 	TypeUniverse[Max[1, u]]             Sort (max 1 u)
@@ -271,6 +271,8 @@ displayApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] := s
 displayApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] := arrowChain[DoubleRightArrow, {domain}, codomain]
 displayApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :=
 	arrowChain[RightArrow, listElements[domains], codomain]
+(* A -> B, as a function type reads back *)
+displayApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}] := arrowChain[RightArrow, listElements[domains], codomain]
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {}], goal_}] :=
 	syntaxHead[Row, {syntaxHead[List, {syntaxString["\[RightTee] "], goal}]}]
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :=

@@ -45,7 +45,7 @@ VerificationTest[
 VerificationTest[
 	{
 		Keys[TypeTheoryEnvironment[withoutProp, {TypeTheoryAxiom[AnyType, TypeUniverse[u + 1]]}]],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Unit], unit]], TypeTheoryTerm[ForAll[{Typed[_, TypeSpecifier[{Unit} -> TypeUniverse[_Symbol + 1]]]}, _], _]]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Unit], unit]], TypeTheoryTerm[ForAll[{Typed[_, Unit -> TypeUniverse[_Symbol + 1]]}, _], _]]
 	},
 	{{AnyType}, True},
 	TestID -> "Without-Prop-a-recursor-eliminates-into-Type-u"

@@ -28,7 +28,7 @@ VerificationTest[
 	{
 		MatchQ[
 			TypeOf[TypeTheoryTerm[EquivalenceToPath, cubical]],
-			TypeTheoryTerm[ForAll[{TypedImplicit[a_, _], TypedImplicit[b_, _]}, TypeSpecifier[{Equivalence[a_, b_]} -> Path[_, a_, b_]]], _]
+			TypeTheoryTerm[ForAll[{TypedImplicit[a_, _], TypedImplicit[b_, _]}, Equivalence[a_, b_] -> Path[_, a_, b_]], _]
 		],
 		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], cubical]],
 		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[PathSymmetry[EquivalenceToPath[NegationEquivalence]], 0, "false"], cubical]]

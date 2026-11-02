@@ -36,8 +36,8 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Typed[Function[{x}, x + 1], TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]], prelude]],
-	TypeTheoryTerm[TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers], prelude],
+	TypeOf[TypeTheoryTerm[Typed[Function[{x}, x + 1], NonNegativeIntegers -> NonNegativeIntegers], prelude]],
+	TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers, prelude],
 	TestID -> "A-binder-takes-its-type-from-the-expected-type"
 ]
 
@@ -64,7 +64,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{booleans = TypeTheoryEnvironment[{TypeTheoryInductiveType["Bool", TypeUniverse[1], {"Bool.false" -> "Bool", "Bool.true" -> "Bool"}]}]},
-		TypeOf[TypeTheoryTerm[Function[{Typed["b", "Bool"]}, "b"], booleans]] === TypeTheoryTerm[TypeSpecifier[{"Bool"} -> "Bool"], booleans]
+		TypeOf[TypeTheoryTerm[Function[{Typed["b", "Bool"]}, "b"], booleans]] === TypeTheoryTerm["Bool" -> "Bool", booleans]
 	],
 	True,
 	TestID -> "Strings-name-constants-and-variables"
@@ -168,7 +168,7 @@ VerificationTest[
 		TypeOf[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b && True]]],
 		TypeOf[TypeTheoryTerm[Not[1 == 2]]]
 	},
-	{TypeTheoryTerm[Booleans, prelude], True, TypeTheoryTerm[TypeSpecifier[{Booleans} -> Booleans], prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
+	{TypeTheoryTerm[Booleans, prelude], True, TypeTheoryTerm[Booleans -> Booleans, prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
 	TestID -> "True-and-the-connectives-take-the-meaning-their-type-or-arguments-give"
 ]
 
@@ -201,7 +201,7 @@ VerificationTest[
 			}]
 		}]
 	]][[1]],
-	TypeSpecifier[{TypeUniverse[v + 1]} -> TypeUniverse[v + 2]],
+	TypeUniverse[v + 1] -> TypeUniverse[v + 2],
 	TestID -> "A-universe-level-unifies-with-a-larger-successor"
 ]
 
@@ -326,7 +326,7 @@ VerificationTest[
 	{
 		ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n],
 		ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n],
-		TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers],
+		NonNegativeIntegers -> NonNegativeIntegers,
 		True,
 		"ElaborationFailed"
 	},
@@ -364,20 +364,21 @@ VerificationTest[
 
 (* A variable written without a type whose sort nothing decides: a theorem's statement is a proposition where it can be,
    so p is a proposition; a level left over becomes a universe parameter u_1 of the declaration, as Lean binds one; a
-   term on its own, which has no parameters, takes Type; a variable whose type nothing decides is still asked for. *)
+   term on its own, which has no parameters, takes Type; a variable whose type nothing decides is still asked for. A
+   declaration reads back without the option "UniverseParameters" where Automatic gives the same list. *)
 VerificationTest[
 	With[
 		{
 			environment = TypeTheoryEnvironment[prelude, {
 				TypeTheoryTheorem[ClassicalSelfImplication, ForAll[{p}, Implies[p, p]], Function[{p, h}, h]],
-				TypeTheoryAxiom[PolymorphicIdentity, ForAll[{a}, TypeSpecifier[{a} -> a]]],
+				TypeTheoryAxiom[PolymorphicIdentity, ForAll[{a}, a -> a]],
 				TypeTheoryTheorem[PolymorphicSelfEquality, ForAll[{A, Typed[x, A]}, x == x], Function[{A, Typed[x, A]}, EqualityReflexivity[x]]]
 			}]
 		},
 		{
 			environment[ClassicalSelfImplication],
 			environment[PolymorphicIdentity],
-			Last[environment[PolymorphicSelfEquality]],
+			Length[environment[PolymorphicSelfEquality]],
 			TypeTheoryProof[ForAll[{p}, Implies[p, p]], prelude, {TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Assumption"]}]["Goals"],
 			First[TypeOf[TypeTheoryTerm[Function[{a}, Function[Typed[x, a], x]], prelude]]],
 			First[TypeOf[TypeTheoryTerm[ForAll[{a}, a == a], prelude]]]
@@ -385,10 +386,10 @@ VerificationTest[
 	],
 	{
 		TypeTheoryTheorem[ClassicalSelfImplication, ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, h]],
-		TypeTheoryAxiom[PolymorphicIdentity, ForAll[{Typed[a, TypeUniverse["u_1"]]}, TypeSpecifier[{a} -> a]], "UniverseParameters" -> {"u_1"}],
-		"UniverseParameters" -> {"u_1"},
+		TypeTheoryAxiom[PolymorphicIdentity, ForAll[{Typed[a, TypeUniverse["u_1"]]}, a -> a]],
+		3,
 		{},
-		ForAll[{Typed[a, TypeUniverse[1]]}, TypeSpecifier[{a} -> a]],
+		ForAll[{Typed[a, TypeUniverse[1]]}, a -> a],
 		"ElaborationFailed"
 	},
 	TestID -> "A-level-nothing-decides-is-Prop-a-universe-parameter-or-Type"

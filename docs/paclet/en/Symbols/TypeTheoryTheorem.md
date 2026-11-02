@@ -90,13 +90,13 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 
 ---
 
-A variable of any type gets its universe as a parameter of the theorem, `"u_1"`:
+A variable of any type gets its universe as a parameter of the theorem, `"u_1"`, which the statement names:
 
 ```wl
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], Function[{A, Typed[x, A]}, EqualityReflexivity[x]]]}][SelfEquality]
 ```
 
-<!-- => TypeTheoryTheorem[SelfEquality, ..., "UniverseParameters" -> {"u_1"}] -->
+<!-- => TypeTheoryTheorem[SelfEquality, ForAll[{Typed[A, TypeUniverse["u_1"]], Typed[x, A]}, x == x], ...] -->
 
 ## Possible Issues
 
