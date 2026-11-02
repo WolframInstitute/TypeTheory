@@ -119,7 +119,7 @@ VerificationTest[
 
 VerificationTest[
 	MatchQ[
-		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[1, u]]]],
+		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[1, u]]]] //. StyleBox[boxes_, ___] :> boxes,
 		InterpretationBox[TemplateBox[{_, _, "\"Sort\"", TemplateBox[{"\"(\"", TemplateBox[{_, _, "\"max\"", "1", "u"}, "RowWithSeparators"], "\")\""}, "RowDefault"]}, "RowWithSeparators"], _]
 	],
 	True,
@@ -128,7 +128,7 @@ VerificationTest[
 
 VerificationTest[
 	MatchQ[
-		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[u + 1, v + 1]]]],
+		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[u + 1, v + 1]]]] //. StyleBox[boxes_, ___] :> boxes,
 		InterpretationBox[TemplateBox[{_, _, "\"Type\"", TemplateBox[{"\"(\"", TemplateBox[{_, _, "\"max\"", "u", "v"}, "RowWithSeparators"], "\")\""}, "RowDefault"]}, "RowWithSeparators"], _]
 	],
 	True,
@@ -159,7 +159,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[NaturalNumberZero]], prelude]]},
+	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[NaturalNumberZero]], prelude]] //. StyleBox[name_, ___] :> name},
 		{FreeQ[boxes, "NaturalNumberZero" | "NaturalNumberSuccessor"], ! FreeQ[boxes, RowBox[{"k", "+", "1"}]], ! FreeQ[boxes, RowBox[{"0", "+", "1"}]]}
 	],
 	{True, True, True},
@@ -178,7 +178,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[NaturalNumberSuccessor[k]] == k + 2]]], RowBox[{"k", "+", "1", "+", "1"}]],
+	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[NaturalNumberSuccessor[k]] == k + 2]]] //. StyleBox[name_, ___] :> name, RowBox[{"k", "+", "1", "+", "1"}]],
 	False,
 	TestID -> "Successors-of-successors-add-up-from-the-left"
 ]
@@ -260,7 +260,7 @@ VerificationTest[
 			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox],
 			Sort[Cases[ToBoxes[TypeTheoryTerm[degree[zero], named]], StyleBox[name_String, Bold, ___] :> name, Infinity]],
-			FreeQ[ToBoxes[TypeTheoryTerm[Function[Typed[zero, NonNegativeIntegers], zero], named]], StyleBox]
+			FreeQ[ToBoxes[TypeTheoryTerm[Function[Typed[zero, NonNegativeIntegers], zero], named]], StyleBox[_, Bold, ___]]
 		}
 	],
 	{True, True, 2, True, True, True, {"degree", "zero"}, True},
@@ -269,7 +269,7 @@ VerificationTest[
 
 VerificationTest[
 	Cases[
-		ToBoxes[TypeTheoryTerm[DependentSum[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, n == n]]]],
+		ToBoxes[TypeTheoryTerm[DependentSum[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, n == n]]]] //. StyleBox[name_, ___] :> name,
 		SubscriptBox["\[CapitalSigma]", RowBox[{"n", "\[Colon]", _}]],
 		Infinity
 	] =!= {},
@@ -288,7 +288,7 @@ VerificationTest[
 
 VerificationTest[
 	Cases[
-		ToBoxes[TypeTheoryTerm[Subtype[Function[{Typed[n, NonNegativeIntegers]}, 2 <= n]]]],
+		ToBoxes[TypeTheoryTerm[Subtype[Function[{Typed[n, NonNegativeIntegers]}, 2 <= n]]]] //. StyleBox[name_, ___] :> name,
 		TemplateBox[{"\"{\"", TemplateBox[{RowBox[{"n", "\[Colon]", _}], "\" // \"", _}, "RowDefault"], "\"}\""}, "RowDefault"],
 		Infinity
 	] =!= {},
@@ -302,4 +302,33 @@ VerificationTest[
 	],
 	{True, True},
 	TestID -> "A-bound-variable-shows-by-its-name-whatever-its-context"
+]
+
+(* a bound variable shows in the color of a local variable, a hypothesis of a goal in its target too, a universe level
+   dimmed and an unsolved metavariable in the color of a hole; the colors come from one place *)
+VerificationTest[
+	With[
+		{
+			colors = WolframInstitute`TypeTheory`PackageScope`$displayColors,
+			styled = Function[boxes, Cases[boxes, StyleBox[text_String, color_, ___] /; color =!= Bold :> {StringTrim[text, "\""], color}, Infinity]]
+		},
+		{
+			DeleteDuplicates[styled[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]] === {{"n", colors["BoundVariable"]}},
+			DeleteDuplicates[styled[ToBoxes[TypeOf[TypeTheoryTerm[Lists]]]]],
+			FreeQ[styled[ToBoxes[TypeTheoryTerm[TypeUniverse[1]]]], colors["Level"]],
+			MemberQ[
+				styled[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce"]}]]],
+				{"n", colors["BoundVariable"]}
+			],
+			ToBoxes[TypeTheoryTerm[TypeUniverse[Placeholder["?u3"]]]] =!= {} && ! FreeQ[
+				ToBoxes[RawBoxes[WolframInstitute`TypeTheory`PackageScope`typeTheoryBoxes[
+					WolframInstitute`TypeTheory`PackageScope`syntaxHead[TypeUniverse, {WolframInstitute`TypeTheory`PackageScope`syntaxHead[Placeholder, {WolframInstitute`TypeTheory`PackageScope`syntaxString["?u3"]}]}],
+					StandardForm
+				]]],
+				StyleBox["\"?u3\"" | "?u3", colors["Unsolved"], ___]
+			]
+		}
+	],
+	{True, {{"u", WolframInstitute`TypeTheory`PackageScope`$displayColors["Level"]}}, True, True, True},
+	TestID -> "A-bound-variable-a-level-and-an-unsolved-metavariable-show-in-their-colors"
 ]

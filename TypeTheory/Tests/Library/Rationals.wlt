@@ -90,7 +90,7 @@ VerificationTest[
 (* a natural number among the rationals is cast to an integer and then to a rational, which a goal shows as
    Lean does, ↑↑n *)
 VerificationTest[
-	Cases[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Typed[n, Rationals] + 0 == n], rationals]], TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, _], Infinity],
+	Cases[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Typed[n, Rationals] + 0 == n], rationals]] //. StyleBox[boxes_, ___] :> boxes, TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, _], Infinity],
 	{TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, "RowDefault"], TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, "RowDefault"]},
 	TestID -> "A-natural-number-among-the-rationals-shows-as-Lean-shows-it"
 ]

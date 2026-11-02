@@ -51,6 +51,9 @@ A constant named by a symbol outside System, a type or a function alike, as Opti
 shows in bold, so that it is told apart from a constant named by a string, which shows as the
 string does, and from a variable. A constant named by a string is never bold, nor is a notation, as the word List of
 List A or ℕ, nor a System symbol, as True or And, which shows as the Wolfram Language shows it.
+
+A variable the term binds, and a hypothesis of a goal in its target, shows in the green of a local variable; a universe
+level, as the u of Type u, in gray; an unsolved metavariable, as ?u3, in the orange of a hole ($displayColors).
 The display rewrites the syntax tree of the term with these operators, rebuilds it held, and takes its
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
 the prelude and of generated recursors are symbols of the paclet's private contexts, shown by their names.
@@ -69,6 +72,7 @@ a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of funct
 
 PackageScoped[typeTheoryBoxes]
 PackageScoped[displaySyntax]
+PackageScoped[$displayColors]
 
 
 (* ::Section:: *)
@@ -77,6 +81,7 @@ PackageScoped[displaySyntax]
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
+$displayColors::usage = "$displayColors is the Association of the colors a display gives a bound variable, a universe level and an unsolved metavariable."
 
 
 (* ::Section:: *)
@@ -88,7 +93,7 @@ typeTheoryBoxes[syntax_, form_] := Block[
 	{
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]],
-		$boundSymbols = boundSymbols[syntax],
+		$boundSymbols = Join[$goalSymbols, boundSymbols[syntax]],
 		$symbolConstants = <||>
 	},
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
@@ -188,6 +193,9 @@ quantifierEndedQ[_] := False
 (* the symbols the binders of a term name: of ForAll, Function, Exists and the hypotheses of a goal *)
 $boundSymbols = <||>
 
+(* the names of the hypotheses of the goal on display, local to its target as a bound variable is *)
+$goalSymbols = <||>
+
 boundSymbols[syntax_] := AssociationMap[True&, DeleteDuplicates @ Catenate @ Cases[
 	syntax,
 	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | Function | Exists | RightTee]], {binders_, __}] :> Catenate[binderSymbol /@ listElements[binders]],
@@ -234,10 +242,13 @@ displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruc
 displaySyntax[syntaxSymbol[HoldComplete[IntervalZero]]] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[IntervalOne]]] := syntaxInteger[1]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
+(* a variable the term binds shows in the color of a local variable, by its name, as Lean prints one, also when it was
+   read in a context the context path leaves out, or in the paclet's own, where the symbol would show its context *)
+displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] := styled[
+	If[offPathQ[symbol] || privateNameQ[symbol], syntaxString[SymbolName[Unevaluated[symbol]]], syntaxSymbol[name]],
+	"BoundVariable"
+]
 displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
-(* a variable the term binds shows by its name, as Lean prints one, also when it was read in a context the context
-   path leaves out, where the symbol would show its context *)
-displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] && offPathQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
 displaySyntax[name : syntaxSymbol[HoldComplete[_Symbol]]] /; symbolConstantQ[name] := bold[name]
 displaySyntax[syntax_] := syntax
 
@@ -265,6 +276,8 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {syntaxApplication[synt
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :=
 	syntaxHead[RightTee, {syntaxHead[Row, {syntaxHead[List, listElements[hypotheses]], syntaxString[", "]}], goal}]
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
+(* a metavariable left unsolved shows as its name, in the color of what is still to do *)
+displayApplication[syntaxSymbol[HoldComplete[Placeholder]], {syntaxString[name_String]}] /; StringStartsQ[name, "?"] := styled[syntaxString[name], "Unsolved"]
 displayApplication[syntaxSymbol[HoldComplete[Lists]], {element_}] := syntaxHead[Row, {syntaxHead[List, {syntaxString["List"], syntaxString[" "], juxtaposed[element]}]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_, syntaxInteger[index_Integer]}] := syntaxHead[Subscript, {type, syntaxString["rec_" <> ToString[index]]}]
@@ -346,7 +359,7 @@ displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplicati
 
 (* -x and ↑x, with an argument that is no name or number in parentheses, so x + -y keeps its sign and
    ↑(m + n) its sum *)
-prefixed[sign_String, argument : (_syntaxSymbol | _syntaxString | _syntaxInteger)] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign], argument}]}]
+prefixed[sign_String, argument_] /; atomicDisplayQ[argument] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign], argument}]}]
 prefixed[sign_String, argument_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign <> "("], argument, syntaxString[")"]}]}]
 (* (a + b) + c shows as a + b + c, and (a b) c as a b c, the way Lean reads + and * *)
 displayApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], {syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List], last_}] :=
@@ -374,10 +387,20 @@ delimited[left_String, syntax_, right_String] := syntaxHead[Row, {syntaxHead[Lis
 
 bold[syntax_] := syntaxHead[Style, {syntax, syntaxSymbol[HoldComplete[Bold]]}]
 
+(* The colors of a display, each in one place: a bound variable as the front end shows a local variable, a universe level
+   dimmed, as bookkeeping, and an unsolved metavariable as a hole shows. *)
+$displayColors = <|"BoundVariable" -> RGBColor[0.2, 0.55, 0.2], "Level" -> StandardGray, "Unsolved" -> StandardOrange|>
+
+styled[syntax_, role_String] := With[{color = $displayColors[role]}, syntaxHead[Style, {syntax, syntaxOther[HoldComplete[color]]}]]
+
 (* an argument written after its function, as in List A, in parentheses unless it is a name or a number *)
-juxtaposed[syntax : syntaxSymbol[_] | syntaxString[_] | syntaxInteger[_]] := syntax
-juxtaposed[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Style]], {syntaxSymbol[_] | syntaxString[_], _}]] := syntax
+juxtaposed[syntax_] /; atomicDisplayQ[syntax] := syntax
 juxtaposed[syntax_] := delimited["(", syntax, ")"]
+
+(* a name or a number, also in bold or in a color, which an operator before it takes without parentheses *)
+atomicDisplayQ[syntaxSymbol[_] | syntaxString[_] | syntaxInteger[_]] := True
+atomicDisplayQ[syntaxApplication[syntaxSymbol[HoldComplete[Style]], {syntax_, _}]] := atomicDisplayQ[syntax]
+atomicDisplayQ[_] := False
 
 (* A constant of the display's environment named by a symbol outside System, a type or a function alike, which a variable
    the term binds does not shadow; each name is looked up once a display. *)
@@ -446,7 +469,7 @@ predecessorSyntax[syntaxInteger[n_Integer]] := syntaxInteger[n - 1]
 (* a level that is a sum or a maximum is parenthesized, as Lean writes it: Type (u + 1), Sort (max 1 u) *)
 sortDisplay[keyword_String, level : syntaxApplication[syntaxSymbol[HoldComplete[Plus | Max | ImpredicativeMaximum]], _]] :=
 	sortDisplay[keyword, levelArgumentDisplay[level]]
-sortDisplay[keyword_String, level_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[keyword], level}], syntaxString[" "]}]
+sortDisplay[keyword_String, level_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[keyword], styled[level, "Level"]}], syntaxString[" "]}]
 
 levelArgumentDisplay[level : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], _]] := delimited["(", level, ")"]
 levelArgumentDisplay[syntaxApplication[syntaxSymbol[HoldComplete[head : Max | ImpredicativeMaximum]], levels_List]] := delimited[
@@ -492,11 +515,11 @@ TypeTheoryHole /: MakeBoxes[hole : TypeTheoryHole[annotation___], form : Standar
 ]
 
 goalPanel[data_, goal_, form_] := Replace[Quiet @ catchKernelFailure[goalDisplaySyntax[data, goal]], {
-	{case_, hypotheses_List, target_} :> Column[Join[
+	{case_, hypotheses_List, target_} :> Block[{$goalSymbols = AssociationMap[True&, Catenate[binderSymbol /@ hypotheses]]}, Column[Join[
 		Replace[case, {None -> {}, HoldComplete[name_] :> {Style[Row[{"case ", HoldForm[name]}], Italic, StandardGray]}}],
 		Function[hypothesis, RawBoxes[typeTheoryBoxes[hypothesis, form]]] /@ hypotheses,
 		{Row[{Style["\[RightTee] ", Bold], RawBoxes[typeTheoryBoxes[target, form]]}]}
-	]],
+	]]],
 	_ :> Style["The goal " <> ToString[goal] <> " cannot be displayed.", StandardRed]
 }]
 
