@@ -114,8 +114,10 @@ sharedEnvironment[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[{given
 givenEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
 givenEnvironment[TypeTheoryTerm[_]] := None
 
-elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] :=
+(* a term on its own has no universe parameters, so a level nothing decided in it is the level of Type *)
+elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] := Block[{$levelGeneralization = "Type"},
 	elaborateClosedTerm[environment, heldTerm[term], expected, universeParameters]
+]
 
 (* a term checks under rules with quantities only if its functions use their variables as their quantities allow *)
 checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] := With[
@@ -150,7 +152,7 @@ TypeTheoryCheck[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment =
 
 TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure @ With[
 	{environment = sharedEnvironment[term, type], universeParameters = universeParameterNames[{termSyntax[term], termSyntax[type]}]},
-	{expected = elaborateClosedType[environment, heldTerm[type], universeParameters]},
+	{expected = Block[{$levelGeneralization = "Type"}, elaborateClosedType[environment, heldTerm[type], universeParameters]]},
 	checkedQueryTerm[environment, term, expected, universeParameters];
 	Success["TypeChecked", <|"MessageTemplate" -> "`1` has type `2`.", "MessageParameters" -> {term, type}, "Term" -> term, "Type" -> type|>]
 ]

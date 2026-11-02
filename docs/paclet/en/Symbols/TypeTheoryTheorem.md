@@ -20,7 +20,7 @@ RelatedGuides: [TypeTheory]
 - *statement* must be a proposition, a type in <code>[TypeUniverse]()[0]</code>; under rules without Prop, as in the HoTT environment, it may be any type. *proof* is a term, a [TypeTheoryTerm](), or a finished [TypeTheoryProof]() written out or held in a symbol.
 - The kernel checks *proof* against *statement* when the theorem is added; a proof that does not check gives a [Failure](). A theorem never unfolds.
 - A proof may leave parts to give with [TypeTheoryHole](), or with the tactic `"Hole"`, as Lean's `sorry`: the environment then holds a constant <code>[TypeTheoryHole]()[*name*, *k*]</code> for each hole, before the theorem, and <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Holes"]</code> lists them. A proof with goals still open is no proof and gives a [Failure]().
-- The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear.
+- The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear, and makes each level that nothing in the declaration decides one more, `"u_1"`, `"u_2"`, …, as Lean does.
 - The option `"Annotation" -> *data*` keeps *data*, a citation, the statement in words or anything else, in the theorem's record as it is given: <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Annotation"]</code> gives it back, and [Normal]() and a saved environment keep it.
 
 ## Basic Examples
@@ -77,6 +77,26 @@ TypeOf[TypeTheoryTerm[ZeroRightIdentity[7], proved]]
 ```
 
 <!-- => 7 + 0 == 7 -->
+
+---
+
+A variable written without a type, whose sort nothing else decides, is a proposition in a statement that can be one:
+
+```wl
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], Function[{p, h}, h]]}][SelfImplication]
+```
+
+<!-- => TypeTheoryTheorem[SelfImplication, ∀_p∶Prop p ⇒ p, ...] -->
+
+---
+
+A variable of any type gets its universe as a parameter of the theorem, `"u_1"`:
+
+```wl
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], Function[{A, Typed[x, A]}, EqualityReflexivity[x]]]}][SelfEquality]
+```
+
+<!-- => TypeTheoryTheorem[SelfEquality, ..., "UniverseParameters" -> {"u_1"}] -->
 
 ## Possible Issues
 

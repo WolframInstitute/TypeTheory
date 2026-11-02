@@ -75,6 +75,9 @@ PackageScoped[$elaborationEnvironment]
 PackageScoped[$elaborationContext]
 PackageScoped[$elaborationScope]
 PackageScoped[$universeParameterNames]
+PackageScoped[$levelGeneralization]
+PackageScoped[$generalizedLevels]
+PackageScoped[$propositionExpected]
 PackageScoped[overloadedNameQ]
 PackageScoped[aliasResolvedName]
 PackageScoped[settleOverloads]
@@ -110,6 +113,9 @@ $elaborationEnvironment::usage = "$elaborationEnvironment is the environment whi
 $elaborationContext::usage = "$elaborationContext is the local context while elaborating."
 $elaborationScope::usage = "$elaborationScope gives the term and type each variable name stands for while elaborating."
 $universeParameterNames::usage = "$universeParameterNames is the list of universe parameters a term may mention while elaborating."
+$levelGeneralization::usage = "$levelGeneralization is what a universe level left unsolved by elaboration becomes: None, a failure; \"Parameters\", a new universe parameter, collected in $generalizedLevels; \"Type\", the level of Type."
+$propositionExpected::usage = "$propositionExpected is True while the statement of a theorem or a proof elaborates, which makes it a proposition where the rules have Prop and nothing else decides its sort."
+$generalizedLevels::usage = "$generalizedLevels is the list of universe parameters {HoldComplete[name], ...} elaboration made of unsolved levels."
 overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
 explicitTerm::usage = "explicitTerm[environment, HoldComplete[term], {HoldComplete[u], ...}] gives the core term of a term that gives every argument and every \
@@ -132,6 +138,9 @@ $elaborationEnvironment = None
 $elaborationContext = <||>
 $elaborationScope = <||>
 $universeParameterNames = {}
+$levelGeneralization = None
+$propositionExpected = False
+$generalizedLevels = {}
 $goalMetavariableTypes = <||>
 $goalMetavariableContexts = <||>
 $metavariableContexts = <||>
@@ -178,12 +187,19 @@ elaborateClosedType[environment_, held_HoldComplete, universeParameters_List] :=
 	{
 		result = withElaborationState[
 			{environment, <||>, <||>, universeParameters},
-			finishElaboration[environment, <||>, elaborateSyntax[toSyntax @@ held, universeSort[newLevelMetavariable[]]], None]
+			finishElaboration[environment, <||>, propositionPreferred[environment, elaborateSyntax[toSyntax @@ held, universeSort[newLevelMetavariable[]]]], None]
 		]
 	},
 	sortLevel[environment, <||>, First[result]];
 	First[result]
 ]
+
+(* a statement is a proposition where its sort can be Prop, as Lean elaborates a theorem's type against Prop: the sort of
+   p in ForAll[{p}, Implies[p, p]] is then Prop, not a universe parameter *)
+propositionPreferred[environment_, result : {_, type_}] := (
+	If[TrueQ[$propositionExpected] && rulesSetting[environment, "Prop"], attemptOrRestore[unify[type, universeSort[0]]]];
+	result
+)
 
 elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_] := elaborateInContext[environment, context, scope, held, expected, {}]
 elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_, universeParameters_List] := withElaborationState[
@@ -196,7 +212,7 @@ elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_,
 	]
 ]
 
-finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = closeHoles[settleOverloads[term]]},
+finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = generalizedLevels[closeHoles[settleOverloads[term]]]},
 	(* a variable written without a type whose body did not decide one, its type a metavariable still or solved by
 	   one, is asked for by name *)
 	If[ Complement[unsolvedMetavariables[finalTerm], metavariable /@ Keys[$holeAnnotations]] =!= {},
@@ -1360,6 +1376,28 @@ newMetavariable[type_, context_List] := With[{id = freshMetavariableId[]},
 
 newLevelMetavariable[] := levelMetavariable[++$levelMetavariableCounter]
 
+(* A level that nothing decided, as the level of the sort of p in ForAll[{p}, Implies[p, p]], becomes a universe parameter
+   of the declaration, u_1, u_2, ..., as Lean binds one, or Type in a term on its own, which has no parameters; a
+   variable whose type nothing decided at all is still asked for. *)
+generalizedLevels[term_] := With[{levels = Union[Cases[instantiateMetavariables[term], levelMetavariable[id_] :> id, {0, Infinity}]]},
+	If[ levels === {} || $levelGeneralization === None,
+		term,
+		Scan[Function[id, $levelAssignments[id] = generalizedLevel[$levelGeneralization]], levels];
+		instantiateMetavariables[term]
+	]
+]
+
+generalizedLevel["Type"] := 1
+generalizedLevel["Parameters"] := With[{name = freshLevelParameterName[]},
+	AppendTo[$generalizedLevels, HoldComplete[name]];
+	levelParameter[HoldComplete[name]]
+]
+
+freshLevelParameterName[] := SelectFirst[
+	Function[k, "u_" <> ToString[k]] /@ Range[Length[$universeParameterNames] + Length[$generalizedLevels] + 1],
+	Function[name, ! MemberQ[Join[$universeParameterNames, $generalizedLevels], HoldComplete[name]]]
+]
+
 instantiateLevels[level_] := ReplaceRepeated[level, levelMetavariable[id_] /; KeyExistsQ[$levelAssignments, id] :> $levelAssignments[id]]
 
 instantiateMetavariables[term_] := ReplaceRepeated[term, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id] :> With[{assigned = $metavariableAssignments[id]}, assigned /; True]] /. {
@@ -1930,6 +1968,11 @@ unifyLevels[a_, b_] := With[{first = normalizeLevel[instantiateLevels[a]], secon
 			unifyLevels[First[first], loweredLevel[second, Last[first]]],
 		MatchQ[second, levelSuccessor[_levelMetavariable, _]] && loweredLevel[first, Last[second]] =!= None,
 			unifyLevels[First[second], loweredLevel[first, Last[second]]],
+		(* imax(a, b) = 0 holds exactly when b = 0, as Lean solves it: a statement whose sort must be Prop *)
+		MatchQ[{first, second}, {levelImpredicativeMaximum[_, _], 0}],
+			unifyLevels[Last[first], 0],
+		MatchQ[{first, second}, {0, levelImpredicativeMaximum[_, _]}],
+			unifyLevels[Last[second], 0],
 		(* max(?u, 1) = 1 holds for ?u at most 1, and ?u = 1 is taken, as a translation that keeps Type at least
 		   writes its universes *)
 		boundedMaximumQ[first, second],

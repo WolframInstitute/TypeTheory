@@ -23,7 +23,7 @@ RelatedGuides: [TypeTheory]
 - In a notebook a proof shows each open goal as its hypotheses over the goal, with the constructor's name on goals that come from induction. The display stands for the proof itself: copied, or evaluated again, it gives the [TypeTheoryProof]().
 - <code>*proof*["Goals"]</code> gives the open goals as <code>[TypeTheoryTerm]()[[RightTee]()[{[Typed]()[*x*, *type*], ...}, *goal*], *env*]</code>, each a statement in its own right. <code>*proof*["Term"]</code> gives the proof term, <code>*proof*["Statement"]</code> the statement and <code>*proof*["Environment"]</code> the environment.
 - Nothing a tactic does is trusted: [TypeTheoryTheorem]() has the kernel check the finished proof term.
-- The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear.
+- The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear, and makes each level that nothing in the declaration decides one more, `"u_1"`, `"u_2"`, …, as Lean does.
 
 ## Basic Examples
 

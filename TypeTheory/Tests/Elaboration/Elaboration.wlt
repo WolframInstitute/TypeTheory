@@ -361,3 +361,35 @@ VerificationTest[
 	{Lists[NonNegativeIntegers], 3, True, True, Lists[NonNegativeIntegers], "ElaborationFailed"},
 	TestID -> "A-list-written-as-a-term-is-the-list-of-its-elements"
 ]
+
+(* A variable written without a type whose sort nothing decides: a theorem's statement is a proposition where it can be,
+   so p is a proposition; a level left over becomes a universe parameter u_1 of the declaration, as Lean binds one; a
+   term on its own, which has no parameters, takes Type; a variable whose type nothing decides is still asked for. *)
+VerificationTest[
+	With[
+		{
+			environment = TypeTheoryEnvironment[prelude, {
+				TypeTheoryTheorem[ClassicalSelfImplication, ForAll[{p}, Implies[p, p]], Function[{p, h}, h]],
+				TypeTheoryAxiom[PolymorphicIdentity, ForAll[{a}, TypeSpecifier[{a} -> a]]],
+				TypeTheoryTheorem[PolymorphicSelfEquality, ForAll[{A, Typed[x, A]}, x == x], Function[{A, Typed[x, A]}, EqualityReflexivity[x]]]
+			}]
+		},
+		{
+			environment[ClassicalSelfImplication],
+			environment[PolymorphicIdentity],
+			Last[environment[PolymorphicSelfEquality]],
+			TypeTheoryProof[ForAll[{p}, Implies[p, p]], prelude, {TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Assumption"]}]["Goals"],
+			First[TypeOf[TypeTheoryTerm[Function[{a}, Function[Typed[x, a], x]], prelude]]],
+			First[TypeOf[TypeTheoryTerm[ForAll[{a}, a == a], prelude]]]
+		}
+	],
+	{
+		TypeTheoryTheorem[ClassicalSelfImplication, ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, h]],
+		TypeTheoryAxiom[PolymorphicIdentity, ForAll[{Typed[a, TypeUniverse["u_1"]]}, TypeSpecifier[{a} -> a]], "UniverseParameters" -> {"u_1"}],
+		"UniverseParameters" -> {"u_1"},
+		{},
+		ForAll[{Typed[a, TypeUniverse[1]]}, TypeSpecifier[{a} -> a]],
+		"ElaborationFailed"
+	},
+	TestID -> "A-level-nothing-decides-is-Prop-a-universe-parameter-or-Type"
+]

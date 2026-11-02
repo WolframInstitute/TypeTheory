@@ -261,7 +261,14 @@ $emptyEnvironments = <||>
 
 addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryAxiom, Hold[options], {toSyntax[type]}]},
-	declareAxiom[environment, HoldComplete[name], universeParameters, closedType[environment, HoldComplete[type], universeParameters], declarationAnnotation[Hold[options]], declarationOverloads[Hold[options]]]
+	Replace[generalizedType[environment, HoldComplete[type], universeParameters], {core_, parameters_} :>
+		declareAxiom[environment, HoldComplete[name], parameters, core, declarationAnnotation[Hold[options]], declarationOverloads[Hold[options]]]
+	]
+]
+
+(* a type elaborated with each level nothing decided made a universe parameter: {type, universe parameters} *)
+generalizedType[environment_, held_HoldComplete, universeParameters_List] := Block[{$levelGeneralization = "Parameters", $generalizedLevels = {}},
+	With[{core = closedType[environment, held, universeParameters]}, {core, Join[universeParameters, $generalizedLevels]}]
 ]
 
 (* the operation an "Overloads" option names, one of those whose meanings elaboration chooses by the types *)
@@ -289,10 +296,11 @@ annotationField[annotation_] := <|"Annotation" -> annotation|>
    that type: Lean's projections, for one, take their parameters explicitly in the value *)
 addDeclaration[environment_, TypeTheoryDefinition[name_, Typed[value_, type_], options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[Typed[value, type]]}]},
-	{typeCore = closedType[environment, HoldComplete[type], universeParameters]},
-	declareDefinition[
-		environment, HoldComplete[name], universeParameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, universeParameters],
-		Join[definitionRoles[Hold[options], typeCore], overloadsField[declarationOverloads[Hold[options]]]]
+	Replace[generalizedType[environment, HoldComplete[type], universeParameters], {typeCore_, parameters_} :>
+		declareDefinition[
+			environment, HoldComplete[name], parameters, typeCore, closedValue[environment, HoldComplete[value], typeCore, parameters],
+			Join[definitionRoles[Hold[options], typeCore], overloadsField[declarationOverloads[Hold[options]]]]
+		]
 	]
 ]
 
@@ -336,11 +344,12 @@ explicitFunctionType[type_] := type
 (* a proof with holes declares a constant for each before the theorem (Holes.wl); the statement has none *)
 addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryTheorem, Hold[options], {toSyntax[statement], toSyntax[proof]}]},
-	{type = closedType[environment, HoldComplete[statement], universeParameters]},
-	Block[{$elaboratedHoles = {}},
-		declareTheoremWithHoles[
-			environment, HoldComplete[name], universeParameters, type, theoremValue[environment, HoldComplete[proof], type, universeParameters],
-			declarationAnnotation[Hold[options]]
+	Replace[Block[{$propositionExpected = True}, generalizedType[environment, HoldComplete[statement], universeParameters]], {type_, parameters_} :>
+		Block[{$elaboratedHoles = {}},
+			declareTheoremWithHoles[
+				environment, HoldComplete[name], parameters, type, theoremValue[environment, HoldComplete[proof], type, parameters],
+				declarationAnnotation[Hold[options]]
+			]
 		]
 	]
 ]

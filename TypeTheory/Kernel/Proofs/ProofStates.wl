@@ -178,7 +178,9 @@ TypeTheoryProof[term_, tactics : {___TypeTheoryTactic}, options : OptionsPattern
 
 startProof[environment_, held_HoldComplete, Hold[options___]] := catchKernelFailure @ With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryProof, Hold[options], {toSyntax @@ held}]},
-	newProofState[environment, elaborateClosedType[environment, held, universeParameters], universeParameters]
+	Block[{$levelGeneralization = "Parameters", $generalizedLevels = {}, $propositionExpected = True},
+		With[{statement = elaborateClosedType[environment, held, universeParameters]}, newProofState[environment, statement, Join[universeParameters, $generalizedLevels]]]
+	]
 ]
 
 (* the tactics in turn, stopping at the first one that fails *)
