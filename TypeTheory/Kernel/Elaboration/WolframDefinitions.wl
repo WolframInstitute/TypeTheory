@@ -77,7 +77,9 @@ loadKernelCompiler[] := Which[
 			"MessageParameters" -> {$kernelCompilerVersions, "PacletInstall[ResourceObject[\"" <> $kernelCompilerResource <> "\"]]"}
 		|>],
 	True,
-		Needs["Wolfram`KernelCompiler`"];
+		(* off the context path, which it would join: the paclet's names, its own TypeTheoryCheck among them, must not
+		   shadow TypeTheory's; its functions are called by their full names *)
+		Block[{$ContextPath = $ContextPath}, Needs["Wolfram`KernelCompiler`"]];
 		If[ kernelCompilerSymbol["$CoreVersion"] === $kernelCompilerCoreVersion,
 			$kernelCompilerLoaded = True,
 			Failure["KernelCompilerVersion", <|

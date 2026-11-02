@@ -119,7 +119,7 @@ VerificationTest[
 
 VerificationTest[
 	MatchQ[
-		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[1, u]]]] //. StyleBox[boxes_, ___] :> boxes,
+		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[1, u]]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes,
 		InterpretationBox[TemplateBox[{_, _, "\"Sort\"", TemplateBox[{"\"(\"", TemplateBox[{_, _, "\"max\"", "1", "u"}, "RowWithSeparators"], "\")\""}, "RowDefault"]}, "RowWithSeparators"], _]
 	],
 	True,
@@ -128,7 +128,7 @@ VerificationTest[
 
 VerificationTest[
 	MatchQ[
-		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[u + 1, v + 1]]]] //. StyleBox[boxes_, ___] :> boxes,
+		ToBoxes[TypeTheoryTerm[TypeUniverse[Max[u + 1, v + 1]]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes,
 		InterpretationBox[TemplateBox[{_, _, "\"Type\"", TemplateBox[{"\"(\"", TemplateBox[{_, _, "\"max\"", "u", "v"}, "RowWithSeparators"], "\")\""}, "RowDefault"]}, "RowWithSeparators"], _]
 	],
 	True,
@@ -159,7 +159,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[NaturalNumberZero]], prelude]] //. StyleBox[name_, ___] :> name},
+	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[NaturalNumberZero]], prelude]] //. (StyleBox | TooltipBox)[name_, ___] :> name},
 		{FreeQ[boxes, "NaturalNumberZero" | "NaturalNumberSuccessor"], ! FreeQ[boxes, RowBox[{"k", "+", "1"}]], ! FreeQ[boxes, RowBox[{"0", "+", "1"}]]}
 	],
 	{True, True, True},
@@ -178,7 +178,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[NaturalNumberSuccessor[k]] == k + 2]]] //. StyleBox[name_, ___] :> name, RowBox[{"k", "+", "1", "+", "1"}]],
+	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[NaturalNumberSuccessor[k]] == k + 2]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, RowBox[{"k", "+", "1", "+", "1"}]],
 	False,
 	TestID -> "Successors-of-successors-add-up-from-the-left"
 ]
@@ -259,7 +259,7 @@ VerificationTest[
 			FreeQ[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> Lists["Polynomials"]], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox],
-			Sort[Cases[ToBoxes[TypeTheoryTerm[degree[zero], named]], StyleBox[name_String, Bold, ___] :> name, Infinity]],
+			Sort[Cases[ToBoxes[TypeTheoryTerm[degree[zero], named]] /. TooltipBox[boxes_, ___] :> boxes, StyleBox[name_String, Bold, ___] :> name, Infinity]],
 			FreeQ[ToBoxes[TypeTheoryTerm[Function[Typed[zero, NonNegativeIntegers], zero], named]], StyleBox[_, Bold, ___]]
 		}
 	],
@@ -269,7 +269,7 @@ VerificationTest[
 
 VerificationTest[
 	Cases[
-		ToBoxes[TypeTheoryTerm[DependentSum[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, n == n]]]] //. StyleBox[name_, ___] :> name,
+		ToBoxes[TypeTheoryTerm[DependentSum[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, n == n]]]] //. (StyleBox | TooltipBox)[name_, ___] :> name,
 		SubscriptBox["\[CapitalSigma]", RowBox[{"n", "\[Colon]", _}]],
 		Infinity
 	] =!= {},
@@ -288,7 +288,7 @@ VerificationTest[
 
 VerificationTest[
 	Cases[
-		ToBoxes[TypeTheoryTerm[Subtype[Function[{Typed[n, NonNegativeIntegers]}, 2 <= n]]]] //. StyleBox[name_, ___] :> name,
+		ToBoxes[TypeTheoryTerm[Subtype[Function[{Typed[n, NonNegativeIntegers]}, 2 <= n]]]] //. (StyleBox | TooltipBox)[name_, ___] :> name,
 		TemplateBox[{"\"{\"", TemplateBox[{RowBox[{"n", "\[Colon]", _}], "\" // \"", _}, "RowDefault"], "\"}\""}, "RowDefault"],
 		Infinity
 	] =!= {},
@@ -331,4 +331,18 @@ VerificationTest[
 	],
 	{True, {{"u", WolframInstitute`TypeTheory`PackageScope`$displayColors["Level"]}}, True, True, True},
 	TestID -> "A-bound-variable-a-level-and-an-unsolved-metavariable-show-in-their-colors"
+]
+
+(* on mouseover a constant shows its declared type and a bound variable the type its binder gives, drawn without
+   tooltips of their own *)
+VerificationTest[
+	With[{tips = Function[boxes, Cases[boxes, TooltipBox[shown_, tip_, ___] :> {shown /. StyleBox[inner_, ___] :> inner, FreeQ[tip, TooltipBox]}, Infinity]]},
+		{
+			DeleteDuplicates[tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]],
+			First[tips[ToBoxes[TypeTheoryTerm[AndIntroduction]]]],
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm[AndIntroduction]], TooltipBox]]
+		}
+	],
+	{{{"n", True}}, {"AndIntroduction", True}, True},
+	TestID -> "A-constant-and-a-bound-variable-show-their-types-on-mouseover"
 ]

@@ -73,6 +73,7 @@ a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of funct
 PackageScoped[typeTheoryBoxes]
 PackageScoped[displaySyntax]
 PackageScoped[$displayColors]
+PackageScoped[$displayTooltips]
 
 
 (* ::Section:: *)
@@ -81,6 +82,7 @@ PackageScoped[$displayColors]
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
+$displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover."
 $displayColors::usage = "$displayColors is the Association of the colors a display gives a bound variable, a universe level and an unsolved metavariable."
 
 
@@ -94,7 +96,11 @@ typeTheoryBoxes[syntax_, form_] := Block[
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]],
 		$boundSymbols = Join[$goalSymbols, boundSymbols[syntax]],
-		$symbolConstants = <||>
+		$boundTypes = Join[$goalTypes, boundTypes[syntax]],
+		$symbolConstants = <||>,
+		$constantTypes = <||>,
+		$tooltipsShown = TrueQ[$displayTooltips] && LeafCount[syntax] <= $tooltipLeafLimit,
+		$displayForm = form
 	},
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
@@ -193,8 +199,29 @@ quantifierEndedQ[_] := False
 (* the symbols the binders of a term name: of ForAll, Function, Exists and the hypotheses of a goal *)
 $boundSymbols = <||>
 
-(* the names of the hypotheses of the goal on display, local to its target as a bound variable is *)
+(* the names of the hypotheses of the goal on display, local to its target as a bound variable is, and their types *)
 $goalSymbols = <||>
+$goalTypes = <||>
+
+(* the type each binder gives the symbol it names, where the term binds it at one type only *)
+$boundTypes = <||>
+
+boundTypes[syntax_] := Association[Cases[
+	Normal[GroupBy[
+		Catenate @ Cases[
+			syntax,
+			syntaxApplication[syntaxSymbol[HoldComplete[ForAll | Function | Exists | RightTee]], {binders_, __}] :> Catenate[binderTyping /@ listElements[binders]],
+			{0, Infinity}
+		],
+		First -> Last,
+		DeleteDuplicates
+	]],
+	(name_ -> {type_}) :> name -> type
+]]
+
+binderTyping[syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[name : HoldComplete[_Symbol]], type_, ___}]] := {name -> type}
+binderTyping[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, _}]] := binderTyping[binder]
+binderTyping[_] := {}
 
 boundSymbols[syntax_] := AssociationMap[True&, DeleteDuplicates @ Catenate @ Cases[
 	syntax,
@@ -244,12 +271,14 @@ displaySyntax[syntaxSymbol[HoldComplete[IntervalOne]]] := syntaxInteger[1]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
 (* a variable the term binds shows in the color of a local variable, by its name, as Lean prints one, also when it was
    read in a context the context path leaves out, or in the paclet's own, where the symbol would show its context *)
-displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] := styled[
-	If[offPathQ[symbol] || privateNameQ[symbol], syntaxString[SymbolName[Unevaluated[symbol]]], syntaxSymbol[name]],
-	"BoundVariable"
+displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] := typeTooltip[
+	styled[If[offPathQ[symbol] || privateNameQ[symbol], syntaxString[SymbolName[Unevaluated[symbol]]], syntaxSymbol[name]], "BoundVariable"],
+	Lookup[$boundTypes, name, None]
 ]
 displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
-displaySyntax[name : syntaxSymbol[HoldComplete[_Symbol]]] /; symbolConstantQ[name] := bold[name]
+displaySyntax[name : syntaxSymbol[held : HoldComplete[_Symbol]]] /; symbolConstantQ[name] := typeTooltip[bold[name], constantTypeSyntax[held]]
+(* a constant named by a string shows as the string does, with its type on mouseover *)
+displaySyntax[name : syntaxString[text_String]] /; TrueQ[$tooltipsShown] && displayedConstantQ[HoldComplete[text]] := typeTooltip[name, constantTypeSyntax[HoldComplete[text]]]
 displaySyntax[syntax_] := syntax
 
 displayApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] := syntaxHead[Colon, {term, type}]
@@ -393,6 +422,27 @@ bold[syntax_] := syntaxHead[Style, {syntax, syntaxSymbol[HoldComplete[Bold]]}]
    dimmed, as bookkeeping, and an unsolved metavariable as a hole shows. *)
 $displayColors = <|"BoundVariable" -> RGBColor[0.2, 0.55, 0.2], "Level" -> StandardGray, "Unsolved" -> StandardOrange|>
 
+(* Types on mouseover: a constant shows its declared type and a bound variable the type its binder gives, drawn as a
+   term is but without tooltips of their own; a term past $tooltipLeafLimit leaves them out, to keep its boxes small. *)
+$displayTooltips = True
+$tooltipLeafLimit = 5000
+$tooltipsShown = False
+
+(* a TooltipBox alone, where Tooltip would also keep the tooltip's boxes in a TagBox's annotation, twice its size *)
+typeTooltipped /: MakeBoxes[typeTooltipped[shown_, RawBoxes[tip_]], form_] := TooltipBox[MakeBoxes[shown, form], tip]
+
+typeTooltip[display_, None] := display
+typeTooltip[display_, typeSyntax_] := If[ TrueQ[$tooltipsShown],
+	syntaxHead[typeTooltipped, {display, syntaxOther[HoldComplete @@ {RawBoxes[Block[{$displayTooltips = False}, typeTheoryBoxes[typeSyntax, $displayForm]]]}]}],
+	display
+]
+
+(* the declared type of a constant of the display's environment, read back once a display; None where it has none *)
+constantTypeSyntax[held_HoldComplete] := Lookup[$constantTypes, Key[held], $constantTypes[held] = Replace[
+	Quiet[catchKernelFailure[constantRecord[displayEnvironment[], held]]],
+	{record : KeyValuePattern["Type" -> type_] :> Quiet[Check[delaborate[displayEnvironment[], <||>, type], None]], _ :> None}
+]]
+
 styled[syntax_, role_String] := With[{color = $displayColors[role]}, syntaxHead[Style, {syntax, syntaxOther[HoldComplete[color]]}]]
 
 (* an argument written after its function, as in List A, in parentheses unless it is a name or a number *)
@@ -401,7 +451,7 @@ juxtaposed[syntax_] := delimited["(", syntax, ")"]
 
 (* a name or a number, also in bold or in a color, which an operator before it takes without parentheses *)
 atomicDisplayQ[syntaxSymbol[_] | syntaxString[_] | syntaxInteger[_]] := True
-atomicDisplayQ[syntaxApplication[syntaxSymbol[HoldComplete[Style]], {syntax_, _}]] := atomicDisplayQ[syntax]
+atomicDisplayQ[syntaxApplication[syntaxSymbol[HoldComplete[Style | typeTooltipped]], {syntax_, _}]] := atomicDisplayQ[syntax]
 atomicDisplayQ[_] := False
 
 (* A constant of the display's environment named by a symbol outside System, a type or a function alike, which a variable
@@ -409,7 +459,7 @@ atomicDisplayQ[_] := False
 symbolConstantQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] := And[
 	Context[Unevaluated[symbol]] =!= "System`",
 	! KeyExistsQ[$boundSymbols, held],
-	Lookup[$symbolConstants, Key[held], $symbolConstants[held] = displayedConstantQ[held]]
+	If[AssociationQ[$symbolConstants], Lookup[$symbolConstants, Key[held], $symbolConstants[held] = displayedConstantQ[held]], displayedConstantQ[held]]
 ]
 
 displayedConstantQ[held_HoldComplete] := AssociationQ[Quiet[catchKernelFailure[constantRecord[displayEnvironment[], held]]]]
@@ -517,7 +567,7 @@ TypeTheoryHole /: MakeBoxes[hole : TypeTheoryHole[annotation___], form : Standar
 ]
 
 goalPanel[data_, goal_, form_] := Replace[Quiet @ catchKernelFailure[goalDisplaySyntax[data, goal]], {
-	{case_, hypotheses_List, target_} :> Block[{$goalSymbols = AssociationMap[True&, Catenate[binderSymbol /@ hypotheses]]}, Column[Join[
+	{case_, hypotheses_List, target_} :> Block[{$goalSymbols = AssociationMap[True&, Catenate[binderSymbol /@ hypotheses]], $goalTypes = Association[Catenate[binderTyping /@ hypotheses]]}, Column[Join[
 		Replace[case, {None -> {}, HoldComplete[name_] :> {Style[Row[{"case ", HoldForm[name]}], Italic, StandardGray]}}],
 		Function[hypothesis, RawBoxes[typeTheoryBoxes[hypothesis, form]]] /@ hypotheses,
 		{Row[{Style["\[RightTee] ", Bold], RawBoxes[typeTheoryBoxes[target, form]]}]}

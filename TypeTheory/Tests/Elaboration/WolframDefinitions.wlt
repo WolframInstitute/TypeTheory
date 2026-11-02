@@ -45,3 +45,13 @@ VerificationTest[
 	True,
 	TestID -> "A-symbol-is-formalized-as-a-definition-where-it-translates-and-as-an-axiom-Wolfram-computes-otherwise"
 ]
+
+(* reading definitions leaves the context path as it was, so the compiler's names shadow none of TypeTheory's *)
+VerificationTest[
+	With[{path = $ContextPath},
+		Block[{shadowed}, shadowed[x_] := x; WolframInstitute`TypeTheory`PackageScope`lowerDefinitions[HoldComplete[shadowed]]];
+		{$ContextPath === path, Context[TypeTheoryCheck]}
+	],
+	{True, "WolframInstitute`TypeTheory`"},
+	TestID -> "Reading-definitions-puts-nothing-on-the-context-path"
+]
