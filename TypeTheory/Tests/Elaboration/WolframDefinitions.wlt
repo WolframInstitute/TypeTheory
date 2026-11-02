@@ -21,3 +21,27 @@ VerificationTest[
 	True,
 	TestID -> "Definitions-are-lowered-by-the-compiler-or-its-install-is-named"
 ]
+
+(* with the compiler: a definition that translates is typed by elaboration, the symbols it calls formalized first and
+   the built-ins it calls declared by their signatures; one that does not is an axiom Wolfram computes, of the type
+   "Type" gives or over "Expressions". Without it, an axiom of the type "Type" gives. *)
+VerificationTest[
+	Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Rationals"], square, next, simplified, reversed},
+		square[x_Integer] := x^2 + 1;
+		next[x_Integer] := square[x] + 1;
+		simplified[x_Integer] := Simplify[x + 1];
+		reversed[s_] := StringReverse[s];
+		If[ PacletFind["Wolfram/KernelCompiler"] === {},
+			{TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers]} === {{TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]}},
+			{
+				TypeTheoryFormalize[square] === {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]},
+				First[TypeOf[TypeTheoryTerm[next, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[next]]]]] === (Integers -> Integers),
+				TypeTheoryFormalize[simplified][[All, 1]] === {Simplify, simplified},
+				Last[TypeTheoryFormalize[reversed]] === TypeTheoryAxiom[reversed, "Expressions" -> "Expressions", "Implementation" -> reversed],
+				TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers] === {TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]}
+			} === {True, True, True, True, True}
+		]
+	],
+	True,
+	TestID -> "A-symbol-is-formalized-as-a-definition-where-it-translates-and-as-an-axiom-Wolfram-computes-otherwise"
+]
