@@ -26,17 +26,10 @@ RelatedGuides: [TypeTheory]
 
 ## Basic Examples
 
-A Wolfram Language function on integers:
+A Wolfram Language function on integers translates, and elaboration types it:
 
 ```wl
-square[x_Integer] := x^2 + 1
-```
-
----
-
-It translates, and elaboration types it:
-
-```wl
+square[x_Integer] := x^2 + 1;
 TypeTheoryFormalize[square, TypeTheoryEnvironment["Integers"]]
 ```
 
