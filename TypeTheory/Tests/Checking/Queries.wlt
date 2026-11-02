@@ -307,7 +307,7 @@ rules[tree_] := Cases[tree, TypeTheoryProofTree[rule_String, __] :> rule, {0, In
 VerificationTest[
 	With[
 		{
-			k = Information[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[y, b]}, x], prelude], "ProofTree"],
+			k = TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[y, b]}, x], prelude]],
 			swap = Information[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]}, AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]], prelude], "ProofTree"]
 		},
 		{

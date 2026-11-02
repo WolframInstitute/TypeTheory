@@ -78,10 +78,7 @@ types, as propositional extensionality does not; the option \"Axioms\" -> True k
 DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
-TypeTheoryProofTree::usage = "TypeTheoryProofTree[rule, claim, {premise, ...}] is a natural-deduction derivation of the TypeTheoryTerm claim by rule \
-from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \
-\"OrIntro\", \"OrElim\" or \"FalseElim\". Information[proof, \"ProofTree\"] gives the derivation of a proof of propositional logic; it shows \
-drawn, each conclusion under a line over its premises."
+TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of the TypeTheoryTerm proof, a proof of propositional logic. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\" or \"FalseElim\"."
 
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
 heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
@@ -137,7 +134,8 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := 
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ typeAndValueConstants[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
-TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := catchKernelFailure[proofTree[termEnvironment[term], term]]
+TypeTheoryProofTree[term : TypeTheoryTerm[_, ___]] := catchKernelFailure[proofTree[termEnvironment[term], term]]
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := TypeTheoryProofTree[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] := catchKernelFailure[termImplementation[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"}
 
