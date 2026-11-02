@@ -11,6 +11,8 @@ PacletObject[<|
 	"Keywords" -> {"type theory", "dependent types", "inductive types", "proof assistant", "proof checking"},
 	"Categories" -> {"Mathematics"},
 	"PrimaryContext" -> "WolframInstitute`TypeTheory`",
+	(* metadata only: TypeTheory loads the compiler when it reads Wolfram Language definitions (WolframDefinitions.wl) *)
+	"Dependencies" -> {"Wolfram/KernelCompiler" -> "0.1.*"},
 	"Extensions" -> {
 		{
 			"Kernel",
