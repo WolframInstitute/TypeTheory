@@ -267,3 +267,29 @@ VerificationTest[
 	{False, True, True},
 	TestID -> "A-library-environment-name-stands-for-it-in-a-Block"
 ]
+
+(* an axiom may name the Wolfram Language function that computes it, as a symbol: it is kept in the record, read back,
+   replayed and saved by name, and the kernel never runs it; anything but a symbol is refused *)
+VerificationTest[
+	With[
+		{
+			environment = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom["Expressions", TypeUniverse[1]],
+				TypeTheoryAxiom["simplify", "Expressions" -> "Expressions", "Implementation" -> Simplify]
+			}],
+			file = FileNameJoin[{$TemporaryDirectory, "implementation-" <> CreateUUID[] <> ".wxf"}]
+		},
+		Export[file, environment];
+		{
+			environment["simplify"],
+			Information[TypeTheoryTerm["simplify", environment], "Implementation"],
+			Information[TypeTheoryTerm["Expressions", environment], "Implementation"],
+			Information[TypeTheoryTerm["simplify", TypeTheoryEnvironment[File[file], "Check" -> True]], "Implementation"],
+			Information[TypeTheoryTerm["simplify", TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[environment]]], "Implementation"],
+			First[TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[Opaque, TypeUniverse[1], "Implementation" -> Function[x, x]]}]],
+			DeleteFile[file]
+		}
+	],
+	{TypeTheoryAxiom["simplify", "Expressions" -> "Expressions", "Implementation" -> Simplify], Simplify, None, Simplify, Simplify, "InvalidOption", Null},
+	TestID -> "An-axiom-names-the-function-that-computes-it"
+]

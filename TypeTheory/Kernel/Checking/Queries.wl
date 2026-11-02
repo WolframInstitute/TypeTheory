@@ -138,7 +138,8 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := cat
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := catchKernelFailure[proofTree[termEnvironment[term], term]]
-TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree"}
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] := catchKernelFailure[termImplementation[termEnvironment[term], term]]
+TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"}
 
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
@@ -315,7 +316,7 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 			},
 			universeOption
 		]],
-		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption, annotationOptionSyntax[record], overloadsOptionSyntax[record]]],
+		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption, annotationOptionSyntax[record], overloadsOptionSyntax[record], implementationOptionSyntax[record]]],
 		"Definition" | "Opaque" :> syntaxHead[TypeTheoryDefinition, Join[
 			{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]},
 			universeOption,
@@ -341,6 +342,8 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 recordRoles[record_] := Join[Append[KeyTake[record, {"Instance", "Coercion"}], "Opaque" -> record["Kind"] === "Opaque"], KeyTake[record, {"Overloads"}]]
 
 overloadsOptionSyntax[record_] := Replace[Lookup[record, "Overloads", None], {None -> {}, operation_HoldComplete :> {syntaxHead[Rule, {syntaxString["Overloads"], toSyntax @@ operation}]}}]
+
+implementationOptionSyntax[record_] := Replace[Lookup[record, "Implementation", None], {None -> {}, implementation_HoldComplete :> {syntaxHead[Rule, {syntaxString["Implementation"], toSyntax @@ implementation}]}}]
 
 annotationOptionSyntax[record_] := Replace[Lookup[record, "Annotation", None], {None -> {}, annotation_ :> {syntaxOther[HoldComplete["Annotation" -> annotation]]}}]
 
@@ -407,6 +410,12 @@ closureOf[environment_, term_] := Block[{$closureVisited = <||>, $closureAxioms 
 termHoles[environment_, term_] := holeGroups[environment, Last[closureOf[environment, queryCoreTerm[environment, term]]]]
 
 (* the annotation of a constant's record: a hole's, or None *)
+(* the function that computes a constant, the symbol its declaration names, or None *)
+termImplementation[environment_, term_] := Replace[queryCoreTerm[environment, term], {
+	constantReference[name_, _] :> Replace[Lookup[constantRecord[environment, name], "Implementation", None], HoldComplete[implementation_] :> implementation],
+	_ :> None
+}]
+
 termAnnotation[environment_, term_] := Replace[queryCoreTerm[environment, term], {
 	constantReference[name_, _] :> Lookup[constantRecord[environment, name], "Annotation", None],
 	_ :> None
@@ -574,7 +583,7 @@ replayDeclaration[original_, replayed_, name_ -> record_] := With[
 ]
 
 redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
-	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"], Lookup[record, "Annotation", None], Lookup[record, "Overloads", None]],
+	"Axiom" :> declareAxiom[replayed, name, record["UniverseParameters"], record["Type"], Lookup[record, "Annotation", None], Lookup[record, "Overloads", None], Lookup[record, "Implementation", None]],
 	"Hole" :> declareHole[replayed, name, record["UniverseParameters"], record["Type"], record["Annotation"], record["Theorem"]],
 	"Definition" | "Opaque" :> declareDefinition[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], recordRoles[record]],
 	"Theorem" :> declareTheorem[replayed, name, record["UniverseParameters"], record["Type"], record["Value"], Lookup[record, "Annotation", None]],
@@ -639,7 +648,7 @@ translatedDeclaration[original_, target_, name_, record_, direction_String] := W
 ]
 
 translatedRecord[original_, target_, name_, record_, direction_, translate_] := Replace[record["Kind"], {
-	"Axiom" :> declareAxiom[target, name, record["UniverseParameters"], translate[record["Type"]], Lookup[record, "Annotation", None], Lookup[record, "Overloads", None]],
+	"Axiom" :> declareAxiom[target, name, record["UniverseParameters"], translate[record["Type"]], Lookup[record, "Annotation", None], Lookup[record, "Overloads", None], Lookup[record, "Implementation", None]],
 	"Hole" :> declareHole[target, name, record["UniverseParameters"], translate[record["Type"]], record["Annotation"], record["Theorem"]],
 	"Definition" | "Opaque" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]], recordRoles[record]],
 	"Theorem" /; direction === "GainProp" :> declareDefinition[target, name, record["UniverseParameters"], translate[record["Type"]], translate[record["Value"]]],

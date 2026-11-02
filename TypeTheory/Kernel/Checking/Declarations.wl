@@ -142,7 +142,7 @@ theorems and holes are added without the kernel's checks, inductive types with t
 (*Function Definitions*)
 
 
-Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic, "Annotation" -> None, "Overloads" -> None}
+Options[TypeTheoryAxiom] = {"UniverseParameters" -> Automatic, "Annotation" -> None, "Overloads" -> None, "Implementation" -> None}
 Options[TypeTheoryDefinition] = {"UniverseParameters" -> Automatic, "Instance" -> False, "Coercion" -> False, "Opaque" -> False, "Overloads" -> None}
 Options[TypeTheoryTheorem] = {"UniverseParameters" -> Automatic, "Annotation" -> None}
 Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParameters" -> Automatic}
@@ -262,7 +262,7 @@ $emptyEnvironments = <||>
 addDeclaration[environment_, TypeTheoryAxiom[name_, type_, options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryAxiom, Hold[options], {toSyntax[type]}]},
 	Replace[generalizedType[environment, HoldComplete[type], universeParameters], {core_, parameters_} :>
-		declareAxiom[environment, HoldComplete[name], parameters, core, declarationAnnotation[Hold[options]], declarationOverloads[Hold[options]]]
+		declareAxiom[environment, HoldComplete[name], parameters, core, declarationAnnotation[Hold[options]], declarationOverloads[Hold[options]], declarationImplementation[Hold[options]]]
 	]
 ]
 
@@ -285,6 +285,23 @@ declarationOverloads[Hold[options___]] := Replace[Cases[Hold[options], HoldPatte
 
 overloadsField[None] := <||>
 overloadsField[operation_HoldComplete] := <|"Overloads" -> operation|>
+
+(* The Wolfram Language function an axiom names as what computes it, as a symbol: the constant stays opaque to the
+   kernel, which never runs it, and a saved environment keeps only the name, so that loading one runs nothing; the
+   definitions come from the paclet that defines the symbol. *)
+declarationImplementation[Hold[options___]] := Replace[Cases[Hold[options], HoldPattern["Implementation" -> implementation_] :> HoldComplete[implementation], {1}], {
+	{} -> None,
+	{HoldComplete[None], ___} -> None,
+	{implementation : HoldComplete[_Symbol], ___} :> implementation,
+	{HoldComplete[other_], ___} :> kernelFailure[
+		"InvalidOption",
+		"The value of the option \"Implementation\" must be a symbol, the function that computes the constant, not `1`.",
+		{HoldForm[other]}
+	]
+}]
+
+implementationField[None] := <||>
+implementationField[implementation_HoldComplete] := <|"Implementation" -> implementation|>
 
 (* the "Annotation" given, evaluated, kept in the record as it is; None for none *)
 declarationAnnotation[Hold[options___]] := Replace[Cases[Hold[options], HoldPattern["Annotation" -> annotation_] :> annotation, {1}], {{} -> None, {annotation_, ___} :> annotation}]
@@ -574,12 +591,15 @@ levelParameterNames[_] := {}
 
 (* A declaration's type is checked before its value, so every comparison in its check is of checked terms or
    their reducts, where definitional equality infers the types it asks without checking (withCheckedTerms). *)
-declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None, overloads_ : None] := withCheckedTerms[
+declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, annotation_ : None, overloads_ : None, implementation_ : None] := withCheckedTerms[
 	If[ ! $deferKernelChecks,
 		checkUniverseParameters[name, universeParameters, {type}];
 		sortLevel[environment, <||>, type]
 	];
-	addConstantRecords[environment, <|name -> Join[<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>, annotationField[annotation], overloadsField[overloads]]|>]
+	addConstantRecords[environment, <|name -> Join[
+		<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> universeParameters|>,
+		annotationField[annotation], overloadsField[overloads], implementationField[implementation]
+	]|>]
 ]
 
 (* An instance or a coercion is a definition the elaborator may apply; the kernel checks it as any other.
