@@ -238,8 +238,8 @@ VerificationTest[
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
 ]
 
-(* a list type shows as Lean writes it, its word List plain, as notation; a type named by a symbol shows in bold, so that it
-   is told apart from a constant named by a string, which shows as the string does, as a value does *)
+(* a list type shows as Lean writes it, its word List plain, as notation; a constant named by a symbol, a type or a function,
+   shows in bold, so that it is told apart from a constant named by a string, which shows as the string does, as a value does *)
 VerificationTest[
 	With[
 		{
@@ -247,7 +247,9 @@ VerificationTest[
 			named = TypeTheoryEnvironment[prelude, {
 				TypeTheoryAxiom[Polynomial, TypeUniverse[1]],
 				TypeTheoryAxiom["Polynomials", TypeUniverse[1]],
-				TypeTheoryAxiom["zeroPolynomial", "Polynomials"]
+				TypeTheoryAxiom["zeroPolynomial", "Polynomials"],
+				TypeTheoryAxiom[degree, TypeSpecifier[{Polynomial} -> NonNegativeIntegers]],
+				TypeTheoryAxiom[zero, Polynomial]
 			}]
 		},
 		{
@@ -256,11 +258,13 @@ VerificationTest[
 			Length[Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{Polynomial} -> Lists[Polynomial]], named]], StyleBox["Polynomial", Bold, ___], Infinity]],
 			FreeQ[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> Lists["Polynomials"]], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
-			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox]
+			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox],
+			Sort[Cases[ToBoxes[TypeTheoryTerm[degree[zero], named]], StyleBox[name_String, Bold, ___] :> name, Infinity]],
+			FreeQ[ToBoxes[TypeTheoryTerm[Function[Typed[zero, NonNegativeIntegers], zero], named]], StyleBox]
 		}
 	],
-	{True, True, 2, True, True, True},
-	TestID -> "A-list-type-shows-as-List-A-and-a-type-named-by-a-symbol-in-bold"
+	{True, True, 2, True, True, True, {"degree", "zero"}, True},
+	TestID -> "A-list-type-shows-as-List-A-and-a-constant-named-by-a-symbol-in-bold"
 ]
 
 VerificationTest[

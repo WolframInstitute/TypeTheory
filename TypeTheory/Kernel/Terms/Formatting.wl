@@ -47,8 +47,8 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Lists[A]                            List A               as Lean writes it, List (List A) for a list type of a list type
 	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
-A constant named by a symbol that is a type, or that builds one, its type ending in a sort once its arguments are taken,
-shows in bold, as Option or Lists alone, so that it is told apart from a constant named by a string, which shows as the
+A constant named by a symbol outside System, a type or a function alike, as Option, Lists alone or a declared degree,
+shows in bold, so that it is told apart from a constant named by a string, which shows as the
 string does, and from a variable. A constant named by a string is never bold, nor is a notation, as the word List of
 List A or ℕ, nor a System symbol, as True or And, which shows as the Wolfram Language shows it.
 The display rewrites the syntax tree of the term with these operators, rebuilds it held, and takes its
@@ -89,7 +89,7 @@ typeTheoryBoxes[syntax_, form_] := Block[
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]],
 		$boundSymbols = boundSymbols[syntax],
-		$typeConstants = <||>
+		$symbolConstants = <||>
 	},
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
@@ -238,7 +238,7 @@ displaySyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] /; privateNameQ[symbol]
 (* a variable the term binds shows by its name, as Lean prints one, also when it was read in a context the context
    path leaves out, where the symbol would show its context *)
 displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] && offPathQ[symbol] := syntaxString[SymbolName[Unevaluated[symbol]]]
-displaySyntax[name : syntaxSymbol[HoldComplete[_Symbol]]] /; typeConstantQ[name] := bold[name]
+displaySyntax[name : syntaxSymbol[HoldComplete[_Symbol]]] /; symbolConstantQ[name] := bold[name]
 displaySyntax[syntax_] := syntax
 
 displayApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] := syntaxHead[Colon, {term, type}]
@@ -379,22 +379,15 @@ juxtaposed[syntax : syntaxSymbol[_] | syntaxString[_] | syntaxInteger[_]] := syn
 juxtaposed[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Style]], {syntaxSymbol[_] | syntaxString[_], _}]] := syntax
 juxtaposed[syntax_] := delimited["(", syntax, ")"]
 
-(* A constant of the display's environment named by a symbol outside System, whose type ends in a sort once its arguments
-   are taken, which a variable the term binds does not shadow; each name is looked up once a display. *)
-typeConstantQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] := And[
+(* A constant of the display's environment named by a symbol outside System, a type or a function alike, which a variable
+   the term binds does not shadow; each name is looked up once a display. *)
+symbolConstantQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] := And[
 	Context[Unevaluated[symbol]] =!= "System`",
 	! KeyExistsQ[$boundSymbols, held],
-	Lookup[$typeConstants, Key[held], $typeConstants[held] = typeConstantRecordQ[held]]
+	Lookup[$symbolConstants, Key[held], $symbolConstants[held] = displayedConstantQ[held]]
 ]
 
-typeConstantRecordQ[held_HoldComplete] := MatchQ[
-	Quiet[catchKernelFailure[constantRecord[displayEnvironment[], held]]],
-	KeyValuePattern["Type" -> type_ /; sortEndedQ[type]]
-]
-
-sortEndedQ[dependentFunctionType[_, _, codomain_, _]] := sortEndedQ[codomain]
-sortEndedQ[_universeSort] := True
-sortEndedQ[_] := False
+displayedConstantQ[held_HoldComplete] := AssociationQ[Quiet[catchKernelFailure[constantRecord[displayEnvironment[], held]]]]
 
 tupleDisplay[left_String, elements_List, right_String] := delimited[left, syntaxHead[Row, {syntaxHead[List, elements], syntaxString[", "]}], right]
 
