@@ -406,7 +406,21 @@ displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successo
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), arguments : {_, _}] /; overloadedDisplayQ[head, 2] :=
 	displayApplication[syntaxSymbol[HoldComplete @@ {$displayedOverloads[displayedName[head]]}], arguments]
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; overloadedDisplayQ[head, 1] := prefixed["-", argument]
-displayApplication[head_, arguments_List] := syntaxApplication[displaySyntax[head], arguments]
+displayApplication[head_, arguments_List] := With[{shownHead = displaySyntax[head]},
+	If[decoratedQ[shownHead], syntaxHead[appliedDisplay, Prepend[arguments, shownHead]], syntaxApplication[shownHead, arguments]]
+]
+
+(* a head shown in bold or with its type on mouseover is applied as f[x], where the Wolfram Language would put a head
+   that is not a symbol in parentheses, (f)[x] *)
+decoratedQ[syntaxApplication[syntaxSymbol[HoldComplete[Style | typeTooltipped]], _]] := True
+decoratedQ[_] := False
+
+appliedDisplay /: MakeBoxes[appliedDisplay[head_, arguments___], form_] := RowBox[{
+	MakeBoxes[head, form],
+	"[",
+	Replace[List @@ Map[Function[argument, MakeBoxes[argument, form], HoldAllComplete], Hold[arguments]], {{one_} :> one, several_ :> RowBox[Riffle[several, ","]]}],
+	"]"
+}]
 
 displayedName[syntaxSymbol[name_HoldComplete]] := name
 displayedName[syntaxString[name_String]] := HoldComplete[name]

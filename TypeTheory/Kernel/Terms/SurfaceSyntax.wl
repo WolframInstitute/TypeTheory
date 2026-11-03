@@ -135,8 +135,20 @@ toSyntax[symbol_Symbol] := syntaxSymbol[HoldComplete[symbol]]
 toSyntax[n_Integer] := syntaxInteger[n]
 toSyntax[Rational[numerator_, denominator_]] := syntaxHead[Times, {syntaxInteger[numerator], syntaxHead[Power, {syntaxInteger[denominator], syntaxInteger[-1]}]}]
 toSyntax[text_String] := syntaxString[text]
+(* a symbol of a paclet as documentation copies it, PacletSymbol[paclet, name], is the symbol it names, in the paclet's
+   primary context unless the name has a context of its own; nothing is loaded or evaluated to find it *)
+toSyntax[reference : PacletSymbol[paclet_String, name_String]] := Replace[pacletSymbol[paclet, name], {
+	HoldComplete[symbol_Symbol] :> syntaxSymbol[HoldComplete[symbol]],
+	_ :> syntaxOther[HoldComplete[reference]]
+}]
 toSyntax[head_[arguments___]] := syntaxApplication[toSyntax[head], toSyntax /@ Unevaluated[{arguments}]]
 toSyntax[other_] := syntaxOther[HoldComplete[other]]
+
+pacletSymbol[_String, name_String] /; StringContainsQ[name, "`"] := ToExpression[name, InputForm, HoldComplete]
+pacletSymbol[paclet_String, name_String] := Replace[
+	Replace[First[PacletFind[paclet], None], {found_PacletObject :> found["PrimaryContext"], _ -> None}],
+	{context_String :> ToExpression[context <> name, InputForm, HoldComplete], _ -> None}
+]
 
 heldFromSyntax[syntaxSymbol[held_HoldComplete]] := held
 heldFromSyntax[syntaxInteger[n_]] := HoldComplete[n]

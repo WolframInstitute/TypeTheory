@@ -346,3 +346,16 @@ VerificationTest[
 	{{{"n", True}}, {"AndIntroduction", True}, True},
 	TestID -> "A-constant-and-a-bound-variable-show-their-types-on-mouseover"
 ]
+
+(* a constant applied shows as f[x], its name in bold with its type on mouseover, not as (f)[x]; a symbol of a paclet as
+   documentation copies it, PacletSymbol[paclet, name], reads as the symbol it names *)
+VerificationTest[
+	With[{spaces = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[ModularSpace, NonNegativeIntegers -> TypeUniverse[1]]}]},
+		{
+			First[ToBoxes[TypeTheoryTerm[ModularSpace[12], spaces]]] /. TooltipBox[shown_, ___] :> shown,
+			MatchQ[TypeOf[TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "EqualityReflexivity"][2], prelude]], TypeTheoryTerm[HoldPattern[2 == 2], _]]
+		}
+	],
+	{RowBox[{StyleBox["ModularSpace", Bold, StripOnInput -> False], "[", "12", "]"}], True},
+	TestID -> "A-constant-applied-shows-without-parentheses-and-a-PacletSymbol-reads-as-its-symbol"
+]
