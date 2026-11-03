@@ -122,6 +122,12 @@ displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbo
 
 SetAttributes[TypeTheoryTerm, HoldFirst]
 
+(* A term copied from documentation keeps each symbol of a paclet as PacletSymbol[paclet, name]: the term stores the
+   symbol it names instead, as elaboration reads it, so that it shows and compares as the term written with the
+   symbol. The symbols are blocked while they go in, so that none evaluates. *)
+TypeTheoryTerm[term_, rest___] /; ! FreeQ[Unevaluated[term], HoldPattern[PacletSymbol[_String, _String]]] && resolvedPacletSymbolsQ[HoldComplete[term]] :=
+	Replace[withPacletSymbolsResolved[HoldComplete[term]], HoldComplete[resolved_] :> TypeTheoryTerm[resolved, rest]]
+
 $exactReadBack = False
 
 
@@ -137,12 +143,27 @@ toSyntax[Rational[numerator_, denominator_]] := syntaxHead[Times, {syntaxInteger
 toSyntax[text_String] := syntaxString[text]
 (* a symbol of a paclet as documentation copies it, PacletSymbol[paclet, name], is the symbol it names, in the paclet's
    primary context unless the name has a context of its own; nothing is loaded or evaluated to find it *)
-toSyntax[reference : PacletSymbol[paclet_String, name_String]] := Replace[pacletSymbol[paclet, name], {
+toSyntax[reference : HoldPattern[PacletSymbol[paclet_String, name_String]]] := Replace[pacletSymbol[paclet, name], {
 	HoldComplete[symbol_Symbol] :> syntaxSymbol[HoldComplete[symbol]],
 	_ :> syntaxOther[HoldComplete[reference]]
 }]
 toSyntax[head_[arguments___]] := syntaxApplication[toSyntax[head], toSyntax /@ Unevaluated[{arguments}]]
 toSyntax[other_] := syntaxOther[HoldComplete[other]]
+
+(* the paclet symbols of a held term that name a symbol, as pairs {HoldComplete[PacletSymbol[...]], HoldComplete[symbol]};
+   each is read held, and every pattern for one too, since PacletSymbol evaluates, even in a pattern *)
+pacletSymbolPairs[held_HoldComplete] := Cases[
+	DeleteDuplicates[Cases[held, reference : HoldPattern[PacletSymbol[_String, _String]] :> HoldComplete[reference], {0, Infinity}, Heads -> True]],
+	HoldComplete[reference : HoldPattern[PacletSymbol[paclet_, name_]]] :> With[{symbol = pacletSymbol[paclet, name]}, {HoldComplete[reference], symbol} /; MatchQ[symbol, HoldComplete[_Symbol]]]
+]
+
+resolvedPacletSymbolsQ[held_HoldComplete] := pacletSymbolPairs[held] =!= {}
+
+withPacletSymbolsResolved[held_HoldComplete] := With[{pairs = pacletSymbolPairs[held]},
+	Replace[Join @@ (Last /@ pairs), HoldComplete[symbols___] :> Block[{symbols},
+		ReplaceAll[held, Replace[pairs, {HoldComplete[reference_], HoldComplete[symbol_]} :> (HoldPattern[reference] -> symbol), {1}]]
+	]]
+]
 
 pacletSymbol[_String, name_String] /; StringContainsQ[name, "`"] := ToExpression[name, InputForm, HoldComplete]
 pacletSymbol[paclet_String, name_String] := Replace[
