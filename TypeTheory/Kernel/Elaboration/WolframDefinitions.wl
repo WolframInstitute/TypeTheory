@@ -236,32 +236,50 @@ translatedDefinitions[held_, definitions : {_, __}] := Replace[
 	None :> Replace[naturalRecursionTranslation[held, definitions], None :> guardChainTranslation[definitions]]
 ]
 
-(* two definitions by recursion on a natural number, f[0] and f[n_], the second calling f only on n - 1, perhaps
-   with n an _Integer and the condition n > 0, n >= 1 or n != 0, which n + 1 meets: {"NaturalRecursion", <|"Zero" ->
-   HoldComplete[value], "Successor" -> HoldComplete[value]|>, calls}, the successor case's value of predecessor, n
-   being predecessor + 1, and of recursionResult, the value at predecessor *)
+(* two definitions by recursion on a natural number, f[..., 0, ...] and f[..., n_, ...], the second calling f only on n - 1
+   with its other arguments as they are, perhaps with n an _Integer and the condition n > 0, n >= 1 or n != 0, which
+   n + 1 meets: {"NaturalRecursion", <|"Zero" -> HoldComplete[value], "Successor" -> HoldComplete[value], "Binders" ->
+   {binder, ...}, "Position" -> p|>, calls}, the successor case's value of predecessor, n being predecessor + 1, and of
+   recursionResult, the value at predecessor; the other arguments are the binders, by their names in the second *)
 naturalRecursionTranslation[_, Except[{_, _}]] := None
 naturalRecursionTranslation[held_, definitions : {_, _}] := Catch[
-	Replace[SortBy[definitions, Function[definition, ! zeroDefinitionQ[definition]]], {
-		{zero_?zeroDefinitionQ, successor : coreForm["Definition"][_, coreForm["Program"][instructions_List], body_, ___]} :> With[
-			{local = FirstCase[instructions, coreForm["Bind"][_String, local_String, {1}] :> local, Throw[None, untranslatable]]},
-			If[ ! AllTrue[instructions, Function[instruction, MatchQ[instruction,
-					coreForm["Length"][{}, 1] | coreForm["Bind"][_String, local, {1}] | coreForm["HeadIs"][{1}, "System`Integer"] |
-					coreForm["Guard"][coreForm["Call"]["System`Greater" | "System`Unequal", {coreForm["Local"][local], coreForm["Constant"][0]}] |
-						coreForm["Call"]["System`GreaterEqual", {coreForm["Local"][local], coreForm["Constant"][1]}]]
-				]]],
-				Throw[None, untranslatable]
-			];
-			Replace[
-				{
-					Reap[translatedCore[zero[[3]], <||>], untranslatedCall],
-					Block[{$naturalRecursion = <|"Self" -> fullName @@ held, "Local" -> local|>}, Reap[translatedCore[body, <||>], untranslatedCall]]
-				},
-				{{zeroValue_HoldComplete, zeroCalls_}, {successorValue_HoldComplete, successorCalls_}} :> {
-					"NaturalRecursion",
-					<|"Zero" -> zeroValue, "Successor" -> successorValue|>,
-					Join[Catenate[zeroCalls], Catenate[successorCalls]]
-				}
+	Replace[SortBy[definitions, Function[definition, zeroPosition[definition] === None]], {
+		{zero_, successor_} /; IntegerQ[zeroPosition[zero]] && zeroPosition[successor] === None :> With[
+			{
+				position = zeroPosition[zero],
+				zeroParts = clauseParts[DeleteCases[zero[[2, 1]], coreForm["Same"][_, _]]],
+				successorParts = clauseParts[DeleteCases[successor[[2, 1]], coreForm["Guard"][_]]],
+				guards = Cases[successor[[2, 1]], coreForm["Guard"][test_] :> test]
+			},
+			With[{arity = successorParts["Arity"], local = Lookup[successorParts["Locals"], position, Throw[None, untranslatable]]},
+				If[ zeroParts["Arity"] =!= arity || Keys[successorParts["Locals"]] =!= Range[arity] || Keys[zeroParts["Locals"]] =!= DeleteCases[Range[arity], position] ||
+						! MemberQ[{None, "System`Integer"}, Lookup[successorParts["Heads"], position, None]] ||
+						! AllTrue[guards, MatchQ[coreForm["Call"]["System`Greater" | "System`Unequal", {coreForm["Local"][local], coreForm["Constant"][0]}] |
+							coreForm["Call"]["System`GreaterEqual", {coreForm["Local"][local], coreForm["Constant"][1]}]]],
+					Throw[None, untranslatable]
+				];
+				With[
+					{
+						binders = Function[q, If[ q === position,
+							<|"Symbol" -> HoldComplete[naturalArgument], "Type" -> HoldComplete[NonNegativeIntegers]|>,
+							<|"Symbol" -> ToExpression[successorParts["Sources"][q], InputForm, HoldComplete], "Type" -> headType[Lookup[successorParts["Heads"], q, None]]|>
+						]] /@ Range[arity],
+						others = DeleteCases[Range[arity], position]
+					},
+					Replace[
+						{
+							Reap[translatedCore[zero[[3]], Association[Function[q, zeroParts["Locals"][q] -> binders[[q, "Symbol"]]] /@ others]], untranslatedCall],
+							Block[{$naturalRecursion = <|"Self" -> fullName @@ held, "Local" -> local, "Position" -> position, "Others" -> Association[Function[q, q -> successorParts["Locals"][q]] /@ others]|>},
+								Reap[translatedCore[successor[[3]], Association[Function[q, successorParts["Locals"][q] -> binders[[q, "Symbol"]]] /@ others]], untranslatedCall]
+							]
+						},
+						{{zeroValue_HoldComplete, zeroCalls_}, {successorValue_HoldComplete, successorCalls_}} :> {
+							"NaturalRecursion",
+							<|"Zero" -> zeroValue, "Successor" -> successorValue, "Binders" -> binders, "Position" -> position|>,
+							Join[Catenate[zeroCalls], Catenate[successorCalls]]
+						}
+					]
+				]
 			]
 		],
 		_ :> None
@@ -270,23 +288,38 @@ naturalRecursionTranslation[held_, definitions : {_, _}] := Catch[
 	Function[{value, tag}, None]
 ]
 
-zeroDefinitionQ[coreForm["Definition"][_, coreForm["Program"][{coreForm["Length"][{}, 1], coreForm["Same"][{1}, HoldComplete[0]]}], ___]] := True
-zeroDefinitionQ[_] := False
+(* the position whose argument a definition's pattern gives as 0, or None *)
+zeroPosition[coreForm["Definition"][_, coreForm["Program"][instructions_List], ___]] := Replace[
+	Cases[instructions, coreForm["Same"][{position_Integer}, HoldComplete[0]] :> position],
+	{{position_} :> position, _ -> None}
+]
+zeroPosition[_] := None
 
 $naturalRecursion = <||>
 
-(* the candidate values of a definition by recursion on a natural number, of the type "Type" gives, NonNegativeIntegers
-   -> b, or of the type of its zero case *)
-naturalRecursionCandidates[_, HoldComplete[NonNegativeIntegers -> resultType_], parts_] := {naturalRecursionValue[parts, HoldComplete[resultType]]}
-naturalRecursionCandidates[_, HoldComplete[_], _] := {}
+(* the candidate values of a definition by recursion on a natural number, of the type "Type" gives, its argument at the
+   recursion's position NonNegativeIntegers, or of the type of its zero case, where that has no other argument *)
+naturalRecursionCandidates[_, type_HoldComplete, parts_] := Replace[curriedParts[type, Length[parts["Binders"]]], {
+	{domains_List, resultType_HoldComplete} /; domains[[parts["Position"]]] === HoldComplete[NonNegativeIntegers] :> {naturalRecursionValue[parts, resultType]},
+	_ :> {}
+}]
 naturalRecursionCandidates[environment_, None, parts_] := Replace[With[{zero = TypeTheoryTerm @@ Append[parts["Zero"], environment]}, Quiet[TypeOf[zero]]], {
 	TypeTheoryTerm[resultType_, ___] :> {naturalRecursionValue[parts, HoldComplete[resultType]]},
 	_ :> {}
 }]
 
-naturalRecursionValue[parts_, resultTypeHeld_HoldComplete] := Replace[{parts["Zero"], parts["Successor"], resultTypeHeld},
-	{HoldComplete[zero_], HoldComplete[successor_], HoldComplete[b_]} :> HoldComplete[
-		Function[{Typed[naturalArgument, NonNegativeIntegers]},
+(* the domains and the result of a type of arity arguments, A1 -> ... -> An -> B, each held; None where it has fewer *)
+curriedParts[type_HoldComplete, 0] := {{}, type}
+curriedParts[HoldComplete[domain_ -> codomain_], arity_Integer] := Replace[curriedParts[HoldComplete[codomain], arity - 1], {
+	{domains_List, result_} :> {Prepend[domains, HoldComplete[domain]], result},
+	_ -> None
+}]
+curriedParts[_, _] := None
+
+naturalRecursionValue[parts_, resultTypeHeld_HoldComplete] := Replace[
+	{parts["Zero"], parts["Successor"], resultTypeHeld, Join @@ (binderSyntax /@ parts["Binders"])},
+	{HoldComplete[zero_], HoldComplete[successor_], HoldComplete[b_], HoldComplete[binders___]} :> HoldComplete[
+		Function[{binders},
 			InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[number, NonNegativeIntegers]}, b],
 				zero,
@@ -460,9 +493,15 @@ translatedCore[coreForm["Call"][self_String, {coreForm["Call"]["System`List", {c
 	HoldComplete[recursionResult]
 translatedCore[coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}], _] /; rest === $recursion["Rest"] := $recursion["RestSymbol"]
 (* under a recursion on a natural number n, f[n - 1] is the recursion's result and n is predecessor + 1 *)
-translatedCore[coreForm["Call"][self_String, {coreForm["Call"]["System`Plus", {coreForm["Local"][local_String], coreForm["Constant"][-1]}]}], _] /;
-	self === $naturalRecursion["Self"] && local === $naturalRecursion["Local"] := HoldComplete[recursionResult]
+translatedCore[coreForm["Call"][self_String, arguments_List], _] /; self === $naturalRecursion["Self"] && naturalRecursiveCallQ[arguments] := HoldComplete[recursionResult]
 translatedCore[coreForm["Local"][local_String], _] /; local === $naturalRecursion["Local"] := HoldComplete[predecessor + 1]
+
+(* a call on n - 1 at the recursion's position, and on each other argument as it is *)
+naturalRecursiveCallQ[arguments_List] := And[
+	Length[arguments] === Length[$naturalRecursion["Others"]] + 1,
+	MatchQ[arguments[[$naturalRecursion["Position"]]], coreForm["Call"]["System`Plus", {coreForm["Local"][$naturalRecursion["Local"]], coreForm["Constant"][-1]}]],
+	AllTrue[Normal[$naturalRecursion["Others"]], Function[other, MatchQ[arguments[[First[other]]], coreForm["Local"][Last[other]] | coreForm["Evaluated"][coreForm["Local"][Last[other]]]]]]
+]
 
 (* If in a body, its branches the last value of their steps *)
 translatedCore[coreForm["If"][condition_, then_, otherwise_, ___], locals_] := (

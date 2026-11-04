@@ -108,14 +108,16 @@ VerificationTest[
 	TestID -> "Conditions-and-If-are-If-by-the-decision-of-the-condition"
 ]
 
-(* recursion on a natural number, f[0] and f[n_] calling f only on n - 1, perhaps with n an _Integer and n > 0, is a
-   definition by the recursor of the natural numbers, which computes *)
+(* recursion on a natural number, f[0] and f[n_] calling f only on n - 1, perhaps with n an _Integer and n > 0 and with
+   other arguments passed on as they are, is a definition by the recursor of the natural numbers, which computes *)
 VerificationTest[
-	Block[{fact, double, prelude = TypeTheoryEnvironment["Prelude"]},
+	Block[{fact, double, power, prelude = TypeTheoryEnvironment["Prelude"]},
 		fact[0] = 1;
 		fact[n_] := n fact[n - 1];
 		double[0] = 0;
 		double[n_Integer /; n > 0] := double[n - 1] + 2;
+		power[x_, 0] = 1;
+		power[x_, n_] := x power[x, n - 1];
 		If[ PacletFind["Wolfram/KernelCompiler"] === {},
 			True,
 			With[
@@ -126,8 +128,9 @@ VerificationTest[
 				{
 					MatchQ[TypeOf[TypeTheoryTerm[fact, facts]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> NonNegativeIntegers], _]],
 					WeakHeadNormalForm[TypeTheoryTerm[fact[5], facts]] === TypeTheoryTerm[120, facts],
-					WeakHeadNormalForm[TypeTheoryTerm[double[4], doubles]] === TypeTheoryTerm[8, doubles]
-				} === {True, True, True}
+					WeakHeadNormalForm[TypeTheoryTerm[double[4], doubles]] === TypeTheoryTerm[8, doubles],
+					With[{powers = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[power, prelude]]}, WeakHeadNormalForm[TypeTheoryTerm[power[2, 10], powers]] === TypeTheoryTerm[1024, powers]]
+				} === {True, True, True, True}
 			]
 		]
 	],
