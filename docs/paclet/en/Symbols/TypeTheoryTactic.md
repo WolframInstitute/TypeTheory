@@ -171,7 +171,7 @@ proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {
 }]
 ```
 
-<!-- => Proof, 2 goals: case {} ⊢ Join[{}, {}] == {}; case Prepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[Prepend[l, x], {}] == Prepend[l, x] -->
+<!-- => Proof, 2 goals: case {} ⊢ Join[{}, {}] == {}; case Prepend ⊢ ∀_l∶{ℕ} ∀_x∶ℕ Join[l, {}] == l ⇒ Join[Prepend[l, x], {}] == Prepend[l, x] -->
 
 `"Simplify"` unfolds [Join]() on the empty list, and the sides are then the same:
 
@@ -179,7 +179,7 @@ proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {
 proof = TypeTheoryTactic["Simplify", {Join}][proof]
 ```
 
-<!-- => Proof, 1 goal: case Prepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[Prepend[l, x], {}] == Prepend[l, x] -->
+<!-- => Proof, 1 goal: case Prepend ⊢ ∀_l∶{ℕ} ∀_x∶ℕ Join[l, {}] == l ⇒ Join[Prepend[l, x], {}] == Prepend[l, x] -->
 
 Introduce the first element, the rest and the induction hypothesis:
 
@@ -187,7 +187,7 @@ Introduce the first element, the rest and the induction hypothesis:
 proof = TypeTheoryTactic["Introduce", rest, x, ih][proof]
 ```
 
-<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ {ℕ}, ih ∶ Join[rest, {}] == rest ⊢ Join[Prepend[rest, x], {}] == Prepend[rest, x] -->
+<!-- => Proof, 1 goal: rest ∶ {ℕ}, x ∶ ℕ, ih ∶ Join[rest, {}] == rest ⊢ Join[Prepend[rest, x], {}] == Prepend[rest, x] -->
 
 Unfolding [Join]() once more brings out `Join[rest, {}]`, which the induction hypothesis rewrites:
 
