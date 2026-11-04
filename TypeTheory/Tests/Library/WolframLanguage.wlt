@@ -13,17 +13,17 @@ SetAttributes[equalQ, HoldAll]
 equalQ[a_, b_] := DefinitionallyEqualQ[TypeTheoryTerm[a, wolfram], TypeTheoryTerm[b, wolfram]]
 
 VerificationTest[
-	{Head[wolfram], MemberQ[Keys[wolfram], "Expressions"], MemberQ[Keys[wolfram], "matchBind"]},
-	{TypeTheoryEnvironment, True, True},
+	{Head[wolfram], MemberQ[Keys[wolfram], Expressions], MemberQ[Keys[wolfram], MatchBind], MemberQ[Keys[wolfram], MatchSum], MemberQ[$ContextPath, "Wolfram`Patterns`"]},
+	{TypeTheoryEnvironment, True, True, True, True},
 	TestID -> "The-Wolfram-Language-environment-checks"
 ]
 
 (* the part of an expression at a position: 0 its head, k its k-th argument, no result out of range *)
 VerificationTest[
 	{
-		equalQ["matchPart"["expressionNormal"["expressionAtom"["atomOfNatural"[7]], {"expressionAtom"["atomOfNatural"[1]], "expressionAtom"["atomOfNatural"[2]]}], 2], "matchPure"["expressionAtom"["atomOfNatural"[2]]]],
-		equalQ["matchPart"["expressionNormal"["expressionAtom"["atomOfNatural"[7]], {"expressionAtom"["atomOfNatural"[1]]}], 0], "matchPure"["expressionAtom"["atomOfNatural"[7]]]],
-		equalQ["matchPart"["expressionNormal"["expressionAtom"["atomOfNatural"[7]], {"expressionAtom"["atomOfNatural"[1]]}], 5], Typed["matchFailure", "Match"["Expressions"]]]
+		equalQ[MatchPart[ExpressionNormal[7, {1, 2}], 2, MatchValues], MatchValues[Typed[2, Expressions]]],
+		equalQ[MatchPart[ExpressionNormal[7, {1}], 0, MatchValues], MatchValues[Typed[7, Expressions]]],
+		equalQ[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], Typed[EmptyList, Match[Expressions]]]
 	},
 	{True, True, True},
 	TestID -> "The-parts-of-an-expression-are-matches"
@@ -32,13 +32,24 @@ VerificationTest[
 (* alternatives in order, the first result the one taken, none where nothing matches; bind sequences, guard filters *)
 VerificationTest[
 	{
-		equalQ["matchFirst"["matchAlternative"["matchPure"[1], "matchPure"[2]]], OptionSome[1]],
-		equalQ["matchFirst"["matchAlternative"[Typed["matchFailure", "Match"[NonNegativeIntegers]], "matchPure"[3]]], OptionSome[3]],
-		equalQ["matchFirst"[Typed["matchFailure", "Match"[NonNegativeIntegers]]], Typed[OptionNone, Option[NonNegativeIntegers]]],
-		equalQ["matchBind"[{1, 2}, Function[{Typed[x, NonNegativeIntegers]}, {x, x}]], {1, 1, 2, 2}],
-		equalQ["matchGuard"["false", "matchPure"[1]], Typed["matchFailure", "Match"[NonNegativeIntegers]]],
-		equalQ["matchGuard"["true", "matchPure"[1]], "matchPure"[1]]
+		equalQ[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], OptionSome[1]],
+		equalQ[MatchFirst[MatchSum[Typed[EmptyList, Match[NonNegativeIntegers]], MatchValues[3]]], OptionSome[3]],
+		equalQ[MatchFirst[Typed[EmptyList, Match[NonNegativeIntegers]]], Typed[OptionNone, Option[NonNegativeIntegers]]],
+		equalQ[MatchBind[{1, 2}, Function[{Typed[x, NonNegativeIntegers]}, {x, x}]], {1, 1, 2, 2}],
+		equalQ[Condition[MatchValues[1], "false"], Typed[EmptyList, Match[NonNegativeIntegers]]],
+		equalQ[Condition[MatchValues[1], "true"], MatchValues[1]]
 	},
 	{True, True, True, True, True, True},
 	TestID -> "The-match-monad-tries-alternatives-in-order"
+]
+
+(* the arguments of an expression are a Sequence; a product pairs every result of one match with every one of another,
+   in order *)
+VerificationTest[
+	{
+		equalQ[Arguments[ExpressionNormal[7, {1, 2}]], Typed[{1, 2}, Sequence]],
+		equalQ[MatchProduct[{1, 2}, {3}], {Pair[1, 3], Pair[2, 3]}]
+	},
+	{True, True},
+	TestID -> "Arguments-are-a-sequence-and-a-product-pairs-results"
 ]

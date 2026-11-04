@@ -24,7 +24,7 @@ VerificationTest[
 
 (* with the compiler: a definition that translates is typed by elaboration, the symbols it calls formalized first and
    the built-ins it calls declared by their signatures; one that does not is an axiom Wolfram computes, of the type
-   "Type" gives or over "Expressions". Without it, an axiom of the type "Type" gives. *)
+   "Type" gives or over Expressions. Without it, an axiom of the type "Type" gives. *)
 VerificationTest[
 	Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Rationals"], square, next, simplified, reversed},
 		square[x_Integer] := x^2 + 1;
@@ -37,7 +37,7 @@ VerificationTest[
 				TypeTheoryFormalize[square] === {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]},
 				First[TypeOf[TypeTheoryTerm[next, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[next]]]]] === (Integers -> Integers),
 				TypeTheoryFormalize[simplified][[All, 1]] === {Simplify, simplified},
-				Last[TypeTheoryFormalize[reversed]] === TypeTheoryAxiom[reversed, "Expressions" -> "Expressions", "Implementation" -> reversed],
+				Last[TypeTheoryFormalize[reversed]] === TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed],
 				TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers] === {TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]}
 			} === {True, True, True, True, True}
 		]
@@ -139,7 +139,7 @@ VerificationTest[
 ]
 
 (* a built-in that is total on lists has a signature over their elements, Range : NonNegativeIntegers -> Lists[...],
-   and one that is partial, as First, a signature over "Expressions" *)
+   and one that is partial, as First, a signature over Expressions *)
 VerificationTest[
 	Block[{upTo, firstOf, prelude = TypeTheoryEnvironment["Prelude"]},
 		upTo[n_] := Range[n];

@@ -179,7 +179,7 @@ reversed[s_] := StringReverse[s];
 Last[TypeTheoryFormalize[reversed, integers]]
 ```
 
-<!-- => TypeTheoryAxiom[reversed, "Expressions" -> "Expressions", "Implementation" -> reversed] -->
+<!-- => TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed] -->
 
 ## Typing in the Compiler and in Mathematics
 

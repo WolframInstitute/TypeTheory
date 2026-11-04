@@ -15,11 +15,11 @@ TypeTheoryFormalize makes a symbol a constant, at the best of two tiers:
 	a definition       its single definition translates: arguments bound by plain or head-typed patterns, a body of
 	                   arithmetic, calls of built-ins with a signature here and of other symbols, formalized first;
 	                   elaboration types it, or checks it against the type the option "Type" gives
-	an axiom           otherwise, of the type "Type" gives, or of the type "Expressions" -> ... -> "Expressions" its
+	an axiom           otherwise, of the type "Type" gives, or of the type Expressions -> ... -> Expressions its
 	                   arguments take, with "Implementation" -> symbol: Wolfram computes it, the kernel never does
 
 A built-in that a body calls gets its signature from $wolframSignatures, declared only where it is used and not
-declared already: precise where the built-in allows, as Simplify : A -> A, and over "Expressions", the type of any
+declared already: precise where the built-in allows, as Simplify : A -> A, and over Expressions, the type of any
 Wolfram Language expression, otherwise. No equation about a built-in is assumed, so nothing more is trusted.
 *)
 
@@ -161,7 +161,7 @@ withoutHeadTypes[value_] := value
 definitionOf[HoldComplete[symbol_], HoldComplete[value_], None] := TypeTheoryDefinition[symbol, value]
 definitionOf[HoldComplete[symbol_], HoldComplete[value_], HoldComplete[type_]] := TypeTheoryDefinition[symbol, Typed[value, type]]
 
-(* the axiom that the symbol computes, of the type given, or of the type "Expressions" -> ... -> "Expressions" its
+(* the axiom that the symbol computes, of the type given, or of the type Expressions -> ... -> Expressions its
    arguments take *)
 fallbackDeclarations[environment_, held_, None, definitions_] := Replace[definitionArities[definitions], {
 	{arity_Integer} :> Append[missingDeclarations[environment, expressionsDeclarations[environment]], implementedAxiom[held, expressionsType[arity]]],
@@ -173,7 +173,7 @@ implementedAxiom[HoldComplete[symbol_], HoldComplete[type_]] := TypeTheoryAxiom[
 
 definitionArities[definitions_] := Union[Cases[definitions, coreForm["Definition"][_, coreForm["Program"][{___, coreForm["Length"][{}, arity_Integer], ___}], ___] :> arity]]
 
-expressionsType[arity_Integer] := HoldComplete @@ {Fold[Function[{codomain, domain}, domain -> codomain], "Expressions", ConstantArray["Expressions", arity]]}
+expressionsType[arity_Integer] := HoldComplete @@ {Fold[Function[{codomain, domain}, domain -> codomain], Expressions, ConstantArray[Expressions, arity]]}
 
 (* the declarations of a list that the environment does not declare yet *)
 missingDeclarations[environment_, declarations_List] := Select[declarations, Function[declaration, ! constantDeclaredQ[environment, declarationName[declaration]]]]
@@ -199,7 +199,7 @@ calledDeclaration[environment_, held_, call_HoldComplete] := Which[
 	call === held || MemberQ[$formalizing, call],
 		Throw[None, untranslatable],
 	KeyExistsQ[$wolframSignatures, call],
-		missingDeclarations[environment, Append[If[FreeQ[$wolframSignatures[call], "Expressions"], {}, expressionsDeclarations[environment]], $wolframSignatures[call]]],
+		missingDeclarations[environment, Append[If[FreeQ[$wolframSignatures[call], Expressions], {}, expressionsDeclarations[environment]], $wolframSignatures[call]]],
 	systemSymbolQ @@ call,
 		Throw[None, untranslatable],
 	True,
@@ -525,23 +525,25 @@ translatedCore[_, _] := Throw[None, untranslatable]
 (*Signatures of built-ins*)
 
 
-(* "Expressions", the type of any Wolfram Language expression, into which the numbers of the environment go by coercions *)
+(* Expressions, the type of any Wolfram Language expression, into which the numbers of the environment go by coercions *)
+(* none where the environment has Expressions already, as TypeTheoryEnvironment["WolframLanguage"] does, with its coercion *)
+expressionsDeclarations[environment_] /; constantDeclaredQ[environment, HoldComplete[Expressions]] := {}
 expressionsDeclarations[environment_] := Join[
 	{
-		TypeTheoryAxiom["Expressions", TypeUniverse[1]],
-		TypeTheoryAxiom["expressionOfNatural", NonNegativeIntegers -> "Expressions", "Implementation" -> Identity],
+		TypeTheoryAxiom[Expressions, TypeUniverse[1]],
+		TypeTheoryAxiom["expressionOfNatural", NonNegativeIntegers -> Expressions, "Implementation" -> Identity],
 		TypeTheoryDefinition["ExpressionOfNaturalCoercion", Function[{Typed[n, NonNegativeIntegers]}, "expressionOfNatural"[n]], "Coercion" -> True]
 	},
 	If[ constantDeclaredQ[environment, HoldComplete[Integers]],
 		{
-			TypeTheoryAxiom["expressionOfInteger", Integers -> "Expressions", "Implementation" -> Identity],
+			TypeTheoryAxiom["expressionOfInteger", Integers -> Expressions, "Implementation" -> Identity],
 			TypeTheoryDefinition["ExpressionOfIntegerCoercion", Function[{Typed[n, Integers]}, "expressionOfInteger"[n]], "Coercion" -> True]
 		},
 		{}
 	],
 	If[ constantDeclaredQ[environment, HoldComplete[Rationals]],
 		{
-			TypeTheoryAxiom["expressionOfRational", Rationals -> "Expressions", "Implementation" -> Identity],
+			TypeTheoryAxiom["expressionOfRational", Rationals -> Expressions, "Implementation" -> Identity],
 			TypeTheoryDefinition["ExpressionOfRationalCoercion", Function[{Typed[q, Rationals]}, "expressionOfRational"[q]], "Coercion" -> True]
 		},
 		{}
@@ -560,7 +562,7 @@ $ifDeclaration = TypeTheoryDefinition[
 	]
 ]
 
-(* precise where the built-in allows, over "Expressions" otherwise; Wolfram computes each, the kernel never does *)
+(* precise where the built-in allows, over Expressions otherwise; Wolfram computes each, the kernel never does *)
 $wolframSignatures = Join[
 	<|HoldComplete[If] -> $ifDeclaration|>,
 	signatures[HoldComplete[Simplify, FullSimplify, Expand, ExpandAll, Factor, Together, Apart, Cancel], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> A]]],
@@ -569,16 +571,16 @@ $wolframSignatures = Join[
 		HoldComplete[ListQ, IntegerQ, AtomQ, NumericQ, NumberQ, BooleanQ, TrueQ, StringQ, AssociationQ, VectorQ, MatrixQ, MissingQ],
 		HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> Booleans]]
 	],
-	signatures[HoldComplete[D, ReplaceAll, Dot, Solve, Integrate, Coefficient, Limit, Series], HoldComplete["Expressions" -> "Expressions" -> "Expressions"]],
-	signatures[HoldComplete[Sqrt, Exp, Log, Sin, Cos, Tan, Abs, N, Det, Transpose, Normal, Inverse, Tr], HoldComplete["Expressions" -> "Expressions"]],
+	signatures[HoldComplete[D, ReplaceAll, Dot, Solve, Integrate, Coefficient, Limit, Series], HoldComplete[Expressions -> Expressions -> Expressions]],
+	signatures[HoldComplete[Sqrt, Exp, Log, Sin, Cos, Tan, Abs, N, Det, Transpose, Normal, Inverse, Tr], HoldComplete[Expressions -> Expressions]],
 	(* total on lists, so typed by their elements *)
 	signatures[HoldComplete[Range], HoldComplete[NonNegativeIntegers -> Lists[NonNegativeIntegers]]],
 	signatures[HoldComplete[Sort, DeleteDuplicates], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> Lists[A]]]],
 	signatures[HoldComplete[MemberQ], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> A -> Booleans]]],
 	signatures[HoldComplete[AllTrue, AnyTrue, NoneTrue], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> (A -> Booleans) -> Booleans]]],
 	signatures[HoldComplete[Select], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> (A -> Booleans) -> Lists[A]]]],
-	signatures[HoldComplete[Total], HoldComplete[Lists["Expressions"] -> "Expressions"]],
-	(* partial, as First of an empty list, or of any expression, so over "Expressions" *)
-	signatures[HoldComplete[First, Last, Rest, Most, Flatten, Missing, Association, Head, Keys, Values], HoldComplete["Expressions" -> "Expressions"]],
-	signatures[HoldComplete[Part, Extract, Apply, Rule, Lookup, KeyExistsQ, FreeQ, Count, Take, Drop, Coefficient, Mod, Quotient], HoldComplete["Expressions" -> "Expressions" -> "Expressions"]]
+	signatures[HoldComplete[Total], HoldComplete[Lists[Expressions] -> Expressions]],
+	(* partial, as First of an empty list, or of any expression, so over Expressions *)
+	signatures[HoldComplete[First, Last, Rest, Most, Flatten, Missing, Association, Head, Keys, Values], HoldComplete[Expressions -> Expressions]],
+	signatures[HoldComplete[Part, Extract, Apply, Rule, Lookup, KeyExistsQ, FreeQ, Count, Take, Drop, Coefficient, Mod, Quotient], HoldComplete[Expressions -> Expressions -> Expressions]]
 ]

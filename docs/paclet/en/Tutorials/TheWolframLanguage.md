@@ -5,7 +5,7 @@ Title: The Wolfram Language
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheWolframLanguage
-Keywords: [Wolfram Language, expressions, pattern matching, Match, monad, nondeterminism, Option, Match IR]
+Keywords: [Wolfram Language, expressions, Sequence, pattern matching, Match, MatchSum, MatchProduct, monad, nondeterminism, Option, Wolfram/Patterns, Match IR]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, ThePrelude, TypeTheoryIntroduction]
 ---
@@ -14,48 +14,44 @@ RelatedTutorials: [Elaboration, ThePrelude, TypeTheoryIntroduction]
 
 ## Expressions
 
-An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions. The atoms are opaque, and [SameQ]() and [Head]() on them are axioms that the Wolfram Language computes:
+An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a [Sequence]() of expressions, its arguments. The atoms are opaque, and [SameQ]() and [Head]() of an atom are axioms that the Wolfram Language computes. A natural number is an expression where one is expected:
 
 ```wl
-wolfram = TypeTheoryEnvironment["WolframLanguage"]
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+TypeOf[TypeTheoryTerm[ExpressionNormal[7, {1, 2}], wolfram]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box -->
+<!-- => Expressions -->
+
+[Arguments]() gives the [Sequence]() of an expression's arguments:
 
 ```wl
-wolfram["Expressions"]
-```
-
-<!-- => TypeTheoryInductiveType["Expressions", Type, {"expressionAtom" -> "Atoms" -> "Expressions", "expressionNormal" -> "Expressions" -> List "Expressions" -> "Expressions"}] -->
-
-`"matchPart"` gives the part of an expression at a position, its head at 0, as [Part]() does, with no result out of range where [Part]() fails:
-
-```wl
-DefinitionallyEqualQ[
-    TypeTheoryTerm["matchPart"["expressionNormal"["expressionAtom"["atomOfNatural"[7]], {"expressionAtom"["atomOfNatural"[1]], "expressionAtom"["atomOfNatural"[2]]}], 2], wolfram],
-    TypeTheoryTerm["matchPure"["expressionAtom"["atomOfNatural"[2]]], wolfram]
-]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, Sequence], wolfram]]
 ```
 
 <!-- => True -->
 
 ## The Monad of Matches
 
-`"Match"[A]` is the list of the results of a match, in the order they are tried: none, one, or several, as a pattern with an [Orderless]() head or a sequence matches in several ways. Its operations are those of the monad of lists, the monad of nondeterminism:
+`Match[A]` is the list of the results of a match, in the order they are tried: none, one, or several, as a pattern with an [Orderless]() head or a sequence matches in several ways. It types the match objects of the paclet Wolfram/Patterns, whose symbols `Match`, `MatchValues`, `MatchSum`, `MatchProduct` and `MatchPart` name its constants. The compiler of the WolframKernel project built its Match IR from the same objects:
 
-| | the Match IR of the WolframKernel compiler | in the type theory |
-|---|---|---|
-| one result | `Values` | `"matchPure"` |
-| no result | `Sum[]` | `"matchFailure"` |
-| alternatives, in order | `Sum` | `"matchAlternative"` |
-| parts matched in turn | `Product` | `"matchBind"` |
-| a condition | `Guard` | `"matchGuard"` |
-| the rule applied | the leftmost result | `"matchFirst"`, an [Option]() |
+| | Wolfram/Patterns | the Match IR | in the type theory |
+|---|---|---|---|
+| one result | `MatchValues` | `Values` | `MatchValues[a] : Match[A]` |
+| no result | | `Sum[]` | `EmptyList` |
+| alternatives, in order | `MatchSum` | `Sum` | `MatchSum : Match[A] -> Match[A] -> Match[A]` |
+| independent parts | `MatchProduct` | `Product` | `MatchProduct : Match[A] -> Match[B] -> Match[A × B]` |
+| parts in turn | | `Product` | [MatchBind]()` : Match[A] -> (A -> Match[B]) -> Match[B]` |
+| a match at a position | `MatchPart` | `Part` | `MatchPart : Expressions -> ℕ -> (Expressions -> Match[A]) -> Match[A]` |
+| a condition | | `Guard` | [Condition]()` : Match[A] -> Booleans -> Match[A]` |
+| the rule applied | the first result | the leftmost result | [MatchFirst]()` : Match[A] -> Option[A]` |
+
+These are the operations of the monad of lists, the monad of nondeterminism, with its alternatives in order. The environment puts the context of Wolfram/Patterns at the end of the context path, so its symbols are written without it.
 
 The alternatives keep their order, so the first result is the left one, as the Wolfram Language applies the first rule that matches:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm["matchFirst"["matchAlternative"["matchPure"[1], "matchPure"[2]]], wolfram], TypeTheoryTerm[OptionSome[1], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], wolfram], TypeTheoryTerm[OptionSome[1], wolfram]]
 ```
 
 <!-- => True -->
@@ -63,15 +59,26 @@ DefinitionallyEqualQ[TypeTheoryTerm["matchFirst"["matchAlternative"["matchPure"[
 A match with no result gives none, the expression left as it is:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm["matchFirst"[Typed["matchFailure", "Match"[NonNegativeIntegers]]], wolfram], TypeTheoryTerm[Typed[OptionNone, Option[NonNegativeIntegers]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[Typed[EmptyList, Match[NonNegativeIntegers]]], wolfram], TypeTheoryTerm[Typed[OptionNone, Option[NonNegativeIntegers]], wolfram]]
 ```
 
 <!-- => True -->
 
-`"matchBind"` continues each result with another match, as the parts of a pattern are matched in turn:
+A product pairs every result of one match with every result of another, in order, as the independent parts of a pattern combine:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm["matchBind"[{1, 2}, Function[{Typed[x, NonNegativeIntegers]}, {x, x}]], wolfram], TypeTheoryTerm[{1, 1, 2, 2}, wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchProduct[{1, 2}, {3}], wolfram], TypeTheoryTerm[{Pair[1, 3], Pair[2, 3]}, wolfram]]
 ```
 
 <!-- => True -->
+
+`MatchPart` matches at the part of an expression at a position, its head at 0, with no result out of range, where [Part]() fails:
+
+```wl
+{
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[ExpressionNormal[7, {1, 2}], 2, MatchValues], wolfram], TypeTheoryTerm[MatchValues[Typed[2, Expressions]], wolfram]],
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], wolfram], TypeTheoryTerm[Typed[EmptyList, Match[Expressions]], wolfram]]
+}
+```
+
+<!-- => {True, True} -->

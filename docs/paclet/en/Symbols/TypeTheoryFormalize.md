@@ -24,8 +24,8 @@ RelatedGuides: [TypeTheory]
 - Definitions each but the last with a condition, `f[x_ /; c] := a`, and [If]() in a body, are [If]() by the decision of the condition, a [Decidable]() instance that elaboration finds, declared as a definition by the recursor of [Decidable]() where the environment has no [If]().
 - A type that `"Type"` gives decides the arguments, also where the heads of the patterns, as `_Integer`, would give them another.
 - Otherwise it is a [TypeTheoryAxiom]() with `"Implementation" -> symbol`: the Wolfram Language computes it, and the kernel never does.
-- The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and an axiom takes it. Without it, an axiom's type is `"Expressions" -> ... -> "Expressions"`, one `"Expressions"` for each argument, `"Expressions"` being the type of any Wolfram Language expression.
-- A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over `"Expressions"` otherwise, as [D](). The numbers of the environment go into `"Expressions"` by coercions. No equation about a built-in is assumed.
+- The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and an axiom takes it. Without it, an axiom's type is `Expressions -> ... -> Expressions`, one [Expressions]() for each argument, [Expressions]() being the type of any Wolfram Language expression: an axiom where the environment lacks it, and the inductive type of expressions in [TypeTheoryEnvironment]()["WolframLanguage"].
+- A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over [Expressions]() otherwise, as [D](). The numbers of the environment go into [Expressions]() by coercions. No equation about a built-in is assumed.
 - The result is a list of declarations, to extend an environment with: <code>[TypeTheoryEnvironment]()[*environment*, [TypeTheoryFormalize]()[*symbol*, *environment*]]</code>.
 
 ## Basic Examples
@@ -125,11 +125,11 @@ TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers]
 
 ## Possible Issues
 
-Without a type, a function that does not translate takes `"Expressions"` for each argument:
+Without a type, a function that does not translate takes [Expressions]() for each argument:
 
 ```wl
 reversed[s_] := StringReverse[s];
 Last[TypeTheoryFormalize[reversed, TypeTheoryEnvironment["Integers"]]]
 ```
 
-<!-- => TypeTheoryAxiom[reversed, "Expressions" -> "Expressions", "Implementation" -> reversed] -->
+<!-- => TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed] -->
