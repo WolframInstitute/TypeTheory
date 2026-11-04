@@ -570,5 +570,15 @@ $wolframSignatures = Join[
 		HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> Booleans]]
 	],
 	signatures[HoldComplete[D, ReplaceAll, Dot, Solve, Integrate, Coefficient, Limit, Series], HoldComplete["Expressions" -> "Expressions" -> "Expressions"]],
-	signatures[HoldComplete[Sqrt, Exp, Log, Sin, Cos, Tan, Abs, N, Det, Transpose, Normal, Inverse, Tr], HoldComplete["Expressions" -> "Expressions"]]
+	signatures[HoldComplete[Sqrt, Exp, Log, Sin, Cos, Tan, Abs, N, Det, Transpose, Normal, Inverse, Tr], HoldComplete["Expressions" -> "Expressions"]],
+	(* total on lists, so typed by their elements *)
+	signatures[HoldComplete[Range], HoldComplete[NonNegativeIntegers -> Lists[NonNegativeIntegers]]],
+	signatures[HoldComplete[Sort, DeleteDuplicates], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> Lists[A]]]],
+	signatures[HoldComplete[MemberQ], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> A -> Booleans]]],
+	signatures[HoldComplete[AllTrue, AnyTrue, NoneTrue], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> (A -> Booleans) -> Booleans]]],
+	signatures[HoldComplete[Select], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> (A -> Booleans) -> Lists[A]]]],
+	signatures[HoldComplete[Total], HoldComplete[Lists["Expressions"] -> "Expressions"]],
+	(* partial, as First of an empty list, or of any expression, so over "Expressions" *)
+	signatures[HoldComplete[First, Last, Rest, Most, Flatten, Missing, Association, Head, Keys, Values], HoldComplete["Expressions" -> "Expressions"]],
+	signatures[HoldComplete[Part, Extract, Apply, Rule, Lookup, KeyExistsQ, FreeQ, Count, Take, Drop, Coefficient, Mod, Quotient], HoldComplete["Expressions" -> "Expressions" -> "Expressions"]]
 ]

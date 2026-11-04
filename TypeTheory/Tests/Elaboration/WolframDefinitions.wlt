@@ -137,3 +137,21 @@ VerificationTest[
 	True,
 	TestID -> "Recursion-on-a-natural-number-is-a-definition-by-the-recursor-of-the-natural-numbers"
 ]
+
+(* a built-in that is total on lists has a signature over their elements, Range : NonNegativeIntegers -> Lists[...],
+   and one that is partial, as First, a signature over "Expressions" *)
+VerificationTest[
+	Block[{upTo, firstOf, prelude = TypeTheoryEnvironment["Prelude"]},
+		upTo[n_] := Range[n];
+		firstOf[l_] := First[l];
+		If[ PacletFind["Wolfram/KernelCompiler"] === {},
+			True,
+			{
+				MatchQ[TypeOf[TypeTheoryTerm[upTo, TypeTheoryEnvironment[prelude, TypeTheoryFormalize[upTo, prelude]]]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> Lists[NonNegativeIntegers]], _]],
+				MatchQ[Last[TypeTheoryFormalize[firstOf, prelude]], TypeTheoryDefinition[firstOf, _Function]]
+			} === {True, True}
+		]
+	],
+	True,
+	TestID -> "Built-ins-total-on-lists-have-signatures-over-their-elements"
+]
