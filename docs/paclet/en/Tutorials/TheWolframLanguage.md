@@ -26,10 +26,10 @@ TypeOf[TypeTheoryTerm[ExpressionNormal[7, {1, 2}], wolfram]]
 An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols are their atoms, declared as constants named by their full names, its natural numbers and strings theirs, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `ExpressionNormal` and `ExpressionAtom` build what it stands for:
 
 ```wl
-quoting = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["Global`f", Atoms, "Implementation" -> f]}];
+quoting = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["System`List", Atoms, "Implementation" -> List]}];
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[f[x, rest]]][1, {2, 3}], quoting],
-    TypeTheoryTerm[ExpressionNormal[ExpressionAtom["Global`f"], {1, 2, 3}], quoting]
+    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[{x, rest}]][1, {2, 3}], quoting],
+    TypeTheoryTerm[ExpressionNormal[ExpressionAtom["System`List"], {1, 2, 3}], quoting]
 ]
 ```
 
