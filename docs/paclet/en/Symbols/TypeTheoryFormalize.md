@@ -19,6 +19,7 @@ RelatedGuides: [TypeTheory]
 
 - The definitions are read by the compiler of the WolframKernel project, from the paclet Wolfram/KernelCompiler, which TypeTheory loads when it first formalizes a symbol. Where it is missing, [TypeTheoryFormalize]() gives a [Failure]() that names how to install it.
 - A symbol is a [TypeTheoryDefinition]() where it has one definition, its arguments bound by plain patterns or by `_Integer` and `_Rational`, and its body arithmetic, list literals, calls of built-ins that have a signature, and calls of other symbols, formalized first and declared before it.
+- Two definitions by structural recursion on a list, `f[{}]` and `f[{x_, rest___}]`, whose body calls `f` only on `{rest}`, are a definition by the recursor of [Lists](). Its result type is the type of the empty case, or the one `"Type"` gives as `Lists[a] -> b`, and its elements are of any type where they can be.
 - Otherwise it is a [TypeTheoryAxiom]() with `"Implementation" -> symbol`: the Wolfram Language computes it, and the kernel never does.
 - The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and an axiom takes it. Without it, an axiom's type is `"Expressions" -> ... -> "Expressions"`, one `"Expressions"` for each argument, `"Expressions"` being the type of any Wolfram Language expression.
 - A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over `"Expressions"` otherwise, as [D](). The numbers of the environment go into `"Expressions"` by coercions. No equation about a built-in is assumed.
@@ -64,6 +65,20 @@ TypeTheoryFormalize[simplified, TypeTheoryEnvironment["Integers"]][[All, 1]]
 ```
 
 <!-- => {Simplify, simplified} -->
+
+---
+
+Structural recursion on a list is a definition by the recursor of lists, which computes:
+
+```wl
+size[{}] = 0;
+size[{x_, rest___}] := 1 + size[{rest}];
+integers = TypeTheoryEnvironment["Integers"];
+sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]];
+{TypeOf[TypeTheoryTerm[size, sized]], WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]]}
+```
+
+<!-- => {∀_{α∶Type u} List α → ℕ, 3} -->
 
 ## Options
 

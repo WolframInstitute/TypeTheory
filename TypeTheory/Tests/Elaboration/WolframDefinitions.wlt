@@ -55,3 +55,26 @@ VerificationTest[
 	{True, "WolframInstitute`TypeTheory`"},
 	TestID -> "Reading-definitions-puts-nothing-on-the-context-path"
 ]
+
+(* two definitions by structural recursion on a list, f[{}] and f[{x_, rest___}], are a definition by the recursor of
+   lists, which computes: the type of its empty case gives its result, its elements of any type where they can be *)
+VerificationTest[
+	Block[{size, total, integers = TypeTheoryEnvironment["Integers"]},
+		size[{}] = 0;
+		size[{x_, rest___}] := 1 + size[{rest}];
+		total[{}] = 0;
+		total[{x_, rest___}] := x + total[{rest}];
+		If[ PacletFind["Wolfram/KernelCompiler"] === {},
+			True,
+			With[{sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]]},
+				{
+					MatchQ[TypeOf[TypeTheoryTerm[size, sized]], TypeTheoryTerm[HoldPattern[ForAll[{TypedImplicit[_, _]}, Lists[_] -> NonNegativeIntegers]], _]],
+					WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]] === TypeTheoryTerm[3, sized],
+					MatchQ[TypeTheoryFormalize[total, integers, "Type" -> Lists[Integers] -> Integers], {TypeTheoryDefinition[total, Typed[_, Lists[Integers] -> Integers]]}]
+				} === {True, True, True}
+			]
+		]
+	],
+	True,
+	TestID -> "Structural-recursion-on-a-list-is-a-definition-by-the-recursor-of-lists"
+]

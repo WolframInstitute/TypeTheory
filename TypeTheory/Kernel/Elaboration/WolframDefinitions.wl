@@ -132,16 +132,22 @@ formalize[environment_, held_HoldComplete, type_] := Block[{$formalizing = Appen
 SetAttributes[fullName, HoldAllComplete]
 fullName[symbol_Symbol] := Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]
 
-formalizeProgram[environment_, held_, type_, definitions_List] := Replace[translatedDefinitions[definitions], {
-	{value_HoldComplete, calls_List} :> Replace[calledDeclarations[environment, held, calls], {
-		declarations_List :> With[{candidate = definitionOf[held, value, type]},
-			If[ FailureQ[Quiet[TypeTheoryEnvironment[environment, Append[declarations, candidate]]]],
-				fallbackDeclarations[environment, held, type, definitions],
-				Append[declarations, candidate]
-			]
-		],
-		_ :> fallbackDeclarations[environment, held, type, definitions]
-	}],
+formalizeProgram[environment_, held_, type_, definitions_List] := Replace[translatedDefinitions[held, definitions], {
+	{value_HoldComplete, calls_List} :> candidateDeclarations[environment, held, type, definitions, calls, Function[extended, {value}]],
+	{"ListRecursion", parts_Association, calls_List} :>
+		candidateDeclarations[environment, held, type, definitions, calls, Function[extended, listRecursionCandidates[extended, type, parts]]],
+	_ :> fallbackDeclarations[environment, held, type, definitions]
+}]
+
+(* the declarations the calls need, then the definition of the first candidate value that checks; the fallback where
+   none does *)
+candidateDeclarations[environment_, held_, type_, definitions_, calls_, candidatesOf_] := Replace[calledDeclarations[environment, held, calls], {
+	declarations_List :> With[{extended = TypeTheoryEnvironment[environment, declarations]},
+		Replace[
+			SelectFirst[candidatesOf[extended], Function[value, ! FailureQ[Quiet[TypeTheoryEnvironment[extended, {definitionOf[held, value, type]}]]]], None],
+			{None :> fallbackDeclarations[environment, held, type, definitions], value_ :> Append[declarations, definitionOf[held, value, type]]}
+		]
+	],
 	_ :> fallbackDeclarations[environment, held, type, definitions]
 }]
 
@@ -203,7 +209,7 @@ systemSymbolQ[symbol_Symbol] := Context[Unevaluated[symbol]] === "System`"
 
 (* {HoldComplete[value], {HoldComplete[called], ...}} for a symbol's definitions, or None: one definition whose
    arguments are bound by plain or head-typed patterns, and whose body has a counterpart *)
-translatedDefinitions[{coreForm["Definition"][_, coreForm["Program"][instructions_List], body_, ___]}] := Catch[
+translatedDefinitions[_, {coreForm["Definition"][_, coreForm["Program"][instructions_List], body_, ___]}] := Catch[
 	With[{binders = definitionBinders[instructions]},
 		Replace[Reap[translatedCore[body, Association[Function[binder, binder["Local"] -> binder["Symbol"]] /@ binders]], untranslatedCall], {
 			{HoldComplete[term_], calls_} :> {
@@ -215,7 +221,74 @@ translatedDefinitions[{coreForm["Definition"][_, coreForm["Program"][instruction
 	untranslatable,
 	Function[{value, tag}, None]
 ]
-translatedDefinitions[_] := None
+(* two definitions by structural recursion on a list, f[{}] and f[{x_, rest___}], whose body calls f only on {rest}:
+   {"ListRecursion", <|"Empty" -> HoldComplete[value], "Prepend" -> HoldComplete[value], "Head" -> HoldComplete[x],
+   "Rest" -> HoldComplete[rest]|>, calls}, the prepend case's value naming the recursion's result recursionResult *)
+translatedDefinitions[held_, definitions : {_, _}] := Catch[
+	Replace[SortBy[definitions, Function[definition, ! emptyListDefinitionQ[definition]]], {
+		{empty_?emptyListDefinitionQ, prepend : coreForm["Definition"][_, coreForm["Program"][instructions_List], body_, ___]} :> With[
+			{
+				head = FirstCase[instructions, coreForm["Bind"][source_String, local_String, {1, 1}] :> {source, local}, Throw[None, untranslatable]],
+				rest = FirstCase[instructions, coreForm["BindSequence"][source_String, local_String, {1}, 2, 0] :> {source, local}, Throw[None, untranslatable]]
+			},
+			If[ Sort[instructions[[All, 0]]] =!= Sort[coreForm /@ {"Length", "MinLength", "HeadIs", "Bind", "BindSequence"}] ||
+					! MemberQ[instructions, coreForm["HeadIs"][{1}, "System`List"]],
+				Throw[None, untranslatable]
+			];
+			Replace[
+				{
+					Reap[translatedCore[empty[[3]], <||>], untranslatedCall],
+					Block[{$recursion = <|"Self" -> fullName @@ held, "Rest" -> Last[rest], "RestSymbol" -> ToExpression[First[rest], InputForm, HoldComplete]|>},
+						Reap[translatedCore[body, <|Last[head] -> ToExpression[First[head], InputForm, HoldComplete]|>], untranslatedCall]
+					]
+				},
+				{{emptyValue_HoldComplete, emptyCalls_}, {prependValue_HoldComplete, prependCalls_}} :> {
+					"ListRecursion",
+					<|"Empty" -> emptyValue, "Prepend" -> prependValue, "Head" -> ToExpression[First[head], InputForm, HoldComplete], "Rest" -> ToExpression[First[rest], InputForm, HoldComplete]|>,
+					Join[Catenate[emptyCalls], Catenate[prependCalls]]
+				}
+			]
+		],
+		_ :> None
+	}],
+	untranslatable,
+	Function[{value, tag}, None]
+]
+translatedDefinitions[_, _] := None
+
+emptyListDefinitionQ[coreForm["Definition"][_, coreForm["Program"][{coreForm["Length"][{}, 1], coreForm["Same"][{1}, HoldComplete[{}]]}], ___]] := True
+emptyListDefinitionQ[_] := False
+
+(* the recursion a prepend case is translated under: the symbol itself, and the rest of the list, bound as a sequence *)
+$recursion = <||>
+
+(* the candidate values of a definition by recursion on a list: its types from "Type" where given, Lists[a] -> b, and
+   otherwise of the type the empty case has, its elements of any type first and of that type then *)
+listRecursionCandidates[environment_, HoldComplete[Lists[elementType_] -> resultType_], parts_] :=
+	{listRecursionValue[parts, HoldComplete[], HoldComplete[elementType], HoldComplete[resultType]]}
+listRecursionCandidates[_, HoldComplete[_], _] := {}
+(* the term is made first, as TypeOf holds its argument *)
+listRecursionCandidates[environment_, None, parts_] := Replace[With[{empty = TypeTheoryTerm @@ Append[parts["Empty"], environment]}, Quiet[TypeOf[empty]]], {
+	TypeTheoryTerm[resultType_, ___] :> {
+		listRecursionValue[parts, HoldComplete[TypedImplicit[elementType, TypeUniverse[u + 1]]], HoldComplete[elementType], HoldComplete[resultType]],
+		listRecursionValue[parts, HoldComplete[], HoldComplete[resultType], HoldComplete[resultType]]
+	},
+	_ :> {}
+}]
+
+listRecursionValue[parts_, elementBinders_HoldComplete, elementTypeHeld_HoldComplete, resultTypeHeld_HoldComplete] := Replace[
+	{parts["Empty"], parts["Prepend"], parts["Head"], parts["Rest"], elementBinders, elementTypeHeld, resultTypeHeld},
+	{HoldComplete[empty_], HoldComplete[prepend_], HoldComplete[head_], HoldComplete[rest_], HoldComplete[binders___], HoldComplete[a_], HoldComplete[b_]} :> HoldComplete[
+		Function[{binders, Typed[listArgument, Lists[a]]},
+			InductiveRecursor[Lists][
+				Function[{Typed[list, Lists[a]]}, b],
+				empty,
+				Function[{Typed[head, a], Typed[rest, Lists[a]], Typed[recursionResult, b]}, prepend],
+				listArgument
+			]
+		]
+	]
+]
 
 (* each argument bound once, at its own position, its type a head the patterns give *)
 definitionBinders[instructions_List] := With[
@@ -245,6 +318,11 @@ binderSyntax[binder_] := Replace[{binder["Symbol"], binder["Type"]}, {
 $surfaceHeads = {"System`Plus", "System`Times", "System`Power", "System`Subtract", "System`Minus", "System`Equal", "System`Unequal", "System`Less",
 	"System`LessEqual", "System`Greater", "System`GreaterEqual", "System`And", "System`Or", "System`Not", "System`List"}
 
+(* under a recursion on a list, f[{rest}] is the recursion's result and {rest} the rest of the list; rest alone is a
+   sequence, which has no counterpart *)
+translatedCore[coreForm["Call"][self_String, {coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}]}], _] /; self === $recursion["Self"] && rest === $recursion["Rest"] :=
+	HoldComplete[recursionResult]
+translatedCore[coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}], _] /; rest === $recursion["Rest"] := $recursion["RestSymbol"]
 translatedCore[coreForm["Local"][local_String], locals_] := Lookup[locals, local, Throw[None, untranslatable]]
 translatedCore[coreForm["Constant"][constant_Integer], _] := HoldComplete[constant]
 translatedCore[coreForm["Constant"][constant_Rational], _] := HoldComplete[constant]
