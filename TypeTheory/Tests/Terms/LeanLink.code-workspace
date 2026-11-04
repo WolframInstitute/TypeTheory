@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../../LeanLink"
+		},
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../kernel-fast"
+		}
+	],
+	"settings": {}
+}

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Option
 Keywords: [option, optional value, maybe, prelude, inductive type]
-SeeAlso: [OptionNone, OptionSome, DisjointUnionType, Lists]
+SeeAlso: [OptionNone, OptionSome, DisjointUnionType, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -51,11 +51,11 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[OptionSome[OptionNone], Option[Option[Natur
 
 ## Applications
 
-The first element of a list, if it has one, defined with the recursor of [Lists]():
+The first element of a list, if it has one, defined with the recursor of [List]():
 
 ```wl
-heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed[l, Lists[Naturals]]},
-    InductiveRecursor[Lists][Function[{Typed[t, Lists[Naturals]]}, Option[Naturals]], OptionNone, Function[{Typed[x, Naturals], Typed[rest, Lists[Naturals]], Typed[r, Option[Naturals]]}, OptionSome[x]], l]
+heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed[l, {Naturals}]},
+    InductiveRecursor[List][Function[{Typed[t, {Naturals}]}, Option[Naturals]], OptionNone, Function[{Typed[x, Naturals], Typed[rest, {Naturals}], Typed[r, Option[Naturals]]}, OptionSome[x]], l]
 ]]}]
 ```
 

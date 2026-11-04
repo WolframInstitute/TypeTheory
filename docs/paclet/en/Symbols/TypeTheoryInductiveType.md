@@ -27,7 +27,7 @@ RelatedGuides: [TypeTheory]
 
 ## Basic Examples
 
-Lists of natural numbers, and their length by recursion:
+List of natural numbers, and their length by recursion:
 
 ```wl
 lists = TypeTheoryEnvironment[{

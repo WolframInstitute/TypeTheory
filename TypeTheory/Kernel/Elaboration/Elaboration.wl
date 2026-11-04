@@ -276,7 +276,11 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :>
 		elaborateArrow[listElements[domains], codomain],
-	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}] :> elaborateArrow[listElements[domains], codomain],
+	(* a bare arrow has one domain: {A} -> B is a function of lists of A, and a function of several arguments is curried,
+	   A -> B -> C, of a sequence, Sequence[A, B] -> C, or the compiler's TypeSpecifier[{A, B} -> C] *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], domains_List], _}] /; Length[domains] != 1 :>
+		elaborationFailure["`1` has a list of domains: write A -> B -> C for a curried function, Sequence[A, B] -> C for a function of a sequence, or TypeSpecifier[{A, B} -> C].", syntax],
+	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] :> With[{elaborated = elaborateLevel[level]},
 		{universeSort[elaborated], universeSort[normalizeLevel[levelSuccessor[elaborated, 1]]]}
 	],
@@ -314,9 +318,33 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* a hole stands for a term of the type expected, closed over the variables in scope when elaboration finishes *)
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeTheoryHole]], arguments_List] /; Length[arguments] <= 1 :> elaborateHole[arguments, expected, syntax],
 	(* a list written as a term is the list of its elements, ListPrepend over EmptyList, as such a list shows *)
+	(* List and Sequence are each a type and its elements: where a type is expected, {A} is the type of lists of A and
+	   Sequence[A, B] the type of the sequences of an A and a B; elsewhere {a, b} is a list and Sequence[a, b] a sequence *)
+	(* Lists, the name the type of lists had, is read as List, the type wherever it is applied *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Lists]], arguments_List] /; listsDeclaredQ[] :>
+		applyArguments[elaborateHead[syntaxSymbol[HoldComplete[List]]], arguments, syntaxSymbol[HoldComplete[List]], expected],
+	syntaxSymbol[HoldComplete[Lists]] /; listsDeclaredQ[] :> elaborateSyntax[syntaxSymbol[HoldComplete[List]], expected],
+	(* where nothing decides, as in a term on its own, the elements decide, elaborated once: types make the type *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], {element_}] /; listsDeclaredQ[] && typeExpectedQ[expected] :>
+		applyArguments[elaborateHead[head], {element}, head, expected],
+	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], {element_}] /; listsDeclaredQ[] && openExpectedQ[expected] :>
+		With[{elaborated = elaborateSyntax[element, None]},
+			If[ sortTypeQ[Last[elaborated]],
+				applyArguments[elaborateHead[head], {syntaxElaborated[elaborated, element]}, head, expected],
+				elaborateSyntax[listLiteralSyntax[{syntaxElaborated[elaborated, element]}], expected]
+			]
+		],
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], types_List] /; sequencesDeclaredQ[] && typeExpectedQ[expected] :>
+		applyArguments[elaborateHead[head], {sequencesIndex[types]}, head, expected],
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], elements : {__}] /; sequencesDeclaredQ[] && openExpectedQ[expected] :>
+		With[{elaborated = Function[element, syntaxElaborated[elaborateSyntax[element, None], element]] /@ splicedSequenceElements[elements]},
+			If[ AllTrue[elaborated, Function[part, sortTypeQ[Last[First[part]]]]] || MatchQ[elaborated, {part_ /; typeListQ[Last[First[part]]]}],
+				applyArguments[elaborateHead[head], {sequencesIndex[elaborated]}, head, expected],
+				elaborateSyntax[sequenceLiteralSyntax[elaborated], expected]
+			]
+		],
 	syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List] /; sequencesDeclaredQ[] :> elaborateSyntax[sequenceLiteralSyntax[elements], expected],
-	syntaxApplication[head : syntaxSymbol[HoldComplete[Sequences]], types_List] /; sequencesDeclaredQ[] :> applyArguments[elaborateHead[head], {sequencesIndex[types]}, head, expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
@@ -491,7 +519,7 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] :> With[{implicit = implicitArgument[domain, binder]},
 			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax, expected]
 		],
-		(* a binder of a type Sequences[...] takes the arguments that are left as one Sequence, as the Wolfram Language gives a
+		(* a binder of a type Sequence[...] takes the arguments that are left as one Sequence, as the Wolfram Language gives a
 		   function its arguments; one argument that is a sequence is the sequence itself, as the tail of SequencePrepend *)
 		dependentFunctionType[_, domain_, codomain_, binder_] /; explicitBinderQ[binder] && sequenceTypeQ[domain] :> With[
 			{argument = sequenceArgument[arguments, domain]},
@@ -521,7 +549,7 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 
 sequenceTypeQ[type_] := sequencesDeclaredQ[] && MatchQ[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
-	application[constantReference[HoldComplete[Sequences], _], _]
+	application[constantReference[HoldComplete[Sequence], _], _]
 ]
 
 (* the arguments as one Sequence, or one argument whose type is a sequence's, elaborated once either way *)
@@ -535,8 +563,9 @@ heldFromSyntax[syntaxElaborated[_, syntax_]] := heldFromSyntax[syntax]
 
 sequencesDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[SequencePrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptySequence]]
 
-(* Sequences[A, B, ...] is the family at the list of its types, Sequences[A, B, ...]; one argument that is a list of
-   types, as As in Sequences[As], is the list itself: its type tells, a list's never being a universe, as a type's is *)
+(* Sequence[A, B, ...] is the family at the list of its types, Sequence[A, B, ...]; one argument that is a list of
+   types, as As in Sequence[As], is the list itself: its type tells, a list's never being a universe, as a type's is *)
+sequencesIndex[{type : syntaxApplication[syntaxSymbol[HoldComplete[List]], _]}] := listLiteralSyntax[{type}]
 sequencesIndex[{type_}] := With[{elaborated = elaborateSyntax[type, None]},
 	If[ listTypeQ[Last[elaborated]],
 		syntaxElaborated[elaborated, type],
@@ -545,9 +574,26 @@ sequencesIndex[{type_}] := With[{elaborated = elaborateSyntax[type, None]},
 ]
 sequencesIndex[types_List] := listLiteralSyntax[types]
 
+(* nothing is expected yet, or an unknown *)
+openExpectedQ[None] := True
+openExpectedQ[expected_] := unassignedMetavariableQ[instantiateMetavariables[expected]]
+
+(* the type of a type: a universe *)
+sortTypeQ[type_] := MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]], universeSort[_]]
+
+(* the type of a list of types, as As in Sequence[As] *)
+typeListQ[type_] := MatchQ[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
+	application[constantReference[HoldComplete[List], _], element_ /; sortTypeQ[element]]
+]
+
+(* a type is expected: a universe *)
+typeExpectedQ[None] := False
+typeExpectedQ[expected_] := MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], universeSort[_]]
+
 listTypeQ[type_] := MatchQ[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
-	application[constantReference[HoldComplete[Lists], _], _]
+	application[constantReference[HoldComplete[List], _], _]
 ]
 
 (* Sequence[a, b, ...] is SequencePrepend over EmptySequence, as a list is ListPrepend over EmptyList; a Sequence among
@@ -1205,7 +1251,7 @@ explicitCore[syntax : (syntaxSymbol[_] | syntaxString[_] | syntaxApplication[syn
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}], scope_] := explicitArrow[{domain}, codomain, scope]
 explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}], scope_] :=
 	explicitArrow[listElements[domains], codomain, scope]
-explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}], scope_] := explicitArrow[listElements[domains], codomain, scope]
+explicitCore[syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domain_, codomain_}], scope_] := explicitArrow[{domain}, codomain, scope]
 (* f[a, ...] is exact when each binder of the type of f that an argument fills is explicit, for elaboration
    would fill an implicit one itself; but a declared constant named f[a, ...], as InductiveRecursor[Paint]
    is, is that constant, as elaboration reads it, after an overloaded name and a difference *)
@@ -1259,6 +1305,8 @@ readBeforeNamesQ[_, _] := False
 (* the heads elaboration reads as notation, whatever constant they also name: a sum of three terms is a
    sum of sums *)
 notationHeadQ[syntaxSymbol[HoldComplete[Function | ForAll | RightTee | Exists | Implies | TypeSpecifier | Rule | TypeUniverse | Typed | With | Subscript | Construct | Part]], _] := True
+(* a type or its elements, as the position decides, which an explicit term does not know *)
+notationHeadQ[syntaxSymbol[HoldComplete[List | Sequence | Lists]], _] := True
 notationHeadQ[syntaxSymbol[HoldComplete[Plus | Times | And | Or]], count_Integer] := count =!= 2
 notationHeadQ[_, _] := False
 

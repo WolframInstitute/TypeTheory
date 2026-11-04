@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
 Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, FindEquationalProof, equational reasoning, SumOfSquares, sum of squares, SemidefiniteOptimization, oracle]
-SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, Lists, IntegerLessEqualOfMultiple]
+SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, List, IntegerLessEqualOfMultiple]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -165,13 +165,13 @@ proof = TypeTheoryTactic["Exact", hnp[hp]][proof]
 `"Induction"` on a list leaves a goal for the empty list and one for a list with a first element:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {
+proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {
     TypeTheoryTactic["Introduce", l],
     TypeTheoryTactic["Induction", l]
 }]
 ```
 
-<!-- => Proof, 2 goals: case EmptyList ⊢ Join[{}, {}] == {}; case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
+<!-- => Proof, 2 goals: case EmptyList ⊢ Join[{}, {}] == {}; case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
 
 `"Simplify"` unfolds [Join]() on the empty list, and the sides are then the same:
 
@@ -179,7 +179,7 @@ proof = TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] =
 proof = TypeTheoryTactic["Simplify", {Join}][proof]
 ```
 
-<!-- => Proof, 1 goal: case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶Lists[ℕ] Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
+<!-- => Proof, 1 goal: case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
 
 Introduce the first element, the rest and the induction hypothesis:
 
@@ -187,7 +187,7 @@ Introduce the first element, the rest and the induction hypothesis:
 proof = TypeTheoryTactic["Introduce", x, rest, ih][proof]
 ```
 
-<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ Lists[ℕ], ih ∶ Join[rest, {}] == rest ⊢ Join[ListPrepend[x, rest], {}] == ListPrepend[x, rest] -->
+<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ {ℕ}, ih ∶ Join[rest, {}] == rest ⊢ Join[ListPrepend[x, rest], {}] == ListPrepend[x, rest] -->
 
 Unfolding [Join]() once more brings out `Join[rest, EmptyList]`, which the induction hypothesis rewrites:
 
@@ -434,7 +434,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 1 != 0], {TypeTheoryTactic["Int
 A definition by recursion does not unfold on a variable, where it does not compute; `"Induction"` on the variable comes first:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Simplify", {Join}]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Simplify", {Join}]}]
 ```
 
 <!-- => Failure["NoProgress", ...] -->

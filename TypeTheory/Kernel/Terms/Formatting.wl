@@ -44,15 +44,16 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
 	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
 	ListPrepend[1, ListPrepend[2, EmptyList]]   {1, 2}     EmptyList as {}, in braces: [1, 2] in f[[1, 2]] would read as Part
-	SequencePrepend[1, EmptySequence]   Sequence[1]          EmptySequence as Sequence[], as Sequence[...] is written
-	Sequences[A, B]                   Sequences[A, B]      as it is written; Sequences[As] for a list As that is no literal
-	Lists[A]                            List A               as Lean writes it, List (List A) for a list type of a list type
+	SequencePrepend[1, EmptySequence]   [1]                  EmptySequence as [], a sequence in brackets
+	Sequence[{A, B}]                    Sequence[A, B]       the type, as it is written; Sequence[As] for a list As that
+	                                                         is no literal
+	List[A]                             {A}                  the type, as the Wolfram Language shows List[A]
 	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
-A constant named by a symbol outside System, a type or a function alike, as Option, Lists alone or a declared degree,
+A constant named by a symbol outside System, a type or a function alike, as Option or a declared degree,
 shows in bold, so that it is told apart from a constant named by a string, which shows as the
-string does, and from a variable. A constant named by a string is never bold, nor is a notation, as the word List of
-List A or ℕ, nor a System symbol, as True or And, which shows as the Wolfram Language shows it.
+string does, and from a variable. A constant named by a string is never bold, nor is a notation, as ℕ, nor a System
+symbol, as True, And, List or Sequence, which shows as the Wolfram Language shows it.
 
 A variable the term binds, and a hypothesis of a goal in its target, shows in the green of a local variable; a universe
 level, as the u of Type u, in gray; an unsolved metavariable, as ?u3, in the orange of a hole ($displayColors).
@@ -263,10 +264,10 @@ displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]]
 	tupleDisplay["{", displaySyntax /@ Most[rightNested[ListPrepend, syntax]], "}"]
 displaySyntax[syntaxSymbol[HoldComplete[EmptyList]]] := syntaxString["{}"]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
-	tupleDisplay["Sequence[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
-displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["Sequence[]"]
-(* Sequences at a list of types as its types, Sequences[A, B], as it is written *)
-displaySyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequences]], {index_}]] /; listLiteralQ[index] :=
+	tupleDisplay["[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
+displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["[]"]
+(* Sequence at a list of types as its types, Sequence[A, B], as it is written *)
+displaySyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], {index_}]] /; listLiteralQ[index] :=
 	displayApplication[head, displaySyntax /@ Most[rightNested[ListPrepend, index]]]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
@@ -317,7 +318,6 @@ displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :
 displayApplication[syntaxSymbol[HoldComplete[TypeUniverse]], {level_}] := universeDisplay[level]
 (* a metavariable left unsolved shows as its name, in the color of what is still to do *)
 displayApplication[syntaxSymbol[HoldComplete[Placeholder]], {syntaxString[name_String]}] /; StringStartsQ[name, "?"] := styled[syntaxString[name], "Unsolved"]
-displayApplication[syntaxSymbol[HoldComplete[Lists]], {element_}] := syntaxHead[Row, {syntaxHead[List, {syntaxString["List"], syntaxString[" "], juxtaposed[element]}]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}] := syntaxHead[Subscript, {type, syntaxString["rec"]}]
 displayApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_, syntaxInteger[index_Integer]}] := syntaxHead[Subscript, {type, syntaxString["rec_" <> ToString[index]]}]
 (* the operations of the interval show as cubical type theory writes them, and a path over a constant line as a ≡ b *)

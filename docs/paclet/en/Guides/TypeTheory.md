@@ -47,7 +47,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryProofTree]() the natural-deduction derivation of a proof of propositional logic, drawn
 - [TypeTheoryFormalize]() the declarations that make a Wolfram Language function a constant: a definition where its definitions translate, an axiom it computes otherwise
 - [Expressions]() the expressions of the Wolfram Language, with [Atoms](), [ExpressionAtom](), [ExpressionNormal](), [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"]
-- [Sequences]() the sequences of elements of different types, `Sequence[a, b]`, with [EmptySequence]() and [SequencePrepend](): the arguments a Wolfram Language function is applied to
+- [EmptySequence]() and [SequencePrepend]() the sequences of elements of different types, `Sequence[a, b]`, of the type `Sequence[A, B]`: the arguments a Wolfram Language function is applied to
 - [MatchBind]() and [MatchFirst]() the monad of pattern matching, with the match objects of Wolfram/Patterns
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce
@@ -141,7 +141,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [CartesianProductType]() pairs, made with [Pair]()
 - [DisjointUnionType]() sums, made with [LeftInjection]() and [RightInjection]()
 - [Option]() optional values, [OptionNone]() and [OptionSome]()
-- [Lists]() lists, built from [EmptyList]() by [ListPrepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
+- [List]() lists, built from [EmptyList]() by [ListPrepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
 - [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse](), [LengthReverse]() the laws of lists
 
 ### Homotopy type theory

@@ -340,9 +340,9 @@ WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[1]]]]
 
 <!-- => 2 -->
 
-## Lists
+## List
 
-<code>[Lists]()[α]</code> is the type of finite lists, built from [EmptyList]() by [ListPrepend](), the head first, as Lean's `List`. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
+<code>[List]()[α]</code> is the type of finite lists, built from [EmptyList]() by [ListPrepend](), the head first, as Lean's `List`. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]], TypeTheoryTerm[ListPrepend[2, ListPrepend[1, EmptyList]]]]
@@ -353,7 +353,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Reverse[ListPrepend[1, ListPrepend[2, EmptyL
 Their laws are theorems: [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse]() and [LengthReverse](). Each is proved by recursion on a list, and tactics prove such laws too: `"Induction"` splits a list into the empty list and a list with a first element, and `"Simplify"` unfolds a definition where its list is one of these, folding the recursive call back, before it rewrites with the induction hypothesis and the laws of arithmetic:
 
 ```wl
-lengthJoin = TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Length[Join[a, b]] == Length[a] + Length[b]], {
+lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Join[a, b]] == Length[a] + Length[b]], {
     TypeTheoryTactic["Introduce", a, b],
     TypeTheoryTactic["Induction", a],
     TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],

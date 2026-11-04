@@ -230,7 +230,7 @@ VerificationTest[
 VerificationTest[
 	{
 		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, Typed[EmptyList, Lists[NonNegativeIntegers]]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, Typed[EmptyList, {NonNegativeIntegers}]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
 		Cases[ToBoxes[TypeTheoryTerm[Join[l, EmptyList]]], "\"{}\"", Infinity],
 		FreeQ[ToBoxes[TypeTheoryTerm[ListPrepend[1, l]]], "ListPrepend"]
 	},
@@ -238,12 +238,12 @@ VerificationTest[
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
 ]
 
-(* a list type shows as Lean writes it, its word List plain, as notation; a constant named by a symbol, a type or a function,
+(* a list type shows as it is written, {A}, and lists of lists {{A}}; a constant named by a symbol, a type or a function,
    shows in bold, so that it is told apart from a constant named by a string, which shows as the string does, as a value does *)
 VerificationTest[
 	With[
 		{
-			lists = ToBoxes[TypeTheoryTerm[Lists[Lists[NonNegativeIntegers]]]],
+			lists = ToBoxes[TypeTheoryTerm[{{NonNegativeIntegers}}]],
 			named = TypeTheoryEnvironment[prelude, {
 				TypeTheoryAxiom[Polynomial, TypeUniverse[1]],
 				TypeTheoryAxiom["Polynomials", TypeUniverse[1]],
@@ -253,10 +253,10 @@ VerificationTest[
 			}]
 		},
 		{
-			Cases[lists, TemplateBox[{"\"List\"", "\" \"", TemplateBox[{"\"(\"", TemplateBox[{"\"List\"", "\" \"", "\"\[DoubleStruckCapitalN]\""}, "RowDefault"], "\")\""}, "RowDefault"]}, "RowDefault"], {0, Infinity}] =!= {},
+			Cases[lists, RowBox[{"{", RowBox[{"{", "\"\[DoubleStruckCapitalN]\"", "}"}], "}"}], {0, Infinity}] =!= {},
 			FreeQ[lists, StyleBox],
-			Length[Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{Polynomial} -> Lists[Polynomial]], named]], StyleBox["Polynomial", Bold, ___], Infinity]],
-			FreeQ[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> Lists["Polynomials"]], named]], StyleBox],
+			Length[Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{Polynomial} -> {Polynomial}], named]], StyleBox["Polynomial", Bold, ___], Infinity]],
+			FreeQ[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> {"Polynomials"}], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
 			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox],
 			Sort[Cases[ToBoxes[TypeTheoryTerm[degree[zero], named]] /. TooltipBox[boxes_, ___] :> boxes, StyleBox[name_String, Bold, ___] :> name, Infinity]],
@@ -264,7 +264,7 @@ VerificationTest[
 		}
 	],
 	{True, True, 2, True, True, True, {"degree", "zero"}, True},
-	TestID -> "A-list-type-shows-as-List-A-and-a-constant-named-by-a-symbol-in-bold"
+	TestID -> "A-list-type-shows-in-braces-and-a-constant-named-by-a-symbol-in-bold"
 ]
 
 VerificationTest[
@@ -314,7 +314,7 @@ VerificationTest[
 		},
 		{
 			DeleteDuplicates[styled[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]] === {{"n", colors["BoundVariable"]}},
-			DeleteDuplicates[styled[ToBoxes[TypeOf[TypeTheoryTerm[Lists]]]]],
+			DeleteDuplicates[styled[ToBoxes[TypeOf[TypeTheoryTerm[List]]]]],
 			FreeQ[styled[ToBoxes[TypeTheoryTerm[TypeUniverse[1]]]], colors["Level"]],
 			MemberQ[
 				styled[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce"]}]]],

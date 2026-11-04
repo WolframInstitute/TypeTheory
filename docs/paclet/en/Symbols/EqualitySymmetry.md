@@ -64,10 +64,10 @@ TypeTheoryTactic["Exact", AdditionZeroLeft[n]][proof]
 Turn a theorem around, here [JoinEmptyRight]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, Lists[Naturals]]}, EqualitySymmetry[JoinEmptyRight[l]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, EqualitySymmetry[JoinEmptyRight[l]]]]]
 ```
 
-<!-- => ∀_l∶Lists[ℕ] l == Join[l, {}] -->
+<!-- => ∀_l∶{ℕ} l == Join[l, {}] -->
 
 ## Properties and Relations
 

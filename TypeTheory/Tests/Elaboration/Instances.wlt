@@ -23,7 +23,7 @@ environment = TypeTheoryEnvironment[prelude, {
 	TypeTheoryDefinition[BooleansInhabited, Typed[InhabitedIntroduction["false"], Inhabited[Booleans]], "Instance" -> True],
 	TypeTheoryDefinition[ListsInhabited, Typed[
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, InhabitedIntroduction[EmptyList]],
-		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Inhabited[Lists[\[Alpha]]]]
+		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Inhabited[{\[Alpha]}]]
 	], "Instance" -> True],
 	TypeTheoryDefinition[PairInhabited, Typed[
 		Function[
@@ -57,7 +57,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[NonNegativeIntegers, Lists[Booleans]]], environment]],
+	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[NonNegativeIntegers, {Booleans}]], environment]],
 	TypeTheoryTerm[Pair[NaturalsInhabited[[1]], ListsInhabited[[1]]], environment],
 	TestID -> "An-instance-finds-its-own-instance-arguments"
 ]

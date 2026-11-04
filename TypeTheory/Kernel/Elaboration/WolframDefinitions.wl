@@ -451,9 +451,9 @@ emptyListDefinitionQ[_] := False
 (* the recursion a prepend case is translated under: the symbol itself, and the rest of the list, bound as a sequence *)
 $recursion = <||>
 
-(* the candidate values of a definition by recursion on a list: its types from "Type" where given, Lists[a] -> b, and
+(* the candidate values of a definition by recursion on a list: its types from "Type" where given, {a} -> b, and
    otherwise of the type the empty case has, its elements of any type first and of that type then *)
-listRecursionCandidates[environment_, HoldComplete[Lists[elementType_] -> resultType_], parts_] :=
+listRecursionCandidates[environment_, HoldComplete[{elementType_} -> resultType_], parts_] :=
 	{listRecursionValue[parts, HoldComplete[], HoldComplete[elementType], HoldComplete[resultType]]}
 listRecursionCandidates[_, HoldComplete[_], _] := {}
 (* the term is made first, as TypeOf holds its argument *)
@@ -468,11 +468,11 @@ listRecursionCandidates[environment_, None, parts_] := Replace[With[{empty = Typ
 listRecursionValue[parts_, elementBinders_HoldComplete, elementTypeHeld_HoldComplete, resultTypeHeld_HoldComplete] := Replace[
 	{parts["Empty"], parts["Prepend"], parts["Head"], parts["Rest"], elementBinders, elementTypeHeld, resultTypeHeld},
 	{HoldComplete[empty_], HoldComplete[prepend_], HoldComplete[head_], HoldComplete[rest_], HoldComplete[binders___], HoldComplete[a_], HoldComplete[b_]} :> HoldComplete[
-		Function[{binders, Typed[listArgument, Lists[a]]},
-			InductiveRecursor[Lists][
-				Function[{Typed[list, Lists[a]]}, b],
+		Function[{binders, Typed[listArgument, {a}]},
+			InductiveRecursor[List][
+				Function[{Typed[list, {a}]}, b],
 				empty,
-				Function[{Typed[head, a], Typed[rest, Lists[a]], Typed[recursionResult, b]}, prepend],
+				Function[{Typed[head, a], Typed[rest, {a}], Typed[recursionResult, b]}, prepend],
 				listArgument
 			]
 		]
@@ -594,12 +594,12 @@ $wolframSignatures = Join[
 	signatures[HoldComplete[D, ReplaceAll, Dot, Solve, Integrate, Coefficient, Limit, Series], HoldComplete[Expressions -> Expressions -> Expressions]],
 	signatures[HoldComplete[Sqrt, Exp, Log, Sin, Cos, Tan, Abs, N, Det, Transpose, Normal, Inverse, Tr], HoldComplete[Expressions -> Expressions]],
 	(* total on lists, so typed by their elements *)
-	signatures[HoldComplete[Range], HoldComplete[NonNegativeIntegers -> Lists[NonNegativeIntegers]]],
-	signatures[HoldComplete[Sort, DeleteDuplicates], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> Lists[A]]]],
-	signatures[HoldComplete[MemberQ], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> A -> Booleans]]],
-	signatures[HoldComplete[AllTrue, AnyTrue, NoneTrue], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> (A -> Booleans) -> Booleans]]],
-	signatures[HoldComplete[Select], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Lists[A] -> (A -> Booleans) -> Lists[A]]]],
-	signatures[HoldComplete[Total], HoldComplete[Lists[Expressions] -> Expressions]],
+	signatures[HoldComplete[Range], HoldComplete[NonNegativeIntegers -> {NonNegativeIntegers}]],
+	signatures[HoldComplete[Sort, DeleteDuplicates], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> {A}]]],
+	signatures[HoldComplete[MemberQ], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> A -> Booleans]]],
+	signatures[HoldComplete[AllTrue, AnyTrue, NoneTrue], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> (A -> Booleans) -> Booleans]]],
+	signatures[HoldComplete[Select], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> (A -> Booleans) -> {A}]]],
+	signatures[HoldComplete[Total], HoldComplete[{Expressions} -> Expressions]],
 	(* partial, as First of an empty list, or of any expression, so over Expressions *)
 	signatures[HoldComplete[First, Last, Rest, Most, Flatten, Missing, Association, Head, Keys, Values], HoldComplete[Expressions -> Expressions]],
 	signatures[HoldComplete[Part, Extract, Apply, Rule, Lookup, KeyExistsQ, FreeQ, Count, Take, Drop, Coefficient, Mod, Quotient], HoldComplete[Expressions -> Expressions -> Expressions]]

@@ -4,7 +4,7 @@ Name: Lists
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Lists
-Keywords: [list, lists, finite sequence, prelude, inductive type, Join, Length, Map, Reverse]
+Keywords: [list, lists, List, finite sequence, prelude, inductive type, Join, Length, Map, Reverse]
 SeeAlso: [EmptyList, ListPrepend, JoinAssociativity, ReverseReverse, TypeTheoryTactic]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
@@ -12,20 +12,22 @@ RelatedTutorials: [ThePrelude]
 
 ## Usage
 
-<code>[Lists]()[*α*]</code> is the type of finite lists of elements of *α*.
+<code>[Lists]()[*α*]</code> is `{α}`, the type of finite lists of elements of *α*, by the name it had.
 
 ## Details & Options
 
-- [Lists]() is an inductive type of the prelude, with the constructors [EmptyList]() and [ListPrepend](), the head first, as Lean's `List`.
+- The type of lists is `List[α]`, written `{α}`: [List]() is a type and its elements alike, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{α}` is the type of lists of *α*; elsewhere `{a, b}` is a list. In a term on its own, the elements decide: types make the type.
+- [Lists]()[*α*] is read as `{α}`, so that a term written with the name it had still elaborates.
+- The type of lists is an inductive type of the prelude, with the constructors [EmptyList]() and [ListPrepend](), the head first, as Lean's `List`.
 - The prelude defines [Join](), [Length](), [Map](), [Append]() and [Reverse]() on lists, each by recursion on its first list, and proves their laws: [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse]() and [LengthReverse]().
-- For *α* in `Type u`, <code>[Lists]()[*α*]</code> is in `Type u` too.
+- For *α* in `Type u`, `{α}` is in `Type u` too.
 
 ## Basic Examples
 
-The type of [Lists]():
+The type of the type of lists:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Lists]]
+TypeTheoryCheck[TypeTheoryTerm[List]]
 ```
 
 <!-- => Type u → Type u -->
@@ -38,7 +40,17 @@ The list of 1 and 2:
 TypeTheoryCheck[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]]
 ```
 
-<!-- => Lists[ℕ] -->
+<!-- => {ℕ} -->
+
+---
+
+The name the type had reads as the type:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[EmptyList, Lists[NonNegativeIntegers]]], TypeTheoryTerm[Typed[EmptyList, {NonNegativeIntegers}]]]
+```
+
+<!-- => True -->
 
 ## Scope
 
@@ -55,7 +67,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[ListPrepend[1, ListPrepend[2, EmptyList
 A law of lists by induction, unfolding [Join]() where it computes with the tactic `"Simplify"`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Typed[c, Lists[Naturals]]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
 	TypeTheoryTactic["Introduce", a, b, c],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join}],

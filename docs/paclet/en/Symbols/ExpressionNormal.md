@@ -16,7 +16,7 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Details & Options
 
-- [ExpressionNormal]() is a constructor of [Expressions](), in [TypeTheoryEnvironment]()["WolframLanguage"], of type `Expressions -> Lists[Expressions] -> Expressions`.
+- [ExpressionNormal]() is a constructor of [Expressions](), in [TypeTheoryEnvironment]()["WolframLanguage"], of type `Expressions -> {Expressions} -> Expressions`.
 - [Head]() gives *h*, and [Arguments]() gives the list of the arguments.
 - The curried expression *h*[*a*][*b*] is [ExpressionNormal]()[[ExpressionNormal]()[*h*, {*a*}], {*b*}], another expression than *h*[*a*, *b*].
 

@@ -26,24 +26,24 @@ The statement of [ReverseJoin]():
 TypeTheoryCheck[TypeTheoryTerm[ReverseJoin]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_a∶Lists[α] ∀_b∶Lists[α] Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]] -->
+<!-- => ∀_{α ∶ Type u} ∀_a∶{α} ∀_b∶{α} Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]] -->
 
 ---
 
 For lists of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, ReverseJoin[a, b]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, ReverseJoin[a, b]]]]
 ```
 
-<!-- => ∀_a∶Lists[ℕ] ∀_b∶Lists[ℕ] Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]] -->
+<!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]] -->
 
 ## Applications
 
 Reversing a list with an element appended puts the element first:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]], Typed[x, Naturals]}, Reverse[Append[l, x]] == ListPrepend[x, Reverse[l]]], {
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}], Typed[x, Naturals]}, Reverse[Append[l, x]] == ListPrepend[x, Reverse[l]]], {
     TypeTheoryTactic["Introduce", l, x],
     TypeTheoryTactic["Exact", ReverseJoin[l, ListPrepend[x, EmptyList]]]
 }]
@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]], Typed[x, Naturals]}, Reverse[
 `"Simplify"` reverses a join of three lists:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Typed[c, Lists[Naturals]]}, Reverse[Join[a, Join[b, c]]] == Join[Join[Reverse[c], Reverse[b]], Reverse[a]]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]}, Reverse[Join[a, Join[b, c]]] == Join[Join[Reverse[c], Reverse[b]], Reverse[a]]], {
     TypeTheoryTactic["Introduce", a, b, c],
     TypeTheoryTactic["Simplify", {ReverseJoin}]
 }]

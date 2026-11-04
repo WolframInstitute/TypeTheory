@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/LengthReverse
 Keywords: [list, length, reverse, prelude]
-SeeAlso: [LengthJoin, ReverseReverse, Lists]
+SeeAlso: [LengthJoin, ReverseReverse, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -26,7 +26,7 @@ The statement of [LengthReverse]():
 TypeTheoryCheck[TypeTheoryTerm[LengthReverse]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_l∶Lists[α] Length[Reverse[l]] == Length[l] -->
+<!-- => ∀_{α ∶ Type u} ∀_l∶{α} Length[Reverse[l]] == Length[l] -->
 
 ---
 
@@ -43,7 +43,7 @@ TypeTheoryCheck[TypeTheoryTerm[LengthReverse[ListPrepend[1, ListPrepend[2, Empty
 With [LengthJoin](), `"Simplify"` finds the length of a reversed join:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Length[Reverse[Join[a, b]]] == Length[a] + Length[b]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Reverse[Join[a, b]]] == Length[a] + Length[b]], {
     TypeTheoryTactic["Introduce", a, b],
     TypeTheoryTactic["Simplify", {LengthReverse, LengthJoin}]
 }]
@@ -66,7 +66,7 @@ TypeTheoryProof[Length[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]] == 2,
 Tactics prove it by induction, as the prelude does: [Reverse]() puts the first element at the end with [Append](), and [LengthJoin]() counts it:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Length[Reverse[l]] == Length[l]], {
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Length[Reverse[l]] == Length[l]], {
     TypeTheoryTactic["Introduce", l],
     TypeTheoryTactic["Induction", l],
     TypeTheoryTactic["Simplify", {Reverse, Length}],
@@ -82,7 +82,7 @@ TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Length[Reverse[l]] == Length
 On a variable, [Reverse]() does not compute, so `"Reflexivity"` does not prove it:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Length[Reverse[l]] == Length[l]], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Length[Reverse[l]] == Length[l]], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

@@ -26,24 +26,24 @@ The statement of [MapJoin]():
 TypeTheoryCheck[TypeTheoryTerm[MapJoin]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} ∀_f∶α → β ∀_a∶Lists[α] ∀_b∶Lists[α] f /@ Join[a, b] == Join[f /@ a, f /@ b] -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} ∀_f∶α → β ∀_a∶{α} ∀_b∶{α} f /@ Join[a, b] == Join[f /@ a, f /@ b] -->
 
 ---
 
 For adding 1 to each natural number:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, MapJoin[Function[{Typed[n, Naturals]}, n + 1], a, b]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, MapJoin[Function[{Typed[n, Naturals]}, n + 1], a, b]]]]
 ```
 
-<!-- => ∀_a∶Lists[ℕ] ∀_b∶Lists[ℕ] ((n ∶ ℕ) ↦ n + 1) /@ Join[a, b] == Join[((n ∶ ℕ) ↦ n + 1) /@ a, ((n ∶ ℕ) ↦ n + 1) /@ b] -->
+<!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} ((n ∶ ℕ) ↦ n + 1) /@ Join[a, b] == Join[((n ∶ ℕ) ↦ n + 1) /@ a, ((n ∶ ℕ) ↦ n + 1) /@ b] -->
 
 ## Scope
 
 [Map]() and [Join]() compute by recursion on their first list, so with the first list written out both sides compute, whatever the second:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[b, Lists[Naturals]]},
+TypeTheoryProof[ForAll[{Typed[b, {Naturals}]},
     Map[Function[{Typed[n, Naturals]}, n + 1], Join[ListPrepend[1, EmptyList], b]] == Join[Map[Function[{Typed[n, Naturals]}, n + 1], ListPrepend[1, EmptyList]], Map[Function[{Typed[n, Naturals]}, n + 1], b]]
 ], {
     TypeTheoryTactic["Introduce", b],
@@ -59,7 +59,7 @@ TypeTheoryProof[ForAll[{Typed[b, Lists[Naturals]]},
 
 ```wl
 TypeTheoryProof[ForAll[
-    {Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Typed[c, Lists[Naturals]]},
+    {Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]},
     Map[f, Join[a, Join[b, c]]] == Join[Map[f, a], Join[Map[f, b], Map[f, c]]]
 ], {
     TypeTheoryTactic["Introduce", f, a, b, c],
@@ -74,7 +74,7 @@ TypeTheoryProof[ForAll[
 [Append]() joins a list of one element, so [MapJoin]() maps over it too:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[l, Lists[Naturals]], Typed[x, Naturals]}, Map[f, Append[l, x]] == Append[Map[f, l], f[x]]], {
+TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[l, {Naturals}], Typed[x, Naturals]}, Map[f, Append[l, x]] == Append[Map[f, l], f[x]]], {
     TypeTheoryTactic["Introduce", f, l, x],
     TypeTheoryTactic["Exact", MapJoin[f, l, ListPrepend[x, EmptyList]]]
 }]
@@ -87,7 +87,7 @@ TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[l
 With the first list a variable, neither side computes, so the law takes the theorem:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Map[f, Join[a, b]] == Join[Map[f, a], Map[f, b]]], {
+TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[a, {Naturals}], Typed[b, {Naturals}]}, Map[f, Join[a, b]] == Join[Map[f, a], Map[f, b]]], {
     TypeTheoryTactic["Introduce", f, a, b],
     TypeTheoryTactic["Reflexivity"]
 }]

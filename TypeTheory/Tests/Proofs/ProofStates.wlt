@@ -353,7 +353,7 @@ VerificationTest[
 
 (* Change, Simplify and Decide, and laws of lists proved with tactics alone *)
 
-joinEmpty = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, Join[l, EmptyList] == l], prelude, {
+joinEmpty = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, Join[l, EmptyList] == l], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], l],
 	TypeTheoryTactic["Induction", l],
 	TypeTheoryTactic["Reflexivity"],
@@ -362,7 +362,7 @@ joinEmpty = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]
 	TypeTheoryTactic["Rewrite", ih]
 }]
 
-reverseTwice = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, Lists[\[Alpha]]]}, Reverse[Reverse[l]] == l], prelude, {
+reverseTwice = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, Reverse[Reverse[l]] == l], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], l],
 	TypeTheoryTactic["Induction", l],
 	TypeTheoryTactic["Reflexivity"],
@@ -391,18 +391,18 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Length[Reverse[Join[a, b]]] == Length[a] + Length[b]], prelude, {
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Reverse[Join[a, b]]] == Length[a] + Length[b]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a, b],
 			TypeTheoryTactic["Simplify", {LengthReverse, LengthJoin}]
 		}]["Goals"],
-		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Length[Reverse[Join[a, b]]] == Length[b] + Length[a]], prelude, {
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Reverse[Join[a, b]]] == Length[b] + Length[a]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a, b],
 			TypeTheoryTactic["Simplify", {LengthReverse, LengthJoin}]
 		}]["Goals"]
 	},
 	{
 		{},
-		{TypeTheoryTerm[RightTee[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Length[a] + Length[b] == Length[b] + Length[a]], prelude]}
+		{TypeTheoryTerm[RightTee[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[a] + Length[b] == Length[b] + Length[a]], prelude]}
 	},
 	TestID -> "Simplify-rewrites-with-the-lemmas-and-closes-what-becomes-reflexive"
 ]
@@ -440,7 +440,7 @@ VerificationTest[
 
 (* Simplify unfolds a definition it is given where the definition computes, and Rewrite reaches into hypotheses *)
 
-joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]], Typed[c, Lists[\[Alpha]]]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], prelude, {
+joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}], Typed[c, {\[Alpha]}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b, c],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join}],
@@ -448,7 +448,7 @@ joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse
 	TypeTheoryTactic["Simplify", {Join, ih}]
 }]
 
-lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Length[Join[a, b]] == Length[a] + Length[b]], prelude, {
+lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Join[a, b]] == Length[a] + Length[b]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
@@ -456,7 +456,7 @@ lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]
 	TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
 }]
 
-reverseJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]], Typed[b, Lists[\[Alpha]]]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]], prelude, {
+reverseJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join, Reverse, JoinEmptyRight}],
@@ -484,15 +484,15 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, Lists[\[Alpha]]]}, Reverse[ListPrepend[x, a]] == Append[Reverse[a], x]], prelude, {
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Reverse[ListPrepend[x, a]] == Append[Reverse[a], x]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], x, a],
 			TypeTheoryTactic["Simplify", {Reverse}]
 		}]["Goals"],
-		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, Lists[\[Alpha]]]}, Append[a, x] == Join[a, ListPrepend[x, EmptyList]]], prelude, {
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Append[a, x] == Join[a, ListPrepend[x, EmptyList]]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], x, a],
 			TypeTheoryTactic["Simplify", {Append}]
 		}]["Goals"],
-		First @ TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, Lists[\[Alpha]]]}, Join[a, EmptyList] == a], prelude, {
+		First @ TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}]}, Join[a, EmptyList] == a], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a],
 			TypeTheoryTactic["Simplify", {Join}]
 		}]

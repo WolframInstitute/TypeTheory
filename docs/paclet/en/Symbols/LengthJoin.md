@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/LengthJoin
 Keywords: [list, length, join, addition, prelude]
-SeeAlso: [LengthReverse, LengthMap, Lists]
+SeeAlso: [LengthReverse, LengthMap, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -26,24 +26,24 @@ The statement of [LengthJoin]():
 TypeTheoryCheck[TypeTheoryTerm[LengthJoin]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_a∶Lists[α] ∀_b∶Lists[α] Length[Join[a, b]] == Length[a] + Length[b] -->
+<!-- => ∀_{α ∶ Type u} ∀_a∶{α} ∀_b∶{α} Length[Join[a, b]] == Length[a] + Length[b] -->
 
 ---
 
 For lists of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, LengthJoin[a, b]]]]
+TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, LengthJoin[a, b]]]]
 ```
 
-<!-- => ∀_a∶Lists[ℕ] ∀_b∶Lists[ℕ] Length[Join[a, b]] == Length[a] + Length[b] -->
+<!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} Length[Join[a, b]] == Length[a] + Length[b] -->
 
 ## Scope
 
 The tactic `"Simplify"` rewrites with it and other laws until the goal closes:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Length[Reverse[Join[a, b]]] == Length[b] + Length[a]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Reverse[Join[a, b]]] == Length[b] + Length[a]], {
 	TypeTheoryTactic["Introduce", a, b],
 	TypeTheoryTactic["Simplify", {LengthReverse, LengthJoin, AdditionCommutativity}]
 }]

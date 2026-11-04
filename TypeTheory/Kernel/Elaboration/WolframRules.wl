@@ -142,7 +142,7 @@ programMatch[{coreForm["Join"][local_String, path_List], rest___}, environment_,
 programMatch[{coreForm["BindSequence"][name_, local_String, path_List, from_Integer, after_Integer], rest___}, environment_, final_] := withPart[path, environment, None,
 	Function[{part, inner}, With[{variable = Replace[preferredVariable[name], None :> freshPart[]]},
 		Replace[{sequenceTerm[part, from, after], variable, programMatch[{rest}, bound[inner, name, local, {variable, "Sequence"}], final]}, {
-			{HoldComplete[s_], HoldComplete[v_], HoldComplete[m_]} :> HoldComplete[MatchBind[Wolfram`Patterns`MatchValues[Typed[s, Lists[Expressions]]], Function[{Typed[v, Lists[Expressions]]}, m]]]
+			{HoldComplete[s_], HoldComplete[v_], HoldComplete[m_]} :> HoldComplete[MatchBind[Wolfram`Patterns`MatchValues[Typed[s, {Expressions}]], Function[{Typed[v, {Expressions}]}, m]]]
 		}]
 	]]
 ]
@@ -186,11 +186,11 @@ sequenceTerm[HoldComplete[e_], from_Integer, 0] := With[{dropped = from - 1}, Ho
 sequenceTerm[HoldComplete[e_], from_Integer, after_Integer] := With[{dropped = from - 1}, HoldComplete[Reverse[Drop[Reverse[Drop[Arguments[e], dropped]], after]]]]
 
 (* whether every expression of a sequence has the head, or none has *)
-everyHead[HoldComplete[s_], HoldComplete[head_], True] := HoldComplete[InductiveRecursor[Lists][
-	Function[{Typed[list, Lists[Expressions]]}, Booleans], True, Function[{Typed[first, Expressions], Typed[others, Lists[Expressions]], Typed[result, Booleans]}, And[SameQ[Head[first], head], result]], s
+everyHead[HoldComplete[s_], HoldComplete[head_], True] := HoldComplete[InductiveRecursor[List][
+	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[first, Expressions], Typed[others, {Expressions}], Typed[result, Booleans]}, And[SameQ[Head[first], head], result]], s
 ]]
-everyHead[HoldComplete[s_], HoldComplete[head_], False] := HoldComplete[InductiveRecursor[Lists][
-	Function[{Typed[list, Lists[Expressions]]}, Booleans], True, Function[{Typed[first, Expressions], Typed[others, Lists[Expressions]], Typed[result, Booleans]}, And[Not[SameQ[Head[first], head]], result]], s
+everyHead[HoldComplete[s_], HoldComplete[head_], False] := HoldComplete[InductiveRecursor[List][
+	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[first, Expressions], Typed[others, {Expressions}], Typed[result, Booleans]}, And[Not[SameQ[Head[first], head]], result]], s
 ]]
 
 (* the part at a path, matched where no instruction has yet, its variable the pattern variable that binds it where one
@@ -240,7 +240,7 @@ quoted[_, _] := Throw[None, untranslatable]
    variable joined in, as ExpressionNormal[head, Join[{x, y}, z]] for head[x, y, z] *)
 normalTerm[HoldComplete[head_], arguments_List] := Replace[argumentList[arguments], HoldComplete[list_] :> HoldComplete[ExpressionNormal[head, list]]]
 
-argumentList[{}] := HoldComplete[Typed[{}, Lists[Expressions]]]
+argumentList[{}] := HoldComplete[Typed[{}, {Expressions}]]
 argumentList[arguments_List] := Fold[
 	Function[{rest, part}, Replace[{part, rest}, {HoldComplete[p_], HoldComplete[r_]} :> HoldComplete[Join[p, r]]]],
 	Reverse[argumentRuns[arguments]]

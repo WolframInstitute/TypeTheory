@@ -57,7 +57,7 @@ VerificationTest[
 
 VerificationTest[
 	ringProof[
-		ForAll[{Typed[l, Lists[NonNegativeIntegers]], Typed[m, Lists[NonNegativeIntegers]]}, (Length[l] + Length[m])^2 == Length[m]^2 + 2 Length[l] Length[m] + Length[l]^2],
+		ForAll[{Typed[l, {NonNegativeIntegers}], Typed[m, {NonNegativeIntegers}]}, (Length[l] + Length[m])^2 == Length[m]^2 + 2 Length[l] Length[m] + Length[l]^2],
 		{l, m}
 	]["Goals"],
 	{},

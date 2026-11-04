@@ -17,7 +17,7 @@ RelatedTutorials: [TheWolframLanguage]
 ## Details & Options
 
 - [Arguments]() is a definition of [TypeTheoryEnvironment]()["WolframLanguage"], by the recursor of [Expressions](), which the kernel computes.
-- Its type is `Expressions -> Lists[Expressions]`.
+- Its type is `Expressions -> {Expressions}`.
 
 ## Basic Examples
 
@@ -25,7 +25,7 @@ The arguments of an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, Lists[Expressions]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
 ```
 
 <!-- => True -->

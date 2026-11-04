@@ -61,7 +61,7 @@ An instance may take instance-implicit arguments of its own, found in turn: a pa
 pairs = TypeTheoryEnvironment[inhabited, {
     TypeTheoryDefinition[ListsInhabited, Typed[
         Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, InhabitedIntroduction[EmptyList]],
-        ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Inhabited[Lists[\[Alpha]]]]
+        ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Inhabited[{\[Alpha]}]]
     ], "Instance" -> True],
     TypeTheoryDefinition[PairInhabited, Typed[
         Function[
@@ -81,7 +81,7 @@ pairs = TypeTheoryEnvironment[inhabited, {
 A default pair of a number and a list of Booleans comes from three instances:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[Naturals, Lists[Booleans]]], pairs]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[Naturals, {Booleans}]], pairs]]
 ```
 
 <!-- => (NaturalsInhabited〚1〛, ListsInhabited〚1〛) -->

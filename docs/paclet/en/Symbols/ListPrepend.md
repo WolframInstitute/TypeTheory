@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/ListPrepend
 Keywords: [list, cons, prepend, constructor, prelude]
-SeeAlso: [Lists, EmptyList, Pair]
+SeeAlso: [List, EmptyList, Pair]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [ListPrepend]() is the second constructor of [Lists](), as Lean's `List.cons`.
+- [ListPrepend]() is the second constructor of [List](), as Lean's `List.cons`.
 - *α* is an implicit argument, found from the type of *x*.
 - A list that ends in [EmptyList]() displays as its elements in braces, <code>[ListPrepend]()[1, [ListPrepend]()[2, [EmptyList]()]]</code> as `{1, 2}`, and `{1, 2}` written in a term is that list; Lean writes `[1, 2]`, which in a Wolfram Language application, `f[[1, 2]]`, would read as [Part]().
 
@@ -28,7 +28,7 @@ The statement of [ListPrepend]():
 TypeTheoryCheck[TypeTheoryTerm[ListPrepend]]
 ```
 
-<!-- => ∀_{α ∶ Type u} α → Lists[α] → Lists[α] -->
+<!-- => ∀_{α ∶ Type u} α → {α} → {α} -->
 
 ---
 
@@ -38,7 +38,7 @@ The list of 1 and 2:
 TypeTheoryCheck[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]]
 ```
 
-<!-- => Lists[ℕ] -->
+<!-- => {ℕ} -->
 
 ## Properties and Relations
 

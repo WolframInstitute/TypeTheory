@@ -5,18 +5,18 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/EmptyList
 Keywords: [list, empty list, nil, constructor, prelude]
-SeeAlso: [Lists, ListPrepend, OptionNone]
+SeeAlso: [List, ListPrepend, OptionNone]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
 
 ## Usage
 
-[EmptyList]() is the list of <code>[Lists]()[*α*]</code> with no elements.
+[EmptyList]() is the list of <code>[List]()[*α*]</code> with no elements.
 
 ## Details & Options
 
-- [EmptyList]() is the first constructor of [Lists](), as Lean's `List.nil`.
+- [EmptyList]() is the first constructor of [List](), as Lean's `List.nil`.
 - *α* is an implicit argument, found from the expected type.
 - [EmptyList]() displays as `{}`, and a list it ends, <code>[ListPrepend]()[1, [ListPrepend]()[2, [EmptyList]()]]</code>, as `{1, 2}`. Both can be written that way in a term.
 
@@ -28,24 +28,24 @@ The type of [EmptyList]():
 TypeTheoryCheck[TypeTheoryTerm[EmptyList]]
 ```
 
-<!-- => ∀_{α ∶ Type u} Lists[α] -->
+<!-- => ∀_{α ∶ Type u} {α} -->
 
 ---
 
 The empty list of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[EmptyList, Lists[Naturals]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[EmptyList, {Naturals}]]]
 ```
 
-<!-- => Lists[ℕ] -->
+<!-- => {ℕ} -->
 
 ## Scope
 
 Its length is 0, by computation:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Length[Typed[EmptyList, Lists[Naturals]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Length[Typed[EmptyList, {Naturals}]]]]
 ```
 
 <!-- => 0 -->
@@ -55,7 +55,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[Typed[EmptyList, Lists[Naturals]]]]]
 [Join]() computes by recursion on its first list, so joining [EmptyList]() in front gives the other list by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[EmptyList, l] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[EmptyList, l] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Proof complete -->
@@ -65,7 +65,7 @@ TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[EmptyList, l] == l], {T
 Joined at the end, [EmptyList]() does not compute away, since the first list is a variable:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
@@ -73,7 +73,7 @@ TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {T
 The theorem [JoinEmptyRight]() proves it:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Exact", JoinEmptyRight[l]]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Exact", JoinEmptyRight[l]]}]
 ```
 
 <!-- => Proof complete -->

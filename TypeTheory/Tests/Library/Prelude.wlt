@@ -216,7 +216,7 @@ VerificationTest[
 		TypeTheoryTerm[Booleans, prelude],
 		TypeTheoryTerm[DisjointUnionType[NonNegativeIntegers, Booleans], prelude],
 		TypeTheoryTerm[Option[NonNegativeIntegers], prelude],
-		TypeTheoryTerm[Lists[NonNegativeIntegers], prelude]
+		TypeTheoryTerm[{NonNegativeIntegers}, prelude]
 	},
 	TestID -> "Pairs-sums-optional-values-and-lists-have-their-types"
 ]

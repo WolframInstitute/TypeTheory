@@ -68,9 +68,9 @@ VerificationTest[
 			True,
 			With[{sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]]},
 				{
-					MatchQ[TypeOf[TypeTheoryTerm[size, sized]], TypeTheoryTerm[HoldPattern[ForAll[{TypedImplicit[_, _]}, Lists[_] -> NonNegativeIntegers]], _]],
+					MatchQ[TypeOf[TypeTheoryTerm[size, sized]], TypeTheoryTerm[HoldPattern[ForAll[{TypedImplicit[_, _]}, {_} -> NonNegativeIntegers]], _]],
 					WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]] === TypeTheoryTerm[3, sized],
-					MatchQ[TypeTheoryFormalize[total, integers, "Type" -> Lists[Integers] -> Integers], {TypeTheoryDefinition[total, Typed[_, Lists[Integers] -> Integers]]}]
+					MatchQ[TypeTheoryFormalize[total, integers, "Type" -> {Integers} -> Integers], {TypeTheoryDefinition[total, Typed[_, {Integers} -> Integers]]}]
 				} === {True, True, True}
 			]
 		]
@@ -138,7 +138,7 @@ VerificationTest[
 	TestID -> "Recursion-on-a-natural-number-is-a-definition-by-the-recursor-of-the-natural-numbers"
 ]
 
-(* a built-in that is total on lists has a signature over their elements, Range : NonNegativeIntegers -> Lists[...],
+(* a built-in that is total on lists has a signature over their elements, Range : NonNegativeIntegers -> {...},
    and one that is partial, as First, a signature over Expressions *)
 VerificationTest[
 	Block[{upTo, firstOf, prelude = TypeTheoryEnvironment["Prelude"]},
@@ -147,7 +147,7 @@ VerificationTest[
 		If[ PacletFind["Wolfram/KernelCompiler"] === {},
 			True,
 			{
-				MatchQ[TypeOf[TypeTheoryTerm[upTo, TypeTheoryEnvironment[prelude, TypeTheoryFormalize[upTo, prelude]]]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> Lists[NonNegativeIntegers]], _]],
+				MatchQ[TypeOf[TypeTheoryTerm[upTo, TypeTheoryEnvironment[prelude, TypeTheoryFormalize[upTo, prelude]]]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> {NonNegativeIntegers}], _]],
 				MatchQ[Last[TypeTheoryFormalize[firstOf, prelude]], TypeTheoryDefinition[firstOf, _Function]]
 			} === {True, True}
 		]

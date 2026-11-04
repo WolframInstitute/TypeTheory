@@ -47,7 +47,7 @@ VerificationTest[
    in order *)
 VerificationTest[
 	{
-		equalQ[Arguments[ExpressionNormal[7, {1, 2}]], Typed[{1, 2}, Lists[Expressions]]],
+		equalQ[Arguments[ExpressionNormal[7, {1, 2}]], Typed[{1, 2}, {Expressions}]],
 		equalQ[MatchProduct[{1, 2}, {3}], {Pair[1, 3], Pair[2, 3]}]
 	},
 	{True, True},

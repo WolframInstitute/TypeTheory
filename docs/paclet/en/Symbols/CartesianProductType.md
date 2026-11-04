@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/CartesianProductType
 Keywords: [pair, product, Cartesian product, structure, prelude, inductive type]
-SeeAlso: [Pair, DisjointUnionType, Option, Lists]
+SeeAlso: [Pair, DisjointUnionType, Option, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---

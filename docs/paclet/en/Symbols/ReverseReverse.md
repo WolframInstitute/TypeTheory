@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/ReverseReverse
 Keywords: [list, reverse, involution, prelude]
-SeeAlso: [ReverseJoin, LengthReverse, Lists]
+SeeAlso: [ReverseJoin, LengthReverse, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -26,7 +26,7 @@ The statement of [ReverseReverse]():
 TypeTheoryCheck[TypeTheoryTerm[ReverseReverse]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_l∶Lists[α] Reverse[Reverse[l]] == l -->
+<!-- => ∀_{α ∶ Type u} ∀_l∶{α} Reverse[Reverse[l]] == l -->
 
 ---
 
@@ -43,7 +43,7 @@ TypeTheoryCheck[TypeTheoryTerm[ReverseReverse[ListPrepend[1, ListPrepend[2, Empt
 `"Simplify"` uses it on any list, here a join:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Reverse[Reverse[Join[a, b]]] == Join[a, b]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Reverse[Reverse[Join[a, b]]] == Join[a, b]], {
     TypeTheoryTactic["Introduce", a, b],
     TypeTheoryTactic["Simplify", {ReverseReverse}]
 }]
@@ -56,13 +56,13 @@ TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, R
 [Reverse]() is injective: rewriting from right to left writes `a` as the reverse of its reverse:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]]}, Implies[Reverse[a] == Reverse[b], a == b]], {
+proof = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Implies[Reverse[a] == Reverse[b], a == b]], {
     TypeTheoryTactic["Introduce", a, b, e],
     TypeTheoryTactic["Rewrite", ReverseReverse[a], "RightToLeft"]
 }]
 ```
 
-<!-- => Proof, 1 goal: a ∶ Lists[ℕ], b ∶ Lists[ℕ], e ∶ Reverse[a] == Reverse[b] ⊢ Reverse[Reverse[a]] == b -->
+<!-- => Proof, 1 goal: a ∶ {ℕ}, b ∶ {ℕ}, e ∶ Reverse[a] == Reverse[b] ⊢ Reverse[Reverse[a]] == b -->
 
 The hypothesis replaces the inner reverse:
 
@@ -70,7 +70,7 @@ The hypothesis replaces the inner reverse:
 proof = TypeTheoryTactic["Rewrite", e][proof]
 ```
 
-<!-- => Proof, 1 goal: a ∶ Lists[ℕ], b ∶ Lists[ℕ], e ∶ Reverse[a] == Reverse[b] ⊢ Reverse[Reverse[b]] == b -->
+<!-- => Proof, 1 goal: a ∶ {ℕ}, b ∶ {ℕ}, e ∶ Reverse[a] == Reverse[b] ⊢ Reverse[Reverse[b]] == b -->
 
 [ReverseReverse]() finishes it:
 
@@ -95,7 +95,7 @@ TypeTheoryProof[Reverse[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]] == L
 On a variable, [Reverse]() does not compute, so the law takes the theorem:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, Lists[Naturals]]}, Reverse[Reverse[l]] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Reverse[Reverse[l]] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

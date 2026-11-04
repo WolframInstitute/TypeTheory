@@ -85,19 +85,27 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]
 
 <!-- => 3 -->
 
-## Sequence Arguments
+## Lists, Sequences and Their Types
 
-A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`. In [TypeTheoryEnvironment]()["WolframLanguage"] that sequence is `Sequence[a, b]`, of the type `Sequences[A, B]`, and a binder of a type [Sequences]()[...] takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of [SequencePrepend](), is the sequence itself; it is elaborated once, and its type tells which:
+`List` and `Sequence` are each a type and its elements, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{A}` is the type of the lists of `A`, and `Sequence[A, B]` the type of the sequences of an `A` and a `B`; elsewhere `{a, b}` is a list and `Sequence[a, b]` a sequence. In a term on its own, where nothing decides, the elements do, elaborated once: types make the type, so a type that [TypeOf]() gives reads back as itself:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequences[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers]}];
+{TypeOf[TypeTheoryTerm[{1, 2}, wolfram]], TypeOf[TypeTheoryTerm[{NonNegativeIntegers}, wolfram]]}
+```
+
+<!-- => {{ℕ}, Type} -->
+
+A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`, so a binder of a type `Sequence[...]` takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of [SequencePrepend](), is the sequence itself; it is elaborated once, and its type tells which:
+
+```wl
+pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequence[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers]}];
 DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]]
 ```
 
 <!-- => True -->
 
-[Sequences]() is a family of its own, not [Lists](): a function of a list, as [Join](), takes one argument, whatever its elements.
+A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`. `Lists[A]`, the name the type of lists had, is read as `{A}`.
 
 ## Binders Without Types
 
@@ -268,7 +276,7 @@ TypeOf[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]
 
 | | The compiler | The type theory |
 |---|---|---|
-| What a type is | how a value is stored: `"Integer64"`, `"Real64"`, `"PackedArray"::["Integer64", 1]` | what a term is: ℤ, ℚ, `Lists[A]`, `Vector[A, n]`, `2 + 2 == 4` |
+| What a type is | how a value is stored: `"Integer64"`, `"Real64"`, `"PackedArray"::["Integer64", 1]` | what a term is: ℤ, ℚ, `{A}`, `Vector[A, n]`, `2 + 2 == 4` |
 | Its purpose | choosing machine code and memory layout | stating and checking mathematics |
 | Numbers | bounded machine numbers; a compiled function refuses an argument of another type before running | the integers and rationals themselves, without bound |
 | Function types | `TypeSpecifier[{a, b} -> c]`, arguments as a list | `a -> b -> c`, curried, and dependent: `ForAll[{Typed[n, NonNegativeIntegers]}, Vector[A, n]]`, whose result depends on the argument |
