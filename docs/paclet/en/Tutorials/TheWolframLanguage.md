@@ -5,7 +5,7 @@ Title: The Wolfram Language
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheWolframLanguage
-Keywords: [Wolfram Language, expressions, Sequence, pattern matching, Match, MatchSum, MatchProduct, monad, nondeterminism, Option, Wolfram/Patterns, Match IR]
+Keywords: [Wolfram Language, expressions, Sequence, Sequences, heterogeneous list, currying, pattern matching, Match, MatchSum, MatchProduct, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, ThePrelude, TypeTheoryIntroduction]
 ---
@@ -14,7 +14,7 @@ RelatedTutorials: [Elaboration, ThePrelude, TypeTheoryIntroduction]
 
 ## Expressions
 
-An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a [Sequence]() of expressions, its arguments. The atoms are opaque, and [SameQ]() and [Head]() of an atom are axioms that the Wolfram Language computes. A natural number is an expression where one is expected:
+An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions, its arguments. The atoms are opaque, and [SameQ]() and [Head]() of an atom are axioms that the Wolfram Language computes, as is [ExpressionValue](), the expression an expression evaluates to. [Head](), [Arguments]() and [AtomQ]() are definitions, which the kernel computes. A natural number is an expression where one is expected:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
@@ -23,13 +23,39 @@ TypeOf[TypeTheoryTerm[ExpressionNormal[7, {1, 2}], wolfram]]
 
 <!-- => Expressions -->
 
-[Arguments]() gives the [Sequence]() of an expression's arguments:
+[Arguments]() gives the list of an expression's arguments:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, Sequence], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, Lists[Expressions]], wolfram]]
 ```
 
 <!-- => True -->
+
+## Sequences
+
+A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` gives `f` the sequence of `a` and `b`, and the curried `f[a][b]` gives `f` the sequence of `a`, then gives its value the sequence of `b`. `Sequence[a, b]` is that sequence, a term of the type `Sequences[{A, B}]` for `a` of the type `A` and `b` of the type `B`: a list of elements of different types, whose type gives its length and the type of each element, as Lean's `HList`. It is [SequencePrepend]() over [EmptySequence](), as a list is `ListPrepend` over `EmptyList`, and a `Sequence` among its elements is spliced, as the Wolfram Language splices it:
+
+```wl
+{TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], wolfram]], DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], wolfram], TypeTheoryTerm[Sequence[1, 2, 3], wolfram]]}
+```
+
+<!-- => {Sequences[{ℕ, Expressions}], True} -->
+
+A binder of a type [Sequences]()[...] takes the arguments of an application that are left as one `Sequence`, so a function of the type `Sequences[{A, B}] -> C` is applied as the Wolfram Language applies one, `f[a, b]`, and is another function than one of the curried type `A -> B -> C`, applied as `f[a][b]`. The type gives how many arguments it takes:
+
+```wl
+pairs = TypeTheoryEnvironment[wolfram, {
+    TypeTheoryAxiom[sum, Sequences[{NonNegativeIntegers, NonNegativeIntegers}] -> NonNegativeIntegers],
+    TypeTheoryAxiom[curried, NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers]
+}];
+{
+    DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]],
+    FailureQ[TypeTheoryCheck[TypeTheoryTerm[sum[1], pairs]]],
+    TypeOf[TypeTheoryTerm[curried[1], pairs]]
+}
+```
+
+<!-- => {True, True, ℕ → ℕ} -->
 
 ## The Monad of Matches
 
@@ -44,6 +70,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolf
 | parts in turn | | `Product` | [MatchBind]()` : Match[A] -> (A -> Match[B]) -> Match[B]` |
 | a match at a position | `MatchPart` | `Part` | `MatchPart : Expressions -> ℕ -> (Expressions -> Match[A]) -> Match[A]` |
 | a condition | | `Guard` | [Condition]()` : Match[A] -> Booleans -> Match[A]` |
+| whether it matches | | | [MatchQ]()` : Match[A] -> Booleans` |
 | the rule applied | the first result | the leftmost result | [MatchFirst]()` : Match[A] -> Option[A]` |
 
 These are the operations of the monad of lists, the monad of nondeterminism, with its alternatives in order. The environment puts the context of Wolfram/Patterns at the end of the context path, so its symbols are written without it.
@@ -82,3 +109,40 @@ DefinitionallyEqualQ[TypeTheoryTerm[MatchProduct[{1, 2}, {3}], wolfram], TypeThe
 ```
 
 <!-- => {True, True} -->
+
+## The Rules of a Symbol
+
+The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is read from the match program the compiler writes for it, an instruction at a time:
+
+| the match program | the match |
+|---|---|
+| `Length[p, n]`, `MinLength[p, n]` | [Condition]() on the [Length]() of the [Arguments]() of the part at `p` |
+| `HeadIs[p, h]`, `Same[p, e]` | [Condition]() on [SameQ]() of its [Head]() and `h`, or of it and `e` |
+| `Bind[x, p]` | `MatchPart` at each position on the way to `p`, the part named `x` |
+| `Join[x, p]` | [Condition]() on [SameQ]() of the part and `x`: a name repeated |
+| `BindSequence[x, p, i, j]` | the arguments from position `i` to the `j`-th from the end, by [Drop]() |
+| `AnyOf`, `NoneOf` | [Condition]() on [MatchQ]() of the matches of the alternatives |
+| `Guard[test]` | [Condition]() on [SameQ]() of the [ExpressionValue]() of `test` and `True` |
+
+The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
+
+```wl
+listed[x_, y_, z___] := {x, y, z};
+rules = TypeTheoryFormalize[listed, wolfram, "Meaning" -> "Rules"]
+```
+
+<!-- => {TypeTheoryAxiom["System`List", Atoms, "Implementation" -> List], TypeTheoryDefinition["DownValues[listed]", ...]} -->
+
+Lengths, parts and sequences are definitions, so the kernel computes the rewriting. An expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is:
+
+```wl
+listing = TypeTheoryEnvironment[wolfram, rules];
+{
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[ExpressionNormal[0, {1, 2, 3}]], listing], TypeTheoryTerm[OptionSome[ExpressionNormal[ExpressionAtom["System`List"], {1, 2, 3}]], listing]],
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[ExpressionNormal[0, {1}]], listing], TypeTheoryTerm[Typed[OptionNone, Option[Expressions]], listing]]
+}
+```
+
+<!-- => {True, True} -->
+
+A test of a head, a literal or a condition is [SameQ]() of atoms, which the Wolfram Language computes and the kernel does not. A pattern that needs a search, as `f[x__, y__]` or an [Orderless]() head, is one the compiler leaves to the evaluator, and its rules do not translate yet.

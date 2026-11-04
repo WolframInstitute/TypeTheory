@@ -293,3 +293,17 @@ VerificationTest[
 	{TypeTheoryAxiom["simplify", "Expressions" -> "Expressions", "Implementation" -> Simplify], Simplify, None, Simplify, Simplify, "InvalidOption", Null},
 	TestID -> "An-axiom-names-the-function-that-computes-it"
 ]
+
+(* a declaration holds a sequence, Sequence[a, b], as one term, not as the arguments a and b: one of the type its elements
+   give is declared, and one of another type, a forged one, is still rejected *)
+VerificationTest[
+	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]},
+		{
+			Head[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[numbers, Typed[Sequence[1, 2], Sequences[{NonNegativeIntegers, NonNegativeIntegers}]]]}]],
+			First[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[forged, Typed[Sequence[1, 2], Sequences[{NonNegativeIntegers}]]]}]],
+			First[TypeTheoryEnvironment[wolfram, {TypeTheoryTheorem[forgedTheorem, 1 == 2, Sequence[EqualityReflexivity[1]]]}]]
+		}
+	],
+	{TypeTheoryEnvironment, "TypeMismatch", "TypeMismatch"},
+	TestID -> "A-declared-sequence-is-one-term-and-a-forged-one-is-rejected"
+]

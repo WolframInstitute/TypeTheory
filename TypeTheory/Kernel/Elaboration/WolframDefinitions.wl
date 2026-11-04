@@ -37,14 +37,26 @@ PackageExported[TypeTheoryFormalize]
 
 PackageScoped[lowerDefinitions]
 PackageScoped[loadKernelCompiler]
+PackageScoped[kernelCompilerSymbol]
+PackageScoped[coreNormal]
+PackageScoped[coreForm]
+PackageScoped[definitionStatements]
+PackageScoped[fullName]
+PackageScoped[missingDeclarations]
 
 
 (* ::Section:: *)
 (*Usage Messages*)
 
 
-TypeTheoryFormalize::usage = "TypeTheoryFormalize[symbol] gives the declarations that make the Wolfram Language function symbol a constant of the default environment: a definition read off its definitions where they translate, typed by elaboration, and otherwise an axiom that symbol computes. TypeTheoryFormalize[symbol, environment] makes them for environment. The option \"Type\" -> type gives the type the constant must have."
+TypeTheoryFormalize::usage = "TypeTheoryFormalize[symbol] gives the declarations that make the Wolfram Language function symbol a constant of the default environment: a definition read off its definitions where they translate, typed by elaboration, and otherwise an axiom that symbol computes. TypeTheoryFormalize[symbol, environment] makes them for environment. The option \"Type\" -> type gives the type the constant must have. With \"Meaning\" -> \"Rules\", it gives instead the rules of symbol, a definition of type Expressions -> Option[Expressions] in TypeTheoryEnvironment[\"WolframLanguage\"]: the expression each expression rewrites to by the first rule that matches it."
 lowerDefinitions::usage = "lowerDefinitions[HoldComplete[symbol]] gives the Core`Program of the definitions of symbol, by the compiler's ToCore, or a Failure."
+kernelCompilerSymbol::usage = "kernelCompilerSymbol[name] gives the symbol of the compiler named name, in the context the paclet Wolfram/KernelCompiler puts it, or None."
+coreNormal::usage = "coreNormal[program] gives program with each form of Core and Match as coreForm[name]."
+coreForm::usage = "coreForm[name] is the form of Core or Match named name, as coreNormal writes it."
+definitionStatements::usage = "definitionStatements[symbol] gives the DownValues of symbol as held statements HoldComplete[lhs := rhs], in the order the Wolfram Language tries them."
+fullName::usage = "fullName[symbol] gives the full name of symbol, its context and its name, without evaluating it."
+missingDeclarations::usage = "missingDeclarations[environment, declarations] gives the declarations whose constants environment does not declare yet."
 loadKernelCompiler::usage = "loadKernelCompiler[] loads the paclet Wolfram/KernelCompiler and gives True, or gives a Failure where it is missing or writes Core of another version."
 
 
@@ -111,9 +123,17 @@ coreContextQ[form_Symbol] := MemberQ[{"Core`", "Match`", "Wolfram`KernelCompiler
 
 SetAttributes[TypeTheoryFormalize, HoldAll]
 
-TypeTheoryFormalize[symbol_Symbol, options : OptionsPattern[]] := catchKernelFailure[formalize[defaultEnvironment[], HoldComplete[symbol], formalizeType[Hold[options]]]]
+TypeTheoryFormalize[symbol_Symbol, options : OptionsPattern[]] := catchKernelFailure[formalizeMeaning[defaultEnvironment[], HoldComplete[symbol], Hold[options]]]
 TypeTheoryFormalize[symbol_Symbol, environment_, options : OptionsPattern[]] /; environmentQ[environment] :=
-	catchKernelFailure[formalize[environment, HoldComplete[symbol], formalizeType[Hold[options]]]]
+	catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]]
+
+(* the option "Meaning": "Function", the default, a constant that is the function symbol computes, or "Rules", its rules
+   as a rewriting of expressions *)
+formalizeMeaning[environment_, held_, options_Hold] := Replace[Cases[options, HoldPattern["Meaning" -> meaning_] :> meaning, {1}], {
+	{} | {"Function", ___} :> formalize[environment, held, formalizeType[options]],
+	{"Rules", ___} :> rulesDeclarations[environment, held],
+	{other_, ___} :> kernelFailure["InvalidOption", "The value of the option \"Meaning\" must be \"Function\" or \"Rules\", not `1`.", {other}]
+}]
 
 (* the type the option "Type" gives, held, or None *)
 formalizeType[Hold[options___]] := Replace[Cases[Hold[options], HoldPattern["Type" -> type_] :> HoldComplete[type], {1}], {{} -> None, {type_, ___} :> type}]

@@ -44,6 +44,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
 	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
 	ListPrepend[1, ListPrepend[2, EmptyList]]   {1, 2}     EmptyList as {}, in braces: [1, 2] in f[[1, 2]] would read as Part
+	SequencePrepend[1, EmptySequence]   Sequence[1]          EmptySequence as Sequence[], as Sequence[...] is written
 	Lists[A]                            List A               as Lean writes it, List (List A) for a list type of a list type
 	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
@@ -260,6 +261,9 @@ displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DependentPair
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {_, _}]] /; listLiteralQ[syntax] :=
 	tupleDisplay["{", displaySyntax /@ Most[rightNested[ListPrepend, syntax]], "}"]
 displaySyntax[syntaxSymbol[HoldComplete[EmptyList]]] := syntaxString["{}"]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
+	tupleDisplay["Sequence[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
+displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["Sequence[]"]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]
@@ -489,6 +493,10 @@ listLiteralQ[syntaxSymbol[HoldComplete[EmptyList]]] := True
 (* the elements give the type an ascribed empty list states *)
 listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[HoldComplete[EmptyList]], _}]] := True
 listLiteralQ[_] := False
+
+sequenceLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, rest_}]] := sequenceLiteralQ[rest]
+sequenceLiteralQ[syntaxSymbol[HoldComplete[EmptySequence]]] := True
+sequenceLiteralQ[_] := False
 
 (* a dependent sum over a function of one variable shows its binder, as ∀ does *)
 displayApplication[

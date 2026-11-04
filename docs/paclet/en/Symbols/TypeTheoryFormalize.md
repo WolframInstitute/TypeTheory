@@ -4,8 +4,8 @@ Name: TypeTheoryFormalize
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryFormalize
-Keywords: [formalization, Wolfram Language definitions, DownValues, implementation, compiler, built-in signatures]
-SeeAlso: [TypeTheoryDefinition, TypeTheoryAxiom, TypeTheoryEnvironment, TypeOf]
+Keywords: [formalization, Wolfram Language definitions, DownValues, implementation, compiler, built-in signatures, rules, pattern matching, Match]
+SeeAlso: [TypeTheoryDefinition, TypeTheoryAxiom, TypeTheoryEnvironment, TypeOf, MatchFirst, Expressions]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -14,6 +14,8 @@ RelatedGuides: [TypeTheory]
 <code>[TypeTheoryFormalize]()[*symbol*]</code> gives the declarations that make the Wolfram Language function *symbol* a constant of the default environment: a definition read off its definitions where they translate, typed by elaboration, and otherwise an axiom that *symbol* computes.
 
 <code>[TypeTheoryFormalize]()[*symbol*, *environment*]</code> makes the declarations for *environment*.
+
+<code>[TypeTheoryFormalize]()[*symbol*, *environment*, "Meaning" -> "Rules"]</code> gives the rules of *symbol* instead, a definition of type `Expressions -> Option[Expressions]` in [TypeTheoryEnvironment]()["WolframLanguage"].
 
 ## Details & Options
 
@@ -26,6 +28,10 @@ RelatedGuides: [TypeTheory]
 - Otherwise it is a [TypeTheoryAxiom]() with `"Implementation" -> symbol`: the Wolfram Language computes it, and the kernel never does.
 - The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and an axiom takes it. Without it, an axiom's type is `Expressions -> ... -> Expressions`, one [Expressions]() for each argument, [Expressions]() being the type of any Wolfram Language expression: an axiom where the environment lacks it, and the inductive type of expressions in [TypeTheoryEnvironment]()["WolframLanguage"].
 - A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over [Expressions]() otherwise, as [D](). The numbers of the environment go into [Expressions]() by coercions. No equation about a built-in is assumed.
+- The option `"Meaning"` is `"Function"`, the default, for a constant that is the function *symbol* computes, or `"Rules"` for its rules, its [DownValues](), as a rewriting of expressions: the definition named `"DownValues[symbol]"` gives the expression that an expression rewrites to by the first rule that matches it, and [OptionNone]() where none does and the expression stays as it is.
+- The rules are [MatchFirst]() of the `MatchSum` of the matches of the rules, in the order the Wolfram Language tries them. The left side of each rule is read from its match program: the lengths and parts of the expression by [Length](), [Arguments]() and `MatchPart`, its heads and literals by [SameQ](), alternatives and exceptions by `MatchQ`, and conditions by [SameQ]() of their [ExpressionValue]() and `True`. The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation.
+- Each symbol and atom that the rules use is an axiom of type [Atoms](), named by its full name, as `` "System`List" ``, or by its [InputForm](), declared with the rules. A natural number is `"naturalAtom"[n]`, which the kernel computes with.
+- A pattern that needs a search, as several sequences in one argument list or an [Orderless]() head, which the compiler leaves to the evaluator, gives a [Failure]().
 - The result is a list of declarations, to extend an environment with: <code>[TypeTheoryEnvironment]()[*environment*, [TypeTheoryFormalize]()[*symbol*, *environment*]]</code>.
 
 ## Basic Examples
@@ -122,6 +128,30 @@ TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers]
 ```
 
 <!-- => {TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]} -->
+
+### Meaning
+
+The rules of a function, a rewriting of expressions:
+
+```wl
+listed[x_, y_, z___] := {x, y, z};
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+rules = TypeTheoryFormalize[listed, wolfram, "Meaning" -> "Rules"]
+```
+
+<!-- => {TypeTheoryAxiom["System`List", Atoms, "Implementation" -> List], TypeTheoryDefinition["DownValues[listed]", ...]} -->
+
+The kernel computes them: an expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is:
+
+```wl
+listing = TypeTheoryEnvironment[wolfram, rules];
+{
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[ExpressionNormal[0, {1, 2}]], listing], TypeTheoryTerm[OptionSome[ExpressionNormal[ExpressionAtom["System`List"], {1, 2}]], listing]],
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[ExpressionNormal[0, {1}]], listing], TypeTheoryTerm[Typed[OptionNone, Option[Expressions]], listing]]
+}
+```
+
+<!-- => {True, True} -->
 
 ## Possible Issues
 

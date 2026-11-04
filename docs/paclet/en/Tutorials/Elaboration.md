@@ -85,6 +85,20 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]
 
 <!-- => 3 -->
 
+## Sequence Arguments
+
+A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`. In [TypeTheoryEnvironment]()["WolframLanguage"] that sequence is `Sequence[a, b]`, of the type `Sequences[{A, B}]`, and a binder of a type [Sequences]()[...] takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of [SequencePrepend](), is the sequence itself; it is elaborated once, and its type tells which:
+
+```wl
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequences[{NonNegativeIntegers, NonNegativeIntegers}] -> NonNegativeIntegers]}];
+DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]]
+```
+
+<!-- => True -->
+
+[Sequences]() is a family of its own, not [Lists](): a function of a list, as [Join](), takes one argument, whatever its elements.
+
 ## Binders Without Types
 
 A variable written without a type gets a metavariable for its type, solved by the uses of the variable. Here `x + 0` makes `x` a natural number, and the statement is a proposition:
@@ -181,6 +195,16 @@ Last[TypeTheoryFormalize[reversed, integers]]
 
 <!-- => TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed] -->
 
+A function has a second meaning, its rules, which every definition with a deterministic pattern has, whatever its body: with `"Meaning" -> "Rules"`, [TypeTheoryFormalize]() reads the match program of each rule as a match of [TypeTheoryEnvironment]()["WolframLanguage"], and the rules as a definition of type `Expressions -> Option[Expressions]`, the expression that an expression rewrites to. Nothing is elaborated but the term, and the types are those of expressions, so it is faithful to the Wolfram Language where the first meaning is mathematical. [The Wolfram Language](paclet:WolframInstitute/TypeTheory/tutorial/TheWolframLanguage) tutorial reads the rules of a function:
+
+```wl
+reversed[s_] := StringReverse[s];
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
+```
+
+<!-- => TypeTheoryDefinition["DownValues[reversed]", Typed[Function[{Typed[expression, Expressions]}, MatchFirst[...]], Expressions -> Option[Expressions]]] -->
+
 ## Typing in the Compiler and in Mathematics
 
 The Wolfram Language has two type systems that share names: the compiler's, which [FunctionCompile]() uses to choose machine code, and the type theory's, in which a type is a mathematical statement of what a term is. Both write a function type with [TypeSpecifier]() or `->`, and both answer [TypeOf](), so the difference is easy to miss.
@@ -254,6 +278,7 @@ TypeOf[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]
 | Inference | forward, from the types of the arguments and of the built-ins | unification of metavariables: implicit arguments, untyped binders, universe levels |
 | A type error | a failure of compilation, or a refused argument | a [Failure]() of elaboration; the kernel accepts nothing it has not checked |
 | What runs | machine code | reduction in the kernel, or the Wolfram Language for an axiom with an `"Implementation"` |
+| Pattern matching | a match program, compiled to code that tests and binds the parts of the call | a term of the monad of matches, `Match[A]`, whose first result is the rule applied: a function's rules have type `Expressions -> Option[Expressions]` |
 
 [TypeOf]() is the compiler's function, which TypeTheory gives a meaning for a [TypeTheoryTerm](). Once the compiler has loaded it, it holds its argument, so it must be given the term itself; a term kept in a variable is elaborated by [TypeTheoryCheck]() instead:
 
@@ -263,4 +288,4 @@ TypeTheoryCheck[reflexivity]
 
 <!-- => 2 == 2 -->
 
-The compiler of the WolframKernel project has types of its own, of the same kind as [FunctionCompile]()'s: how values are stored, inferred to choose code. [TypeTheoryFormalize]() reads its match programs and Core, which say what a definition does, and leaves the types to elaboration, which gives the mathematical ones.
+The compiler of the WolframKernel project has types of its own, of the same kind as [FunctionCompile]()'s: how values are stored, inferred to choose code. [TypeTheoryFormalize]() reads its match programs and Core, which say what a definition does, and leaves the types to elaboration, which gives the mathematical ones. With `"Meaning" -> "Rules"`, it reads the match programs as matches instead, one instruction of the compiler a constant of the type theory, so that both describe the same matching.

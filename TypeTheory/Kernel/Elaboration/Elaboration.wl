@@ -243,6 +243,7 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 
 
 elaborateSyntax[syntax_, expected_] := Replace[syntax, {
+	syntaxElaborated[elaborated_List, _] :> elaborated,
 	syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] :> elaborateFunction[listElements[binders], body, expected],
 	(* cubical type theory: 0 and 1 where an element of the interval is expected, Min, Max and 1 - r for its
 	   operations, a type or a path of types where a line is expected, and the sides of a composition *)
@@ -314,6 +315,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeTheoryHole]], arguments_List] /; Length[arguments] <= 1 :> elaborateHole[arguments, expected, syntax],
 	(* a list written as a term is the list of its elements, ListPrepend over EmptyList, as such a list shows *)
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List] /; sequencesDeclaredQ[] :> elaborateSyntax[sequenceLiteralSyntax[elements], expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
@@ -488,6 +490,12 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] :> With[{implicit = implicitArgument[domain, binder]},
 			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax, expected]
 		],
+		(* a binder of a type Sequences[...] takes the arguments that are left as one Sequence, as the Wolfram Language gives a
+		   function its arguments; one argument that is a sequence is the sequence itself, as the tail of SequencePrepend *)
+		dependentFunctionType[_, domain_, codomain_, binder_] /; explicitBinderQ[binder] && sequenceTypeQ[domain] :> With[
+			{argument = sequenceArgument[arguments, domain]},
+			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], {}, postponed, headSyntax, expected]
+		],
 		functionType : dependentFunctionType[_, _, _, _] /; expected =!= None :> (
 			propagateExpectedType[functionType, Length[arguments], expected];
 			collectArguments[term, functionType, arguments, postponed, headSyntax, None]
@@ -509,6 +517,35 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
+
+sequenceTypeQ[type_] := sequencesDeclaredQ[] && MatchQ[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
+	application[constantReference[HoldComplete[Sequences], _], _]
+]
+
+(* the arguments as one Sequence, or one argument whose type is a sequence's, elaborated once either way *)
+sequenceArgument[{argument_}, domain_] := With[{elaborated = elaborateSyntax[argument, None]},
+	checkAgainst[If[sequenceTypeQ[Last[elaborated]], syntaxElaborated[elaborated, argument], syntaxHead[Sequence, {syntaxElaborated[elaborated, argument]}]], domain]
+]
+sequenceArgument[arguments_List, domain_] := checkAgainst[syntaxHead[Sequence, arguments], domain]
+
+(* a term elaborated already, {term, type}, with the syntax it was elaborated from, which messages show *)
+heldFromSyntax[syntaxElaborated[_, syntax_]] := heldFromSyntax[syntax]
+
+sequencesDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[SequencePrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptySequence]]
+
+(* Sequence[a, b, ...] is SequencePrepend over EmptySequence, as a list is ListPrepend over EmptyList; a Sequence among
+   the elements is spliced, as the Wolfram Language splices it *)
+sequenceLiteralSyntax[elements_List] := Fold[
+	Function[{rest, element}, syntaxHead[SequencePrepend, {element, rest}]],
+	syntaxSymbol[HoldComplete[EmptySequence]],
+	Reverse[splicedSequenceElements[elements]]
+]
+
+splicedSequenceElements[elements_List] := Catenate[Replace[elements, {
+	syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], inner_List] :> splicedSequenceElements[inner],
+	element_ :> {element}
+}, {1}]]
 
 (* the expected type unified, if it can be, with the type after the arguments, where that type does not
    depend on them; the instances waiting whose types it determines are found *)

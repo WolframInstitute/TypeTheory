@@ -46,7 +46,8 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryAxiomClosure]() the axioms a term rests on, as Lean's `#print axioms`
 - [TypeTheoryProofTree]() the natural-deduction derivation of a proof of propositional logic, drawn
 - [TypeTheoryFormalize]() the declarations that make a Wolfram Language function a constant: a definition where its definitions translate, an axiom it computes otherwise
-- [Expressions]() the expressions of the Wolfram Language, with [Atoms](), [ExpressionAtom](), [ExpressionNormal]() and [Arguments](), in [TypeTheoryEnvironment]()["WolframLanguage"]
+- [Expressions]() the expressions of the Wolfram Language, with [Atoms](), [ExpressionAtom](), [ExpressionNormal](), [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"]
+- [Sequences]() the sequences of elements of different types, `Sequence[a, b]`, with [EmptySequence]() and [SequencePrepend](): the arguments a Wolfram Language function is applied to
 - [MatchBind]() and [MatchFirst]() the monad of pattern matching, with the match objects of Wolfram/Patterns
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce

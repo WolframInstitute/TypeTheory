@@ -12,11 +12,11 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Usage
 
-[Expressions]() is the type of the expressions of the Wolfram Language: an atom, [ExpressionAtom]()[*a*], or a head applied to the [Sequence]() of its arguments, [ExpressionNormal]()[*h*, *s*].
+[Expressions]() is the type of the expressions of the Wolfram Language: an atom, [ExpressionAtom]()[*a*], or a head applied to the list of its arguments, [ExpressionNormal]()[*h*, *s*].
 
 ## Details & Options
 
-- [Expressions]() is an inductive type of [TypeTheoryEnvironment]()["WolframLanguage"], nested: the arguments of an expression are a list of expressions, its [Sequence]().
+- [Expressions]() is an inductive type of [TypeTheoryEnvironment]()["WolframLanguage"], nested: the arguments of an expression are a list of expressions.
 - A natural number is an expression where one is expected, by a coercion.
 - [TypeTheoryFormalize]() types a built-in it has no precise signature for over [Expressions]().
 

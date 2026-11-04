@@ -12,12 +12,13 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Usage
 
-[ExpressionNormal]()[*h*, *s*] is the expression *h* applied to the [Sequence]() *s* of its arguments, *h*[*s*~1~, ...].
+[ExpressionNormal]()[*h*, {*a*~1~, *a*~2~, ...}] is the expression *h*[*a*~1~, *a*~2~, ...], *h* applied to the list of its arguments.
 
 ## Details & Options
 
-- [ExpressionNormal]() is a constructor of [Expressions](), in [TypeTheoryEnvironment]()["WolframLanguage"].
-- [Head]() gives *h*, and [Arguments]() gives *s*.
+- [ExpressionNormal]() is a constructor of [Expressions](), in [TypeTheoryEnvironment]()["WolframLanguage"], of type `Expressions -> Lists[Expressions] -> Expressions`.
+- [Head]() gives *h*, and [Arguments]() gives the list of the arguments.
+- The curried expression *h*[*a*][*b*] is [ExpressionNormal]()[[ExpressionNormal]()[*h*, {*a*}], {*b*}], another expression than *h*[*a*, *b*].
 
 ## Basic Examples
 
@@ -29,3 +30,14 @@ DefinitionallyEqualQ[TypeTheoryTerm[Head[ExpressionNormal[7, {1, 2}]], wolfram],
 ```
 
 <!-- => True -->
+
+## Scope
+
+The curried expression is another expression:
+
+```wl
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+DefinitionallyEqualQ[TypeTheoryTerm[ExpressionNormal[ExpressionNormal[7, {1}], {2}], wolfram], TypeTheoryTerm[ExpressionNormal[7, {1, 2}], wolfram]]
+```
+
+<!-- => False -->

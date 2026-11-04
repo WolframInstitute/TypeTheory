@@ -12,12 +12,12 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Usage
 
-[Arguments]()[*e*] is the [Sequence]() of the arguments of the expression *e*, {} for an atom.
+[Arguments]()[*e*] is the list of the arguments of the expression *e*, {} for an atom.
 
 ## Details & Options
 
 - [Arguments]() is a definition of [TypeTheoryEnvironment]()["WolframLanguage"], by the recursor of [Expressions](), which the kernel computes.
-- A [Sequence]() is a list of expressions, `Lists[Expressions]`.
+- Its type is `Expressions -> Lists[Expressions]`.
 
 ## Basic Examples
 
@@ -25,7 +25,7 @@ The arguments of an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, Sequence], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, Lists[Expressions]], wolfram]]
 ```
 
 <!-- => True -->

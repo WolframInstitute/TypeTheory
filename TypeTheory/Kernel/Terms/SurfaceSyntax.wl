@@ -121,6 +121,8 @@ displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbo
 
 
 SetAttributes[TypeTheoryTerm, HoldFirst]
+(* a sequence, Sequence[a, b], is a term, not the arguments a and b *)
+SetAttributes[TypeTheoryTerm, SequenceHold]
 
 (* A term copied from documentation keeps each symbol of a paclet as PacletSymbol[paclet, name]: the term stores the
    symbol it names instead, as elaboration reads it, so that it shows and compares as the term written with the

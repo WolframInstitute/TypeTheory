@@ -149,6 +149,8 @@ Options[TypeTheoryInductiveType] = {"Parameters" -> Automatic, "UniverseParamete
 Options[TypeTheoryRewriteRule] = {"UniverseParameters" -> Automatic}
 
 SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule, TypeTheoryQuotients, TypeTheoryCubical}, HoldAll]
+(* a sequence, Sequence[a, b], is a term, not the arguments a and b *)
+SetAttributes[{TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, TypeTheoryNaturalNumbers, TypeTheoryRewriteRule, TypeTheoryQuotients, TypeTheoryCubical}, SequenceHold]
 
 declarationQ[_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryInductiveType | _TypeTheoryNaturalNumbers | _TypeTheoryRewriteRule] := True
 declarationQ[TypeTheoryQuotients[] | TypeTheoryQuotients[_, {_, _, _, _}] | TypeTheoryCubical[_]] := True

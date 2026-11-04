@@ -43,11 +43,11 @@ VerificationTest[
 	TestID -> "The-match-monad-tries-alternatives-in-order"
 ]
 
-(* the arguments of an expression are a Sequence; a product pairs every result of one match with every one of another,
+(* the arguments of an expression are a list; a product pairs every result of one match with every one of another,
    in order *)
 VerificationTest[
 	{
-		equalQ[Arguments[ExpressionNormal[7, {1, 2}]], Typed[{1, 2}, Sequence]],
+		equalQ[Arguments[ExpressionNormal[7, {1, 2}]], Typed[{1, 2}, Lists[Expressions]]],
 		equalQ[MatchProduct[{1, 2}, {3}], {Pair[1, 3], Pair[2, 3]}]
 	},
 	{True, True},

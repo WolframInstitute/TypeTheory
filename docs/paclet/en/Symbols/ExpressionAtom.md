@@ -25,7 +25,7 @@ An atom has no arguments:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionAtom["naturalAtom"[3]]], wolfram], TypeTheoryTerm[Typed[{}, Sequence], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionAtom["naturalAtom"[3]]], wolfram], TypeTheoryTerm[Typed[{}, Lists[Expressions]], wolfram]]
 ```
 
 <!-- => True -->
