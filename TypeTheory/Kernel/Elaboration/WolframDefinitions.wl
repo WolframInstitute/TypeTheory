@@ -472,7 +472,7 @@ listRecursionValue[parts_, elementBinders_HoldComplete, elementTypeHeld_HoldComp
 			InductiveRecursor[List][
 				Function[{Typed[list, {a}]}, b],
 				empty,
-				Function[{Typed[rest, {a}], Typed[head, a], Typed[recursionResult, b]}, prepend],
+				Function[{Typed[head, a], Typed[rest, {a}], Typed[recursionResult, b]}, prepend],
 				listArgument
 			]
 		]

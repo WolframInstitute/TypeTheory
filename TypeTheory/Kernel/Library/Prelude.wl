@@ -277,7 +277,7 @@ OptionNone::usage = "OptionNone is the element of Option[a] with no element of a
 OptionSome::usage = "OptionSome[x] is the element of Option[a] holding x of type a."
 Lists::usage = "Lists[a] is {a}, the type of finite lists of elements of the type a, the name it had: where a type is expected, List[a], written {a}, is the type, built from {} by Prepend; Join, Length, Map, Append and Reverse operate on lists."
 EmptyList::usage = "EmptyList is {}, the list with no elements, of type {a}, by the name it had."
-ListPrepend::usage = "ListPrepend[x, l] is Prepend[l, x], the list l with x in front, by the name and the order of arguments it had."
+ListPrepend::usage = "ListPrepend[x, l] is Prepend[x][l], the list l with x in front, by the name it had."
 DecideSoundness::usage = "DecideSoundness[h] proves p from a proof h of Decide[p] == True, for the instance of Decidable[p] that elaboration finds."
 NotDecidable::usage = "NotDecidable is the instance deciding Not[p] from the instance of Decidable[p]."
 AndDecidable::usage = "AndDecidable is the instance deciding And[p, q] from the instances of Decidable[p] and Decidable[q]."
@@ -1235,7 +1235,7 @@ $constructiveDeclarations = {
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
 		{
 			"{}" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, {\[Alpha]}],
-			"Prepend" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}], Typed[x, \[Alpha]]}, {\[Alpha]}]
+			"Prepend" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[l, {\[Alpha]}]}, {\[Alpha]}]
 		}
 	],
 
@@ -1247,7 +1247,7 @@ $constructiveDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {\[Alpha]}]}, {\[Alpha]}],
 				m,
-				Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[r, {\[Alpha]}]}, Prepend[r, x]],
+				Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[r, {\[Alpha]}]}, Prepend[x][r]],
 				l
 			]
 		]
@@ -1258,7 +1258,7 @@ $constructiveDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {\[Alpha]}]}, NonNegativeIntegers],
 				0,
-				Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[r, NonNegativeIntegers]}, r + 1],
+				Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[r, NonNegativeIntegers]}, r + 1],
 				l
 			]
 		]
@@ -1269,14 +1269,14 @@ $constructiveDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {\[Alpha]}]}, {\[Beta]}],
 				{},
-				Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[r, {\[Beta]}]}, Prepend[r, f[x]]],
+				Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[r, {\[Beta]}]}, Prepend[f[x]][r]],
 				l
 			]
 		]
 	],
 	TypeTheoryDefinition[
 		Append,
-		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}], Typed[x, \[Alpha]]}, Join[l, Prepend[{}, x]]]
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}], Typed[x, \[Alpha]]}, Join[l, Prepend[x][{}]]]
 	],
 	TypeTheoryDefinition[
 		Reverse,
@@ -1284,7 +1284,7 @@ $constructiveDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {\[Alpha]}]}, {\[Alpha]}],
 				{},
-				Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[r, {\[Alpha]}]}, Append[r, x]],
+				Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[r, {\[Alpha]}]}, Append[r, x]],
 				l
 			]
 		]
@@ -1297,8 +1297,8 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Join[t, {}] == t],
 			EqualityReflexivity[{}],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Join[rest, {}] == rest]},
-				EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Prepend[r, x]], ih]
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Join[rest, {}] == rest]},
+				EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Prepend[x][r]], ih]
 			],
 			l
 		]]
@@ -1309,8 +1309,8 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}], Typed[c, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Join[Join[t, b], c] == Join[t, Join[b, c]]],
 			EqualityReflexivity[Join[b, c]],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Join[Join[rest, b], c] == Join[rest, Join[b, c]]]},
-				EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Prepend[r, x]], ih]
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Join[Join[rest, b], c] == Join[rest, Join[b, c]]]},
+				EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Prepend[x][r]], ih]
 			],
 			a
 		]]
@@ -1321,7 +1321,7 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Length[Join[t, b]] == Length[t] + Length[b]],
 			EqualitySymmetry[AdditionZeroLeft[Length[b]]],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Length[Join[rest, b]] == Length[rest] + Length[b]]},
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Join[rest, b]] == Length[rest] + Length[b]]},
 				EqualityTransitivity[EqualityCongruence[NaturalNumberSuccessor, ih], EqualitySymmetry[AdditionSuccessorLeft[Length[rest], Length[b]]]]
 			],
 			a
@@ -1333,7 +1333,7 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Length[Map[f, t]] == Length[t]],
 			EqualityReflexivity[0],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Length[Map[f, rest]] == Length[rest]]}, EqualityCongruence[NaturalNumberSuccessor, ih]],
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Map[f, rest]] == Length[rest]]}, EqualityCongruence[NaturalNumberSuccessor, ih]],
 			l
 		]]
 	],
@@ -1343,8 +1343,8 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Map[f, Join[t, b]] == Join[Map[f, t], Map[f, b]]],
 			EqualityReflexivity[Map[f, b]],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Map[f, Join[rest, b]] == Join[Map[f, rest], Map[f, b]]]},
-				EqualityCongruence[Function[{Typed[r, {\[Beta]}]}, Prepend[r, f[x]]], ih]
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Map[f, Join[rest, b]] == Join[Map[f, rest], Map[f, b]]]},
+				EqualityCongruence[Function[{Typed[r, {\[Beta]}]}, Prepend[f[x]][r]], ih]
 			],
 			a
 		]]
@@ -1366,8 +1366,8 @@ $constructiveDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {\[Alpha]}]}, Map[f, Map[g, t]] == Map[Composition[f, g], t]],
 				EqualityReflexivity[{}],
-				Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Map[f, Map[g, rest]] == Map[Composition[f, g], rest]]},
-					EqualityCongruence[Function[{Typed[r, {\[Gamma]}]}, Prepend[r, f[g[x]]]], ih]
+				Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Map[f, Map[g, rest]] == Map[Composition[f, g], rest]]},
+					EqualityCongruence[Function[{Typed[r, {\[Gamma]}]}, Prepend[f[g[x]]][r]], ih]
 				],
 				l
 			]
@@ -1379,10 +1379,10 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Reverse[Join[t, b]] == Join[Reverse[b], Reverse[t]]],
 			EqualitySymmetry[JoinEmptyRight[Reverse[b]]],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Reverse[Join[rest, b]] == Join[Reverse[b], Reverse[rest]]]},
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Reverse[Join[rest, b]] == Join[Reverse[b], Reverse[rest]]]},
 				EqualityTransitivity[
-					EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Join[r, Prepend[{}, x]]], ih],
-					JoinAssociativity[Reverse[b], Reverse[rest], Prepend[{}, x]]
+					EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Join[r, Prepend[x][{}]]], ih],
+					JoinAssociativity[Reverse[b], Reverse[rest], Prepend[x][{}]]
 				]
 			],
 			a
@@ -1394,10 +1394,10 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Reverse[Reverse[t]] == t],
 			EqualityReflexivity[{}],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Reverse[Reverse[rest]] == rest]},
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Reverse[Reverse[rest]] == rest]},
 				EqualityTransitivity[
-					ReverseJoin[Reverse[rest], Prepend[{}, x]],
-					EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Join[Prepend[{}, x], r]], ih]
+					ReverseJoin[Reverse[rest], Prepend[x][{}]],
+					EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Join[Prepend[x][{}], r]], ih]
 				]
 			],
 			l
@@ -1409,8 +1409,8 @@ $constructiveDeclarations = {
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Length[Reverse[t]] == Length[t]],
 			EqualityReflexivity[0],
-			Function[{Typed[rest, {\[Alpha]}], Typed[x, \[Alpha]], Typed[ih, Length[Reverse[rest]] == Length[rest]]},
-				EqualityTransitivity[LengthJoin[Reverse[rest], Prepend[{}, x]], EqualityCongruence[NaturalNumberSuccessor, ih]]
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Reverse[rest]] == Length[rest]]},
+				EqualityTransitivity[LengthJoin[Reverse[rest], Prepend[x][{}]], EqualityCongruence[NaturalNumberSuccessor, ih]]
 			],
 			l
 		]]

@@ -357,8 +357,8 @@ joinEmpty = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]
 	TypeTheoryTactic["Introduce", \[Alpha], l],
 	TypeTheoryTactic["Induction", l],
 	TypeTheoryTactic["Reflexivity"],
-	TypeTheoryTactic["Introduce", rest, x, ih],
-	TypeTheoryTactic["Change", Prepend[Join[rest, {}], x] == Prepend[rest, x]],
+	TypeTheoryTactic["Introduce", x, rest, ih],
+	TypeTheoryTactic["Change", Prepend[x][Join[rest, {}]] == Prepend[x][rest]],
 	TypeTheoryTactic["Rewrite", ih]
 }]
 
@@ -366,8 +366,8 @@ reverseTwice = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 
 	TypeTheoryTactic["Introduce", \[Alpha], l],
 	TypeTheoryTactic["Induction", l],
 	TypeTheoryTactic["Reflexivity"],
-	TypeTheoryTactic["Introduce", rest, x, ih],
-	TypeTheoryTactic["Change", Reverse[Join[Reverse[rest], Prepend[{}, x]]] == Prepend[rest, x]],
+	TypeTheoryTactic["Introduce", x, rest, ih],
+	TypeTheoryTactic["Change", Reverse[Join[Reverse[rest], Prepend[x][{}]]] == Prepend[x][rest]],
 	TypeTheoryTactic["Rewrite", ReverseJoin],
 	TypeTheoryTactic["Rewrite", ih],
 	TypeTheoryTactic["Reflexivity"]
@@ -444,7 +444,7 @@ joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse
 	TypeTheoryTactic["Introduce", \[Alpha], a, b, c],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join}],
-	TypeTheoryTactic["Introduce", rest, x, ih],
+	TypeTheoryTactic["Introduce", x, rest, ih],
 	TypeTheoryTactic["Simplify", {Join, ih}]
 }]
 
@@ -452,7 +452,7 @@ lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
-	TypeTheoryTactic["Introduce", rest, x, ih],
+	TypeTheoryTactic["Introduce", x, rest, ih],
 	TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
 }]
 
@@ -460,7 +460,7 @@ reverseJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join, Reverse, JoinEmptyRight}],
-	TypeTheoryTactic["Introduce", rest, x, ih],
+	TypeTheoryTactic["Introduce", x, rest, ih],
 	TypeTheoryTactic["Simplify", {Join, Reverse, ih, Append, JoinAssociativity}]
 }]
 
@@ -484,11 +484,11 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Reverse[Prepend[a, x]] == Append[Reverse[a], x]], prelude, {
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Reverse[Prepend[x][a]] == Append[Reverse[a], x]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], x, a],
 			TypeTheoryTactic["Simplify", {Reverse}]
 		}]["Goals"],
-		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Append[a, x] == Join[a, Prepend[{}, x]]], prelude, {
+		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Append[a, x] == Join[a, Prepend[x][{}]]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], x, a],
 			TypeTheoryTactic["Simplify", {Append}]
 		}]["Goals"],

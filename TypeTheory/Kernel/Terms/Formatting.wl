@@ -43,7 +43,8 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Pair[a, Pair[b, c]]                 (a, b, c)
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
 	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
-	Prepend[Prepend[{}, 2], 1]          {1, 2}               in braces: [1, 2] in f[[1, 2]] would read as Part
+	Prepend[1][Prepend[2][{}]]          {1, 2}               in braces: [1, 2] in f[[1, 2]] would read as Part
+	Prepend[x][l]                       Prepend • x • l      by Application, where l is no literal
 	SequencePrepend[1, EmptySequence]   [1]                  EmptySequence as [], a sequence in brackets
 	Sequence[{A, B}]                    Sequence[A, B]       the type, as it is written; Sequence[As] for a list As that
 	                                                         is no literal
@@ -260,9 +261,24 @@ displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DisjointUnion
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, _}]] := tupleDisplay["(", displaySyntax /@ rightNested[Pair, syntax], ")"]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DependentPair]], {_, _}]] :=
 	tupleDisplay["\[LeftAngleBracket]", displaySyntax /@ rightNested[DependentPair, syntax], "\[RightAngleBracket]"]
-displaySyntax[syntax : syntaxApplication[syntaxString["Prepend"] | syntaxSymbol[HoldComplete[Prepend]], {_, _}]] /; listLiteralQ[syntax] :=
-	tupleDisplay["{", displaySyntax /@ prependedElements[syntax], "}"]
-(* the constructor of lists shows as Prepend, which writes it, where its list is no literal *)
+(* the constructor of lists applied as it reads back, "Prepend"[x, l], as written in operator form, Prepend[x][l], and
+   in the Wolfram Language's two-argument form, Prepend[l, x] *)
+$prependSyntaxPatterns = {
+	syntaxApplication[syntaxString["Prepend"], {_, _}],
+	syntaxApplication[syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {_}], {_}],
+	syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {_, _}]
+}
+
+(* one rule for each, put in with With, as the left side of := is not evaluated, and none of alternatives, which would
+   rank below the rule for any application *)
+Scan[
+	Function[pattern, With[{each = pattern}, displaySyntax[syntax : each] /; listLiteralQ[syntax] := tupleDisplay["{", displaySyntax /@ prependedElements[syntax], "}"]]],
+	$prependSyntaxPatterns
+]
+(* the constructor of lists, where its list is no literal, shows as its operator form applied, Prepend \[Application] x
+   \[Application] l, each Application of two, as only that shows infix; it reads back as Prepend[x][l] *)
+displaySyntax[syntax : syntaxApplication[syntaxString["Prepend"], arguments_List]] /; ! listLiteralQ[syntax] :=
+	Fold[Function[{applied, argument}, syntaxHead[Application, {applied, argument}]], syntaxSymbol[HoldComplete[Prepend]], displaySyntax /@ arguments]
 displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
@@ -493,15 +509,23 @@ tupleDisplay[left_String, elements_List, right_String] := delimited[left, syntax
 rightNested[head_Symbol, syntaxApplication[syntaxSymbol[HoldComplete[head_]], {first_, rest_}]] := Prepend[rightNested[head, rest], first]
 rightNested[_Symbol, last_] := {last}
 
-listLiteralQ[syntaxApplication[syntaxString["Prepend"] | syntaxSymbol[HoldComplete[Prepend]], {rest_, _}]] := listLiteralQ[rest]
+Scan[Function[pattern, With[{each = pattern}, listLiteralQ[syntax : each] := listLiteralQ[prependedRest[syntax]]]], $prependSyntaxPatterns]
 listLiteralQ[syntaxString["{}"]] := True
 listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[List]], _]] := True
 (* the elements give the type an ascribed empty list states *)
 listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString["{}"] | syntaxApplication[syntaxSymbol[HoldComplete[List]], {}], _}]] := True
 listLiteralQ[_] := False
 
-(* the elements of a list literal, Prepend[rest, x] being x and then the elements of rest *)
-prependedElements[syntaxApplication[syntaxString["Prepend"] | syntaxSymbol[HoldComplete[Prepend]], {rest_, first_}]] := Prepend[prependedElements[rest], first]
+prependedElement[syntaxApplication[syntaxString["Prepend"], {element_, _}]] := element
+prependedElement[syntaxApplication[syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {element_}], {_}]] := element
+prependedElement[syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {_, element_}]] := element
+
+prependedRest[syntaxApplication[syntaxString["Prepend"], {_, rest_}]] := rest
+prependedRest[syntaxApplication[syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {_}], {rest_}]] := rest
+prependedRest[syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {rest_, _}]] := rest
+
+(* the elements of a list literal, Prepend[x][rest] being x and then the elements of rest *)
+Scan[Function[pattern, With[{each = pattern}, prependedElements[syntax : each] := Prepend[prependedElements[prependedRest[syntax]], prependedElement[syntax]]]], $prependSyntaxPatterns]
 prependedElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
 prependedElements[_] := {}
 

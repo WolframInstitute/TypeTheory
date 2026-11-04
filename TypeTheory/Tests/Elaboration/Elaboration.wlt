@@ -87,7 +87,7 @@ VerificationTest[
    plain message. *)
 VerificationTest[
 	{
-		Lookup[Last[TypeOf[TypeTheoryTerm[Prepend[{}, TrueIntroduction], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
+		Lookup[Last[TypeOf[TypeTheoryTerm[Prepend[TrueIntroduction][{}], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
 			StringContainsQ[template, "whose sort is"],
 			Length[parameters],
 			ToString[parameters[[3]]] =!= "True"
@@ -354,7 +354,7 @@ VerificationTest[
 		First[TypeTheoryCheck[TypeTheoryTerm[{1, 2}]]],
 		First[WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Reverse[{1, 2}]], TypeTheoryTerm[{2, 1}]],
-		DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[Prepend[1][Prepend[2][{}]]]],
 		First[TypeTheoryCheck[TypeTheoryTerm[Typed[{}, {Naturals}]]]],
 		TypeTheoryCheck[TypeTheoryTerm[{1}, TypeTheoryEnvironment[]]]["Tag"]
 	},
@@ -417,7 +417,7 @@ VerificationTest[
 			First[TypeOf[TypeTheoryTerm[curried[1][2], pairs]]],
 			First[TypeTheoryCheck[TypeTheoryTerm[curried[1, 2], pairs]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Join[{1}, {2}], pairs], TypeTheoryTerm[{1, 2}, pairs]],
-			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequence[Prepend[Prepend[{}, Expressions], NonNegativeIntegers]], pairs]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequence[Prepend[NonNegativeIntegers][Prepend[Expressions][{}]]], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers], pairs], TypeTheoryTerm[Sequence[{NonNegativeIntegers}], pairs]],
 			First[TypeOf[TypeTheoryTerm[Function[{Typed[As, {TypeUniverse[1]}]}, Sequence[As]], pairs]]]
 		}

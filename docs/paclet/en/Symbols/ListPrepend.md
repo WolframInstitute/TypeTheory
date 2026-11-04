@@ -12,13 +12,13 @@ RelatedTutorials: [ThePrelude]
 
 ## Usage
 
-[ListPrepend]()[*x*, *l*] is `Prepend[l, x]`, the list *l* with *x* in front, by the name and the order of arguments it had.
+[ListPrepend]()[*x*, *l*] is `Prepend[x][l]`, the list *l* with *x* in front, by the name it had.
 
 ## Details & Options
 
-- The constructor of lists is written `Prepend[l, x]`, its list first, as the Wolfram Language orders the arguments of `Prepend`, and `{x, ...}` is the list it makes of *x* and the elements of *l*.
-- [ListPrepend]()[*x*, *l*] is read as `Prepend[l, x]` where the environment declares no constant of that name.
-- A definition by the recursor of lists takes the case of `Prepend[l, x]` as a function of *l*, *x* and the value at *l*, in that order.
+- The constructor of lists is written in the operator form of [Prepend](), `Prepend[x][l]`, its element first, as Lean's `List.cons x l`; the Wolfram Language's two-argument form `Prepend[l, x]` is the same list, and so is `Prepend \[Application] x \[Application] l`, which a list shows as where *l* is no literal list.
+- [ListPrepend]()[*x*, *l*] is read as `Prepend[x][l]` where the environment declares no constant of that name.
+- A definition by the recursor of lists takes the case of `Prepend[x][l]` as a function of *x*, *l* and the value at *l*, in that order.
 
 ## Basic Examples
 
@@ -35,7 +35,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[ListPrepend[1, {2}]], TypeTheoryTerm[{1, 2}]
 The length of a list, by the recursor of lists:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Length[Prepend[{2, 3}, 1]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Length[Prepend[1][{2, 3}]]]]
 ```
 
 <!-- => 3 -->

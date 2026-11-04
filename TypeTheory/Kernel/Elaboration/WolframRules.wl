@@ -187,10 +187,10 @@ sequenceTerm[HoldComplete[e_], from_Integer, after_Integer] := With[{dropped = f
 
 (* whether every expression of a sequence has the head, or none has *)
 everyHead[HoldComplete[s_], HoldComplete[head_], True] := HoldComplete[InductiveRecursor[List][
-	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[others, {Expressions}], Typed[first, Expressions], Typed[result, Booleans]}, And[SameQ[Head[first], head], result]], s
+	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[first, Expressions], Typed[others, {Expressions}], Typed[result, Booleans]}, And[SameQ[Head[first], head], result]], s
 ]]
 everyHead[HoldComplete[s_], HoldComplete[head_], False] := HoldComplete[InductiveRecursor[List][
-	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[others, {Expressions}], Typed[first, Expressions], Typed[result, Booleans]}, And[Not[SameQ[Head[first], head]], result]], s
+	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[first, Expressions], Typed[others, {Expressions}], Typed[result, Booleans]}, And[Not[SameQ[Head[first], head]], result]], s
 ]]
 
 (* the part at a path, matched where no instruction has yet, its variable the pattern variable that binds it where one

@@ -307,6 +307,12 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[syntaxApplication[syntaxString["rationalInverse"], {syntaxHead[Power, {base, syntaxInteger[-k]}]}], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Divide]], {first_, second_}] /; rationalsDeclaredQ[] :>
 		elaborateSyntax[syntaxApplication[syntaxString["rationalDivision"], {first, second}], expected],
+	(* Prepend[l, x] is Prepend[x][l], as in the Wolfram Language, where Prepend[x] is the operator that puts x in front
+	   of a list; f \[Application] a \[Application] b, which parses as Application[f, a, b], is f[a][b] *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Prepend]], {list_, element_}] /; ! KeyExistsQ[$elaborationScope, HoldComplete[Prepend]] :>
+		elaborateSyntax[syntaxApplication[syntaxApplication[head, {element}], {list}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Application]], {function_, arguments__}] :>
+		elaborateSyntax[Fold[Function[{applied, argument}, syntaxApplication[applied, {argument}]], function, {arguments}], expected],
 	syntaxApplication[syntaxSymbol[name_], arguments_List] /; ! KeyExistsQ[$elaborationScope, name] && overloadedNameQ[$elaborationEnvironment, name] :>
 		elaborateOverloaded[name, arguments, syntax, expected],
 	(* a && b && c is a && (b && c), as in Lean *)
@@ -321,10 +327,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* List and Sequence are each a type and its elements: where a type is expected, {A} is the type of lists of A and
 	   Sequence[A, B] the type of the sequences of an A and a B; elsewhere {a, b} is a list and Sequence[a, b] a sequence *)
 	(* the names the lists had: Lists is List, the type wherever it is applied, EmptyList is {}, and ListPrepend[x, l]
-	   is Prepend[l, x], as the Wolfram Language orders its arguments *)
+	   is Prepend[x][l] *)
 	syntaxSymbol[HoldComplete[EmptyList]] /; formerListNameQ[HoldComplete[EmptyList]] :> elaborateSyntax[syntaxString["{}"], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {element_, rest_}] /; formerListNameQ[HoldComplete[ListPrepend]] :>
-		elaborateSyntax[syntaxApplication[syntaxString["Prepend"], {rest, element}], expected],
+		elaborateSyntax[syntaxApplication[syntaxString["Prepend"], {element, rest}], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Lists]], arguments_List] /; formerListNameQ[HoldComplete[Lists]] :>
 		applyArguments[elaborateHead[syntaxSymbol[HoldComplete[List]]], arguments, syntaxSymbol[HoldComplete[List]], expected],
 	syntaxSymbol[HoldComplete[Lists]] /; formerListNameQ[HoldComplete[Lists]] :> elaborateSyntax[syntaxSymbol[HoldComplete[List]], expected],
@@ -408,7 +414,7 @@ closedHoleTypes[term_] := Association[Function[id, id -> instantiateMetavariable
 ]]
 
 listLiteralSyntax[elements_List] := Fold[
-	Function[{rest, element}, syntaxApplication[syntaxString["Prepend"], {rest, element}]],
+	Function[{rest, element}, syntaxApplication[syntaxString["Prepend"], {element, rest}]],
 	syntaxString["{}"],
 	Reverse[elements]
 ]

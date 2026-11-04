@@ -230,11 +230,11 @@ sequenceTypeSyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]]
 	syntaxApplication[head, literalListElements[index]]
 sequenceTypeSyntax[syntax_] := syntax
 
-literalListSyntaxQ[syntaxApplication[syntaxString["Prepend"], {rest_, _}]] := literalListSyntaxQ[rest]
+literalListSyntaxQ[syntaxApplication[syntaxString["Prepend"], {_, rest_}]] := literalListSyntaxQ[rest]
 literalListSyntaxQ[syntaxString["{}"]] := True
 literalListSyntaxQ[_] := False
 
-literalListElements[syntaxApplication[syntaxString["Prepend"], {rest_, first_}]] := Prepend[literalListElements[rest], first]
+literalListElements[syntaxApplication[syntaxString["Prepend"], {first_, rest_}]] := Prepend[literalListElements[rest], first]
 literalListElements[syntaxString["{}"]] := {}
 
 holeOfContextQ[environment_, context_, term_] := MatchQ[applicationSpine[term], {constantReference[name_?holeNameQ, _], arguments_List} /; And[

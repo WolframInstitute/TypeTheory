@@ -43,9 +43,9 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Natural
 Reversing a list with an element appended puts the element first:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}], Typed[x, Naturals]}, Reverse[Append[l, x]] == Prepend[Reverse[l], x]], {
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}], Typed[x, Naturals]}, Reverse[Append[l, x]] == Prepend[x][Reverse[l]]], {
     TypeTheoryTactic["Introduce", l, x],
-    TypeTheoryTactic["Exact", ReverseJoin[l, Prepend[{}, x]]]
+    TypeTheoryTactic["Exact", ReverseJoin[l, Prepend[x][{}]]]
 }]
 ```
 
@@ -70,7 +70,7 @@ On lists written out both sides compute, so `"Reflexivity"` proves the instance:
 
 ```wl
 TypeTheoryProof[
-    Reverse[Join[Prepend[{}, 1], Prepend[Prepend[{}, 3], 2]]] == Join[Reverse[Prepend[Prepend[{}, 3], 2]], Reverse[Prepend[{}, 1]]],
+    Reverse[Join[Prepend[1][{}], Prepend[2][Prepend[3][{}]]]] == Join[Reverse[Prepend[2][Prepend[3][{}]]], Reverse[Prepend[1][{}]]],
     {TypeTheoryTactic["Reflexivity"]}
 ]
 ```
@@ -82,7 +82,7 @@ TypeTheoryProof[
 The reversed parts come in the other order: reversing the join of the lists of 1 and of 2 gives the list of 2 and 1:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Join[Prepend[{}, 1], Prepend[{}, 2]]]], TypeTheoryTerm[Prepend[Prepend[{}, 1], 2]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Join[Prepend[1][{}], Prepend[2][{}]]]], TypeTheoryTerm[Prepend[2][Prepend[1][{}]]]]
 ```
 
 <!-- => True -->
@@ -90,7 +90,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Join[Prepend[{}, 1], Prepend[{}, 2]]
 Joining the reversed parts in their own order does not give it:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Join[Prepend[{}, 1], Prepend[{}, 2]]]], TypeTheoryTerm[Join[Reverse[Prepend[{}, 1]], Reverse[Prepend[{}, 2]]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Join[Prepend[1][{}], Prepend[2][{}]]]], TypeTheoryTerm[Join[Reverse[Prepend[1][{}]], Reverse[Prepend[2][{}]]]]]
 ```
 
 <!-- => False -->

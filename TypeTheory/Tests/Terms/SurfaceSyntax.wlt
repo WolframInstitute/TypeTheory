@@ -229,10 +229,10 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Cases[ToBoxes[TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[Prepend[1][Prepend[2][{}]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
 		Cases[ToBoxes[TypeTheoryTerm[Prepend[Typed[{}, {NonNegativeIntegers}], 1]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
 		Cases[ToBoxes[TypeTheoryTerm[Join[l, {}]]], RowBox[{"{", "}"}], Infinity],
-		FreeQ[ToBoxes[TypeTheoryTerm[Prepend[l, 1]]], "Prepend"]
+		FreeQ[ToBoxes[TypeTheoryTerm[Prepend[1][l]]], "Prepend"]
 	},
 	{True, True, {RowBox[{"{", "}"}]}, False},
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"

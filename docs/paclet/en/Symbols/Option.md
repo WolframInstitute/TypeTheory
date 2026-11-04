@@ -55,7 +55,7 @@ The first element of a list, if it has one, defined with the recursor of [List](
 
 ```wl
 heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed[l, {Naturals}]},
-    InductiveRecursor[List][Function[{Typed[t, {Naturals}]}, Option[Naturals]], OptionNone, Function[{Typed[rest, {Naturals}], Typed[x, Naturals], Typed[r, Option[Naturals]]}, OptionSome[x]], l]
+    InductiveRecursor[List][Function[{Typed[t, {Naturals}]}, Option[Naturals]], OptionNone, Function[{Typed[x, Naturals], Typed[rest, {Naturals}], Typed[r, Option[Naturals]]}, OptionSome[x]], l]
 ]]}]
 ```
 
@@ -64,7 +64,7 @@ heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed
 The list of 5 and 7 has the first element 5:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[Prepend[Prepend[{}, 7], 5]], heads]]
+WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[Prepend[5][Prepend[7][{}]]], heads]]
 ```
 
 <!-- => OptionSome[5] -->

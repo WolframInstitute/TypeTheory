@@ -75,7 +75,7 @@ ExpressionNormal::usage = "ExpressionNormal[h, {a, ...}] is the expression h app
 Arguments::usage = "Arguments[e] is the list of the arguments of the expression e, {} for an atom."
 ExpressionValue::usage = "ExpressionValue[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
 EmptySequence::usage = "EmptySequence is the sequence with no elements, of the type Sequence[]."
-SequencePrepend::usage = "SequencePrepend[x, s] is the sequence of x and then the elements of the sequence s, of the type Sequence[Prepend[As, A]] for x of the type A and s of the type Sequence[As]."
+SequencePrepend::usage = "SequencePrepend[x, s] is the sequence of x and then the elements of the sequence s, of the type Sequence[Prepend[A][As]] for x of the type A and s of the type Sequence[As]."
 MatchBind::usage = "MatchBind[m, f] is the match whose results are those of f applied to each result of m, in order."
 MatchFirst::usage = "MatchFirst[m] is the first result of the match m, OptionSome of it, or OptionNone where m has none: the rule the Wolfram Language applies."
 wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prelude with the expressions of the Wolfram Language and the monad of pattern matching, built and checked the first time it is asked for."
@@ -110,7 +110,7 @@ $wolframLanguageDeclarations = {
 			EmptySequence -> Sequence[Typed[{}, {TypeUniverse[u + 1]}]],
 			SequencePrepend -> ForAll[
 				{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[As, {TypeUniverse[u + 1]}], Typed[x, A], Typed[xs, Sequence[As]]},
-				Sequence[Prepend[As, A]]
+				Sequence[Prepend[A][As]]
 			]
 		}
 	],
@@ -129,7 +129,7 @@ $wolframLanguageDeclarations = {
 				Function[{Typed[a, Atoms]}, ExpressionAtom["atomHead"[a]]],
 				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Expressions], Typed[ar, {Expressions}]}, h],
 				{},
-				Function[{Typed[rest, {Expressions}], Typed[x, Expressions], Typed[rr, {Expressions}], Typed[xr, Expressions]}, rr],
+				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, Expressions], Typed[rr, {Expressions}]}, rr],
 				e
 			]
 		],
@@ -143,7 +143,7 @@ $wolframLanguageDeclarations = {
 				Function[{Typed[a, Atoms]}, {}],
 				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, {Expressions}], Typed[ar, {Expressions}]}, arguments],
 				{},
-				Function[{Typed[rest, {Expressions}], Typed[x, Expressions], Typed[rr, {Expressions}], Typed[xr, {Expressions}]}, rr],
+				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, {Expressions}], Typed[rr, {Expressions}]}, rr],
 				e
 			]
 		],
@@ -158,7 +158,7 @@ $wolframLanguageDeclarations = {
 				Function[{Typed[a, Atoms]}, "true"],
 				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Booleans], Typed[ar, Booleans]}, "false"],
 				"false",
-				Function[{Typed[rest, {Expressions}], Typed[x, Expressions], Typed[rr, Booleans], Typed[xr, Booleans]}, rr],
+				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, Booleans], Typed[rr, Booleans]}, rr],
 				e
 			]
 		],
@@ -172,9 +172,9 @@ $wolframLanguageDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {A}]}, NonNegativeIntegers -> {A}],
 				Function[{Typed[k, NonNegativeIntegers]}, Typed[{}, {A}]],
-				Function[{Typed[rest, {A}], Typed[x, A], Typed[r, NonNegativeIntegers -> {A}]},
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, NonNegativeIntegers -> {A}]},
 					Function[{Typed[k, NonNegativeIntegers]},
-						InductiveRecursor[NonNegativeIntegers][Function[{Typed[j, NonNegativeIntegers]}, {A}], Prepend[rest, x], Function[{Typed[j, NonNegativeIntegers], Typed[s, {A}]}, r[j]], k]
+						InductiveRecursor[NonNegativeIntegers][Function[{Typed[j, NonNegativeIntegers]}, {A}], Prepend[x][rest], Function[{Typed[j, NonNegativeIntegers], Typed[s, {A}]}, r[j]], k]
 					]
 				],
 				l
@@ -186,7 +186,7 @@ $wolframLanguageDeclarations = {
 	(* the monad of matches: the lists of results, in the order they are tried *)
 	TypeTheoryDefinition[Wolfram`Patterns`Match, Typed[Function[{Typed[A, TypeUniverse[u + 1]]}, {A}], TypeUniverse[u + 1] -> TypeUniverse[u + 1]]],
 	TypeTheoryDefinition[Wolfram`Patterns`MatchValues, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[a, A]}, Prepend[{}, a]],
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[a, A]}, Prepend[a][{}]],
 		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> Wolfram`Patterns`Match[A]]
 	]],
 	TypeTheoryDefinition[Wolfram`Patterns`MatchSum, Typed[
@@ -198,7 +198,7 @@ $wolframLanguageDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {A}]}, {B}],
 				Typed[{}, {B}],
-				Function[{Typed[rest, {A}], Typed[x, A], Typed[r, {B}]}, Join[f[x], r]],
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, {B}]}, Join[f[x], r]],
 				m
 			]
 		],
@@ -212,13 +212,13 @@ $wolframLanguageDeclarations = {
 	]],
 	TypeTheoryDefinition[MatchQ, Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Wolfram`Patterns`Match[A]]},
-			InductiveRecursor[List][Function[{Typed[t, {A}]}, Booleans], "false", Function[{Typed[rest, {A}], Typed[x, A], Typed[r, Booleans]}, "true"], m]
+			InductiveRecursor[List][Function[{Typed[t, {A}]}, Booleans], "false", Function[{Typed[x, A], Typed[rest, {A}], Typed[r, Booleans]}, "true"], m]
 		],
 		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Wolfram`Patterns`Match[A] -> Booleans]
 	]],
 	TypeTheoryDefinition[MatchFirst, Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Wolfram`Patterns`Match[A]]},
-			InductiveRecursor[List][Function[{Typed[t, {A}]}, Option[A]], Typed[OptionNone, Option[A]], Function[{Typed[rest, {A}], Typed[x, A], Typed[r, Option[A]]}, OptionSome[x]], m]
+			InductiveRecursor[List][Function[{Typed[t, {A}]}, Option[A]], Typed[OptionNone, Option[A]], Function[{Typed[x, A], Typed[rest, {A}], Typed[r, Option[A]]}, OptionSome[x]], m]
 		],
 		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Wolfram`Patterns`Match[A] -> Option[A]]
 	]],
@@ -230,7 +230,7 @@ $wolframLanguageDeclarations = {
 			InductiveRecursor[List][
 				Function[{Typed[t, {A}]}, NonNegativeIntegers -> Wolfram`Patterns`Match[A]],
 				Function[{Typed[k, NonNegativeIntegers]}, Typed[{}, {A}]],
-				Function[{Typed[rest, {A}], Typed[x, A], Typed[r, NonNegativeIntegers -> Wolfram`Patterns`Match[A]]},
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, NonNegativeIntegers -> Wolfram`Patterns`Match[A]]},
 					Function[{Typed[k, NonNegativeIntegers]},
 						InductiveRecursor[NonNegativeIntegers][Function[{Typed[j, NonNegativeIntegers]}, Wolfram`Patterns`Match[A]], Wolfram`Patterns`MatchValues[x], Function[{Typed[j, NonNegativeIntegers], Typed[s, Wolfram`Patterns`Match[A]]}, r[j]], k]
 					]

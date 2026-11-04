@@ -342,10 +342,10 @@ WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[1]]]]
 
 ## List
 
-<code>[List]()[α]</code> is the type of finite lists, built from `{}` by `Prepend[l, x]`, the list first, as the Wolfram Language orders it, as Lean builds `List` from `nil` and `cons`. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
+<code>[List]()[α]</code> is the type of finite lists, built from `{}` by `Prepend[x][l]`, the operator form of [Prepend]() applied, as Lean builds `List` from `nil` and `cons x l`; `Prepend[l, x]` is the same list. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Prepend[Prepend[{}, 2], 1]]], TypeTheoryTerm[Prepend[Prepend[{}, 1], 2]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Prepend[1][Prepend[2][{}]]]], TypeTheoryTerm[Prepend[2][Prepend[1][{}]]]]
 ```
 
 <!-- => True -->
@@ -357,7 +357,7 @@ lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}
     TypeTheoryTactic["Introduce", a, b],
     TypeTheoryTactic["Induction", a],
     TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
-    TypeTheoryTactic["Introduce", rest, x, ih],
+    TypeTheoryTactic["Introduce", x, rest, ih],
     TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
 }]
 ```

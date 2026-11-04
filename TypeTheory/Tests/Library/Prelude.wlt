@@ -210,7 +210,7 @@ VerificationTest[
 		TypeOf[TypeTheoryTerm[Pair[1, "true"][[2]], prelude]],
 		TypeOf[TypeTheoryTerm[Typed[LeftInjection[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
 		TypeOf[TypeTheoryTerm[OptionSome[5], prelude]],
-		TypeOf[TypeTheoryTerm[Prepend[{}, 1], prelude]]
+		TypeOf[TypeTheoryTerm[Prepend[1][{}], prelude]]
 	},
 	{
 		TypeTheoryTerm[Booleans, prelude],
@@ -223,14 +223,14 @@ VerificationTest[
 
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[Length[Join[Prepend[Prepend[{}, 2], 1], Prepend[{}, 3]]], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Length[Join[Prepend[1][Prepend[2][{}]], Prepend[3][{}]]], prelude]],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[EqualityReflexivity[Prepend[Prepend[Prepend[{}, 1], 2], 3]], prelude],
-			TypeTheoryTerm[Reverse[Prepend[Prepend[Prepend[{}, 3], 2], 1]] == Prepend[Prepend[Prepend[{}, 1], 2], 3], prelude]
+			TypeTheoryTerm[EqualityReflexivity[Prepend[3][Prepend[2][Prepend[1][{}]]]], prelude],
+			TypeTheoryTerm[Reverse[Prepend[1][Prepend[2][Prepend[3][{}]]]] == Prepend[3][Prepend[2][Prepend[1][{}]]], prelude]
 		], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[ReverseReverse[Prepend[{}, 1]], prelude],
-			TypeTheoryTerm[Reverse[Reverse[Prepend[{}, 1]]] == Prepend[{}, 1], prelude]
+			TypeTheoryTerm[ReverseReverse[Prepend[1][{}]], prelude],
+			TypeTheoryTerm[Reverse[Reverse[Prepend[1][{}]]] == Prepend[1][{}], prelude]
 		], _Success]
 	},
 	{TypeTheoryTerm[3, prelude], True, True},

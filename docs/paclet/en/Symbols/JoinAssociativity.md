@@ -70,7 +70,7 @@ On lists written out both sides compute to the same list, so `"Reflexivity"` pro
 
 ```wl
 TypeTheoryProof[
-    Join[Join[Prepend[{}, 1], Prepend[{}, 2]], Prepend[{}, 3]] == Join[Prepend[{}, 1], Join[Prepend[{}, 2], Prepend[{}, 3]]],
+    Join[Join[Prepend[1][{}], Prepend[2][{}]], Prepend[3][{}]] == Join[Prepend[1][{}], Join[Prepend[2][{}], Prepend[3][{}]]],
     {TypeTheoryTactic["Reflexivity"]}
 ]
 ```

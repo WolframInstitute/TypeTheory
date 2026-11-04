@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- The empty list is written `{}`, and a list `{a, b}`: `List` is the type of lists and its elements alike. Its constructors are the empty list and `Prepend`, as Lean's `List.nil` and `List.cons`, and `Prepend[l, x]` is the list *l* with *x* in front, as in the Wolfram Language.
+- The empty list is written `{}`, and a list `{a, b}`: `List` is the type of lists and its elements alike. Its constructors are the empty list and `Prepend`, as Lean's `List.nil` and `List.cons`: `Prepend[x][l]`, as `Prepend[l, x]`, is the list *l* with *x* in front, as in the Wolfram Language.
 - [EmptyList]() is read as `{}` where the environment declares no constant of that name.
 - The type of the elements is an implicit argument, found from the expected type.
 
@@ -35,7 +35,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[EmptyList, {NonNegativeIntegers}]], Ty
 A list ending in the empty list shows as its elements:
 
 ```wl
-TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]
+TypeTheoryTerm[Prepend[1][Prepend[2][{}]]]
 ```
 
 <!-- => {1, 2} -->

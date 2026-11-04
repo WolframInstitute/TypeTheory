@@ -73,7 +73,7 @@ On a list written out both sides compute, so `"Reflexivity"` proves the instance
 
 ```wl
 TypeTheoryProof[
-    Map[Function[{Typed[n, Naturals]}, n + 1], Map[Function[{Typed[n, Naturals]}, 2 * n], Prepend[Prepend[{}, 2], 1]]] == Map[Composition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n]], Prepend[Prepend[{}, 2], 1]],
+    Map[Function[{Typed[n, Naturals]}, n + 1], Map[Function[{Typed[n, Naturals]}, 2 * n], Prepend[1][Prepend[2][{}]]]] == Map[Composition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n]], Prepend[1][Prepend[2][{}]]],
     {TypeTheoryTactic["Reflexivity"]}
 ]
 ```
@@ -86,8 +86,8 @@ TypeTheoryProof[
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Map[Composition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n]], Prepend[Prepend[{}, 2], 1]]],
-    TypeTheoryTerm[Prepend[Prepend[{}, 5], 3]]
+    TypeTheoryTerm[Map[Composition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n]], Prepend[1][Prepend[2][{}]]]],
+    TypeTheoryTerm[Prepend[3][Prepend[5][{}]]]
 ]
 ```
 
