@@ -29,6 +29,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
 
+<code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> gives the prelude with the expressions of the Wolfram Language and the monad of pattern matching.
+
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
 <code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> reads the environment that <code>[Export]()["*file*.wxf", *env*]</code> saved, without checking its declarations again.
