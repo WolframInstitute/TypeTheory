@@ -134,6 +134,8 @@ fullName[symbol_Symbol] := Context[Unevaluated[symbol]] <> SymbolName[Unevaluate
 
 formalizeProgram[environment_, held_, type_, definitions_List] := Replace[translatedDefinitions[held, definitions], {
 	{value_HoldComplete, calls_List} :> candidateDeclarations[environment, held, type, definitions, calls, Function[extended, DeleteDuplicates[{value, withoutHeadTypes[value]}]]],
+	{"NaturalRecursion", parts_Association, calls_List} :>
+		candidateDeclarations[environment, held, type, definitions, calls, Function[extended, naturalRecursionCandidates[extended, type, parts]]],
 	{"ListRecursion", parts_Association, calls_List} :>
 		candidateDeclarations[environment, held, type, definitions, calls, Function[extended, listRecursionCandidates[extended, type, parts]]],
 	_ :> fallbackDeclarations[environment, held, type, definitions]
@@ -229,7 +231,71 @@ translatedDefinitions[_, {coreForm["Definition"][_, coreForm["Program"][instruct
 (* two definitions by structural recursion on a list, f[{}] and f[{x_, rest___}], whose body calls f only on {rest}:
    {"ListRecursion", <|"Empty" -> HoldComplete[value], "Prepend" -> HoldComplete[value], "Head" -> HoldComplete[x],
    "Rest" -> HoldComplete[rest]|>, calls}, the prepend case's value naming the recursion's result recursionResult *)
-translatedDefinitions[held_, definitions : {_, __}] := Replace[listRecursionTranslation[held, definitions], None :> guardChainTranslation[definitions]]
+translatedDefinitions[held_, definitions : {_, __}] := Replace[
+	listRecursionTranslation[held, definitions],
+	None :> Replace[naturalRecursionTranslation[held, definitions], None :> guardChainTranslation[definitions]]
+]
+
+(* two definitions by recursion on a natural number, f[0] and f[n_], the second calling f only on n - 1, perhaps
+   with n an _Integer and the condition n > 0, n >= 1 or n != 0, which n + 1 meets: {"NaturalRecursion", <|"Zero" ->
+   HoldComplete[value], "Successor" -> HoldComplete[value]|>, calls}, the successor case's value of predecessor, n
+   being predecessor + 1, and of recursionResult, the value at predecessor *)
+naturalRecursionTranslation[_, Except[{_, _}]] := None
+naturalRecursionTranslation[held_, definitions : {_, _}] := Catch[
+	Replace[SortBy[definitions, Function[definition, ! zeroDefinitionQ[definition]]], {
+		{zero_?zeroDefinitionQ, successor : coreForm["Definition"][_, coreForm["Program"][instructions_List], body_, ___]} :> With[
+			{local = FirstCase[instructions, coreForm["Bind"][_String, local_String, {1}] :> local, Throw[None, untranslatable]]},
+			If[ ! AllTrue[instructions, Function[instruction, MatchQ[instruction,
+					coreForm["Length"][{}, 1] | coreForm["Bind"][_String, local, {1}] | coreForm["HeadIs"][{1}, "System`Integer"] |
+					coreForm["Guard"][coreForm["Call"]["System`Greater" | "System`Unequal", {coreForm["Local"][local], coreForm["Constant"][0]}] |
+						coreForm["Call"]["System`GreaterEqual", {coreForm["Local"][local], coreForm["Constant"][1]}]]
+				]]],
+				Throw[None, untranslatable]
+			];
+			Replace[
+				{
+					Reap[translatedCore[zero[[3]], <||>], untranslatedCall],
+					Block[{$naturalRecursion = <|"Self" -> fullName @@ held, "Local" -> local|>}, Reap[translatedCore[body, <||>], untranslatedCall]]
+				},
+				{{zeroValue_HoldComplete, zeroCalls_}, {successorValue_HoldComplete, successorCalls_}} :> {
+					"NaturalRecursion",
+					<|"Zero" -> zeroValue, "Successor" -> successorValue|>,
+					Join[Catenate[zeroCalls], Catenate[successorCalls]]
+				}
+			]
+		],
+		_ :> None
+	}],
+	untranslatable,
+	Function[{value, tag}, None]
+]
+
+zeroDefinitionQ[coreForm["Definition"][_, coreForm["Program"][{coreForm["Length"][{}, 1], coreForm["Same"][{1}, HoldComplete[0]]}], ___]] := True
+zeroDefinitionQ[_] := False
+
+$naturalRecursion = <||>
+
+(* the candidate values of a definition by recursion on a natural number, of the type "Type" gives, NonNegativeIntegers
+   -> b, or of the type of its zero case *)
+naturalRecursionCandidates[_, HoldComplete[NonNegativeIntegers -> resultType_], parts_] := {naturalRecursionValue[parts, HoldComplete[resultType]]}
+naturalRecursionCandidates[_, HoldComplete[_], _] := {}
+naturalRecursionCandidates[environment_, None, parts_] := Replace[With[{zero = TypeTheoryTerm @@ Append[parts["Zero"], environment]}, Quiet[TypeOf[zero]]], {
+	TypeTheoryTerm[resultType_, ___] :> {naturalRecursionValue[parts, HoldComplete[resultType]]},
+	_ :> {}
+}]
+
+naturalRecursionValue[parts_, resultTypeHeld_HoldComplete] := Replace[{parts["Zero"], parts["Successor"], resultTypeHeld},
+	{HoldComplete[zero_], HoldComplete[successor_], HoldComplete[b_]} :> HoldComplete[
+		Function[{Typed[naturalArgument, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[number, NonNegativeIntegers]}, b],
+				zero,
+				Function[{Typed[predecessor, NonNegativeIntegers], Typed[recursionResult, b]}, successor],
+				naturalArgument
+			]
+		]
+	]
+]
 
 listRecursionTranslation[_, Except[{_, _}]] := None
 listRecursionTranslation[held_, definitions : {_, _}] := Catch[
@@ -393,6 +459,11 @@ $surfaceHeads = {"System`Plus", "System`Times", "System`Power", "System`Subtract
 translatedCore[coreForm["Call"][self_String, {coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}]}], _] /; self === $recursion["Self"] && rest === $recursion["Rest"] :=
 	HoldComplete[recursionResult]
 translatedCore[coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}], _] /; rest === $recursion["Rest"] := $recursion["RestSymbol"]
+(* under a recursion on a natural number n, f[n - 1] is the recursion's result and n is predecessor + 1 *)
+translatedCore[coreForm["Call"][self_String, {coreForm["Call"]["System`Plus", {coreForm["Local"][local_String], coreForm["Constant"][-1]}]}], _] /;
+	self === $naturalRecursion["Self"] && local === $naturalRecursion["Local"] := HoldComplete[recursionResult]
+translatedCore[coreForm["Local"][local_String], _] /; local === $naturalRecursion["Local"] := HoldComplete[predecessor + 1]
+
 (* If in a body, its branches the last value of their steps *)
 translatedCore[coreForm["If"][condition_, then_, otherwise_, ___], locals_] := (
 	Sow[HoldComplete[If], untranslatedCall];

@@ -107,3 +107,30 @@ VerificationTest[
 	True,
 	TestID -> "Conditions-and-If-are-If-by-the-decision-of-the-condition"
 ]
+
+(* recursion on a natural number, f[0] and f[n_] calling f only on n - 1, perhaps with n an _Integer and n > 0, is a
+   definition by the recursor of the natural numbers, which computes *)
+VerificationTest[
+	Block[{fact, double, prelude = TypeTheoryEnvironment["Prelude"]},
+		fact[0] = 1;
+		fact[n_] := n fact[n - 1];
+		double[0] = 0;
+		double[n_Integer /; n > 0] := double[n - 1] + 2;
+		If[ PacletFind["Wolfram/KernelCompiler"] === {},
+			True,
+			With[
+				{
+					facts = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[fact, prelude]],
+					doubles = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[double, prelude]]
+				},
+				{
+					MatchQ[TypeOf[TypeTheoryTerm[fact, facts]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> NonNegativeIntegers], _]],
+					WeakHeadNormalForm[TypeTheoryTerm[fact[5], facts]] === TypeTheoryTerm[120, facts],
+					WeakHeadNormalForm[TypeTheoryTerm[double[4], doubles]] === TypeTheoryTerm[8, doubles]
+				} === {True, True, True}
+			]
+		]
+	],
+	True,
+	TestID -> "Recursion-on-a-natural-number-is-a-definition-by-the-recursor-of-the-natural-numbers"
+]

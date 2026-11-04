@@ -20,6 +20,7 @@ RelatedGuides: [TypeTheory]
 - The definitions are read by the compiler of the WolframKernel project, from the paclet Wolfram/KernelCompiler, which TypeTheory loads when it first formalizes a symbol. Where it is missing, [TypeTheoryFormalize]() gives a [Failure]() that names how to install it.
 - A symbol is a [TypeTheoryDefinition]() where it has one definition, its arguments bound by plain patterns or by `_Integer` and `_Rational`, and its body arithmetic, list literals, calls of built-ins that have a signature, and calls of other symbols, formalized first and declared before it.
 - Two definitions by structural recursion on a list, `f[{}]` and `f[{x_, rest___}]`, whose body calls `f` only on `{rest}`, are a definition by the recursor of [Lists](). Its result type is the type of the empty case, or the one `"Type"` gives as `Lists[a] -> b`, and its elements are of any type where they can be.
+- Two definitions by recursion on a natural number, `f[0]` and `f[n_]`, whose body calls `f` only on `n - 1`, perhaps with `n_Integer` and the condition `n > 0`, are a definition by the recursor of the natural numbers, of the type its zero case gives the result, or the one `"Type"` gives as `NonNegativeIntegers -> b`.
 - Definitions each but the last with a condition, `f[x_ /; c] := a`, and [If]() in a body, are [If]() by the decision of the condition, a [Decidable]() instance that elaboration finds, declared as a definition by the recursor of [Decidable]() where the environment has no [If]().
 - A type that `"Type"` gives decides the arguments, also where the heads of the patterns, as `_Integer`, would give them another.
 - Otherwise it is a [TypeTheoryAxiom]() with `"Implementation" -> symbol`: the Wolfram Language computes it, and the kernel never does.
@@ -81,6 +82,20 @@ sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]];
 ```
 
 <!-- => {∀_{α∶Type u} List α → ℕ, 3} -->
+
+---
+
+A factorial is a definition by the recursor of the natural numbers, which computes:
+
+```wl
+fact[0] = 1;
+fact[n_] := n fact[n - 1];
+prelude = TypeTheoryEnvironment["Prelude"];
+facts = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[fact, prelude]];
+{TypeOf[TypeTheoryTerm[fact, facts]], WeakHeadNormalForm[TypeTheoryTerm[fact[5], facts]]}
+```
+
+<!-- => {ℕ → ℕ, 120} -->
 
 ---
 
