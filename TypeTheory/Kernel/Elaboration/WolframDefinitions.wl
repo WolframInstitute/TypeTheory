@@ -133,7 +133,7 @@ SetAttributes[fullName, HoldAllComplete]
 fullName[symbol_Symbol] := Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]
 
 formalizeProgram[environment_, held_, type_, definitions_List] := Replace[translatedDefinitions[held, definitions], {
-	{value_HoldComplete, calls_List} :> candidateDeclarations[environment, held, type, definitions, calls, Function[extended, {value}]],
+	{value_HoldComplete, calls_List} :> candidateDeclarations[environment, held, type, definitions, calls, Function[extended, DeleteDuplicates[{value, withoutHeadTypes[value]}]]],
 	{"ListRecursion", parts_Association, calls_List} :>
 		candidateDeclarations[environment, held, type, definitions, calls, Function[extended, listRecursionCandidates[extended, type, parts]]],
 	_ :> fallbackDeclarations[environment, held, type, definitions]
@@ -150,6 +150,11 @@ candidateDeclarations[environment_, held_, type_, definitions_, calls_, candidat
 	],
 	_ :> fallbackDeclarations[environment, held, type, definitions]
 }]
+
+(* the value with its arguments untyped, for a type given that the heads of its patterns, as _Integer, would contradict,
+   such as NonNegativeIntegers -> NonNegativeIntegers *)
+withoutHeadTypes[HoldComplete[Function[{binders___}, body_]]] := HoldComplete[Function[{binders}, body]] /. HoldPattern[Typed[symbol_Symbol, Integers | Rationals]] :> symbol
+withoutHeadTypes[value_] := value
 
 definitionOf[HoldComplete[symbol_], HoldComplete[value_], None] := TypeTheoryDefinition[symbol, value]
 definitionOf[HoldComplete[symbol_], HoldComplete[value_], HoldComplete[type_]] := TypeTheoryDefinition[symbol, Typed[value, type]]
@@ -224,7 +229,10 @@ translatedDefinitions[_, {coreForm["Definition"][_, coreForm["Program"][instruct
 (* two definitions by structural recursion on a list, f[{}] and f[{x_, rest___}], whose body calls f only on {rest}:
    {"ListRecursion", <|"Empty" -> HoldComplete[value], "Prepend" -> HoldComplete[value], "Head" -> HoldComplete[x],
    "Rest" -> HoldComplete[rest]|>, calls}, the prepend case's value naming the recursion's result recursionResult *)
-translatedDefinitions[held_, definitions : {_, _}] := Catch[
+translatedDefinitions[held_, definitions : {_, __}] := Replace[listRecursionTranslation[held, definitions], None :> guardChainTranslation[definitions]]
+
+listRecursionTranslation[_, Except[{_, _}]] := None
+listRecursionTranslation[held_, definitions : {_, _}] := Catch[
 	Replace[SortBy[definitions, Function[definition, ! emptyListDefinitionQ[definition]]], {
 		{empty_?emptyListDefinitionQ, prepend : coreForm["Definition"][_, coreForm["Program"][instructions_List], body_, ___]} :> With[
 			{
@@ -255,6 +263,68 @@ translatedDefinitions[held_, definitions : {_, _}] := Catch[
 	Function[{value, tag}, None]
 ]
 translatedDefinitions[_, _] := None
+
+(* definitions whose arguments are bound alike, each but the last with a condition: If[condition, value, ...], the
+   last value where no condition holds; the arguments are the last definition's, each definition's own names for them
+   taken as theirs *)
+guardChainTranslation[definitions_List] := Catch[
+	With[{clauses = clauseParts /@ definitions[[All, 2, 1]]},
+		If[ ! AllTrue[Most[clauses], Function[clause, clause["Guard"] =!= None]] || Last[clauses]["Guard"] =!= None || Length[Union[clauses[[All, "Arity"]]]] != 1,
+			Throw[None, untranslatable]
+		];
+		With[{binders = chainBinders[clauses]},
+			Replace[
+				Reap[
+					Fold[
+						Function[{rest, clauseValue}, With[{locals = Association[Thread[Values[clauseValue[[1]]["Locals"]] -> binders[[All, "Symbol"]]]]},
+							Replace[{translatedCore[clauseValue[[1]]["Guard"], locals], translatedCore[clauseValue[[2]], locals], rest},
+								{HoldComplete[condition_], HoldComplete[value_], HoldComplete[otherwise_]} :> HoldComplete[If[condition, value, otherwise]]
+							]
+						]],
+						translatedCore[definitions[[-1, 3]], Association[Thread[Values[Last[clauses]["Locals"]] -> binders[[All, "Symbol"]]]]],
+						Reverse[Transpose[{Most[clauses], definitions[[;; -2, 3]]}]]
+					],
+					untranslatedCall
+				],
+				{HoldComplete[term_], calls_} :> {
+					Replace[Join @@ (binderSyntax /@ binders), HoldComplete[parameters___] :> HoldComplete[Function[{parameters}, term]]],
+					Append[Catenate[calls], HoldComplete[If]]
+				}
+			]
+		]
+	],
+	untranslatable,
+	Function[{value, tag}, None]
+]
+
+(* the parts of a definition's match program: its arity, the local of each argument by position, the head each is
+   typed by, and its condition or None; anything else does not translate *)
+clauseParts[instructions_List] := With[
+	{
+		arity = FirstCase[instructions, coreForm["Length"][{}, n_Integer] :> n, Throw[None, untranslatable]],
+		guards = Cases[instructions, coreForm["Guard"][test_] :> test]
+	},
+	If[ ! AllTrue[instructions, MatchQ[coreForm["Length"][{}, _] | coreForm["Bind"][_, _, {_Integer}] | coreForm["HeadIs"][{_Integer}, _String] | coreForm["Guard"][_]]] ||
+			Length[guards] > 1,
+		Throw[None, untranslatable]
+	];
+	<|
+		"Arity" -> arity,
+		"Locals" -> KeySort[Association[Cases[instructions, coreForm["Bind"][source_String, local_String, {position_Integer}] :> position -> local]]],
+		"Sources" -> Association[Cases[instructions, coreForm["Bind"][source_String, _, {position_Integer}] :> position -> source]],
+		"Heads" -> Association[Cases[instructions, coreForm["HeadIs"][{position_Integer}, head_String] :> position -> head]],
+		"Guard" -> First[guards, None]
+	|>
+]
+
+(* the binders of a chain: the last definition's names, each argument typed by the head every definition gives it,
+   where they agree *)
+chainBinders[clauses_List] := With[{last = Last[clauses]},
+	If[ Keys[last["Locals"]] =!= Range[last["Arity"]] || ! AllTrue[clauses, Function[clause, Keys[clause["Locals"]] === Range[last["Arity"]]]], Throw[None, untranslatable]];
+	Function[position, With[{heads = Union[Lookup[clauses[[All, "Heads"]], position, None]]},
+		<|"Symbol" -> ToExpression[last["Sources"][position], InputForm, HoldComplete], "Type" -> headType[If[Length[heads] == 1, First[heads], Throw[None, untranslatable]]]|>
+	]] /@ Range[last["Arity"]]
+]
 
 emptyListDefinitionQ[coreForm["Definition"][_, coreForm["Program"][{coreForm["Length"][{}, 1], coreForm["Same"][{1}, HoldComplete[{}]]}], ___]] := True
 emptyListDefinitionQ[_] := False
@@ -323,6 +393,13 @@ $surfaceHeads = {"System`Plus", "System`Times", "System`Power", "System`Subtract
 translatedCore[coreForm["Call"][self_String, {coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}]}], _] /; self === $recursion["Self"] && rest === $recursion["Rest"] :=
 	HoldComplete[recursionResult]
 translatedCore[coreForm["Call"]["System`List", {coreForm["Local"][rest_String]}], _] /; rest === $recursion["Rest"] := $recursion["RestSymbol"]
+(* If in a body, its branches the last value of their steps *)
+translatedCore[coreForm["If"][condition_, then_, otherwise_, ___], locals_] := (
+	Sow[HoldComplete[If], untranslatedCall];
+	Replace[Function[part, translatedCore[part, locals]] /@ {condition, then, otherwise}, {HoldComplete[c_], HoldComplete[a_], HoldComplete[b_]} :> HoldComplete[If[c, a, b]]]
+)
+translatedCore[coreForm["Steps"][{coreForm["Rewritten"][] ..., last_}], locals_] := translatedCore[last, locals]
+translatedCore[coreForm["Evaluated"][core_], locals_] := translatedCore[core, locals]
 translatedCore[coreForm["Local"][local_String], locals_] := Lookup[locals, local, Throw[None, untranslatable]]
 translatedCore[coreForm["Constant"][constant_Integer], _] := HoldComplete[constant]
 translatedCore[coreForm["Constant"][constant_Rational], _] := HoldComplete[constant]
@@ -364,8 +441,18 @@ expressionsDeclarations[environment_] := Join[
 signatures[symbols_HoldComplete, type_HoldComplete] := Association[Function[held, held -> Replace[{held, type}, {HoldComplete[symbol_], HoldComplete[signature_]} :>
 	TypeTheoryAxiom[symbol, signature, "Implementation" -> symbol]]] /@ Replace[symbols, HoldComplete[each___] :> (HoldComplete /@ Unevaluated[{each}])]]
 
+(* If[condition, a, b] by the decision of the condition, which elaboration finds as an instance of Decidable; a
+   definition, which the kernel checks and computes where the decision does *)
+$ifDeclaration = TypeTheoryDefinition[
+	If,
+	Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[condition, TypeUniverse[0]], Annotation[Typed[decision, Decidable[condition]], "InstanceImplicit"], Typed[a, A], Typed[b, A]},
+		InductiveRecursor[Decidable][Function[{Typed[d, Decidable[condition]]}, A], Function[{Typed[h, Not[condition]]}, b], Function[{Typed[h, condition]}, a], decision]
+	]
+]
+
 (* precise where the built-in allows, over "Expressions" otherwise; Wolfram computes each, the kernel never does *)
 $wolframSignatures = Join[
+	<|HoldComplete[If] -> $ifDeclaration|>,
 	signatures[HoldComplete[Simplify, FullSimplify, Expand, ExpandAll, Factor, Together, Apart, Cancel], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> A]]],
 	signatures[HoldComplete[SameQ, UnsameQ], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> A -> Booleans]]],
 	signatures[

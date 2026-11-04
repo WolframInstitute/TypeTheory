@@ -20,6 +20,8 @@ RelatedGuides: [TypeTheory]
 - The definitions are read by the compiler of the WolframKernel project, from the paclet Wolfram/KernelCompiler, which TypeTheory loads when it first formalizes a symbol. Where it is missing, [TypeTheoryFormalize]() gives a [Failure]() that names how to install it.
 - A symbol is a [TypeTheoryDefinition]() where it has one definition, its arguments bound by plain patterns or by `_Integer` and `_Rational`, and its body arithmetic, list literals, calls of built-ins that have a signature, and calls of other symbols, formalized first and declared before it.
 - Two definitions by structural recursion on a list, `f[{}]` and `f[{x_, rest___}]`, whose body calls `f` only on `{rest}`, are a definition by the recursor of [Lists](). Its result type is the type of the empty case, or the one `"Type"` gives as `Lists[a] -> b`, and its elements are of any type where they can be.
+- Definitions each but the last with a condition, `f[x_ /; c] := a`, and [If]() in a body, are [If]() by the decision of the condition, a [Decidable]() instance that elaboration finds, declared as a definition by the recursor of [Decidable]() where the environment has no [If]().
+- A type that `"Type"` gives decides the arguments, also where the heads of the patterns, as `_Integer`, would give them another.
 - Otherwise it is a [TypeTheoryAxiom]() with `"Implementation" -> symbol`: the Wolfram Language computes it, and the kernel never does.
 - The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and an axiom takes it. Without it, an axiom's type is `"Expressions" -> ... -> "Expressions"`, one `"Expressions"` for each argument, `"Expressions"` being the type of any Wolfram Language expression.
 - A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over `"Expressions"` otherwise, as [D](). The numbers of the environment go into `"Expressions"` by coercions. No equation about a built-in is assumed.
@@ -79,6 +81,19 @@ sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]];
 ```
 
 <!-- => {∀_{α∶Type u} List α → ℕ, 3} -->
+
+---
+
+A condition is If by the decision of the condition, which computes:
+
+```wl
+clamp[x_Integer] := If[x <= 3, x, 3];
+prelude = TypeTheoryEnvironment["Prelude"];
+clamped = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[clamp, prelude, "Type" -> NonNegativeIntegers -> NonNegativeIntegers]];
+{WeakHeadNormalForm[TypeTheoryTerm[clamp[5], clamped]], WeakHeadNormalForm[TypeTheoryTerm[clamp[2], clamped]]}
+```
+
+<!-- => {3, 2} -->
 
 ## Options
 

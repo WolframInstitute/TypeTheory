@@ -78,3 +78,32 @@ VerificationTest[
 	True,
 	TestID -> "Structural-recursion-on-a-list-is-a-definition-by-the-recursor-of-lists"
 ]
+
+(* conditions: definitions each but the last with one, and If in a body, are If by the decision of the condition,
+   which elaboration finds as an instance of Decidable, and which computes; a type given decides the arguments, also
+   where the patterns' heads say _Integer *)
+VerificationTest[
+	Block[{sign, clamp, prelude = TypeTheoryEnvironment["Prelude"]},
+		sign[n_Integer /; n == 0] := 0;
+		sign[n_Integer] := 1;
+		clamp[x_Integer] := If[x <= 3, x, 3];
+		If[ PacletFind["Wolfram/KernelCompiler"] === {},
+			True,
+			With[
+				{
+					signed = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[sign, prelude, "Type" -> NonNegativeIntegers -> NonNegativeIntegers]],
+					clamped = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[clamp, prelude, "Type" -> NonNegativeIntegers -> NonNegativeIntegers]]
+				},
+				{
+					MatchQ[signed[sign], TypeTheoryDefinition[sign, Typed[Function[{_}, HoldPattern[If[_, 0, 1]]], _]]],
+					WeakHeadNormalForm[TypeTheoryTerm[sign[0], signed]] === TypeTheoryTerm[0, signed],
+					WeakHeadNormalForm[TypeTheoryTerm[sign[7], signed]] === TypeTheoryTerm[1, signed],
+					WeakHeadNormalForm[TypeTheoryTerm[clamp[5], clamped]] === TypeTheoryTerm[3, clamped],
+					WeakHeadNormalForm[TypeTheoryTerm[clamp[2], clamped]] === TypeTheoryTerm[2, clamped]
+				} === {True, True, True, True, True}
+			]
+		]
+	],
+	True,
+	TestID -> "Conditions-and-If-are-If-by-the-decision-of-the-condition"
+]
