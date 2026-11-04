@@ -299,8 +299,8 @@ VerificationTest[
 VerificationTest[
 	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]},
 		{
-			Head[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[numbers, Typed[Sequence[1, 2], Sequences[{NonNegativeIntegers, NonNegativeIntegers}]]]}]],
-			First[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[forged, Typed[Sequence[1, 2], Sequences[{NonNegativeIntegers}]]]}]],
+			Head[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[numbers, Typed[Sequence[1, 2], Sequences[NonNegativeIntegers, NonNegativeIntegers]]]}]],
+			First[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[forged, Typed[Sequence[1, 2], Sequences[NonNegativeIntegers]]]}]],
 			First[TypeTheoryEnvironment[wolfram, {TypeTheoryTheorem[forgedTheorem, 1 == 2, Sequence[EqualityReflexivity[1]]]}]]
 		}
 	],

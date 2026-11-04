@@ -45,6 +45,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
 	ListPrepend[1, ListPrepend[2, EmptyList]]   {1, 2}     EmptyList as {}, in braces: [1, 2] in f[[1, 2]] would read as Part
 	SequencePrepend[1, EmptySequence]   Sequence[1]          EmptySequence as Sequence[], as Sequence[...] is written
+	Sequences[A, B]                   Sequences[A, B]      as it is written; Sequences[As] for a list As that is no literal
 	Lists[A]                            List A               as Lean writes it, List (List A) for a list type of a list type
 	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
@@ -264,6 +265,9 @@ displaySyntax[syntaxSymbol[HoldComplete[EmptyList]]] := syntaxString["{}"]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["Sequence[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
 displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["Sequence[]"]
+(* Sequences at a list of types as its types, Sequences[A, B], as it is written *)
+displaySyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequences]], {index_}]] /; listLiteralQ[index] :=
+	displayApplication[head, displaySyntax /@ Most[rightNested[ListPrepend, index]]]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]

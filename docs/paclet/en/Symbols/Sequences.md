@@ -17,8 +17,9 @@ RelatedTutorials: [TheWolframLanguage, Elaboration]
 ## Details & Options
 
 - [Sequences]() is an inductive family of [TypeTheoryEnvironment]()["WolframLanguage"], indexed by the list of the types of its elements, as Lean's `HList`: its type gives the length of a sequence and the type of each element. It has the constructors [EmptySequence]() and [SequencePrepend](), and `Sequence[a, b, ...]` writes them, as `{a, b, ...}` writes a list.
+- `Sequences[A, B]` writes `Sequences[{A, B}]`, the family at the list of the types. One argument that is a list of types, as `As` in `Sequences[As]`, is the list itself, and one that is a type is the one type of the sequences: the type of a list is never a universe, as the type of a type is.
 - The types of the elements are of one universe, `TypeUniverse[u + 1]`, and the sequences a universe above, `TypeUniverse[u + 2]`.
-- A Wolfram Language function is applied to a sequence: `f[a, b]` gives `f` the sequence of `a` and `b`. So a binder of a type [Sequences]()[...] takes the arguments of an application that are left as one `Sequence`, and a function of the type `Sequences[{A, B}] -> C` is applied as `f[a, b]`, another function than one of the curried type `A -> B -> C`, which is applied as `f[a][b]`.
+- A Wolfram Language function is applied to a sequence: `f[a, b]` gives `f` the sequence of `a` and `b`. So a binder of a type [Sequences]()[...] takes the arguments of an application that are left as one `Sequence`, and a function of the type `Sequences[A, B] -> C` is applied as `f[a, b]`, another function than one of the curried type `A -> B -> C`, which is applied as `f[a][b]`.
 - One argument that is a sequence already is the sequence itself, and a `Sequence` among the elements of a `Sequence` is spliced, as the Wolfram Language splices it.
 
 ## Basic Examples
@@ -30,7 +31,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 TypeOf[TypeTheoryTerm[Sequence[1, 2], wolfram]]
 ```
 
-<!-- => Sequences[{ℕ, ℕ}] -->
+<!-- => Sequences[ℕ, ℕ] -->
 
 ## Scope
 
@@ -39,7 +40,7 @@ A function of a sequence of two natural numbers takes its arguments as one seque
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
 firsts = TypeTheoryEnvironment[wolfram, {
-    TypeTheoryDefinition[first, Function[{Typed[s, Sequences[{NonNegativeIntegers, NonNegativeIntegers}]]},
+    TypeTheoryDefinition[first, Function[{Typed[s, Sequences[NonNegativeIntegers, NonNegativeIntegers]]},
         InductiveRecursor[Sequences][
             Function[{Typed[types, Lists[TypeUniverse[1]]], Typed[t, Sequences[types]]}, NonNegativeIntegers],
             0,

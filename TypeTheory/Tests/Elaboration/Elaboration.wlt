@@ -397,26 +397,33 @@ VerificationTest[
 
 (* a binder of a type Sequences[...] takes the arguments that are left as one Sequence, as the Wolfram Language applies a
    function to its arguments, and its type gives how many; one argument that is a sequence already is the sequence
-   itself, a Sequence among the elements is spliced, and a curried function takes one argument at a time *)
+   itself, a Sequence among the elements is spliced, and a curried function takes one argument at a time. Sequences[A, B]
+   is the family at {A, B}, and Sequences[As], As a list of types, at As *)
 VerificationTest[
 	With[
 		{
 			pairs = TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], {
-				TypeTheoryAxiom[sum, Sequences[{NonNegativeIntegers, NonNegativeIntegers}] -> NonNegativeIntegers],
-				TypeTheoryAxiom[curried, Sequences[{NonNegativeIntegers}] -> Sequences[{NonNegativeIntegers}] -> NonNegativeIntegers]
+				TypeTheoryAxiom[sum, Sequences[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers],
+				TypeTheoryAxiom[curried, Sequences[NonNegativeIntegers] -> Sequences[NonNegativeIntegers] -> NonNegativeIntegers]
 			}]
 		},
 		{
 			First[TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], pairs]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]],
-			DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[s, Sequences[{NonNegativeIntegers, NonNegativeIntegers}]]}, sum[s]][Sequence[1, 2]], pairs], TypeTheoryTerm[sum[1, 2], pairs]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[s, Sequences[NonNegativeIntegers, NonNegativeIntegers]]}, sum[s]][Sequence[1, 2]], pairs], TypeTheoryTerm[sum[1, 2], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], pairs], TypeTheoryTerm[SequencePrepend[1, SequencePrepend[2, SequencePrepend[3, EmptySequence]]], pairs]],
 			First[TypeTheoryCheck[TypeTheoryTerm[sum[1], pairs]]],
 			First[TypeOf[TypeTheoryTerm[curried[1][2], pairs]]],
 			First[TypeTheoryCheck[TypeTheoryTerm[curried[1, 2], pairs]]],
-			DefinitionallyEqualQ[TypeTheoryTerm[Join[{1}, {2}], pairs], TypeTheoryTerm[{1, 2}, pairs]]
+			DefinitionallyEqualQ[TypeTheoryTerm[Join[{1}, {2}], pairs], TypeTheoryTerm[{1, 2}, pairs]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Sequences[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequences[{NonNegativeIntegers, Expressions}], pairs]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Sequences[NonNegativeIntegers], pairs], TypeTheoryTerm[Sequences[{NonNegativeIntegers}], pairs]],
+			First[TypeOf[TypeTheoryTerm[Function[{Typed[As, Lists[TypeUniverse[1]]]}, Sequences[As]], pairs]]]
 		}
 	],
-	{Sequences[ListPrepend[NonNegativeIntegers, ListPrepend[Expressions, EmptyList]]], True, True, True, "TypeMismatch", NonNegativeIntegers, "TypeMismatch", True},
+	{
+		Sequences[ListPrepend[NonNegativeIntegers, ListPrepend[Expressions, EmptyList]]], True, True, True, "TypeMismatch", NonNegativeIntegers, "TypeMismatch", True, True, True,
+		Lists[TypeUniverse[1]] -> TypeUniverse[2]
+	},
 	TestID -> "A-Sequences-binder-takes-the-arguments-that-are-left-as-one-Sequence"
 ]

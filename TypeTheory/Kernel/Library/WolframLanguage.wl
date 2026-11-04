@@ -9,9 +9,10 @@ Language and the monad of pattern matching, built and checked the first time it 
 	                                list of its arguments
 	Head, Arguments, AtomQ          the head of an expression, the list of its arguments, {} for an atom, and whether it
 	                                is an atom
-	Sequences[{A, B, ...}]          the sequences Sequence[a, b, ...] of an element of A, then of B, ...: a list of
+	Sequences[A, B, ...]            the sequences Sequence[a, b, ...] of an element of A, then of B, ...: a list of
 	                                elements of different types, its length and their types given by its type, as Lean's
-	                                HList; EmptySequence and SequencePrepend construct it, and Sequence[...] writes it
+	                                HList, indexed by the list {A, B, ...}; EmptySequence and SequencePrepend construct it,
+	                                and Sequence[...] writes it
 	SameQ                           whether two expressions are the same, a Boolean the Wolfram Language computes
 	ExpressionValue                 the value the Wolfram Language evaluates an expression to, opaque
 	Drop                            a list without its first n elements
@@ -35,7 +36,7 @@ Language takes. A natural number is an expression where one is expected, by a co
 
 A Wolfram Language function is applied to a sequence: f[a, b] gives f the sequence of a and b, and the curried f[a][b]
 gives f the sequence of a, then gives its value that of b. A binder of a type Sequences[...] takes the arguments of an
-application that are left as one Sequence, so a function of the type Sequences[{A, B}] -> C is applied as f[a, b],
+application that are left as one Sequence, so a function of the type Sequences[A, B] -> C is applied as f[a, b],
 and is another function than one of the curried type A -> B -> C.
 *)
 
@@ -74,8 +75,8 @@ ExpressionAtom::usage = "ExpressionAtom[a] is the expression that is the atom a.
 ExpressionNormal::usage = "ExpressionNormal[h, {a, ...}] is the expression h applied to the list of its arguments, h[a, ...]."
 Arguments::usage = "Arguments[e] is the list of the arguments of the expression e, {} for an atom."
 ExpressionValue::usage = "ExpressionValue[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
-Sequences::usage = "Sequences[{A, B, ...}] is the type of the sequences Sequence[a, b, ...] of an element of A, then of B, and so on: a list of elements of different types, whose length and types its type gives."
-EmptySequence::usage = "EmptySequence is the sequence with no elements, of the type Sequences[{}]."
+Sequences::usage = "Sequences[A, B, ...] is the type of the sequences Sequence[a, b, ...] of an element of A, then of B, and so on: a list of elements of different types, whose length and types its type gives. Sequences[types] is the same for a list types of the types."
+EmptySequence::usage = "EmptySequence is the sequence with no elements, of the type Sequences[]."
 SequencePrepend::usage = "SequencePrepend[x, s] is the sequence of x and then the elements of the sequence s, of the type Sequences[ListPrepend[A, As]] for x of the type A and s of the type Sequences[As]."
 MatchBind::usage = "MatchBind[m, f] is the match whose results are those of f applied to each result of m, in order."
 MatchFirst::usage = "MatchFirst[m] is the first result of the match m, OptionSome of it, or OptionNone where m has none: the rule the Wolfram Language applies."

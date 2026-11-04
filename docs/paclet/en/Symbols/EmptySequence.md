@@ -12,7 +12,7 @@ RelatedTutorials: [TheWolframLanguage, Elaboration]
 
 ## Usage
 
-[EmptySequence]() is the sequence with no elements, of the type `Sequences[{}]`.
+[EmptySequence]() is the sequence with no elements, of the type `Sequences[]`.
 
 ## Details & Options
 

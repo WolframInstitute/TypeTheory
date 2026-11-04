@@ -87,11 +87,11 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]
 
 ## Sequence Arguments
 
-A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`. In [TypeTheoryEnvironment]()["WolframLanguage"] that sequence is `Sequence[a, b]`, of the type `Sequences[{A, B}]`, and a binder of a type [Sequences]()[...] takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of [SequencePrepend](), is the sequence itself; it is elaborated once, and its type tells which:
+A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`. In [TypeTheoryEnvironment]()["WolframLanguage"] that sequence is `Sequence[a, b]`, of the type `Sequences[A, B]`, and a binder of a type [Sequences]()[...] takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of [SequencePrepend](), is the sequence itself; it is elaborated once, and its type tells which:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequences[{NonNegativeIntegers, NonNegativeIntegers}] -> NonNegativeIntegers]}];
+pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequences[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers]}];
 DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]]
 ```
 

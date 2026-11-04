@@ -33,19 +33,19 @@ DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolf
 
 ## Sequences
 
-A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` gives `f` the sequence of `a` and `b`, and the curried `f[a][b]` gives `f` the sequence of `a`, then gives its value the sequence of `b`. `Sequence[a, b]` is that sequence, a term of the type `Sequences[{A, B}]` for `a` of the type `A` and `b` of the type `B`: a list of elements of different types, whose type gives its length and the type of each element, as Lean's `HList`. It is [SequencePrepend]() over [EmptySequence](), as a list is `ListPrepend` over `EmptyList`, and a `Sequence` among its elements is spliced, as the Wolfram Language splices it:
+A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` gives `f` the sequence of `a` and `b`, and the curried `f[a][b]` gives `f` the sequence of `a`, then gives its value the sequence of `b`. `Sequence[a, b]` is that sequence, a term of the type `Sequences[A, B]` for `a` of the type `A` and `b` of the type `B`: a list of elements of different types, whose type gives its length and the type of each element, as Lean's `HList`. It is [SequencePrepend]() over [EmptySequence](), as a list is `ListPrepend` over `EmptyList`, and a `Sequence` among its elements is spliced, as the Wolfram Language splices it:
 
 ```wl
 {TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], wolfram]], DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], wolfram], TypeTheoryTerm[Sequence[1, 2, 3], wolfram]]}
 ```
 
-<!-- => {Sequences[{ℕ, Expressions}], True} -->
+<!-- => {Sequences[ℕ, Expressions], True} -->
 
-A binder of a type [Sequences]()[...] takes the arguments of an application that are left as one `Sequence`, so a function of the type `Sequences[{A, B}] -> C` is applied as the Wolfram Language applies one, `f[a, b]`, and is another function than one of the curried type `A -> B -> C`, applied as `f[a][b]`. The type gives how many arguments it takes:
+A binder of a type [Sequences]()[...] takes the arguments of an application that are left as one `Sequence`, so a function of the type `Sequences[A, B] -> C` is applied as the Wolfram Language applies one, `f[a, b]`, and is another function than one of the curried type `A -> B -> C`, applied as `f[a][b]`. The type gives how many arguments it takes:
 
 ```wl
 pairs = TypeTheoryEnvironment[wolfram, {
-    TypeTheoryAxiom[sum, Sequences[{NonNegativeIntegers, NonNegativeIntegers}] -> NonNegativeIntegers],
+    TypeTheoryAxiom[sum, Sequences[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers],
     TypeTheoryAxiom[curried, NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers]
 }];
 {

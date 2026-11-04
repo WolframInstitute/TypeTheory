@@ -316,6 +316,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* a list written as a term is the list of its elements, ListPrepend over EmptyList, as such a list shows *)
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List] /; sequencesDeclaredQ[] :> elaborateSyntax[sequenceLiteralSyntax[elements], expected],
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Sequences]], types_List] /; sequencesDeclaredQ[] :> applyArguments[elaborateHead[head], {sequencesIndex[types]}, head, expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
@@ -533,6 +534,21 @@ sequenceArgument[arguments_List, domain_] := checkAgainst[syntaxHead[Sequence, a
 heldFromSyntax[syntaxElaborated[_, syntax_]] := heldFromSyntax[syntax]
 
 sequencesDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[SequencePrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptySequence]]
+
+(* Sequences[A, B, ...] is the family at the list of its types, Sequences[A, B, ...]; one argument that is a list of
+   types, as As in Sequences[As], is the list itself: its type tells, a list's never being a universe, as a type's is *)
+sequencesIndex[{type_}] := With[{elaborated = elaborateSyntax[type, None]},
+	If[ listTypeQ[Last[elaborated]],
+		syntaxElaborated[elaborated, type],
+		listLiteralSyntax[{syntaxElaborated[elaborated, type]}]
+	]
+]
+sequencesIndex[types_List] := listLiteralSyntax[types]
+
+listTypeQ[type_] := MatchQ[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
+	application[constantReference[HoldComplete[Lists], _], _]
+]
 
 (* Sequence[a, b, ...] is SequencePrepend over EmptySequence, as a list is ListPrepend over EmptyList; a Sequence among
    the elements is spliced, as the Wolfram Language splices it *)
