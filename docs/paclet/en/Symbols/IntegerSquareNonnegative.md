@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerSquareNonnegative[2 - 5], TypeTheoryEnviro
 An instance with a difference:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerSquareNonnegative[x - y]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Integers], Typed[y, Integers]} |-> IntegerSquareNonnegative[x - y], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ ∀_y∶ℤ 0 ≤ (x - y) (x - y) -->

@@ -33,7 +33,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The first field of a pair:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[DependentPair["true", Function[{i}, "true"]], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Path[Booleans, b, b]]]][[1]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed[DependentPair["true", i |-> "true"], DependentSum[Booleans, Typed[b, Booleans] |-> Path[Booleans, b, b]]][[1]], cubical]]
 ```
 
 <!-- => true -->
@@ -51,7 +51,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 `"true"` with its constant path, with [Typed]() giving the family:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", Function[{i}, "true"]], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Path[Booleans, b, b]]]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", i |-> "true"], DependentSum[Booleans, Typed[b, Booleans] |-> Path[Booleans, b, b]]], cubical]]
 ```
 
 <!-- => Σ_b∶𝔹 b ≡ b -->
@@ -69,7 +69,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 `"not"["true"]` computes to `"false"`, so the constant path will do:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", Function[{i}, "false"]], Fiber["not", "false"]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", i |-> "false"], Fiber["not", "false"]], cubical]]
 ```
 
 <!-- => Σ_x∶𝔹 !x ≡ false -->
@@ -88,8 +88,8 @@ The pair rebuilt from the fields, against *p* itself:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[p, DependentSum[Booleans, Function[{Typed[b, Booleans]}, Booleans]]]}, Typed[DependentPair[p[[1]], p[[2]]], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Booleans]]]], cubical],
-    TypeTheoryTerm[Function[{Typed[p, DependentSum[Booleans, Function[{Typed[b, Booleans]}, Booleans]]]}, p], cubical]
+    TypeTheoryTerm[Typed[p, DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]] |-> Typed[DependentPair[p[[1]], p[[2]]], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], cubical],
+    TypeTheoryTerm[Typed[p, DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]] |-> p, cubical]
 ]
 ```
 

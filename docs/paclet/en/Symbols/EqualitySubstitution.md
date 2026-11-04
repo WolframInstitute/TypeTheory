@@ -47,7 +47,7 @@ Give the predicate explicitly with [Construct]():
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
     Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x == y], Typed[p, x + 0 == x]},
-        Construct[EqualitySubstitution, Naturals, Function[{Typed[t, Naturals]}, t + 0 == t], x, y, h, p]
+        Construct[EqualitySubstitution, Naturals, Typed[t, Naturals] |-> t + 0 == t, x, y, h, p]
     ]
 ]]
 ```

@@ -51,7 +51,7 @@ rationals["rationalOfInteger"]
 In this environment `+`, `*`, `-`, `/`, `^`, `x^-1` and the comparisons are the rationals' wherever the types say so, and those of the integers or the natural numbers otherwise:
 
 ```wl
-TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[n, Naturals]}, x / 2 + n <= x^2], rationals]
+TypeTheoryTerm[{Typed[x, Rationals], Typed[n, Naturals]} |-> x / 2 + n <= x^2, rationals]
 ```
 
 <!-- => (x ∶ ℚ) (n ∶ ℕ) ↦ x/2 + n ≤ x^2 -->
@@ -59,7 +59,7 @@ TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[n, Naturals]}, x / 2 + n <= 
 Its type; the natural number `n` is coerced to a rational where it is added to one:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[n, Naturals]}, x / 2 + n <= x^2], rationals]]
+TypeOf[TypeTheoryTerm[{Typed[x, Rationals], Typed[n, Naturals]} |-> x / 2 + n <= x^2, rationals]]
 ```
 
 <!-- => ℚ → ℕ → Prop -->

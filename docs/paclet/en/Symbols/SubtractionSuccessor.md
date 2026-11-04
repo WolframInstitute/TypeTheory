@@ -70,8 +70,8 @@ Subtraction recurses on its second argument with [NaturalNumberPredecessor](), s
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, Naturals], Typed[m, Naturals]}, n - (m + 1)]],
-    TypeTheoryTerm[Function[{Typed[n, Naturals], Typed[m, Naturals]}, NaturalNumberPredecessor[n - m]]]
+    TypeTheoryTerm[{Typed[n, Naturals], Typed[m, Naturals]} |-> n - (m + 1)],
+    TypeTheoryTerm[{Typed[n, Naturals], Typed[m, Naturals]} |-> NaturalNumberPredecessor[n - m]]
 ]
 ```
 

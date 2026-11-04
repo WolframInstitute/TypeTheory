@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction]]
 4 is a natural number of at least 2:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]], TypeTheoryTerm[Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]]
+TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]], TypeTheoryTerm[Subtype[Typed[n, Naturals] |-> 2 <= n]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[SubtypeIntroduction[4, LessEqualStep[LessEqualSte
 [Typed]() gives the expected type inside the term:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Subtype[Typed[n, Naturals] |-> 2 <= n]]]]
 ```
 
 <!-- => {n ∶ ℕ // 2 ≤ n} -->
@@ -54,7 +54,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEq
 A function on the numbers of at least 2 takes the number from the first field:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]}, s[[1]] - 2]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[1]] - 2]]
 ```
 
 <!-- => {n ∶ ℕ // 2 ≤ n} → ℕ -->
@@ -62,7 +62,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Nat
 Applied to 4 with its proof, it computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]}, s[[1]] - 2][SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]]}, s[[1]] - 2][SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]]]]
 ```
 
 <!-- => 2 -->
@@ -72,7 +72,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, 
 [Subtype]() is a type, where [Exists]() of the same property is a proposition:
 
 ```wl
-TypeOf[TypeTheoryTerm[Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]]
+TypeOf[TypeTheoryTerm[Subtype[Typed[n, Naturals] |-> 2 <= n]]]
 ```
 
 <!-- => Type -->
@@ -80,7 +80,7 @@ TypeOf[TypeTheoryTerm[Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]]
 The existential statement:
 
 ```wl
-TypeOf[TypeTheoryTerm[Exists[Function[{Typed[n, Naturals]}, 2 <= n]]]]
+TypeOf[TypeTheoryTerm[Exists[Typed[n, Naturals] |-> 2 <= n]]]
 ```
 
 <!-- => Prop -->

@@ -126,7 +126,7 @@ Every constant of the rationals rests on Lean's three axioms at most:
 
 ```wl
 With[{rationals = TypeTheoryEnvironment["Rationals"]},
-    Union @@ Map[Function[name, Keys[TypeTheoryAxiomClosure[TypeTheoryTerm[name, rationals]]]], Keys[rationals]]
+    Union @@ Map[name |-> Keys[TypeTheoryAxiomClosure[TypeTheoryTerm[name, rationals]]], Keys[rationals]]
 ]
 ```
 

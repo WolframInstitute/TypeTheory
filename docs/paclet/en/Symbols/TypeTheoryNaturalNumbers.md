@@ -105,7 +105,7 @@ A later registration adds an operation: here the left shift, *m* 2^*n*, register
 
 ```wl
 shifted = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[NaturalNumberShiftLeft, Function[{Typed[m, Naturals], Typed[n, Naturals]}, m * 2^n]],
+    TypeTheoryDefinition[NaturalNumberShiftLeft, {Typed[m, Naturals], Typed[n, Naturals]} |-> m * 2^n],
     TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"ShiftLeft" -> NaturalNumberShiftLeft|>]
 }]
 ```
@@ -148,7 +148,7 @@ The kernel trusts a registered operation. Register a projection as addition:
 ```wl
 trusted = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
-    TypeTheoryDefinition[FirstNumber, Function[{Typed[m, Unary], Typed[n, Unary]}, m]],
+    TypeTheoryDefinition[FirstNumber, {Typed[m, Unary], Typed[n, Unary]} |-> m],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor, <|"Addition" -> FirstNumber|>]
 }]
 ```

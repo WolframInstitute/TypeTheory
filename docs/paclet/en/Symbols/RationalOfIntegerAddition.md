@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalOfIntegerAddition[2, -5], TypeTheoryEnvir
 An instance with a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalOfIntegerAddition[a, 1]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[a, Integers] |-> RationalOfIntegerAddition[a, 1], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_a∶ℤ ↑(a + 1) == ↑a + 1 -->
@@ -55,7 +55,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalOfIntegerA
 Natural numbers are rationals by way of the integers, so their coercion shows as `↑↑`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, RationalOfIntegerAddition[m, n]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> RationalOfIntegerAddition[m, n], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ ↑(↑m + ↑n) == ↑↑m + ↑↑n -->

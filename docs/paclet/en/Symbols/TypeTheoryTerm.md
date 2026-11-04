@@ -81,7 +81,7 @@ TypeTheoryCheck[statement]
 A polymorphic function with an implicit type argument:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]]
+TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
 ```
 
 <!-- => ∀_{A ∶ Type} A → A -->
@@ -193,7 +193,7 @@ TypeOf[TypeTheoryTerm[Typed[True, Booleans]]]
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -203,7 +203,7 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, 
 ```wl
 Format[Double[a_]] := CenterDot[2, a];
 k = 7;
-TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
+TypeTheoryTerm[Typed[k, Naturals] |-> Double[k], doubled]
 ```
 
 <!-- => (k ∶ ℕ) ↦ 2·7 -->
@@ -213,7 +213,7 @@ TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -223,7 +223,7 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, 
 ```wl
 MakeBoxes[Double[a_], form_] := MakeBoxes[CenterDot[2, a], form];
 k = 7;
-TypeTheoryTerm[Function[{Typed[k, Naturals]}, Double[k]], doubled]
+TypeTheoryTerm[Typed[k, Naturals] |-> Double[k], doubled]
 ```
 
 <!-- => (k ∶ ℕ) ↦ 2·k -->

@@ -17,7 +17,7 @@ A term is written as a Wolfram Language expression: `Function[{Typed[n, NonNegat
 [TypeOf]() elaborates a term and gives its type:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1]]]
+TypeOf[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n + 1]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -130,7 +130,7 @@ TypeOf[TypeTheoryTerm[ForAll[{a}, a == a]]]
 A variable whose type is a sort, but whose level nothing decides, gets the level that the declaration allows. A theorem's statement is a proposition where it can be, as Lean elaborates a theorem's type against Prop, so `p` here is a proposition:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], Function[{p, h}, h]]}][SelfImplication]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], {p, h} |-> h]}][SelfImplication]
 ```
 
 <!-- => TypeTheoryTheorem[SelfImplication, ∀_{p∶Prop} p ⇒ p, ...] -->
@@ -138,7 +138,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 A level still undecided becomes a universe parameter of the declaration, `"u_1"`, as Lean binds one:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], Function[{A, Typed[y, A]}, EqualityReflexivity[y]]]}][SelfEquality]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, Typed[y, A]} |-> EqualityReflexivity[y]]}][SelfEquality]
 ```
 
 <!-- => TypeTheoryTheorem[SelfEquality, ∀_{A∶Sort u_1} ∀_{y∶A} y == y, ...] -->
@@ -146,7 +146,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, 
 A term on its own has no universe parameters, so an undecided level there is that of Type:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{a}, Function[Typed[z, a], z]]]]
+TypeOf[TypeTheoryTerm[a |-> Function[Typed[z, a], z]]]
 ```
 
 <!-- => ∀_{a∶Type} a → a -->
@@ -194,14 +194,23 @@ TypeTheoryFormalize[square, integers]
 
 <!-- => {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]} -->
 
-A function whose definitions do not fit, here because [StringReverse]() has no signature, is an axiom that the Wolfram Language computes and the kernel never runs:
+A function of strings is typed the same way, over [Strings](), the type of the strings, each string literal a constant of it:
 
 ```wl
-reversed[s_] := StringReverse[s];
-Last[TypeTheoryFormalize[reversed, integers]]
+greeting[s_] := StringJoin["Hello, ", s];
+TypeOf[TypeTheoryTerm[greeting, TypeTheoryEnvironment[integers, TypeTheoryFormalize[greeting, integers]]]]
 ```
 
-<!-- => TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed] -->
+<!-- => Strings → Strings -->
+
+A function whose definitions do not fit, here because [Style]() has no signature, is an axiom that the Wolfram Language computes and the kernel never runs:
+
+```wl
+styled[x_] := Style[x, Bold];
+Last[TypeTheoryFormalize[styled, integers]]
+```
+
+<!-- => TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled] -->
 
 A function has a second meaning, its rules, which every definition with a deterministic pattern has, whatever its body: with `"Meaning" -> "Rules"`, [TypeTheoryFormalize]() reads the match program of each rule as a match of [TypeTheoryEnvironment]()["WolframLanguage"], and the rules as a definition of type `Expressions -> Option[Expressions]`, the expression that an expression rewrites to. Nothing is elaborated but the term, and the types are those of expressions, so it is faithful to the Wolfram Language where the first meaning is mathematical. [The Wolfram Language](paclet:WolframInstitute/TypeTheory/tutorial/TheWolframLanguage) tutorial reads the rules of a function:
 
@@ -211,7 +220,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryDefinition["DownValues[reversed]", Typed[Function[{Typed[expression, Expressions]}, MatchFirst[...]], Expressions -> Option[Expressions]]] -->
+<!-- => TypeTheoryDefinition["DownValues[reversed]", Typed[Function[{Typed[expression, Expressions]}, MatchFirst[... MatchValues[HoldForm[StringReverse[s]]] ...]], Expressions -> Option[Expressions]]] -->
 
 ## Typing in the Compiler and in Mathematics
 
@@ -228,7 +237,7 @@ TypeOf[Typed[1, "MachineInteger"]]
 A function on machine integers has a function type of machine integers:
 
 ```wl
-TypeOf[Function[Typed[x, "MachineInteger"], x + 1]]
+TypeOf[Typed[x, "MachineInteger"] |-> x + 1]
 ```
 
 <!-- => TypeSpecifier[{"Integer64"} -> "Integer64"] -->
@@ -236,7 +245,7 @@ TypeOf[Function[Typed[x, "MachineInteger"], x + 1]]
 The same function in the type theory has a type of integers, the mathematical ones:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers]}, x + 1], integers]]
+TypeOf[TypeTheoryTerm[Typed[x, Integers] |-> x + 1, integers]]
 ```
 
 <!-- => ℤ → ℤ -->
@@ -244,7 +253,7 @@ TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers]}, x + 1], integers]]
 A compiled function works on the values its type admits and refuses the others before running:
 
 ```wl
-increment = FunctionCompile[Function[Typed[x, "MachineInteger"], x + 1]];
+increment = FunctionCompile[Typed[x, "MachineInteger"] |-> x + 1];
 {increment[2^62], increment[1/2]}
 ```
 

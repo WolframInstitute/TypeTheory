@@ -43,7 +43,7 @@ affinePrelude = translated["Environment"]
 A binder takes its quantity as the third argument of [Typed]() or [TypedImplicit](), and shows it before its variable, as Idris writes it. The identity, with its type argument erased and its argument affine:
 
 ```wl
-identity = TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]}, x], affinePrelude]
+identity = TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]} |-> x, affinePrelude]
 ```
 
 <!-- => {0 A ∶ Type} (1 x ∶ A) ↦ x -->
@@ -61,7 +61,7 @@ TypeTheoryCheck[identity]
 The kernel counts the uses of each variable in the live parts of a term, the parts that run: everything but the types, and the arguments a function takes at quantity 0. A function that uses an affine variable twice does not check:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[DuplicatedPair, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]}, Pair[x, x]]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[DuplicatedPair, {TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]} |-> Pair[x, x]]}]
 ```
 
 <!-- => Failure["QuantityExceeded", ...] -->
@@ -69,7 +69,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[DuplicatedPair, Funct
 Nor does one that uses an erased variable:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ErasedUse, Function[{Typed[n, NonNegativeIntegers, 0]}, n]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ErasedUse, Typed[n, NonNegativeIntegers, 0] |-> n]}]
 ```
 
 <!-- => Failure["QuantityExceeded", ...] -->
@@ -77,7 +77,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ErasedUse, Function[{
 An argument counts as often as the binder that takes it says. An affine function may be applied once:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyOnce, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]}, f[x]]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyOnce, {TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]} |-> f[x]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -85,7 +85,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyOnce, Function[{
 But not twice:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyTwice, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]}, f[f[x]]]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyTwice, {TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]} |-> f[f[x]]]}]
 ```
 
 <!-- => Failure["QuantityExceeded", ...] -->
@@ -93,7 +93,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyTwice, Function[
 The functions of the prelude take their arguments at quantity Infinity, so an affine variable cannot be passed to one, which might copy it: `n + 1` uses an affine `n` more than once.
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[AffineSuccessor, Function[{Typed[n, NonNegativeIntegers, 1]}, n + 1]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[AffineSuccessor, Typed[n, NonNegativeIntegers, 1] |-> n + 1]}]
 ```
 
 <!-- => Failure["QuantityExceeded", ...] -->
@@ -101,7 +101,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[AffineSuccessor, Func
 An erased variable may appear where it is dead. The parameters of [EqualityReflexivity]() are erased, so the proof that an erased `n` equals itself checks:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Function[{Typed[n, NonNegativeIntegers, 0]}, EqualityReflexivity[n]]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Typed[n, NonNegativeIntegers, 0] |-> EqualityReflexivity[n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -140,7 +140,7 @@ affine = TypeTheoryEnvironment[affinePrelude, {
         Tensor -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[a, A, 1], Typed[b, B, 1]}, CircleTimes[A, B]]
     }],
     TypeTheoryDefinition[Swap, Function[{TypedImplicit[A, TypeUniverse[1], 0], TypedImplicit[B, TypeUniverse[1], 0], Typed[p, CircleTimes[A, B], 1]},
-        InductiveRecursor[CircleTimes][Function[{Typed[q, CircleTimes[A, B]]}, CircleTimes[B, A]], Function[{Typed[a, A], Typed[b, B]}, Tensor[b, a]], p]
+        InductiveRecursor[CircleTimes][Typed[q, CircleTimes[A, B]] |-> CircleTimes[B, A], {Typed[a, A], Typed[b, B]} |-> Tensor[b, a], p]
     ]]
 }]
 ```
@@ -167,7 +167,7 @@ A field of an affine pair is affine in the match too, so the match may not copy 
 
 ```wl
 TypeTheoryEnvironment[affine, {TypeTheoryDefinition[CopyFirst, Function[{TypedImplicit[A, TypeUniverse[1], 0], TypedImplicit[B, TypeUniverse[1], 0], Typed[p, CircleTimes[A, B], 1]},
-    InductiveRecursor[CircleTimes][Function[{Typed[q, CircleTimes[A, B]]}, CircleTimes[A, A]], Function[{Typed[a, A], Typed[b, B]}, Tensor[a, a]], p]
+    InductiveRecursor[CircleTimes][Typed[q, CircleTimes[A, B]] |-> CircleTimes[A, A], {Typed[a, A], Typed[b, B]} |-> Tensor[a, a], p]
 ]]}]
 ```
 
@@ -177,7 +177,7 @@ The uses in the branches of a match add up, since each branch is part of the ter
 
 ```wl
 TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[Choose, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[b, Booleans, 1], Typed[x, A, 1]},
-    InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, A], x, x, b]
+    InductiveRecursor[Booleans][Typed[t, Booleans] |-> A, x, x, b]
 ]]}]
 ```
 
@@ -187,7 +187,7 @@ Instead, each branch is a function that takes it, and the match is applied to it
 
 ```wl
 TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[Choose, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[b, Booleans, 1], Typed[x, A, 1]},
-    InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, ForAll[{Typed[y, A, 1]}, A]], Function[{Typed[y, A]}, y], Function[{Typed[y, A]}, y], b][x]
+    InductiveRecursor[Booleans][Typed[t, Booleans] |-> ForAll[{Typed[y, A, 1]}, A], Typed[y, A] |-> y, Typed[y, A] |-> y, b][x]
 ]]}]
 ```
 
@@ -206,7 +206,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers, 1]}, N
 A binder written without a quantity takes the one the expected type gives it:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{x}, x], affinePrelude], TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers, 1]}, NonNegativeIntegers], affinePrelude]]
+TypeTheoryCheck[TypeTheoryTerm[x |-> x, affinePrelude], TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers, 1]}, NonNegativeIntegers], affinePrelude]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -232,7 +232,7 @@ TypeTheoryCheck[TypeTheoryTerm[Swap, back["Environment"]]]
 Under rules without quantities, the prelude's among them, a binder may not have one:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryDefinition[AffineIdentity, Function[{Typed[n, NonNegativeIntegers, 1]}, n]]}]
+TypeTheoryEnvironment[{TypeTheoryDefinition[AffineIdentity, Typed[n, NonNegativeIntegers, 1] |-> n]}]
 ```
 
 <!-- => Failure["QuantitiesNotAllowed", ...] -->

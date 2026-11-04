@@ -51,7 +51,7 @@ TypeTheoryCheck[TypeTheoryTerm[FalseElimination]]
 [And]() is proved by [AndIntroduction]() and used by [AndEliminationLeft]() and [AndEliminationRight](); a proof of a conjunction is a structure, so `h[[1]]` and `h[[2]]` are its two parts. Conjunction is commutative:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p && q]}, AndIntroduction[h[[2]], h[[1]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p && q]} |-> AndIntroduction[h[[2]], h[[1]]]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∧ q) ⇒ (q ∧ p) -->
@@ -136,7 +136,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity
 The prelude has the quotient types of Lean's kernel, which [TypeTheoryQuotients]() declares: <code>[QuotientType]()[r]</code> is the type of the classes of a relation `r`, <code>[QuotientIntroduction]()[r, a]</code> is the class of `a`, [QuotientLift]() applies a function that respects `r` to a class, and [QuotientInduction]() proves a property of every class. Here is equality of natural numbers, as a relation:
 
 ```wl
-equalNaturals = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m == n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+equalNaturals = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
 ```
 
 <!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
@@ -146,7 +146,7 @@ The successor respects it, so it lifts to the classes, and the lift computes on 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Function[{Typed[k, Naturals]}, k + 1],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Function[{Typed[k, Naturals]}, k + 1], e]],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Typed[k, Naturals] |-> k + 1, e]],
     QuotientIntroduction[equalNaturals, 5]
 ]]]
 ```
@@ -224,7 +224,7 @@ A theorem applies like a function. Here `n * 2` computes to `0 + n + n`, and [Ad
 ```wl
 doubling = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n * 2 == n + n], {
     TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Exact", EqualityCongruence[Function[{Typed[x, Naturals]}, x + n], AdditionZeroLeft[n]]]
+    TypeTheoryTactic["Exact", EqualityCongruence[Typed[x, Naturals] |-> x + n, AdditionZeroLeft[n]]]
 }]
 ```
 
@@ -271,7 +271,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed[True && Not[False], Booleans]]]
 A Boolean shows in lower case, and its operations as Lean writes them, which tells them apart from the propositions. The arguments decide too: on Booleans, `||` is the operation on Booleans, and on propositions it is the disjunction:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b || False]]]
+TypeOf[TypeTheoryTerm[Typed[b, Booleans] |-> b || False]]
 ```
 
 <!-- => 𝔹 → 𝔹 -->
@@ -296,7 +296,7 @@ A statement about every Boolean is proved by cases, with the recursor of [Boolea
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
-    InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity[False], EqualityReflexivity[True], b]
+    InductiveRecursor[Booleans][Typed[t, Booleans] |-> Not[Not[t]] == t, EqualityReflexivity[False], EqualityReflexivity[True], b]
 ]]]
 ```
 
@@ -369,7 +369,7 @@ lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}
 The prelude's three axioms are those of Lean's library. [PropositionalExtensionality]() makes equivalent propositions equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, True]}, AndIntroduction[h, h]], Function[{Typed[h, True && True]}, AndEliminationLeft[h]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Typed[h, True] |-> AndIntroduction[h, h], Typed[h, True && True] |-> AndEliminationLeft[h]]]]]
 ```
 
 <!-- => True == (True ∧ True) -->
@@ -393,7 +393,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Choice[NonemptyIntroduction[3]]]]
 A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and [ChosenWitnessProperty]() proves that the witness has the property:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]}, ChosenWitnessProperty[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWitnessProperty[h]]]
 ```
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->
@@ -412,8 +412,8 @@ So every proposition is [True]() or [False](), by cases on the excluded middle a
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
     InductiveRecursor[Or][
         Function[{Typed[t, p || Not[p]]}, p == True || p == False],
-        Function[{Typed[h, p]}, OrIntroductionLeft[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[k, p]}, TrueIntroduction], Function[{Typed[k, True]}, h]]]]],
-        Function[{Typed[h, Not[p]]}, OrIntroductionRight[PropositionalExtensionality[EquivalentIntroduction[h, Function[{Typed[k, False]}, FalseElimination[k]]]]]],
+        Function[{Typed[h, p]}, OrIntroductionLeft[PropositionalExtensionality[EquivalentIntroduction[Typed[k, p] |-> TrueIntroduction, Typed[k, True] |-> h]]]],
+        Function[{Typed[h, Not[p]]}, OrIntroductionRight[PropositionalExtensionality[EquivalentIntroduction[h, Typed[k, False] |-> FalseElimination[k]]]]],
         ExcludedMiddle[p]
     ]
 ]]]

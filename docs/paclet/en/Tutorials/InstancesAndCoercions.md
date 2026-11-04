@@ -21,7 +21,7 @@ inhabited = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[Inhabited, ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]]}, TypeUniverse[u + 1]], {
         InhabitedIntroduction -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, Inhabited[\[Alpha]]]
     }],
-    TypeTheoryDefinition[Default, Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"]}, h[[1]]]],
+    TypeTheoryDefinition[Default, {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"]} |-> h[[1]]],
     TypeTheoryDefinition[NaturalsInhabited, Typed[InhabitedIntroduction[0], Inhabited[Naturals]], "Instance" -> True],
     TypeTheoryDefinition[BooleansInhabited, Typed[InhabitedIntroduction["false"], Inhabited[Booleans]], "Instance" -> True]
 }]
@@ -151,8 +151,8 @@ A coercion is a function of one explicit argument declared with `"Coercion" -> T
 
 ```wl
 coercions = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[NaturalOfBoolean, Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Naturals], 0, 1, b]], "Coercion" -> True],
-    TypeTheoryDefinition[OptionOf, Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, OptionSome[x]], "Coercion" -> True]
+    TypeTheoryDefinition[NaturalOfBoolean, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> Naturals, 0, 1, b], "Coercion" -> True],
+    TypeTheoryDefinition[OptionOf, {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]} |-> OptionSome[x], "Coercion" -> True]
 }]
 ```
 

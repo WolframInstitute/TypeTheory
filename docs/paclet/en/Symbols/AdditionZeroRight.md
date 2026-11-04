@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {
 Adding 0 on the right is the identity function by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
 ```
 
 <!-- => True -->
@@ -76,7 +76,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerAdditionZero, TypeTheoryEnvironment["Integ
 Adding 0 on the left does not compute away, so it needs [AdditionZeroLeft]():
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> 0 + n], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
 ```
 
 <!-- => False -->

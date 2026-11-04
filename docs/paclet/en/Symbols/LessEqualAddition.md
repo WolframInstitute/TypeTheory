@@ -58,7 +58,7 @@ At `x + 1` it proves a strict inequality, since `x < x + 1 + y` unfolds to `x + 
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals]}, LessEqualAddition[x + 1, y]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals]} |-> LessEqualAddition[x + 1, y]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, x < x + 1 + y]]
 ]
 ```
@@ -85,7 +85,7 @@ The number added must come second, since `y + x` is not `x + y` by computation, 
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals]}, LessEqualAddition[x, y]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals]} |-> LessEqualAddition[x, y]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, x <= y + x]]
 ]
 ```

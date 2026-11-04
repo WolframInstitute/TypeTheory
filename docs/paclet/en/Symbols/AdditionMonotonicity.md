@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionMonotonicity]]
 An inequality added to itself:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, AdditionMonotonicity[h, h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> AdditionMonotonicity[h, h]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ x + x ≤ y + y -->
@@ -75,7 +75,7 @@ With [LessEqualReflexivity]() as the first proof, it adds the same number to bot
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, AdditionMonotonicity[LessEqualReflexivity, h]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> AdditionMonotonicity[LessEqualReflexivity, h]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, 2 + x <= 2 + y]]]
 ]
 ```
@@ -100,7 +100,7 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals], Typed[c, Natural
 Without a statement to check against, nothing fixes the number that [LessEqualReflexivity]() compares with itself:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, AdditionMonotonicity[h, LessEqualReflexivity]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> AdditionMonotonicity[h, LessEqualReflexivity]]]
 ```
 
 <!-- => Failure["UnsolvedImplicitArgument", ...] -->

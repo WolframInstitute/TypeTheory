@@ -25,7 +25,7 @@ Each result continued by a match of two results:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[MatchBind[{1, 2}, Function[{Typed[x, NonNegativeIntegers]}, {x, x}]], wolfram], TypeTheoryTerm[{1, 1, 2, 2}, wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> {x, x}], wolfram], TypeTheoryTerm[{1, 1, 2, 2}, wolfram]]
 ```
 
 <!-- => True -->

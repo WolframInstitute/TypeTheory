@@ -40,7 +40,7 @@ TypeTheoryCheck[statement]
 [TypeOf]() gives the type of a term written out, here a function from natural numbers to natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n]]]
+TypeOf[TypeTheoryTerm[Typed[n, Naturals] |-> n + n]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -59,8 +59,8 @@ Addition is defined by recursion on its second argument, so `n + 0` computes to 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 0]],
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]
+    TypeTheoryTerm[Typed[n, Naturals] |-> n + 0],
+    TypeTheoryTerm[Typed[n, Naturals] |-> n]
 ]
 ```
 
@@ -70,8 +70,8 @@ But `0 + n` is stuck: the recursion has nothing to work on until `n` is known. E
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 + n]],
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]
+    TypeTheoryTerm[Typed[n, Naturals] |-> 0 + n],
+    TypeTheoryTerm[Typed[n, Naturals] |-> n]
 ]
 ```
 
@@ -106,7 +106,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[
 [Append]() adds a declaration to an environment:
 
 ```wl
-doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]]
+doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 171 constants -->
@@ -165,7 +165,7 @@ To show a term, TypeTheory builds that expression, with its parts already shown,
 
 ```wl
 MakeBoxes[Doubled[n_], form_] := MakeBoxes[CenterDot[2, n], form];
-TypeTheoryTerm[Function[{Typed[n, Naturals]}, Doubled[n + 1] == n + n + 2], doubled]
+TypeTheoryTerm[Typed[n, Naturals] |-> Doubled[n + 1] == n + n + 2, doubled]
 ```
 
 <!-- => (n ∶ ℕ) ↦ 2·(n + 1) == n + n + 2 -->

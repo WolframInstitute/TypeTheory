@@ -53,8 +53,8 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The proof:
 
 ```wl
-TypeTheoryProof[DependentCongruence[Function[{Typed[x, Circle]}, CircleInduction[Function[{Typed[y, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"], x]], CircleLoop] == TransportConstant[CircleLoop, "true"], hott, {
-    TypeTheoryTactic["Exact", CircleInductionLoop[Function[{Typed[y, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"]]]
+TypeTheoryProof[DependentCongruence[Typed[x, Circle] |-> CircleInduction[Typed[y, Circle] |-> Booleans, "true", TransportConstant[CircleLoop, "true"], x], CircleLoop] == TransportConstant[CircleLoop, "true"], hott, {
+    TypeTheoryTactic["Exact", CircleInductionLoop[Typed[y, Circle] |-> Booleans, "true", TransportConstant[CircleLoop, "true"]]]
 }]
 ```
 
@@ -75,7 +75,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 For the constant family of Booleans, the left side is a path from `CircleInduction[P, b, l, CircleBase]`, carried around the loop, to itself:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Function[{Typed[x, Circle]}, CircleInduction[Function[{Typed[y, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"], x]], CircleLoop], hott]]
+TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Typed[x, Circle] |-> CircleInduction[Typed[y, Circle] |-> Booleans, "true", TransportConstant[CircleLoop, "true"], x], CircleLoop], hott]]
 ```
 
 <!-- => Transport[(y∶𝕊¹) ↦ 𝔹, CircleLoop, CircleInduction[(y∶𝕊¹) ↦ 𝔹, true, TransportConstant[CircleLoop, true], CircleBase]] == CircleInduction[(y∶𝕊¹) ↦ 𝔹, true, TransportConstant[CircleLoop, true], CircleBase] -->
@@ -84,7 +84,7 @@ By computation, that is the type of the right side, a path from `"true"`, carrie
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Function[{Typed[x, Circle]}, CircleInduction[Function[{Typed[y, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"], x]], CircleLoop], hott]],
+    TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Typed[x, Circle] |-> CircleInduction[Typed[y, Circle] |-> Booleans, "true", TransportConstant[CircleLoop, "true"], x], CircleLoop], hott]],
     TypeTheoryCheck[TypeTheoryTerm[TransportConstant[CircleLoop, "true"], hott]]
 ]
 ```
@@ -106,7 +106,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The statement for the constant family of Booleans, by computation:
 
 ```wl
-TypeTheoryProof[DependentCongruence[Function[{Typed[x, Circle]}, CircleInduction[Function[{Typed[y, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"], x]], CircleLoop] == TransportConstant[CircleLoop, "true"], hott, {
+TypeTheoryProof[DependentCongruence[Typed[x, Circle] |-> CircleInduction[Typed[y, Circle] |-> Booleans, "true", TransportConstant[CircleLoop, "true"], x], CircleLoop] == TransportConstant[CircleLoop, "true"], hott, {
     TypeTheoryTactic["Reflexivity"]
 }]
 ```

@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerAdditionCommutativity[-2, 5], TypeTheoryEn
 The law holds for any integer terms, here `a` and `2 b`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers], Typed[b, Integers]}, IntegerAdditionCommutativity[a, 2 b]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, Integers], Typed[b, Integers]} |-> IntegerAdditionCommutativity[a, 2 b], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_a∶ℤ ∀_b∶ℤ a + 2 b == 2 b + a -->

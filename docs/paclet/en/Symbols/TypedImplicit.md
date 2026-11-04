@@ -26,7 +26,7 @@ RelatedTutorials: [TypeTheoryIntroduction]
 A polymorphic identity whose type argument is implicit:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]]
+TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
 ```
 
 <!-- => ∀_{A ∶ Type} A → A -->
@@ -36,7 +36,7 @@ TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]},
 The polymorphic identity, declared:
 
 ```wl
-identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}]
+identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -84,7 +84,7 @@ TypeOf[TypeTheoryTerm[ConjunctionSwap[AndIntroduction[TrueIntroduction, Equality
 The polymorphic identity, declared:
 
 ```wl
-identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}]
+identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -102,7 +102,7 @@ TypeOf[TypeTheoryTerm[Construct[PolymorphicIdentity, Naturals], identity]]
 [TypedImplicit]() is the same binder as an implicit [Annotation]():
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]] === TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]]
+TypeOf[TypeTheoryTerm[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]} |-> x]] === TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
 ```
 
 <!-- => True -->
@@ -112,7 +112,7 @@ TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"
 The polymorphic identity, declared:
 
 ```wl
-identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]}]
+identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -130,7 +130,7 @@ InputForm[identity[PolymorphicIdentity]]
 A strict implicit binder is an [Annotation]() of another kind:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], Typed[x, A]}, x]]]
+TypeOf[TypeTheoryTerm[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], Typed[x, A]} |-> x]]
 ```
 
 <!-- => ∀_⦃A ∶ Type⦄ A → A -->
@@ -140,7 +140,7 @@ TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "StrictImp
 [TypedImplicit]() takes a variable and its type:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A], Typed[x, A]}, x]]]
+TypeOf[TypeTheoryTerm[{TypedImplicit[A], Typed[x, A]} |-> x]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

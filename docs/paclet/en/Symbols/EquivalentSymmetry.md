@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalentSymmetry]]
 Turn an equivalence around:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, Equivalent[p, q]]}, EquivalentSymmetry[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, Equivalent[p, q]]} |-> EquivalentSymmetry[h]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ⧦ q) ⇒ (q ⧦ p) -->
@@ -78,7 +78,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[
 It swaps the two implications: the first field of the result is the second of *h*:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentSymmetry[h][[1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> EquivalentSymmetry[h][[1]]]]
 ```
 
 <!-- => (True ⧦ 1 == 1) ⇒ 1 == 1 ⇒ True -->

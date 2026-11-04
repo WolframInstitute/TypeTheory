@@ -224,55 +224,54 @@ localVariable[environment_, local_String] := Replace[environment["Locals"][local
 (*Quoting*)
 
 
-(* an expression as a term of type Expressions: its pattern variables the parts they match, a natural number by
-   naturalAtom, and every other atom an axiom *)
-quoted[HoldComplete[e_Symbol], environment_] := Replace[environment["Names"][fullName[e]], {
-	{variable_, "Expression"} :> variable,
-	{HoldComplete[variable_], "Sequence"} :> Replace[atomTerm["System`Sequence"], HoldComplete[s_] :> HoldComplete[ExpressionNormal[s, variable]]],
-	_Missing :> atomTerm[fullName[e]]
-}]
-quoted[HoldComplete[n_Integer], _] /; n >= 0 := HoldComplete[ExpressionAtom["naturalAtom"[n]]]
-quoted[HoldComplete[e : (_String | _Integer | _Real | _Rational | _Complex)], _] := literalAtomTerm[HoldComplete[e]]
-quoted[HoldComplete[h_[arguments___]], environment_] := normalTerm[quoted[HoldComplete[h], environment], Function[argument, quotedArgument[argument, environment]] /@ (HoldComplete /@ Unevaluated[{arguments}])]
-quoted[_, _] := Throw[None, untranslatable]
+(* an expression as a term of type Expressions, HoldForm[e], which elaboration quotes: its pattern variables the parts
+   they match, a sequence variable alone the expression Sequence[...] of its expressions, and every symbol and atom but a
+   natural number an axiom, declared with the rules *)
+quoted[HoldComplete[e_Symbol], environment_] /; MatchQ[environment["Names"][fullName[e]], {_, "Sequence"}] :=
+	quoted[HoldComplete[Sequence[e]], environment]
+quoted[held_HoldComplete, environment_] := Replace[renamed[held, environment], renamedHeld : HoldComplete[e_] :> (
+	declareAtoms[renamedHeld, environment];
+	HoldComplete[HoldForm[e]]
+)]
 
-(* ExpressionNormal[head, arguments], the arguments a list: the expressions among them in list literals, and each sequence
-   variable joined in, as ExpressionNormal[head, Join[{x, y}, z]] for head[x, y, z] *)
-normalTerm[HoldComplete[head_], arguments_List] := Replace[argumentList[arguments], HoldComplete[list_] :> HoldComplete[ExpressionNormal[head, list]]]
+(* each pattern variable as the variable of the part it matches *)
+renamed[held_HoldComplete, environment_] := ReplaceAll[held, KeyValueMap[
+	Function[{name, binding}, Replace[{ToExpression[name, InputForm, HoldComplete], First[binding]}, {HoldComplete[source_], HoldComplete[variable_]} :> (HoldPattern[source] :> variable)]],
+	environment["Names"]
+]]
 
-argumentList[{}] := HoldComplete[Typed[{}, {Expressions}]]
-argumentList[arguments_List] := Fold[
-	Function[{rest, part}, Replace[{part, rest}, {HoldComplete[p_], HoldComplete[r_]} :> HoldComplete[Join[p, r]]]],
-	Reverse[argumentRuns[arguments]]
+(* the atoms of a quotation, but its variables and its natural numbers; a rational shows as Times and Power *)
+declareAtoms[held_HoldComplete, environment_] := With[{variables = Join @@ (First /@ Values[Join[environment["Names"], environment["Locals"]]])},
+	Scan[
+		Function[part, Replace[part, {
+			HoldComplete[symbol_Symbol] /; FreeQ[variables, HoldPattern[symbol]] :> atomTerm[fullName[symbol]],
+			HoldComplete[n_Integer] /; n < 0 :> literalAtomTerm[HoldComplete[n]],
+			HoldComplete[q_Rational] :> (atomTerm["System`Times"]; atomTerm["System`Power"]; literalAtomTerm[HoldComplete[-1]];
+				If[Numerator[q] < 0, literalAtomTerm[HoldComplete @@ {Numerator[q]}]]),
+			HoldComplete[text_String] :> Sow[{TypeTheoryAxiom[Evaluate[ToString[text, InputForm]], Strings]}, atomDeclaration],
+			HoldComplete[e : (_Real | _Complex)] :> literalAtomTerm[HoldComplete[e]],
+			_ :> Null
+		}]],
+		Cases[held, atom_ /; AtomQ[Unevaluated[atom]] :> HoldComplete[atom], {1, Infinity}, Heads -> True]
+	]
 ]
 
-(* the runs of expressions, each a list literal, and the sequence variables, in order *)
-argumentRuns[arguments_List] := Catenate[Replace[SplitBy[arguments, First], {
-	run : {{"Expression", _}, ___} :> {Replace[Join @@ (Last /@ run), HoldComplete[elements___] :> HoldComplete[{elements}]]},
-	run_ :> Last /@ run
-}, {1}]]
+(* a condition's Core as the expression it computes, quoted *)
+quotedCore[core_, environment_] := quoted[coreHeld[core, environment], environment]
 
-(* an argument, {"Expression", term} or, for a sequence variable, {"Sequence", variable} *)
-quotedArgument[HoldComplete[e_Symbol], environment_] /; MatchQ[environment["Names"][fullName[e]], {_, "Sequence"}] := {"Sequence", First[environment["Names"][fullName[e]]]}
-quotedArgument[argument_, environment_] := {"Expression", quoted[argument, environment]}
-
-(* a condition's Core, quoted: its calls normal expressions, its locals the parts they name *)
-quotedCore[coreForm["Call"][name_String, arguments_List], environment_] := normalTerm[atomTerm[name], Function[argument, quotedCoreArgument[argument, environment]] /@ arguments]
-quotedCore[coreForm["Local"][local_String], environment_] := localVariable[environment, local]
-quotedCore[coreForm["Constant"][HoldComplete[c_]], environment_] := quoted[HoldComplete[c], environment]
-quotedCore[coreForm["Constant"][c_], environment_] := quoted[HoldComplete[c], environment]
-quotedCore[coreForm["Evaluated"][core_], environment_] := quotedCore[core, environment]
-quotedCore[_, _] := Throw[None, untranslatable]
-
-quotedCoreArgument[coreForm["Local"][local_String], environment_] /; MatchQ[environment["Locals"][local], {_, "Sequence"}] := {"Sequence", First[environment["Locals"][local]]}
-quotedCoreArgument[core_, environment_] := {"Expression", quotedCore[core, environment]}
+coreHeld[coreForm["Call"][name_String, arguments_List], environment_] := Replace[
+	Join[ToExpression[name, InputForm, HoldComplete], Join @@ (Function[argument, coreHeld[argument, environment]] /@ arguments)],
+	HoldComplete[head_, parts___] :> HoldComplete[head[parts]]
+]
+coreHeld[coreForm["Local"][local_String], environment_] := Replace[environment["Locals"][local], {{variable_HoldComplete, _} :> variable, _ :> Throw[None, untranslatable]}]
+coreHeld[coreForm["Constant"][HoldComplete[c_]], _] := HoldComplete[c]
+coreHeld[coreForm["Constant"][c_], _] := HoldComplete[c]
+coreHeld[coreForm["Evaluated"][core_], environment_] := coreHeld[core, environment]
+coreHeld[_, _] := Throw[None, untranslatable]
 
 (* the atom of a symbol, by its full name, an axiom that the symbol is; and of any other atom, by its InputForm *)
 atomTerm[name_String] := (
 	Sow[{ToExpression[name, InputForm, Function[symbol, TypeTheoryAxiom[name, Atoms, "Implementation" -> symbol], HoldAllComplete]]}, atomDeclaration];
-	HoldComplete[ExpressionAtom[name]]
+	ToExpression[name, InputForm, Function[symbol, HoldComplete[HoldForm[symbol]], HoldAllComplete]]
 )
-literalAtomTerm[HoldComplete[e_]] := With[{name = ToString[Unevaluated[e], InputForm]},
-	Sow[{TypeTheoryAxiom[name, Atoms]}, atomDeclaration];
-	HoldComplete[ExpressionAtom[name]]
-]
+literalAtomTerm[HoldComplete[e_]] := Sow[{TypeTheoryAxiom[Evaluate[ToString[Unevaluated[e], InputForm]], Atoms]}, atomDeclaration]

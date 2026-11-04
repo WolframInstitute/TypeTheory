@@ -51,7 +51,7 @@ The function *f* is found from the paths:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    EquivalenceProof[Function[{Typed[x, Booleans]}, x], Function[{Typed[x, Booleans]}, EqualityReflexivity[x]], Function[{Typed[x, Booleans]}, x], Function[{Typed[x, Booleans]}, EqualityReflexivity[x]]],
+    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x]],
     hott
 ]]
 ```
@@ -73,7 +73,7 @@ The identity of the Booleans as an equivalence:
 ```wl
 TypeOf[TypeTheoryTerm[EquivalenceIntroduction[
     Function[{Typed[x, Booleans]}, x],
-    EquivalenceProof[Function[{Typed[x, Booleans]}, x], Function[{Typed[x, Booleans]}, EqualityReflexivity[x]], Function[{Typed[x, Booleans]}, x], Function[{Typed[x, Booleans]}, EqualityReflexivity[x]]]
+    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x]]
 ], hott]]
 ```
 
@@ -92,7 +92,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The fourth field:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[e, IsEquivalence[f]]}, e[[4]]], hott]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[e, IsEquivalence[f]]} |-> e[[4]], hott]]
 ```
 
 <!-- => ∀_f∶𝔹 → 𝔹 ∀_e∶IsEquivalence[f] ∀_y∶𝔹 f[e〚3〛[y]] == y -->

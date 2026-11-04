@@ -34,7 +34,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 An element of a Glue type over the Booleans, `"true"` where `i == 0` holds, over `"false"`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[i, Interval] |-> GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"], cubical]]
 ```
 
 <!-- => Path[(i ∶ Interval) ↦ GlueType[𝔹, {i == 0 -> 〈𝔹, NegationEquivalence〉}], true, GlueIntroduction[{False -> true}, false]] -->
@@ -52,7 +52,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Negation takes `"true"` to `"false"`, not to `"true"`:
 
 ```wl
-TypeTheoryEnvironment[cubical, {TypeTheoryDefinition[WrongBase, Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "true"]]]}]
+TypeTheoryEnvironment[cubical, {TypeTheoryDefinition[WrongBase, Typed[i, Interval] |-> GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "true"]]}]
 ```
 
 <!-- => Failure["GlueMismatch", ...] -->

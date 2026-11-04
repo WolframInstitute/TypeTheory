@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[JoinEmptyRight]]
 For lists of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, JoinEmptyRight[l]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[l, {Naturals}] |-> JoinEmptyRight[l]]]
 ```
 
 <!-- => ∀_l∶{ℕ} Join[l, {}] == l -->

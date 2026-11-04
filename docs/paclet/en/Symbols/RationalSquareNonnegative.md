@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalSquareNonnegative[-1/2], TypeTheoryEnviro
 An instance with a difference:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalSquareNonnegative[x - 1/2]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Rationals] |-> RationalSquareNonnegative[x - 1/2], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ 0 ≤ (x - 1/2) (x - 1/2) -->
@@ -54,7 +54,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalSquareNon
 An integer is coerced to a rational:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalSquareNonnegative[a]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[a, Integers] |-> RationalSquareNonnegative[a], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_a∶ℤ 0 ≤ ↑a ↑a -->
@@ -64,7 +64,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalSquareNonn
 [IntegerSquareNonnegative](), which the law is proved from, states the same of an integer itself:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, IntegerSquareNonnegative[a]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[a, Integers] |-> IntegerSquareNonnegative[a], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_a∶ℤ 0 ≤ a a -->

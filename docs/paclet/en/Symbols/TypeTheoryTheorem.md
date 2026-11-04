@@ -83,7 +83,7 @@ TypeOf[TypeTheoryTerm[ZeroRightIdentity[7], proved]]
 A variable written without a type, whose sort nothing else decides, is a proposition in a statement that can be one:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], Function[{p, h}, h]]}][SelfImplication]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], {p, h} |-> h]}][SelfImplication]
 ```
 
 <!-- => TypeTheoryTheorem[SelfImplication, ∀_p∶Prop p ⇒ p, ...] -->
@@ -93,7 +93,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 A variable of any type gets its universe as a parameter of the theorem, `"u_1"`, which the statement names:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], Function[{A, Typed[x, A]}, EqualityReflexivity[x]]]}][SelfEquality]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], {A, Typed[x, A]} |-> EqualityReflexivity[x]]}][SelfEquality]
 ```
 
 <!-- => TypeTheoryTheorem[SelfEquality, ForAll[{Typed[A, TypeUniverse["u_1"]], Typed[x, A]}, x == x], ...] -->

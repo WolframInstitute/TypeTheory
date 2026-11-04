@@ -35,7 +35,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Transport of a function along a constant line of function types:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[Function[{i}, TypeSpecifier[{Booleans} -> Booleans]], 0, "not"]["true"], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[i |-> TypeSpecifier[{Booleans} -> Booleans], 0, "not"]["true"], cubical]]
 ```
 
 <!-- => false -->
@@ -89,7 +89,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A path of types need not be constant where `1` holds, everywhere:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, CubicalTransport[p, 1, "true"]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

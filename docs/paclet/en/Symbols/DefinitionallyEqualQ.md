@@ -52,7 +52,7 @@ Eta: a function equals the function that applies it:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, NaturalNumberSuccessor[n]]],
+    TypeTheoryTerm[Typed[n, Naturals] |-> NaturalNumberSuccessor[n]],
     TypeTheoryTerm[NaturalNumberSuccessor]
 ]
 ```
@@ -66,9 +66,9 @@ The parity of a natural number by recursion, and a definition by it:
 ```wl
 parity = TypeTheoryEnvironment[{
     TypeTheoryDefinition[Parity, Function[{Typed[n, Naturals]},
-        InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "not"[r]], n]
+        InductiveRecursor[Naturals][Typed[t, Naturals] |-> Booleans, "true", {Typed[k, Naturals], Typed[r, Booleans]} |-> "not"[r], n]
     ]],
-    TypeTheoryDefinition[ParityAgain, Function[{Typed[n, Naturals]}, Parity[n]]]
+    TypeTheoryDefinition[ParityAgain, Typed[n, Naturals] |-> Parity[n]]
 }]
 ```
 
@@ -88,8 +88,8 @@ DefinitionallyEqualQ[TypeTheoryTerm[ParityAgain[100000], parity], TypeTheoryTerm
 
 ```wl
 {
-    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]],
-    DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 + n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
+    DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0], TypeTheoryTerm[Typed[n, Naturals] |-> n]],
+    DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> 0 + n], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
 }
 ```
 

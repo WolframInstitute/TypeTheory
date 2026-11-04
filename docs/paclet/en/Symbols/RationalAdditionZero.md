@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalAdditionZero[2/3], TypeTheoryEnvironment[
 An instance with a fraction of a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalAdditionZero[x / 2]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Rationals] |-> RationalAdditionZero[x / 2], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ x/2 + 0 == x/2 -->

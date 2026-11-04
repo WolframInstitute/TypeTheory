@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity]]
 So `x + 1` and `1 + x` are equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals]}, AdditionCommutativity[x, 1]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Naturals] |-> AdditionCommutativity[x, 1]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 1 == 1 + x -->
@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals]}, x + 1 == 1 + x], {
 With [FunctionExtensionality](), adding 1 on the right and adding 1 on the left are the same function:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[FunctionExtensionality[Function[{Typed[n, Naturals]}, AdditionCommutativity[n, 1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[FunctionExtensionality[Typed[n, Naturals] |-> AdditionCommutativity[n, 1]]]]
 ```
 
 <!-- => ((n ∶ ℕ) ↦ n + 1) == ((n ∶ ℕ) ↦ 1 + n) -->

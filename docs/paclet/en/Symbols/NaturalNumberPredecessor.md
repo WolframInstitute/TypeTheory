@@ -67,7 +67,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[10^20]]]
 Subtracting 1 is the predecessor by computation, which is why the predecessor of *n* shows as `n - 1`:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 1]], TypeTheoryTerm[NaturalNumberPredecessor]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n - 1], TypeTheoryTerm[NaturalNumberPredecessor]]
 ```
 
 <!-- => True -->

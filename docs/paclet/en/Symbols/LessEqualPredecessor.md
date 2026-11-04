@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualPredecessor]]
 From `x + 1 <= 5`, `x <= 4`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 1 <= 5]}, LessEqualPredecessor[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[h, x + 1 <= 5]} |-> LessEqualPredecessor[h]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 1 ≤ 5 ⇒ x ≤ 4 -->
@@ -57,7 +57,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + 1 <
 `x < y + 1` unfolds to `x + 1 <= y + 1`, so it turns a strict inequality into an inequality:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x < y + 1]}, LessEqualPredecessor[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x < y + 1]} |-> LessEqualPredecessor[h]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x < y + 1 ⇒ x ≤ y -->
@@ -67,7 +67,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals],
 It undoes [LessEqualSuccessor]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualPredecessor[LessEqualSuccessor[h]]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> LessEqualPredecessor[LessEqualSuccessor[h]]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ x ≤ y -->
@@ -77,7 +77,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals],
 `1 + x` is not a successor by computation, since addition recurses on its second argument, so a proof of `1 + x <= 1 + y` does not fit:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, 1 + x <= 1 + y]}, LessEqualPredecessor[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, 1 + x <= 1 + y]} |-> LessEqualPredecessor[h]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationMonotonicity]]
 An inequality multiplied by 3:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, MultiplicationMonotonicity[3, h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> MultiplicationMonotonicity[3, h]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ x 3 ≤ y 3 -->
@@ -88,7 +88,7 @@ The factor multiplies on the right, so the result is `x * 3 <= y * 3`, which is 
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, MultiplicationMonotonicity[3, h]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> MultiplicationMonotonicity[3, h]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, 3 x <= 3 y]]]
 ]
 ```

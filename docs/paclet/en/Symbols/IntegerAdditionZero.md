@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerAdditionZero[-7], TypeTheoryEnvironment["I
 An instance with a product, `x y`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerAdditionZero[x y]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Integers], Typed[y, Integers]} |-> IntegerAdditionZero[x y], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ ∀_y∶ℤ x y + 0 == x y -->

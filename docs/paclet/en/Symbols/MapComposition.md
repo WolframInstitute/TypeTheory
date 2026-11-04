@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[MapComposition]]
 Doubling, then adding 1:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, MapComposition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n], l]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[l, {Naturals}] |-> MapComposition[Typed[n, Naturals] |-> n + 1, Typed[n, Naturals] |-> 2 * n, l]]]
 ```
 
 <!-- => ∀_l∶{ℕ} ((n ∶ ℕ) ↦ n + 1) /@ ((n ∶ ℕ) ↦ 2 n) /@ l == (((n ∶ ℕ) ↦ n + 1) @* ((n ∶ ℕ) ↦ 2 n)) /@ l -->
@@ -43,9 +43,9 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, MapComposition[F
 Two maps fuse into one: the composition of doubling and adding 1 computes to `2 n + 1`, so the instance proves the fused form:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Map[Function[{Typed[n, Naturals]}, n + 1], Map[Function[{Typed[n, Naturals]}, 2 * n], l]] == Map[Function[{Typed[n, Naturals]}, 2 * n + 1], l]], {
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Map[Typed[n, Naturals] |-> n + 1, Map[Typed[n, Naturals] |-> 2 * n, l]] == Map[Typed[n, Naturals] |-> 2 * n + 1, l]], {
     TypeTheoryTactic["Introduce", l],
-    TypeTheoryTactic["Exact", MapComposition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n], l]]
+    TypeTheoryTactic["Exact", MapComposition[Typed[n, Naturals] |-> n + 1, Typed[n, Naturals] |-> 2 * n, l]]
 }]
 ```
 
@@ -73,7 +73,7 @@ On a list written out both sides compute, so `"Reflexivity"` proves the instance
 
 ```wl
 TypeTheoryProof[
-    Map[Function[{Typed[n, Naturals]}, n + 1], Map[Function[{Typed[n, Naturals]}, 2 * n], Prepend[1][Prepend[2][{}]]]] == Map[Composition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n]], Prepend[1][Prepend[2][{}]]],
+    Map[Typed[n, Naturals] |-> n + 1, Map[Typed[n, Naturals] |-> 2 * n, Prepend[1][Prepend[2][{}]]]] == Map[Composition[Typed[n, Naturals] |-> n + 1, Typed[n, Naturals] |-> 2 * n], Prepend[1][Prepend[2][{}]]],
     {TypeTheoryTactic["Reflexivity"]}
 ]
 ```
@@ -86,7 +86,7 @@ TypeTheoryProof[
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Map[Composition[Function[{Typed[n, Naturals]}, n + 1], Function[{Typed[n, Naturals]}, 2 * n]], Prepend[1][Prepend[2][{}]]]],
+    TypeTheoryTerm[Map[Composition[Typed[n, Naturals] |-> n + 1, Typed[n, Naturals] |-> 2 * n], Prepend[1][Prepend[2][{}]]]],
     TypeTheoryTerm[Prepend[3][Prepend[5][{}]]]
 ]
 ```

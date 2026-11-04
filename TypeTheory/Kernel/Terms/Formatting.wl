@@ -46,8 +46,8 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Prepend[1][Prepend[2][{}]]          {1, 2}               in braces: [1, 2] in f[[1, 2]] would read as Part
 	Prepend[x][l]                       Prepend • x • l      by Application, where l is no literal
 	SequencePrepend[1, EmptySequence]   [1]                  EmptySequence as [], a sequence in brackets
-	Sequence[{A, B}]                    Sequence[A, B]       the type, as it is written; Sequence[As] for a list As that
-	                                                         is no literal
+	Sequence[A, B]                      [A, B]               the type, as the sequences show; Sequence @@ As for a list
+	                                                         As of types that is no literal
 	List[A]                             {A}                  the type, as the Wolfram Language shows List[A]
 	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
 
@@ -283,9 +283,51 @@ displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
 displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["[]"]
-(* Sequence at a list of types as its types, Sequence[A, B], as it is written *)
-displaySyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], {index_}]] /; listLiteralQ[index] :=
-	displayApplication[head, displaySyntax /@ prependedElements[index]]
+(* an expression of the Wolfram Language shows quoted, HoldForm[e], as it is written: its atoms as symbols, numbers and
+   strings, its arguments in order, a list of them that is no literal as Sequence @@ l; where a part is none of these,
+   it shows as built *)
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ExpressionNormal]], {_, _}]] /; quotableQ[syntax] :=
+	syntaxApplication[syntaxString["HoldForm"], {displaySyntax[unquoted[syntax]]}]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ExpressionAtom]], {_}]] /; quotableQ[syntax] :=
+	syntaxApplication[syntaxString["HoldForm"], {displaySyntax[unquoted[syntax]]}]
+(* a quotation as written shows the same, its HoldForm in sight, which the Wolfram Language would hide *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}]] := syntaxApplication[syntaxString["HoldForm"], {displaySyntax[quoted]}]
+
+quotableQ[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionAtom]], {atom_}]] := atomSyntax[atom] =!= None
+quotableQ[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionNormal]], {head_, arguments_}]] := quotableQ[head] && quotableArgumentsQ[arguments]
+quotableQ[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {_syntaxInteger}]] := True
+quotableQ[syntaxSymbol[_]] := True
+quotableQ[_] := False
+
+quotableArgumentsQ[syntax_?listLiteralQ] := AllTrue[prependedElements[syntax], quotableQ]
+quotableArgumentsQ[syntaxApplication[syntaxSymbol[HoldComplete[Join]], parts_List]] := AllTrue[parts, quotableArgumentsQ]
+quotableArgumentsQ[syntaxSymbol[_]] := True
+quotableArgumentsQ[_] := False
+
+(* the atom an atom's syntax names, or None: a symbol by its full name, a natural number, or another atom by its
+   InputForm *)
+atomSyntax[syntaxApplication[syntaxString["naturalAtom"], {n : syntaxInteger[_]}]] := n
+atomSyntax[syntaxApplication[syntaxString["stringAtom"], {literal : syntaxString[_]}]] := atomSyntax[literal]
+atomSyntax[syntaxString[name_String]] := Replace[Quiet[ToExpression[name, InputForm, HoldComplete]], {
+	HoldComplete[symbol_Symbol] /; StringContainsQ[name, "`"] :> syntaxSymbol[HoldComplete[symbol]],
+	HoldComplete[n_Integer] :> syntaxInteger[n],
+	HoldComplete[text_String] :> syntaxString[text],
+	HoldComplete[other_ /; AtomQ[Unevaluated[other]]] :> syntaxOther[HoldComplete[other]],
+	_ -> None
+}]
+atomSyntax[_] := None
+
+unquoted[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionAtom]], {atom_}]] := atomSyntax[atom]
+unquoted[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionNormal]], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]
+unquoted[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {n_syntaxInteger}]] := n
+unquoted[variable_] := variable
+
+unquotedArguments[syntax_?listLiteralQ] := unquoted /@ prependedElements[syntax]
+unquotedArguments[syntaxApplication[syntaxSymbol[HoldComplete[Join]], parts_List]] := Catenate[unquotedArguments /@ parts]
+unquotedArguments[variable_] := {syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], variable}]}
+
+(* a sequence and its type alike in brackets, [a, b] and [A, B], as a sequence shows *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List]] := tupleDisplay["[", displaySyntax /@ elements, "]"]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]

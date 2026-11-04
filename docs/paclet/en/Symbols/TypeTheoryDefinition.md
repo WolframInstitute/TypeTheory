@@ -32,7 +32,7 @@ RelatedTutorials: [InstancesAndCoercions]
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -59,7 +59,7 @@ The identity function on a type in any universe:
 
 ```wl
 identity = TypeTheoryEnvironment[
-    TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]
+    TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]
 ]
 ```
 
@@ -97,7 +97,7 @@ composite = TypeTheoryEnvironment[TypeTheoryDefinition[Composite,
 
 ```wl
 MakeBoxes[Composite[g_, f_, x_], form_] := MakeBoxes[SmallCircle[g, f][x], form];
-TypeTheoryTerm[Function[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[n, Naturals]}, Composite[f, f, n]], composite]
+TypeTheoryTerm[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[n, Naturals]} |-> Composite[f, f, n], composite]
 ```
 
 <!-- => (f ∶ ℕ → ℕ) (n ∶ ℕ) ↦ (f∘f)[n] -->
@@ -111,7 +111,7 @@ inhabited = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[Inhabited, ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]], {
         InhabitedIntroduction -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, Inhabited[A]]
     }],
-    TypeTheoryDefinition[Default, Function[{TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[A]], "InstanceImplicit"]}, h[[1]]]],
+    TypeTheoryDefinition[Default, {TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[A]], "InstanceImplicit"]} |-> h[[1]]],
     TypeTheoryDefinition[NaturalsInhabited, Typed[InhabitedIntroduction[7], Inhabited[Naturals]], "Instance" -> True]
 }]
 ```
@@ -132,7 +132,7 @@ A coercion from the Booleans to the natural numbers, true as 1:
 
 ```wl
 coerced = TypeTheoryEnvironment[
-    TypeTheoryDefinition[NaturalOfBoolean, Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Naturals], 0, 1, b]], "Coercion" -> True]
+    TypeTheoryDefinition[NaturalOfBoolean, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> Naturals, 0, 1, b], "Coercion" -> True]
 ]
 ```
 
@@ -209,7 +209,7 @@ A definition cannot refer to itself:
 
 ```wl
 TypeTheoryEnvironment[
-    TypeTheoryDefinition[Loop, Typed[Function[{Typed[n, Naturals]}, Loop[n]], TypeSpecifier[{Naturals} -> Naturals]]]
+    TypeTheoryDefinition[Loop, Typed[Typed[n, Naturals] |-> Loop[n], TypeSpecifier[{Naturals} -> Naturals]]]
 ]
 ```
 

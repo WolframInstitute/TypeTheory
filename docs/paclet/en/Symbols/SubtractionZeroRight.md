@@ -57,7 +57,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n - 0 == n], {
 Subtracting 0 is the identity function by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, n]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n - 0], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
 ```
 
 <!-- => True -->
@@ -67,7 +67,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 0]], Type
 Subtracting 1 is [NaturalNumberPredecessor]() by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 1]], TypeTheoryTerm[NaturalNumberPredecessor]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n - 1], TypeTheoryTerm[NaturalNumberPredecessor]]
 ```
 
 <!-- => True -->
@@ -77,7 +77,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n - 1]], Type
 On the left, 0 does not compute away, so `0 - n` is not 0 by computation and needs [SubtractionZeroLeft]():
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 - n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> 0 - n], TypeTheoryTerm[Typed[n, Naturals] |-> 0]]
 ```
 
 <!-- => False -->

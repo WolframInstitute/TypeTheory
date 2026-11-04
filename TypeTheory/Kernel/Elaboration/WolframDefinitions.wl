@@ -219,7 +219,14 @@ calledDeclaration[environment_, held_, call_HoldComplete] := Which[
 	call === held || MemberQ[$formalizing, call],
 		Throw[None, untranslatable],
 	KeyExistsQ[$wolframSignatures, call],
-		missingDeclarations[environment, Append[If[FreeQ[$wolframSignatures[call], Expressions], {}, expressionsDeclarations[environment]], $wolframSignatures[call]]],
+		missingDeclarations[environment, Join[
+			If[FreeQ[$wolframSignatures[call], Expressions], {}, expressionsDeclarations[environment]],
+			If[FreeQ[$wolframSignatures[call], Strings], {}, stringsDeclarations[environment]],
+			{$wolframSignatures[call]}
+		]],
+	(* a string literal, a constant of the type Strings named by its InputForm *)
+	MatchQ[call, HoldComplete[name_String /; StringStartsQ[name, "\""]]],
+		missingDeclarations[environment, Append[stringsDeclarations[environment], Replace[call, HoldComplete[name_] :> TypeTheoryAxiom[name, Strings]]]],
 	systemSymbolQ @@ call,
 		Throw[None, untranslatable],
 	True,
@@ -533,6 +540,7 @@ translatedCore[coreForm["Evaluated"][core_], locals_] := translatedCore[core, lo
 translatedCore[coreForm["Local"][local_String], locals_] := Lookup[locals, local, Throw[None, untranslatable]]
 translatedCore[coreForm["Constant"][constant_Integer], _] := HoldComplete[constant]
 translatedCore[coreForm["Constant"][constant_Rational], _] := HoldComplete[constant]
+translatedCore[coreForm["Constant"][text_String], _] := With[{literal = ToString[text, InputForm]}, Sow[HoldComplete[literal], untranslatedCall]; HoldComplete[literal]]
 translatedCore[coreForm["Level"][_, core_], locals_] := translatedCore[core, locals]
 translatedCore[coreForm["Call"][callee_String, arguments_List], locals_] := With[{head = ToExpression[callee, InputForm, HoldComplete]},
 	If[! MemberQ[$surfaceHeads, callee], Sow[head, untranslatedCall]];
@@ -547,6 +555,11 @@ translatedCore[_, _] := Throw[None, untranslatable]
 
 (* Expressions, the type of any Wolfram Language expression, into which the numbers of the environment go by coercions *)
 (* none where the environment has Expressions already, as TypeTheoryEnvironment["WolframLanguage"] does, with its coercion *)
+(* Strings, the type of the strings, where the environment does not have it, as TypeTheoryEnvironment["WolframLanguage"]
+   does, with the string literals the expressions they are *)
+stringsDeclarations[environment_] /; constantDeclaredQ[environment, HoldComplete[Strings]] := {}
+stringsDeclarations[_] := {TypeTheoryAxiom[Strings, TypeUniverse[1]]}
+
 expressionsDeclarations[environment_] /; constantDeclaredQ[environment, HoldComplete[Expressions]] := {}
 expressionsDeclarations[environment_] := Join[
 	{
@@ -600,6 +613,14 @@ $wolframSignatures = Join[
 	signatures[HoldComplete[AllTrue, AnyTrue, NoneTrue], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> (A -> Booleans) -> Booleans]]],
 	signatures[HoldComplete[Select], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> (A -> Booleans) -> {A}]]],
 	signatures[HoldComplete[Total], HoldComplete[{Expressions} -> Expressions]],
+	(* the strings *)
+	signatures[HoldComplete[StringReverse, ToUpperCase, ToLowerCase, StringTrim, Capitalize], HoldComplete[Strings -> Strings]],
+	signatures[HoldComplete[StringJoin], HoldComplete[Strings -> Strings -> Strings]],
+	signatures[HoldComplete[StringLength], HoldComplete[Strings -> NonNegativeIntegers]],
+	signatures[HoldComplete[StringTake, StringDrop, StringRepeat], HoldComplete[Strings -> NonNegativeIntegers -> Strings]],
+	signatures[HoldComplete[StringContainsQ, StringStartsQ, StringEndsQ, StringMatchQ], HoldComplete[Strings -> Strings -> Booleans]],
+	signatures[HoldComplete[Characters, StringSplit], HoldComplete[Strings -> {Strings}]],
+	signatures[HoldComplete[ToString, TextString], HoldComplete[Expressions -> Strings]],
 	(* partial, as First of an empty list, or of any expression, so over Expressions *)
 	signatures[HoldComplete[First, Last, Rest, Most, Flatten, Missing, Association, Head, Keys, Values], HoldComplete[Expressions -> Expressions]],
 	signatures[HoldComplete[Part, Extract, Apply, Rule, Lookup, KeyExistsQ, FreeQ, Count, Take, Drop, Coefficient, Mod, Quotient], HoldComplete[Expressions -> Expressions -> Expressions]]

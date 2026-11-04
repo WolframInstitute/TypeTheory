@@ -31,7 +31,7 @@ RelatedGuides: [TypeTheory]
 The derivation of the K combinator's proposition, a ⇒ b ⇒ a:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[y, b]}, x]]]
+TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[y, b]} |-> x]]
 ```
 
 ---
@@ -39,7 +39,7 @@ TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b,
 The two eliminations of a conjunction and its introduction swap the conjuncts:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]}, AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]]]]
+TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]} |-> AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]]]
 ```
 
 ## Scope
@@ -52,7 +52,7 @@ TypeTheoryProofTree[TypeTheoryTerm[
         InductiveRecursor[Or][
             Function[{Typed[t, Or[a, Not[a]]]}, a],
             Function[{Typed[x, a]}, x],
-            Function[{Typed[n, Not[a]]}, f[Function[{Typed[y, a]}, FalseElimination[n[y]]]]],
+            Function[{Typed[n, Not[a]]}, f[Typed[y, a] |-> FalseElimination[n[y]]]],
             ExcludedMiddle[a]
         ]
     ]
@@ -64,7 +64,7 @@ TypeTheoryProofTree[TypeTheoryTerm[
 The derivation is an expression of its rules, claims and premises:
 
 ```wl
-Cases[TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[x, a]}, x]]], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]
+Cases[TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[x, a]} |-> x]], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]
 ```
 
 <!-- => {Assumption, ImpliesIntro} -->

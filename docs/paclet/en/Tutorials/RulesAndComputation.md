@@ -45,7 +45,7 @@ TypeTheoryRules["MartinLofTypeTheory"]["Prop"]
 Under any rules, a definition unfolds to its value. Here is the prelude with a definition:
 
 ```wl
-double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Function[{Typed[n, Naturals]}, n + n]]}]
+double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -61,7 +61,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Double[4], double]]
 A recursor applied to a constructor takes the case for that constructor, here the second case, for `true`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, Naturals], 0, 1, True]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Typed[b, Booleans] |-> Naturals, 0, 1, True]]]
 ```
 
 <!-- => 1 -->
@@ -80,7 +80,7 @@ The quotient types of Lean's kernel compute too: lifting a function to the class
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Function[{Typed[k, Naturals]}, 7],
     Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, True]}, EqualityReflexivity[7]],
-    QuotientIntroduction[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, True], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]], 5]
+    QuotientIntroduction[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> True, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]], 5]
 ]]]
 ```
 
@@ -110,7 +110,7 @@ With Prop, any two proofs of a proposition are equal by computation, so reflexiv
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]}, EqualityReflexivity[p]]],
+    TypeTheoryTerm[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]} |-> EqualityReflexivity[p]],
     TypeTheoryTerm[ForAll[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]}, p == q]]
 ]
 ```
@@ -129,7 +129,7 @@ There, two paths from the base point of the circle to itself are not equal by co
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]}, EqualityReflexivity[p]], hott],
+    TypeTheoryTerm[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]} |-> EqualityReflexivity[p], hott],
     TypeTheoryTerm[ForAll[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]}, p == q], hott]
 ]
 ```
@@ -213,7 +213,7 @@ quotient[ClassLiftComputes]
 Negation respects equality of Booleans, so it lifts to the quotient by equality. The relation:
 
 ```wl
-same = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, a == b], quotient]
+same = TypeTheoryTerm[{Typed[a, Booleans], Typed[b, Booleans]} |-> a == b, quotient]
 ```
 
 <!-- => (a∶𝔹) (b∶𝔹) ↦ a == b -->
@@ -221,7 +221,7 @@ same = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, a == b]
 And the proof that negation respects it:
 
 ```wl
-respects = TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]}, EqualityCongruence[Not, e]], quotient]
+respects = TypeTheoryTerm[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]} |-> EqualityCongruence[Not, e], quotient]
 ```
 
 <!-- => (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[Not, e] -->
@@ -304,7 +304,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Flip[BitZero], flips]]
 By the second, `Flip` is the identity:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[b, Bit]}, Flip[b]], flips], TypeTheoryTerm[Function[{Typed[b, Bit]}, b], flips]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[b, Bit] |-> Flip[b], flips], TypeTheoryTerm[Typed[b, Bit] |-> b, flips]]
 ```
 
 <!-- => True -->
@@ -317,7 +317,7 @@ confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
     BitOne == BitZero,
     EqualityCongruence[
         Function[{Typed[g, TypeSpecifier[{Bit} -> Bit]]}, g[BitZero]],
-        Typed[EqualityReflexivity[Function[{Typed[b, Bit]}, b]], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
+        Typed[EqualityReflexivity[Typed[b, Bit] |-> b], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
     ]
 ]}]
 ```

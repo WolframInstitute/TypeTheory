@@ -73,7 +73,7 @@ arithmetic[TwoPlusTwo]
 Add a definition to that environment:
 
 ```wl
-doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Function[{Typed[n, Naturals]}, n + n]]]
+doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 171 constants -->

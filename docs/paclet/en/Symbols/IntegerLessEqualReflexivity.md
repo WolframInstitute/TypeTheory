@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerLessEqualReflexivity[-4], TypeTheoryEnviro
 An instance with a difference:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerLessEqualReflexivity[x - y]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Integers], Typed[y, Integers]} |-> IntegerLessEqualReflexivity[x - y], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ ∀_y∶ℤ x - y ≤ x - y -->
@@ -69,7 +69,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 <= x], TypeTheoryEnvironment[
 `x <= x` unfolds to a natural number `n` with `x == x + n`, and the proof gives 0 for `n`, with [IntegerAdditionZero]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers]}, Typed[ExistsIntroduction[0, EqualitySymmetry[IntegerAdditionZero[x]]], x <= x]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Integers] |-> Typed[ExistsIntroduction[0, EqualitySymmetry[IntegerAdditionZero[x]]], x <= x], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ ∃_n∶ℕ x == x + ↑n -->

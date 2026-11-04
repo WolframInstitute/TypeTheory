@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[MapJoin]]
 For adding 1 to each natural number:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, MapJoin[Function[{Typed[n, Naturals]}, n + 1], a, b]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, {Naturals}], Typed[b, {Naturals}]} |-> MapJoin[Typed[n, Naturals] |-> n + 1, a, b]]]
 ```
 
 <!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} ((n ∶ ℕ) ↦ n + 1) /@ Join[a, b] == Join[((n ∶ ℕ) ↦ n + 1) /@ a, ((n ∶ ℕ) ↦ n + 1) /@ b] -->
@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Natural
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[b, {Naturals}]},
-    Map[Function[{Typed[n, Naturals]}, n + 1], Join[Prepend[1][{}], b]] == Join[Map[Function[{Typed[n, Naturals]}, n + 1], Prepend[1][{}]], Map[Function[{Typed[n, Naturals]}, n + 1], b]]
+    Map[Typed[n, Naturals] |-> n + 1, Join[Prepend[1][{}], b]] == Join[Map[Typed[n, Naturals] |-> n + 1, Prepend[1][{}]], Map[Typed[n, Naturals] |-> n + 1, b]]
 ], {
     TypeTheoryTactic["Introduce", b],
     TypeTheoryTactic["Reflexivity"]

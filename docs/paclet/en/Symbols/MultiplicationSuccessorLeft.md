@@ -58,8 +58,8 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, (m + 1) * n == 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, (m + 1) * n]],
-    TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m * n + n]]
+    TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> (m + 1) * n],
+    TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> m * n + n]
 ]
 ```
 

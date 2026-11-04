@@ -74,7 +74,7 @@ A strict inequality first gives a strict inequality, since `x < y` is `x + 1 <= 
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals], Typed[h1, x < y], Typed[h2, y <= z]}, LessEqualTransitivity[h1, h2]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals], Typed[h1, x < y], Typed[h2, y <= z]} |-> LessEqualTransitivity[h1, h2]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x < y, Implies[y <= z, x < z]]]]
 ]
 ```

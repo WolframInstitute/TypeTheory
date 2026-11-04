@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerOfNaturalMultiplication[2, 3], TypeTheoryE
 An instance with a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, IntegerOfNaturalMultiplication[n, n]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[n, Naturals] |-> IntegerOfNaturalMultiplication[n, n], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_n∶ℕ ↑(n n) == ↑n ↑n -->

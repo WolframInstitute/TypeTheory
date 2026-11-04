@@ -361,3 +361,16 @@ VerificationTest[
 	{RowBox[{StyleBox["ModularSpace", Bold, StripOnInput -> False], "[", "12", "]"}], True, True, Hold[TypeTheoryTerm[PacletSymbol["Nowhere/Nothing", "x"]]]},
 	TestID -> "A-constant-applied-shows-without-parentheses-and-a-PacletSymbol-reads-as-its-symbol"
 ]
+
+(* a sequence and its type show in brackets, and the type at a list of types that is no literal as Sequence @@ As *)
+VerificationTest[
+	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]},
+		{
+			Cases[ToBoxes[TypeTheoryCheck[TypeTheoryTerm[Sequence[1, 2], wolfram]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, TemplateBox[{"\"[\"", _, "\"]\""}, "RowDefault"], Infinity] =!= {},
+			Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[Sequence[1, 2], wolfram]]], TemplateBox[{"\"[\"", _, "\"]\""}, "RowDefault"], Infinity] =!= {},
+			Cases[ToBoxes[TypeTheoryCheck[TypeTheoryTerm[{Typed[As, {TypeUniverse[1]}], Typed[s, Sequence[As]]} |-> s, wolfram]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, RowBox[{"Sequence", "@@", "As"}], Infinity] =!= {}
+		}
+	],
+	{True, True, True},
+	TestID -> "A-sequence-and-its-type-show-in-brackets"
+]

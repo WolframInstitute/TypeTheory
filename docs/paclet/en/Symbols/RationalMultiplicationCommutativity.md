@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationCommutativity[2/3, 5], Type
 An integer factor is coerced to a rational:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers], Typed[x, Rationals]}, RationalMultiplicationCommutativity[a, x]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, Integers], Typed[x, Rationals]} |-> RationalMultiplicationCommutativity[a, x], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_a∶ℤ ∀_x∶ℚ ↑a x == x ↑a -->

@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualSuccessor]]
 For variables:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualSuccessor[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> LessEqualSuccessor[h]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ x + 1 ≤ y + 1 -->
@@ -58,7 +58,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y,
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualSuccessor[h]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> LessEqualSuccessor[h]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x < y + 1]]]
 ]
 ```
@@ -71,7 +71,7 @@ TypeTheoryCheck[
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, AdditionMonotonicity[h, LessEqualReflexivity]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> AdditionMonotonicity[h, LessEqualReflexivity]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x + 1 <= y + 1]]]
 ]
 ```

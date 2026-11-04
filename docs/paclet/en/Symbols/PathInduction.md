@@ -32,7 +32,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A family of Booleans along a constant path:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[PathInduction[Function[{Typed[y, Booleans], Typed[p, Path[Booleans, "true", y]]}, Booleans], "false", Function[{i}, "true"]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[PathInduction[{Typed[y, Booleans], Typed[p, Path[Booleans, "true", y]]} |-> Booleans, "false", i |-> "true"], cubical]]
 ```
 
 <!-- => false -->
@@ -73,8 +73,8 @@ On a path `p` from `"true"` to `y`, it is `"false"`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[y, Booleans], Typed[p, Path[Booleans, "true", y]]}, PathInduction[Function[{Typed[z, Booleans], Typed[q, Path[Booleans, "true", z]]}, Booleans], "false", p]], cubical],
-    TypeTheoryTerm[Function[{Typed[y, Booleans], Typed[p, Path[Booleans, "true", y]]}, "false"], cubical]
+    TypeTheoryTerm[{Typed[y, Booleans], Typed[p, Path[Booleans, "true", y]]} |-> PathInduction[{Typed[z, Booleans], Typed[q, Path[Booleans, "true", z]]} |-> Booleans, "false", p], cubical],
+    TypeTheoryTerm[{Typed[y, Booleans], Typed[p, Path[Booleans, "true", y]]} |-> "false", cubical]
 ]
 ```
 
@@ -97,7 +97,7 @@ The proof:
 ```wl
 TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, Path[A, y, x]], cubical, {
     TypeTheoryTactic["Introduce", A, x, y, p],
-    TypeTheoryTactic["Exact", PathInduction[Function[{Typed[z, A], Typed[q, Path[A, x, z]]}, Path[A, z, x]], Function[{Typed[i, Interval]}, x], p]]
+    TypeTheoryTactic["Exact", PathInduction[{Typed[z, A], Typed[q, Path[A, x, z]]} |-> Path[A, z, x], Typed[i, Interval] |-> x, p]]
 }]
 ```
 
@@ -119,8 +119,8 @@ In the family of paths back to `"true"`, path induction on the constant path is 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[PathInduction[Function[{Typed[z, Booleans], Typed[q, Path[Booleans, "true", z]]}, Path[Booleans, z, "true"]], Function[{Typed[i, Interval]}, "true"], Function[{Typed[i, Interval]}, "true"]], cubical],
-    TypeTheoryTerm[Function[{Typed[i, Interval]}, "true"], cubical]
+    TypeTheoryTerm[PathInduction[{Typed[z, Booleans], Typed[q, Path[Booleans, "true", z]]} |-> Path[Booleans, z, "true"], Typed[i, Interval] |-> "true", Typed[i, Interval] |-> "true"], cubical],
+    TypeTheoryTerm[Typed[i, Interval] |-> "true", cubical]
 ]
 ```
 

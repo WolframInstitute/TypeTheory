@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalAdditionAssociativity[1/2, 1/3, 1/6], Typ
 An instance with fractions of a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalAdditionAssociativity[x, x / 2, x / 3]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Rationals] |-> RationalAdditionAssociativity[x, x / 2, x / 3], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ x + x/2 + x/3 == x + (x/2 + x/3) -->

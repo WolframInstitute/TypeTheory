@@ -83,7 +83,7 @@ measured[Measure]
 And a term that uses it:
 
 ```wl
-TypeTheoryTerm[Function[{Typed[n, Naturals]}, Measure[Measure[n]]], measured]
+TypeTheoryTerm[Typed[n, Naturals] |-> Measure[Measure[n]], measured]
 ```
 
 <!-- => (n ∶ ℕ) ↦ μ[μ[n]] -->

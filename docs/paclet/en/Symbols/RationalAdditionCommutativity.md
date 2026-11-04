@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalAdditionCommutativity[1/2, -3], TypeTheor
 An integer is coerced to a rational:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[a, Integers]}, RationalAdditionCommutativity[x, a]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Rationals], Typed[a, Integers]} |-> RationalAdditionCommutativity[x, a], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ ∀_a∶ℤ x + ↑a == ↑a + x -->

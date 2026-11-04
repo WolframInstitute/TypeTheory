@@ -54,7 +54,7 @@ At a successor `x + 1`, it proves `x <= x + 1`:
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals]}, PredecessorLessEqual[x + 1]]],
+    TypeTheoryTerm[Typed[x, Naturals] |-> PredecessorLessEqual[x + 1]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, x <= x + 1]]
 ]
 ```
@@ -67,7 +67,7 @@ TypeTheoryCheck[
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, PredecessorLessEqual[n]]],
+    TypeTheoryTerm[Typed[n, Naturals] |-> PredecessorLessEqual[n]],
     TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n - 1 <= n]]
 ]
 ```

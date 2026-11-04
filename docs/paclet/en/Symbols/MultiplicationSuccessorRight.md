@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m * (n + 1) == 
 Applied again and again, it turns a product by a literal into a sum, so `m * 3` is `0 + m + m + m` by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[m, Naturals]}, m * 3]], TypeTheoryTerm[Function[{Typed[m, Naturals]}, 0 + m + m + m]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[m, Naturals] |-> m * 3], TypeTheoryTerm[Typed[m, Naturals] |-> 0 + m + m + m]]
 ```
 
 <!-- => True -->

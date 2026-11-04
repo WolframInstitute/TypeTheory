@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerDistributivity[2, -1, 3], TypeTheoryEnviro
 An instance with variables:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers]}, IntegerDistributivity[x, x, 1]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Integers] |-> IntegerDistributivity[x, x, 1], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ x (x + 1) == x x + x 1 -->

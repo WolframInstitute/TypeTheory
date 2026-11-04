@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionSubtractionCancellation]]
 For variables:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals]}, AdditionSubtractionCancellation[x, y]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals]} |-> AdditionSubtractionCancellation[x, y]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ (x + y) - y == x -->

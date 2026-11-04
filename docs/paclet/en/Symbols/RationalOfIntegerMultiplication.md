@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalOfIntegerMultiplication[2, -5], TypeTheor
 An instance with a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers]}, RationalOfIntegerMultiplication[a, a]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[a, Integers] |-> RationalOfIntegerMultiplication[a, a], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_a∶ℤ ↑(a a) == ↑a ↑a -->

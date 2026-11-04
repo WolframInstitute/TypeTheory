@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[DecidableFalse]]
 False is decided false by the identity on its proofs:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DecidableFalse[Function[{Typed[h, False]}, h]]]]
+TypeTheoryCheck[TypeTheoryTerm[DecidableFalse[Typed[h, False] |-> h]]]
 ```
 
 <!-- => Decidable[False] -->
@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[DecidableFalse[Function[{Typed[h, False]}, h]]]]
 [Decide]() gives `"false"` for it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, False, DecidableFalse[Function[{Typed[h, False]}, h]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, False, DecidableFalse[Typed[h, False] |-> h]]]]
 ```
 
 <!-- => false -->

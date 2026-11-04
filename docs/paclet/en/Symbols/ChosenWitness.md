@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[ChosenWitness]]
 A number whose double is 6, from a proof that there is one:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]}, ChosenWitness[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWitness[h]]]
 ```
 
 <!-- => (∃_n∶ℕ n + n == 6) → ℕ -->
@@ -46,7 +46,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, Natu
 A witness chosen from a proof made with 3; [Typed]() gives the property, which the proof alone does not determine:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[3, EqualityReflexivity[6]], Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[3, EqualityReflexivity[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]]
 ```
 
 <!-- => ℕ -->
@@ -56,7 +56,7 @@ TypeTheoryCheck[TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[3, Equalit
 A function defined by choice: half of a number, given a proof that it has a half:
 
 ```wl
-halves = TypeTheoryEnvironment[{TypeTheoryDefinition[Half, Function[{Typed[n, Naturals], Typed[h, Exists[Function[{Typed[k, Naturals]}, k + k == n]]]}, ChosenWitness[h]]]}]
+halves = TypeTheoryEnvironment[{TypeTheoryDefinition[Half, {Typed[n, Naturals], Typed[h, Exists[Typed[k, Naturals] |-> k + k == n]]} |-> ChosenWitness[h]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -75,8 +75,8 @@ The witness does not depend on the proof: proofs made with 2 and with 4 give the
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[2, LessEqualReflexivity], Exists[Function[{Typed[n, Naturals]}, 2 <= n]]]]],
-    TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Exists[Function[{Typed[n, Naturals]}, 2 <= n]]]]]
+    TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[2, LessEqualReflexivity], Exists[Typed[n, Naturals] |-> 2 <= n]]]],
+    TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Exists[Typed[n, Naturals] |-> 2 <= n]]]]
 ]
 ```
 
@@ -87,7 +87,7 @@ DefinitionallyEqualQ[
 It does not compute, so even from a proof made with 3 the chosen number is not 3 by computation:
 
 ```wl
-TypeTheoryProof[ChosenWitness[Typed[ExistsIntroduction[3, EqualityReflexivity[6]], Exists[Function[{Typed[n, Naturals]}, n + n == 6]]]] == 3, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ChosenWitness[Typed[ExistsIntroduction[3, EqualityReflexivity[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]] == 3, {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

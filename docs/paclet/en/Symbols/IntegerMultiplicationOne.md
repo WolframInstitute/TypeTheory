@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerMultiplicationOne[-7], TypeTheoryEnvironme
 An instance with a sum:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, IntegerMultiplicationOne[x + y]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Integers], Typed[y, Integers]} |-> IntegerMultiplicationOne[x + y], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ ∀_y∶ℤ (x + y) 1 == x + y -->

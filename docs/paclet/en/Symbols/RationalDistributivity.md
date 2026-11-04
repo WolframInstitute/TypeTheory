@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalDistributivity[2, 3, 5], TypeTheoryEnviro
 With `1/2` as the factor, the law halves a sum:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[y, Rationals]}, RationalDistributivity[1/2, x, y]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Rationals], Typed[y, Rationals]} |-> RationalDistributivity[1/2, x, y], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ ∀_y∶ℚ (1/2) (x + y) == (1/2) x + (1/2) y -->

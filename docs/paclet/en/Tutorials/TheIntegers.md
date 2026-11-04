@@ -51,7 +51,7 @@ integers["integerOfNatural"]
 In this environment `+`, `*`, `-`, `^` with a natural number exponent, the comparisons and negative literals are the integers' wherever the types say so, and the natural numbers' otherwise, as in Lean:
 
 ```wl
-TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]
+TypeTheoryTerm[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x + n, integers]
 ```
 
 <!-- => (x ∶ ℤ) (n ∶ ℕ) ↦ 2 x - 7 ≤ x + n -->
@@ -59,7 +59,7 @@ TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x +
 Its type; the natural number `n` is coerced to an integer where it is added to one:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]]
+TypeOf[TypeTheoryTerm[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x + n, integers]]
 ```
 
 <!-- => ℤ → ℕ → Prop -->

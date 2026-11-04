@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalentIntroduction]]
 *p* is equivalent to *p* and *p*:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]}, EquivalentIntroduction[Function[{Typed[h, p && p]}, AndEliminationLeft[h]], Function[{Typed[h, p]}, AndIntroduction[h, h]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[p, TypeUniverse[0]] |-> EquivalentIntroduction[Typed[h, p && p] |-> AndEliminationLeft[h], Typed[h, p] |-> AndIntroduction[h, h]]]]
 ```
 
 <!-- => ∀_p∶Prop (p ∧ p ⧦ p) -->
@@ -72,7 +72,7 @@ With [PropositionalExtensionality](), an equivalence makes two propositions equa
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
-    PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, p && True]}, AndEliminationLeft[h]], Function[{Typed[h, p]}, AndIntroduction[h, TrueIntroduction]]]]
+    PropositionalExtensionality[EquivalentIntroduction[Typed[h, p && True] |-> AndEliminationLeft[h], Typed[h, p] |-> AndIntroduction[h, TrueIntroduction]]]
 ]]]
 ```
 
@@ -83,7 +83,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
 The second implication must go back the other way, so two in the same direction do not make an equivalence:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EquivalentIntroduction[Function[{Typed[h, True]}, EqualityReflexivity[1]], Function[{Typed[h, True]}, EqualityReflexivity[1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[EquivalentIntroduction[Typed[h, True] |-> EqualityReflexivity[1], Typed[h, True] |-> EqualityReflexivity[1]]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

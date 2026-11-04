@@ -70,7 +70,7 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m^(n + 1) == m 
 Applied again and again, it turns a power with a literal exponent into a product, so `m^3` is `1 * m * m * m` by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[m, Naturals]}, m^3]], TypeTheoryTerm[Function[{Typed[m, Naturals]}, 1 * m * m * m]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[m, Naturals] |-> m^3], TypeTheoryTerm[Typed[m, Naturals] |-> 1 * m * m * m]]
 ```
 
 <!-- => True -->

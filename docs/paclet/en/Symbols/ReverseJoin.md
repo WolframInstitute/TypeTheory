@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[ReverseJoin]]
 For lists of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, ReverseJoin[a, b]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, {Naturals}], Typed[b, {Naturals}]} |-> ReverseJoin[a, b]]]
 ```
 
 <!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]] -->

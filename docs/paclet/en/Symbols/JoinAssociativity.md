@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[JoinAssociativity]]
 For lists of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]}, JoinAssociativity[a, b, c]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]} |-> JoinAssociativity[a, b, c]]]
 ```
 
 <!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} ∀_c∶{ℕ} Join[Join[a, b], c] == Join[a, Join[b, c]] -->

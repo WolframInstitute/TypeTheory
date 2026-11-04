@@ -57,7 +57,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Implies[n + 1 <= 0, n == 7]], {
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, SuccessorNotLessEqualZero[n]]],
+    TypeTheoryTerm[Typed[n, Naturals] |-> SuccessorNotLessEqualZero[n]],
     TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, Not[n < 0]]]
 ]
 ```

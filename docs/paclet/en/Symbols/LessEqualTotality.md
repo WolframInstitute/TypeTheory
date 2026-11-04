@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualTotality[3, 5]]]
 Compared with 0, a number is at most 0 or greater than 0:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals]}, LessEqualTotality[x, 0]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Naturals] |-> LessEqualTotality[x, 0]]]
 ```
 
 <!-- => ∀_x∶ℕ (x ≤ 0 ∨ 0 < x) -->

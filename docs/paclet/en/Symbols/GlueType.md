@@ -69,7 +69,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A function is not an equivalence:
 
 ```wl
-TypeTheoryEnvironment[cubical, {TypeTheoryDefinition[NotGlued, Function[{Typed[i, Interval]}, GlueType[Booleans, {i == 0 -> {Booleans, "not"}}]]]}]
+TypeTheoryEnvironment[cubical, {TypeTheoryDefinition[NotGlued, Typed[i, Interval] |-> GlueType[Booleans, {i == 0 -> {Booleans, "not"}}]]}]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

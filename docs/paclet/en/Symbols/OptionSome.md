@@ -54,7 +54,7 @@ TypeTheoryCheck[TypeTheoryTerm[OptionSome[Pair[1, "true"]]]]
 The recursor of [Option]() takes the value out, with a default of 0 for [OptionNone]():
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Option][Function[{Typed[t, Option[Naturals]]}, Naturals], 0, Function[{Typed[x, Naturals]}, x], OptionSome[7]]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Option][Typed[t, Option[Naturals]] |-> Naturals, 0, Typed[x, Naturals] |-> x, OptionSome[7]]]]
 ```
 
 <!-- => 7 -->
@@ -64,7 +64,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Option][Function[{Typed[t, O
 Equal values give equal options, by [EqualityCongruence]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x == y]}, EqualityCongruence[Function[{Typed[z, Naturals]}, OptionSome[z]], h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x == y]} |-> EqualityCongruence[Typed[z, Naturals] |-> OptionSome[z], h]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x == y ⇒ OptionSome[x] == OptionSome[y] -->

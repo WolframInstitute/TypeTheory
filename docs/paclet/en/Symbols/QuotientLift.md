@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[QuotientLift]]
 The quotient of the natural numbers by equality:
 
 ```wl
-equal = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m == n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
 ```
 
 <!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
@@ -46,7 +46,7 @@ The successor respects equality, so it lifts to the classes, and computes on one
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Function[{Typed[k, Naturals]}, k + 1],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Function[{Typed[k, Naturals]}, k + 1], e]],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Typed[k, Naturals] |-> k + 1, e]],
     QuotientIntroduction[equal, 5]
 ]]]
 ```
@@ -58,7 +58,7 @@ WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
 A function lifts only with a proof that it respects the relation:
 
 ```wl
-equal = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m == n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
 ```
 
 <!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
@@ -66,7 +66,7 @@ equal = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, 
 A wrong proof is refused:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientLift[Function[{Typed[k, Naturals]}, 7], Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityReflexivity[a]], QuotientIntroduction[equal, 5]]]]
+TypeTheoryCheck[TypeTheoryTerm[QuotientLift[Typed[k, Naturals] |-> 7, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]} |-> EqualityReflexivity[a], QuotientIntroduction[equal, 5]]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

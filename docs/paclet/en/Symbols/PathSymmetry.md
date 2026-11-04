@@ -51,8 +51,8 @@ Reversing twice:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, PathSymmetry[PathSymmetry[p]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, p], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> PathSymmetry[PathSymmetry[p]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p, cubical]
 ]
 ```
 

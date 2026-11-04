@@ -224,10 +224,12 @@ delaborate[environment_, context_, term_] := Replace[term, {
 	_ :> syntaxOther[HoldComplete[term]]
 }]
 
-(* the type of the sequences of the types of a list literal reads back as it is written, Sequence[A, B], not at its
-   index Sequence[{A, B}], which elaborates the same where a type is expected *)
-sequenceTypeSyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], {index_}]] /; literalListSyntaxQ[index] :=
-	syntaxApplication[head, literalListElements[index]]
+(* the type of the sequences of the types of a list literal reads back as it is written, Sequence[A, B], and at a list
+   of types that is no literal, As, as Sequence @@ As, the sequence of its elements *)
+sequenceTypeSyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], {index_}]] := If[ literalListSyntaxQ[index],
+	syntaxApplication[head, literalListElements[index]],
+	syntaxHead[Apply, {head, index}]
+]
 sequenceTypeSyntax[syntax_] := syntax
 
 literalListSyntaxQ[syntaxApplication[syntaxString["Prepend"], {_, rest_}]] := literalListSyntaxQ[rest]

@@ -53,3 +53,25 @@ VerificationTest[
 	{True, True},
 	TestID -> "Arguments-are-a-sequence-and-a-product-pairs-results"
 ]
+
+(* HoldForm[e] is the expression e quoted: its variables the expressions they stand for, a list of them among the
+   arguments joined in, as Sequence @@ l is, and it shows so; a string literal is a constant of Strings, an expression
+   where one is expected *)
+VerificationTest[
+	With[{quoting = TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], {TypeTheoryAxiom["Global`f", Atoms], TypeTheoryAxiom["\"abc\"", Strings]}]},
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm[ExpressionNormal[ExpressionAtom["Global`f"], {1, 2}], quoting]],
+			Head[TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest, Sequence @@ rest]], quoting]]] === TypeTheoryTerm,
+			DefinitionallyEqualQ[
+				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest]])[1, {2, 3}], quoting],
+				TypeTheoryTerm[HoldForm[f[1, 2, 3]], quoting]
+			],
+			Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], RowBox[{"\"HoldForm\"", "[", _, "]"}], Infinity] =!= {},
+			First[TypeOf[TypeTheoryTerm["abc", quoting]]],
+			First[TypeOf[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
+			First[TypeTheoryCheck[TypeTheoryTerm[HoldForm[g[1]], quoting]]]
+		}
+	],
+	{True, True, True, True, Strings, Expressions, "ElaborationFailed"},
+	TestID -> "HoldForm-quotes-an-expression-and-a-string-literal-is-a-constant-of-Strings"
+]

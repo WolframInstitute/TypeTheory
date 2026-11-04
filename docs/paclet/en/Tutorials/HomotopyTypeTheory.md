@@ -85,7 +85,7 @@ TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Equal], hott]]
 The inverse, concatenation and congruence of paths, [EqualitySymmetry](), [EqualityTransitivity]() and [EqualityCongruence](), are definitions by path induction, and so are [Transport]() and [DependentCongruence](). They compute on reflexivity: carrying an element along reflexivity leaves it as it is.
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity[True], False], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[b, Booleans] |-> Booleans, EqualityReflexivity[True], False], hott]]
 ```
 
 <!-- => false -->
@@ -141,7 +141,7 @@ hott[CircleInductionBase]
 So induction on the base point computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Function[{Typed[x, Circle]}, Booleans], True, TransportConstant[CircleLoop, True], CircleBase], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Typed[x, Circle] |-> Booleans, True, TransportConstant[CircleLoop, True], CircleBase], hott]]
 ```
 
 <!-- => true -->

@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality]]
 [True]() is the same proposition as [True]() and [True]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, True]}, AndIntroduction[h, h]], Function[{Typed[h, True && True]}, AndEliminationLeft[h]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Typed[h, True] |-> AndIntroduction[h, h], Typed[h, True && True] |-> AndEliminationLeft[h]]]]]
 ```
 
 <!-- => True == (True ∧ True) -->
@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroductio
 A proposition that holds is [True]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[k, p]}, TrueIntroduction], Function[{Typed[k, True]}, h]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[h, p]} |-> PropositionalExtensionality[EquivalentIntroduction[Typed[k, p] |-> TrueIntroduction, Typed[k, True] |-> h]]]]
 ```
 
 <!-- => ∀_p∶Prop p ⇒ p == True -->
@@ -66,7 +66,7 @@ proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse
 Each direction swaps the parts of the conjunction:
 
 ```wl
-TypeTheoryTactic["Exact", EquivalentIntroduction[Function[{Typed[h, p && q]}, AndIntroduction[h[[2]], h[[1]]]], Function[{Typed[h, q && p]}, AndIntroduction[h[[2]], h[[1]]]]]][proof]
+TypeTheoryTactic["Exact", EquivalentIntroduction[Typed[h, p && q] |-> AndIntroduction[h[[2]], h[[1]]], Typed[h, q && p] |-> AndIntroduction[h[[2]], h[[1]]]]][proof]
 ```
 
 <!-- => Proof complete -->

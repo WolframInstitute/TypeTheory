@@ -73,7 +73,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 Induction into the constant family of Booleans, at the base point:
 
 ```wl
-TypeTheoryProof[CircleInduction[Function[{Typed[x, Circle]}, Booleans], "false", TransportConstant[CircleLoop, "false"], CircleBase] == "false", hott, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[CircleInduction[Typed[x, Circle] |-> Booleans, "false", TransportConstant[CircleLoop, "false"], CircleBase] == "false", hott, {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Proof complete -->

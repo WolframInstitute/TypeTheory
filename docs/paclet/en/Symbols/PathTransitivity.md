@@ -53,8 +53,8 @@ For a path `p` from `x` to `y` and a path `q` from `y` to `z`, the concatenation
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[z, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]}, PathTransitivity[p, q][1]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[z, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]}, z], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[z, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]} |-> PathTransitivity[p, q][1], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[z, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]} |-> z, cubical]
 ]
 ```
 
@@ -135,8 +135,8 @@ A path `p` followed by the constant path at its end is not `p` by computation:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, PathTransitivity[p, Function[{Typed[i, Interval]}, y]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, p], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> PathTransitivity[p, Typed[i, Interval] |-> y], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p, cubical]
 ]
 ```
 

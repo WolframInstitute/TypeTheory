@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerOfNaturalAddition[2, 3], TypeTheoryEnviron
 An instance with a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, IntegerOfNaturalAddition[n, 1]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[n, Naturals] |-> IntegerOfNaturalAddition[n, 1], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_n∶ℕ ↑(n + 1) == ↑n + 1 -->

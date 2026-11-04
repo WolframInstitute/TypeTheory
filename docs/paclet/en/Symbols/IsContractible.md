@@ -72,7 +72,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The proof:
 
 ```wl
-TypeTheoryProof[IsContractible[Fiber[Function[{Typed[x, Booleans]}, x], "true"]], cubical, {TypeTheoryTactic["Exact", IdentityEquivalence[Booleans][[2]]["true"]]}]
+TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], cubical, {TypeTheoryTactic["Exact", IdentityEquivalence[Booleans][[2]]["true"]]}]
 ```
 
 <!-- => Proof complete -->

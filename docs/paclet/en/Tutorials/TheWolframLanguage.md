@@ -23,6 +23,18 @@ TypeOf[TypeTheoryTerm[ExpressionNormal[7, {1, 2}], wolfram]]
 
 <!-- => Expressions -->
 
+An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols are their atoms, declared as constants named by their full names, its natural numbers and strings theirs, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `ExpressionNormal` and `ExpressionAtom` build what it stands for:
+
+```wl
+quoting = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["Global`f", Atoms, "Implementation" -> f]}];
+DefinitionallyEqualQ[
+    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[f[x, rest]]][1, {2, 3}], quoting],
+    TypeTheoryTerm[ExpressionNormal[ExpressionAtom["Global`f"], {1, 2, 3}], quoting]
+]
+```
+
+<!-- => True -->
+
 [Arguments]() gives the list of an expression's arguments:
 
 ```wl
@@ -39,7 +51,7 @@ A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` giv
 {TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], wolfram]], DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], wolfram], TypeTheoryTerm[Sequence[1, 2, 3], wolfram]]}
 ```
 
-<!-- => {Sequence[ℕ, Expressions], True} -->
+<!-- => {[ℕ, Expressions], True} -->
 
 A binder of a type [Sequence]()[...] takes the arguments of an application that are left as one `Sequence`, so a function of the type `Sequence[A, B] -> C` is applied as the Wolfram Language applies one, `f[a, b]`, and is another function than one of the curried type `A -> B -> C`, applied as `f[a][b]`. The type gives how many arguments it takes:
 

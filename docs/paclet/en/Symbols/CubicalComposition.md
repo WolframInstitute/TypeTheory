@@ -34,7 +34,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Where a face holds, the composition is its side at 1:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CubicalComposition[Booleans, Function[{j}, {1 -> "true"}], "true"], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[CubicalComposition[Booleans, j |-> {1 -> "true"}, "true"], cubical]]
 ```
 
 <!-- => true -->
@@ -71,7 +71,7 @@ A side must be the base at 0:
 
 ```wl
 TypeTheoryEnvironment[cubical, {TypeTheoryDefinition[WrongSide, Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, Path[A, x, y]]},
-    Function[{Typed[i, Interval]}, CubicalComposition[A, Function[{j}, {i == 0 -> y}], p[i]]]
+    Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {i == 0 -> y}, p[i]]]
 ]]}]
 ```
 

@@ -51,8 +51,8 @@ At 0 it is the first function, by computation:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[PathFunctionExtensionality[Function[{Typed[b, Booleans]}, NegationInvolution[b]]][0], cubical],
-    TypeTheoryTerm[Function[{Typed[b, Booleans]}, "not"["not"[b]]], cubical]
+    TypeTheoryTerm[PathFunctionExtensionality[Typed[b, Booleans] |-> NegationInvolution[b]][0], cubical],
+    TypeTheoryTerm[Typed[b, Booleans] |-> "not"["not"[b]], cubical]
 ]
 ```
 

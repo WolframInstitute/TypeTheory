@@ -40,4 +40,4 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[positive, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryDefinition["DownValues[positive]", ...] whose condition is ExpressionValue[...] === ExpressionAtom["System`True"] -->
+<!-- => TypeTheoryDefinition["DownValues[positive]", ...] whose condition is ExpressionValue[HoldForm[x > 0]] === HoldForm[True] -->

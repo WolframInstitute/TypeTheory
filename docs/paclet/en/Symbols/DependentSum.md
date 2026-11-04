@@ -70,7 +70,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A pair of two Booleans:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Booleans]]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], cubical]]
 ```
 
 <!-- => Σ_b∶𝔹 𝔹 -->
@@ -78,7 +78,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSu
 Its second field:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Function[{Typed[b, Booleans]}, Booleans]]][[2]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]][[2]], cubical]]
 ```
 
 <!-- => false -->

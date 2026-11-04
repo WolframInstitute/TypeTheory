@@ -54,7 +54,7 @@ TypeTheoryCheck[TypeTheoryTerm[Construct[OptionNone, Naturals]]]
 The recursor of [Option]() gives a default for the missing value, here 0:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Option][Function[{Typed[t, Option[Naturals]]}, Naturals], 0, Function[{Typed[x, Naturals]}, x], OptionNone]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Option][Typed[t, Option[Naturals]] |-> Naturals, 0, Typed[x, Naturals] |-> x, OptionNone]]]
 ```
 
 <!-- => 0 -->

@@ -33,7 +33,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A path at 0 is its start:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[PathSymmetry[Function[{Typed[i, Interval]}, "true"]][0], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[PathSymmetry[Typed[i, Interval] |-> "true"][0], cubical]]
 ```
 
 <!-- => true -->
@@ -74,8 +74,8 @@ A path `p` from `x` to `y`, at 0, is `x`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, p[0]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, x], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[0], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> x, cubical]
 ]
 ```
 
@@ -97,8 +97,8 @@ A path `p` from `x` to `y`, at <code>[IntervalReverse]()[0]</code>, is `y`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, p[IntervalReverse[0]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, y], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[IntervalReverse[0]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> y, cubical]
 ]
 ```
 

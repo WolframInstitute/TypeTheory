@@ -85,7 +85,7 @@ TypeTheoryCheck[TypeTheoryTerm[Construct[LessEqualReflexivity, 3]]]
 `0 + x` is not *x* by computation, so it does not prove `0 + x <= x`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals]}, LessEqualReflexivity]], TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, 0 + x <= x]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Naturals] |-> LessEqualReflexivity], TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, 0 + x <= x]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

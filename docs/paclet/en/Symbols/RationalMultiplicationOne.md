@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationOne[7], TypeTheoryEnvironme
 An instance with a sum:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[y, Rationals]}, RationalMultiplicationOne[x + y]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Rationals], Typed[y, Rationals]} |-> RationalMultiplicationOne[x + y], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ ∀_y∶ℚ (x + y) 1 == x + y -->

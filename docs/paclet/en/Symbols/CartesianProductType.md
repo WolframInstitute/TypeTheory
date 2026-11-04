@@ -56,7 +56,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[2]]]]
 A function takes the second field of any pair:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, CartesianProductType[Naturals, Booleans]]}, p[[2]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p[[2]]]]
 ```
 
 <!-- => ℕ × 𝔹 → 𝔹 -->

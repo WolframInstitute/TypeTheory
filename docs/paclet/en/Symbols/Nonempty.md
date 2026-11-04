@@ -77,7 +77,7 @@ TypeTheoryTactic["Exact", NonemptyIntroduction[Pair[x, x]]][proof]
 [Choice]() takes a proof of [Nonempty]() to an element:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Nonempty[Naturals]]}, Choice[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Nonempty[Naturals]] |-> Choice[h]]]
 ```
 
 <!-- => Nonempty[ℕ] → ℕ -->

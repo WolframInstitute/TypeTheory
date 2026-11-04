@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessIrreflexivity]]
 With it, `3 <= 2` is false: it would make `2 < 2`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, 3 <= 2]}, LessIrreflexivity[2][LessEqualTransitivity[h, LessEqualReflexivity]]]], TypeTheoryTerm[Not[3 <= 2]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, 3 <= 2] |-> LessIrreflexivity[2][LessEqualTransitivity[h, LessEqualReflexivity]]], TypeTheoryTerm[Not[3 <= 2]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x < y, 
 `x > x` unfolds to `x < x`, so it refutes that too:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals]}, LessIrreflexivity[x]]], TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, Not[x > x]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Naturals] |-> LessIrreflexivity[x]], TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, Not[x > x]]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->

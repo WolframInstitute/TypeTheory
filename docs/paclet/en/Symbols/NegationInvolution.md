@@ -68,7 +68,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 At 0, the double negation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[b, Booleans]}, NegationInvolution[b][0]], cubical], TypeTheoryTerm[Function[{Typed[b, Booleans]}, "not"["not"[b]]], cubical]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[b, Booleans] |-> NegationInvolution[b][0], cubical], TypeTheoryTerm[Typed[b, Booleans] |-> "not"["not"[b]], cubical]]
 ```
 
 <!-- => True -->
@@ -76,7 +76,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[b, Booleans]}, NegationInvol
 At 1, the Boolean itself:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[b, Booleans]}, NegationInvolution[b][1]], cubical], TypeTheoryTerm[Function[{Typed[b, Booleans]}, b], cubical]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[b, Booleans] |-> NegationInvolution[b][1], cubical], TypeTheoryTerm[Typed[b, Booleans] |-> b, cubical]]
 ```
 
 <!-- => True -->

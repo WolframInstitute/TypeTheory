@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerMultiplicationAssociativity[2, -1, 3], Typ
 An instance with one variable three times:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Integers]}, IntegerMultiplicationAssociativity[x, x, x]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Integers] |-> IntegerMultiplicationAssociativity[x, x, x], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_x∶ℤ x x x == x (x x) -->

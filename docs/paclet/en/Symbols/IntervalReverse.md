@@ -34,8 +34,8 @@ Reversing twice gives the path back:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]}, p[1 - (1 - i)]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]}, p[i]], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[1 - (1 - i)], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[i], cubical]
 ]
 ```
 
@@ -55,8 +55,8 @@ An element and its reversal meet in no endpoint, but the interval is no Boolean 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]}, p[Min[i, 1 - i]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]}, p[0]], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Min[i, 1 - i]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[0], cubical]
 ]
 ```
 

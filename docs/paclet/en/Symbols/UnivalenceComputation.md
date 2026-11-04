@@ -73,7 +73,7 @@ The proof:
 
 ```wl
 TypeTheoryProof[EqualityToEquivalence[EquivalenceToEquality[NegationEquivalence]][[1]]["true"] == "false", hott, {
-    TypeTheoryTactic["Exact", EqualityCongruence[Function[{Typed[e, Equivalence[Booleans, Booleans]]}, e[[1]]["true"]], UnivalenceComputation[NegationEquivalence]]]
+    TypeTheoryTactic["Exact", EqualityCongruence[Typed[e, Equivalence[Booleans, Booleans]] |-> e[[1]]["true"], UnivalenceComputation[NegationEquivalence]]]
 }]
 ```
 

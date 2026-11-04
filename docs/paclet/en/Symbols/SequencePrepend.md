@@ -30,7 +30,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 TypeOf[TypeTheoryTerm[SequencePrepend[1, SequencePrepend[Typed[2, Expressions], EmptySequence]], wolfram]]
 ```
 
-<!-- => Sequence[ℕ, Expressions] -->
+<!-- => [ℕ, Expressions] -->
 
 ## Scope
 

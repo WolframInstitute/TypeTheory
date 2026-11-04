@@ -74,8 +74,8 @@ A path `p` from `x` to `y`, at 1, is `y`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, p[1]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, y], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[1], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> y, cubical]
 ]
 ```
 
@@ -97,8 +97,8 @@ Made from the paths <code>[NegationInvolution]()[*b*]</code> from `"not"["not"[b
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[PathFunctionExtensionality[Function[{Typed[b, Booleans]}, NegationInvolution[b]]][1], cubical],
-    TypeTheoryTerm[Function[{Typed[b, Booleans]}, b], cubical]
+    TypeTheoryTerm[PathFunctionExtensionality[Typed[b, Booleans] |-> NegationInvolution[b]][1], cubical],
+    TypeTheoryTerm[Typed[b, Booleans] |-> b, cubical]
 ]
 ```
 
@@ -119,7 +119,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Transport along a path of types `p` over the face 1:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, CubicalTransport[p, 1, "true"]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

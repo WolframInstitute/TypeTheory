@@ -72,7 +72,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A proof that gives the pair, a [DependentPair]():
 
 ```wl
-TypeTheoryProof[Fiber["not", "true"], cubical, {TypeTheoryTactic["Exact", DependentPair["false", Function[{Typed[i, Interval]}, "true"]]]}]
+TypeTheoryProof[Fiber["not", "true"], cubical, {TypeTheoryTactic["Exact", DependentPair["false", Typed[i, Interval] |-> "true"]]}]
 ```
 
 <!-- => Proof complete -->

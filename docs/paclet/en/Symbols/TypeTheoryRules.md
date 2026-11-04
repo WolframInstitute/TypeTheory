@@ -105,7 +105,7 @@ Under rules with quantities, an affine function may not be applied twice:
 
 ```wl
 TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "Quantities" -> True], {
-    TypeTheoryDefinition[ApplyTwice, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]}, f[f[x]]]]
+    TypeTheoryDefinition[ApplyTwice, {TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]} |-> f[f[x]]]
 }]
 ```
 
@@ -115,7 +115,7 @@ Applied once, it checks:
 
 ```wl
 TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "Quantities" -> True], {
-    TypeTheoryDefinition[ApplyOnce, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]}, f[x]]]
+    TypeTheoryDefinition[ApplyOnce, {TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]} |-> f[x]]
 }]
 ```
 

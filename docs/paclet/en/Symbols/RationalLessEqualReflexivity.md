@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalLessEqualReflexivity[-2/3], TypeTheoryEnv
 An instance with a fraction of a variable:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalLessEqualReflexivity[x / 2]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Rationals] |-> RationalLessEqualReflexivity[x / 2], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ x/2 ≤ x/2 -->
@@ -69,7 +69,7 @@ TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x + 0 <= x], TypeTheoryEnvironment
 `x <= x` unfolds to natural numbers `n` and `d` with `x == x + n / (d + 1)`, the class of the pair (n, d), and the proof gives 0 for both, with [RationalAdditionZero]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, Typed[ExistsIntroduction[0, ExistsIntroduction[0, EqualitySymmetry[RationalAdditionZero[x]]]], x <= x]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Rationals] |-> Typed[ExistsIntroduction[0, ExistsIntroduction[0, EqualitySymmetry[RationalAdditionZero[x]]]], x <= x], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ ∃_n∶ℕ ∃_d∶ℕ x == x + rationalOfPair[(↑n, d)] -->

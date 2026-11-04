@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationCancellation]]
 A factor of 3 is 2 + 1 by computation:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[h, 3 a == 3 b]}, MultiplicationCancellation[2, a, b, h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, Naturals], Typed[b, Naturals], Typed[h, 3 a == 3 b]} |-> MultiplicationCancellation[2, a, b, h]]]
 ```
 
 <!-- => ∀_a∶ℕ ∀_b∶ℕ 3 a == 3 b ⇒ a == b -->
@@ -81,7 +81,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[2 x == 
 The first argument is *k*, one less than the factor, so a factor of 3 needs 2, and 3 does not check:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[h, 3 a == 3 b]}, MultiplicationCancellation[3, a, b, h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, Naturals], Typed[b, Naturals], Typed[h, 3 a == 3 b]} |-> MultiplicationCancellation[3, a, b, h]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

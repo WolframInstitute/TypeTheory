@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[LengthJoin]]
 For lists of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, LengthJoin[a, b]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, {Naturals}], Typed[b, {Naturals}]} |-> LengthJoin[a, b]]]
 ```
 
 <!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} Length[Join[a, b]] == Length[a] + Length[b] -->

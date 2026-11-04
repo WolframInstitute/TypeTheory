@@ -69,7 +69,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0^(n + 1) == 0], {
 Multiplying by 0 on the right is the constant function 0 by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n * 0]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n * 0], TypeTheoryTerm[Typed[n, Naturals] |-> 0]]
 ```
 
 <!-- => True -->
@@ -79,7 +79,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n * 0]], Type
 On the left, 0 does not compute away, so it needs [MultiplicationZeroLeft]():
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0 * n]], TypeTheoryTerm[Function[{Typed[n, Naturals]}, 0]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> 0 * n], TypeTheoryTerm[Typed[n, Naturals] |-> 0]]
 ```
 
 <!-- => False -->

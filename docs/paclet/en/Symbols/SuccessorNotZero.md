@@ -63,7 +63,7 @@ TypeTheoryTactic["Exact", SuccessorNotZero[n][h]][proof]
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals]}, SuccessorNotZero[x + 1]]],
+    TypeTheoryTerm[Typed[x, Naturals] |-> SuccessorNotZero[x + 1]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, x + 2 != 0]]
 ]
 ```
@@ -76,7 +76,7 @@ With [EqualitySymmetry](), it proves the inequation the other way around, `0 != 
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[n, Naturals], Typed[h, 0 == n + 1]}, SuccessorNotZero[n][EqualitySymmetry[h]]]],
+    TypeTheoryTerm[{Typed[n, Naturals], Typed[h, 0 == n + 1]} |-> SuccessorNotZero[n][EqualitySymmetry[h]]],
     TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 0 != n + 1]]
 ]
 ```
@@ -88,7 +88,7 @@ TypeTheoryCheck[
 `1 + n` is not a successor by computation, since addition recurses on its second argument, so `1 + n != 0` is not an instance:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, SuccessorNotZero[n]]], TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 1 + n != 0]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[n, Naturals] |-> SuccessorNotZero[n]], TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 1 + n != 0]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

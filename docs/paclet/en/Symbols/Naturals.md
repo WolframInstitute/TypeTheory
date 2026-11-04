@@ -36,7 +36,7 @@ Naturals
 The successor function on the natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 1]]]
+TypeOf[TypeTheoryTerm[Typed[n, Naturals] |-> n + 1]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -73,7 +73,7 @@ A symbol of your own whose value is a constant stands for it too:
 
 ```wl
 Counting = NonNegativeIntegers;
-TypeOf[TypeTheoryTerm[Function[{Typed[k, Counting]}, k]]]
+TypeOf[TypeTheoryTerm[Typed[k, Counting] |-> k]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -83,7 +83,7 @@ TypeOf[TypeTheoryTerm[Function[{Typed[k, Counting]}, k]]]
 A binder named [Naturals]() is a variable of its own:
 
 ```wl
-TypeOf[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]]
+TypeOf[TypeTheoryTerm[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]} |-> x]]
 ```
 
 <!-- => ∀_Naturals∶Type Naturals → Naturals -->

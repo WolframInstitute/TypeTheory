@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnionType[Natural
 [Typed]() gives the type with its other side, here in a function:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals]}, Typed[LeftInjection[n], DisjointUnionType[Naturals, Booleans]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[n, Naturals] |-> Typed[LeftInjection[n], DisjointUnionType[Naturals, Booleans]]]]
 ```
 
 <!-- => ℕ → ℕ ⊕ 𝔹 -->

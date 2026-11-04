@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationAssociativity[2, 3, 5], Typ
 An instance with an integer, coerced to a rational:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, Integers], Typed[x, Rationals]}, RationalMultiplicationAssociativity[a, x, x]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, Integers], Typed[x, Rationals]} |-> RationalMultiplicationAssociativity[a, x, x], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_a∶ℤ ∀_x∶ℚ ↑a x x == ↑a (x x) -->

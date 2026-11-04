@@ -55,7 +55,7 @@ For a variable, two steps prove `x <= x + 2`:
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals]}, LessEqualStep[LessEqualStep[LessEqualReflexivity]]]],
+    TypeTheoryTerm[Typed[x, Naturals] |-> LessEqualStep[LessEqualStep[LessEqualReflexivity]]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals]}, x <= x + 2]]
 ]
 ```
@@ -78,7 +78,7 @@ It adds 1 on the right as `m + 1`, and `1 + y` is not that by computation:
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]}, LessEqualStep[h]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x <= y]} |-> LessEqualStep[h]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, x <= 1 + y]]]
 ]
 ```

@@ -27,6 +27,7 @@ RelatedGuides: [TypeTheory]
 - A type that `"Type"` gives decides the arguments, also where the heads of the patterns, as `_Integer`, would give them another.
 - Otherwise it is a [TypeTheoryAxiom]() with `"Implementation" -> symbol`: the Wolfram Language computes it, and the kernel never does.
 - The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and an axiom takes it. Without it, an axiom's type is `Expressions -> ... -> Expressions`, one [Expressions]() for each argument, [Expressions]() being the type of any Wolfram Language expression: an axiom where the environment lacks it, and the inductive type of expressions in [TypeTheoryEnvironment]()["WolframLanguage"].
+- The strings are [Strings](), declared where a definition needs them: [StringReverse]() has the signature `Strings -> Strings`, [StringLength]() `Strings -> ℕ`, [StringJoin]() `Strings -> Strings -> Strings`, and a string literal `"abc"` is a constant of [Strings](), named by its [InputForm]() and declared with the definition that uses it.
 - A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over [Expressions]() otherwise, as [D](). The numbers of the environment go into [Expressions]() by coercions. No equation about a built-in is assumed.
 - The option `"Meaning"` is `"Function"`, the default, for a constant that is the function *symbol* computes, or `"Rules"` for its rules, its [DownValues](), as a rewriting of expressions: the definition named `"DownValues[symbol]"` gives the expression that an expression rewrites to by the first rule that matches it, and [OptionNone]() where none does and the expression stays as it is.
 - The rules are [MatchFirst]() of the `MatchSum` of the matches of the rules, in the order the Wolfram Language tries them. The left side of each rule is read from its match program: the lengths and parts of the expression by [Length](), [Arguments]() and `MatchPart`, its heads and literals by [SameQ](), alternatives and exceptions by `MatchQ`, and conditions by [SameQ]() of their [ExpressionValue]() and `True`. The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation.
@@ -63,6 +64,19 @@ TypeOf[TypeTheoryTerm[next, formalized]]
 ```
 
 <!-- => ℤ → ℤ -->
+
+---
+
+A function of strings is a definition over [Strings](), and a string literal a constant of it:
+
+```wl
+greeting[s_] := StringJoin["Hello, ", s];
+integers = TypeTheoryEnvironment["Integers"];
+greeted = TypeTheoryEnvironment[integers, TypeTheoryFormalize[greeting, integers]];
+TypeOf[TypeTheoryTerm[greeting, greeted]]
+```
+
+<!-- => Strings → Strings -->
 
 ---
 
@@ -123,11 +137,11 @@ clamped = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[clamp, prelude, "Ty
 A function that does not translate is an axiom of the type given, which it computes:
 
 ```wl
-reversed[s_] := StringReverse[s];
-TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers]
+styled[x_] := Style[x, Bold];
+TypeTheoryFormalize[styled, "Type" -> Integers -> Integers]
 ```
 
-<!-- => {TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]} -->
+<!-- => {TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]} -->
 
 ### Meaning
 
@@ -158,8 +172,8 @@ listing = TypeTheoryEnvironment[wolfram, rules];
 Without a type, a function that does not translate takes [Expressions]() for each argument:
 
 ```wl
-reversed[s_] := StringReverse[s];
-Last[TypeTheoryFormalize[reversed, TypeTheoryEnvironment["Integers"]]]
+styled[x_] := Style[x, Bold];
+Last[TypeTheoryFormalize[styled, TypeTheoryEnvironment["Integers"]]]
 ```
 
-<!-- => TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed] -->
+<!-- => TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled] -->

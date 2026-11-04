@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[DoubleNegationElimination]]
 From the double negation of `1 == 1`, `1 == 1`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Not[Not[1 == 1]]]}, DoubleNegationElimination[1 == 1][h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Not[Not[1 == 1]]] |-> DoubleNegationElimination[1 == 1][h]]]
 ```
 
 <!-- => (¬¬1 == 1) ⇒ 1 == 1 -->
@@ -68,7 +68,7 @@ It is proved by cases on [ExcludedMiddle](), whose recursor takes a case for eac
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, Not[Not[p]]]},
-    InductiveRecursor[Or][Function[{Typed[t, p || Not[p]]}, p], Function[{Typed[k, p]}, k], Function[{Typed[k, Not[p]]}, FalseElimination[h[k]]], ExcludedMiddle[p]]
+    InductiveRecursor[Or][Typed[t, p || Not[p]] |-> p, Typed[k, p] |-> k, Typed[k, Not[p]] |-> FalseElimination[h[k]], ExcludedMiddle[p]]
 ]]]
 ```
 

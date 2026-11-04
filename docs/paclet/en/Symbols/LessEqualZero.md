@@ -57,7 +57,7 @@ With [LessEqualSuccessor](), every successor is positive, since `0 < n + 1` unfo
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, LessEqualSuccessor[LessEqualZero[n]]]],
+    TypeTheoryTerm[Typed[n, Naturals] |-> LessEqualSuccessor[LessEqualZero[n]]],
     TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 0 < n + 1]]
 ]
 ```

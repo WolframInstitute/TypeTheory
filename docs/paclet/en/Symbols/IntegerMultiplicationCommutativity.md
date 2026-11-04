@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerMultiplicationCommutativity[-2, 5], TypeTh
 A natural number factor is coerced to an integer:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[n, Naturals], Typed[x, Integers]}, IntegerMultiplicationCommutativity[n, x]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[n, Naturals], Typed[x, Integers]} |-> IntegerMultiplicationCommutativity[n, x], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_n∶ℕ ∀_x∶ℤ ↑n x == x ↑n -->

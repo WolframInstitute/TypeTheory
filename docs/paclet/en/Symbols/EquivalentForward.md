@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalentForward]]
 From a proof of <code>[Equivalent]()[[True](), 1 == 1]</code>, a proof of `1 == 1`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentForward[h][TrueIntroduction]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> EquivalentForward[h][TrueIntroduction]]]
 ```
 
 <!-- => (True ⧦ 1 == 1) ⇒ 1 == 1 -->
@@ -78,7 +78,7 @@ TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, I
 <code>[EquivalentForward]()[*h*]</code> proves what the first field `h[[1]]` proves:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, h[[1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> h[[1]]]]
 ```
 
 <!-- => (True ⧦ 1 == 1) ⇒ True ⇒ 1 == 1 -->
@@ -88,7 +88,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, h[
 [EquivalentForward]() goes from *a* to *b*, so it does not take a proof of *b*:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentForward[h][EqualityReflexivity[1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> EquivalentForward[h][EqualityReflexivity[1]]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

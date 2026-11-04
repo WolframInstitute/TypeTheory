@@ -104,8 +104,8 @@ The congruence of a reversed path is the reversed congruence:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[f, TypeSpecifier[{A} -> B]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, PathCongruence[f, PathSymmetry[p]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[f, TypeSpecifier[{A} -> B]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]}, PathSymmetry[PathCongruence[f, p]]], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[f, TypeSpecifier[{A} -> B]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> PathCongruence[f, PathSymmetry[p]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[f, TypeSpecifier[{A} -> B]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> PathSymmetry[PathCongruence[f, p]], cubical]
 ]
 ```
 

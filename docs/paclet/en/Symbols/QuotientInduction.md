@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[QuotientInduction]]
 The quotient of the natural numbers by equality:
 
 ```wl
-equal = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m == n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
 ```
 
 <!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
@@ -43,7 +43,7 @@ equal = TypeTheoryTerm[Typed[Function[{Typed[m, Naturals], Typed[n, Naturals]}, 
 Every class equals itself, from every element's class doing so:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Construct[QuotientInduction, Naturals, equal, Function[{Typed[q, QuotientType[equal]]}, q == q], Function[{Typed[a, Naturals]}, EqualityReflexivity[QuotientIntroduction[equal, a]]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Construct[QuotientInduction, Naturals, equal, Typed[q, QuotientType[equal]] |-> q == q, Typed[a, Naturals] |-> EqualityReflexivity[QuotientIntroduction[equal, a]]]]]
 ```
 
 <!-- => ∀_q∶QuotientType[(m ∶ ℕ) (n ∶ ℕ) ↦ m == n] q == q -->

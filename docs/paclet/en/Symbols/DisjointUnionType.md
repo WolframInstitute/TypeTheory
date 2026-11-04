@@ -56,7 +56,7 @@ A function defined by cases on the side, with the recursor of [DisjointUnionType
 
 ```wl
 sides = TypeTheoryEnvironment[{TypeTheoryDefinition[SideNumber, Function[{Typed[s, DisjointUnionType[Naturals, Booleans]]},
-    InductiveRecursor[DisjointUnionType][Function[{Typed[t, DisjointUnionType[Naturals, Booleans]]}, Naturals], Function[{Typed[n, Naturals]}, n], Function[{Typed[b, Booleans]}, 0], s]
+    InductiveRecursor[DisjointUnionType][Typed[t, DisjointUnionType[Naturals, Booleans]] |-> Naturals, Typed[n, Naturals] |-> n, Typed[b, Booleans] |-> 0, s]
 ]]}]
 ```
 

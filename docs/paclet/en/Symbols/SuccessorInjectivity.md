@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[SuccessorInjectivity]]
 From `x + 1 == 5`, `x == 4`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 1 == 5]}, SuccessorInjectivity[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[h, x + 1 == 5]} |-> SuccessorInjectivity[h]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 1 == 5 ⇒ x == 4 -->
@@ -66,7 +66,7 @@ It is [EqualityCongruence]() with [NaturalNumberPredecessor](), which takes both
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x + 1 == y + 1]}, EqualityCongruence[NaturalNumberPredecessor, h]]],
+    TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, x + 1 == y + 1]} |-> EqualityCongruence[NaturalNumberPredecessor, h]],
     TypeTheoryTerm[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + 1 == y + 1, x == y]]]
 ]
 ```
@@ -78,7 +78,7 @@ TypeTheoryCheck[
 `1 + x` is not a successor by computation, since addition recurses on its second argument, so an equation `1 + x == 1 + y` does not fit:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, 1 + x == 1 + y]}, SuccessorInjectivity[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, 1 + x == 1 + y]} |-> SuccessorInjectivity[h]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

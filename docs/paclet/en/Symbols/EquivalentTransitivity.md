@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalentTransitivity]]
 Chain two equivalences:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[r, TypeUniverse[0]], Typed[h1, Equivalent[p, q]], Typed[h2, Equivalent[q, r]]}, EquivalentTransitivity[h1, h2]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[r, TypeUniverse[0]], Typed[h1, Equivalent[p, q]], Typed[h2, Equivalent[q, r]]} |-> EquivalentTransitivity[h1, h2]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop ∀_r∶Prop (p ⧦ q) ⇒ (q ⧦ r) ⇒ (p ⧦ r) -->

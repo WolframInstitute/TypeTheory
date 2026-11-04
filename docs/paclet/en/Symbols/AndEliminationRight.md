@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[AndEliminationRight]]
 Use it on a hypothesis:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, AndEliminationRight[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, And[True, 1 == 1]] |-> AndEliminationRight[h]]]
 ```
 
 <!-- => (True ∧ 1 == 1) ⇒ 1 == 1 -->
@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, AndElimin
 Conjunctions group to the right, so the last part of `a && b && c` takes [AndEliminationRight]() twice:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, True && 1 == 1 && 2 == 2]}, AndEliminationRight[AndEliminationRight[h]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, True && 1 == 1 && 2 == 2] |-> AndEliminationRight[AndEliminationRight[h]]]]
 ```
 
 <!-- => (True ∧ 1 == 1 ∧ 2 == 2) ⇒ 2 == 2 -->
@@ -89,7 +89,7 @@ TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Ty
 With [AndEliminationLeft]() it takes a conjunction apart, and [AndIntroduction]() puts the parts back together:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, a && b]}, AndIntroduction[AndEliminationLeft[h], AndEliminationRight[h]]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, a && b]} |-> AndIntroduction[AndEliminationLeft[h], AndEliminationRight[h]]]]
 ```
 
 <!-- => ∀_a∶Prop ∀_b∶Prop (a ∧ b) ⇒ (a ∧ b) -->

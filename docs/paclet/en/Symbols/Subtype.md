@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[Subtype]]
 The second field of an element proves the property of the first:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]]}, s[[2]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[2]]]]
 ```
 
 <!-- => ∀_s∶{n∶ℕ // 2 ≤ n} 2 ≤ s〚1〛 -->
@@ -46,7 +46,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[n, Nat
 The first field of an element computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Subtype[Function[{Typed[n, Naturals]}, 2 <= n]]][[1]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Subtype[Typed[n, Naturals] |-> 2 <= n]][[1]]]]
 ```
 
 <!-- => 4 -->

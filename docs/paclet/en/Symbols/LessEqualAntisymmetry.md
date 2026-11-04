@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAntisymmetry]]
 From `x <= 3` and `3 <= x`, `x == 3`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h1, x <= 3], Typed[h2, 3 <= x]}, LessEqualAntisymmetry[h1, h2]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[h1, x <= 3], Typed[h2, 3 <= x]} |-> LessEqualAntisymmetry[h1, h2]]]
 ```
 
 <!-- => ∀_x∶ℕ x ≤ 3 ⇒ 3 ≤ x ⇒ x == 3 -->
@@ -57,7 +57,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y,
 With [LessEqualZero](), a number that is at most 0 is 0:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x <= 0]}, LessEqualAntisymmetry[h, LessEqualZero[x]]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[h, x <= 0]} |-> LessEqualAntisymmetry[h, LessEqualZero[x]]]]
 ```
 
 <!-- => ∀_x∶ℕ x ≤ 0 ⇒ x == 0 -->
@@ -80,7 +80,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y,
 The order of the two proofs gives the order of the sides of the equation:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[y, Naturals], Typed[h1, x <= y], Typed[h2, y <= x]}, LessEqualAntisymmetry[h2, h1]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[y, Naturals], Typed[h1, x <= y], Typed[h2, y <= x]} |-> LessEqualAntisymmetry[h2, h1]]]
 ```
 
 <!-- => ∀_x∶ℕ ∀_y∶ℕ x ≤ y ⇒ y ≤ x ⇒ y == x -->

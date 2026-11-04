@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[EquivalentBackward]]
 From a proof of <code>[Equivalent]()[[True](), 1 == 1]</code>, a proof of [True]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentBackward[h][EqualityReflexivity[1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> EquivalentBackward[h][EqualityReflexivity[1]]]]
 ```
 
 <!-- => (True ⧦ 1 == 1) ⇒ True -->
@@ -65,7 +65,7 @@ TypeTheoryTactic["Exact", hq][proof]
 <code>[EquivalentBackward]()[*h*]</code> proves what the second field `h[[2]]` proves:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, h[[2]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> h[[2]]]]
 ```
 
 <!-- => (True ⧦ 1 == 1) ⇒ 1 == 1 ⇒ True -->
@@ -75,7 +75,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, h[
 It is [EquivalentForward]() of the equivalence turned around by [EquivalentSymmetry]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentForward[EquivalentSymmetry[h]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> EquivalentForward[EquivalentSymmetry[h]]]]
 ```
 
 <!-- => (True ⧦ 1 == 1) ⇒ 1 == 1 ⇒ True -->
@@ -85,7 +85,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, Eq
 [EquivalentBackward]() goes from *b* to *a*, so it does not take a proof of *a*:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, Equivalent[True, 1 == 1]]}, EquivalentBackward[h][TrueIntroduction]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Equivalent[True, 1 == 1]] |-> EquivalentBackward[h][TrueIntroduction]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

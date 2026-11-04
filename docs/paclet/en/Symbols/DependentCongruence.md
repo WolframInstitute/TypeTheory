@@ -55,7 +55,7 @@ For the function on the circle that is `"true"` everywhere, at the reflexivity o
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[DependentCongruence[Function[{Typed[x, Circle]}, "true"], EqualityReflexivity[CircleBase]], hott],
+    TypeTheoryTerm[DependentCongruence[Typed[x, Circle] |-> "true", EqualityReflexivity[CircleBase]], hott],
     TypeTheoryTerm[EqualityReflexivity["true"], hott]
 ]
 ```
@@ -77,8 +77,8 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The proof:
 
 ```wl
-TypeTheoryProof[Transport[Function[{Typed[x, Circle]}, Booleans], CircleLoop, "true"] == "true", hott, {
-    TypeTheoryTactic["Exact", DependentCongruence[Function[{Typed[x, Circle]}, "true"], CircleLoop]]
+TypeTheoryProof[Transport[Typed[x, Circle] |-> Booleans, CircleLoop, "true"] == "true", hott, {
+    TypeTheoryTactic["Exact", DependentCongruence[Typed[x, Circle] |-> "true", CircleLoop]]
 }]
 ```
 
@@ -99,7 +99,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The dependent congruence of the function that is `"true"` everywhere, along the loop:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Function[{Typed[x, Circle]}, "true"], CircleLoop], hott]]
+TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Typed[x, Circle] |-> "true", CircleLoop], hott]]
 ```
 
 <!-- => Transport[(x∶𝕊¹) ↦ 𝔹, CircleLoop, true] == true -->
@@ -107,7 +107,7 @@ TypeTheoryCheck[TypeTheoryTerm[DependentCongruence[Function[{Typed[x, Circle]}, 
 [EqualityCongruence]() of the same function along the loop:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityCongruence[Function[{Typed[x, Circle]}, "true"], CircleLoop], hott]]
+TypeTheoryCheck[TypeTheoryTerm[EqualityCongruence[Typed[x, Circle] |-> "true", CircleLoop], hott]]
 ```
 
 <!-- => true == true -->

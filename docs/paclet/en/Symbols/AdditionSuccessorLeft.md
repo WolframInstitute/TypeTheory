@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionSuccessorLeft]]
 For variables:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, AdditionSuccessorLeft[m, n]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> AdditionSuccessorLeft[m, n]]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ m + 1 + n == m + n + 1 -->
@@ -58,8 +58,8 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + 1 + n == n 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m + 1 + n]],
-    TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m + n + 1]]
+    TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> m + 1 + n],
+    TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> m + n + 1]
 ]
 ```
 

@@ -44,7 +44,7 @@ Adding one is taking the successor, since addition recurses on its second argume
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 1]],
+    TypeTheoryTerm[Typed[n, Naturals] |-> n + 1],
     TypeTheoryTerm[NaturalNumberSuccessor]
 ]
 ```

@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntegerSubtractionNegation[2, 5], TypeTheoryEnvir
 On natural numbers the law is about the difference of their integers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, IntegerSubtractionNegation[m, n]], TypeTheoryEnvironment["Integers"]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> IntegerSubtractionNegation[m, n], TypeTheoryEnvironment["Integers"]]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ ↑m - ↑n == ↑m + -(↑n) -->

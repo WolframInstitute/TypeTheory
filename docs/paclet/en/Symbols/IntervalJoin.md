@@ -34,8 +34,8 @@ The absorption law, `Max[i, Min[i, j]]` is `i`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]}, p[Max[i, Min[i, j]]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]}, p[i]], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Max[i, Min[i, j]]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], cubical]
 ]
 ```
 
@@ -77,7 +77,7 @@ The composition, a function of `i`, is a path from `z` to `z`:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]]},
-    Function[{Typed[i, Interval]}, CubicalComposition[A, Function[{j}, {Max[1 - i, i] -> q[j]}], p[i]]]
+    Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {Max[1 - i, i] -> q[j]}, p[i]]]
 ], cubical]]
 ```
 
@@ -98,7 +98,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Its type, a path over the line of paths from `p[i]` to `y`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[i, Interval]}, Function[{Typed[j, Interval]}, p[Max[i, j]]]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Max[i, j]]], cubical]]
 ```
 
 <!-- => ∀_{A ∶ Type} ∀_x∶A ∀_y∶A ∀_p∶x ≡ y Path[(i∶Interval) ↦ p[i] ≡ y, p, (j∶Interval) ↦ y] -->
@@ -119,8 +119,8 @@ A path at `Max[i, 1 - i]` is not the path at 1:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]}, p[Max[i, 1 - i]]], cubical],
-    TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]}, p[1]], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Max[i, 1 - i]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[1], cubical]
 ]
 ```
 

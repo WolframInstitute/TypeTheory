@@ -85,7 +85,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Twice[Flip, BitOne], twice]]
 An axiom applied to a variable matches no rule, and stays:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[b, Bit]}, Flip[b]], twice]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed[b, Bit] |-> Flip[b], twice]]
 ```
 
 <!-- => (b∶Bit) ↦ Flip[b] -->

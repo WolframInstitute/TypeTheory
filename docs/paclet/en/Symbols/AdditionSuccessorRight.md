@@ -71,8 +71,8 @@ The two sides are definitionally equal as functions of *m* and *n*:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m + (n + 1)]],
-    TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m + n + 1]]
+    TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> m + (n + 1)],
+    TypeTheoryTerm[{Typed[m, Naturals], Typed[n, Naturals]} |-> m + n + 1]
 ]
 ```
 

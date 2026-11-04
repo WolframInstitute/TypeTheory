@@ -43,7 +43,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberZero], TypeTheoryTerm[0]]
 The recursor of [NonNegativeIntegers]() computes at it, and gives its value for 0:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Naturals], 7, Function[{Typed[k, Naturals], Typed[r, Naturals]}, r + 2], NaturalNumberZero]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[t, Naturals] |-> Naturals, 7, {Typed[k, Naturals], Typed[r, Naturals]} |-> r + 2, NaturalNumberZero]]]
 ```
 
 <!-- => 7 -->

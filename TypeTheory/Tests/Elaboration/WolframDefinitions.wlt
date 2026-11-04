@@ -23,23 +23,29 @@ VerificationTest[
 ]
 
 (* with the compiler: a definition that translates is typed by elaboration, the symbols it calls formalized first and
-   the built-ins it calls declared by their signatures; one that does not is an axiom Wolfram computes, of the type
+   the built-ins it calls declared by their signatures, the string functions over Strings and each string literal a
+   constant of it; one that does not, as one of Style, is an axiom Wolfram computes, of the type
    "Type" gives or over Expressions. Without it, an axiom of the type "Type" gives. *)
 VerificationTest[
-	Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Rationals"], square, next, simplified, reversed},
+	Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Rationals"], square, next, simplified, styled, reversed, greeting},
 		square[x_Integer] := x^2 + 1;
 		next[x_Integer] := square[x] + 1;
 		simplified[x_Integer] := Simplify[x + 1];
+		styled[x_] := Style[x, Bold];
 		reversed[s_] := StringReverse[s];
+		greeting[s_] := StringJoin["Hello, ", s];
 		If[ PacletFind["Wolfram/KernelCompiler"] === {},
-			{TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers]} === {{TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]}},
+			{TypeTheoryFormalize[styled, "Type" -> Integers -> Integers]} === {{TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]}},
 			{
 				TypeTheoryFormalize[square] === {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]},
 				First[TypeOf[TypeTheoryTerm[next, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[next]]]]] === (Integers -> Integers),
 				TypeTheoryFormalize[simplified][[All, 1]] === {Simplify, simplified},
-				Last[TypeTheoryFormalize[reversed]] === TypeTheoryAxiom[reversed, Expressions -> Expressions, "Implementation" -> reversed],
-				TypeTheoryFormalize[reversed, "Type" -> Integers -> Integers] === {TypeTheoryAxiom[reversed, Integers -> Integers, "Implementation" -> reversed]}
-			} === {True, True, True, True, True}
+				Last[TypeTheoryFormalize[styled]] === TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled],
+				Last[TypeTheoryFormalize[reversed]] === TypeTheoryDefinition[reversed, Function[{s}, StringReverse[s]]],
+				TypeTheoryFormalize[styled, "Type" -> Integers -> Integers] === {TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]},
+				MemberQ[TypeTheoryFormalize[greeting], TypeTheoryAxiom["\"Hello, \"", Strings]],
+				First[TypeOf[TypeTheoryTerm[greeting, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[greeting]]]]] === (Strings -> Strings)
+			} === {True, True, True, True, True, True, True, True}
 		]
 	],
 	True,

@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[LengthMap]]
 For adding 1 to each natural number of a list:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, LengthMap[Function[{Typed[n, Naturals]}, n + 1], l]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[l, {Naturals}] |-> LengthMap[Typed[n, Naturals] |-> n + 1, l]]]
 ```
 
 <!-- => ∀_l∶{ℕ} Length[((n ∶ ℕ) ↦ n + 1) /@ l] == Length[l] -->
@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Booleans]], Typed[l
 With [LengthJoin](), `"Simplify"` finds the length of a map over a join:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Map[Function[{Typed[n, Naturals]}, 2 n], Join[a, b]]] == Length[a] + Length[b]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Map[Typed[n, Naturals] |-> 2 n, Join[a, b]]] == Length[a] + Length[b]], {
     TypeTheoryTactic["Introduce", a, b],
     TypeTheoryTactic["Simplify", {LengthMap, LengthJoin}]
 }]
@@ -69,7 +69,7 @@ TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Map[
 On a list written out the length computes: a map over a list of two elements has length 2:
 
 ```wl
-TypeTheoryProof[Length[Map[Function[{Typed[n, Naturals]}, n + 1], Prepend[1][Prepend[2][{}]]]] == 2, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[Length[Map[Typed[n, Naturals] |-> n + 1, Prepend[1][Prepend[2][{}]]]] == 2, {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Proof complete -->

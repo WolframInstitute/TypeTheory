@@ -52,8 +52,8 @@ Under an element built over `"false"`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]]], cubical],
-    TypeTheoryTerm[Function[{Typed[i, Interval]}, "false"], cubical]
+    TypeTheoryTerm[Typed[i, Interval] |-> GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]], cubical],
+    TypeTheoryTerm[Typed[i, Interval] |-> "false", cubical]
 ]
 ```
 

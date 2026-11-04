@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualitySymmetry]]
 Turn an equation around:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Naturals], Typed[h, x + 0 == x]}, EqualitySymmetry[h]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Naturals], Typed[h, x + 0 == x]} |-> EqualitySymmetry[h]]]
 ```
 
 <!-- => ∀_x∶ℕ x + 0 == x ⇒ x == x + 0 -->
@@ -64,7 +64,7 @@ TypeTheoryTactic["Exact", AdditionZeroLeft[n]][proof]
 Turn a theorem around, here [JoinEmptyRight]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, EqualitySymmetry[JoinEmptyRight[l]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[l, {Naturals}] |-> EqualitySymmetry[JoinEmptyRight[l]]]]
 ```
 
 <!-- => ∀_l∶{ℕ} l == Join[l, {}] -->

@@ -54,7 +54,7 @@ TypeTheoryProof[And[True, 1 + 1 == 2], {TypeTheoryTactic["Apply", AndIntroductio
 A proof of a conjunction is a structure whose fields are proofs:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, And[True, 1 == 1]]}, h[[2]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, And[True, 1 == 1]] |-> h[[2]]]]
 ```
 
 <!-- => (True ∧ 1 == 1) ⇒ 1 == 1 -->

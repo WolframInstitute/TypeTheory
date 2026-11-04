@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[RationalSubtractionNegation[1/2, 1/3], TypeTheory
 An instance with a fraction:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, Rationals]}, RationalSubtractionNegation[x, 1/2]], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[x, Rationals] |-> RationalSubtractionNegation[x, 1/2], TypeTheoryEnvironment["Rationals"]]]
 ```
 
 <!-- => ∀_x∶ℚ x - 1/2 == x + -(1/2) -->
