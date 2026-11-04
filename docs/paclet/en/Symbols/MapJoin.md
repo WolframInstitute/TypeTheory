@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[a, {Naturals}], Typed[b, {Natural
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[b, {Naturals}]},
-    Map[Function[{Typed[n, Naturals]}, n + 1], Join[ListPrepend[1, EmptyList], b]] == Join[Map[Function[{Typed[n, Naturals]}, n + 1], ListPrepend[1, EmptyList]], Map[Function[{Typed[n, Naturals]}, n + 1], b]]
+    Map[Function[{Typed[n, Naturals]}, n + 1], Join[Prepend[{}, 1], b]] == Join[Map[Function[{Typed[n, Naturals]}, n + 1], Prepend[{}, 1]], Map[Function[{Typed[n, Naturals]}, n + 1], b]]
 ], {
     TypeTheoryTactic["Introduce", b],
     TypeTheoryTactic["Reflexivity"]
@@ -76,7 +76,7 @@ TypeTheoryProof[ForAll[
 ```wl
 TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[l, {Naturals}], Typed[x, Naturals]}, Map[f, Append[l, x]] == Append[Map[f, l], f[x]]], {
     TypeTheoryTactic["Introduce", f, l, x],
-    TypeTheoryTactic["Exact", MapJoin[f, l, ListPrepend[x, EmptyList]]]
+    TypeTheoryTactic["Exact", MapJoin[f, l, Prepend[{}, x]]]
 }]
 ```
 

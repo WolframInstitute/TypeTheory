@@ -22,7 +22,7 @@ environment = TypeTheoryEnvironment[prelude, {
 	TypeTheoryDefinition[NaturalsInhabited, Typed[InhabitedIntroduction[0], Inhabited[NonNegativeIntegers]], "Instance" -> True],
 	TypeTheoryDefinition[BooleansInhabited, Typed[InhabitedIntroduction["false"], Inhabited[Booleans]], "Instance" -> True],
 	TypeTheoryDefinition[ListsInhabited, Typed[
-		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, InhabitedIntroduction[EmptyList]],
+		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, InhabitedIntroduction[{}]],
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Inhabited[{\[Alpha]}]]
 	], "Instance" -> True],
 	TypeTheoryDefinition[PairInhabited, Typed[
@@ -136,7 +136,7 @@ VerificationTest[
 	{
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[3, Option[NonNegativeIntegers]], environment]],
 		WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[NonNegativeIntegers]], environment]],
-		First @ TypeOf[TypeTheoryTerm[Typed[EmptyList, NonNegativeIntegers], environment]]
+		First @ TypeOf[TypeTheoryTerm[Typed[{}, NonNegativeIntegers], environment]]
 	},
 	{TypeTheoryTerm[OptionSome[3], environment], TypeTheoryTerm[OptionSome[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
 	TestID -> "Coercions-are-polymorphic-and-chain"

@@ -5,14 +5,14 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/JoinEmptyRight
 Keywords: [list, join, append, empty list, identity, prelude]
-SeeAlso: [JoinAssociativity, List, EmptyList]
+SeeAlso: [JoinAssociativity, List, {}]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
 
 ## Usage
 
-<code>[JoinEmptyRight]()[*l*]</code> proves <code>[Join]()[*l*, [EmptyList]()] == *l*</code>.
+<code>[JoinEmptyRight]()[*l*]</code> proves <code>[Join]()[*l*, `{}`] == *l*</code>.
 
 ## Details & Options
 
@@ -43,7 +43,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[l, {Naturals}]}, JoinEmptyRight[l
 The tactic `"Rewrite"` removes an empty list joined on the right:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[Join[l, EmptyList], l] == Join[l, l]], {
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[Join[l, {}], l] == Join[l, l]], {
 	TypeTheoryTactic["Introduce", l],
 	TypeTheoryTactic["Rewrite", JoinEmptyRight]
 }]

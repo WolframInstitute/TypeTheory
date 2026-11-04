@@ -44,7 +44,7 @@ RelatedGuides: [TypeTheory]
 | `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); [IntegerLessEqualOfMultiple]() takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
-- A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[ListPrepend[x, l], m]` becomes `ListPrepend[x, Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
+- A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[Prepend[l, x], m]` becomes `Prepend[Join[l, m], x]`, as Lean's `simp [f]` unfolds `f`.
 - `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - A tactic that does not apply gives a [Failure]().
 
@@ -165,13 +165,13 @@ proof = TypeTheoryTactic["Exact", hnp[hp]][proof]
 `"Induction"` on a list leaves a goal for the empty list and one for a list with a first element:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {
+proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {
     TypeTheoryTactic["Introduce", l],
     TypeTheoryTactic["Induction", l]
 }]
 ```
 
-<!-- => Proof, 2 goals: case EmptyList ⊢ Join[{}, {}] == {}; case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
+<!-- => Proof, 2 goals: case {} ⊢ Join[{}, {}] == {}; case Prepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[Prepend[l, x], {}] == Prepend[l, x] -->
 
 `"Simplify"` unfolds [Join]() on the empty list, and the sides are then the same:
 
@@ -179,17 +179,17 @@ proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l],
 proof = TypeTheoryTactic["Simplify", {Join}][proof]
 ```
 
-<!-- => Proof, 1 goal: case ListPrepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[ListPrepend[x, l], {}] == ListPrepend[x, l] -->
+<!-- => Proof, 1 goal: case Prepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[Prepend[l, x], {}] == Prepend[l, x] -->
 
 Introduce the first element, the rest and the induction hypothesis:
 
 ```wl
-proof = TypeTheoryTactic["Introduce", x, rest, ih][proof]
+proof = TypeTheoryTactic["Introduce", rest, x, ih][proof]
 ```
 
-<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ {ℕ}, ih ∶ Join[rest, {}] == rest ⊢ Join[ListPrepend[x, rest], {}] == ListPrepend[x, rest] -->
+<!-- => Proof, 1 goal: x ∶ ℕ, rest ∶ {ℕ}, ih ∶ Join[rest, {}] == rest ⊢ Join[Prepend[rest, x], {}] == Prepend[rest, x] -->
 
-Unfolding [Join]() once more brings out `Join[rest, EmptyList]`, which the induction hypothesis rewrites:
+Unfolding [Join]() once more brings out `Join[rest, {}]`, which the induction hypothesis rewrites:
 
 ```wl
 proof = TypeTheoryTactic["Simplify", {Join, ih}][proof]
@@ -434,7 +434,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 1 != 0], {TypeTheoryTactic["Int
 A definition by recursion does not unfold on a variable, where it does not compute; `"Induction"` on the variable comes first:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Simplify", {Join}]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Simplify", {Join}]}]
 ```
 
 <!-- => Failure["NoProgress", ...] -->

@@ -43,7 +43,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Pair[a, Pair[b, c]]                 (a, b, c)
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
 	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
-	ListPrepend[1, ListPrepend[2, EmptyList]]   {1, 2}     EmptyList as {}, in braces: [1, 2] in f[[1, 2]] would read as Part
+	Prepend[Prepend[{}, 2], 1]          {1, 2}               in braces: [1, 2] in f[[1, 2]] would read as Part
 	SequencePrepend[1, EmptySequence]   [1]                  EmptySequence as [], a sequence in brackets
 	Sequence[{A, B}]                    Sequence[A, B]       the type, as it is written; Sequence[As] for a list As that
 	                                                         is no literal
@@ -260,15 +260,16 @@ displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DisjointUnion
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, _}]] := tupleDisplay["(", displaySyntax /@ rightNested[Pair, syntax], ")"]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DependentPair]], {_, _}]] :=
 	tupleDisplay["\[LeftAngleBracket]", displaySyntax /@ rightNested[DependentPair, syntax], "\[RightAngleBracket]"]
-displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {_, _}]] /; listLiteralQ[syntax] :=
-	tupleDisplay["{", displaySyntax /@ Most[rightNested[ListPrepend, syntax]], "}"]
-displaySyntax[syntaxSymbol[HoldComplete[EmptyList]]] := syntaxString["{}"]
+displaySyntax[syntax : syntaxApplication[syntaxString["Prepend"] | syntaxSymbol[HoldComplete[Prepend]], {_, _}]] /; listLiteralQ[syntax] :=
+	tupleDisplay["{", displaySyntax /@ prependedElements[syntax], "}"]
+(* the constructor of lists shows as Prepend, which writes it, where its list is no literal *)
+displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
 displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["[]"]
 (* Sequence at a list of types as its types, Sequence[A, B], as it is written *)
 displaySyntax[syntaxApplication[head : syntaxSymbol[HoldComplete[Sequence]], {index_}]] /; listLiteralQ[index] :=
-	displayApplication[head, displaySyntax /@ Most[rightNested[ListPrepend, index]]]
+	displayApplication[head, displaySyntax /@ prependedElements[index]]
 displaySyntax[syntaxSymbol[HoldComplete[NonNegativeIntegers]]] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Naturals]]] /; ! TrueQ[$naturalsBound] := syntaxString["\[DoubleStruckCapitalN]"]
 displaySyntax[syntaxSymbol[HoldComplete[Integers]]] := syntaxString["\[DoubleStruckCapitalZ]"]
@@ -310,7 +311,7 @@ displayApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :=
 displayApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :=
 	arrowChain[RightArrow, listElements[domains], codomain]
 (* A -> B, as a function type reads back *)
-displayApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}] := arrowChain[RightArrow, listElements[domains], codomain]
+displayApplication[syntaxSymbol[HoldComplete[Rule]], {domain_, codomain_}] := arrowChain[RightArrow, {domain}, codomain]
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {}], goal_}] :=
 	syntaxHead[Row, {syntaxHead[List, {syntaxString["\[RightTee] "], goal}]}]
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {hypotheses_, goal_}] :=
@@ -492,11 +493,17 @@ tupleDisplay[left_String, elements_List, right_String] := delimited[left, syntax
 rightNested[head_Symbol, syntaxApplication[syntaxSymbol[HoldComplete[head_]], {first_, rest_}]] := Prepend[rightNested[head, rest], first]
 rightNested[_Symbol, last_] := {last}
 
-listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {_, rest_}]] := listLiteralQ[rest]
-listLiteralQ[syntaxSymbol[HoldComplete[EmptyList]]] := True
+listLiteralQ[syntaxApplication[syntaxString["Prepend"] | syntaxSymbol[HoldComplete[Prepend]], {rest_, _}]] := listLiteralQ[rest]
+listLiteralQ[syntaxString["{}"]] := True
+listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[List]], _]] := True
 (* the elements give the type an ascribed empty list states *)
-listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxSymbol[HoldComplete[EmptyList]], _}]] := True
+listLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString["{}"] | syntaxApplication[syntaxSymbol[HoldComplete[List]], {}], _}]] := True
 listLiteralQ[_] := False
+
+(* the elements of a list literal, Prepend[rest, x] being x and then the elements of rest *)
+prependedElements[syntaxApplication[syntaxString["Prepend"] | syntaxSymbol[HoldComplete[Prepend]], {rest_, first_}]] := Prepend[prependedElements[rest], first]
+prependedElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
+prependedElements[_] := {}
 
 sequenceLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, rest_}]] := sequenceLiteralQ[rest]
 sequenceLiteralQ[syntaxSymbol[HoldComplete[EmptySequence]]] := True

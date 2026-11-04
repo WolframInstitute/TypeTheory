@@ -60,7 +60,7 @@ An instance may take instance-implicit arguments of its own, found in turn: a pa
 ```wl
 pairs = TypeTheoryEnvironment[inhabited, {
     TypeTheoryDefinition[ListsInhabited, Typed[
-        Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, InhabitedIntroduction[EmptyList]],
+        Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, InhabitedIntroduction[{}]],
         ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Inhabited[{\[Alpha]}]]
     ], "Instance" -> True],
     TypeTheoryDefinition[PairInhabited, Typed[
@@ -185,7 +185,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[Naturals]], coercions]]
 Both types must be known: a coercion is inserted only where no metavariable is left in either, as Lean waits for them. With no coercion that applies, the term's type is a mismatch:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[EmptyList, Naturals], coercions]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[{}, Naturals], coercions]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

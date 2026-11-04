@@ -229,12 +229,12 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[ListPrepend[1, Typed[EmptyList, {NonNegativeIntegers}]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[Join[l, EmptyList]]], "\"{}\"", Infinity],
-		FreeQ[ToBoxes[TypeTheoryTerm[ListPrepend[1, l]]], "ListPrepend"]
+		Cases[ToBoxes[TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[Prepend[Typed[{}, {NonNegativeIntegers}], 1]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[Join[l, {}]]], RowBox[{"{", "}"}], Infinity],
+		FreeQ[ToBoxes[TypeTheoryTerm[Prepend[l, 1]]], "Prepend"]
 	},
-	{True, True, {"\"{}\""}, False},
+	{True, True, {RowBox[{"{", "}"}]}, False},
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
 ]
 

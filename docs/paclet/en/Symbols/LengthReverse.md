@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[LengthReverse]]
 For the list of 1 and 2:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[LengthReverse[ListPrepend[1, ListPrepend[2, EmptyList]]]]]
+TypeTheoryCheck[TypeTheoryTerm[LengthReverse[Prepend[Prepend[{}, 2], 1]]]]
 ```
 
 <!-- => Length[Reverse[{1, 2}]] == Length[{1, 2}] -->
@@ -56,7 +56,7 @@ TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Reve
 On a list written out the length computes, so `"Reflexivity"` proves the instance:
 
 ```wl
-TypeTheoryProof[Length[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]] == 2, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[Length[Reverse[Prepend[Prepend[{}, 2], 1]]] == 2, {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Proof complete -->
@@ -70,7 +70,7 @@ TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Length[Reverse[l]] == Length[l]],
     TypeTheoryTactic["Introduce", l],
     TypeTheoryTactic["Induction", l],
     TypeTheoryTactic["Simplify", {Reverse, Length}],
-    TypeTheoryTactic["Introduce", x, rest, ih],
+    TypeTheoryTactic["Introduce", rest, x, ih],
     TypeTheoryTactic["Simplify", {Reverse, Append, LengthJoin, Length, ih}]
 }]
 ```

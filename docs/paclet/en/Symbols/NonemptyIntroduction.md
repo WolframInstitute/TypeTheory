@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[3]]]
 [Typed]() gives the type of an element when the element alone does not say it: the empty list shows that there are lists:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[Typed[EmptyList, {Naturals}]]]]
+TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[Typed[{}, {Naturals}]]]]
 ```
 
 <!-- => Nonempty[{ℕ}] -->

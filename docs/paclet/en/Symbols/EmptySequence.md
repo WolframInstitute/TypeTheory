@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/EmptySequence
 Keywords: [Wolfram Language, Sequence, heterogeneous list, HList, dependent type, arguments, currying]
-SeeAlso: [SequencePrepend, EmptyList, Sequence]
+SeeAlso: [SequencePrepend, {}, Sequence]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, Elaboration]
 ---

@@ -317,13 +317,17 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
 	(* a hole stands for a term of the type expected, closed over the variables in scope when elaboration finishes *)
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeTheoryHole]], arguments_List] /; Length[arguments] <= 1 :> elaborateHole[arguments, expected, syntax],
-	(* a list written as a term is the list of its elements, ListPrepend over EmptyList, as such a list shows *)
+	(* a list written as a term is the list of its elements, Prepend over {}, as such a list shows *)
 	(* List and Sequence are each a type and its elements: where a type is expected, {A} is the type of lists of A and
 	   Sequence[A, B] the type of the sequences of an A and a B; elsewhere {a, b} is a list and Sequence[a, b] a sequence *)
-	(* Lists, the name the type of lists had, is read as List, the type wherever it is applied *)
-	syntaxApplication[syntaxSymbol[HoldComplete[Lists]], arguments_List] /; listsDeclaredQ[] :>
+	(* the names the lists had: Lists is List, the type wherever it is applied, EmptyList is {}, and ListPrepend[x, l]
+	   is Prepend[l, x], as the Wolfram Language orders its arguments *)
+	syntaxSymbol[HoldComplete[EmptyList]] /; formerListNameQ[HoldComplete[EmptyList]] :> elaborateSyntax[syntaxString["{}"], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {element_, rest_}] /; formerListNameQ[HoldComplete[ListPrepend]] :>
+		elaborateSyntax[syntaxApplication[syntaxString["Prepend"], {rest, element}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Lists]], arguments_List] /; formerListNameQ[HoldComplete[Lists]] :>
 		applyArguments[elaborateHead[syntaxSymbol[HoldComplete[List]]], arguments, syntaxSymbol[HoldComplete[List]], expected],
-	syntaxSymbol[HoldComplete[Lists]] /; listsDeclaredQ[] :> elaborateSyntax[syntaxSymbol[HoldComplete[List]], expected],
+	syntaxSymbol[HoldComplete[Lists]] /; formerListNameQ[HoldComplete[Lists]] :> elaborateSyntax[syntaxSymbol[HoldComplete[List]], expected],
 	(* where nothing decides, as in a term on its own, the elements decide, elaborated once: types make the type *)
 	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], {element_}] /; listsDeclaredQ[] && typeExpectedQ[expected] :>
 		applyArguments[elaborateHead[head], {element}, head, expected],
@@ -359,7 +363,11 @@ integersDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["
 
 rationalsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["rationalInverse"]]
 
-listsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[ListPrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptyList]]
+listsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["Prepend"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["{}"]]
+
+(* a name the lists had, read as theirs where the environment declares no constant of that name, as an inductive type
+   whose constructor is named EmptyList does *)
+formerListNameQ[name_HoldComplete] := listsDeclaredQ[] && ! constantDeclaredQ[$elaborationEnvironment, name]
 
 (* a hole is a metavariable of the type expected, in the variables in scope, which nothing solves *)
 elaborateHole[arguments_List, expected_, syntax_] := Which[
@@ -400,8 +408,8 @@ closedHoleTypes[term_] := Association[Function[id, id -> instantiateMetavariable
 ]]
 
 listLiteralSyntax[elements_List] := Fold[
-	Function[{rest, element}, syntaxHead[ListPrepend, {element, rest}]],
-	syntaxSymbol[HoldComplete[EmptyList]],
+	Function[{rest, element}, syntaxApplication[syntaxString["Prepend"], {rest, element}]],
+	syntaxString["{}"],
 	Reverse[elements]
 ]
 
@@ -596,7 +604,7 @@ listTypeQ[type_] := MatchQ[
 	application[constantReference[HoldComplete[List], _], _]
 ]
 
-(* Sequence[a, b, ...] is SequencePrepend over EmptySequence, as a list is ListPrepend over EmptyList; a Sequence among
+(* Sequence[a, b, ...] is SequencePrepend over EmptySequence, as a list is Prepend over {}; a Sequence among
    the elements is spliced, as the Wolfram Language splices it *)
 sequenceLiteralSyntax[elements_List] := Fold[
 	Function[{rest, element}, syntaxHead[SequencePrepend, {element, rest}]],
@@ -877,6 +885,7 @@ $overloadedNames = <|
 	HoldComplete[Less] -> {HoldComplete[Less], HoldComplete["integerLess"], HoldComplete["rationalLess"]},
 	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"], HoldComplete["rationalGreaterEqual"]},
 	HoldComplete[Greater] -> {HoldComplete[Greater], HoldComplete["integerGreater"], HoldComplete["rationalGreater"]},
+	HoldComplete[Prepend] -> {HoldComplete["Prepend"]},
 	HoldComplete[Minus] -> {HoldComplete["integerNegation"], HoldComplete["rationalNegation"]}
 |>
 

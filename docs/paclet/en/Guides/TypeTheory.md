@@ -141,7 +141,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [CartesianProductType]() pairs, made with [Pair]()
 - [DisjointUnionType]() sums, made with [LeftInjection]() and [RightInjection]()
 - [Option]() optional values, [OptionNone]() and [OptionSome]()
-- [List]() lists, built from [EmptyList]() by [ListPrepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
+- [List]() lists, built from `{}` by [Prepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
 - [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse](), [LengthReverse]() the laws of lists
 
 ### Homotopy type theory

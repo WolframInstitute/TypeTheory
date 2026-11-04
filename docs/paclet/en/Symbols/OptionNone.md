@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/OptionNone
 Keywords: [option, none, missing value, constructor, prelude]
-SeeAlso: [Option, OptionSome, EmptyList]
+SeeAlso: [Option, OptionSome, {}]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---

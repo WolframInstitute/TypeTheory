@@ -122,7 +122,7 @@ TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\"] replaces the right side by the
 TypeTheoryTactic[\"Rewrite\", h, \"At\" -> k] and TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\", \"At\" -> k] rewrite the hypothesis k instead of the goal.\n\
 TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which must be equal to it by computation.\n\
 TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation; \
-a definition among h1, h2, ... unfolds where it computes, as Join does on ListPrepend[x, l], with its recursive calls folded back.\n\
+a definition among h1, h2, ... unfolds where it computes, as Join does on Prepend[l, x], with its recursive calls folded back.\n\
 TypeTheoryTactic[\"Decide\"] proves a closed statement by computing its decision, the instance of Decidable that elaboration finds: \
 the prelude's decide == and <= of natural numbers, And, Or, Not, True and False, and an environment may declare more.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
@@ -864,8 +864,8 @@ definitionNamedQ[data_, goal_, held_HoldComplete] := With[{name = aliasResolvedN
 (* The first application of the definition in the goal, children before their parent, that computes, in
    its place. A definition by recursion on one of its arguments, as Join is on its first, computes where
    that argument is a constructor applied: it gives the recursor's rule for that constructor, with each
-   recursive call folded back into the definition, so Join[ListPrepend[x, l], m] gives
-   ListPrepend[x, Join[l, m]]. Any other definition, given all its arguments, is its value applied to them.
+   recursive call folded back into the definition, so Join[Prepend[l, x], m] gives
+   Prepend[Join[l, m], x]. Any other definition, given all its arguments, is its value applied to them.
    The new goal is equal to the goal by computation, so its solution solves the goal. *)
 unfold[data_, goal_, held_HoldComplete] := With[
 	{current = currentGoal[data, goal], environment = data["Environment"], name = aliasResolvedName[data["Environment"], held]},

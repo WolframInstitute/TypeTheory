@@ -33,7 +33,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolf
 
 ## Sequences
 
-A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` gives `f` the sequence of `a` and `b`, and the curried `f[a][b]` gives `f` the sequence of `a`, then gives its value the sequence of `b`. `Sequence[a, b]` is that sequence, and `Sequence[A, B]` its type, for `a` of the type `A` and `b` of the type `B`: a list of elements of different types, whose type gives its length and the type of each element, as Lean's `HList`. `Sequence`, as `List`, is a type and its elements alike: where a type is expected it is the type, elsewhere a sequence, and in a term on its own, its elements decide, types making the type. A sequence shows in brackets, `[a, b]`. It is [SequencePrepend]() over [EmptySequence](), as a list is [ListPrepend]() over [EmptyList](), and a `Sequence` among its elements is spliced, as the Wolfram Language splices it:
+A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` gives `f` the sequence of `a` and `b`, and the curried `f[a][b]` gives `f` the sequence of `a`, then gives its value the sequence of `b`. `Sequence[a, b]` is that sequence, and `Sequence[A, B]` its type, for `a` of the type `A` and `b` of the type `B`: a list of elements of different types, whose type gives its length and the type of each element, as Lean's `HList`. `Sequence`, as `List`, is a type and its elements alike: where a type is expected it is the type, elsewhere a sequence, and in a term on its own, its elements decide, types making the type. A sequence shows in brackets, `[a, b]`. It is [SequencePrepend]() over [EmptySequence](), as a list is [Prepend]() over `{}`, and a `Sequence` among its elements is spliced, as the Wolfram Language splices it:
 
 ```wl
 {TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], wolfram]], DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], wolfram], TypeTheoryTerm[Sequence[1, 2, 3], wolfram]]}
@@ -64,7 +64,7 @@ pairs = TypeTheoryEnvironment[wolfram, {
 | | Wolfram/Patterns | the Match IR | in the type theory |
 |---|---|---|---|
 | one result | `MatchValues` | `Values` | `MatchValues[a] : Match[A]` |
-| no result | | `Sum[]` | `EmptyList` |
+| no result | | `Sum[]` | `{}` |
 | alternatives, in order | `MatchSum` | `Sum` | `MatchSum : Match[A] -> Match[A] -> Match[A]` |
 | independent parts | `MatchProduct` | `Product` | `MatchProduct : Match[A] -> Match[B] -> Match[A × B]` |
 | parts in turn | | `Product` | [MatchBind]()` : Match[A] -> (A -> Match[B]) -> Match[B]` |
@@ -86,7 +86,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[MatchSum[MatchValues[1], MatchVal
 A match with no result gives none, the expression left as it is:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[Typed[EmptyList, Match[NonNegativeIntegers]]], wolfram], TypeTheoryTerm[Typed[OptionNone, Option[NonNegativeIntegers]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[Typed[{}, Match[NonNegativeIntegers]]], wolfram], TypeTheoryTerm[Typed[OptionNone, Option[NonNegativeIntegers]], wolfram]]
 ```
 
 <!-- => True -->
@@ -104,7 +104,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[MatchProduct[{1, 2}, {3}], wolfram], TypeThe
 ```wl
 {
     DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[ExpressionNormal[7, {1, 2}], 2, MatchValues], wolfram], TypeTheoryTerm[MatchValues[Typed[2, Expressions]], wolfram]],
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], wolfram], TypeTheoryTerm[Typed[EmptyList, Match[Expressions]], wolfram]]
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
 }
 ```
 

@@ -33,7 +33,7 @@ TypeTheoryCheck[TypeTheoryTerm[ReverseReverse]]
 For the list of 1 and 2:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ReverseReverse[ListPrepend[1, ListPrepend[2, EmptyList]]]]]
+TypeTheoryCheck[TypeTheoryTerm[ReverseReverse[Prepend[Prepend[{}, 2], 1]]]]
 ```
 
 <!-- => Reverse[Reverse[{1, 2}]] == {1, 2} -->
@@ -85,7 +85,7 @@ TypeTheoryTactic["Rewrite", ReverseReverse[b]][proof]
 On a list written out both reverses compute, so `"Reflexivity"` proves the instance:
 
 ```wl
-TypeTheoryProof[Reverse[Reverse[ListPrepend[1, ListPrepend[2, EmptyList]]]] == ListPrepend[1, ListPrepend[2, EmptyList]], {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[Reverse[Reverse[Prepend[Prepend[{}, 2], 1]]] == Prepend[Prepend[{}, 2], 1], {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Proof complete -->

@@ -210,7 +210,7 @@ VerificationTest[
 		TypeOf[TypeTheoryTerm[Pair[1, "true"][[2]], prelude]],
 		TypeOf[TypeTheoryTerm[Typed[LeftInjection[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
 		TypeOf[TypeTheoryTerm[OptionSome[5], prelude]],
-		TypeOf[TypeTheoryTerm[ListPrepend[1, EmptyList], prelude]]
+		TypeOf[TypeTheoryTerm[Prepend[{}, 1], prelude]]
 	},
 	{
 		TypeTheoryTerm[Booleans, prelude],
@@ -223,14 +223,14 @@ VerificationTest[
 
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[Length[Join[ListPrepend[1, ListPrepend[2, EmptyList]], ListPrepend[3, EmptyList]]], prelude]],
+		WeakHeadNormalForm[TypeTheoryTerm[Length[Join[Prepend[Prepend[{}, 2], 1], Prepend[{}, 3]]], prelude]],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[EqualityReflexivity[ListPrepend[3, ListPrepend[2, ListPrepend[1, EmptyList]]]], prelude],
-			TypeTheoryTerm[Reverse[ListPrepend[1, ListPrepend[2, ListPrepend[3, EmptyList]]]] == ListPrepend[3, ListPrepend[2, ListPrepend[1, EmptyList]]], prelude]
+			TypeTheoryTerm[EqualityReflexivity[Prepend[Prepend[Prepend[{}, 1], 2], 3]], prelude],
+			TypeTheoryTerm[Reverse[Prepend[Prepend[Prepend[{}, 3], 2], 1]] == Prepend[Prepend[Prepend[{}, 1], 2], 3], prelude]
 		], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[ReverseReverse[ListPrepend[1, EmptyList]], prelude],
-			TypeTheoryTerm[Reverse[Reverse[ListPrepend[1, EmptyList]]] == ListPrepend[1, EmptyList], prelude]
+			TypeTheoryTerm[ReverseReverse[Prepend[{}, 1]], prelude],
+			TypeTheoryTerm[Reverse[Reverse[Prepend[{}, 1]]] == Prepend[{}, 1], prelude]
 		], _Success]
 	},
 	{TypeTheoryTerm[3, prelude], True, True},

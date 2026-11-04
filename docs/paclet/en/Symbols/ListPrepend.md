@@ -12,50 +12,30 @@ RelatedTutorials: [ThePrelude]
 
 ## Usage
 
-<code>[ListPrepend]()[*x*, *l*]</code> is the list whose first element is *x*, followed by the elements of *l*.
+[ListPrepend]()[*x*, *l*] is `Prepend[l, x]`, the list *l* with *x* in front, by the name and the order of arguments it had.
 
 ## Details & Options
 
-- [ListPrepend]() is the second constructor of [List](), as Lean's `List.cons`.
-- *α* is an implicit argument, found from the type of *x*.
-- A list that ends in [EmptyList]() displays as its elements in braces, <code>[ListPrepend]()[1, [ListPrepend]()[2, [EmptyList]()]]</code> as `{1, 2}`, and `{1, 2}` written in a term is that list; Lean writes `[1, 2]`, which in a Wolfram Language application, `f[[1, 2]]`, would read as [Part]().
+- The constructor of lists is written `Prepend[l, x]`, its list first, as the Wolfram Language orders the arguments of `Prepend`, and `{x, ...}` is the list it makes of *x* and the elements of *l*.
+- [ListPrepend]()[*x*, *l*] is read as `Prepend[l, x]` where the environment declares no constant of that name.
+- A definition by the recursor of lists takes the case of `Prepend[l, x]` as a function of *l*, *x* and the value at *l*, in that order.
 
 ## Basic Examples
 
-The statement of [ListPrepend]():
+The former name, with its arguments in the former order:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ListPrepend]]
-```
-
-<!-- => ∀_{α ∶ Type u} α → {α} → {α} -->
-
----
-
-The list of 1 and 2:
-
-```wl
-TypeTheoryCheck[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]]
-```
-
-<!-- => {ℕ} -->
-
-## Properties and Relations
-
-[Length]() counts the elements prepended:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Length[ListPrepend[1, ListPrepend[2, EmptyList]]]]]
-```
-
-<!-- => 2 -->
-
----
-
-The same list written with braces:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[ListPrepend[1, {2}]], TypeTheoryTerm[{1, 2}]]
 ```
 
 <!-- => True -->
+
+---
+
+The length of a list, by the recursor of lists:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Length[Prepend[{2, 3}, 1]]]]
+```
+
+<!-- => 3 -->

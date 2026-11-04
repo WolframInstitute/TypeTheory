@@ -69,7 +69,7 @@ TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Map[
 On a list written out the length computes: a map over a list of two elements has length 2:
 
 ```wl
-TypeTheoryProof[Length[Map[Function[{Typed[n, Naturals]}, n + 1], ListPrepend[1, ListPrepend[2, EmptyList]]]] == 2, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[Length[Map[Function[{Typed[n, Naturals]}, n + 1], Prepend[Prepend[{}, 2], 1]]] == 2, {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Proof complete -->

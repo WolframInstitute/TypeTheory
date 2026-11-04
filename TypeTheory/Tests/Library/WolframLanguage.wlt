@@ -23,7 +23,7 @@ VerificationTest[
 	{
 		equalQ[MatchPart[ExpressionNormal[7, {1, 2}], 2, MatchValues], MatchValues[Typed[2, Expressions]]],
 		equalQ[MatchPart[ExpressionNormal[7, {1}], 0, MatchValues], MatchValues[Typed[7, Expressions]]],
-		equalQ[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], Typed[EmptyList, Match[Expressions]]]
+		equalQ[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], Typed[{}, Match[Expressions]]]
 	},
 	{True, True, True},
 	TestID -> "The-parts-of-an-expression-are-matches"
@@ -33,10 +33,10 @@ VerificationTest[
 VerificationTest[
 	{
 		equalQ[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], OptionSome[1]],
-		equalQ[MatchFirst[MatchSum[Typed[EmptyList, Match[NonNegativeIntegers]], MatchValues[3]]], OptionSome[3]],
-		equalQ[MatchFirst[Typed[EmptyList, Match[NonNegativeIntegers]]], Typed[OptionNone, Option[NonNegativeIntegers]]],
+		equalQ[MatchFirst[MatchSum[Typed[{}, Match[NonNegativeIntegers]], MatchValues[3]]], OptionSome[3]],
+		equalQ[MatchFirst[Typed[{}, Match[NonNegativeIntegers]]], Typed[OptionNone, Option[NonNegativeIntegers]]],
 		equalQ[MatchBind[{1, 2}, Function[{Typed[x, NonNegativeIntegers]}, {x, x}]], {1, 1, 2, 2}],
-		equalQ[Condition[MatchValues[1], "false"], Typed[EmptyList, Match[NonNegativeIntegers]]],
+		equalQ[Condition[MatchValues[1], "false"], Typed[{}, Match[NonNegativeIntegers]]],
 		equalQ[Condition[MatchValues[1], "true"], MatchValues[1]]
 	},
 	{True, True, True, True, True, True},

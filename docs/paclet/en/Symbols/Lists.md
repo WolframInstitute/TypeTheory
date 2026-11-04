@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Lists
 Keywords: [list, lists, List, finite sequence, prelude, inductive type, Join, Length, Map, Reverse]
-SeeAlso: [EmptyList, ListPrepend, JoinAssociativity, ReverseReverse, TypeTheoryTactic]
+SeeAlso: [{}, Prepend, JoinAssociativity, ReverseReverse, TypeTheoryTactic]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -18,7 +18,7 @@ RelatedTutorials: [ThePrelude]
 
 - The type of lists is `List[α]`, written `{α}`: [List]() is a type and its elements alike, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{α}` is the type of lists of *α*; elsewhere `{a, b}` is a list. In a term on its own, the elements decide: types make the type.
 - [Lists]()[*α*] is read as `{α}`, so that a term written with the name it had still elaborates.
-- The type of lists is an inductive type of the prelude, with the constructors [EmptyList]() and [ListPrepend](), the head first, as Lean's `List`.
+- The type of lists is an inductive type of the prelude, with the constructors `{}` and `Prepend[l, x]`, its list first, as the Wolfram Language orders the arguments of [Prepend](), as Lean has `List.nil` and `List.cons`.
 - The prelude defines [Join](), [Length](), [Map](), [Append]() and [Reverse]() on lists, each by recursion on its first list, and proves their laws: [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse]() and [LengthReverse]().
 - For *α* in `Type u`, `{α}` is in `Type u` too.
 
@@ -37,7 +37,7 @@ TypeTheoryCheck[TypeTheoryTerm[List]]
 The list of 1 and 2:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]]
+TypeTheoryCheck[TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]]
 ```
 
 <!-- => {ℕ} -->
@@ -47,7 +47,7 @@ TypeTheoryCheck[TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]]
 The name the type had reads as the type:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[EmptyList, Lists[NonNegativeIntegers]]], TypeTheoryTerm[Typed[EmptyList, {NonNegativeIntegers}]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[{}, Lists[NonNegativeIntegers]]], TypeTheoryTerm[Typed[{}, {NonNegativeIntegers}]]]
 ```
 
 <!-- => True -->
@@ -57,7 +57,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[EmptyList, Lists[NonNegativeIntegers]]
 The operations on lists compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Length[ListPrepend[1, ListPrepend[2, EmptyList]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Length[Prepend[Prepend[{}, 2], 1]]]]
 ```
 
 <!-- => 2 -->
@@ -71,7 +71,7 @@ TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Na
 	TypeTheoryTactic["Introduce", a, b, c],
 	TypeTheoryTactic["Induction", a],
 	TypeTheoryTactic["Simplify", {Join}],
-	TypeTheoryTactic["Introduce", x, rest, ih],
+	TypeTheoryTactic["Introduce", rest, x, ih],
 	TypeTheoryTactic["Simplify", {Join, ih}]
 }]
 ```

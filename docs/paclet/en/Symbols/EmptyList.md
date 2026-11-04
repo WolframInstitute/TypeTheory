@@ -12,78 +12,30 @@ RelatedTutorials: [ThePrelude]
 
 ## Usage
 
-[EmptyList]() is the list of <code>[List]()[*α*]</code> with no elements.
+[EmptyList]() is `{}`, the list with no elements, by the name it had.
 
 ## Details & Options
 
-- [EmptyList]() is the first constructor of [List](), as Lean's `List.nil`.
-- *α* is an implicit argument, found from the expected type.
-- [EmptyList]() displays as `{}`, and a list it ends, <code>[ListPrepend]()[1, [ListPrepend]()[2, [EmptyList]()]]</code>, as `{1, 2}`. Both can be written that way in a term.
+- The empty list is written `{}`, and a list `{a, b}`: `List` is the type of lists and its elements alike. Its constructors are the empty list and `Prepend`, as Lean's `List.nil` and `List.cons`, and `Prepend[l, x]` is the list *l* with *x* in front, as in the Wolfram Language.
+- [EmptyList]() is read as `{}` where the environment declares no constant of that name.
+- The type of the elements is an implicit argument, found from the expected type.
 
 ## Basic Examples
 
-The type of [EmptyList]():
+The empty list is `{}`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EmptyList]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[EmptyList, {NonNegativeIntegers}]], TypeTheoryTerm[Typed[{}, {NonNegativeIntegers}]]]
 ```
 
-<!-- => ∀_{α ∶ Type u} {α} -->
+<!-- => True -->
 
 ---
 
-The empty list of natural numbers:
+A list ending in the empty list shows as its elements:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[EmptyList, {Naturals}]]]
+TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]
 ```
 
-<!-- => {ℕ} -->
-
-## Scope
-
-Its length is 0, by computation:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Length[Typed[EmptyList, {Naturals}]]]]
-```
-
-<!-- => 0 -->
-
-## Properties and Relations
-
-[Join]() computes by recursion on its first list, so joining [EmptyList]() in front gives the other list by computation:
-
-```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[EmptyList, l] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
-```
-
-<!-- => Proof complete -->
-
-## Possible Issues
-
-Joined at the end, [EmptyList]() does not compute away, since the first list is a variable:
-
-```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Reflexivity"]}]
-```
-
-<!-- => Failure["NotReflexive", ...] -->
-
-The theorem [JoinEmptyRight]() proves it:
-
-```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, EmptyList] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Exact", JoinEmptyRight[l]]}]
-```
-
-<!-- => Proof complete -->
-
----
-
-Where nothing gives the type of its elements, it is unknown:
-
-```wl
-TypeTheoryCheck[TypeTheoryTerm[Length[EmptyList]]]
-```
-
-<!-- => Failure["UnsolvedImplicitArgument", ...] -->
+<!-- => {1, 2} -->

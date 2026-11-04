@@ -87,7 +87,7 @@ VerificationTest[
    plain message. *)
 VerificationTest[
 	{
-		Lookup[Last[TypeOf[TypeTheoryTerm[ListPrepend[TrueIntroduction, EmptyList], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
+		Lookup[Last[TypeOf[TypeTheoryTerm[Prepend[{}, TrueIntroduction], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
 			StringContainsQ[template, "whose sort is"],
 			Length[parameters],
 			ToString[parameters[[3]]] =!= "True"
@@ -257,13 +257,13 @@ VerificationTest[
 		Last[TypeOf[TypeTheoryTerm[Not]]["MessageParameters"]]
 	},
 	{
-		{"and", "booleanEqualityDecidable", "equal", "equalFalse", "equalTrue", "false", "falseDecidable", "falseNotTrue", "lessEqual", "lessEqualFalse", "lessEqualTrue", "not", "or", "true", "trueDecidable", "trueNotFalse"},
+		{"{}", "and", "booleanEqualityDecidable", "equal", "equalFalse", "equalTrue", "false", "falseDecidable", "falseNotTrue", "lessEqual", "lessEqualFalse", "lessEqualTrue", "not", "or", "Prepend", "true", "trueDecidable", "trueNotFalse"},
 		{},
 		True,
 		"true",
 		"not"
 	},
-	TestID -> "The-constants-of-the-Booleans-are-named-by-strings"
+	TestID -> "The-constants-of-the-Booleans-and-the-constructors-of-lists-are-named-by-strings"
 ]
 
 VerificationTest[
@@ -277,8 +277,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		First @ TypeOf[TypeTheoryTerm[Map[Function[{Typed[n, NonNegativeIntegers]}, EqualityReflexivity[n]], EmptyList], prelude]],
-		TypeOf[TypeTheoryTerm[Typed[Map[Function[{Typed[n, NonNegativeIntegers]}, OptionNone], EmptyList], {Option[NonNegativeIntegers]}], prelude]]
+		First @ TypeOf[TypeTheoryTerm[Map[Function[{Typed[n, NonNegativeIntegers]}, EqualityReflexivity[n]], {}], prelude]],
+		TypeOf[TypeTheoryTerm[Typed[Map[Function[{Typed[n, NonNegativeIntegers]}, OptionNone], {}], {Option[NonNegativeIntegers]}], prelude]]
 	},
 	{"TypeMismatch", TypeTheoryTerm[{Option[NonNegativeIntegers]}, prelude]},
 	TestID -> "A-solution-names-only-variables-in-the-scope-of-its-metavariable"
@@ -348,13 +348,13 @@ VerificationTest[
 	TestID -> "ForAll-and-Exists-with-a-condition-read-as-in-the-Wolfram-Language"
 ]
 
-(* a list written as a term is the list of its elements, as a list ending in EmptyList shows *)
+(* a list written as a term is the list of its elements, as a list ending in {} shows *)
 VerificationTest[
 	{
 		First[TypeTheoryCheck[TypeTheoryTerm[{1, 2}]]],
 		First[WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Reverse[{1, 2}]], TypeTheoryTerm[{2, 1}]],
-		DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[ListPrepend[1, ListPrepend[2, EmptyList]]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[Prepend[Prepend[{}, 2], 1]]],
 		First[TypeTheoryCheck[TypeTheoryTerm[Typed[{}, {Naturals}]]]],
 		TypeTheoryCheck[TypeTheoryTerm[{1}, TypeTheoryEnvironment[]]]["Tag"]
 	},
@@ -417,7 +417,7 @@ VerificationTest[
 			First[TypeOf[TypeTheoryTerm[curried[1][2], pairs]]],
 			First[TypeTheoryCheck[TypeTheoryTerm[curried[1, 2], pairs]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Join[{1}, {2}], pairs], TypeTheoryTerm[{1, 2}, pairs]],
-			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequence[ListPrepend[NonNegativeIntegers, ListPrepend[Expressions, EmptyList]]], pairs]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequence[Prepend[Prepend[{}, Expressions], NonNegativeIntegers]], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers], pairs], TypeTheoryTerm[Sequence[{NonNegativeIntegers}], pairs]],
 			First[TypeOf[TypeTheoryTerm[Function[{Typed[As, {TypeUniverse[1]}]}, Sequence[As]], pairs]]]
 		}
