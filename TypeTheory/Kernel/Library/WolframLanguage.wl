@@ -9,8 +9,8 @@ Language and the monad of pattern matching, built and checked the first time it 
 	Atoms                           the expressions with no parts, as data: "symbolAtom" of a symbol's full name,
 	                                "naturalAtom" and "negativeAtom" of an integer, "stringAtom" of a string, and
 	                                "otherAtom" of the head and the InputForm of any other atom
-	Expressions                     an expression: "atom"[a], or "normal"[h, {a, ...}], h applied to the
-	                                list of its arguments
+	Expressions                     an expression: "atom"[a], or "construct"[h, a, ...], h applied to its
+	                                arguments, written as a sequence and kept as their list
 	Head, Arguments, AtomQ          the head of an expression, the list of its arguments, {} for an atom, and whether it
 	                                is an atom
 	Sequence[A, B, ...]             where a type is expected, the type of the sequences Sequence[a, b, ...] of an element
@@ -19,7 +19,7 @@ Language and the monad of pattern matching, built and checked the first time it 
 	                                "emptySequence" and "sequencePrepend" construct it, and Sequence[a, ...] writes them
 	SameQ                           whether two expressions are the same, a Boolean the kernel computes: atoms by their
 	                                names and values, normal expressions part by part
-	ExpressionValue                 the value the Wolfram Language evaluates an expression to, opaque
+	ExpressionEvaluate                 the value the Wolfram Language evaluates an expression to, opaque
 	Drop                            a list without its first n elements
 	Match[A]                        the results of a match, {A}: none, one, or several in the order they are tried
 	MatchValue, {}                  one result, a single value, and none
@@ -56,7 +56,7 @@ and is another function than one of the curried type A -> B -> C.
 PackageExported[Atoms]
 PackageExported[Expressions]
 PackageExported[Arguments]
-PackageExported[ExpressionValue]
+PackageExported[ExpressionEvaluate]
 PackageExported[Strings]
 PackageExported[Match]
 PackageExported[MatchValue]
@@ -81,7 +81,7 @@ Atoms::usage = "Atoms is the type of the expressions of the Wolfram Language wit
 Expressions::usage = "Expressions is the type of the expressions of the Wolfram Language, each \"atom\"[a] or \"normal\"[h, s]. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
 Arguments::usage = "Arguments[e] is the list of the arguments of the expression e, {} for an atom."
 Strings::usage = "Strings is the type of the strings of the Wolfram Language, each the list of its character codes: a string literal \"abc\" is one where a string is expected, and an expression where one is expected."
-ExpressionValue::usage = "ExpressionValue[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
+ExpressionEvaluate::usage = "ExpressionEvaluate[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
 Match::usage = "Match[A] is the type of the matches with results in A: the list of their results, none, one, or several in the order they are tried. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
 MatchValue::usage = "MatchValue[a] is the match with one result, the value a."
 MatchSum::usage = "MatchSum[m1, m2] is the match whose results are those of m1, then those of m2: the alternatives of a pattern, in order."
@@ -115,7 +115,7 @@ $wolframLanguageDeclarations = {
 	}],
 	TypeTheoryInductiveType[Expressions, TypeUniverse[1], {
 		"atom" -> (Atoms -> Expressions),
-		"normal" -> (Expressions -> {Expressions} -> Expressions)
+		"construct" -> (Expressions -> {Expressions} -> Expressions)
 	}],
 	(* the sequences of elements of the types of a list, as Lean's HList, a universe above its elements *)
 	TypeTheoryInductiveType[
@@ -284,7 +284,7 @@ $wolframLanguageDeclarations = {
 		Expressions -> Expressions -> Booleans
 	]],
 	(* evaluation, as the Wolfram Language does it, taken as given: what a condition tests *)
-	TypeTheoryAxiom[ExpressionValue, Expressions -> Expressions],
+	TypeTheoryAxiom[ExpressionEvaluate, Expressions -> Expressions],
 	(* a list without its first n elements, all of them where it has fewer *)
 	TypeTheoryDefinition[Drop, Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}], Typed[n, NonNegativeIntegers]},
@@ -430,7 +430,7 @@ $wolframLanguageDeclarations = {
 				Typed[xs, {Expressions}] |-> {Expressions},
 				Typed[a, Atoms] |-> InductiveRecursor[Option][Typed[o, Option[Expressions]] |-> Expressions, "atom"[a], Typed[r, Expressions] |-> r, MatchFirst[rules["atom"[a]]]],
 				{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Expressions], Typed[ar, {Expressions}]} |->
-					InductiveRecursor[Option][Typed[o, Option[Expressions]] |-> Expressions, "normal"[hr, ar], Typed[r, Expressions] |-> r, MatchFirst[rules["normal"[h, arguments]]]],
+					InductiveRecursor[Option][Typed[o, Option[Expressions]] |-> Expressions, "construct"[hr, ar], Typed[r, Expressions] |-> r, MatchFirst[rules["construct"[h, arguments]]]],
 				Typed[{}, {Expressions}],
 				{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, Expressions], Typed[rr, {Expressions}]} |-> Prepend[xr][rr],
 				e

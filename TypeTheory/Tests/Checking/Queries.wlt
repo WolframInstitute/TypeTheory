@@ -427,10 +427,22 @@ VerificationTest[
 (* NormalForm reduces every part of a term, under binders too, where WeakHeadNormalForm stops at the head *)
 VerificationTest[
 	{
-		MatchQ[NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}, prelude]], HoldPattern[TypeTheoryTerm["Prepend"[2, "Prepend"[6, "{}"]], _]]],
+		MatchQ[NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}, prelude]], HoldPattern[TypeTheoryTerm[{2, 6}, _]]],
 		FreeQ[NormalForm[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n + 0, prelude]], Plus],
 		FreeQ[WeakHeadNormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}, prelude]], Plus]
 	},
 	{True, True, False},
 	TestID -> "NormalForm-reduces-every-part-under-binders-too"
+]
+
+(* a name that names no library environment is a Failure, and so is a term or a type in it *)
+VerificationTest[
+	{
+		First[TypeTheoryEnvironment["WolframLanguge"]],
+		First[TypeTheoryTerm[1, TypeTheoryEnvironment["WolframLanguge"]]],
+		First[TypeTheoryType[1, TypeTheoryEnvironment["WolframLanguge"]]],
+		First[TypeTheoryProof[1 == 1, TypeTheoryEnvironment["WolframLanguge"]]]
+	},
+	ConstantArray["UnknownEnvironment", 4],
+	TestID -> "A-misspelled-library-environment-is-a-Failure"
 ]

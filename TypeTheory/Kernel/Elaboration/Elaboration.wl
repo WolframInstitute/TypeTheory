@@ -340,10 +340,15 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 				elaborateSyntax[listLiteralSyntax[{syntaxElaborated[elaborated, element]}], expected]
 			]
 		],
+	(* where an expression is expected, {a, b} is the expression List[a, b], as in the Wolfram Language *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], elements_List] /; expressionExpectedQ[expected] :>
+		elaborateSyntax[syntaxApplication[syntaxString["construct"], Prepend[elements, quotationSyntax[head]]], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
 	(* HoldForm[e] is the expression e, quoted, where the expressions are declared: its variables in scope are the
 	   expressions they stand for, and a list of expressions among the arguments is joined in, as Sequence @@ l is *)
 	syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}] /; expressionsDeclaredQ[] :> elaborateSyntax[quotationSyntax[quoted], expected],
+	syntaxApplication[syntaxString["construct"], {head_, arguments___}] /; expressionsDeclaredQ[] && ! MatchQ[{arguments}, {_?expressionListTypedQ}] :>
+		elaborateSyntax[syntaxApplication[syntaxString["construct"], {head, constructArgumentsSyntax[{arguments}]}], expected],
 	(* Sequence @@ As, the sequence of the elements of a list As, is the type at the list of types As *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {head : syntaxSymbol[HoldComplete[Sequence]], index_}] /; sequencesDeclaredQ[] :>
 		applyArguments[elaborateHead[head], {index}, head, expected],
@@ -370,7 +375,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxString[text_] /; unnamedStringQ[text] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxSymbol[held : HoldComplete[_Symbol]] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :>
-		elaborateSyntax[syntaxApplication[syntaxString["normal"], {quotationSyntax[syntaxSymbol[held]], expressionListSyntax[arguments]}], expected],
+		elaborateSyntax[syntaxApplication[syntaxString["construct"], {quotationSyntax[syntaxSymbol[held]], expressionListSyntax[arguments]}], expected],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
@@ -612,8 +617,8 @@ typeListQ[type_] := MatchQ[
 ]
 
 (* the syntax of the expression a quotation stands for, of the type Expressions: a symbol its atom, named by its full name,
-   a natural number by "naturalAtom", any other atom by its InputForm, and h[a, ...] "normal"[h, {a, ...}] *)
-expressionsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["normal"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["atom"]]
+   a natural number by "naturalAtom", any other atom by its InputForm, and h[a, ...] "construct"[h, a, ...] *)
+expressionsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["construct"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["atom"]]
 
 quotationSyntax[syntax : syntaxSymbol[held_]] /; KeyExistsQ[$elaborationScope, held] := syntax
 quotationSyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] := atomOfSyntax["symbolAtom", {stringLiteralSyntax[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]]}]
@@ -660,7 +665,24 @@ stringExpectedQ[expected_] := constantDeclaredQ[$elaborationEnvironment, HoldCom
 	None -> True,
 	_ :> MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], constantReference[HoldComplete[Strings], _] | metavariable[_]]
 }]
-quotationSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[syntaxString["normal"], {quotationSyntax[head], quotedArgumentsSyntax[arguments]}]
+quotationSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[syntaxString["construct"], {quotationSyntax[head], expressionsTyped[quotedArgumentsSyntax[arguments]]}]
+
+(* a list of expressions, typed so: "construct" takes it as the list of its arguments *)
+expressionsTyped[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {_, _}]] := syntax
+expressionsTyped[syntax_] := syntaxHead[Typed, {syntax, syntaxHead[List, {syntaxSymbol[HoldComplete[Expressions]]}]}]
+
+(* "construct"[h, a, b, ...] is h applied to a, b, ...: its arguments a sequence, as Construct takes them, each an
+   expression, a list of expressions among them, a variable of that type or Sequence @@ l, joined in *)
+constructArgumentsSyntax[arguments_List] := expressionsTyped[Replace[SplitBy[arguments, splicedArgumentQ], {
+	{} :> quotedArgumentsSyntax[{}],
+	runs_ :> Fold[
+		Function[{rest, part}, syntaxHead[Join, {part, rest}]],
+		Reverse[Replace[runs, {run : {_?splicedArgumentQ, ___} :> Sequence @@ (splicedArgument /@ run), run_ :> syntaxHead[List, run]}, {1}]]
+	]
+}]]
+
+expressionListTypedQ[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {_, syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxSymbol[HoldComplete[Expressions]]}]}]] := True
+expressionListTypedQ[_] := False
 
 (* the arguments as a list of expressions: runs of them in list literals, and each list of expressions, a variable of
    that type or Sequence @@ l, joined in *)

@@ -2,7 +2,7 @@
 
 (* Tests for the patterns of Elaboration/WolframRules.wl: the rules of a symbol, translated to matches, give the
    expression the Wolfram Language rewrites to, for every kind of pattern. The kernel computes the structure of a match
-   but not SameQ or ExpressionValue, which the Wolfram Language computes, so the translated rules are run here by an
+   but not SameQ or ExpressionEvaluate, which the Wolfram Language computes, so the translated rules are run here by an
    interpreter of their constants in the Wolfram Language, and compared with Replace by the rules themselves. *)
 
 PacletDirectoryLoad[Directory[]]
@@ -20,9 +20,9 @@ interpreted[definition_] := Replace[definition, TypeTheoryDefinition[_, Typed[va
 $renamed = {
 	WolframInstitute`TypeTheory`MatchValue -> mValue, WolframInstitute`TypeTheory`MatchSum -> mSum, WolframInstitute`TypeTheory`MatchBind -> mBind,
 	WolframInstitute`TypeTheory`MatchFirst -> mFirst, WolframInstitute`TypeTheory`MatchPart -> mPart, WolframInstitute`TypeTheory`Arguments -> mArguments,
-	WolframInstitute`TypeTheory`ExpressionValue -> mValueOf, WolframInstitute`TypeTheory`Decide -> mDecide, Head -> mHead, AtomQ -> mAtomQ,
+	WolframInstitute`TypeTheory`ExpressionEvaluate -> mValueOf, WolframInstitute`TypeTheory`Decide -> mDecide, Head -> mHead, AtomQ -> mAtomQ,
 	Condition -> mCondition, MatchQ -> mMatchQ, SameQ -> mSameQ, InductiveRecursor[List] -> mListRecursion,
-	"splits" -> mSplits, "longestSplits" -> mLongestSplits, "permutations" -> mPermutations, "matchElement" -> mElement, "pair" -> List, "normal" -> mNormal
+	"splits" -> mSplits, "longestSplits" -> mLongestSplits, "permutations" -> mPermutations, "matchElement" -> mElement, "pair" -> List, "construct" -> mNormal
 }
 
 interpretedTerm[held_HoldComplete] := ReleaseHold[ReplaceRepeated[held, {
@@ -49,7 +49,7 @@ mElement[l_List, i_Integer] := If[i < Length[l], {l[[i + 1]]}, {}]
 mSplits[l_List] := Table[{Take[l, i], Drop[l, i]}, {i, 0, Length[l]}]
 mLongestSplits[l_List] := Reverse[mSplits[l]]
 mPermutations[l_List] := Map[Function[order, l[[order]]], Permutations[Range[Length[l]]]]
-mNormal[ex[h_], arguments_List] := Replace[Join[HoldComplete[h], HoldComplete[], Sequence @@ Replace[arguments, ex[a_] :> HoldComplete[a], {1}]], HoldComplete[head_, parts___] :> ex[head[parts]]]
+mNormal[ex[h_], arguments___ex] := Replace[Join[HoldComplete[h], HoldComplete[], Sequence @@ Replace[{arguments}, ex[a_] :> HoldComplete[a], {1}]], HoldComplete[head_, parts___] :> ex[head[parts]]]
 mHead[ex[e_]] := Extract[HoldComplete[e], {1, 0}, ex]
 mAtomQ[ex[e_]] := AtomQ[Unevaluated[e]]
 mArguments[ex[e_]] := If[AtomQ[Unevaluated[e]], {}, Replace[HoldComplete[e], HoldComplete[_[parts___]] :> (ex /@ Unevaluated[{parts}])]]

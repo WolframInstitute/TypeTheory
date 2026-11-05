@@ -42,6 +42,7 @@ PackageExported[TypeTheoryRules]
 
 
 PackageScoped[rulesQ]
+PackageScoped[$namedRules]
 PackageScoped[rulesSetting]
 PackageScoped[$defaultRules]
 

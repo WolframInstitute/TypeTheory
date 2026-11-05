@@ -192,6 +192,7 @@ proofFrom[HoldComplete[term_], Hold[options : OptionsPattern[]]] /; termExpressi
 	startProof[termEnvironment[evaluated], heldTerm[evaluated], Hold[options]]
 ]
 proofFrom[held_, Hold[options : OptionsPattern[]]] := startProof[defaultEnvironment[], held, Hold[options]]
+proofFrom[_, Hold[___, failure_Failure, ___]] := failure
 proofFrom[_, Hold[arguments___]] := Failure["ProofArguments", <|
 	"MessageTemplate" -> "TypeTheoryProof takes a statement, then an environment, a list of tactics and options, in that order, not `1`.",
 	"MessageParameters" -> {HoldForm[{arguments}]}

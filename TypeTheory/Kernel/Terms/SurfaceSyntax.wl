@@ -124,6 +124,9 @@ SetAttributes[TypeTheoryTerm, HoldFirst]
 (* a sequence, Sequence[a, b], is a term, not the arguments a and b *)
 SetAttributes[TypeTheoryTerm, SequenceHold]
 
+(* a term in an environment that failed, as a misspelled TypeTheoryEnvironment["name"], is that failure *)
+TypeTheoryTerm[_, failure_Failure] := failure
+
 (* A term copied from documentation keeps each symbol of a paclet as PacletSymbol[paclet, name], where paclet may be
    the documentation's guard If[PacletFind[...] === {}, PacletInstall[...], "Publisher/Paclet"] and name a full name:
    the term stores the symbol it names instead, as elaboration reads it, so that it shows and compares as the term
@@ -201,7 +204,19 @@ listElements[single_] := {single}
 (*Delaboration*)
 
 
-coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ Append[heldFromSyntax[delaborate[environment, context, term]], environment]
+coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ Append[heldFromSyntax[readableSyntax[delaborate[environment, context, term]]], environment]
+
+(* a term read back as it is written: a list literal {a, b}, any other list Prepend[l, x] in the order of the Wolfram
+   Language, a string as its text, and an expression of the Wolfram Language quoted, HoldForm[e], which keeps its type *)
+readableSyntax[syntax : syntaxApplication[syntaxString["Prepend"], {_, _}]] /; literalListSyntaxQ[syntax] := syntaxHead[List, readableSyntax /@ literalListElements[syntax]]
+readableSyntax[syntaxApplication[syntaxString["Prepend"], {element_, rest_}]] := syntaxHead[Prepend, {readableSyntax[rest], readableSyntax[element]}]
+readableSyntax[syntaxString["{}"]] := syntaxHead[List, {}]
+readableSyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringOfSyntax[syntax]] := syntaxString[stringOfSyntax[syntax]]
+readableSyntax[syntax : syntaxApplication[syntaxString["construct" | "atom"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
+readableSyntax[syntaxApplication[syntaxString["construct"], {head_, arguments_}]] /; literalListSyntaxQ[arguments] :=
+	syntaxApplication[syntaxString["construct"], Prepend[readableSyntax /@ literalListElements[arguments], readableSyntax[head]]]
+readableSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[readableSyntax[head], readableSyntax /@ arguments]
+readableSyntax[syntax_] := syntax
 
 displayCoreTerm[environment_, context_, term_] := Replace[
 	Quiet @ catchKernelFailure[coreToTypeTheoryTerm[environment, context, term]],

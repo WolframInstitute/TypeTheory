@@ -147,6 +147,7 @@ SetAttributes[TypeTheoryType, HoldAll]
 SetAttributes[TypeTheoryType, SequenceHold]
 TypeTheoryType[term_] := typeOfTerm[givenTerm[term, None]]
 TypeTheoryType[term_, environment_] := With[{evaluated = environment}, typeOfTerm[givenTerm[term, evaluated]] /; environmentQ[evaluated]]
+TypeTheoryType[_, environment_] := With[{evaluated = environment}, evaluated /; FailureQ[evaluated]]
 
 SetAttributes[givenTerm, HoldAllComplete]
 givenTerm[term : TypeTheoryTerm[__], None] := term
@@ -208,18 +209,18 @@ NormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = term
 
 normalForm[environment_, context_, term_] := normalParts[environment, context, weakHeadNormalForm[environment, context, term]]
 
-normalParts[environment_, context_, application[f_, a_]] := application[normalForm[environment, context, f], normalForm[environment, context, a]]
+normalParts[environment_, context_, application[f_, a_]] := Construct[application, normalForm[environment, context, f], normalForm[environment, context, a]]
 normalParts[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_]] := With[{id = freshFreeVariable[]},
-	lambdaAbstraction[name, normalForm[environment, context, domain], abstractFreeVariable[
+	Construct[lambdaAbstraction, name, normalForm[environment, context, domain], abstractFreeVariable[
 		normalForm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]], id
 	], binder]
 ]
 normalParts[environment_, context_, dependentFunctionType[name_, domain_, codomain_, binder_]] := With[{id = freshFreeVariable[]},
-	dependentFunctionType[name, normalForm[environment, context, domain], abstractFreeVariable[
+	Construct[dependentFunctionType, name, normalForm[environment, context, domain], abstractFreeVariable[
 		normalForm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]]], id
 	], binder]
 ]
-normalParts[environment_, context_, projection[structure_, index_, structureTerm_]] := projection[structure, index, normalForm[environment, context, structureTerm]]
+normalParts[environment_, context_, projection[structure_, index_, structureTerm_]] := Construct[projection, structure, index, normalForm[environment, context, structureTerm]]
 normalParts[_, _, term_] := term
 
 

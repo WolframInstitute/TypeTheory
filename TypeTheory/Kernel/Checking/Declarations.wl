@@ -172,6 +172,10 @@ TypeTheoryEnvironment["Integers"] := integersEnvironment[]
 TypeTheoryEnvironment["Rationals"] := rationalsEnvironment[]
 TypeTheoryEnvironment["Cubical"] := cubicalEnvironment[]
 TypeTheoryEnvironment["WolframLanguage"] := wolframLanguageEnvironment[]
+TypeTheoryEnvironment[name_String] := Failure["UnknownEnvironment", <|
+	"MessageTemplate" -> "`1` is not the name of a library environment, which are `2`.",
+	"MessageParameters" -> {name, $environmentNames}
+|>]
 TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[defaultEnvironment[], declarations]
 TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[defaultEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]

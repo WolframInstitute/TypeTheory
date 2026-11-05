@@ -19,7 +19,7 @@ left side of each rule is translated from the pattern itself, construct by const
 	                                   longest first under Longest; a named one binds the list of its expressions
 	PatternSequence, OrderlessPatternSequence   patterns that take a run of arguments, in turn or in every order
 	p | q, Except, p /; c, p?t         MatchSum of the alternatives, a Condition on MatchQ, on SameQ of the
-	                                   ExpressionValue of the condition, quoted, and True
+	                                   ExpressionEvaluate of the condition, quoted, and True
 	p : d, x_.                         MatchSum of the argument given and the default
 	an Orderless head, a Flat head     the arguments in every order, by "permutations"; a pattern for one argument
 	                                   also takes a run of two or more, wrapped in the head
@@ -327,7 +327,7 @@ singleMatch[pattern_HoldComplete, HoldComplete[l_], environment_, k_, flat_] := 
 flatRunMatch[pattern_, HoldComplete[l_], environment_, k_, HoldComplete[head_]] := With[{pair = freshVariable["split"], run = freshVariable["run"]},
 	bindTerm[HoldComplete["splits"[l]], pair, HoldComplete[CartesianProductType[{Expressions}, {Expressions}]],
 		Replace[pair, HoldComplete[p_] :> conditioned[
-			bindTerm[HoldComplete[MatchValue["normal"[HoldForm[head], p[[1]]]]], run, HoldComplete[Expressions],
+			bindTerm[HoldComplete[MatchValue["construct"[HoldForm[head], Sequence @@ p[[1]]]]], run, HoldComplete[Expressions],
 				patternMatch[pattern, run, withLocal[environment, run, "Expression"], Function[inner, k[inner, HoldComplete[p[[2]]]]]]],
 			HoldComplete[Decide[2 <= Length[p[[1]]]]]
 		]]
@@ -419,7 +419,7 @@ notTest[HoldComplete[t_]] := HoldComplete[Not[t]]
 headOf[HoldComplete[e_]] := HoldComplete[Head[e]]
 
 (* a condition or a test as the expression it evaluates, quoted, whose value must be True *)
-truthTest[test_HoldComplete, environment_] := sameTest[Replace[quoted[test, environment], HoldComplete[e_] :> HoldComplete[ExpressionValue[e]]], atomTerm["System`True"]]
+truthTest[test_HoldComplete, environment_] := sameTest[Replace[quoted[test, environment], HoldComplete[e_] :> HoldComplete[ExpressionEvaluate[e]]], atomTerm["System`True"]]
 applied[HoldComplete[f_], HoldComplete[v_]] := HoldComplete[f[v]]
 
 (* the head of a pattern, an atom: a symbol by its full name *)

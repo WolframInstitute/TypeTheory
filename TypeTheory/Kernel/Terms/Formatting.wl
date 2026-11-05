@@ -75,6 +75,8 @@ a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of funct
 
 
 PackageScoped[typeTheoryBoxes]
+PackageScoped[expressionOfSyntax]
+PackageScoped[stringOfSyntax]
 PackageScoped[rememberDisplayEnvironment]
 PackageScoped[displaySyntax]
 PackageScoped[$displayColors]
@@ -111,7 +113,14 @@ typeTheoryBoxes[syntax_, form_] := Block[
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
 
-TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, ___], form : StandardForm | TraditionalForm] := With[
+(* in text, as a front end that shows OutputForm prints it, a term shows as it shows in a notebook; a Format rule with a
+   condition never applies, so the test is inside *)
+TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], OutputForm] := If[ MatchQ[{environment}, {} | {_?environmentQ}],
+	withDisplayEnvironment[termEnvironment[term], Replace[heldFromSyntax[displaySyntax[toSyntax[expression]]], HoldComplete[shown_] :> HoldForm[shown]]],
+	OutputForm[ToString[Unevaluated[term], InputForm]]
+]
+
+TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ}] := With[
 	{boxes = withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]},
 	InterpretationBox[boxes, term]
 ]
@@ -285,18 +294,23 @@ displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
 displaySyntax[syntax : syntaxApplication[syntaxString["sequencePrepend"], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["[", displaySyntax /@ Most[rightNested["sequencePrepend", syntax]], "]"]
 displaySyntax[syntaxString["emptySequence"]] := syntaxString["[]"]
-(* an expression of the Wolfram Language shows quoted, HoldForm[e], as it is written: its atoms as symbols, numbers and
-   strings, its arguments in order, a list of them that is no literal as Sequence @@ l; where a part is none of these,
-   it shows as built *)
-displaySyntax[syntax : syntaxApplication[syntaxString["normal"], {_, _}]] /; quotableQ[syntax] :=
-	syntaxApplication[syntaxString["HoldForm"], {displaySyntax[unquoted[syntax]]}]
-displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] :=
-	syntaxApplication[syntaxString["HoldForm"], {displaySyntax[unquoted[syntax]]}]
-(* a quotation as written shows the same, its HoldForm in sight, which the Wolfram Language would hide *)
-displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}]] := syntaxApplication[syntaxString["HoldForm"], {displaySyntax[quoted]}]
+(* an expression of the Wolfram Language shows as the Wolfram Language shows it: its atoms as symbols, numbers and
+   strings in quotes, its arguments in order, a list of them that is no literal as Sequence @@ l; where a part is none
+   of these, it shows as built. The display holds the term, so what it shows copies as the term. *)
+displaySyntax[syntax : syntaxApplication[syntaxString["construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
+(* a quotation shows as the expression it quotes, as the Wolfram Language shows HoldForm[e]; a string in it is a string,
+   no name of a constant *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}]] := displaySyntax[quoted /. syntaxString[text_String] :> syntaxOther[HoldComplete[text]]]
+(* a string in an expression shows in quotes, apart from the names of constants *)
+displaySyntax[syntaxOther[HoldComplete[text_String]]] := syntaxString[ToString[text, InputForm]]
+
+(* the syntax of the expression of the Wolfram Language an expression's syntax stands for, or None; the text of a string *)
+expressionOfSyntax[syntax_] := If[quotableQ[syntax], unquoted[syntax], None]
+stringOfSyntax[syntax_] := Replace[stringText[syntax], Except[_String] -> None]
 
 quotableQ[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom] =!= None
-quotableQ[syntaxApplication[syntaxString["normal"], {head_, arguments_}]] := quotableQ[head] && quotableArgumentsQ[arguments]
+quotableQ[syntaxApplication[syntaxString["construct"], {head_, arguments_}]] := quotableQ[head] && quotableArgumentsQ[arguments]
 quotableQ[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {_syntaxInteger}]] := True
 quotableQ[syntaxSymbol[_]] := True
 quotableQ[_] := False
@@ -314,7 +328,7 @@ atomSyntax[syntaxApplication[syntaxString["symbolAtom"], {name_}]] := Replace[st
 	text_String :> Replace[Quiet[ToExpression[text, InputForm, HoldComplete]], {HoldComplete[symbol_Symbol] :> syntaxSymbol[HoldComplete[symbol]], _ -> None}],
 	None -> None
 }]
-atomSyntax[syntaxApplication[syntaxString["stringAtom"], {text_}]] := Replace[stringText[text], {string_String :> syntaxString[string], None -> None}]
+atomSyntax[syntaxApplication[syntaxString["stringAtom"], {text_}]] := Replace[stringText[text], {string_String :> syntaxOther[HoldComplete[string]], None -> None}]
 atomSyntax[syntaxApplication[syntaxString["otherAtom"], {_, form_}]] := Replace[stringText[form], {
 	text_String :> Replace[Quiet[ToExpression[text, InputForm, HoldComplete]], {HoldComplete[other_] :> syntaxOther[HoldComplete[other]], _ -> None}],
 	None -> None
@@ -341,7 +355,7 @@ stringText[_] := None
 displaySyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringText[syntax]] := syntaxString[ToString[stringText[syntax], InputForm]]
 
 unquoted[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom]
-unquoted[syntaxApplication[syntaxString["normal"], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]
+unquoted[syntaxApplication[syntaxString["construct"], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]
 unquoted[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {n_syntaxInteger}]] := n
 unquoted[variable_] := variable
 

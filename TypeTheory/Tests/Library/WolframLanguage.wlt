@@ -21,9 +21,9 @@ VerificationTest[
 (* the part of an expression at a position: 0 its head, k its k-th argument, no result out of range *)
 VerificationTest[
 	{
-		equalQ[MatchPart["normal"[7, {1, 2}], 2, MatchValue], MatchValue[Typed[2, Expressions]]],
-		equalQ[MatchPart["normal"[7, {1}], 0, MatchValue], MatchValue[Typed[7, Expressions]]],
-		equalQ[MatchPart["normal"[7, {1}], 5, MatchValue], Typed[{}, Match[Expressions]]]
+		equalQ[MatchPart["construct"[7, 1, 2], 2, MatchValue], MatchValue[Typed[2, Expressions]]],
+		equalQ[MatchPart["construct"[7, 1], 0, MatchValue], MatchValue[Typed[7, Expressions]]],
+		equalQ[MatchPart["construct"[7, 1], 5, MatchValue], Typed[{}, Match[Expressions]]]
 	},
 	{True, True, True},
 	TestID -> "The-parts-of-an-expression-are-matches"
@@ -47,7 +47,7 @@ VerificationTest[
    MatchValue[Sequence[...]], and several results are a sum *)
 VerificationTest[
 	{
-		equalQ[Arguments["normal"[7, {1, 2}]], Typed[{1, 2}, {Expressions}]],
+		equalQ[Arguments["construct"[7, 1, 2]], Typed[{1, 2}, {Expressions}]],
 		TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram] === TypeTheoryTerm[Match[Sequence[NonNegativeIntegers, Booleans]], wolfram],
 		equalQ[MatchFirst[MatchValue[Sequence[1, "true"]]], "some"[Sequence[1, "true"]]],
 		equalQ[MatchSum[MatchValue[1], MatchValue[2]], {1, 2}]
@@ -63,13 +63,13 @@ VerificationTest[
 VerificationTest[
 	With[{quoting = TypeTheoryEnvironment["WolframLanguage"]},
 		{
-			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm["normal"["atom"["symbolAtom"["Global`f"]], {1, 2}], quoting]],
+			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm["construct"["atom"["symbolAtom"["Global`f"]], 1, 2], quoting]],
 			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest, Sequence @@ rest]], quoting]]] === TypeTheoryTerm,
 			DefinitionallyEqualQ[
 				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest]])[1, {2, 3}], quoting],
 				TypeTheoryTerm[HoldForm[f[1, 2, 3]], quoting]
 			],
-			Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], RowBox[{"\"HoldForm\"", "[", _, "]"}], Infinity] =!= {},
+			FreeQ[ToBoxes[NormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], "HoldForm" | "\"HoldForm\"", Infinity],
 			First[TypeTheoryType[TypeTheoryTerm["abc", quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[HoldForm[g[1]], quoting]]],
@@ -97,4 +97,20 @@ VerificationTest[
 	},
 	ConstantArray[True, 8],
 	TestID -> "Replace-ReplaceList-ReplaceAll-and-ReplaceRepeated-rewrite-in-the-kernel"
+]
+
+(* "construct"[h, a, b] is h applied to the sequence of its arguments, as Construct is, a literal list one argument and
+   a variable of a list of expressions the arguments themselves; a term reads back as it is written *)
+VerificationTest[
+	{
+		equalQ["construct"[f, 1, 2], HoldForm[f[1, 2]]],
+		equalQ["construct"[f], HoldForm[f[]]],
+		equalQ["construct"[f, {1, 2}], HoldForm[f[{1, 2}]]],
+		equalQ[Function[{Typed[l, {Expressions}]}, "construct"[f, l]][{1, 2}], HoldForm[f[1, 2]]],
+		MatchQ[NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]], HoldPattern[TypeTheoryTerm[HoldForm[{2, 1}], _]]],
+		MatchQ[NormalForm[TypeTheoryTerm[StringJoin["ab", "c"] /. _ -> "abc", wolfram]], _TypeTheoryTerm | _Failure],
+		ToString[NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a"], f[x__, y___] :> {{x}, {y}}], wolfram]], OutputForm]
+	},
+	{True, True, True, True, True, True, "{{{1}, {\"a\"}}, {{1, \"a\"}, {}}}"},
+	TestID -> "Construct-takes-a-sequence-of-arguments-and-terms-read-back-as-written"
 ]

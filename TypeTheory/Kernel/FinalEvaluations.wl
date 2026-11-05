@@ -13,3 +13,16 @@ $preludeEnvironment = withoutStoreTracking[libraryEnvironment["Prelude", $constr
 
 (* the default environment, until SetTypeTheoryEnvironment sets another *)
 $TypeTheoryEnvironment = $preludeEnvironment
+
+(* in a notebook, the front end completes the names of the library environments and of the rules, as it completes the
+   arguments of a built-in *)
+If[TrueQ[$Notebooks],
+	Scan[
+		Function[completion, Quiet[FrontEndExecute[FrontEnd`Value[FEPrivate`AddSpecialArgCompletion[completion]]]]],
+		{
+			"TypeTheoryEnvironment" -> {$environmentNames},
+			"SetTypeTheoryEnvironment" -> {$environmentNames},
+			"TypeTheoryRules" -> {Keys[$namedRules]}
+		}
+	]
+]
