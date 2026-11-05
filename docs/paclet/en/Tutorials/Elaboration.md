@@ -105,7 +105,15 @@ DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequen
 
 <!-- => True -->
 
-A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`.
+A sequence of any number of elements of one type is of the type `A...`, as the pattern `p...` takes any number of expressions, and is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on. The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, each an `A` or a sequence spliced in, a variable of that type, `Unevaluated[...]`, or `Sequence @@ l` of a list; a binder of that type before others takes one argument, as any binder does, so a recursor's case of type `A...` is no sequence of the arguments after it. The Wolfram Language's own [Construct]() is applied so, `Construct[h, a, b]` building the expression `h[a, b]`:
+
+```wl
+{TypeTheoryType[Construct, wolfram], NormalForm[TypeTheoryTerm[Construct[f, 1, Unevaluated[2, 3]], wolfram]]}
+```
+
+<!-- => {Expressions → Expressions... → Expressions, f[1, 2, 3]} -->
+
+A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, of any number of arguments, `A... -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`.
 
 ## Binders Without Types
 
@@ -220,7 +228,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValue[HoldForm[StringReverse[s]]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->
+<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValue[StringReverse[s]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->
 
 ## Typing in the Compiler and in Mathematics
 
@@ -288,7 +296,7 @@ TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 | What a type is | how a value is stored: `"Integer64"`, `"Real64"`, `"PackedArray"::["Integer64", 1]` | what a term is: ℤ, ℚ, `{A}`, `Vector[A, n]`, `2 + 2 == 4` |
 | Its purpose | choosing machine code and memory layout | stating and checking mathematics |
 | Numbers | bounded machine numbers; a compiled function refuses an argument of another type before running | the integers and rationals themselves, without bound |
-| Function types | `TypeSpecifier[{a, b} -> c]`, arguments as a list | `a -> b -> c`, curried, and dependent: `ForAll[{Typed[n, NonNegativeIntegers]}, Vector[A, n]]`, whose result depends on the argument |
+| Function types | `TypeSpecifier[{a, b} -> c]`, arguments as a list | `a -> b -> c`, curried, and dependent: `ForAll[{Typed[n, NonNegativeIntegers]}, Vector[A, n]]`, whose result depends on the argument; `Sequence[a, b] -> c` of a sequence, and `a... -> c` of any number of arguments |
 | Polymorphism | `ForAllType[a, {a} -> a]`, each use specialized to machine code | `ForAll[{TypedImplicit[a, TypeUniverse[u + 1]]}, a -> a]`, one term for every type, at every universe level |
 | Constraints | conditions of `ForAllType` on a type variable | classes and their instances, found by elaboration |
 | Propositions and proofs | none | a proposition is a type, and a proof is a term of that type |

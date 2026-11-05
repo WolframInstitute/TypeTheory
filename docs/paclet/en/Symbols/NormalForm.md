@@ -38,7 +38,7 @@ NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
 WeakHeadNormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
 ```
 
-<!-- => {1 + 1, 2 6} -->
+<!-- => {1 + 1, 2 3} -->
 
 ## Scope
 
@@ -59,7 +59,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], wolfram]]
 ```
 
-<!-- => {HoldForm[{{1}, {2, 3}}], HoldForm[{{1, 2}, {3}}]} -->
+<!-- => {{{1}, {2, 3}}, {{1, 2}, {3}}} -->
 
 ## Possible Issues
 

@@ -14,21 +14,21 @@ RelatedTutorials: [PatternsAndRewriting, Elaboration, ThePrelude, TypeTheoryIntr
 
 ## Expressions
 
-An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions, its arguments. An atom is data, of the type [Atoms](): a symbol by its full name, an integer, a string, the list of its character codes, or any other atom by its head and its [InputForm](). So [Head](), [Arguments](), [AtomQ]() and [SameQ]() are definitions, which the kernel computes, and only [ExpressionEvaluate](), the expression an expression evaluates to, is an axiom that the Wolfram Language computes. A natural number is an expression where one is expected:
+An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a sequence of expressions, its arguments, [Construct]()`[h, a, b]`, which is `h[a, b]`. An atom is data, of the type [Atoms](): a symbol by its full name, an integer, a string, the list of its character codes, or any other atom by its head and its [InputForm](). So [Head](), [Arguments](), [AtomQ]() and [SameQ]() are definitions, which the kernel computes, and only [ExpressionEvaluate](), the expression an expression evaluates to, is an axiom that the Wolfram Language computes. A natural number is an expression where one is expected:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeTheoryType["construct"[7, 1, 2], wolfram]
+TypeTheoryType[Construct[7, 1, 2], wolfram]
 ```
 
 <!-- => Expressions -->
 
-An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `"construct"` and `"atom"` build what it stands for:
+An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a sequence of expressions among its arguments spliced in, as is `Sequence @@ l` of a list. [Construct]() and `"atom"` build what it stands for:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[{x, rest}]][1, {2, 3}], wolfram],
-    TypeTheoryTerm["construct"["atom"["symbolAtom"["System`List"]], 1, 2, 3], wolfram]
+    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, Expressions...]}, HoldForm[{x, rest}]][1, 2, 3], wolfram],
+    TypeTheoryTerm[Construct["atom"["symbolAtom"["System`List"]], 1, 2, 3], wolfram]
 ]
 ```
 
@@ -37,7 +37,7 @@ DefinitionallyEqualQ[
 [Arguments]() gives the list of an expression's arguments:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments["construct"[7, 1, 2]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments[Construct[7, 1, 2]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
 ```
 
 <!-- => True -->
@@ -67,6 +67,25 @@ pairs = TypeTheoryEnvironment[wolfram, {
 ```
 
 <!-- => {True, True, ℕ → ℕ} -->
+
+A sequence of any number of elements of one type `A` is of the type `A...`, as the pattern `p...` takes any number of expressions. It is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, and [Prepend]() puts an element in front of one, as it does in the Wolfram Language; a sequence among the elements is spliced in, as are `Sequence @@ l` and `Unevaluated @@ l` of a list `l`:
+
+```wl
+{
+    NormalForm[TypeTheoryTerm[Prepend[Unevaluated[1, 2, 3], 0], wolfram]],
+    NormalForm[TypeTheoryTerm[Unevaluated[Unevaluated[1, 2], 3, Unevaluated @@ {4, 5}], wolfram]]
+}
+```
+
+<!-- => {Unevaluated[0, 1, 2, 3], Unevaluated[1, 2, 3, 4, 5]} -->
+
+The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, so [Construct](), of the type `Expressions -> Expressions... -> Expressions`, is applied to a head and its arguments, as in the Wolfram Language:
+
+```wl
+{TypeTheoryType[Construct, wolfram], NormalForm[TypeTheoryTerm[Construct[f, 1, Unevaluated[2, 3]], wolfram]]}
+```
+
+<!-- => {Expressions → Expressions... → Expressions, f[1, 2, 3]} -->
 
 ## The Monad of Matches
 
@@ -114,8 +133,8 @@ TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram]
 
 ```wl
 {
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1, 2], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]],
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[Construct[7, 1, 2], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]],
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[Construct[7, 1], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
 }
 ```
 
@@ -123,7 +142,7 @@ TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram]
 
 ## The Rules of a Symbol
 
-The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is translated from its pattern, every pattern the Wolfram Language has but [KeyValuePattern](), as the tutorial *Patterns and Rewriting* shows construct by construct. The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
+The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is translated from its pattern, every pattern the Wolfram Language has but [KeyValuePattern](), as the tutorial *Patterns and Rewriting* shows construct by construct. The right side is quoted as it is, its pattern variables the parts they match, a sequence variable the sequence of its expressions, `Unevaluated @@ l`, of the type `Expressions...`, spliced where it stands: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
 
 ```wl
 listed[x_, y_, z___] := {x, y, z};

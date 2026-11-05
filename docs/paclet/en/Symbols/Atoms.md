@@ -33,11 +33,11 @@ TypeTheoryType["atom", wolfram]
 
 ---
 
-The symbol `f` quoted is the atom of its full name:
+The symbol `Plus` quoted is the atom of its full name:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f], wolfram], TypeTheoryTerm["atom"["symbolAtom"["Global`f"]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[Plus], wolfram], TypeTheoryTerm["atom"["symbolAtom"["System`Plus"]], wolfram]]
 ```
 
 <!-- => True -->
@@ -48,10 +48,10 @@ The head of an atom computes:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-{WeakHeadNormalForm[TypeTheoryTerm[Head[HoldForm[1]], wolfram]], WeakHeadNormalForm[TypeTheoryTerm[Head[HoldForm["text"]], wolfram]]}
+{NormalForm[TypeTheoryTerm[Head[HoldForm[1]], wolfram]], NormalForm[TypeTheoryTerm[Head[HoldForm["text"]], wolfram]]}
 ```
 
-<!-- => {HoldForm[Integer], HoldForm[String]} -->
+<!-- => {Integer, String} -->
 
 ---
 

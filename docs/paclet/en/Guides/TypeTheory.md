@@ -47,9 +47,10 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryAxiomClosure]() the axioms a term rests on, as Lean's `#print axioms`
 - [TypeTheoryProofTree]() the natural-deduction derivation of a proof of propositional logic, drawn
 - [TypeTheoryFormalize]() the declarations that make a Wolfram Language function a constant: a definition where its definitions translate, an axiom it computes otherwise
-- [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), `"atom"`, `"construct"`, [Arguments]() and [ExpressionEvaluate](), in [TypeTheoryEnvironment]()["WolframLanguage"], where [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() rewrite with rules translated to matches
+- [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), `"atom"`, [Construct](), [Arguments]() and [ExpressionEvaluate](), in [TypeTheoryEnvironment]()["WolframLanguage"], where [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() rewrite with rules translated to matches
 - [Strings]() the strings, each literal a constant of it, with signatures for the string functions
 - `"emptySequence"` and `"sequencePrepend"` the sequences of elements of different types, `Sequence[a, b]`, of the type `Sequence[A, B]`: the arguments a Wolfram Language function is applied to
+- `A...` the sequences of any number of elements of `A`, held as the Wolfram Language holds them, `Unevaluated[a, b, ...]`, with [Prepend]() and `Unevaluated @@ l`: the arguments of an expression, which [Construct]() takes
 - [Match]() the matches, lists of results, with [MatchValue]() one result, [MatchSum]() alternatives in order, [MatchBind]() parts in turn, [MatchPart]() a part of an expression and [MatchFirst]() the result the Wolfram Language applies
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce

@@ -25,7 +25,7 @@ The value of an expression is an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeTheoryType[ExpressionEvaluate["construct"[7, 1, 2]], wolfram]
+TypeTheoryType[ExpressionEvaluate[Construct[7, 1, 2]], wolfram]
 ```
 
 <!-- => Expressions -->
@@ -40,4 +40,4 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[positive, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => definition DownValues[positive] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ (MatchValue[HoldForm[x]] /; ExpressionEvaluate[HoldForm[x > 0]] === HoldForm[True])] /; ...] -->
+<!-- => definition DownValues[positive] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ (MatchValue[x] /; ExpressionEvaluate[x > 0] === True)] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->

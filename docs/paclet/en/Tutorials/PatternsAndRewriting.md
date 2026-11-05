@@ -28,7 +28,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"]
 NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]]
 ```
 
-<!-- => HoldForm[{2, 1}] -->
+<!-- => {2, 1} -->
 
 An expression that no rule matches stays as it is:
 
@@ -36,7 +36,7 @@ An expression that no rule matches stays as it is:
 NormalForm[TypeTheoryTerm[Replace[g[1, 2], f[x_, y_] :> {y, x}], wolfram]]
 ```
 
-<!-- => HoldForm[g[1, 2]] -->
+<!-- => g[1, 2] -->
 
 The rules are a function from an expression to its matches:
 
@@ -52,7 +52,7 @@ TypeTheoryType[Typed[{f[x_, y_] :> {y, x}, f[x_] :> x}, Expressions -> Match[Exp
 NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], wolfram]]
 ```
 
-<!-- => {HoldForm[{{1}, {2, 3}}], HoldForm[{{1, 2}, {3}}]} -->
+<!-- => {{{1}, {2, 3}}, {{1, 2}, {3}}} -->
 
 ## Patterns, Construct by Construct
 
@@ -62,7 +62,7 @@ Each pattern is translated to matches: a blank by a test of a head, a sequence b
 NormalForm[TypeTheoryTerm[Replace[f[1, "a"], f[x_Integer, y_String] :> {y, x}], wolfram]]
 ```
 
-<!-- => HoldForm[{"a", 1}] -->
+<!-- => {"a", 1} -->
 
 A name met twice matches the same expression twice:
 
@@ -70,7 +70,7 @@ A name met twice matches the same expression twice:
 NormalForm[TypeTheoryTerm[ReplaceList[f[1, 1, 2], f[x_, x_, y_] :> y], wolfram]]
 ```
 
-<!-- => {HoldForm[2]} -->
+<!-- => {2} -->
 
 A sequence takes a run of arguments, each split tried, the shortest first, and [Longest]() the longest first:
 
@@ -81,7 +81,7 @@ A sequence takes a run of arguments, each split tried, the shortest first, and [
 }
 ```
 
-<!-- => {{HoldForm[{{1}, {2, 3}}], HoldForm[{{1, 2}, {3}}], HoldForm[{{1, 2, 3}, {}}]}, {HoldForm[{{1, 2, 3}, {}}], HoldForm[{{1, 2}, {3}}], HoldForm[{{1}, {2, 3}}]}} -->
+<!-- => {{{{1}, {2, 3}}, {{1, 2}, {3}}, {{1, 2, 3}, {}}}, {{{1, 2, 3}, {}}, {{1, 2}, {3}}, {{1}, {2, 3}}}} -->
 
 [Repeated]() takes a run whose every element matches:
 
@@ -89,7 +89,7 @@ A sequence takes a run of arguments, each split tried, the shortest first, and [
 NormalForm[TypeTheoryTerm[Replace[f[1, 2, a], f[x : Repeated[_Integer], y___] :> {{x}, {y}}], wolfram]]
 ```
 
-<!-- => HoldForm[{{1}, {2, a}}] -->
+<!-- => {{1}, {2, a}} -->
 
 [Alternatives]() are tried in order, and [Except]() matches what its pattern does not:
 
@@ -100,7 +100,7 @@ NormalForm[TypeTheoryTerm[Replace[f[1, 2, a], f[x : Repeated[_Integer], y___] :>
 }
 ```
 
-<!-- => {{HoldForm[1], HoldForm["a"]}, {HoldForm["a"], HoldForm[b]}} -->
+<!-- => {{1, "a"}, {"a", b}} -->
 
 An [Optional]() argument is given or left out for its default:
 
@@ -111,7 +111,7 @@ An [Optional]() argument is given or left out for its default:
 }
 ```
 
-<!-- => {HoldForm[{1, 0}], HoldForm[{1, 2}]} -->
+<!-- => {{1, 0}, {1, 2}} -->
 
 [PatternSequence]() matches a run of arguments in turn, and [OrderlessPatternSequence]() in any order:
 
@@ -122,7 +122,7 @@ An [Optional]() argument is given or left out for its default:
 }
 ```
 
-<!-- => {HoldForm[{{1, 2}, {3}}], HoldForm[{1, "a"}]} -->
+<!-- => {{{1, 2}, {3}}, {1, "a"}} -->
 
 The arguments of an [Orderless]() head match in every order, and those of a [Flat]() head in runs wrapped in the head, as [Plus]() has both. [Plus]() is a constant of the environment, the addition of natural numbers, so the expression is quoted with [HoldForm]() to keep it from computing:
 
@@ -130,7 +130,7 @@ The arguments of an [Orderless]() head match in every order, and those of a [Fla
 NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x], wolfram]]
 ```
 
-<!-- => HoldForm[a + b] -->
+<!-- => a + b -->
 
 [Verbatim]() matches a pattern as an expression, and [HoldPattern]() matches by the pattern inside it:
 
@@ -141,7 +141,7 @@ NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x], wolfram]]
 }
 ```
 
-<!-- => {HoldForm["blank"], HoldForm[f[1]]} -->
+<!-- => {"blank", f[1]} -->
 
 A condition, `x_ /; test`, and a pattern test, `x_?test`, are [SameQ]() of the [ExpressionEvaluate]() of the test and `True`, which only the Wolfram Language evaluates: a rewriting by one computes in the kernel up to that test.
 
@@ -153,7 +153,7 @@ A condition, `x_ /; test`, and a pattern test, `x_?test`, are [SameQ]() of the [
 NormalForm[TypeTheoryTerm[ReplaceAll[f[a, g[a]], a -> b], wolfram]]
 ```
 
-<!-- => HoldForm[f[b, g[b]]] -->
+<!-- => f[b, g[b]] -->
 
 [ReplaceRepeated]() rewrites again until the expression no longer changes, at most 65536 times, the default of [MaxIterations](), so it is a total function:
 
@@ -161,7 +161,7 @@ NormalForm[TypeTheoryTerm[ReplaceAll[f[a, g[a]], a -> b], wolfram]]
 NormalForm[TypeTheoryTerm[ReplaceRepeated[f[f[f[x]]], f[y_] :> y], wolfram]]
 ```
 
-<!-- => HoldForm[x] -->
+<!-- => x -->
 
 The right side of a rule is quoted: the rules rewrite, and arithmetic in a right side stays as it is written, for the Wolfram Language to evaluate:
 
@@ -169,7 +169,7 @@ The right side of a rule is quoted: the rules rewrite, and arithmetic in a right
 NormalForm[TypeTheoryTerm[ReplaceAll[HoldForm[d[x^3]], d[x^n_] :> n x^(n - 1)], wolfram]]
 ```
 
-<!-- => HoldForm[3 x^(3 - 1)] -->
+<!-- => 3 x^(3 - 1) -->
 
 ## Expressions Where Expressions Are Expected
 
@@ -182,7 +182,7 @@ Where an expression is expected, a term is evaluated as the Wolfram Language eva
 }
 ```
 
-<!-- => {HoldForm["three"], HoldForm[1 + 2]} -->
+<!-- => {"three", 1 + 2} -->
 
 ## The Rules of a Symbol
 
@@ -207,7 +207,7 @@ The kernel computes which rule applies:
 }
 ```
 
-<!-- => {some[HoldForm[{2, 1}]], some[HoldForm[{{2, 3}, 1}]], none} -->
+<!-- => {some[{2, 1}], some[{{2, 3}, 1}], none} -->
 
 ## Possible Issues
 

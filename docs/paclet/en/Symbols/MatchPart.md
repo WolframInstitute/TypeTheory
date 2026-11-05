@@ -26,7 +26,7 @@ The second argument of an expression, as one result:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1, 2], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[Construct[7, 1, 2], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]]
 ```
 
 <!-- => True -->
@@ -37,7 +37,7 @@ Position 0 is the head:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1], 0, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[7, Expressions]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[Construct[7, 1], 0, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[7, Expressions]], wolfram]]
 ```
 
 <!-- => True -->
@@ -48,7 +48,7 @@ A position out of range gives no result:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchPart[Construct[7, 1], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
 ```
 
 <!-- => True -->
