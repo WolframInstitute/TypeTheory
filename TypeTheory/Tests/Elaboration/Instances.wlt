@@ -151,6 +151,6 @@ VerificationTest[
 			TypeTheoryDefinition[NaturalsNonempty, Typed["decidableTrue"["nonempty"[0]], Decidable[Nonempty[NonNegativeIntegers]]], "Instance" -> True]
 		}], {TypeTheoryTactic["Decide"]}]["Goals"]
 	},
-	{TypeTheoryTerm["true", prelude], {}, "\"notDecidable\"", {}},
+	{TypeTheoryTerm["true", prelude], {}, "NotDecidable", {}},
 	TestID -> "Decide-uses-the-instances-of-Decidable-an-environment-declares"
 ]

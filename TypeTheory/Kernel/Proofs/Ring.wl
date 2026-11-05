@@ -383,21 +383,21 @@ $naturalNumberRing = <|
 	"NormalForm" -> naturalNormalForm,
 	"LiteralSum" -> computedLiteralSum,
 	"Laws" -> <|
-		"\"additionAssociativity\"" -> HoldComplete["additionAssociativity"],
-		"\"additionCommutativity\"" -> HoldComplete["additionCommutativity"],
-		"\"additionZeroLeft\"" -> HoldComplete["additionZeroLeft"],
-		"\"additionZeroRight\"" -> HoldComplete["additionZeroRight"],
-		"\"multiplicationAssociativity\"" -> HoldComplete["multiplicationAssociativity"],
-		"\"multiplicationCommutativity\"" -> HoldComplete["multiplicationCommutativity"],
-		"\"multiplicationZeroLeft\"" -> HoldComplete["multiplicationZeroLeft"],
-		"\"multiplicationZeroRight\"" -> HoldComplete["multiplicationZeroRight"],
-		"\"multiplicationOneLeft\"" -> HoldComplete["multiplicationOneLeft"],
-		"\"multiplicationDistributivityLeft\"" -> HoldComplete["multiplicationDistributivityLeft"],
-		"\"multiplicationDistributivityRight\"" -> HoldComplete["multiplicationDistributivityRight"],
-		"\"powerZero\"" -> HoldComplete["powerZero"],
-		"\"powerOne\"" -> HoldComplete["powerOne"],
-		"\"powerSuccessor\"" -> HoldComplete["powerSuccessor"],
-		"\"powerAddition\"" -> HoldComplete["powerAddition"]
+		"additionAssociativity" -> HoldComplete["additionAssociativity"],
+		"additionCommutativity" -> HoldComplete["additionCommutativity"],
+		"additionZeroLeft" -> HoldComplete["additionZeroLeft"],
+		"additionZeroRight" -> HoldComplete["additionZeroRight"],
+		"multiplicationAssociativity" -> HoldComplete["multiplicationAssociativity"],
+		"multiplicationCommutativity" -> HoldComplete["multiplicationCommutativity"],
+		"multiplicationZeroLeft" -> HoldComplete["multiplicationZeroLeft"],
+		"multiplicationZeroRight" -> HoldComplete["multiplicationZeroRight"],
+		"multiplicationOneLeft" -> HoldComplete["multiplicationOneLeft"],
+		"multiplicationDistributivityLeft" -> HoldComplete["multiplicationDistributivityLeft"],
+		"multiplicationDistributivityRight" -> HoldComplete["multiplicationDistributivityRight"],
+		"powerZero" -> HoldComplete["powerZero"],
+		"powerOne" -> HoldComplete["powerOne"],
+		"powerSuccessor" -> HoldComplete["powerSuccessor"],
+		"powerAddition" -> HoldComplete["powerAddition"]
 	|>
 |>
 
@@ -408,21 +408,21 @@ $integerRing = <|
 	"NormalForm" -> integerNormalForm,
 	"LiteralSum" -> integerLiteralSum,
 	"Laws" -> <|
-		"\"additionAssociativity\"" -> HoldComplete["integerAdditionAssociativity"],
-		"\"additionCommutativity\"" -> HoldComplete["integerAdditionCommutativity"],
-		"\"additionZeroLeft\"" -> HoldComplete["integerAdditionZeroLeft"],
-		"\"additionZeroRight\"" -> HoldComplete["integerAdditionZero"],
-		"\"multiplicationAssociativity\"" -> HoldComplete["integerMultiplicationAssociativity"],
-		"\"multiplicationCommutativity\"" -> HoldComplete["integerMultiplicationCommutativity"],
-		"\"multiplicationZeroLeft\"" -> HoldComplete["integerMultiplicationZeroLeft"],
-		"\"multiplicationZeroRight\"" -> HoldComplete["integerMultiplicationZeroRight"],
-		"\"multiplicationOneLeft\"" -> HoldComplete["integerMultiplicationOneLeft"],
-		"\"multiplicationDistributivityLeft\"" -> HoldComplete["integerDistributivity"],
-		"\"multiplicationDistributivityRight\"" -> HoldComplete["integerDistributivityRight"],
-		"\"powerZero\"" -> HoldComplete["integerPowerZero"],
-		"\"powerOne\"" -> HoldComplete["integerPowerOne"],
-		"\"powerSuccessor\"" -> HoldComplete["integerPowerSuccessor"],
-		"\"powerAddition\"" -> HoldComplete["integerPowerAddition"]
+		"additionAssociativity" -> HoldComplete["integerAdditionAssociativity"],
+		"additionCommutativity" -> HoldComplete["integerAdditionCommutativity"],
+		"additionZeroLeft" -> HoldComplete["integerAdditionZeroLeft"],
+		"additionZeroRight" -> HoldComplete["integerAdditionZero"],
+		"multiplicationAssociativity" -> HoldComplete["integerMultiplicationAssociativity"],
+		"multiplicationCommutativity" -> HoldComplete["integerMultiplicationCommutativity"],
+		"multiplicationZeroLeft" -> HoldComplete["integerMultiplicationZeroLeft"],
+		"multiplicationZeroRight" -> HoldComplete["integerMultiplicationZeroRight"],
+		"multiplicationOneLeft" -> HoldComplete["integerMultiplicationOneLeft"],
+		"multiplicationDistributivityLeft" -> HoldComplete["integerDistributivity"],
+		"multiplicationDistributivityRight" -> HoldComplete["integerDistributivityRight"],
+		"powerZero" -> HoldComplete["integerPowerZero"],
+		"powerOne" -> HoldComplete["integerPowerOne"],
+		"powerSuccessor" -> HoldComplete["integerPowerSuccessor"],
+		"powerAddition" -> HoldComplete["integerPowerAddition"]
 	|>
 |>
 
@@ -519,21 +519,21 @@ law[name_, arguments_List, left_, right_] := {left, right, makeApplication[const
 (* a law of the ring, by the name of the natural numbers' *)
 ringLaw[name_String, arguments_List, left_, right_] := {left, right, makeApplication[constantReference[$ring["Laws"][name], {}], arguments]}
 
-additionAssociativity[a_, b_, c_] := ringLaw["\"additionAssociativity\"", {a, b, c}, plus[plus[a, b], c], plus[a, plus[b, c]]]
-additionCommutativity[a_, b_] := ringLaw["\"additionCommutativity\"", {a, b}, plus[a, b], plus[b, a]]
-additionZeroLeft[n_] := ringLaw["\"additionZeroLeft\"", {n}, plus[literal[0], n], n]
-additionZeroRight[n_] := ringLaw["\"additionZeroRight\"", {n}, plus[n, literal[0]], n]
-multiplicationAssociativity[a_, b_, c_] := ringLaw["\"multiplicationAssociativity\"", {a, b, c}, times[times[a, b], c], times[a, times[b, c]]]
-multiplicationCommutativity[a_, b_] := ringLaw["\"multiplicationCommutativity\"", {a, b}, times[a, b], times[b, a]]
-multiplicationZeroLeft[n_] := ringLaw["\"multiplicationZeroLeft\"", {n}, times[literal[0], n], literal[0]]
-multiplicationZeroRight[n_] := ringLaw["\"multiplicationZeroRight\"", {n}, times[n, literal[0]], literal[0]]
-multiplicationOneLeft[n_] := ringLaw["\"multiplicationOneLeft\"", {n}, times[literal[1], n], n]
-distributivityLeft[a_, b_, c_] := ringLaw["\"multiplicationDistributivityLeft\"", {a, b, c}, times[a, plus[b, c]], plus[times[a, b], times[a, c]]]
-distributivityRight[a_, b_, c_] := ringLaw["\"multiplicationDistributivityRight\"", {a, b, c}, times[plus[a, b], c], plus[times[a, c], times[b, c]]]
-powerZero[m_] := ringLaw["\"powerZero\"", {m}, power[m, exponent[0]], literal[1]]
-powerOne[m_] := ringLaw["\"powerOne\"", {m}, power[m, exponent[1]], m]
-powerSuccessor[m_, n_] := ringLaw["\"powerSuccessor\"", {m, n}, power[m, exponentSum[n, exponent[1]]], times[power[m, n], m]]
-powerAddition[m_, a_, b_] := ringLaw["\"powerAddition\"", {m, a, b}, power[m, exponentSum[a, b]], times[power[m, a], power[m, b]]]
+additionAssociativity[a_, b_, c_] := ringLaw["additionAssociativity", {a, b, c}, plus[plus[a, b], c], plus[a, plus[b, c]]]
+additionCommutativity[a_, b_] := ringLaw["additionCommutativity", {a, b}, plus[a, b], plus[b, a]]
+additionZeroLeft[n_] := ringLaw["additionZeroLeft", {n}, plus[literal[0], n], n]
+additionZeroRight[n_] := ringLaw["additionZeroRight", {n}, plus[n, literal[0]], n]
+multiplicationAssociativity[a_, b_, c_] := ringLaw["multiplicationAssociativity", {a, b, c}, times[times[a, b], c], times[a, times[b, c]]]
+multiplicationCommutativity[a_, b_] := ringLaw["multiplicationCommutativity", {a, b}, times[a, b], times[b, a]]
+multiplicationZeroLeft[n_] := ringLaw["multiplicationZeroLeft", {n}, times[literal[0], n], literal[0]]
+multiplicationZeroRight[n_] := ringLaw["multiplicationZeroRight", {n}, times[n, literal[0]], literal[0]]
+multiplicationOneLeft[n_] := ringLaw["multiplicationOneLeft", {n}, times[literal[1], n], n]
+distributivityLeft[a_, b_, c_] := ringLaw["multiplicationDistributivityLeft", {a, b, c}, times[a, plus[b, c]], plus[times[a, b], times[a, c]]]
+distributivityRight[a_, b_, c_] := ringLaw["multiplicationDistributivityRight", {a, b, c}, times[plus[a, b], c], plus[times[a, c], times[b, c]]]
+powerZero[m_] := ringLaw["powerZero", {m}, power[m, exponent[0]], literal[1]]
+powerOne[m_] := ringLaw["powerOne", {m}, power[m, exponent[1]], m]
+powerSuccessor[m_, n_] := ringLaw["powerSuccessor", {m, n}, power[m, exponentSum[n, exponent[1]]], times[power[m, n], m]]
+powerAddition[m_, a_, b_] := ringLaw["powerAddition", {m, a, b}, power[m, exponentSum[a, b]], times[power[m, a], power[m, b]]]
 additionSubtractionCancellation[n_, m_] := law["additionSubtractionCancellation", {n, m}, subtract[plus[n, m], m], n]
 
 (* literal[a] + literal[b] == literal[a + b]: by computation, but for integers of opposite signs, which

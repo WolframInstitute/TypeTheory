@@ -86,6 +86,12 @@ VerificationTest[
 ]
 
 VerificationTest[
+	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]}, TypeTheoryType[Sequence[1, Typed[2, Expressions]], wolfram] === TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], wolfram]],
+	True,
+	TestID -> "TypeTheoryType-holds-a-sequence-whole"
+]
+
+VerificationTest[
 	{
 		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[2 + 2 == 4]], _Success],
 		First @ TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[2 + 2 == 5]]

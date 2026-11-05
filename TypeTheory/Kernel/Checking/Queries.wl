@@ -142,6 +142,7 @@ TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomCl
    TypeTheoryTerm: written out, with PacletSymbol as its head as code copied from a documentation page has it, or kept
    in a symbol; a term computed by an expression is given with Evaluate *)
 SetAttributes[TypeTheoryType, HoldAll]
+SetAttributes[TypeTheoryType, SequenceHold]
 TypeTheoryType[term_] := typeOfTerm[givenTerm[term, None]]
 TypeTheoryType[term_, environment_] := With[{evaluated = environment}, typeOfTerm[givenTerm[term, evaluated]] /; environmentQ[evaluated]]
 

@@ -104,7 +104,8 @@ typeTheoryBoxes[syntax_, form_] := Block[
 		$symbolConstants = <||>,
 		$constantTypes = <||>,
 		$tooltipsShown = TrueQ[$displayTooltips] && LeafCount[syntax] <= $tooltipLeafLimit,
-		$displayForm = form
+		$displayForm = form,
+		$notationHeads = notationHeads[]
 	},
 	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
@@ -366,8 +367,10 @@ displayApplication[syntaxSymbol[HoldComplete[head : ForAll | Exists]], {binders_
 ]
 displayApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] := syntaxHead[RightTeeArrow, {binderRow[listElements[binders]], body}]
 displayApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] := arrowChain[DoubleRightArrow, {domain}, codomain]
-displayApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :=
-	arrowChain[RightArrow, listElements[domains], codomain]
+(* TypeSpecifier[{A, B} -> C] reads A → B → C; its rule is read before the arguments are shown, as the arrow of a rule
+   shows on its own *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}]] :=
+	arrowChain[RightArrow, displaySyntax /@ listElements[domains], displaySyntax[codomain]]
 (* A -> B, as a function type reads back *)
 displayApplication[syntaxSymbol[HoldComplete[Rule]], {domain_, codomain_}] := arrowChain[RightArrow, {domain}, codomain]
 displayApplication[syntaxSymbol[HoldComplete[RightTee]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {}], goal_}] :=
@@ -502,6 +505,10 @@ displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successo
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), arguments : {_, _}] /; overloadedDisplayQ[head, 2] :=
 	displayApplication[syntaxSymbol[HoldComplete @@ {$displayedOverloads[displayedName[head]]}], arguments]
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; overloadedDisplayQ[head, 1] := prefixed["-", argument]
+(* a constant whose head has a notation of the user's, a rule of MakeBoxes or Format, is applied undecorated, so that
+   the rule shows it *)
+displayApplication[head_syntaxSymbol, arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
+displayApplication[head_syntaxString, arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
 displayApplication[head_, arguments_List] := With[{shownHead = displaySyntax[head]},
 	If[decoratedQ[shownHead], syntaxHead[appliedDisplay, Prepend[arguments, shownHead]], syntaxApplication[shownHead, arguments]]
 ]
@@ -516,6 +523,26 @@ appliedDisplay /: MakeBoxes[appliedDisplay[head_, arguments___], form_] := RowBo
 	"[",
 	Replace[List @@ Map[Function[argument, MakeBoxes[argument, form], HoldAllComplete], Hold[arguments]], {{one_} :> one, several_ :> RowBox[Riffle[several, ","]]}],
 	"]"
+}]
+
+(* the heads that rules of MakeBoxes are given for, MakeBoxes[head[...], form] := ..., which it keeps as its FormatValues *)
+notationHeads[] := Cases[FormatValues[MakeBoxes], Verbatim[RuleDelayed][Verbatim[HoldPattern][Verbatim[MakeBoxes][(head : (_Symbol | _String))[___], ___]], _] :> HoldComplete[head]]
+
+userNotationQ[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] := MemberQ[$notationHeads, name] || FormatValues[symbol] =!= {}
+userNotationQ[syntaxString[name_String]] := MemberQ[$notationHeads, HoldComplete[name]]
+userNotationQ[_] := False
+
+(* a projection of a name shown in color, in bold or with its type on mouseover is x〚1〛, where the Wolfram Language
+   would put the styled name in parentheses *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structure_, indices__}]] := With[{shown = displaySyntax[structure]},
+	If[decoratedQ[shown], syntaxHead[partDisplay, Prepend[displaySyntax /@ {indices}, shown]], syntaxApplication[syntaxSymbol[HoldComplete[Part]], Prepend[displaySyntax /@ {indices}, shown]]]
+]
+
+partDisplay /: MakeBoxes[partDisplay[structure_, indices___], form_] := RowBox[{
+	MakeBoxes[structure, form],
+	"\[LeftDoubleBracket]",
+	Replace[List @@ Map[Function[index, MakeBoxes[index, form], HoldAllComplete], Hold[indices]], {{one_} :> one, several_ :> RowBox[Riffle[several, ","]]}],
+	"\[RightDoubleBracket]"
 }]
 
 displayedName[syntaxSymbol[name_HoldComplete]] := name

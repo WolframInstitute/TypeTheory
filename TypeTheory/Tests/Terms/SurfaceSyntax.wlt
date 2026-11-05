@@ -381,6 +381,25 @@ VerificationTest[
 	TestID -> "A-PacletSymbol-with-the-install-guard-and-a-full-name-reads-as-its-symbol-without-evaluating-the-guard"
 ]
 
+(* a notation of the user's for a constant, a rule of MakeBoxes for a symbol or a string head, shows instead of the bold
+   head; a projection of a colored bound variable is p〚1〛, without parentheses *)
+VerificationTest[
+	Module[{doubling, boxes, projected},
+		doubling = TypeTheoryEnvironment[prelude, {TypeTheoryDefinition[Doubling, Typed[n, NonNegativeIntegers] |-> n + n], TypeTheoryAxiom["halving", NonNegativeIntegers -> NonNegativeIntegers]}];
+		MakeBoxes[Doubling[a_], form_] := MakeBoxes[CenterDot[2, a], form];
+		MakeBoxes["halving"[a_], form_] := MakeBoxes[a / 2, form];
+		boxes = ToBoxes[TypeTheoryTerm[Typed[k, NonNegativeIntegers] |-> Doubling["halving"[k]], doubling]];
+		projected = ToBoxes[TypeTheoryTerm[Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> p[[1]], prelude]];
+		{
+			! FreeQ[boxes, "\[CenterDot]"], ! FreeQ[boxes, FractionBox[_, "2"]], FreeQ[boxes, StyleBox["Doubling", ___]],
+			! FreeQ[projected, RowBox[{_TooltipBox | _StyleBox, "\[LeftDoubleBracket]", __}]], ! FreeQ[projected, "\[LeftDoubleBracket]"],
+			FreeQ[ToBoxes[TypeTheoryTerm[Typed[f, TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]] |-> f, prelude]], "TypeSpecifier" | "\"TypeSpecifier\"", Infinity]
+		}
+	],
+	{True, True, True, True, True, True},
+	TestID -> "A-notation-of-the-user-shows-a-constant-and-a-projection-of-a-variable-has-no-parentheses"
+]
+
 (* a sequence and its type show in brackets, and the type at a list of types that is no literal as Sequence @@ As *)
 VerificationTest[
 	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]},

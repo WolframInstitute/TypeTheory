@@ -154,6 +154,7 @@ Options[TypeTheoryProof] = {"UniverseParameters" -> Automatic}
 SetAttributes[TypeTheoryProof, HoldAll]
 SetAttributes[TypeTheoryProof, SequenceHold]
 SetAttributes[TypeTheoryTactic, HoldAll]
+SetAttributes[TypeTheoryTactic, SequenceHold]
 
 (* a tactic may be written as its name applied to its arguments, held as TypeTheoryTactic holds them *)
 TypeTheoryTactic[name_String[arguments___]] := TypeTheoryTactic[name, arguments]
@@ -921,7 +922,7 @@ decide[data_, goal_] := With[{current = currentGoal[data, goal], environment = d
 	];
 	With[{decision = findInstance[environment, current["Context"], makeApplication[preludeConstant[Decidable], {current["Type"]}]]},
 		If[ decision === None,
-			tacticFailure["\"notDecidable\"", "No instance of Decidable decides the goal `1`.", data, goal]
+			tacticFailure["NotDecidable", "No instance of Decidable decides the goal `1`.", data, goal]
 		];
 		(* the computation of a closed decision remembers its steps, as a kernel check does *)
 		Replace[withKernelCaches[weakHeadNormalForm[environment, current["Context"], makeApplication[preludeConstant[Decide], {current["Type"], decision}]]], {
