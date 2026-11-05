@@ -12,50 +12,50 @@ prelude = TypeTheoryEnvironment["Prelude"]
 
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm["equalityReflexivity"["trueIntroduction"], prelude]],
+	TypeTheoryType[TypeTheoryTerm["equalityReflexivity"["trueIntroduction"], prelude]],
 	TypeTheoryTerm["trueIntroduction" == "trueIntroduction", prelude],
 	TestID -> "An-implicit-type-argument-is-inferred"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm["equalityReflexivity"[NonNegativeIntegers], prelude]],
+	TypeTheoryType[TypeTheoryTerm["equalityReflexivity"[NonNegativeIntegers], prelude]],
 	TypeTheoryTerm[NonNegativeIntegers == NonNegativeIntegers, prelude],
 	TestID -> "A-universe-level-is-inferred"
 ]
 
 VerificationTest[
-	{TypeOf[TypeTheoryTerm[Subscript["equalityReflexivity", 1][3], prelude]], First @ TypeOf[TypeTheoryTerm[Subscript["equalityReflexivity", 0][3], prelude]]},
+	{TypeTheoryType[TypeTheoryTerm[Subscript["equalityReflexivity", 1][3], prelude]], First @ TypeTheoryType[TypeTheoryTerm[Subscript["equalityReflexivity", 0][3], prelude]]},
 	{TypeTheoryTerm[3 == 3, prelude], "TypeMismatch"},
 	TestID -> "Explicit-universe-levels-with-Subscript"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Construct["equalityReflexivity", NonNegativeIntegers, 3], prelude]],
+	TypeTheoryType[TypeTheoryTerm[Construct["equalityReflexivity", NonNegativeIntegers, 3], prelude]],
 	TypeTheoryTerm[3 == 3, prelude],
 	TestID -> "Construct-gives-every-argument-explicitly"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Typed[Function[{x}, x + 1], NonNegativeIntegers -> NonNegativeIntegers], prelude]],
+	TypeTheoryType[TypeTheoryTerm[Typed[Function[{x}, x + 1], NonNegativeIntegers -> NonNegativeIntegers], prelude]],
 	TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers, prelude],
 	TestID -> "A-binder-takes-its-type-from-the-expected-type"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[NonNegativeIntegers -> TypeUniverse[0], prelude]],
+	TypeTheoryType[TypeTheoryTerm[NonNegativeIntegers -> TypeUniverse[0], prelude]],
 	TypeTheoryTerm[TypeUniverse[1], prelude],
 	TestID -> "A-rule-is-a-function-type"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[1 + 2 + 3 + 4, prelude]],
+	TypeTheoryType[TypeTheoryTerm[1 + 2 + 3 + 4, prelude]],
 	TypeTheoryTerm[NonNegativeIntegers, prelude],
 	TestID -> "A-sum-of-several-terms-is-read-left-to-right"
 ]
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4], prelude]],
 		MatchQ[TypeTheoryCheck[TypeTheoryTerm["existsIntroduction"[2, "equalityReflexivity"[4]], prelude], TypeTheoryTerm[Exists[{Typed[n, NonNegativeIntegers]}, n + n == 4]]], _Success]
 	},
 	{TypeTheoryTerm[TypeUniverse[0], prelude], True},
@@ -64,7 +64,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{booleans = TypeTheoryEnvironment[{TypeTheoryInductiveType["Bool", TypeUniverse[1], {"Bool.false" -> "Bool", "Bool.true" -> "Bool"}]}]},
-		TypeOf[TypeTheoryTerm[Function[{Typed["b", "Bool"]}, "b"], booleans]] === TypeTheoryTerm["Bool" -> "Bool", booleans]
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed["b", "Bool"]}, "b"], booleans]] === TypeTheoryTerm["Bool" -> "Bool", booleans]
 	],
 	True,
 	TestID -> "Strings-name-constants-and-variables"
@@ -72,10 +72,10 @@ VerificationTest[
 
 VerificationTest[
 	First /@ {
-		TypeOf[TypeTheoryTerm[Unknown, prelude]],
-		TypeOf[TypeTheoryTerm[Function[{x}, x], prelude]],
-		TypeOf[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"], prelude]],
-		TypeOf[TypeTheoryTerm["zero"[1], prelude]]
+		TypeTheoryType[TypeTheoryTerm[Unknown, prelude]],
+		TypeTheoryType[TypeTheoryTerm[Function[{x}, x], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"], prelude]],
+		TypeTheoryType[TypeTheoryTerm["zero"[1], prelude]]
 	},
 	{"ElaborationFailed", "ElaborationFailed", "UnsolvedImplicitArgument", "ElaborationFailed"},
 	TestID -> "Elaboration-errors-are-Failures"
@@ -87,12 +87,12 @@ VerificationTest[
    plain message. *)
 VerificationTest[
 	{
-		Lookup[Last[TypeOf[TypeTheoryTerm[Prepend["trueIntroduction"][{}], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
+		Lookup[Last[TypeTheoryType[TypeTheoryTerm[Prepend["trueIntroduction"][{}], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
 			StringContainsQ[template, "whose sort is"],
 			Length[parameters],
 			ToString[parameters[[3]]] =!= "True"
 		},
-		Length[Last[TypeOf[TypeTheoryTerm[Typed["trueIntroduction", False], prelude]]]["MessageParameters"]]
+		Length[Last[TypeTheoryType[TypeTheoryTerm[Typed["trueIntroduction", False], prelude]]]["MessageParameters"]]
 	},
 	{{True, 5, True}, 3},
 	TestID -> "A-proof-where-data-belongs-is-told-apart-by-its-sort"
@@ -163,10 +163,10 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Typed[True, Booleans]]],
+		TypeTheoryType[TypeTheoryTerm[Typed[True, Booleans]]],
 		MatchQ[TypeTheoryCheck[TypeTheoryTerm["trueIntroduction"], TypeTheoryTerm[True]], _Success],
-		TypeOf[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b && True]]],
-		TypeOf[TypeTheoryTerm[Not[1 == 2]]]
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[b, Booleans]}, b && True]]],
+		TypeTheoryType[TypeTheoryTerm[Not[1 == 2]]]
 	},
 	{TypeTheoryTerm[Booleans, prelude], True, TypeTheoryTerm[Booleans -> Booleans, prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
 	TestID -> "True-and-the-connectives-take-the-meaning-their-type-or-arguments-give"
@@ -174,9 +174,9 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Typed[True, Booleans] == False]],
-		TypeOf[TypeTheoryTerm[Typed[Identity[Not[False]], Booleans]]],
-		TypeOf[TypeTheoryTerm[With[{t = True}, Typed[t, Booleans]]]],
+		TypeTheoryType[TypeTheoryTerm[Typed[True, Booleans] == False]],
+		TypeTheoryType[TypeTheoryTerm[Typed[Identity[Not[False]], Booleans]]],
+		TypeTheoryType[TypeTheoryTerm[With[{t = True}, Typed[t, Booleans]]]],
 		MatchQ[TypeTheoryCheck[
 			TypeTheoryTerm[Function[{Typed[x, TypeUniverse[0]]}, "equalityReflexivity"[True]]],
 			TypeTheoryTerm[ForAll[{Typed[x, TypeUniverse[0]]}, Typed[True, TypeUniverse[0]] == True]]
@@ -187,13 +187,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First /@ {TypeOf[TypeTheoryTerm[True]], TypeOf[TypeTheoryTerm[True == False]], TypeOf[TypeTheoryTerm[Identity[Not[False]]]], TypeOf[TypeTheoryTerm[And]]},
+	First /@ {TypeTheoryType[TypeTheoryTerm[True]], TypeTheoryType[TypeTheoryTerm[True == False]], TypeTheoryType[TypeTheoryTerm[Identity[Not[False]]]], TypeTheoryType[TypeTheoryTerm[And]]},
 	{"Ambiguous", "Ambiguous", "Ambiguous", "Ambiguous"},
 	TestID -> "A-name-both-meanings-fit-is-ambiguous"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[
+	TypeTheoryType[TypeTheoryTerm[
 		Function[{Typed[B, TypeUniverse[v + 1]]}, Wrapped[B]],
 		TypeTheoryEnvironment[TypeTheoryEnvironment[], {
 			TypeTheoryInductiveType[Wrapped, ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, TypeUniverse[u + 1]], {
@@ -208,7 +208,7 @@ VerificationTest[
 VerificationTest[
 	{
 		Naturals,
-		TypeOf[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 1]]] === TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1]]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 1]]] === TypeTheoryType[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1]]],
 		TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Naturals]]] === TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers]]]
 	},
 	{NonNegativeIntegers, True, True},
@@ -217,11 +217,11 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Block[{Counting = NonNegativeIntegers}, TypeOf[TypeTheoryTerm[Function[{Typed[k, Counting]}, k]]]] === TypeOf[TypeTheoryTerm[Function[{Typed[k, NonNegativeIntegers]}, k]]],
+		Block[{Counting = NonNegativeIntegers}, TypeTheoryType[TypeTheoryTerm[Function[{Typed[k, Counting]}, k]]]] === TypeTheoryType[TypeTheoryTerm[Function[{Typed[k, NonNegativeIntegers]}, k]]],
 		Block[{x = 5}, First[TypeTheoryCheck[TypeTheoryTerm[x + 1]]]],
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]],
-			TypeOf[TypeTheoryTerm[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x]]]
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]],
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x]]]
 		]
 	},
 	{True, "ElaborationFailed", True},
@@ -243,7 +243,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	FreeQ[TypeOf[TypeTheoryTerm["functionExtensionality"[Function[{Typed[b, Booleans]}, "equalityReflexivity"["not"[b]]]]]], Function],
+	FreeQ[TypeTheoryType[TypeTheoryTerm["functionExtensionality"[Function[{Typed[b, Booleans]}, "equalityReflexivity"["not"[b]]]]]], Function],
 	True,
 	TestID -> "A-constant-applied-to-the-pattern-variables-solves-as-the-constant"
 ]
@@ -253,8 +253,8 @@ VerificationTest[
 		SubsetQ[Select[Keys[prelude], StringQ], {"{}", "and", "booleanEqualityDecidable", "equal", "equalFalse", "equalTrue", "false", "falseDecidable", "falseNotTrue", "lessEqual", "lessEqualFalse", "lessEqualTrue", "not", "or", "Prepend", "true", "trueDecidable", "trueNotFalse", "zero", "successor", "pair", "none", "some", "equalityReflexivity", "joinAssociativity"}],
 		Join @@ (Names["WolframInstitute`TypeTheory`" <> #] & /@ {"Boolean*", "EqualityReflexivity", "Pair", "NaturalNumberZero", "JoinAssociativity", "OptionSome", "Lists", "ListPrepend"}),
 		WeakHeadNormalForm[TypeTheoryTerm["not"["true"]]] === WeakHeadNormalForm[TypeTheoryTerm[Typed[False, Booleans]]],
-		Last[TypeOf[TypeTheoryTerm[True]]["MessageParameters"]],
-		Last[TypeOf[TypeTheoryTerm[Not]]["MessageParameters"]]
+		Last[TypeTheoryType[TypeTheoryTerm[True]]["MessageParameters"]],
+		Last[TypeTheoryType[TypeTheoryTerm[Not]]["MessageParameters"]]
 	},
 	{
 		True,
@@ -267,7 +267,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[
+	TypeTheoryType[TypeTheoryTerm[
 		Function[{Typed[x, NonNegativeIntegers]}, "none"] == Function[{Typed[y, NonNegativeIntegers]}, Typed["none", Option[Decidable[y == y]]]],
 		prelude
 	]],
@@ -277,8 +277,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		First @ TypeOf[TypeTheoryTerm[Map[Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n]], {}], prelude]],
-		TypeOf[TypeTheoryTerm[Typed[Map[Function[{Typed[n, NonNegativeIntegers]}, "none"], {}], {Option[NonNegativeIntegers]}], prelude]]
+		First @ TypeTheoryType[TypeTheoryTerm[Map[Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n]], {}], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Typed[Map[Function[{Typed[n, NonNegativeIntegers]}, "none"], {}], {Option[NonNegativeIntegers]}], prelude]]
 	},
 	{"TypeMismatch", TypeTheoryTerm[{Option[NonNegativeIntegers]}, prelude]},
 	TestID -> "A-solution-names-only-variables-in-the-scope-of-its-metavariable"
@@ -286,7 +286,7 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, x + y == 5], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, x + y == 5], prelude]],
 		MatchQ[
 			TypeTheoryCheck[
 				TypeTheoryTerm["existsIntroduction"[2, "existsIntroduction"[3, "equalityReflexivity"[5]]], prelude],
@@ -380,8 +380,8 @@ VerificationTest[
 			environment[PolymorphicIdentity],
 			Length[environment[PolymorphicSelfEquality]],
 			TypeTheoryProof[ForAll[{p}, Implies[p, p]], prelude, {TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Assumption"]}]["Goals"],
-			First[TypeOf[TypeTheoryTerm[Function[{a}, Function[Typed[x, a], x]], prelude]]],
-			First[TypeOf[TypeTheoryTerm[ForAll[{a}, a == a], prelude]]]
+			First[TypeTheoryType[TypeTheoryTerm[Function[{a}, Function[Typed[x, a], x]], prelude]]],
+			First[TypeTheoryType[TypeTheoryTerm[ForAll[{a}, a == a], prelude]]]
 		}
 	],
 	{
@@ -409,17 +409,17 @@ VerificationTest[
 			}]
 		},
 		{
-			Replace[TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], pairs]], TypeTheoryTerm[type_, ___] :> HoldComplete[type]],
+			Replace[TypeTheoryType[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], pairs]], TypeTheoryTerm[type_, ___] :> HoldComplete[type]],
 			DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[s, Sequence[NonNegativeIntegers, NonNegativeIntegers]]}, sum[s]][Sequence[1, 2]], pairs], TypeTheoryTerm[sum[1, 2], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], pairs], TypeTheoryTerm["sequencePrepend"[1, "sequencePrepend"[2, "sequencePrepend"[3, "emptySequence"]]], pairs]],
 			First[TypeTheoryCheck[TypeTheoryTerm[sum[1], pairs]]],
-			First[TypeOf[TypeTheoryTerm[curried[1][2], pairs]]],
+			First[TypeTheoryType[TypeTheoryTerm[curried[1][2], pairs]]],
 			First[TypeTheoryCheck[TypeTheoryTerm[curried[1, 2], pairs]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Join[{1}, {2}], pairs], TypeTheoryTerm[{1, 2}, pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequence[Prepend[NonNegativeIntegers][Prepend[Expressions][{}]]], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers], pairs], TypeTheoryTerm[Sequence[{NonNegativeIntegers}], pairs]],
-			First[TypeOf[TypeTheoryTerm[Function[{Typed[As, {TypeUniverse[1]}]}, Sequence[As]], pairs]]]
+			First[TypeTheoryType[TypeTheoryTerm[Function[{Typed[As, {TypeUniverse[1]}]}, Sequence[As]], pairs]]]
 		}
 	],
 	{

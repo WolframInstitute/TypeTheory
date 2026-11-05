@@ -118,7 +118,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeOf[TypeTheoryTerm[3, beforeNaturalNumbers]],
+	First @ TypeTheoryType[TypeTheoryTerm[3, beforeNaturalNumbers]],
 	"ElaborationFailed",
 	TestID -> "Literals-need-natural-numbers"
 ]

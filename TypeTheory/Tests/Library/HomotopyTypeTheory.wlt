@@ -36,8 +36,8 @@ VerificationTest[
 VerificationTest[
 	{
 		MatchQ[TypeTheoryCheck[TypeTheoryTerm["universeNotSet", hott], TypeTheoryTerm[Not[IsSet[TypeUniverse[1]]], hott]], _Success],
-		TypeOf[TypeTheoryTerm[Typed[True, Booleans], hott]],
-		TypeOf[TypeTheoryTerm["trueIntroduction", hott]]
+		TypeTheoryType[TypeTheoryTerm[Typed[True, Booleans], hott]],
+		TypeTheoryType[TypeTheoryTerm["trueIntroduction", hott]]
 	},
 	{True, TypeTheoryTerm[Booleans, hott], TypeTheoryTerm[True, hott]},
 	TestID -> "\"univalence\"-shows-the-universe-is-not-a-set"

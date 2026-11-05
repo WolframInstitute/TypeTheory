@@ -67,8 +67,8 @@ VerificationTest[
 				TypeTheoryTerm[HoldForm[f[1, 2, 3]], quoting]
 			],
 			Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], RowBox[{"\"HoldForm\"", "[", _, "]"}], Infinity] =!= {},
-			First[TypeOf[TypeTheoryTerm["abc", quoting]]],
-			First[TypeOf[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
+			First[TypeTheoryType[TypeTheoryTerm["abc", quoting]]],
+			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
 			First[TypeTheoryCheck[TypeTheoryTerm[HoldForm[g[1]], quoting]]]
 		}
 	],

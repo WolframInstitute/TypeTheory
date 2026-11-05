@@ -29,11 +29,11 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, x y + x - y], integers]],
-		TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, NonNegativeIntegers]}, n + x], integers]],
-		TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers]}, -x <= 3], integers]],
-		TypeOf[TypeTheoryTerm[2 + 3, integers]],
-		TypeOf[TypeTheoryTerm[Typed[2 + 3, Integers], integers]]
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[y, Integers]}, x y + x - y], integers]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, NonNegativeIntegers]}, n + x], integers]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, Integers]}, -x <= 3], integers]],
+		TypeTheoryType[TypeTheoryTerm[2 + 3, integers]],
+		TypeTheoryType[TypeTheoryTerm[Typed[2 + 3, Integers], integers]]
 	},
 	{
 		TypeTheoryTerm[Integers -> Integers -> Integers, integers],
@@ -183,8 +183,8 @@ VerificationTest[
 (* x^n of an integer and a natural number is the integers' power, and shows as x^n *)
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers]}, x^2 + 3 x^3], integers]],
-		TypeOf[TypeTheoryTerm[2^3, integers]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, Integers]}, x^2 + 3 x^3], integers]],
+		TypeTheoryType[TypeTheoryTerm[2^3, integers]],
 		WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[(-2)^3, Integers] == -8], integers]],
 		MatchQ[TypeTheoryTerm[Function[{Typed[x, Integers]}, x^2 + 3 x^3], integers], TypeTheoryTerm[Function[{Typed[y_, Integers]}, y_^2 + 3 y_^3], _]]
 	},

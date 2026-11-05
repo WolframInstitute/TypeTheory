@@ -32,13 +32,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]],
+	TypeTheoryType[TypeTheoryTerm[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x]]],
 	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, A -> A], prelude],
 	TestID -> "Types-read-back-with-binder-names-and-implicit-binders"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]],
+	TypeTheoryType[TypeTheoryTerm[Function[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]}, x]]],
 	TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]]}, A -> A], prelude],
 	TestID -> "An-implicit-Annotation-is-the-same-binder-as-TypedImplicit"
 ]
@@ -67,13 +67,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, h]]],
+	TypeTheoryType[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p]}, h]]],
 	TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], prelude],
 	TestID -> "A-function-type-between-propositions-reads-back-as-Implies"
 ]
 
 VerificationTest[
-	With[{term = TypeTheoryTerm[0 + 1 == 1]}, TypeOf[TypeTheoryTerm[Implies[term, term], prelude]]],
+	With[{term = TypeTheoryTerm[0 + 1 == 1]}, TypeTheoryType[TypeTheoryTerm[Implies[term, term], prelude]]],
 	TypeTheoryTerm[TypeUniverse[0], prelude],
 	TestID -> "A-TypeTheoryTerm-inside-a-term-is-spliced-in"
 ]
@@ -151,7 +151,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{boxes = ToBoxes[TypeOf[TypeTheoryTerm["andIntroduction", prelude]]]},
+	With[{boxes = ToBoxes[TypeTheoryType[TypeTheoryTerm["andIntroduction", prelude]]]},
 		{FreeQ[boxes, "&&"], ! FreeQ[boxes, "\[And]"], StringFreeQ[ToString[boxes, InputForm, CharacterEncoding -> "ASCII"], "Formal"]}
 	],
 	{True, True, True},
@@ -168,7 +168,7 @@ VerificationTest[
 
 VerificationTest[
 	Cases[
-		TypeOf[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[h, a]}, Construct["andIntroduction"]], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[h, a]}, Construct["andIntroduction"]], prelude]],
 		(Typed | TypedImplicit)[name_Symbol, _] :> SymbolName[Unevaluated[name]],
 		Infinity,
 		Heads -> True
@@ -200,7 +200,7 @@ VerificationTest[
 VerificationTest[
 	{
 		FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]], "\"\[DoubleStruckCapitalN]\""],
-		FreeQ[ToBoxes[TypeOf[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]]], "\"\[DoubleStruckCapitalN]\""]
+		FreeQ[ToBoxes[TypeTheoryType[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]]], "\"\[DoubleStruckCapitalN]\""]
 	},
 	{False, True},
 	TestID -> "Naturals-shows-as-the-natural-numbers-unless-a-binder-has-its-name"
@@ -314,7 +314,7 @@ VerificationTest[
 		},
 		{
 			DeleteDuplicates[styled[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]] === {{"n", colors["BoundVariable"]}},
-			DeleteDuplicates[styled[ToBoxes[TypeOf[TypeTheoryTerm[List]]]]],
+			DeleteDuplicates[styled[ToBoxes[TypeTheoryType[TypeTheoryTerm[List]]]]],
 			FreeQ[styled[ToBoxes[TypeTheoryTerm[TypeUniverse[1]]]], colors["Level"]],
 			MemberQ[
 				styled[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce"]}]]],
@@ -353,13 +353,32 @@ VerificationTest[
 	With[{spaces = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[ModularSpace, NonNegativeIntegers -> TypeUniverse[1]]}]},
 		{
 			First[ToBoxes[TypeTheoryTerm[ModularSpace[12], spaces]]] /. TooltipBox[shown_, ___] :> shown,
-			MatchQ[TypeOf[TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude]], TypeTheoryTerm[Booleans, _]],
+			MatchQ[TypeTheoryType[TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude]], TypeTheoryTerm[Booleans, _]],
 			TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude] === TypeTheoryTerm[Decide[True], prelude],
 			Hold @@ {TypeTheoryTerm[PacletSymbol["Nowhere/Nothing", "x"]]}
 		}
 	],
 	{RowBox[{StyleBox["ModularSpace", Bold, StripOnInput -> False], "[", "12", "]"}], True, True, Hold[TypeTheoryTerm[PacletSymbol["Nowhere/Nothing", "x"]]]},
 	TestID -> "A-constant-applied-shows-without-parentheses-and-a-PacletSymbol-reads-as-its-symbol"
+]
+
+(* the documentation site copies a symbol as PacletSymbol[If[PacletFind[paclet] === {}, PacletInstall[...], paclet], fullName]:
+   the term reads the symbol without evaluating the guard, here one that would set guarded *)
+VerificationTest[
+	Block[{guarded = False},
+		{
+			TypeTheoryTerm[
+				PacletSymbol[If[guarded = True; PacletFind["WolframInstitute/TypeTheory"] === {}, PacletInstall["WolframInstitute/TypeTheory"], "WolframInstitute/TypeTheory"], "WolframInstitute`TypeTheory`InductiveRecursor"][And][
+					Function[{Typed[t, And[True, True]]}, PacletSymbol[If[guarded = True; False, Null, "WolframInstitute/TypeTheory"], "Naturals"]],
+					Function[{Typed[p, True], Typed[q, True]}, 7],
+					"andIntroduction"["trueIntroduction", "trueIntroduction"]],
+				prelude] ===
+				TypeTheoryTerm[InductiveRecursor[And][Function[{Typed[t, And[True, True]]}, Naturals], Function[{Typed[p, True], Typed[q, True]}, 7], "andIntroduction"["trueIntroduction", "trueIntroduction"]], prelude],
+			guarded
+		}
+	],
+	{True, False},
+	TestID -> "A-PacletSymbol-with-the-install-guard-and-a-full-name-reads-as-its-symbol-without-evaluating-the-guard"
 ]
 
 (* a sequence and its type show in brackets, and the type at a list of types that is no literal as Sequence @@ As *)

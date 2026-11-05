@@ -38,13 +38,13 @@ VerificationTest[
 			{TypeTheoryFormalize[styled, "Type" -> Integers -> Integers]} === {{TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]}},
 			{
 				TypeTheoryFormalize[square] === {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]},
-				First[TypeOf[TypeTheoryTerm[next, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[next]]]]] === (Integers -> Integers),
+				First[TypeTheoryType[TypeTheoryTerm[next, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[next]]]]] === (Integers -> Integers),
 				TypeTheoryFormalize[simplified][[All, 1]] === {Simplify, simplified},
 				Last[TypeTheoryFormalize[styled]] === TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled],
 				Last[TypeTheoryFormalize[reversed]] === TypeTheoryDefinition[reversed, Function[{s}, StringReverse[s]]],
 				TypeTheoryFormalize[styled, "Type" -> Integers -> Integers] === {TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]},
 				MemberQ[TypeTheoryFormalize[greeting], TypeTheoryAxiom["\"Hello, \"", Strings]],
-				First[TypeOf[TypeTheoryTerm[greeting, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[greeting]]]]] === (Strings -> Strings)
+				First[TypeTheoryType[TypeTheoryTerm[greeting, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[greeting]]]]] === (Strings -> Strings)
 			} === {True, True, True, True, True, True, True, True}
 		]
 	],
@@ -74,7 +74,7 @@ VerificationTest[
 			True,
 			With[{sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]]},
 				{
-					MatchQ[TypeOf[TypeTheoryTerm[size, sized]], TypeTheoryTerm[HoldPattern[ForAll[{TypedImplicit[_, _]}, {_} -> NonNegativeIntegers]], _]],
+					MatchQ[TypeTheoryType[TypeTheoryTerm[size, sized]], TypeTheoryTerm[HoldPattern[ForAll[{TypedImplicit[_, _]}, {_} -> NonNegativeIntegers]], _]],
 					WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]] === TypeTheoryTerm[3, sized],
 					MatchQ[TypeTheoryFormalize[total, integers, "Type" -> {Integers} -> Integers], {TypeTheoryDefinition[total, Typed[_, {Integers} -> Integers]]}]
 				} === {True, True, True}
@@ -132,7 +132,7 @@ VerificationTest[
 					doubles = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[double, prelude]]
 				},
 				{
-					MatchQ[TypeOf[TypeTheoryTerm[fact, facts]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> NonNegativeIntegers], _]],
+					MatchQ[TypeTheoryType[TypeTheoryTerm[fact, facts]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> NonNegativeIntegers], _]],
 					WeakHeadNormalForm[TypeTheoryTerm[fact[5], facts]] === TypeTheoryTerm[120, facts],
 					WeakHeadNormalForm[TypeTheoryTerm[double[4], doubles]] === TypeTheoryTerm[8, doubles],
 					With[{powers = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[power, prelude]]}, WeakHeadNormalForm[TypeTheoryTerm[power[2, 10], powers]] === TypeTheoryTerm[1024, powers]]
@@ -153,7 +153,7 @@ VerificationTest[
 		If[ PacletFind["Wolfram/KernelCompiler"] === {},
 			True,
 			{
-				MatchQ[TypeOf[TypeTheoryTerm[upTo, TypeTheoryEnvironment[prelude, TypeTheoryFormalize[upTo, prelude]]]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> {NonNegativeIntegers}], _]],
+				MatchQ[TypeTheoryType[TypeTheoryTerm[upTo, TypeTheoryEnvironment[prelude, TypeTheoryFormalize[upTo, prelude]]]], TypeTheoryTerm[HoldPattern[NonNegativeIntegers -> {NonNegativeIntegers}], _]],
 				MatchQ[Last[TypeTheoryFormalize[firstOf, prelude]], TypeTheoryDefinition[firstOf, _Function]]
 			} === {True, True}
 		]

@@ -31,13 +31,13 @@ VerificationTest[
 VerificationTest[
 	{
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[y, Rationals]}, x + y x - y / 2], rationals]],
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, Rationals], Typed[y, Rationals]}, x + y x - y / 2], rationals]],
 			TypeTheoryTerm[TypeSpecifier[{Rationals, Rationals} -> Rationals], rationals]
 		],
-		TypeOf[TypeTheoryTerm[Typed[1/2, Rationals], rationals]],
-		TypeOf[TypeTheoryTerm[2 + 3, rationals]],
+		TypeTheoryType[TypeTheoryTerm[Typed[1/2, Rationals], rationals]],
+		TypeTheoryType[TypeTheoryTerm[2 + 3, rationals]],
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm[Function[{Typed[a, Integers], Typed[x, Rationals]}, a + x], rationals]],
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[a, Integers], Typed[x, Rationals]}, a + x], rationals]],
 			TypeTheoryTerm[TypeSpecifier[{Integers, Rationals} -> Rationals], rationals]
 		]
 	},

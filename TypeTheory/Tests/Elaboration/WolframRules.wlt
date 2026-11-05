@@ -20,7 +20,7 @@ VerificationTest[
 			True,
 			With[{environment = rulesEnvironment[TypeTheoryFormalize[listed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"], {"Global`listed", "Global`a", "Global`b"}]},
 				{
-					First[TypeOf[TypeTheoryTerm["DownValues[listed]", environment]]],
+					First[TypeTheoryType[TypeTheoryTerm["DownValues[listed]", environment]]],
 					DefinitionallyEqualQ[
 						TypeTheoryTerm["DownValues[listed]"["normal"["atom"["Global`listed"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment],
 						TypeTheoryTerm["some"["normal"["atom"["System`List"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment]

@@ -19,7 +19,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{classical = Append[prelude, TypeTheoryAxiom[Excluded, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]]},
-		TypeOf[TypeTheoryTerm[Excluded[True], classical]] === TypeTheoryTerm[Or[True, Not[True]], classical]
+		TypeTheoryType[TypeTheoryTerm[Excluded[True], classical]] === TypeTheoryTerm[Or[True, Not[True]], classical]
 	],
 	True,
 	TestID -> "An-axiom-can-be-used"
@@ -28,7 +28,7 @@ VerificationTest[
 VerificationTest[
 	With[{doubled = Append[prelude, TypeTheoryDefinition[Double, Function[{Typed[n, NonNegativeIntegers]}, n + n]]]},
 		{
-			TypeOf[TypeTheoryTerm[Double, doubled]] === TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers, doubled],
+			TypeTheoryType[TypeTheoryTerm[Double, doubled]] === TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers, doubled],
 			WeakHeadNormalForm[TypeTheoryTerm[Double[21], doubled]] === TypeTheoryTerm[42, doubled]
 		}
 	],
@@ -39,9 +39,9 @@ VerificationTest[
 VerificationTest[
 	With[{identity = Append[prelude, TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]]},
 		First /@ {
-			TypeOf[TypeTheoryTerm[PolymorphicIdentity[3], identity]],
-			TypeOf[TypeTheoryTerm[PolymorphicIdentity["trueIntroduction"], identity]],
-			TypeOf[TypeTheoryTerm[PolymorphicIdentity[NonNegativeIntegers], identity]]
+			TypeTheoryType[TypeTheoryTerm[PolymorphicIdentity[3], identity]],
+			TypeTheoryType[TypeTheoryTerm[PolymorphicIdentity["trueIntroduction"], identity]],
+			TypeTheoryType[TypeTheoryTerm[PolymorphicIdentity[NonNegativeIntegers], identity]]
 		}
 	],
 	{NonNegativeIntegers, True, TypeUniverse[1]},
@@ -58,7 +58,7 @@ VerificationTest[
 		},
 		{
 			identity[ExplicitIdentity],
-			TypeOf[TypeTheoryTerm[ExplicitIdentity[3], identity]] === TypeTheoryTerm[NonNegativeIntegers, identity]
+			TypeTheoryType[TypeTheoryTerm[ExplicitIdentity[3], identity]] === TypeTheoryTerm[NonNegativeIntegers, identity]
 		}
 	],
 	{
@@ -74,7 +74,7 @@ VerificationTest[
 VerificationTest[
 	With[{secret = Append[prelude, TypeTheoryDefinition[Secret, Typed[42, NonNegativeIntegers], "Opaque" -> True]]},
 		{
-			TypeOf[TypeTheoryTerm[Secret, secret]] === TypeTheoryTerm[NonNegativeIntegers, secret],
+			TypeTheoryType[TypeTheoryTerm[Secret, secret]] === TypeTheoryTerm[NonNegativeIntegers, secret],
 			WeakHeadNormalForm[TypeTheoryTerm[Secret, secret]] === TypeTheoryTerm[Secret, secret],
 			DefinitionallyEqualQ[TypeTheoryTerm[Secret, secret], TypeTheoryTerm[42, secret]],
 			secret[Secret],
@@ -104,7 +104,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]},
-		TypeOf[TypeTheoryTerm[TwoPlusTwo, arithmetic]] === TypeTheoryTerm[2 + 2 == 4, arithmetic]
+		TypeTheoryType[TypeTheoryTerm[TwoPlusTwo, arithmetic]] === TypeTheoryTerm[2 + 2 == 4, arithmetic]
 	],
 	True,
 	TestID -> "A-theorem-proved-by-computation"

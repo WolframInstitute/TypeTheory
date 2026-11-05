@@ -207,10 +207,10 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm["pair"[1, "true"][[2]], prelude]],
-		TypeOf[TypeTheoryTerm[Typed["left"[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
-		TypeOf[TypeTheoryTerm["some"[5], prelude]],
-		TypeOf[TypeTheoryTerm[Prepend[1][{}], prelude]]
+		TypeTheoryType[TypeTheoryTerm["pair"[1, "true"][[2]], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Typed["left"[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
+		TypeTheoryType[TypeTheoryTerm["some"[5], prelude]],
+		TypeTheoryType[TypeTheoryTerm[Prepend[1][{}], prelude]]
 	},
 	{
 		TypeTheoryTerm[Booleans, prelude],

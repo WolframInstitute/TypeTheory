@@ -63,7 +63,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeOf[TypeTheoryTerm[Typed[Default, Option[NonNegativeIntegers]], environment]],
+	First @ TypeTheoryType[TypeTheoryTerm[Typed[Default, Option[NonNegativeIntegers]], environment]],
 	"NoInstance",
 	TestID -> "No-instance-is-a-failure"
 ]
@@ -126,7 +126,7 @@ VerificationTest[
 	{
 		WeakHeadNormalForm[TypeTheoryTerm[Typed["true", NonNegativeIntegers], environment]],
 		WeakHeadNormalForm[TypeTheoryTerm["successor"["true"], environment]],
-		First @ TypeOf[TypeTheoryTerm[Typed["true", NonNegativeIntegers], prelude]]
+		First @ TypeTheoryType[TypeTheoryTerm[Typed["true", NonNegativeIntegers], prelude]]
 	},
 	{TypeTheoryTerm[1, environment], TypeTheoryTerm["successor"[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
 	TestID -> "A-term-of-another-type-is-coerced"
@@ -136,7 +136,7 @@ VerificationTest[
 	{
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[3, Option[NonNegativeIntegers]], environment]],
 		WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[NonNegativeIntegers]], environment]],
-		First @ TypeOf[TypeTheoryTerm[Typed[{}, NonNegativeIntegers], environment]]
+		First @ TypeTheoryType[TypeTheoryTerm[Typed[{}, NonNegativeIntegers], environment]]
 	},
 	{TypeTheoryTerm["some"[3], environment], TypeTheoryTerm["some"[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
 	TestID -> "Coercions-are-polymorphic-and-chain"

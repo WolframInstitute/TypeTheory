@@ -58,9 +58,9 @@ VerificationTest[
 VerificationTest[
 	{
 		translated["Failures"],
-		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[CartesianProductType], prelude]]],
-		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers], prelude]]],
-		quantities[TypeOf[TypeTheoryTerm["pair", prelude]]],
+		quantities[TypeTheoryType[TypeTheoryTerm[InductiveRecursor[CartesianProductType], prelude]]],
+		quantities[TypeTheoryType[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers], prelude]]],
+		quantities[TypeTheoryType[TypeTheoryTerm["pair", prelude]]],
 		Information[prelude, "Kinds"]["Quotient"]
 	},
 	{<||>, {0, 0, 0, 1, 1}, {0, Infinity, Infinity, Infinity}, {0, 0, Infinity, Infinity}, 4},
@@ -170,7 +170,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{back = TypeTheoryTranslate[TypeTheoryEnvironment[affine, {swap}], TypeTheoryRules["CalculusOfInductiveConstructions"], "Axioms" -> True]},
-		{back["Failures"], quantities[TypeOf[TypeTheoryTerm[swap, back["Environment"]]]]}
+		{back["Failures"], quantities[TypeTheoryType[TypeTheoryTerm[swap, back["Environment"]]]]}
 	],
 	{<||>, {Infinity, Infinity, Infinity}},
 	TestID -> "A-translation-to-rules-without-quantities-drops-them"

@@ -39,6 +39,7 @@ quantity; where they gain them, the kernel gives the constructors and recursors 
 (*PackageExported*)
 
 
+PackageExported[TypeTheoryType]
 PackageExported[TypeTheoryCheck]
 PackageExported[TypeTheoryAxiomClosure]
 PackageExported[TypeTheoryTranslate]
@@ -65,7 +66,9 @@ TypeTheoryAxiomClosure::usage = "TypeTheoryAxiomClosure[term] gives the axioms t
 it mentions and of the constants those mention, as <|axiom -> kind, ...|>: \"Proposition\" for an axiom that is a proposition, \"Signature\" for one whose \
 type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with.\n\
 TypeTheoryAxiomClosure[proof] gives the axioms the finished TypeTheoryProof proof rests on."
-TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
+TypeTheoryType::usage = "TypeTheoryType[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
+TypeTheoryType[TypeTheoryTerm[term], environment] gives the type of term in the TypeTheoryEnvironment environment."
+TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term, as TypeTheoryType does.\n\
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
 or a Failure for the first declaration that does not check. With Method -> \"Symbolic\" it replays every declaration with the kernel written in \
@@ -124,12 +127,6 @@ checkedQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameter
 ]
 
 
-(* TypeOf's rules join TypeTheoryTerm's upvalues as they stand: defining them with /: makes the Wolfram Language load
-   TypeOf's own implementation, 1.6 s of loading TypeTheory, which only a session that calls TypeOf needs *)
-UpValues[TypeTheoryTerm] = Join[UpValues[TypeTheoryTerm], {
-	HoldPattern[TypeOf[term : TypeTheoryTerm[_, ___]]] :> TypeTheoryCheck[term],
-	HoldPattern[TypeOf[TypeTheoryTerm[term_], environment_?environmentQ]] :> TypeTheoryCheck[TypeTheoryTerm[term, environment]]
-}]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "AxiomClosure"] := TypeTheoryAxiomClosure[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := catchKernelFailure[ReleaseHold /@ typeAndValueConstants[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
@@ -140,14 +137,19 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] :
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"}
 
 
-(* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
-TypeTheoryCheck[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
+(* a constant on its own has its declared type, with its implicit arguments and universe parameters; TypeTheoryType holds
+   nothing, so a term written with PacletSymbol, as code copied from a documentation page is, evaluates to a TypeTheoryTerm first *)
+TypeTheoryType[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
 		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
 			constantRecord[environment, name]["Type"],
 		_ :> Last @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]
 ]
+
+TypeTheoryType[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryType[TypeTheoryTerm[term, environment]]
+
+TypeTheoryCheck[term_TypeTheoryTerm] := TypeTheoryType[term]
 
 TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure @ With[
 	{environment = sharedEnvironment[term, type], universeParameters = universeParameterNames[{termSyntax[term], termSyntax[type]}]},

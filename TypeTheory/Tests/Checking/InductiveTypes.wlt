@@ -51,7 +51,7 @@ VerificationTest[
 				}
 			]]
 		},
-		TypeOf[TypeTheoryTerm[PolymorphicCons[1, PolymorphicEmpty], lists]] === TypeTheoryTerm[PolymorphicList[NonNegativeIntegers], lists]
+		TypeTheoryType[TypeTheoryTerm[PolymorphicCons[1, PolymorphicEmpty], lists]] === TypeTheoryTerm[PolymorphicList[NonNegativeIntegers], lists]
 	],
 	True,
 	TestID -> "A-parameter-is-found-and-inferred-at-each-use"
@@ -197,7 +197,7 @@ evenOdd = TypeTheoryEnvironment[prelude, {
 VerificationTest[
 	{
 		Information[evenOdd, "Kinds"] - Information[prelude, "Kinds"],
-		DefinitionallyEqualQ[TypeOf[TypeTheoryTerm[EvenSuccessor[OddSuccessor[EvenZero]], evenOdd]], TypeTheoryTerm[Even[2], evenOdd]],
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[EvenSuccessor[OddSuccessor[EvenZero]], evenOdd]], TypeTheoryTerm[Even[2], evenOdd]],
 		Count[Normal[evenOdd], TypeTheoryInductiveType[{_, _}, ___]],
 		MatchQ[TypeTheoryCheck[evenOdd], _Success]
 	},
@@ -207,7 +207,7 @@ VerificationTest[
 
 (* the recursor of each type of a block takes a motive for each, and the minor premises of all constructors *)
 VerificationTest[
-	With[{recursor = TypeOf[TypeTheoryTerm[InductiveRecursor[Odd], evenOdd]]},
+	With[{recursor = TypeTheoryType[TypeTheoryTerm[InductiveRecursor[Odd], evenOdd]]},
 		DefinitionallyEqualQ[recursor, TypeTheoryTerm[
 			ForAll[
 				{

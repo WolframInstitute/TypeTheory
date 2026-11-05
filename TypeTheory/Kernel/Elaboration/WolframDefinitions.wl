@@ -330,7 +330,7 @@ naturalRecursionCandidates[_, type_HoldComplete, parts_] := Replace[curriedParts
 	{domains_List, resultType_HoldComplete} /; domains[[parts["Position"]]] === HoldComplete[NonNegativeIntegers] :> {naturalRecursionValue[parts, resultType]},
 	_ :> {}
 }]
-naturalRecursionCandidates[environment_, None, parts_] := Replace[With[{zero = TypeTheoryTerm @@ Append[parts["Zero"], environment]}, Quiet[TypeOf[zero]]], {
+naturalRecursionCandidates[environment_, None, parts_] := Replace[Quiet[TypeTheoryType[TypeTheoryTerm @@ Append[parts["Zero"], environment]]], {
 	TypeTheoryTerm[resultType_, ___] :> {naturalRecursionValue[parts, HoldComplete[resultType]]},
 	_ :> {}
 }]
@@ -463,8 +463,7 @@ $recursion = <||>
 listRecursionCandidates[environment_, HoldComplete[{elementType_} -> resultType_], parts_] :=
 	{listRecursionValue[parts, HoldComplete[], HoldComplete[elementType], HoldComplete[resultType]]}
 listRecursionCandidates[_, HoldComplete[_], _] := {}
-(* the term is made first, as TypeOf holds its argument *)
-listRecursionCandidates[environment_, None, parts_] := Replace[With[{empty = TypeTheoryTerm @@ Append[parts["Empty"], environment]}, Quiet[TypeOf[empty]]], {
+listRecursionCandidates[environment_, None, parts_] := Replace[Quiet[TypeTheoryType[TypeTheoryTerm @@ Append[parts["Empty"], environment]]], {
 	TypeTheoryTerm[resultType_, ___] :> {
 		listRecursionValue[parts, HoldComplete[TypedImplicit[elementType, TypeUniverse[u + 1]]], HoldComplete[elementType], HoldComplete[resultType]],
 		listRecursionValue[parts, HoldComplete[], HoldComplete[resultType], HoldComplete[resultType]]

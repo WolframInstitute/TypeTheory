@@ -89,7 +89,7 @@ PackageScoped[displayedName]
 TypeTheoryTerm::usage = "TypeTheoryTerm[term, environment] represents a term of the type theory in the TypeTheoryEnvironment environment, \
 written with built-in symbols such as Function, Typed, ForAll, Implies, Equal and Plus, and kept unevaluated.\n\
 TypeTheoryTerm[term] is a term in the default environment, $TypeTheoryEnvironment: the prelude, unless SetTypeTheoryEnvironment set another.\n\
-TypeOf[TypeTheoryTerm[term, environment]] gives its type; TypeOf[TypeTheoryTerm[term], environment] gives its type in environment."
+TypeTheoryType[TypeTheoryTerm[term, environment]] gives its type."
 TypeUniverse::usage = "TypeUniverse[level] is the universe at level: TypeUniverse[0] is Prop, the universe of propositions, and TypeUniverse[1] is \
 Type. level is a non-negative integer, a universe parameter, level + k, Max[level1, level2] or ImpredicativeMaximum[level1, level2]."
 ImpredicativeMaximum::usage = "ImpredicativeMaximum[level1, level2] is the universe level 0 when level2 is 0 and Max[level1, level2] otherwise: the \
@@ -124,10 +124,11 @@ SetAttributes[TypeTheoryTerm, HoldFirst]
 (* a sequence, Sequence[a, b], is a term, not the arguments a and b *)
 SetAttributes[TypeTheoryTerm, SequenceHold]
 
-(* A term copied from documentation keeps each symbol of a paclet as PacletSymbol[paclet, name]: the term stores the
-   symbol it names instead, as elaboration reads it, so that it shows and compares as the term written with the
-   symbol. The symbols are blocked while they go in, so that none evaluates. *)
-TypeTheoryTerm[term_, rest___] /; ! FreeQ[Unevaluated[term], HoldPattern[PacletSymbol[_String, _String]]] && resolvedPacletSymbolsQ[HoldComplete[term]] :=
+(* A term copied from documentation keeps each symbol of a paclet as PacletSymbol[paclet, name], where paclet may be
+   the documentation's guard If[PacletFind[...] === {}, PacletInstall[...], "Publisher/Paclet"] and name a full name:
+   the term stores the symbol it names instead, as elaboration reads it, so that it shows and compares as the term
+   written with the symbol. Neither the guard nor the symbols evaluate. *)
+TypeTheoryTerm[term_, rest___] /; ! FreeQ[Unevaluated[term], HoldPattern[PacletSymbol[_, _String]]] && resolvedPacletSymbolsQ[HoldComplete[term]] :=
 	Replace[withPacletSymbolsResolved[HoldComplete[term]], HoldComplete[resolved_] :> TypeTheoryTerm[resolved, rest]]
 
 $exactReadBack = False
@@ -145,7 +146,7 @@ toSyntax[Rational[numerator_, denominator_]] := syntaxHead[Times, {syntaxInteger
 toSyntax[text_String] := syntaxString[text]
 (* a symbol of a paclet as documentation copies it, PacletSymbol[paclet, name], is the symbol it names, in the paclet's
    primary context unless the name has a context of its own; nothing is loaded or evaluated to find it *)
-toSyntax[reference : HoldPattern[PacletSymbol[paclet_String, name_String]]] := Replace[pacletSymbol[paclet, name], {
+toSyntax[reference : HoldPattern[PacletSymbol[paclet_, name_String]]] := Replace[pacletSymbol[paclet, name], {
 	HoldComplete[symbol_Symbol] :> syntaxSymbol[HoldComplete[symbol]],
 	_ :> syntaxOther[HoldComplete[reference]]
 }]
@@ -155,7 +156,7 @@ toSyntax[other_] := syntaxOther[HoldComplete[other]]
 (* the paclet symbols of a held term that name a symbol, as pairs {HoldComplete[PacletSymbol[...]], HoldComplete[symbol]};
    each is read held, and every pattern for one too, since PacletSymbol evaluates, even in a pattern *)
 pacletSymbolPairs[held_HoldComplete] := Cases[
-	DeleteDuplicates[Cases[held, reference : HoldPattern[PacletSymbol[_String, _String]] :> HoldComplete[reference], {0, Infinity}, Heads -> True]],
+	DeleteDuplicates[Cases[held, reference : HoldPattern[PacletSymbol[_, _String]] :> HoldComplete[reference], {0, Infinity}, Heads -> True]],
 	HoldComplete[reference : HoldPattern[PacletSymbol[paclet_, name_]]] :> With[{symbol = pacletSymbol[paclet, name]}, {HoldComplete[reference], symbol} /; MatchQ[symbol, HoldComplete[_Symbol]]]
 ]
 
@@ -167,11 +168,15 @@ withPacletSymbolsResolved[held_HoldComplete] := With[{pairs = pacletSymbolPairs[
 	]]
 ]
 
-pacletSymbol[_String, name_String] /; StringContainsQ[name, "`"] := ToExpression[name, InputForm, HoldComplete]
+(* the paclet is held: the documentation's guard would install the paclet, and a full name needs no paclet at all *)
+SetAttributes[pacletSymbol, HoldFirst]
+pacletSymbol[_, name_String] /; StringContainsQ[name, "`"] := ToExpression[name, InputForm, HoldComplete]
+pacletSymbol[If[_, _, paclet_String], name_String] := pacletSymbol[paclet, name]
 pacletSymbol[paclet_String, name_String] := Replace[
 	Replace[First[PacletFind[paclet], None], {found_PacletObject :> found["PrimaryContext"], _ -> None}],
 	{context_String :> ToExpression[context <> name, InputForm, HoldComplete], _ -> None}
 ]
+pacletSymbol[_, _] := None
 
 heldFromSyntax[syntaxSymbol[held_HoldComplete]] := held
 heldFromSyntax[syntaxInteger[n_]] := HoldComplete[n]

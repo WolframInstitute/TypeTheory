@@ -37,7 +37,7 @@ VerificationTest[
 VerificationTest[
 	With[{environment = translated["Environment"]},
 		{
-			TypeOf[TypeTheoryTerm[Exists, environment]],
+			TypeTheoryType[TypeTheoryTerm[Exists, environment]],
 			TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], environment, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Exact", "additionZeroLeft"[n]]}]["Goals"],
 			TypeTheoryProof[2 + 2 == 4 && Not["successor"[3] == 0], environment, {TypeTheoryTactic["Decide"]}]["Goals"]
 		}

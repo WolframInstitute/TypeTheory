@@ -63,11 +63,11 @@ VerificationTest[
 		TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, "true"], cubical], TypeTheoryTerm[Path[Booleans, "true", "true"], cubical]][[1]],
 		First @ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, "true"], cubical], TypeTheoryTerm[Path[Booleans, "true", "false"], cubical]],
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm[Symmetry, paths]],
+			TypeTheoryType[TypeTheoryTerm[Symmetry, paths]],
 			TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[x, A], TypedImplicit[y, A]}, TypeSpecifier[{Path[A, x, y]} -> Path[A, y, x]]], paths]
 		],
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm["functionExtensionality", paths]],
+			TypeTheoryType[TypeTheoryTerm["functionExtensionality", paths]],
 			TypeTheoryTerm[ForAll[
 				{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], TypedImplicit[f, TypeSpecifier[{A} -> B]], TypedImplicit[g, TypeSpecifier[{A} -> B]]},
 				TypeSpecifier[{ForAll[{Typed[x, A]}, Path[B, f[x], g[x]]]} -> Path[TypeSpecifier[{A} -> B], f, g]]
@@ -137,7 +137,7 @@ VerificationTest[
 VerificationTest[
 	{
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm[Transitivity, paths]],
+			TypeTheoryType[TypeTheoryTerm[Transitivity, paths]],
 			TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[x, A], TypedImplicit[y, A], TypedImplicit[z, A]}, TypeSpecifier[{Path[A, x, y]} -> TypeSpecifier[{Path[A, y, z]} -> Path[A, x, z]]]], paths]
 		],
 		DefinitionallyEqualQ[

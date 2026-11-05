@@ -31,7 +31,7 @@ forge[TypeTheoryEnvironment[store_Symbol], name_HoldComplete, change_] := Module
 
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm["andIntroduction", prelude]],
+	TypeTheoryType[TypeTheoryTerm["andIntroduction", prelude]],
 	With[{a = WolframInstitute`TypeTheory`Library`Prelude`Private`a, b = WolframInstitute`TypeTheory`Library`Prelude`Private`b},
 		TypeTheoryTerm[
 			ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[a, Implies[b, a && b]]],
@@ -42,9 +42,28 @@ VerificationTest[
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[2 + 3], prelude],
+	TypeTheoryType[TypeTheoryTerm[2 + 3], prelude],
 	TypeTheoryTerm[NonNegativeIntegers, prelude],
-	TestID -> "TypeOf-takes-an-environment"
+	TestID -> "TypeTheoryType-takes-an-environment"
+]
+
+VerificationTest[
+	PacletSymbol["WolframInstitute/TypeTheory", "TypeTheoryType"][
+		PacletSymbol["WolframInstitute/TypeTheory", "TypeTheoryTerm"][PacletSymbol["WolframInstitute/TypeTheory", "NaturalNumberPredecessor"][3], prelude]],
+	TypeTheoryTerm[NonNegativeIntegers, prelude],
+	TestID -> "TypeTheoryType-takes-a-term-written-with-PacletSymbol"
+]
+
+VerificationTest[
+	With[{sum = TypeTheoryTerm[2 + 3, prelude]}, TypeTheoryType[sum]],
+	TypeTheoryTerm[NonNegativeIntegers, prelude],
+	TestID -> "TypeTheoryType-takes-a-term-in-a-variable"
+]
+
+VerificationTest[
+	FailureQ[TypeTheoryType[TypeTheoryTerm[1 + True, prelude]]],
+	True,
+	TestID -> "TypeTheoryType-of-an-ill-typed-term-is-a-Failure"
 ]
 
 VerificationTest[

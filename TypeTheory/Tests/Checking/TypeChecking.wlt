@@ -18,19 +18,19 @@ pairs = TypeTheoryEnvironment[prelude, {
 (* === inference === *)
 
 VerificationTest[
-	{TypeOf[TypeTheoryTerm[TypeUniverse[0]]], TypeOf[TypeTheoryTerm[TypeUniverse[1]]], TypeOf[TypeTheoryTerm[1 == 1, prelude]]},
+	{TypeTheoryType[TypeTheoryTerm[TypeUniverse[0]]], TypeTheoryType[TypeTheoryTerm[TypeUniverse[1]]], TypeTheoryType[TypeTheoryTerm[1 == 1, prelude]]},
 	{TypeTheoryTerm[TypeUniverse[1], prelude], TypeTheoryTerm[TypeUniverse[2], prelude], TypeTheoryTerm[TypeUniverse[0], prelude]},
 	TestID -> "Prop-is-in-Type-and-Type-is-in-the-next-universe"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]]]],
+	TypeTheoryType[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, TypeSpecifier[{A} -> A]]]],
 	TypeTheoryTerm[TypeUniverse[2], prelude],
 	TestID -> "A-dependent-function-type-lives-in-the-larger-universe"
 ]
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]], prelude]],
+	TypeTheoryType[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]], prelude]],
 	TypeTheoryTerm[TypeUniverse[0], prelude],
 	TestID -> "Prop-is-impredicative"
 ]
@@ -42,13 +42,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeOf[TypeTheoryTerm["successor"[True], prelude]],
+	First @ TypeTheoryType[TypeTheoryTerm["successor"[True], prelude]],
 	"TypeMismatch",
 	TestID -> "An-argument-of-the-wrong-type-is-rejected"
 ]
 
 VerificationTest[
-	{TypeOf[TypeTheoryTerm[2 + 3]] === TypeTheoryTerm[NonNegativeIntegers, prelude], First @ TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment[]]]},
+	{TypeTheoryType[TypeTheoryTerm[2 + 3]] === TypeTheoryTerm[NonNegativeIntegers, prelude], First @ TypeTheoryType[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment[]]]},
 	{True, "ElaborationFailed"},
 	TestID -> "A-term-without-an-environment-is-in-the-prelude"
 ]
@@ -111,7 +111,7 @@ VerificationTest[
 (* === projections === *)
 
 VerificationTest[
-	{TypeOf[TypeTheoryTerm[Function[{Typed[p, NaturalPair]}, p[[2]]], pairs]], WeakHeadNormalForm[TypeTheoryTerm[NaturalPairIntroduction[3, 4][[2]], pairs]]},
+	{TypeTheoryType[TypeTheoryTerm[Function[{Typed[p, NaturalPair]}, p[[2]]], pairs]], WeakHeadNormalForm[TypeTheoryTerm[NaturalPairIntroduction[3, 4][[2]], pairs]]},
 	{TypeTheoryTerm[NaturalPair -> NonNegativeIntegers, pairs], TypeTheoryTerm[4, pairs]},
 	TestID -> "A-projection-has-the-field-type-and-reduces-on-the-constructor"
 ]
@@ -127,16 +127,16 @@ VerificationTest[
 
 VerificationTest[
 	{
-		First @ TypeOf[TypeTheoryTerm[Function[{Typed[w, Witness]}, w[[1]]], pairs]],
-		First @ TypeOf[TypeTheoryTerm[Function[{Typed[w, Witness]}, w[[2]]], pairs]],
-		TypeOf[TypeTheoryTerm[Function[{Typed[h, And[True, False]]}, h[[2]]], pairs]]
+		First @ TypeTheoryType[TypeTheoryTerm[Function[{Typed[w, Witness]}, w[[1]]], pairs]],
+		First @ TypeTheoryType[TypeTheoryTerm[Function[{Typed[w, Witness]}, w[[2]]], pairs]],
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[h, And[True, False]]}, h[[2]]], pairs]]
 	},
 	{"ProjectionFromProof", "ProjectionFromProof", TypeTheoryTerm[Implies[True && False, False], pairs]},
 	TestID -> "Only-proofs-independent-of-data-are-projected-out-of-a-proof"
 ]
 
 VerificationTest[
-	First @ TypeOf[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n[[1]]], prelude]],
+	First @ TypeTheoryType[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n[[1]]], prelude]],
 	"ElaborationFailed",
 	TestID -> "Only-a-structure-has-fields"
 ]
@@ -238,8 +238,8 @@ VerificationTest[
 			}]
 		},
 		{
-			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperation]}, f[1, 2]], operations]] === TypeTheoryTerm[NaturalOperation -> NonNegativeIntegers, operations],
-			TypeOf[TypeTheoryTerm[Function[{Typed[f, NaturalOperationOf[3]]}, f[1, 2] + f[2, 1]], operations]] === TypeTheoryTerm[NaturalOperationOf[3] -> NonNegativeIntegers, operations]
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[f, NaturalOperation]}, f[1, 2]], operations]] === TypeTheoryTerm[NaturalOperation -> NonNegativeIntegers, operations],
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[f, NaturalOperationOf[3]]}, f[1, 2] + f[2, 1]], operations]] === TypeTheoryTerm[NaturalOperationOf[3] -> NonNegativeIntegers, operations]
 		}
 	],
 	{True, True},
