@@ -131,7 +131,10 @@ TypeTheoryFormalize[symbol_Symbol, environment_, options : OptionsPattern[]] /; 
 
 (* the option "Meaning": "Function", the default, a constant that is the function symbol computes, or "Rules", its rules
    as a rewriting of expressions *)
-formalizeMeaning[environment_, held_, options_Hold] := Replace[Cases[options, HoldPattern["Meaning" -> meaning_] :> meaning, {1}], {
+$codedStrings = False
+
+formalizeMeaning[environment_, held_, options_Hold] := Block[{$codedStrings = constantDeclaredQ[environment, HoldComplete["string"]]}, formalizeMeaningIn[environment, held, options]]
+formalizeMeaningIn[environment_, held_, options_Hold] := Replace[Cases[options, HoldPattern["Meaning" -> meaning_] :> meaning, {1}], {
 	{} | {"Function", ___} :> formalize[environment, held, formalizeType[options]],
 	{"Rules", ___} :> rulesDeclarations[environment, held],
 	{other_, ___} :> kernelFailure["InvalidOption", "The value of the option \"Meaning\" must be \"Function\" or \"Rules\", not `1`.", {other}]
@@ -541,6 +544,12 @@ translatedCore[coreForm["Evaluated"][core_], locals_] := translatedCore[core, lo
 translatedCore[coreForm["Local"][local_String], locals_] := Lookup[locals, local, Throw[None, untranslatable]]
 translatedCore[coreForm["Constant"][constant_Integer], _] := HoldComplete[constant]
 translatedCore[coreForm["Constant"][constant_Rational], _] := HoldComplete[constant]
+(* a string literal: the list of its character codes where strings are that, as in TypeTheoryEnvironment["WolframLanguage"],
+   and otherwise a constant of the type Strings named by its InputForm *)
+translatedCore[coreForm["Constant"][text_String], _] /; TrueQ[$codedStrings] := Replace[ToCharacterCode[text, "Unicode"], {
+	{} :> HoldComplete["string"[Typed[{}, {NonNegativeIntegers}]]],
+	codes_ :> HoldComplete @@ {"string"[codes]}
+}]
 translatedCore[coreForm["Constant"][text_String], _] := With[{literal = ToString[text, InputForm]}, Sow[HoldComplete[literal], untranslatedCall]; HoldComplete[literal]]
 translatedCore[coreForm["Level"][_, core_], locals_] := translatedCore[core, locals]
 translatedCore[coreForm["Call"][callee_String, arguments_List], locals_] := With[{head = ToExpression[callee, InputForm, HoldComplete]},

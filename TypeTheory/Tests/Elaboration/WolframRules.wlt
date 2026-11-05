@@ -1,39 +1,30 @@
 (* ::Package:: *)
 
 (* Tests for Elaboration/WolframRules.wl: the rules of a symbol as a definition of type Expressions -> Option[Expressions]
-   in TypeTheoryEnvironment["WolframLanguage"], read from the compiler's match programs. Each test passes without the
-   compiler, which reading rules needs. *)
+   in TypeTheoryEnvironment["WolframLanguage"], translated from their patterns. *)
 
 PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
-(* the rules of a symbol, with the atoms a call uses, and the expression f[a, ...] quoted *)
-rulesEnvironment[rules_List, atoms_List] := TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], Join[rules, Function[atom, TypeTheoryAxiom[atom, Atoms]] /@ atoms]]
+(* the rules of a symbol, in the environment of expressions; atoms are data, so nothing else is declared *)
+rulesEnvironment[rules_List] := TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], rules]
 
-(* the rules compute: f[x_, y_, z___] rewrites f[a, b] to {a, b}, by the lengths, the parts and the sequence the
-   kernel reduces, and leaves f[a] as it is *)
+(* the rules compute in the kernel: f[x_, y_, z___] rewrites f[a, b] to {a, b}, by the lengths, the parts, the sequence
+   and the heads it compares, and leaves f[a] as it is *)
 VerificationTest[
 	Block[{listed},
 		listed[x_, y_, z___] := {x, y, z};
-		If[ PacletFind["Wolfram/KernelCompiler"] === {},
-			True,
-			With[{environment = rulesEnvironment[TypeTheoryFormalize[listed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"], {"Global`listed", "Global`a", "Global`b"}]},
-				{
-					First[TypeTheoryType[TypeTheoryTerm["DownValues[listed]", environment]]],
-					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[listed]"["normal"["atom"["Global`listed"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment],
-						TypeTheoryTerm["some"["normal"["atom"["System`List"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment]
-					],
-					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[listed]"["normal"["atom"["Global`listed"], {"atom"["Global`a"]}]], environment],
-						TypeTheoryTerm[Typed["none", Option[Expressions]], environment]
-					]
-				} === {Expressions -> Option[Expressions], True, True}
-			]
+		With[{environment = rulesEnvironment[TypeTheoryFormalize[listed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]},
+			{
+				TypeTheoryType["DownValues[listed]", environment],
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[HoldForm[listed[a, b]]], environment], TypeTheoryTerm["some"[HoldForm[{a, b}]], environment]],
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[HoldForm[listed[a]]], environment], TypeTheoryTerm[Typed["none", Option[Expressions]], environment]]
+			}
 		]
 	],
-	True,
+	{TypeTheoryTerm[Expressions -> Option[Expressions], _], True, True},
+	SameTest -> MatchQ,
 	TestID -> "The-rules-of-a-symbol-rewrite-an-expression-and-leave-one-no-rule-matches"
 ]
 
@@ -42,24 +33,14 @@ VerificationTest[
 	Block[{first, other},
 		first[x_, y_] := x;
 		first[x_, ___] := other;
-		If[ PacletFind["Wolfram/KernelCompiler"] === {},
-			True,
-			With[{environment = rulesEnvironment[TypeTheoryFormalize[first, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"], {"Global`first", "Global`a", "Global`b"}]},
-				{
-					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[first]"["normal"["atom"["Global`first"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment],
-						TypeTheoryTerm["some"["atom"["Global`a"]], environment]
-					],
-					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[first]"["normal"["atom"["Global`first"], {"atom"["Global`a"], "atom"["Global`b"], "atom"["Global`a"]}]], environment],
-						TypeTheoryTerm["some"["atom"["Global`other"]], environment]
-					]
-				}
-			]
+		With[{environment = rulesEnvironment[TypeTheoryFormalize[first, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]},
+			{
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[HoldForm[first[a, b]]], environment], TypeTheoryTerm["some"[HoldForm[a]], environment]],
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[HoldForm[first[a, b, a]]], environment], TypeTheoryTerm["some"[HoldForm[other]], environment]]
+			}
 		]
 	],
-	{True, True} | True,
-	SameTest -> MatchQ,
+	{True, True},
 	TestID -> "The-first-rule-that-matches-applies"
 ]
 

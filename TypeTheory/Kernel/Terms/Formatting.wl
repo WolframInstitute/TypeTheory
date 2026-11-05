@@ -306,9 +306,19 @@ quotableArgumentsQ[syntaxApplication[syntaxSymbol[HoldComplete[Join]], parts_Lis
 quotableArgumentsQ[syntaxSymbol[_]] := True
 quotableArgumentsQ[_] := False
 
-(* the atom an atom's syntax names, or None: a symbol by its full name, a natural number, or another atom by its
-   InputForm *)
+(* the atom an atom's syntax names, or None: a symbol by its full name, a natural number, a negative integer, a string,
+   or another atom by its InputForm *)
 atomSyntax[syntaxApplication[syntaxString["naturalAtom"], {n : syntaxInteger[_]}]] := n
+atomSyntax[syntaxApplication[syntaxString["negativeAtom"], {syntaxInteger[n_Integer]}]] := syntaxInteger[-n - 1]
+atomSyntax[syntaxApplication[syntaxString["symbolAtom"], {name_}]] := Replace[stringText[name], {
+	text_String :> Replace[Quiet[ToExpression[text, InputForm, HoldComplete]], {HoldComplete[symbol_Symbol] :> syntaxSymbol[HoldComplete[symbol]], _ -> None}],
+	None -> None
+}]
+atomSyntax[syntaxApplication[syntaxString["stringAtom"], {text_}]] := Replace[stringText[text], {string_String :> syntaxString[string], None -> None}]
+atomSyntax[syntaxApplication[syntaxString["otherAtom"], {_, form_}]] := Replace[stringText[form], {
+	text_String :> Replace[Quiet[ToExpression[text, InputForm, HoldComplete]], {HoldComplete[other_] :> syntaxOther[HoldComplete[other]], _ -> None}],
+	None -> None
+}]
 atomSyntax[syntaxApplication[syntaxString["stringAtom"], {literal : syntaxString[_]}]] := atomSyntax[literal]
 atomSyntax[syntaxString[name_String]] := Replace[Quiet[ToExpression[name, InputForm, HoldComplete]], {
 	HoldComplete[symbol_Symbol] /; StringContainsQ[name, "`"] :> syntaxSymbol[HoldComplete[symbol]],
@@ -318,6 +328,17 @@ atomSyntax[syntaxString[name_String]] := Replace[Quiet[ToExpression[name, InputF
 	_ -> None
 }]
 atomSyntax[_] := None
+
+(* the text of a string, the list of its character codes, or None *)
+stringText[syntaxApplication[syntaxString["string"], {codes_}]] := Replace[codes, {
+	_?listLiteralQ :> Replace[prependedElements[codes], {elements : {syntaxInteger[_] ...} :> FromCharacterCode[elements[[All, 1]], "Unicode"], _ -> None}],
+	syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {}], _}] :> "",
+	_ -> None
+}]
+stringText[_] := None
+
+(* a string shows as its text, quoted *)
+displaySyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringText[syntax]] := syntaxString[ToString[stringText[syntax], InputForm]]
 
 unquoted[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom]
 unquoted[syntaxApplication[syntaxString["normal"], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]

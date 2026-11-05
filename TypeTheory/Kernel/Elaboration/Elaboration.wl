@@ -276,6 +276,11 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :>
 		elaborateArrow[listElements[domains], codomain],
+	(* rules, lhs -> rhs, lhs :> rhs or a list of them, where a function from an expression to its matches is expected, as
+	   Replace takes them, are that function: the patterns translated to matches, every rule's results in order *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}] /; matchFunctionExpectedQ[expected] :> elaborateSyntax[rulesSyntax[{syntax}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[List]], rules : {syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}] ..}] /; matchFunctionExpectedQ[expected] :>
+		elaborateSyntax[rulesSyntax[rules], expected],
 	(* a bare arrow has one domain: {A} -> B is a function of lists of A, and a function of several arguments is curried,
 	   A -> B -> C, of a sequence, Sequence[A, B] -> C, or the compiler's TypeSpecifier[{A, B} -> C] *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], domains_List], _}] /; Length[domains] != 1 :>
@@ -358,6 +363,14 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	   for a name, as "true" does *)
 	syntaxString[text_] /; ! constantDeclaredQ[$elaborationEnvironment, HoldComplete[text]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete @@ {ToString[text, InputForm]}] :>
 		elaborateSyntax[syntaxString[ToString[text, InputForm]], expected],
+	(* a string literal where a string is expected is the list of its character codes; where an expression is expected,
+	   a string, a symbol that names nothing and a head that names nothing applied to its arguments stand for themselves,
+	   as a symbol without a value does in the Wolfram Language, and the arguments, expressions, compute *)
+	syntaxString[text_] /; unnamedStringQ[text] && stringExpectedQ[expected] :> elaborateSyntax[stringLiteralSyntax[text], expected],
+	syntaxString[text_] /; unnamedStringQ[text] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
+	syntaxSymbol[held : HoldComplete[_Symbol]] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
+	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :>
+		elaborateSyntax[syntaxApplication[syntaxString["normal"], {quotationSyntax[syntaxSymbol[held]], expressionListSyntax[arguments]}], expected],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
@@ -603,13 +616,50 @@ typeListQ[type_] := MatchQ[
 expressionsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["normal"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["atom"]]
 
 quotationSyntax[syntax : syntaxSymbol[held_]] /; KeyExistsQ[$elaborationScope, held] := syntax
-quotationSyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] := syntaxApplication[syntaxString["atom"], {syntaxString[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]]}]
-quotationSyntax[syntaxInteger[n_Integer?NonNegative]] := syntaxApplication[syntaxString["atom"], {syntaxApplication[syntaxString["naturalAtom"], {syntaxInteger[n]}]}]
-quotationSyntax[syntaxInteger[n_Integer]] := syntaxApplication[syntaxString["atom"], {syntaxString[ToString[n, InputForm]]}]
-quotationSyntax[syntaxString[text_String]] /; constantDeclaredQ[$elaborationEnvironment, HoldComplete["stringAtom"]] :=
-	syntaxApplication[syntaxString["atom"], {syntaxApplication[syntaxString["stringAtom"], {syntaxString[ToString[text, InputForm]]}]}]
-quotationSyntax[syntaxString[text_String]] := syntaxApplication[syntaxString["atom"], {syntaxString[ToString[text, InputForm]]}]
-quotationSyntax[syntaxOther[HoldComplete[atom_]]] := syntaxApplication[syntaxString["atom"], {syntaxString[ToString[Unevaluated[atom], InputForm]]}]
+quotationSyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] := atomOfSyntax["symbolAtom", {stringLiteralSyntax[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]]}]
+quotationSyntax[syntaxInteger[n_Integer?NonNegative]] := atomOfSyntax["naturalAtom", {syntaxInteger[n]}]
+quotationSyntax[syntaxInteger[n_Integer]] := atomOfSyntax["negativeAtom", {syntaxInteger[-n - 1]}]
+quotationSyntax[syntaxString[text_String]] := atomOfSyntax["stringAtom", {stringLiteralSyntax[text]}]
+quotationSyntax[syntaxOther[HoldComplete[atom_]]] := atomOfSyntax["otherAtom", {
+	stringLiteralSyntax[Context[Evaluate[Head[Unevaluated[atom]]]] <> SymbolName[Head[Unevaluated[atom]]]],
+	stringLiteralSyntax[ToString[Unevaluated[atom], InputForm]]
+}]
+
+atomOfSyntax[constructor_String, fields_List] := syntaxApplication[syntaxString["atom"], {syntaxApplication[syntaxString[constructor], fields]}]
+
+(* a string, the list of its character codes *)
+stringLiteralSyntax[text_String] := syntaxApplication[syntaxString["string"], {Replace[ToCharacterCode[text, "Unicode"], {
+	{} :> syntaxHead[Typed, {syntaxHead[List, {}], syntaxHead[List, {syntaxSymbol[HoldComplete[NonNegativeIntegers]]}]}],
+	codes_ :> syntaxHead[List, syntaxInteger /@ codes]
+}]}]
+
+(* the function rules written as a term stand for *)
+rulesSyntax[rules_List] := Replace[rulesMatchFunction[heldFromSyntax /@ rules], {
+	HoldComplete[function_] :> toSyntax[function],
+	{"Untranslatable", rule_} :> elaborationFailure["The rule `1` does not translate to matches: KeyValuePattern does not, as an Association is an atom.", syntaxOther[HoldComplete[rule]]]
+}]
+
+(* a function from an expression to the list of its matches is expected *)
+matchFunctionExpectedQ[expected_] := expected =!= None && constantDeclaredQ[$elaborationEnvironment, HoldComplete["symbolAtom"]] && MatchQ[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]],
+	dependentFunctionType[_, constantReference[HoldComplete[Expressions], _], codomain_, _] /; typeListOfExpressionsQ[codomain]
+]
+
+(* the arguments of a head that names nothing, each an expression *)
+expressionListSyntax[{}] := quotedArgumentsSyntax[{}]
+expressionListSyntax[arguments_List] := syntaxHead[Typed, {syntaxHead[List, arguments], syntaxHead[List, {syntaxSymbol[HoldComplete[Expressions]]}]}]
+
+unnamedStringQ[text_String] := ! constantDeclaredQ[$elaborationEnvironment, HoldComplete[text]] && ! KeyExistsQ[$elaborationScope, HoldComplete[text]]
+unnamedSymbolQ[held : HoldComplete[symbol_Symbol]] := And[
+	! KeyExistsQ[$elaborationScope, held], ! constantDeclaredQ[$elaborationEnvironment, held], ! overloadedNameQ[$elaborationEnvironment, held], ! storedValueQ[symbol]
+]
+expressionExpectedQ[expected_] := expected =!= None && constantDeclaredQ[$elaborationEnvironment, HoldComplete["symbolAtom"]] &&
+	MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], constantReference[HoldComplete[Expressions], _]]
+(* a string is expected where the type is Strings, or nothing decides it, where strings are lists of codes *)
+stringExpectedQ[expected_] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["string"]] && Replace[expected, {
+	None -> True,
+	_ :> MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], constantReference[HoldComplete[Strings], _] | metavariable[_]]
+}]
 quotationSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[syntaxString["normal"], {quotationSyntax[head], quotedArgumentsSyntax[arguments]}]
 
 (* the arguments as a list of expressions: runs of them in list literals, and each list of expressions, a variable of

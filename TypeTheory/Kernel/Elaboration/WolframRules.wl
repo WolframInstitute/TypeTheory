@@ -38,12 +38,14 @@ the rules give one step of evaluation, and the Wolfram Language evaluates the re
 
 
 PackageScoped[rulesDeclarations]
+PackageScoped[rulesMatchFunction]
 
 
 (* ::Section:: *)
 (*Usage Messages*)
 
 
+rulesMatchFunction::usage = "rulesMatchFunction[{HoldComplete[rule], ...}] gives HoldComplete of the term of type Expressions -> Match[Expressions] whose results are those of the rules at an expression, in order, or {\"Untranslatable\", rule} for the first rule that does not translate."
 rulesDeclarations::usage = "rulesDeclarations[environment, HoldComplete[symbol]] gives the declarations of the rules of symbol: the atoms they use, then the definition of type Expressions -> Option[Expressions] named \"DownValues[symbol]\"."
 
 
@@ -81,6 +83,21 @@ translatedRules[HoldComplete[symbol_Symbol]] := Catch[
 		}]
 	}],
 	untranslatableRule
+]
+
+(* rules written as a term, lhs -> rhs and lhs :> rhs, as Replace takes them: the function from an expression to the
+   results of every rule that matches it, in order, the left side of each matched as a whole, head included *)
+rulesMatchFunction[rules_List] := Catch[
+	Replace[Function[rule, standaloneRuleMatch[rule]] /@ rules, {
+		{} :> HoldComplete[Function[{Typed[expression, Expressions]}, Typed[{}, Match[Expressions]]]],
+		matches_List :> Replace[sumOf[matches], HoldComplete[sum_] :> HoldComplete[Function[{Typed[expression, Expressions]}, sum]]]
+	}],
+	untranslatableRule
+]
+
+standaloneRuleMatch[HoldComplete[(Rule | RuleDelayed)[lhs_, rhs_]]] := Replace[
+	Catch[Block[{$partCount = 0}, patternMatch[HoldComplete[lhs], HoldComplete[expression], $rootEnvironment, ruleFinal[HoldComplete[rhs]]]], untranslatable],
+	Except[_HoldComplete] :> Throw[{"Untranslatable", HoldForm[lhs :> rhs]}, untranslatableRule]
 ]
 
 (* the match of one rule: its left side, a pattern, matched at the expression, then its right side, quoted, as one value *)
@@ -443,25 +460,8 @@ renamed[held_HoldComplete, environment_] := ReplaceAll[held, KeyValueMap[
 	environment["Names"]
 ]]
 
-(* the atoms of a quotation, but its variables and its natural numbers; a rational shows as Times and Power *)
-declareAtoms[held_HoldComplete, environment_] := With[{variables = Join @@ (First /@ Values[Join[environment["Names"], environment["Locals"]]])},
-	Scan[
-		Function[part, Replace[part, {
-			HoldComplete[symbol_Symbol] /; FreeQ[variables, HoldPattern[symbol]] :> atomTerm[fullName[symbol]],
-			HoldComplete[n_Integer] /; n < 0 :> literalAtomTerm[HoldComplete[n]],
-			HoldComplete[q_Rational] :> (atomTerm["System`Times"]; atomTerm["System`Power"]; literalAtomTerm[HoldComplete[-1]];
-				If[Numerator[q] < 0, literalAtomTerm[HoldComplete @@ {Numerator[q]}]]),
-			HoldComplete[text_String] :> Sow[{TypeTheoryAxiom[Evaluate[ToString[text, InputForm]], Strings]}, atomDeclaration],
-			HoldComplete[e : (_Real | _Complex)] :> literalAtomTerm[HoldComplete[e]],
-			_ :> Null
-		}]],
-		Cases[held, atom_ /; AtomQ[Unevaluated[atom]] :> HoldComplete[atom], {1, Infinity}, Heads -> True]
-	]
-]
+(* the atoms of a quotation are data of the type Atoms, a symbol by its name, which nothing needs to declare *)
+declareAtoms[_, _] := Null
 
-(* the atom of a symbol, by its full name, an axiom that the symbol is; and of any other atom, by its InputForm *)
-atomTerm[name_String] := (
-	Sow[{ToExpression[name, InputForm, Function[symbol, TypeTheoryAxiom[name, Atoms, "Implementation" -> symbol], HoldAllComplete]]}, atomDeclaration];
-	ToExpression[name, InputForm, Function[symbol, HoldComplete[HoldForm[symbol]], HoldAllComplete]]
-)
-literalAtomTerm[HoldComplete[e_]] := Sow[{TypeTheoryAxiom[Evaluate[ToString[Unevaluated[e], InputForm]], Atoms]}, atomDeclaration]
+(* the atom of a symbol, by its full name, quoted *)
+atomTerm[name_String] := ToExpression[name, InputForm, Function[symbol, HoldComplete[HoldForm[symbol]], HoldAllComplete]]
