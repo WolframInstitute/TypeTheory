@@ -1,4 +1,4 @@
-(* ::Package:: *)
+(* ::Package::"Tags"-><|"BadSymbol" -> <|"Match" -> <|Enabled -> False|>|>|>:: *)
 
 (* Tests for Library/WolframLanguage.wl: the expressions of the Wolfram Language as an inductive type, and the monad of
    pattern matching, the lists of results in the order they are tried, with its operations computing. *)

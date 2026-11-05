@@ -1,4 +1,4 @@
-(* ::Package:: *)
+(* ::Package::"Tags"-><|"BadSymbol" -> <|"Match" -> <|Enabled -> False|>|>|>:: *)
 
 (*
 WolframRules: the rules of a Wolfram Language symbol as a term of TypeTheoryEnvironment["WolframLanguage"], what
