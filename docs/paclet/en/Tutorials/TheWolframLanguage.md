@@ -5,7 +5,7 @@ Title: The Wolfram Language
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheWolframLanguage
-Keywords: [Wolfram Language, expressions, Sequence, List, heterogeneous list, currying, pattern matching, Match, MatchSum, MatchProduct, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
+Keywords: [Wolfram Language, expressions, Sequence, List, heterogeneous list, currying, pattern matching, Match, MatchValue, MatchSum, MatchPart, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, ThePrelude, TypeTheoryIntroduction]
 ---
@@ -71,26 +71,26 @@ pairs = TypeTheoryEnvironment[wolfram, {
 
 ## The Monad of Matches
 
-`Match[A]` is the list of the results of a match, in the order they are tried: none, one, or several, as a pattern with an [Orderless]() head or a sequence matches in several ways. It types the match objects of the paclet Wolfram/Patterns, whose symbols `Match`, `MatchValues`, `MatchSum`, `MatchProduct` and `MatchPart` name its constants. The compiler of the WolframKernel project built its Match IR from the same objects:
+[Match]()`[A]` is the list of the results of a match, in the order they are tried: none, one, or several, as a pattern with an [Orderless]() head or a sequence matches in several ways. Its constants follow the match objects of the prototype paclet Wolfram/Patterns and the Match IR that the compiler of the WolframKernel project built from them. A result is one value, and every match with several results is a sum:
 
 | | Wolfram/Patterns | the Match IR | in the type theory |
 |---|---|---|---|
-| one result | `MatchValues` | `Values` | `MatchValues[a] : Match[A]` |
+| one result | `MatchValues` | `Values` | [MatchValue]()` : A -> Match[A]` |
+| one result of several values | `MatchValues` | `Values` | [MatchValue]()`[Sequence[a, b]] : Match[Sequence[A, B]]` |
 | no result | | `Sum[]` | `{}` |
-| alternatives, in order | `MatchSum` | `Sum` | `MatchSum : Match[A] -> Match[A] -> Match[A]` |
-| independent parts | `MatchProduct` | `Product` | `MatchProduct : Match[A] -> Match[B] -> Match[A × B]` |
-| parts in turn | | `Product` | [MatchBind]()` : Match[A] -> (A -> Match[B]) -> Match[B]` |
-| a match at a position | `MatchPart` | `Part` | `MatchPart : Expressions -> ℕ -> (Expressions -> Match[A]) -> Match[A]` |
+| alternatives, in order | `MatchSum` | `Sum` | [MatchSum]()` : Match[A] -> Match[A] -> Match[A]` |
+| parts in turn | `MatchProduct` | `Product` | [MatchBind]()` : Match[A] -> (A -> Match[B]) -> Match[B]` |
+| a match at a position | `MatchPart` | `Part` | [MatchPart]()` : Expressions -> ℕ -> (Expressions -> Match[A]) -> Match[A]` |
 | a condition | | `Guard` | [Condition]()` : Match[A] -> Booleans -> Match[A]` |
 | whether it matches | | | [MatchQ]()` : Match[A] -> Booleans` |
 | the rule applied | the first result | the leftmost result | [MatchFirst]()` : Match[A] -> Option[A]` |
 
-These are the operations of the monad of lists, the monad of nondeterminism, with its alternatives in order. The environment puts the context of Wolfram/Patterns at the end of the context path, so its symbols are written without it.
+These are the operations of the monad of lists, the monad of nondeterminism, with its alternatives in order: [MatchValue]() is its unit and [MatchBind]() its bind.
 
 The alternatives keep their order, so the first result is the left one, as the Wolfram Language applies the first rule that matches:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], wolfram], TypeTheoryTerm["some"[1], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[MatchSum[MatchValue[1], MatchValue[2]]], wolfram], TypeTheoryTerm["some"[1], wolfram]]
 ```
 
 <!-- => True -->
@@ -103,20 +103,20 @@ DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[Typed[{}, Match[NonNegativeIntege
 
 <!-- => True -->
 
-A product pairs every result of one match with every result of another, in order, as the independent parts of a pattern combine:
+A result holds one value; a sequence of values is one value, a result of the type of sequences:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchProduct[{1, 2}, {3}], wolfram], TypeTheoryTerm[{"pair"[1, 3], "pair"[2, 3]}, wolfram]]
+TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram]
 ```
 
-<!-- => True -->
+<!-- => Match[[ℕ, 𝔹]] -->
 
-`MatchPart` matches at the part of an expression at a position, its head at 0, with no result out of range, where [Part]() fails:
+[MatchPart]() matches at the part of an expression at a position, its head at 0, with no result out of range, where [Part]() fails:
 
 ```wl
 {
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["normal"[7, {1, 2}], 2, MatchValues], wolfram], TypeTheoryTerm[MatchValues[Typed[2, Expressions]], wolfram]],
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["normal"[7, {1}], 5, MatchValues], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["normal"[7, {1, 2}], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]],
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["normal"[7, {1}], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
 }
 ```
 

@@ -50,7 +50,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), `"atom"`, `"normal"`, [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"]
 - [Strings]() the strings, each literal a constant of it, with signatures for the string functions
 - `"emptySequence"` and `"sequencePrepend"` the sequences of elements of different types, `Sequence[a, b]`, of the type `Sequence[A, B]`: the arguments a Wolfram Language function is applied to
-- [MatchBind]() and [MatchFirst]() the monad of pattern matching, with the match objects of Wolfram/Patterns
+- [Match]() the matches, lists of results, with [MatchValue]() one result, [MatchSum]() alternatives in order, [MatchBind]() parts in turn, [MatchPart]() a part of an expression and [MatchFirst]() the result the Wolfram Language applies
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce
 

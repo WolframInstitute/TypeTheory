@@ -40,4 +40,4 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[positive, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => definition DownValues[positive] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ (MatchValues[HoldForm[x]] /; ExpressionValue[HoldForm[x > 0]] === HoldForm[True])] /; ...] -->
+<!-- => definition DownValues[positive] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ (MatchValue[HoldForm[x]] /; ExpressionValue[HoldForm[x > 0]] === HoldForm[True])] /; ...] -->

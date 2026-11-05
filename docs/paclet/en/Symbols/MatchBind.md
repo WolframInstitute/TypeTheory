@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/MatchBind
 Keywords: [Wolfram Language, expressions, pattern matching, Match]
-SeeAlso: [MatchFirst, Expressions]
+SeeAlso: [Match, MatchValue, MatchSum, MatchPart, MatchFirst, Expressions]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage]
 ---
@@ -16,8 +16,8 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Details & Options
 
-- A match, `Match[A]`, is the list of its results in the order they are tried, the monad of pattern matching of [TypeTheoryEnvironment]()["WolframLanguage"]; [MatchBind]() is its bind, the parts of a pattern matched in turn.
-- `MatchProduct`, which pairs the results of two independent matches, is a [MatchBind]() in each.
+- A match, <code>[Match]()[*A*]</code>, is the list of its results in the order they are tried, the monad of pattern matching of [TypeTheoryEnvironment]()["WolframLanguage"]; [MatchBind]() is its bind, the parts of a pattern matched in turn, and [MatchValue]() its unit.
+- Two independent matches combine by a [MatchBind]() in each, keeping the two results as one value, such as <code>[MatchValue]()[[Sequence]()[*a*, *b*]]</code>.
 
 ## Basic Examples
 

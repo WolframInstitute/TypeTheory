@@ -220,7 +220,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValues[HoldForm[StringReverse[s]]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->
+<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValue[HoldForm[StringReverse[s]]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->
 
 ## Typing in the Compiler and in Mathematics
 
