@@ -593,8 +593,9 @@ expressionsDeclarations[environment_] := Join[
 	]
 ]
 
-signatures[symbols_HoldComplete, type_HoldComplete] := Association[Function[held, held -> Replace[{held, type}, {HoldComplete[symbol_], HoldComplete[signature_]} :>
-	TypeTheoryAxiom[symbol, signature, "Implementation" -> symbol]]] /@ Replace[symbols, HoldComplete[each___] :> (HoldComplete /@ Unevaluated[{each}])]]
+(* the symbols as the parts of a Sequence, which one symbol alone also has, as Unevaluated[symbol] would not *)
+signatures[HoldComplete[symbols__], HoldComplete[signature_]] :=
+	Association[Replace[Unevaluated[Sequence[symbols]], symbol_ :> (HoldComplete[symbol] -> TypeTheoryAxiom[symbol, signature, "Implementation" -> symbol]), 1]]
 
 (* If[condition, a, b] by the decision of the condition, which elaboration finds as an instance of Decidable; a
    definition, which the kernel checks and computes where the decision does *)
