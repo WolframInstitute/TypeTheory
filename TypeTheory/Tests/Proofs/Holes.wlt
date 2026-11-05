@@ -58,7 +58,7 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryCheck[TypeTheoryTerm[Typed[TypeTheoryHole[], 1 == 1]]]["Tag"],
+		TypeTheoryType[TypeTheoryTerm[Typed[TypeTheoryHole[], 1 == 1]]]["Tag"],
 		TypeTheoryEnvironment[{TypeTheoryTheorem[InStatement, TypeTheoryHole[], "equalityReflexivity"[1]]}]["Tag"],
 		TypeTheoryEnvironment[{TypeTheoryTheorem[Unfinished, TypeTheoryProof[1 == 1, {}]]}]["Tag"]
 	},

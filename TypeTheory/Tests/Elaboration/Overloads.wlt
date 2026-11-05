@@ -21,10 +21,10 @@ polynomials = TypeTheoryEnvironment[{
 
 VerificationTest[
 	{
-		First[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, "Polynomials"]}, x^2 + x], polynomials]]],
-		First[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[x, "Polynomials"]}, -x], polynomials]]],
+		First[TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, "Polynomials"]}, x^2 + x], polynomials]]],
+		First[TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, "Polynomials"]}, -x], polynomials]]],
 		First[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, "Polynomials"]}, x^2 + x], polynomials]]],
-		First[TypeTheoryCheck[TypeTheoryTerm[2 + 3, polynomials]]]
+		First[TypeTheoryType[TypeTheoryTerm[2 + 3, polynomials]]]
 	},
 	{
 		"Polynomials" -> "Polynomials",
@@ -36,7 +36,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[e, FormSpace[4]], Typed[g, FormSpace[6]]}, e^3 + g^2], polynomials]]],
+	First[TypeTheoryType[TypeTheoryTerm[Function[{Typed[e, FormSpace[4]], Typed[g, FormSpace[6]]}, e^3 + g^2], polynomials]]],
 	FormSpace[4] -> FormSpace[6] -> FormSpace[12],
 	TestID -> "An-overload-with-an-implicit-argument-is-solved-through-computation"
 ]

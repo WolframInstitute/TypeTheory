@@ -109,7 +109,7 @@ VerificationTest[
 (* === elimination === *)
 
 VerificationTest[
-	First @ TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Or][
+	First @ TypeTheoryType[TypeTheoryTerm[InductiveRecursor[Or][
 		Function[{Typed[t, Or[True, True]]}, NonNegativeIntegers],
 		Function[{Typed[p, True]}, 0],
 		Function[{Typed[q, True]}, 1],
@@ -160,7 +160,7 @@ VerificationTest[
 				"Parameters" -> 2
 			]}]
 		},
-		{Head[accessible], Length[DeleteDuplicates[Cases[TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Accessible], accessible]], TypeUniverse[level_Symbol] :> SymbolName[Unevaluated[level]], Infinity, Heads -> True]]]}
+		{Head[accessible], Length[DeleteDuplicates[Cases[TypeTheoryType[TypeTheoryTerm[InductiveRecursor[Accessible], accessible]], TypeUniverse[level_Symbol] :> SymbolName[Unevaluated[level]], Infinity, Heads -> True]]]}
 	],
 	{TypeTheoryEnvironment, 2},
 	TestID -> "A-proposition-with-a-recursive-field-under-binders-eliminates-into-any-universe"

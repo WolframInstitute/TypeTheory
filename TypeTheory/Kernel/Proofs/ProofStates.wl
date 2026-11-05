@@ -103,11 +103,13 @@ TypeTheoryProof::usage = "TypeTheoryProof[statement] starts a proof of statement
 TypeTheoryProof[statement, environment] starts the proof in the TypeTheoryEnvironment environment.\n\
 TypeTheoryProof[TypeTheoryTerm[statement, environment]] does the same.\n\
 TypeTheoryProof[statement, {tactic1, tactic2, ...}], TypeTheoryProof[statement, environment, {tactic1, ...}] and \
-TypeTheoryProof[TypeTheoryTerm[statement, environment], {tactic1, ...}] apply the TypeTheoryTactic tactics in turn.\n\
+TypeTheoryProof[TypeTheoryTerm[statement, environment], {tactic1, ...}] apply the TypeTheoryTactic tactics in turn; in a list written out, \
+a tactic may be written \"name\" or \"name\"[arguments...] for TypeTheoryTactic[\"name\", arguments...], as in {\"Introduce\"[n], \"Reflexivity\"}.\n\
 proof[\"Goals\"] gives the open goals as TypeTheoryTerm[RightTee[{Typed[x, type], ...}, goal], environment]; proof[\"Term\"] gives the proof term; \
 proof[\"Statement\"] gives the statement; proof[\"Environment\"] gives the environment. \
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
-TypeTheoryTactic::usage = "TypeTheoryTactic[name, arguments...] is a tactic: TypeTheoryTactic[name, arguments...][proof] applies it to the first goal of the TypeTheoryProof proof.\n\
+TypeTheoryTactic::usage = "TypeTheoryTactic[name, arguments...] is a tactic: TypeTheoryTactic[name, arguments...][proof] applies it to the first goal of the TypeTheoryProof proof. \
+Its arguments are held, and TypeTheoryTactic[name[arguments...]] is TypeTheoryTactic[name, arguments...].\n\
 TypeTheoryTactic[\"Introduce\", x, ...] introduces the variables or hypotheses of a universal statement or implication.\n\
 TypeTheoryTactic[\"Exact\", term] solves the goal with term.\n\
 TypeTheoryTactic[\"Apply\", term] solves the goal with term applied to new goals.\n\
@@ -149,33 +151,50 @@ instantiateProofTerm::usage = "instantiateProofTerm[data, term] replaces the sol
 
 Options[TypeTheoryProof] = {"UniverseParameters" -> Automatic}
 
-SetAttributes[TypeTheoryProof, HoldFirst]
+SetAttributes[TypeTheoryProof, HoldAll]
 SetAttributes[TypeTheoryProof, SequenceHold]
-SetAttributes[TypeTheoryTactic, HoldRest]
+SetAttributes[TypeTheoryTactic, HoldAll]
+
+(* a tactic may be written as its name applied to its arguments, held as TypeTheoryTactic holds them *)
+TypeTheoryTactic[name_String[arguments___]] := TypeTheoryTactic[name, arguments]
+TypeTheoryTactic[name_Symbol, arguments___] /; StringQ[name] := With[{evaluated = name}, TypeTheoryTactic[evaluated, arguments]]
 
 
 (* A proof state holds an Association, and patterns such as TypeTheoryProof[_Association] must not start
-   a proof either, so a statement that is an Association or contains a pattern is not one. *)
-TypeTheoryProof[statement_, environment_?environmentQ, options : OptionsPattern[]] /; statementQ[Unevaluated[statement]] :=
-	startProof[environment, HoldComplete[statement], Hold[options]]
+   a proof either, so a statement that is an Association or contains a pattern is not one. The statement is held,
+   and so is a list of tactics written out, whose tactics may be "name" and "name"[arguments]; the other arguments,
+   the environment and the options, and a list of tactics kept in a symbol, evaluate. *)
+TypeTheoryProof[statement_, arguments___] /; statementQ[Unevaluated[statement]] :=
+	proofFrom[HoldComplete[statement], preparedArguments[arguments]]
 
-TypeTheoryProof[statement_, environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; statementQ[Unevaluated[statement]] :=
-	runTactics[TypeTheoryProof[statement, environment, options], tactics]
+SetAttributes[preparedArguments, HoldAllComplete]
+preparedArguments[arguments___] := Hold @@ Map[preparedArgument, Unevaluated[{arguments}]]
 
-(* without an environment, a statement is proved in the default environment *)
-TypeTheoryProof[statement_, options : OptionsPattern[]] /; ! termExpressionQ[Unevaluated[statement]] && statementQ[Unevaluated[statement]] :=
-	TypeTheoryProof[statement, defaultEnvironment[], options]
+SetAttributes[preparedArgument, HoldAllComplete]
+preparedArgument[tactics_List] := Map[preparedTactic, Unevaluated[tactics]]
+preparedArgument[option : (Rule | RuleDelayed)[_String, _]] := option
+preparedArgument[other_] := Replace[other, tactics_List :> Map[preparedTactic, tactics]]
 
-TypeTheoryProof[statement_, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; ! termExpressionQ[Unevaluated[statement]] && statementQ[Unevaluated[statement]] :=
-	TypeTheoryProof[statement, defaultEnvironment[], tactics, options]
+SetAttributes[preparedTactic, HoldAllComplete]
+preparedTactic[name_String] := TypeTheoryTactic[name]
+preparedTactic[name_String[arguments___]] := TypeTheoryTactic[name, arguments]
+preparedTactic[tactic_TypeTheoryTactic] := tactic
+preparedTactic[other_] := Replace[other, {name_String :> TypeTheoryTactic[name], name_String[arguments___] :> TypeTheoryTactic[name, arguments]}]
 
-(* a TypeTheoryTerm, written out or held in a symbol, carries its own environment *)
-TypeTheoryProof[term_, options : OptionsPattern[]] /; termExpressionQ[Unevaluated[term]] := With[{evaluated = term},
+proofFrom[held_, Hold[environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] :=
+	runTactics[proofFrom[held, Hold[environment, options]], tactics]
+proofFrom[held_, Hold[environment_?environmentQ, options : OptionsPattern[]]] := startProof[environment, held, Hold[options]]
+proofFrom[held_, Hold[tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] := runTactics[proofFrom[held, Hold[options]], tactics]
+(* a TypeTheoryTerm, written out or held in a symbol, carries its own environment; a statement without one is proved
+   in the default environment *)
+proofFrom[HoldComplete[term_], Hold[options : OptionsPattern[]]] /; termExpressionQ[Unevaluated[term]] := With[{evaluated = term},
 	startProof[termEnvironment[evaluated], heldTerm[evaluated], Hold[options]]
 ]
-
-TypeTheoryProof[term_, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]] /; termExpressionQ[Unevaluated[term]] :=
-	runTactics[TypeTheoryProof[term, options], tactics]
+proofFrom[held_, Hold[options : OptionsPattern[]]] := startProof[defaultEnvironment[], held, Hold[options]]
+proofFrom[_, Hold[arguments___]] := Failure["ProofArguments", <|
+	"MessageTemplate" -> "TypeTheoryProof takes a statement, then an environment, a list of tactics and options, in that order, not `1`.",
+	"MessageParameters" -> {HoldForm[{arguments}]}
+|>]
 
 startProof[environment_, held_HoldComplete, Hold[options___]] := catchKernelFailure @ With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryProof, Hold[options], {toSyntax @@ held}]},

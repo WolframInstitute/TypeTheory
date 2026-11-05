@@ -51,7 +51,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeTheoryCheck[TypeTheoryTerm[
+	First @ TypeTheoryType[TypeTheoryTerm[
 		QuotientLift[Function[{Typed[k, NonNegativeIntegers]}, k], Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[e, related[a, b]]}, "equalityReflexivity"[a]], QuotientIntroduction[related, 5]]
 	]],
 	"TypeMismatch",

@@ -61,7 +61,7 @@ VerificationTest[
 	With[{quoting = TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], {TypeTheoryAxiom["Global`f", Atoms], TypeTheoryAxiom["\"abc\"", Strings]}]},
 		{
 			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm["normal"["atom"["Global`f"], {1, 2}], quoting]],
-			Head[TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest, Sequence @@ rest]], quoting]]] === TypeTheoryTerm,
+			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest, Sequence @@ rest]], quoting]]] === TypeTheoryTerm,
 			DefinitionallyEqualQ[
 				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest]])[1, {2, 3}], quoting],
 				TypeTheoryTerm[HoldForm[f[1, 2, 3]], quoting]
@@ -69,7 +69,7 @@ VerificationTest[
 			Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], RowBox[{"\"HoldForm\"", "[", _, "]"}], Infinity] =!= {},
 			First[TypeTheoryType[TypeTheoryTerm["abc", quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
-			First[TypeTheoryCheck[TypeTheoryTerm[HoldForm[g[1]], quoting]]]
+			First[TypeTheoryType[TypeTheoryTerm[HoldForm[g[1]], quoting]]]
 		}
 	],
 	{True, True, True, True, Strings, Expressions, "ElaborationFailed"},

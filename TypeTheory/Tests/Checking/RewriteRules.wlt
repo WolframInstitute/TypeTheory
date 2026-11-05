@@ -55,7 +55,7 @@ VerificationTest[
 
 VerificationTest[
 	First /@ {
-		TypeTheoryCheck[TypeTheoryTerm[Flip[FlipZero], bits]],
+		TypeTheoryType[TypeTheoryTerm[Flip[FlipZero], bits]],
 		TypeTheoryEnvironment[bits, {TypeTheoryRewriteRule[Bad, BitZero -> BitOne]}],
 		TypeTheoryEnvironment[bits, {TypeTheoryRewriteRule[Bad, ForAll[{Typed[x, Bit]}, Flip[BitZero] -> x]]}],
 		TypeTheoryEnvironment[bits, {TypeTheoryRewriteRule[Bad, Flip[BitZero] -> Bit]}]

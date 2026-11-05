@@ -105,7 +105,7 @@ VerificationTest[
 	{
 		First @ TypeTheoryEnvironment[cubical, {TypeTheoryAxiom[IntervalFunction, ForAll[{Typed[i, Interval]}, Booleans]]}],
 		First @ TypeTheoryEnvironment[cubical, {TypeTheoryDefinition[IntervalPoint, Typed[IntervalZero, Interval]]}],
-		First @ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, Construct[CubicalTransport, p, 0]], cubical]]
+		First @ TypeTheoryType[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, Construct[CubicalTransport, p, 0]], cubical]]
 	},
 	{"TypeExpected", "TypeExpected", "CubicalUnsaturated"},
 	TestID -> "The-interval-is-no-type-and-transport-is-applied-in-full"
@@ -118,10 +118,10 @@ VerificationTest[
 		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[Function[{i}, TypeSpecifier[{Booleans} -> Booleans]], 0, "not"]["true"], cubical]],
 		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[Function[{i}, Path[Booleans, "true", "true"]], 0, Function[{j}, "true"]][1], cubical]],
 		DefinitionallyEqualQ[
-			TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, CubicalTransport[p, 0, "true"]], cubical]],
+			TypeTheoryType[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, CubicalTransport[p, 0, "true"]], cubical]],
 			TypeTheoryTerm[ForAll[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, p[1]], cubical]
 		],
-		First @ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, CubicalTransport[p, 1, "true"]], cubical]]
+		First @ TypeTheoryType[TypeTheoryTerm[Function[{Typed[p, Path[TypeUniverse[1], Booleans, Booleans]]}, CubicalTransport[p, 1, "true"]], cubical]]
 	},
 	{
 		TypeTheoryTerm[Booleans, cubical],
@@ -193,7 +193,7 @@ VerificationTest[
 		definitionFailure[library, Function[{Typed[i, Interval]}, GlueType[Booleans, {i == 0 -> {Booleans, "not"}}]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[GlueType[Booleans, {1 -> {Booleans, "negationEquivalence"}}], library], TypeTheoryTerm[Booleans, library]],
 		WeakHeadNormalForm[TypeTheoryTerm[GlueElimination[Booleans, {1 -> {Booleans, "negationEquivalence"}}, "true"], library]],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"]], library]], TypeTheoryTerm[Path[__], _]],
+		MatchQ[TypeTheoryType[TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"]], library]], TypeTheoryTerm[Path[__], _]],
 		definitionFailure[library, Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "true"]]],
 		DefinitionallyEqualQ[
 			TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"]]], library],

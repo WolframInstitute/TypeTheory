@@ -209,7 +209,7 @@ VerificationTest[
 	{
 		Naturals,
 		TypeTheoryType[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + 1]]] === TypeTheoryType[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n + 1]]],
-		TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Naturals]]] === TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers]]]
+		TypeTheoryType[TypeTheoryTerm[InductiveRecursor[Naturals]]] === TypeTheoryType[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers]]]
 	},
 	{NonNegativeIntegers, True, True},
 	TestID -> "Naturals-stands-for-NonNegativeIntegers"
@@ -218,7 +218,7 @@ VerificationTest[
 VerificationTest[
 	{
 		Block[{Counting = NonNegativeIntegers}, TypeTheoryType[TypeTheoryTerm[Function[{Typed[k, Counting]}, k]]]] === TypeTheoryType[TypeTheoryTerm[Function[{Typed[k, NonNegativeIntegers]}, k]]],
-		Block[{x = 5}, First[TypeTheoryCheck[TypeTheoryTerm[x + 1]]]],
+		Block[{x = 5}, First[TypeTheoryType[TypeTheoryTerm[x + 1]]]],
 		DefinitionallyEqualQ[
 			TypeTheoryType[TypeTheoryTerm[Function[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]}, x]]],
 			TypeTheoryType[TypeTheoryTerm[Function[{Typed[A, TypeUniverse[1]], Typed[x, A]}, x]]]
@@ -304,7 +304,7 @@ VerificationTest[
    recursor proves the injectivity of "some" *)
 VerificationTest[
 	{
-		DefinitionallyEqualQ[TypeTheoryCheck[TypeTheoryTerm["equalityCongruence"[Function[{Typed[o, Option[NonNegativeIntegers]]}, Typed[0, Function[{Typed[t, Option[NonNegativeIntegers]]}, NonNegativeIntegers][o]]], "equalityReflexivity"["some"[3]]]]], TypeTheoryTerm[0 == 0]],
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["equalityCongruence"[Function[{Typed[o, Option[NonNegativeIntegers]]}, Typed[0, Function[{Typed[t, Option[NonNegativeIntegers]]}, NonNegativeIntegers][o]]], "equalityReflexivity"["some"[3]]]]], TypeTheoryTerm[0 == 0]],
 		TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["some"[m] == "some"[n], m == n]], {
 			TypeTheoryTactic["Introduce", m, n, e],
 			TypeTheoryTactic["Exact", "equalityCongruence"[Function[{Typed[o, Option[NonNegativeIntegers]]}, InductiveRecursor[Option][Function[{Typed[t, Option[NonNegativeIntegers]]}, NonNegativeIntegers], 0, Function[{Typed[k, NonNegativeIntegers]}, k], o]], e]]
@@ -319,9 +319,9 @@ VerificationTest[
 	{
 		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[{n}, n + 0 == n]]]],
 		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[n, n + 0 == n]]]],
-		First[TypeTheoryCheck[TypeTheoryTerm[Function[{x}, x + 1]]]],
+		First[TypeTheoryType[TypeTheoryTerm[Function[{x}, x + 1]]]],
 		MatchQ[TypeTheoryEnvironment[{TypeTheoryTheorem[AddZeroUntyped, ForAll[{n}, n + 0 == n], Function[{n}, "equalityReflexivity"[n]]]}], _TypeTheoryEnvironment],
-		TypeTheoryCheck[TypeTheoryTerm[ForAll[{x}, x == x]]]["Tag"]
+		TypeTheoryType[TypeTheoryTerm[ForAll[{x}, x == x]]]["Tag"]
 	},
 	{
 		ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n],
@@ -351,12 +351,12 @@ VerificationTest[
 (* a list written as a term is the list of its elements, as a list ending in {} shows *)
 VerificationTest[
 	{
-		First[TypeTheoryCheck[TypeTheoryTerm[{1, 2}]]],
+		First[TypeTheoryType[TypeTheoryTerm[{1, 2}]]],
 		First[WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Reverse[{1, 2}]], TypeTheoryTerm[{2, 1}]],
 		DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[Prepend[1][Prepend[2][{}]]]],
-		First[TypeTheoryCheck[TypeTheoryTerm[Typed[{}, {Naturals}]]]],
-		TypeTheoryCheck[TypeTheoryTerm[{1}, TypeTheoryEnvironment[]]]["Tag"]
+		First[TypeTheoryType[TypeTheoryTerm[Typed[{}, {Naturals}]]]],
+		TypeTheoryType[TypeTheoryTerm[{1}, TypeTheoryEnvironment[]]]["Tag"]
 	},
 	{{NonNegativeIntegers}, 3, True, True, {NonNegativeIntegers}, "ElaborationFailed"},
 	TestID -> "A-list-written-as-a-term-is-the-list-of-its-elements"
@@ -413,9 +413,9 @@ VerificationTest[
 			DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[s, Sequence[NonNegativeIntegers, NonNegativeIntegers]]}, sum[s]][Sequence[1, 2]], pairs], TypeTheoryTerm[sum[1, 2], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], pairs], TypeTheoryTerm["sequencePrepend"[1, "sequencePrepend"[2, "sequencePrepend"[3, "emptySequence"]]], pairs]],
-			First[TypeTheoryCheck[TypeTheoryTerm[sum[1], pairs]]],
+			First[TypeTheoryType[TypeTheoryTerm[sum[1], pairs]]],
 			First[TypeTheoryType[TypeTheoryTerm[curried[1][2], pairs]]],
-			First[TypeTheoryCheck[TypeTheoryTerm[curried[1, 2], pairs]]],
+			First[TypeTheoryType[TypeTheoryTerm[curried[1, 2], pairs]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Join[{1}, {2}], pairs], TypeTheoryTerm[{1, 2}, pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], pairs], TypeTheoryTerm[Sequence[Prepend[NonNegativeIntegers][Prepend[Expressions][{}]]], pairs]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Sequence[NonNegativeIntegers], pairs], TypeTheoryTerm[Sequence[{NonNegativeIntegers}], pairs]],

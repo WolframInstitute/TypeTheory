@@ -66,6 +66,25 @@ VerificationTest[
 	TestID -> "TypeTheoryType-of-an-ill-typed-term-is-a-Failure"
 ]
 
+(* TypeTheoryType holds its argument: an expression is a term without a TypeTheoryTerm around it *)
+VerificationTest[
+	Block[{$TypeTheoryEnvironment = prelude},
+		{
+			TypeTheoryType[2 + 3],
+			TypeTheoryType[2 + 3, prelude],
+			TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]],
+			Module[{sum = TypeTheoryTerm[2 + 3, prelude]}, TypeTheoryType[sum]],
+			With[{terms = {TypeTheoryTerm[1 + 1 == 2, prelude]}}, TypeTheoryType[Evaluate[First[terms]]]],
+			TypeTheoryCheck[TypeTheoryTerm[2 + 3, prelude]]
+		}
+	],
+	{
+		TypeTheoryTerm[NonNegativeIntegers, prelude], TypeTheoryTerm[NonNegativeIntegers, prelude], TypeTheoryTerm[TypeUniverse[0], prelude],
+		TypeTheoryTerm[NonNegativeIntegers, prelude], TypeTheoryTerm[TypeUniverse[0], prelude], TypeTheoryTerm[NonNegativeIntegers, prelude]
+	},
+	TestID -> "TypeTheoryType-takes-an-expression-held-and-TypeTheoryCheck-of-a-term-calls-it"
+]
+
 VerificationTest[
 	{
 		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[2 + 2 == 4]], _Success],

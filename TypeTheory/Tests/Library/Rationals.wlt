@@ -77,11 +77,11 @@ VerificationTest[
 VerificationTest[
 	{
 		DefinitionallyEqualQ[
-			TypeTheoryCheck[TypeTheoryTerm["rationalMultiplicationInverse", rationals]],
+			TypeTheoryType[TypeTheoryTerm["rationalMultiplicationInverse", rationals]],
 			TypeTheoryTerm[ForAll[{Typed[x, Rationals]}, Implies[Not[x == 0], x x^-1 == 1]], rationals]
 		],
-		DefinitionallyEqualQ[TypeTheoryCheck[TypeTheoryTerm["rationalInverseZero", rationals]], TypeTheoryTerm[Typed[0^-1, Rationals] == 0, rationals]],
-		DefinitionallyEqualQ[TypeTheoryCheck[TypeTheoryTerm["rationalSquareNonnegative", rationals]], TypeTheoryTerm[ForAll[{Typed[x, Rationals]}, 0 <= x x], rationals]]
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["rationalInverseZero", rationals]], TypeTheoryTerm[Typed[0^-1, Rationals] == 0, rationals]],
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["rationalSquareNonnegative", rationals]], TypeTheoryTerm[ForAll[{Typed[x, Rationals]}, 0 <= x x], rationals]]
 	},
 	{True, True, True},
 	TestID -> "The-inverse-and-the-order"
@@ -101,8 +101,8 @@ VerificationTest[
 	With[
 		{
 			parenthesized = TemplateBox[{"\"(\"", FractionBox["2", "3"], "\")\""}, "RowDefault"],
-			one = ToBoxes[TypeTheoryCheck[TypeTheoryTerm["rationalMultiplicationOne"[1/2], rationals]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes,
-			swapped = ToBoxes[TypeTheoryCheck[TypeTheoryTerm["rationalMultiplicationCommutativity"[2/3, 5], rationals]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes
+			one = ToBoxes[TypeTheoryType[TypeTheoryTerm["rationalMultiplicationOne"[1/2], rationals]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes,
+			swapped = ToBoxes[TypeTheoryType[TypeTheoryTerm["rationalMultiplicationCommutativity"[2/3, 5], rationals]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes
 		},
 		{
 			Cases[one, RowBox[{FractionBox["1", "2"], " ", "1"}], Infinity] =!= {},

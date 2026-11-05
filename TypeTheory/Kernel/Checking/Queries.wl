@@ -66,9 +66,10 @@ TypeTheoryAxiomClosure::usage = "TypeTheoryAxiomClosure[term] gives the axioms t
 it mentions and of the constants those mention, as <|axiom -> kind, ...|>: \"Proposition\" for an axiom that is a proposition, \"Signature\" for one whose \
 type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with.\n\
 TypeTheoryAxiomClosure[proof] gives the axioms the finished TypeTheoryProof proof rests on."
-TypeTheoryType::usage = "TypeTheoryType[term] gives the type of the TypeTheoryTerm term in its environment, or a Failure if it does not type-check.\n\
-TypeTheoryType[TypeTheoryTerm[term], environment] gives the type of term in the TypeTheoryEnvironment environment."
-TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term, as TypeTheoryType does.\n\
+TypeTheoryType::usage = "TypeTheoryType[term] gives the type of term, or a Failure if it does not type-check: term is an expression of the type theory, \
+kept unevaluated and in the default environment, or a TypeTheoryTerm in its own environment.\n\
+TypeTheoryType[term, environment] gives the type of term in the TypeTheoryEnvironment environment."
+TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term by calling TypeTheoryType[term].\n\
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
 or a Failure for the first declaration that does not check. With Method -> \"Symbolic\" it replays every declaration with the kernel written in \
@@ -137,9 +138,23 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] :
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"}
 
 
-(* a constant on its own has its declared type, with its implicit arguments and universe parameters; TypeTheoryType holds
-   nothing, so a term written with PacletSymbol, as code copied from a documentation page is, evaluates to a TypeTheoryTerm first *)
-TypeTheoryType[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
+(* TypeTheoryType holds its argument, an expression of the type theory as a statement of TypeTheoryProof is, or a
+   TypeTheoryTerm: written out, with PacletSymbol as its head as code copied from a documentation page has it, or kept
+   in a symbol; a term computed by an expression is given with Evaluate *)
+SetAttributes[TypeTheoryType, HoldAll]
+TypeTheoryType[term_] := typeOfTerm[givenTerm[term, None]]
+TypeTheoryType[term_, environment_] := With[{evaluated = environment}, typeOfTerm[givenTerm[term, evaluated]] /; environmentQ[evaluated]]
+
+SetAttributes[givenTerm, HoldAllComplete]
+givenTerm[term : TypeTheoryTerm[__], None] := term
+givenTerm[TypeTheoryTerm[term_], environment_] := TypeTheoryTerm[term, environment]
+givenTerm[(head : HoldPattern[PacletSymbol[_, _String]])[arguments___], environment_] /; head === TypeTheoryTerm := givenTerm[TypeTheoryTerm[arguments], environment]
+givenTerm[symbol_Symbol, None] /; MatchQ[OwnValues[symbol], {_ :> _TypeTheoryTerm}] := symbol
+givenTerm[term_, None] := TypeTheoryTerm[term]
+givenTerm[term_, environment_] := TypeTheoryTerm[term, environment]
+
+(* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
+typeOfTerm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
 		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
 			constantRecord[environment, name]["Type"],
@@ -147,7 +162,6 @@ TypeTheoryType[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = 
 	}]]
 ]
 
-TypeTheoryType[TypeTheoryTerm[term_], environment_?environmentQ] := TypeTheoryType[TypeTheoryTerm[term, environment]]
 
 TypeTheoryCheck[term_TypeTheoryTerm] := TypeTheoryType[term]
 

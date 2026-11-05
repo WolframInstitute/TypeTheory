@@ -30,6 +30,34 @@ VerificationTest[
 	TestID -> "A-proof-of-a-TypeTheoryTerm-takes-its-environment"
 ]
 
+(* in a list of tactics written out, "name" and "name"[arguments] stand for TypeTheoryTactic["name", arguments], whose
+   arguments stay held: n has a value here, which neither form evaluates *)
+VerificationTest[
+	Block[{n = 5, k = 6, ih = 7},
+		{
+			TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {"Introduce"[n], "Reflexivity"}]["Goals"],
+			TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {
+				"Introduce"[n], "Induction"[n], "Reflexivity", "Introduce"[k, ih], "Exact"["equalityCongruence"["successor", ih]]
+			}]["Term"] === zeroLeft["Term"],
+			TypeTheoryTactic["Introduce"[n, k]],
+			With[{steps = {"Introduce"[m], "Reflexivity"}}, TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m + 0 == m], steps]["Goals"]],
+			TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m + 0 == m], {TypeTheoryTactic["Introduce"[m]], TypeTheoryTactic["Reflexivity"]}]["Goals"]
+		}
+	],
+	{{}, True, HoldForm[TypeTheoryTactic["Introduce", n, k]], {}, {}},
+	SameTest -> Function[{actual, expected}, MapAt[HoldForm, actual, 3] === expected],
+	TestID -> "A-tactic-is-written-as-its-name-applied-to-its-arguments"
+]
+
+VerificationTest[
+	{
+		FailureQ[TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m + 0 == m], prelude, {"Introduce"[m]}, 5]],
+		MatchQ[TypeTheoryProof[_Association], _TypeTheoryProof]
+	},
+	{True, True},
+	TestID -> "TypeTheoryProof-refuses-arguments-out-of-order-and-a-pattern-starts-no-proof"
+]
+
 VerificationTest[
 	TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]]["Goals"],
 	{TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]},

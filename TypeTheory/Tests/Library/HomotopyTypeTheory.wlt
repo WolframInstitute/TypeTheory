@@ -89,7 +89,7 @@ VerificationTest[
 				]]
 			}]]
 		},
-		{Information[contradiction, "Rules"]["Name"], TypeTheoryCheck[TypeTheoryTerm[UnivalenceContradiction, contradiction]] === TypeTheoryTerm[False, contradiction]}
+		{Information[contradiction, "Rules"]["Name"], TypeTheoryType[TypeTheoryTerm[UnivalenceContradiction, contradiction]] === TypeTheoryTerm[False, contradiction]}
 	],
 	{"CalculusOfInductiveConstructions", True},
 	TestID -> "On-the-rules-of-the-prelude-the-same-axioms-prove-False"
