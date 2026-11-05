@@ -172,7 +172,7 @@ Univalence is an axiom here, so a path it gives does not compute; in cubical typ
 
 ## Theorems
 
-The theorems and the axiom of the HoTT environment are constants named by strings, as `"univalence"` is. These are its theorems, each with its statement:
+The theorems and the axioms of the HoTT environment are constants named by strings, as `"univalence"` is. These are its theorems, each with its statement:
 
 ```wl
 Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Theorems"]

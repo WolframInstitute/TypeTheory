@@ -37,20 +37,20 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers]() and [TypeTheoryRewriteRule](). Each is checked by the kernel in the environment so far, and the result is a new environment, or a [Failure]() for the first declaration that does not check.
+- A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers](), [TypeTheoryRewriteRule](), [TypeTheoryQuotients]() and [TypeTheoryCubical](). Each is checked by the kernel in the environment so far, and the result is a new environment, or a [Failure]() for the first declaration that does not check.
 - The default environment, [$TypeTheoryEnvironment](), is the environment wherever none is given: declarations without one extend it, and a [TypeTheoryTerm]() or [TypeTheoryProof]() without one is in it. It is the prelude unless [SetTypeTheoryEnvironment]() set another. <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[], {*declaration1*, ...}]</code> starts from no constants instead.
-- Every environment carries the rules it was started with, which say what the kernel allows and computes: the prelude follows the calculus of inductive constructions, the HoTT environment Martin-Löf type theory with rewrite rules. Environments made from one follow its rules, and <code>[Information]()[*env*, "Rules"]</code> gives them.
-- The prelude is classical: it assumes `"propositionalExtensionality"`, `"functionExtensionality"` and `"choice"`, and proves `"excludedMiddle"` from them. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
+- Every environment carries the rules it was started with, which say what the kernel allows and computes: the prelude follows the calculus of inductive constructions, the HoTT environment Martin-Löf type theory with rewrite rules, and the cubical environment cubical type theory. Environments made from one follow its rules, and <code>[Information]()[*env*, "Rules"]</code> gives them.
+- The prelude is classical: it assumes `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and proves `"functionExtensionality"` and `"excludedMiddle"` from them. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
 - An environment never changes: adding declarations gives a new one and leaves the old one as it was. <code>[Append]()[*env*, *declaration*]</code> adds one declaration, and <code>[TypeTheoryEnvironment]()[*declaration*]</code> adds one to the default environment.
 - An environment behaves like an [Association]() of its constants. <code>*env*[*name*]</code> gives the declaration that introduced the constant *name*, and [Keys](), [Length](), [KeyExistsQ]() and [Normal]() work as for an [Association](). [Normal]() gives all the declarations, the prelude's included, written out exactly, so <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[[Information]()[*env*, "Rules"]], [Normal]()[*env*]]</code> rebuilds *env* on the empty environment of its rules.
-- <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Axioms"`, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"` and `"Provenance"`, which says whether *env* was read from a file without checking it.
+- <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Theorems"`, `"Axioms"`, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"` and `"Provenance"`, which says whether *env* was read from a file without checking it.
 - An environment is a handle to a store: a symbol whose definitions, its [DownValues](), hold the constants. The handle is small, so terms and proofs carry their environment with them, and a store lasts for the session.
 - <code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of *env* again from scratch.
 - <code>[TypeTheoryEnvironment]()[*env*, {*declaration1*, ...}, [Method]() -> "Compiled"]</code> adds the declarations without checking them, inductive types aside, and then checks them all at once with the compiled kernel (see [TypeTheoryCheck]()), which is faster for many declarations, as an import from Lean has. Where the compiled kernel cannot check them, or one does not check, the declarations are added again with each one checked, so the result is the same as without the option.
 - <code>[Export]()["*file*.wxf", *env*]</code> saves *env* in a file that holds each of its terms once, and only the constants beyond the library environment it extends, such as the prelude, which it names. A file reads back in a fraction of the time its declarations take to check.
 - Reading a file takes its declarations as checked, as Lean takes an `.olean` file it imports. The option `"Check" -> True` checks every declaration again with [TypeTheoryCheck]() as it reads the file. A file saved by another version of TypeTheory reads only with `"Check" -> True`.
 - A file is read without evaluating anything in it, and a file that holds anything but terms and plain data, or whose terms were changed out of order, is refused.
-- The library environments, from the prelude to the rationals, are read from files saved with the paclet, so loading the paclet does not check the prelude again.
+- The library environments, but the Wolfram Language's, are read from files saved with the paclet, so loading the paclet does not check the prelude again.
 
 ## Basic Examples
 
@@ -166,7 +166,7 @@ Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Rules"]["Name"]
 
 ---
 
-The integers extend the prelude, built and checked the first time they are asked for:
+The integers extend the prelude, read from the file saved with the paclet the first time they are asked for:
 
 ```wl
 TypeTheoryEnvironment["Integers"]

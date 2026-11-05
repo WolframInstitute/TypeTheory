@@ -11,7 +11,7 @@ RelatedGuides: [TypeTheory]
 
 ## Usage
 
-<code>[TypeTheoryProof]()[*statement*]</code> starts a proof of *statement* in the prelude, with *statement* itself as its one goal.
+<code>[TypeTheoryProof]()[*statement*]</code> starts a proof of *statement* in the default environment, [$TypeTheoryEnvironment](), with *statement* itself as its one goal.
 
 <code>[TypeTheoryProof]()[*statement*, *env*]</code> starts it in the [TypeTheoryEnvironment]() *env*, and <code>[TypeTheoryProof]()[[TypeTheoryTerm]()[*statement*, *env*]]</code> does the same.
 

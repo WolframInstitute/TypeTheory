@@ -276,7 +276,7 @@ Information[hott, "RewriteRules"]
 
 <!-- => {circleInductionBase} -->
 
-Univalence is an axiom too, and what carrying along the path of an equivalence gives is the theorem `"univalenceComputation"`, not a computation. Cubical type theory makes it one, with rules that TypeTheory does not have yet.
+Univalence is an axiom too, and what carrying along the path of an equivalence gives is the theorem `"univalenceComputation"`, not a computation. Cubical type theory makes it one: in <code>[TypeTheoryEnvironment]()["Cubical"]</code>, transport along `"equivalenceToPath"` applies the equivalence by computation, as the tutorial *Cubical Type Theory* shows.
 
 ## Rewrite Rules Are Trusted
 

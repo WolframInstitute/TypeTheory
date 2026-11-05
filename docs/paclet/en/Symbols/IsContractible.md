@@ -107,7 +107,7 @@ WeakHeadNormalForm[TypeTheoryTerm[IsEquivalence["not"], cubical]]
 
 ## Possible Issues
 
-A term without an environment is in the prelude, which has no [IsContractible]().
+A term without an environment is in the default environment, the prelude, which has no [IsContractible]().
 
 The contractibility of the Booleans, in the prelude:
 

@@ -93,7 +93,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 
 <!-- => TypeTheoryEnvironment summary box: 34 constants -->
 
-Made from the paths <code>`"negationInvolution"`[*b*]</code> from `"not"["not"[b]]` to `b`, the path ends at the identity:
+Made from the paths <code>"negationInvolution"[*b*]</code> from `"not"["not"[b]]` to `b`, the path ends at the identity:
 
 ```wl
 DefinitionallyEqualQ[

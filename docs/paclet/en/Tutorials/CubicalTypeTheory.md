@@ -14,7 +14,7 @@ In cubical type theory a path is a function from an interval, and univalence, an
 
 ## The Cubical Environment
 
-The environment, built and checked the first time it is asked for:
+The environment, read from the file saved with the paclet the first time it is asked for:
 
 ```wl
 cubical = TypeTheoryEnvironment["Cubical"]
@@ -187,7 +187,7 @@ A transport or a composition that no rule covers does not compute, which loses c
 
 ## Its Constants
 
-The operations on paths and the equivalences of the cubical environment are definitions named by strings, as `"pathSymmetry"` and `"equivalenceToPath"` are, since a path is a term, not a proof of a proposition:
+The constructors, the operations on paths and the equivalences of the cubical environment are constants named by strings, as `"pathSymmetry"` and `"equivalenceToPath"` are, since a path is a term, not a proof of a proposition:
 
 ```wl
 Select[Keys[TypeTheoryEnvironment["Cubical"]], StringQ]

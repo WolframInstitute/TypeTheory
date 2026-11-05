@@ -57,7 +57,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Proofs
 
 - [TypeTheoryProof]() a proof in progress, with its open goals
-- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`, `"Ring"`, and the Wolfram oracles `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`
+- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Hole"`, `"Rewrite"`, `"Change"`, `"Simplify"`, `"Decide"`, `"Ring"`, `"Classical"`, and the Wolfram oracles `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`
 
 ### The prelude: logic and equality
 
@@ -103,6 +103,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [Decide]() the Boolean of a proposition's decision, found among the instances, and `"decideSoundness"` the proof from a decision that computes to `"true"`
 - `"naturalNumberEqualityDecidable"`, `"lessEqualDecidable"` the instances deciding `==` and `<=` of natural numbers
 - `"notDecidable"`, `"andDecidable"`, `"orDecidable"` the instances deciding [Not](), [And]() and [Or]() from the decisions of their parts
+- `"trueDecidable"`, `"falseDecidable"`, `"booleanEqualityDecidable"` the instances deciding [True](), [False]() and `==` of Booleans
 
 ### The integers
 

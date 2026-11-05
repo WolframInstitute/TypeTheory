@@ -10,7 +10,7 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [InstancesAndCoercions, TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
 
-The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, the Booleans, decisions of propositions, pairs, sums, optional values, and lists with their operations and laws. It is classical: it assumes propositional extensionality, function extensionality and choice, and proves the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
+The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, the Booleans, decisions of propositions, quotient types, pairs, sums, optional values, and lists with their operations and laws. It is classical: it assumes propositional extensionality, quotient soundness and choice, Lean's three axioms, and proves function extensionality and the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
 
 ## What the Prelude Declares
 
@@ -22,7 +22,7 @@ Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 
 <!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 3|> -->
 
-It is built when the paclet loads, and every declaration in it is checked by the kernel, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
+It is read when the paclet loads from a file saved with the paclet, whose declarations the kernel checked when it was saved, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 
 ```wl
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
@@ -304,7 +304,7 @@ TypeTheoryType[Function[{Typed[b, Booleans]},
 
 ## Decisions
 
-A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with `"decidableTrue"` or `"decidableFalse"`. It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class, as in Lean: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
+A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with `"decidableTrue"` or `"decidableFalse"`. It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class, as in Lean: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's instances decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && 2 == 2]]]
@@ -332,7 +332,7 @@ The tutorial *Instances and Coercions* shows how an environment adds instances o
 
 ## Pairs, Sums and Options
 
-<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with `"pair"`, whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with `"left"`, and those of `β` on the right, with `"right"`; and <code>[Option]()[α]</code> has `"none"` and the values <code>`"some"`[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
+<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with `"pair"`, whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with `"left"`, and those of `β` on the right, with `"right"`; and <code>[Option]()[α]</code> has `"none"` and the values <code>"some"[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[1]]]]
@@ -467,7 +467,7 @@ Information[excludedMiddle, "Axioms"]
 
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. The integers and the rationals are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types and quotients among it, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
+Lean's library is much larger than this prelude. The integers and the rationals are in environments of their own, <code>[TypeTheoryEnvironment]()["Integers"]</code> and <code>[TypeTheoryEnvironment]()["Rationals"]</code>. The kernel has what Lean's library needs of it, mutual and nested inductive types and quotients among it, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
 
 ## Theorems
 

@@ -16,7 +16,7 @@ RelatedTutorials: [CubicalTypeTheory]
 
 ## Details & Options
 
-- A pair may be written as `{T, e}`, or with the constructor of the dependent sum, such as <code>`"dependentPair"`[*T*, *e*]</code>.
+- A pair may be written as `{T, e}`, or with the constructor of the dependent sum, such as <code>"dependentPair"[*T*, *e*]</code>.
 - An equivalence is a function with contractible fibers, the type the kernel writes with the dependent sum and paths; [Equivalence]() is that type in the cubical environment.
 - Where a face holds, the Glue type is its glued type. Univalence, `"equivalenceToPath"`, is a line of Glue types.
 

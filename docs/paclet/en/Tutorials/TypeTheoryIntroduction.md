@@ -258,7 +258,7 @@ proof = TypeTheoryTactic["Reflexivity"][proof]
 
 <!-- => Proof, 1 goal: case successor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
-In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal reads `0 + (k + 1) == k + 1`, where `k + 1` is how <code>`"successor"`[k]</code> shows. Addition recurses on its second argument, so the goal computes to `(0 + k) + 1 == k + 1`, which `"equalityCongruence"` proves from `ih`:
+In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal reads `0 + (k + 1) == k + 1`, where `k + 1` is how <code>"successor"[k]</code> shows. Addition recurses on its second argument, so the goal computes to `(0 + k) + 1 == k + 1`, which `"equalityCongruence"` proves from `ih`:
 
 ```wl
 proof = TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]][TypeTheoryTactic["Introduce", k, ih][proof]]

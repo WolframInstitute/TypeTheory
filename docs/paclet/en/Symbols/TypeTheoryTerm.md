@@ -13,12 +13,12 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryTerm]()[*term*, *env*]</code> represents a term of the type theory in the [TypeTheoryEnvironment]() *env*, written with built-in symbols such as [Function](), [Typed](), [ForAll](), [Implies](), [Equal]() and [Plus](), and kept unevaluated.
 
-<code>[TypeTheoryTerm]()[*term*]</code> is a term in the prelude, the environment of logic, equality, the natural numbers and the Booleans.
+<code>[TypeTheoryTerm]()[*term*]</code> is a term in the default environment, [$TypeTheoryEnvironment](), the prelude unless [SetTypeTheoryEnvironment]() set another.
 
 ## Details & Options
 
 - [TypeTheoryTerm]() has the [HoldFirst]() attribute. It has to: on its own, <code>[ForAll]()[[Typed]()[x, A], B]</code> evaluates to `B`, and `n + 0 == n` to [True](). The environment is evaluated.
-- A term without an environment is in the prelude, except beside a term that has one, as in <code>[TypeTheoryCheck]()[*term*, *type*]</code>, where it takes that term's.
+- A term without an environment is in the default environment, except beside a term that has one, as in <code>[TypeTheoryCheck]()[*term*, *type*]</code>, where it takes that term's.
 - <code>[TypeTheoryType]()[[TypeTheoryTerm]()[*term*, *env*]]</code> gives the type of *term*, and <code>[TypeTheoryType]()[[TypeTheoryTerm]()[*term*], *env*]</code> gives its type in *env*.
 - The surface language:
 
@@ -38,7 +38,7 @@ RelatedGuides: [TypeTheory]
 | <code>[Subscript]()[c, *level*, ...]</code> | the constant `c` at explicit universe levels |
 | `t[[i]]` | field `i` of `t`, whose type is a structure |
 | `0`, `1`, `2`, ... | natural number literals |
-| `{a, b, ...}` | the list <code>[Prepend]()[a, [Prepend]()[b, ... `{}`]]</code>, in an environment with [List]() |
+| `{a, b, ...}` | the list <code>[Prepend]()[a][[Prepend]()[b][... {}]]</code>, which is <code>[Prepend]()[[Prepend]()[..., b], a]</code>, in an environment with [List]() |
 | <code>[RightTee]()[{[Typed]()[x, A], ...}, B]</code> | a goal: hypotheses and a conclusion, read as [ForAll]() |
 
 - A binder written as a bare symbol, <code>[ForAll]()[{n}, n + 0 == n]</code> or <code>[ForAll]()[n, n + 0 == n]</code>, takes the type its body gives it, as Lean leaves a binder's type to unification; a binder whose type nothing decides gives a [Failure]() asking for <code>[Typed]()[x, *type*]</code>.

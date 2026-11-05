@@ -79,7 +79,7 @@ TypeTheoryProof[Fiber["not", "true"], cubical, {"Exact"["dependentPair"["false",
 
 ## Properties and Relations
 
-The fibers of an equivalence are contractible, [IsContractible](), so each has a center. For `"negationEquivalence"` over `"true"`, it is `"not"["true"]`, with the path <code>`"negationInvolution"`["true"]</code> from its negation to `"true"`.
+The fibers of an equivalence are contractible, [IsContractible](), so each has a center. For `"negationEquivalence"` over `"true"`, it is `"not"["true"]`, with the path <code>"negationInvolution"["true"]</code> from its negation to `"true"`.
 
 The cubical environment:
 

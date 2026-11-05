@@ -12,7 +12,7 @@ RelatedTutorials: [CubicalTypeTheory]
 
 ## Usage
 
-<code>[DependentSum]()[*A*, *B*]</code> is the dependent sum Σ *x* : *A*, *B*[*x*] of the cubical environment, whose elements are the pairs <code>`"dependentPair"`[*a*, *b*]</code>.
+<code>[DependentSum]()[*A*, *B*]</code> is the dependent sum Σ *x* : *A*, *B*[*x*] of the cubical environment, whose elements are the pairs <code>"dependentPair"[*a*, *b*]</code>.
 
 ## Details & Options
 

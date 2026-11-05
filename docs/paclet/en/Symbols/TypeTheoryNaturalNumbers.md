@@ -20,7 +20,7 @@ RelatedGuides: [TypeTheory]
 ## Details & Options
 
 - The registration is checked strictly: *type* must be an inductive type in <code>[TypeUniverse]()[1]</code> with no parameters, indices or universe parameters, whose constructors are exactly *zero* and *successor*.
-- A literal is its constructor form by computation: `2` is `successor[successor[zero]]`.
+- A literal is its constructor form by computation: `2` is <code>*successor*[*successor*[*zero*]]</code>, in the prelude `"successor"["successor"["zero"]]`.
 - An operation is registered for a role, which says what it computes on two literals *m* and *n*, or on one for `"Log2"`:
 
 | role | computes |
