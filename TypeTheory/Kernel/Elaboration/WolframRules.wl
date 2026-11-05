@@ -74,7 +74,7 @@ rulesDefinition[held_, HoldComplete[value_]] := With[{name = rulesName[held]}, T
 translatedRules[HoldComplete[symbol_Symbol]] := Catch[
 	Replace[Function[statement, ruleMatch[fullName[symbol], statement]] /@ definitionStatements[symbol], {
 		{} :> HoldComplete[Function[{Typed[expression, Expressions]}, Typed["none", Option[Expressions]]]],
-		matches_List :> Replace[Fold[Function[{rest, match}, Replace[{match, rest}, {HoldComplete[m_], HoldComplete[r_]} :> HoldComplete[Wolfram`Patterns`MatchSum[m, r]]]], Reverse[matches]], {
+		matches_List :> Replace[Fold[Function[{rest, match}, Replace[{match, rest}, {HoldComplete[m_], HoldComplete[r_]} :> HoldComplete[MatchSum[m, r]]]], Reverse[matches]], {
 			HoldComplete[sum_] :> HoldComplete[Function[{Typed[expression, Expressions]}, MatchFirst[sum]]]
 		}]
 	}],
@@ -98,7 +98,7 @@ ruleValue[HoldComplete[Verbatim[Condition][value_, _]], instructions_List] /; Ma
 ruleValue[HoldComplete[_Condition], _] := Throw[None, untranslatable]
 ruleValue[value_HoldComplete, _] := value
 
-valuesOf[HoldComplete[e_]] := HoldComplete[Wolfram`Patterns`MatchValues[e]]
+valuesOf[HoldComplete[e_]] := HoldComplete[MatchValue[e]]
 
 (* the parts matched so far, by path, and the pattern variables and locals bound, each to {HoldComplete[variable], kind},
    kind "Expression" or "Sequence" *)
@@ -142,7 +142,7 @@ programMatch[{coreForm["Join"][local_String, path_List], rest___}, environment_,
 programMatch[{coreForm["BindSequence"][name_, local_String, path_List, from_Integer, after_Integer], rest___}, environment_, final_] := withPart[path, environment, None,
 	Function[{part, inner}, With[{variable = Replace[preferredVariable[name], None :> freshPart[]]},
 		Replace[{sequenceTerm[part, from, after], variable, programMatch[{rest}, bound[inner, name, local, {variable, "Sequence"}], final]}, {
-			{HoldComplete[s_], HoldComplete[v_], HoldComplete[m_]} :> HoldComplete[MatchBind[Wolfram`Patterns`MatchValues[Typed[s, {Expressions}]], Function[{Typed[v, {Expressions}]}, m]]]
+			{HoldComplete[s_], HoldComplete[v_], HoldComplete[m_]} :> HoldComplete[MatchBind[MatchValue[Typed[s, {Expressions}]], Function[{Typed[v, {Expressions}]}, m]]]
 		}]
 	]]
 ]
@@ -170,7 +170,7 @@ programMatch[{coreForm["Guard"][core_], rest___}, environment_, final_] := condi
 programMatch[_, _, _] := Throw[None, untranslatable]
 
 (* the match of a test, which binds nothing *)
-testFinal[_] := HoldComplete[Wolfram`Patterns`MatchValues[expression]]
+testFinal[_] := HoldComplete[MatchValue[expression]]
 
 conditioned[HoldComplete[m_], HoldComplete[b_]] := HoldComplete[Condition[m, b]]
 sameTest[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[SameQ[a, b]]
@@ -206,7 +206,7 @@ withPart[path_List, environment_, preferred_, continuation_] := Replace[environm
 }]
 
 SetAttributes[partMatch, HoldAll]
-partMatch[p_, k_Integer, v_, m_] /; k >= 0 := HoldComplete[Wolfram`Patterns`MatchPart[p, k, Function[{Typed[v, Expressions]}, m]]]
+partMatch[p_, k_Integer, v_, m_] /; k >= 0 := HoldComplete[MatchPart[p, k, Function[{Typed[v, Expressions]}, m]]]
 partMatch[p_, k_Integer, v_, m_] := With[{index = -k - 1}, HoldComplete[MatchBind["matchElement"[Reverse[Arguments[p]], index], Function[{Typed[v, Expressions]}, m]]]]
 
 preferredVariable[name_String] := ToExpression[name, InputForm, HoldComplete]

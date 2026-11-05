@@ -18,19 +18,18 @@ Language and the monad of pattern matching, built and checked the first time it 
 	ExpressionValue                 the value the Wolfram Language evaluates an expression to, opaque
 	Drop                            a list without its first n elements
 	Match[A]                        the results of a match, {A}: none, one, or several in the order they are tried
-	MatchValues, {}          one result and none
-	MatchSum                        the results of one match, then those of another: a pattern's alternatives in order
-	MatchProduct                    every pair of a result of one match and one of another, in order: independent parts
+	MatchValue, {}                  one result, a single value, and none
+	MatchSum                        the results of one match, then those of another: a pattern's alternatives in order,
+	                                where every match with several results comes from
 	MatchBind                       the results of a match, each continued by another match: a pattern's parts in turn
 	Condition                       the results of a match where a Boolean holds: a condition
 	MatchPart                       a match at the part of an expression at a position, 0 its head, none out of range
 	MatchQ                          whether a match has a result
 	MatchFirst                      the first result, an Option: the rule the Wolfram Language applies, none where no
 	                                rule matches and the expression stays as it is
-Match, MatchValues, MatchSum, MatchProduct and MatchPart are the symbols of the paclet Wolfram/Patterns, whose match
-objects they type: TypeTheory names its constants by them, as it names others by Join or Length, and exports none of
-them, so loading both paclets shadows nothing. The WolframKernel project's compiler built its Match IR from the same
-objects: Values is MatchValues, Sum is MatchSum, Product is MatchProduct and MatchBind, and a Guard is Condition.
+Match, MatchValue, MatchSum and MatchPart follow the match objects of the prototype paclet Wolfram/Patterns and the
+Match IR the WolframKernel project's compiler built from them: Values is MatchValue, one result of one value, Sum is
+MatchSum, which holds every multiplicity, Product is MatchBind, the parts in turn, and a Guard is Condition.
 Match is the monad of lists, the monad of nondeterminism, with its alternatives in order, so a pattern that matches in
 several ways, as an Orderless or a sequence pattern does, has several results, and the first is the one the Wolfram
 Language takes. A natural number is an expression where one is expected, by a coercion.
@@ -51,6 +50,10 @@ PackageExported[Expressions]
 PackageExported[Arguments]
 PackageExported[ExpressionValue]
 PackageExported[Strings]
+PackageExported[Match]
+PackageExported[MatchValue]
+PackageExported[MatchSum]
+PackageExported[MatchPart]
 PackageExported[MatchBind]
 PackageExported[MatchFirst]
 
@@ -71,6 +74,10 @@ Expressions::usage = "Expressions is the type of the expressions of the Wolfram 
 Arguments::usage = "Arguments[e] is the list of the arguments of the expression e, {} for an atom."
 Strings::usage = "Strings is the type of the strings of the Wolfram Language, opaque: a string literal \"abc\" is a constant of it, named by its InputForm, and an expression where one is expected."
 ExpressionValue::usage = "ExpressionValue[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
+Match::usage = "Match[A] is the type of the matches with results in A: the list of their results, none, one, or several in the order they are tried. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
+MatchValue::usage = "MatchValue[a] is the match with one result, the value a."
+MatchSum::usage = "MatchSum[m1, m2] is the match whose results are those of m1, then those of m2: the alternatives of a pattern, in order."
+MatchPart::usage = "MatchPart[e, k, f] is the match f of the part of the expression e at the position k, 0 its head and k its k-th argument, with no result where e has no such part."
 MatchBind::usage = "MatchBind[m, f] is the match whose results are those of f applied to each result of m, in order."
 MatchFirst::usage = "MatchFirst[m] is the first result of the match m, \"some\" of it, or \"none\" where m has none: the rule the Wolfram Language applies."
 wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prelude with the expressions of the Wolfram Language and the monad of pattern matching, built and checked the first time it is asked for."
@@ -80,12 +87,7 @@ wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prel
 (*Function Definitions*)
 
 
-(* the environment puts the context of Wolfram/Patterns at the end of the context path, so that its symbols, the names of
-   the constants of matches, are written without their context and shadow nothing *)
-wolframLanguageEnvironment[] := (
-	If[! MemberQ[$ContextPath, "Wolfram`Patterns`"], AppendTo[$ContextPath, "Wolfram`Patterns`"]];
-	builtWolframLanguageEnvironment[]
-)
+wolframLanguageEnvironment[] := builtWolframLanguageEnvironment[]
 
 builtWolframLanguageEnvironment[] := builtWolframLanguageEnvironment[] = withoutStoreTracking[
 	libraryEnvironment["WolframLanguage", preludeEnvironment[], withStoreCleanup[TypeTheoryEnvironment[preludeEnvironment[], $wolframLanguageDeclarations]]]
@@ -183,17 +185,17 @@ $wolframLanguageDeclarations = {
 	]],
 
 	(* the monad of matches: the lists of results, in the order they are tried *)
-	TypeTheoryDefinition[Wolfram`Patterns`Match, Typed[Typed[A, TypeUniverse[u + 1]] |-> {A}, TypeUniverse[u + 1] -> TypeUniverse[u + 1]]],
-	TypeTheoryDefinition[Wolfram`Patterns`MatchValues, Typed[
+	TypeTheoryDefinition[Match, Typed[Typed[A, TypeUniverse[u + 1]] |-> {A}, TypeUniverse[u + 1] -> TypeUniverse[u + 1]]],
+	TypeTheoryDefinition[MatchValue, Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[a, A]}, Prepend[a][{}]],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> Wolfram`Patterns`Match[A]]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> Match[A]]
 	]],
-	TypeTheoryDefinition[Wolfram`Patterns`MatchSum, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Wolfram`Patterns`Match[A]], Typed[n, Wolfram`Patterns`Match[A]]}, Join[m, n]],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Wolfram`Patterns`Match[A] -> Wolfram`Patterns`Match[A] -> Wolfram`Patterns`Match[A]]
+	TypeTheoryDefinition[MatchSum, Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Match[A]], Typed[n, Match[A]]}, Join[m, n]],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Match[A] -> Match[A] -> Match[A]]
 	]],
 	TypeTheoryDefinition[MatchBind, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[m, Wolfram`Patterns`Match[A]], Typed[f, A -> Wolfram`Patterns`Match[B]]},
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[m, Match[A]], Typed[f, A -> Match[B]]},
 			InductiveRecursor[List][
 				Function[{Typed[t, {A}]}, {B}],
 				Typed[{}, {B}],
@@ -201,25 +203,25 @@ $wolframLanguageDeclarations = {
 				m
 			]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]]}, Wolfram`Patterns`Match[A] -> (A -> Wolfram`Patterns`Match[B]) -> Wolfram`Patterns`Match[B]]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]]}, Match[A] -> (A -> Match[B]) -> Match[B]]
 	]],
 	TypeTheoryDefinition[Condition, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Wolfram`Patterns`Match[A]], Typed[c, Booleans]},
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Match[A]], Typed[c, Booleans]},
 			InductiveRecursor[Booleans][Typed[b, Booleans] |-> {A}, Typed[{}, {A}], m, c]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Wolfram`Patterns`Match[A] -> Booleans -> Wolfram`Patterns`Match[A]]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Match[A] -> Booleans -> Match[A]]
 	]],
 	TypeTheoryDefinition[MatchQ, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Wolfram`Patterns`Match[A]]},
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Match[A]]},
 			InductiveRecursor[List][Typed[t, {A}] |-> Booleans, "false", {Typed[x, A], Typed[rest, {A}], Typed[r, Booleans]} |-> "true", m]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Wolfram`Patterns`Match[A] -> Booleans]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Match[A] -> Booleans]
 	]],
 	TypeTheoryDefinition[MatchFirst, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Wolfram`Patterns`Match[A]]},
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[m, Match[A]]},
 			InductiveRecursor[List][Typed[t, {A}] |-> Option[A], Typed["none", Option[A]], {Typed[x, A], Typed[rest, {A}], Typed[r, Option[A]]} |-> "some"[x], m]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Wolfram`Patterns`Match[A] -> Option[A]]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Match[A] -> Option[A]]
 	]],
 
 	(* the element of a list at an index from 0, no result out of range; a match at the part of an expression at a position,
@@ -227,40 +229,33 @@ $wolframLanguageDeclarations = {
 	TypeTheoryDefinition["matchElement", Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}]},
 			InductiveRecursor[List][
-				Function[{Typed[t, {A}]}, NonNegativeIntegers -> Wolfram`Patterns`Match[A]],
+				Function[{Typed[t, {A}]}, NonNegativeIntegers -> Match[A]],
 				Function[{Typed[k, NonNegativeIntegers]}, Typed[{}, {A}]],
-				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, NonNegativeIntegers -> Wolfram`Patterns`Match[A]]},
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, NonNegativeIntegers -> Match[A]]},
 					Function[{Typed[k, NonNegativeIntegers]},
-						InductiveRecursor[NonNegativeIntegers][Typed[j, NonNegativeIntegers] |-> Wolfram`Patterns`Match[A], Wolfram`Patterns`MatchValues[x], {Typed[j, NonNegativeIntegers], Typed[s, Wolfram`Patterns`Match[A]]} |-> r[j], k]
+						InductiveRecursor[NonNegativeIntegers][Typed[j, NonNegativeIntegers] |-> Match[A], MatchValue[x], {Typed[j, NonNegativeIntegers], Typed[s, Match[A]]} |-> r[j], k]
 					]
 				],
 				l
 			]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> NonNegativeIntegers -> Wolfram`Patterns`Match[A]]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> NonNegativeIntegers -> Match[A]]
 	]],
-	TypeTheoryDefinition[Wolfram`Patterns`MatchPart, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[e, Expressions], Typed[k, NonNegativeIntegers], Typed[f, Expressions -> Wolfram`Patterns`Match[A]]},
+	TypeTheoryDefinition[MatchPart, Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[e, Expressions], Typed[k, NonNegativeIntegers], Typed[f, Expressions -> Match[A]]},
 			MatchBind[
 				Typed[
 					InductiveRecursor[NonNegativeIntegers][
-						Function[{Typed[j, NonNegativeIntegers]}, Wolfram`Patterns`Match[Expressions]],
-						Wolfram`Patterns`MatchValues[Head[e]],
-						Function[{Typed[j, NonNegativeIntegers], Typed[s, Wolfram`Patterns`Match[Expressions]]}, "matchElement"[Arguments[e], j]],
+						Function[{Typed[j, NonNegativeIntegers]}, Match[Expressions]],
+						MatchValue[Head[e]],
+						Function[{Typed[j, NonNegativeIntegers], Typed[s, Match[Expressions]]}, "matchElement"[Arguments[e], j]],
 						k
 					],
-					Wolfram`Patterns`Match[Expressions]
+					Match[Expressions]
 				],
 				f
 			]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Expressions -> NonNegativeIntegers -> (Expressions -> Wolfram`Patterns`Match[A]) -> Wolfram`Patterns`Match[A]]
-	]],
-	(* every pair of a result of one match and one of another, in the order of the first *)
-	TypeTheoryDefinition[Wolfram`Patterns`MatchProduct, Typed[
-		Function[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[m, Wolfram`Patterns`Match[A]], Typed[n, Wolfram`Patterns`Match[B]]},
-			MatchBind[m, Typed[a, A] |-> MatchBind[n, Typed[b, B] |-> Wolfram`Patterns`MatchValues["pair"[a, b]]]]
-		],
-		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]]}, Wolfram`Patterns`Match[A] -> Wolfram`Patterns`Match[B] -> Wolfram`Patterns`Match[CartesianProductType[A, B]]]
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Expressions -> NonNegativeIntegers -> (Expressions -> Match[A]) -> Match[A]]
 	]]
 }
