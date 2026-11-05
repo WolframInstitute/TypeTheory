@@ -123,9 +123,11 @@ coreContextQ[form_Symbol] := MemberQ[{"Core`", "Match`", "Wolfram`KernelCompiler
 
 SetAttributes[TypeTheoryFormalize, HoldAll]
 
-TypeTheoryFormalize[symbol_Symbol, options : OptionsPattern[]] := catchKernelFailure[formalizeMeaning[defaultEnvironment[], HoldComplete[symbol], Hold[options]]]
+TypeTheoryFormalize[symbol_Symbol, options : OptionsPattern[]] := With[{environment = defaultEnvironment[]},
+	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
+]
 TypeTheoryFormalize[symbol_Symbol, environment_, options : OptionsPattern[]] /; environmentQ[environment] :=
-	catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]]
+	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
 
 (* the option "Meaning": "Function", the default, a constant that is the function symbol computes, or "Rules", its rules
    as a rewriting of expressions *)

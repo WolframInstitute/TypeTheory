@@ -108,3 +108,19 @@ VerificationTest[
 	{"Untranslatable", "RulesEnvironment", "InvalidOption"},
 	TestID -> "A-search-another-environment-and-another-meaning-are-Failures"
 ]
+
+(* the declarations TypeTheoryFormalize gives show in the environment they were made for: the constants of matches and
+   Expressions are bold, with their types on mouseover *)
+VerificationTest[
+	Block[{listed},
+		listed[x_, y_] := {y, x};
+		With[{boxes = ToBoxes[Last[TypeTheoryFormalize[listed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]]},
+			{
+				MemberQ[Cases[boxes, StyleBox[name_String, ___, Bold, ___] :> name, Infinity], "MatchFirst"],
+				! FreeQ[boxes, TooltipBox[StyleBox["Expressions", ___], _]]
+			}
+		]
+	],
+	{True, True},
+	TestID -> "Formalized-declarations-show-in-their-environment"
+]

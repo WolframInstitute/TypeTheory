@@ -75,6 +75,7 @@ a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of funct
 
 
 PackageScoped[typeTheoryBoxes]
+PackageScoped[rememberDisplayEnvironment]
 PackageScoped[displaySyntax]
 PackageScoped[$displayColors]
 PackageScoped[$displayTooltips]
@@ -799,13 +800,30 @@ declarationBoxes[declaration_, keyword_String, {first_, constructors___}, form_]
 
 declarationBoxes[declaration_, keyword_String, headings_List, constructors_List, form_] := With[
 	{
-		rows = Join[
+		rows = inDeclarationEnvironment[declaration, Join[
 			Function[heading, Join[{StyleBox[keyword, FontWeight -> Bold, FontColor -> StandardBlue]}, declarationRow[heading, form]]] /@ headings,
 			Function[constructor, Join[{"|"}, declarationRow[constructor, form]]] /@ constructors
-		]
+		]]
 	},
 	InterpretationBox[GridBox[rows, GridBoxAlignment -> {"Columns" -> {{Left}}}, GridBoxSpacings -> {"Columns" -> {{0.6}}}], declaration]
 ]
+
+(* A declaration has no environment of its own, so it shows in the default one; one that TypeTheoryFormalize made shows in
+   the environment it was made for, so that its constants are bold and have their types on mouseover. The table only
+   decides a display. *)
+$declarationEnvironments = <||>
+
+rememberDisplayEnvironment[declarations_List, environment_] := (
+	Scan[Function[declaration, $declarationEnvironments[Hash[declaration]] = environment], declarations];
+	declarations
+)
+rememberDisplayEnvironment[other_, _] := other
+
+SetAttributes[inDeclarationEnvironment, HoldRest]
+inDeclarationEnvironment[declaration_, rows_] := Replace[Lookup[$declarationEnvironments, Hash[declaration], None], {
+	None :> rows,
+	environment_ :> withDisplayEnvironment[environment, rows]
+}]
 
 declarationRow[{name_, type_}, form_] := {nameBoxes[name, form], ":", typeTheoryBoxes[type, form]}
 declarationRow[{name_, None, value_}, form_] := {nameBoxes[name, form], ":=", typeTheoryBoxes[value, form]}
