@@ -79,9 +79,12 @@ loadPacletPage[] := Module[{directory = Environment["PACLETPAGE_DIR"], paclet},
 	paclet["Version"]
 ]
 
-(* as many parallel kernels as PACLETPAGE_PARALLEL says when it is set, a small count on a machine other builds share *)
+(* as many parallel kernels as PACLETPAGE_PARALLEL says when it is set, a small count on a machine other builds share;
+   after a complete build, the notebooks of pages whose markdown is gone are pruned, as an earlier build left 162 of them,
+   387 MB, one of them 358 MB, for the archive and the site to carry *)
 $buildOptions = {
 	"Source" -> $docsDirectory,
+	"Prune" -> True,
 	"Parallel" -> Replace[Environment["PACLETPAGE_PARALLEL"], {count_String /; StringMatchQ[count, DigitCharacter ..] && FromDigits[count] > 0 :> FromDigits[count], _ -> Automatic}]
 }
 
@@ -120,21 +123,8 @@ buildDocumentation[] := (
 		$pacletDirectory,
 		Sequence @@ $buildOptions,
 		Sequence @@ If[MemberQ[$ScriptCommandLine, "--no-cache"], {"UseCache" -> False}, {}]
-	]];
-	removeStaleNotebooks[]
+	]]
 )
-
-(* A notebook whose page is gone from docs/paclet/en stays where an earlier build wrote it, and the archive and the site
-   would carry it, as they carried 162 pages of symbols no longer exported, 387 MB, one of them 358 MB; it is removed. *)
-removeStaleNotebooks[] := Module[
-	{
-		sources = FileBaseName /@ FileNames["*.md", $docsDirectory, Infinity],
-		stale
-	},
-	stale = Select[FileNames["*.nb", FileNameJoin[{$pacletDirectory, "Documentation"}], Infinity], Function[notebook, ! MemberQ[sources, FileBaseName[notebook]]]];
-	Scan[DeleteFile, stale];
-	If[stale =!= {}, Print["removed ", Length[stale], " notebooks of pages gone: ", StringRiffle[FileBaseName /@ stale, ", "]]]
-]
 
 $resourceOptions = {}
 
