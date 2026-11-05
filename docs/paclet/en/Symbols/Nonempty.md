@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Nonempty
 Keywords: [nonempty, inhabited, element, choice, prelude, classical logic]
-SeeAlso: [NonemptyIntroduction, Choice, Exists, Subtype]
+SeeAlso: [Exists, Subtype]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,8 +16,8 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Nonempty]() is an inductive proposition of the prelude, with the one constructor [NonemptyIntroduction]().
-- A proof of <code>[Nonempty]()[*a*]</code> says that *a* has an element without giving one to compute with. [Choice]() takes such a proof to an element of *a*.
+- [Nonempty]() is an inductive proposition of the prelude, with the one constructor `"nonempty"`.
+- A proof of <code>[Nonempty]()[*a*]</code> says that *a* has an element without giving one to compute with. `"choice"` takes such a proof to an element of *a*.
 - *a* may be in any universe, a proposition among them.
 
 ## Basic Examples
@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[Nonempty]]
 The natural numbers are not empty:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[0]], TypeTheoryTerm[Nonempty[Naturals]]]
+TypeTheoryCheck[TypeTheoryTerm["nonempty"[0]], TypeTheoryTerm[Nonempty[Naturals]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[0]], TypeTheoryTerm[Nonempty
 The type may be a proposition: a proof of [True]() shows that [True]() has a proof:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NonemptyIntroduction[TrueIntroduction]]]
+TypeTheoryCheck[TypeTheoryTerm["nonempty"["trueIntroduction"]]]
 ```
 
 <!-- => Nonempty[True] -->
@@ -67,24 +67,24 @@ proof = TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[h, Nonempty[A]]
 The pair of the element with itself:
 
 ```wl
-TypeTheoryTactic["Exact", NonemptyIntroduction[Pair[x, x]]][proof]
+TypeTheoryTactic["Exact", "nonempty"["pair"[x, x]]][proof]
 ```
 
 <!-- => Proof complete -->
 
 ## Properties and Relations
 
-[Choice]() takes a proof of [Nonempty]() to an element:
+`"choice"` takes a proof of [Nonempty]() to an element:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[h, Nonempty[Naturals]] |-> Choice[h]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Nonempty[Naturals]] |-> "choice"[h]]]
 ```
 
 <!-- => Nonempty[ℕ] → ℕ -->
 
 ## Possible Issues
 
-A proof of [Nonempty]() can be taken apart only to prove a proposition, not to compute data such as a natural number; [Choice]() gives an element instead:
+A proof of [Nonempty]() can be taken apart only to prove a proposition, not to compute data such as a natural number; `"choice"` gives an element instead:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[h, Nonempty[Naturals]]}, Naturals], {TypeTheoryTactic["Introduce", h], TypeTheoryTactic["Cases", h]}]

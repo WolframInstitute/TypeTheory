@@ -28,7 +28,7 @@ RelatedGuides: [TypeTheory]
 A theorem proved by computation:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]
+arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -93,7 +93,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 A variable of any type gets its universe as a parameter of the theorem, `"u_1"`, which the statement names:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], {A, Typed[x, A]} |-> EqualityReflexivity[x]]}][SelfEquality]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], {A, Typed[x, A]} |-> "equalityReflexivity"[x]]}][SelfEquality]
 ```
 
 <!-- => TypeTheoryTheorem[SelfEquality, ForAll[{Typed[A, TypeUniverse["u_1"]], Typed[x, A]}, x == x], ...] -->
@@ -103,7 +103,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, 
 A proof of another statement is rejected:
 
 ```wl
-TypeTheoryEnvironment[TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]]
+TypeTheoryEnvironment[TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity"[4]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

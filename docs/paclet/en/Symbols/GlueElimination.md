@@ -33,7 +33,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Where the face holds, the element under it is the equivalence applied:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[GlueElimination[Booleans, {1 -> {Booleans, NegationEquivalence}}, "true"], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[GlueElimination[Booleans, {1 -> {Booleans, "negationEquivalence"}}, "true"], cubical]]
 ```
 
 <!-- => false -->
@@ -52,7 +52,7 @@ Under an element built over `"false"`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed[i, Interval] |-> GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]], cubical],
+    TypeTheoryTerm[Typed[i, Interval] |-> GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"]], cubical],
     TypeTheoryTerm[Typed[i, Interval] |-> "false", cubical]
 ]
 ```

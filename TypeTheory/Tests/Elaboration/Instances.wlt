@@ -28,7 +28,7 @@ environment = TypeTheoryEnvironment[prelude, {
 	TypeTheoryDefinition[PairInhabited, Typed[
 		Function[
 			{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"], Annotation[Typed[k, Inhabited[\[Beta]]], "InstanceImplicit"]},
-			InhabitedIntroduction[Pair[h[[1]], k[[1]]]]
+			InhabitedIntroduction["pair"[h[[1]], k[[1]]]]
 		],
 		ForAll[
 			{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"], Annotation[Typed[k, Inhabited[\[Beta]]], "InstanceImplicit"]},
@@ -36,7 +36,7 @@ environment = TypeTheoryEnvironment[prelude, {
 		]
 	], "Instance" -> True],
 	TypeTheoryDefinition[NaturalOfBoolean, Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, NonNegativeIntegers], 0, 1, b]], "Coercion" -> True],
-	TypeTheoryDefinition[OptionOf, Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, OptionSome[x]], "Coercion" -> True]
+	TypeTheoryDefinition[OptionOf, Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, "some"[x]], "Coercion" -> True]
 }]
 
 (* a copy of the environment's store with one record changed by hand *)
@@ -58,7 +58,7 @@ VerificationTest[
 
 VerificationTest[
 	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[NonNegativeIntegers, {Booleans}]], environment]],
-	TypeTheoryTerm[Pair[NaturalsInhabited[[1]], ListsInhabited[[1]]], environment],
+	TypeTheoryTerm["pair"[NaturalsInhabited[[1]], ListsInhabited[[1]]], environment],
 	TestID -> "An-instance-finds-its-own-instance-arguments"
 ]
 
@@ -75,13 +75,13 @@ VerificationTest[
 			pairs = TypeTheoryEnvironment[environment, {
 				TypeTheoryDefinition[DefaultPair, Function[
 					{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"]},
-					Pair[Typed[Default, \[Alpha]], Typed[Default, \[Alpha]]]
+					"pair"[Typed[Default, \[Alpha]], Typed[Default, \[Alpha]]]
 				]]
 			}]
 		},
 		{
 			MatchQ[TypeTheoryCheck[pairs], _Success],
-			DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], pairs], TypeTheoryTerm[Pair[0, 0], pairs]]
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], pairs], TypeTheoryTerm["pair"[0, 0], pairs]]
 		}
 	],
 	{True, True},
@@ -125,10 +125,10 @@ VerificationTest[
 VerificationTest[
 	{
 		WeakHeadNormalForm[TypeTheoryTerm[Typed["true", NonNegativeIntegers], environment]],
-		WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberSuccessor["true"], environment]],
+		WeakHeadNormalForm[TypeTheoryTerm["successor"["true"], environment]],
 		First @ TypeOf[TypeTheoryTerm[Typed["true", NonNegativeIntegers], prelude]]
 	},
-	{TypeTheoryTerm[1, environment], TypeTheoryTerm[NaturalNumberSuccessor[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
+	{TypeTheoryTerm[1, environment], TypeTheoryTerm["successor"[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
 	TestID -> "A-term-of-another-type-is-coerced"
 ]
 
@@ -138,7 +138,7 @@ VerificationTest[
 		WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[NonNegativeIntegers]], environment]],
 		First @ TypeOf[TypeTheoryTerm[Typed[{}, NonNegativeIntegers], environment]]
 	},
-	{TypeTheoryTerm[OptionSome[3], environment], TypeTheoryTerm[OptionSome[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
+	{TypeTheoryTerm["some"[3], environment], TypeTheoryTerm["some"[NaturalOfBoolean["true"]], environment], "TypeMismatch"},
 	TestID -> "Coercions-are-polymorphic-and-chain"
 ]
 
@@ -148,9 +148,9 @@ VerificationTest[
 		TypeTheoryProof[Not["true" == "false"] && 2 + 2 == 4 && Not[5 <= 3], prelude, {TypeTheoryTactic["Decide"]}]["Goals"],
 		First @ TypeTheoryProof[Nonempty[NonNegativeIntegers], prelude, {TypeTheoryTactic["Decide"]}],
 		TypeTheoryProof[Nonempty[NonNegativeIntegers], TypeTheoryEnvironment[prelude, {
-			TypeTheoryDefinition[NaturalsNonempty, Typed[DecidableTrue[NonemptyIntroduction[0]], Decidable[Nonempty[NonNegativeIntegers]]], "Instance" -> True]
+			TypeTheoryDefinition[NaturalsNonempty, Typed["decidableTrue"["nonempty"[0]], Decidable[Nonempty[NonNegativeIntegers]]], "Instance" -> True]
 		}], {TypeTheoryTactic["Decide"]}]["Goals"]
 	},
-	{TypeTheoryTerm["true", prelude], {}, "NotDecidable", {}},
+	{TypeTheoryTerm["true", prelude], {}, "\"notDecidable\"", {}},
 	TestID -> "Decide-uses-the-instances-of-Decidable-an-environment-declares"
 ]

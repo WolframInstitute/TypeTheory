@@ -19,7 +19,7 @@ denominator is 0.
 An operation lifts a function on pairs with QuotientLift, as the integers' operations do. That a function
 respects the relation follows from the relation by a polynomial combination, which "PolynomialReduce" finds
 over the integers, and the laws of a commutative ring follow by "Induction" on each rational,
-QuotientSoundness, and "Ring" on the equation of integers of the pairs.
+"quotientSoundness", and "Ring" on the equation of integers of the pairs.
 
 The inverse computes. For a pair (m, n) of natural numbers, standing for the integer m - n, the inverse of
 (m - n) / (b + 1) is (b + 1) / (m - n), by recursion on m and then on n, and 0 where m - n is 0. It takes the
@@ -27,7 +27,7 @@ same value on (m + k, n + k), so on every pair of an integer, and lifts to the i
 its product with the class of (a, b) is 1. So the inverses of related pairs are both 0, or are inverses of
 the same rational and equal: the inverse lifts to the rationals.
 
-Equations of rationals are decidable: RationalEqualityDecidable decides x == y with the Boolean
+Equations of rationals are decidable: "rationalEqualityDecidable" decides x == y with the Boolean
 "rationalEqual", which compares a (d + 1) and c (b + 1) with "integerEqual", so Decide and the tactic
 "Decide" settle an equation of rational literals by computation.
 *)
@@ -37,22 +37,6 @@ Equations of rationals are decidable: RationalEqualityDecidable decides x == y w
 (*PackageExported*)
 
 
-PackageExported[RationalAdditionCommutativity]
-PackageExported[RationalAdditionAssociativity]
-PackageExported[RationalAdditionZero]
-PackageExported[RationalAdditionNegation]
-PackageExported[RationalMultiplicationCommutativity]
-PackageExported[RationalMultiplicationAssociativity]
-PackageExported[RationalMultiplicationOne]
-PackageExported[RationalDistributivity]
-PackageExported[RationalSubtractionNegation]
-PackageExported[RationalOfIntegerAddition]
-PackageExported[RationalOfIntegerMultiplication]
-PackageExported[RationalMultiplicationInverse]
-PackageExported[RationalInverseZero]
-PackageExported[RationalEqualityDecidable]
-PackageExported[RationalLessEqualReflexivity]
-PackageExported[RationalSquareNonnegative]
 
 
 (* ::Section:: *)
@@ -66,26 +50,6 @@ PackageScoped[rationalsEnvironment]
 (*Usage Messages*)
 
 
-RationalAdditionCommutativity::usage = "RationalAdditionCommutativity[x, y] proves x + y == y + x for rationals x and y. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalAdditionAssociativity::usage = "RationalAdditionAssociativity[x, y, z] proves (x + y) + z == x + (y + z) for rationals. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalAdditionZero::usage = "RationalAdditionZero[x] proves x + 0 == x for a rational x. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalAdditionNegation::usage = "RationalAdditionNegation[x] proves x + -x == 0 for a rational x. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalMultiplicationCommutativity::usage = "RationalMultiplicationCommutativity[x, y] proves x y == y x for rationals x and y. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalMultiplicationAssociativity::usage = "RationalMultiplicationAssociativity[x, y, z] proves (x y) z == x (y z) for rationals. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalMultiplicationOne::usage = "RationalMultiplicationOne[x] proves x * 1 == x for a rational x. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalDistributivity::usage = "RationalDistributivity[x, y, z] proves x (y + z) == x y + x z for rationals. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalSubtractionNegation::usage = "RationalSubtractionNegation[x, y] proves x - y == x + -y for rationals, which holds by computation. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalOfIntegerAddition::usage = "RationalOfIntegerAddition[a, b] proves that the rational of a + b is the sum of the rationals of the integers a and b. \
-It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalOfIntegerMultiplication::usage = "RationalOfIntegerMultiplication[a, b] proves that the rational of a b is the product of the rationals of the integers a and b. \
-It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalMultiplicationInverse::usage = "RationalMultiplicationInverse[x, h] proves x x^-1 == 1 from a proof h of Not[x == 0], for a rational x. \
-It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalInverseZero::usage = "RationalInverseZero proves 0^-1 == 0 for the rationals, which holds by computation. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalEqualityDecidable::usage = "RationalEqualityDecidable[x, y] decides x == y for rationals x and y; it is the instance of Decidable[x == y] in \
-TypeTheoryEnvironment[\"Rationals\"], so Decide and the tactic \"Decide\" settle equations of rationals by computation."
-RationalLessEqualReflexivity::usage = "RationalLessEqualReflexivity[x] proves x <= x for a rational x. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
-RationalSquareNonnegative::usage = "RationalSquareNonnegative[x] proves 0 <= x x for a rational x. It is a theorem of TypeTheoryEnvironment[\"Rationals\"]."
 
 rationalsEnvironment::usage = "rationalsEnvironment[] gives the environment of the integers with the rationals, built and checked the first time it is asked for."
 
@@ -110,13 +74,13 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	(* Integers first. The class of (n + k, n) is k, and that of (n, n + k) is -k. *)
 	rationalTheorem[
 		"integerOfDifference",
-		ForAll[{Typed[n, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, "integerOfPair"[Pair[n + k, n]] == "integerOfNatural"[k]],
-		{TypeTheoryTactic["Introduce", n, k], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		ForAll[{Typed[n, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, "integerOfPair"["pair"[n + k, n]] == "integerOfNatural"[k]],
+		{TypeTheoryTactic["Introduce", n, k], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 	rationalTheorem[
 		"integerOfDifferenceNegative",
-		ForAll[{Typed[n, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, "integerOfPair"[Pair[n, n + k]] == "integerNegation"["integerOfNatural"[k]]],
-		{TypeTheoryTactic["Introduce", n, k], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		ForAll[{Typed[n, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, "integerOfPair"["pair"[n, n + k]] == "integerNegation"["integerOfNatural"[k]]],
+		{TypeTheoryTactic["Introduce", n, k], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 
 	(* A multiple of an integer by a positive natural number is 0 only where the integer is: the pair of
@@ -132,7 +96,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	],
 	rationalTheorem[
 		"relationOfEqual",
-		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a == b, "integerRelation"[Pair[a, b], Pair[0, 0]]]],
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a == b, "integerRelation"["pair"[a, b], "pair"[0, 0]]]],
 		{TypeTheoryTactic["Introduce", a, b, h], TypeTheoryTactic["LinearArithmetic"]}
 	],
 	TypeTheoryTheorem[
@@ -144,8 +108,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 			"integerRelation",
 			Function[{Typed[w, Integers]}, Implies[w "integerOfNatural"[d + 1] == 0, w == 0]],
 			Function[{Typed[r, differences], Typed[h, "integerOfPair"[r] "integerOfNatural"[d + 1] == 0]},
-				QuotientSoundness["relationOfEqual"[r[[1]], r[[2]], MultiplicationCancellation[d, r[[1]], r[[2]], "scaledPairEquation"[d, r[[1]], r[[2]],
-					"integerExact"[Pair[r[[1]] (d + 1) + r[[2]] 0, r[[1]] 0 + r[[2]] (d + 1)], Pair[0, 0], h]
+				"quotientSoundness"["relationOfEqual"[r[[1]], r[[2]], "multiplicationCancellation"[d, r[[1]], r[[2]], "scaledPairEquation"[d, r[[1]], r[[2]],
+					"integerExact"["pair"[r[[1]] (d + 1) + r[[2]] 0, r[[1]] 0 + r[[2]] (d + 1)], "pair"[0, 0], h]
 				]]]]
 			],
 			x
@@ -188,22 +152,22 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 				Function[{Typed[x, Booleans]}, Implies["integerEqual"[a, b] == x, "integerEqual"[a, b] == "integerEqual"[c, d]]],
 				Function[{Typed[e, "integerEqual"[a, b] == "false"]}, InductiveRecursor[Booleans][
 					Function[{Typed[y, Booleans]}, Implies["integerEqual"[c, d] == y, "integerEqual"[a, b] == "integerEqual"[c, d]]],
-					Function[{Typed[f, "integerEqual"[c, d] == "false"]}, EqualityTransitivity[e, EqualitySymmetry[f]]],
+					Function[{Typed[f, "integerEqual"[c, d] == "false"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
 					Function[{Typed[f, "integerEqual"[c, d] == "true"]},
-						FalseElimination["integerEqualFalse"[a, b, e][EquivalentBackward[h]["integerEqualTrue"[c, d, f]]]]
+						"falseElimination"["integerEqualFalse"[a, b, e]["equivalentBackward"[h]["integerEqualTrue"[c, d, f]]]]
 					],
 					"integerEqual"[c, d]
-				][EqualityReflexivity["integerEqual"[c, d]]]],
+				]["equalityReflexivity"["integerEqual"[c, d]]]],
 				Function[{Typed[e, "integerEqual"[a, b] == "true"]}, InductiveRecursor[Booleans][
 					Function[{Typed[y, Booleans]}, Implies["integerEqual"[c, d] == y, "integerEqual"[a, b] == "integerEqual"[c, d]]],
 					Function[{Typed[f, "integerEqual"[c, d] == "false"]},
-						FalseElimination["integerEqualFalse"[c, d, f][EquivalentForward[h]["integerEqualTrue"[a, b, e]]]]
+						"falseElimination"["integerEqualFalse"[c, d, f]["equivalentForward"[h]["integerEqualTrue"[a, b, e]]]]
 					],
-					Function[{Typed[f, "integerEqual"[c, d] == "true"]}, EqualityTransitivity[e, EqualitySymmetry[f]]],
+					Function[{Typed[f, "integerEqual"[c, d] == "true"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
 					"integerEqual"[c, d]
-				][EqualityReflexivity["integerEqual"[c, d]]]],
+				]["equalityReflexivity"["integerEqual"[c, d]]]],
 				"integerEqual"[a, b]
-			][EqualityReflexivity["integerEqual"[a, b]]]
+			]["equalityReflexivity"["integerEqual"[a, b]]]
 		]
 	],
 
@@ -219,7 +183,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	],
 	TypeTheoryDefinition[
 		"rationalOfInteger",
-		Typed[Function[{Typed[x, Integers]}, "rationalOfPair"[Pair[x, 0]]], TypeSpecifier[{Integers} -> Rationals]],
+		Typed[Function[{Typed[x, Integers]}, "rationalOfPair"["pair"[x, 0]]], TypeSpecifier[{Integers} -> Rationals]],
 		"Coercion" -> True
 	],
 
@@ -227,15 +191,15 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	   -(a, b) is (-a, b), (a, b) + (c, d) is (a (d + 1) + c (b + 1), b d + b + d), and (a, b) (c, d) is (a c, b d + b + d) *)
 	rationalTheorem[
 		"rationalNegationRespects",
-		ForAll[{Typed[p, pairs], Typed[q, pairs]}, Implies["rationalRelation"[p, q], "rationalRelation"[Pair[-p[[1]], p[[2]]], Pair[-q[[1]], q[[2]]]]]],
+		ForAll[{Typed[p, pairs], Typed[q, pairs]}, Implies["rationalRelation"[p, q], "rationalRelation"["pair"[-p[[1]], p[[2]]], "pair"[-q[[1]], q[[2]]]]]],
 		{TypeTheoryTactic["Introduce", p, q, h], TypeTheoryTactic["PolynomialReduce"]}
 	],
 	rationalTheorem[
 		"rationalAdditionRespectsLeft",
 		ForAll[{Typed[p, pairs], Typed[q, pairs], Typed[s, pairs]},
 			Implies["rationalRelation"[p, q], "rationalRelation"[
-				Pair[p[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] s[[2]] + p[[2]] + s[[2]]],
-				Pair[q[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[q[[2]] + 1], q[[2]] s[[2]] + q[[2]] + s[[2]]]
+				"pair"[p[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] s[[2]] + p[[2]] + s[[2]]],
+				"pair"[q[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[q[[2]] + 1], q[[2]] s[[2]] + q[[2]] + s[[2]]]
 			]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, s, h], TypeTheoryTactic["PolynomialReduce"]}
@@ -244,8 +208,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalAdditionRespectsRight",
 		ForAll[{Typed[p, pairs], Typed[q, pairs], Typed[s, pairs]},
 			Implies["rationalRelation"[q, s], "rationalRelation"[
-				Pair[p[[1]] "integerOfNatural"[q[[2]] + 1] + q[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] q[[2]] + p[[2]] + q[[2]]],
-				Pair[p[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] s[[2]] + p[[2]] + s[[2]]]
+				"pair"[p[[1]] "integerOfNatural"[q[[2]] + 1] + q[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] q[[2]] + p[[2]] + q[[2]]],
+				"pair"[p[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] s[[2]] + p[[2]] + s[[2]]]
 			]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, s, h], TypeTheoryTactic["PolynomialReduce"]}
@@ -254,8 +218,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalMultiplicationRespectsLeft",
 		ForAll[{Typed[p, pairs], Typed[q, pairs], Typed[s, pairs]},
 			Implies["rationalRelation"[p, q], "rationalRelation"[
-				Pair[p[[1]] s[[1]], p[[2]] s[[2]] + p[[2]] + s[[2]]],
-				Pair[q[[1]] s[[1]], q[[2]] s[[2]] + q[[2]] + s[[2]]]
+				"pair"[p[[1]] s[[1]], p[[2]] s[[2]] + p[[2]] + s[[2]]],
+				"pair"[q[[1]] s[[1]], q[[2]] s[[2]] + q[[2]] + s[[2]]]
 			]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, s, h], TypeTheoryTactic["PolynomialReduce"]}
@@ -264,8 +228,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalMultiplicationRespectsRight",
 		ForAll[{Typed[p, pairs], Typed[q, pairs], Typed[s, pairs]},
 			Implies["rationalRelation"[q, s], "rationalRelation"[
-				Pair[p[[1]] q[[1]], p[[2]] q[[2]] + p[[2]] + q[[2]]],
-				Pair[p[[1]] s[[1]], p[[2]] s[[2]] + p[[2]] + s[[2]]]
+				"pair"[p[[1]] q[[1]], p[[2]] q[[2]] + p[[2]] + q[[2]]],
+				"pair"[p[[1]] s[[1]], p[[2]] s[[2]] + p[[2]] + s[[2]]]
 			]]
 		],
 		{TypeTheoryTactic["Introduce", p, q, s, h], TypeTheoryTactic["PolynomialReduce"]}
@@ -277,8 +241,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalNegation",
 		Typed[
 			Function[{Typed[x, Rationals]}, QuotientLift[
-				Function[{Typed[p, pairs]}, "rationalOfPair"[Pair[-p[[1]], p[[2]]]]],
-				Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]}, QuotientSoundness["rationalNegationRespects"[p, q, e]]],
+				Function[{Typed[p, pairs]}, "rationalOfPair"["pair"[-p[[1]], p[[2]]]]],
+				Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]}, "quotientSoundness"["rationalNegationRespects"[p, q, e]]],
 				x
 			]],
 			TypeSpecifier[{Rationals} -> Rationals]
@@ -289,9 +253,9 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		Typed[
 			Function[{Typed[p, pairs], Typed[y, Rationals]}, QuotientLift[
 				Function[{Typed[q, pairs]}, "rationalOfPair"[
-					Pair[p[[1]] "integerOfNatural"[q[[2]] + 1] + q[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] q[[2]] + p[[2]] + q[[2]]]
+					"pair"[p[[1]] "integerOfNatural"[q[[2]] + 1] + q[[1]] "integerOfNatural"[p[[2]] + 1], p[[2]] q[[2]] + p[[2]] + q[[2]]]
 				]],
-				Function[{Typed[q, pairs], Typed[s, pairs], Typed[e, "rationalRelation"[q, s]]}, QuotientSoundness["rationalAdditionRespectsRight"[p, q, s, e]]],
+				Function[{Typed[q, pairs], Typed[s, pairs], Typed[e, "rationalRelation"[q, s]]}, "quotientSoundness"["rationalAdditionRespectsRight"[p, q, s, e]]],
 				y
 			]],
 			TypeSpecifier[{pairs, Rationals} -> Rationals]
@@ -308,7 +272,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 						pairs,
 						"rationalRelation",
 						Function[{Typed[z, Rationals]}, "rationalAdditionOfPair"[p, z] == "rationalAdditionOfPair"[q, z]],
-						Function[{Typed[s, pairs]}, QuotientSoundness["rationalAdditionRespectsLeft"[p, q, s, e]]],
+						Function[{Typed[s, pairs]}, "quotientSoundness"["rationalAdditionRespectsLeft"[p, q, s, e]]],
 						y
 					]
 				],
@@ -321,8 +285,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalMultiplicationOfPair",
 		Typed[
 			Function[{Typed[p, pairs], Typed[y, Rationals]}, QuotientLift[
-				Function[{Typed[q, pairs]}, "rationalOfPair"[Pair[p[[1]] q[[1]], p[[2]] q[[2]] + p[[2]] + q[[2]]]]],
-				Function[{Typed[q, pairs], Typed[s, pairs], Typed[e, "rationalRelation"[q, s]]}, QuotientSoundness["rationalMultiplicationRespectsRight"[p, q, s, e]]],
+				Function[{Typed[q, pairs]}, "rationalOfPair"["pair"[p[[1]] q[[1]], p[[2]] q[[2]] + p[[2]] + q[[2]]]]],
+				Function[{Typed[q, pairs], Typed[s, pairs], Typed[e, "rationalRelation"[q, s]]}, "quotientSoundness"["rationalMultiplicationRespectsRight"[p, q, s, e]]],
 				y
 			]],
 			TypeSpecifier[{pairs, Rationals} -> Rationals]
@@ -339,7 +303,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 						pairs,
 						"rationalRelation",
 						Function[{Typed[z, Rationals]}, "rationalMultiplicationOfPair"[p, z] == "rationalMultiplicationOfPair"[q, z]],
-						Function[{Typed[s, pairs]}, QuotientSoundness["rationalMultiplicationRespectsLeft"[p, q, s, e]]],
+						Function[{Typed[s, pairs]}, "quotientSoundness"["rationalMultiplicationRespectsLeft"[p, q, s, e]]],
 						y
 					]
 				],
@@ -373,16 +337,16 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"pairClassEquality",
 		ForAll[
 			{TypedImplicit[a, Integers], TypedImplicit[c, Integers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[d, NonNegativeIntegers]},
-			Implies[a == c, Implies[b == d, "rationalOfPair"[Pair[a, b]] == "rationalOfPair"[Pair[c, d]]]]
+			Implies[a == c, Implies[b == d, "rationalOfPair"["pair"[a, b]] == "rationalOfPair"["pair"[c, d]]]]
 		],
 		Function[
 			{
 				TypedImplicit[a, Integers], TypedImplicit[c, Integers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[d, NonNegativeIntegers],
 				Typed[e, a == c], Typed[f, b == d]
 			},
-			EqualityTransitivity[
-				EqualityCongruence[Function[{Typed[w, Integers]}, "rationalOfPair"[Pair[w, b]]], e],
-				EqualityCongruence[Function[{Typed[w, NonNegativeIntegers]}, "rationalOfPair"[Pair[c, w]]], f]
+			"equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[w, Integers]}, "rationalOfPair"["pair"[w, b]]], e],
+				"equalityCongruence"[Function[{Typed[w, NonNegativeIntegers]}, "rationalOfPair"["pair"[c, w]]], f]
 			]
 		]
 	],
@@ -390,26 +354,26 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"scaledClass",
 		ForAll[
 			{Typed[a, Integers], Typed[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]},
-			"rationalOfPair"[Pair[a, b]] == "rationalOfPair"[Pair[a "integerOfNatural"[k + 1], b k + b + k]]
+			"rationalOfPair"["pair"[a, b]] == "rationalOfPair"["pair"[a "integerOfNatural"[k + 1], b k + b + k]]
 		],
-		{TypeTheoryTactic["Introduce", a, b, k], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		{TypeTheoryTactic["Introduce", a, b, k], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 
 	(* the laws of a commutative ring: by induction on each rational, then the relation of the two pairs,
 	   an equation of integers, or the equations of their components *)
 	rationalTheorem[
-		RationalAdditionCommutativity,
+		"rationalAdditionCommutativity",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, x + y == y + x],
 		{
 			TypeTheoryTactic["Introduce", x, y],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
 			TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Ring"]
 		}
 	],
 	rationalTheorem[
-		RationalAdditionAssociativity,
+		"rationalAdditionAssociativity",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, (x + y) + z == x + (y + z)],
 		{
 			TypeTheoryTactic["Introduce", x, y, z],
@@ -422,56 +386,56 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		}
 	],
 	rationalTheorem[
-		RationalAdditionZero,
+		"rationalAdditionZero",
 		ForAll[{Typed[x, Rationals]}, x + 0 == x],
 		{
 			TypeTheoryTactic["Introduce", x],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Ring"]
 		}
 	],
 	(* x + -x is read as x - x, so the negation is written out *)
 	rationalTheorem[
-		RationalAdditionNegation,
+		"rationalAdditionNegation",
 		ForAll[{Typed[x, Rationals]}, x + "rationalNegation"[x] == 0],
 		{
 			TypeTheoryTactic["Introduce", x],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Ring"]
 		}
 	],
 	rationalTheorem[
-		RationalMultiplicationCommutativity,
+		"rationalMultiplicationCommutativity",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, x y == y x],
 		{
 			TypeTheoryTactic["Introduce", x, y],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
 			TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Ring"]
 		}
 	],
 	rationalTheorem[
-		RationalMultiplicationAssociativity,
+		"rationalMultiplicationAssociativity",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, (x y) z == x (y z)],
 		{
 			TypeTheoryTactic["Introduce", x, y, z],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
 			TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
 			TypeTheoryTactic["Induction", z], TypeTheoryTactic["Introduce", s],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Ring"]
 		}
 	],
 	rationalTheorem[
-		RationalMultiplicationOne,
+		"rationalMultiplicationOne",
 		ForAll[{Typed[x, Rationals]}, x * 1 == x],
 		{
 			TypeTheoryTactic["Introduce", x],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Ring"]
 		}
 	],
@@ -494,14 +458,14 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		{TypeTheoryTactic["Introduce", p, q, s], TypeTheoryTactic["Ring"]}
 	],
 	rationalTheorem[
-		RationalDistributivity,
+		"rationalDistributivity",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, x (y + z) == x y + x z],
 		{
 			TypeTheoryTactic["Introduce", x, y, z],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
 			TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
 			TypeTheoryTactic["Induction", z], TypeTheoryTactic["Introduce", s],
-			TypeTheoryTactic["Exact", EqualityTransitivity[
+			TypeTheoryTactic["Exact", "equalityTransitivity"[
 				"scaledClass"[
 					p[[1]] (q[[1]] "integerOfNatural"[s[[2]] + 1] + s[[1]] "integerOfNatural"[q[[2]] + 1]),
 					p[[2]] (q[[2]] s[[2]] + q[[2]] + s[[2]]) + p[[2]] + (q[[2]] s[[2]] + q[[2]] + s[[2]]),
@@ -513,20 +477,20 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	],
 	(* a difference is a sum with the negation, by computation *)
 	rationalTheorem[
-		RationalSubtractionNegation,
+		"rationalSubtractionNegation",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, x - y == x + "rationalNegation"[y]],
 		{TypeTheoryTactic["Introduce", x, y], TypeTheoryTactic["Reflexivity"]}
 	],
 	(* the integers keep their sums and products among the rationals; the coercion is written out *)
 	rationalTheorem[
-		RationalOfIntegerAddition,
+		"rationalOfIntegerAddition",
 		ForAll[{Typed[a, Integers], Typed[b, Integers]}, "rationalOfInteger"[a + b] == "rationalOfInteger"[a] + "rationalOfInteger"[b]],
-		{TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		{TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 	rationalTheorem[
-		RationalOfIntegerMultiplication,
+		"rationalOfIntegerMultiplication",
 		ForAll[{Typed[a, Integers], Typed[b, Integers]}, "rationalOfInteger"[a b] == "rationalOfInteger"[a] "rationalOfInteger"[b]],
-		{TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		{TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 
 	(* The inverse. (b + 1) / (m - n) is the class of (b + 1, m - n - 1) where m is larger, that of
@@ -538,14 +502,14 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 				Function[{Typed[t, NonNegativeIntegers]}, TypeSpecifier[{NonNegativeIntegers} -> Rationals]],
 				Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 					Function[{Typed[t, NonNegativeIntegers]}, Rationals],
-					"rationalOfPair"[Pair["integerOfNatural"[0], 0]],
-					Function[{Typed[k, NonNegativeIntegers], Typed[v, Rationals]}, "rationalOfPair"[Pair["integerNegation"["integerOfNatural"[b + 1]], k]]],
+					"rationalOfPair"["pair"["integerOfNatural"[0], 0]],
+					Function[{Typed[k, NonNegativeIntegers], Typed[v, Rationals]}, "rationalOfPair"["pair"["integerNegation"["integerOfNatural"[b + 1]], k]]],
 					n
 				]],
 				Function[{Typed[j, NonNegativeIntegers], Typed[f, TypeSpecifier[{NonNegativeIntegers} -> Rationals]]}, Function[{Typed[n, NonNegativeIntegers]},
 					InductiveRecursor[NonNegativeIntegers][
 						Function[{Typed[t, NonNegativeIntegers]}, Rationals],
-						"rationalOfPair"[Pair["integerOfNatural"[b + 1], j]],
+						"rationalOfPair"["pair"["integerOfNatural"[b + 1], j]],
 						Function[{Typed[k, NonNegativeIntegers], Typed[v, Rationals]}, f[k]],
 						n
 					]
@@ -578,8 +542,8 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		],
 		{
 			TypeTheoryTactic["Introduce", b, m, n, k],
-			TypeTheoryTactic["Rewrite", AdditionCommutativity[k, m]],
-			TypeTheoryTactic["Rewrite", AdditionCommutativity[k, n]],
+			TypeTheoryTactic["Rewrite", "additionCommutativity"[k, m]],
+			TypeTheoryTactic["Rewrite", "additionCommutativity"[k, n]],
 			TypeTheoryTactic["Exact", "differenceInverseShift"[b, m, n, k]]
 		}
 	],
@@ -590,12 +554,12 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 			Implies["integerRelation"[q, s], "differenceInverse"[b, q[[1]], q[[2]]] == "differenceInverse"[b, s[[1]], s[[2]]]]
 		],
 		Function[{Typed[b, NonNegativeIntegers], Typed[q, differences], Typed[s, differences], Typed[e, "integerRelation"[q, s]]},
-			EqualityTransitivity[
-				EqualitySymmetry["differenceInverseShift"[b, q[[1]], q[[2]], s[[2]]]],
-				EqualityTransitivity[
-					EqualityCongruence[Function[{Typed[c, NonNegativeIntegers]}, "differenceInverse"[b, c, q[[2]] + s[[2]]]], e],
-					EqualityTransitivity[
-						EqualityCongruence[Function[{Typed[c, NonNegativeIntegers]}, "differenceInverse"[b, s[[1]] + q[[2]], c]], AdditionCommutativity[q[[2]], s[[2]]]],
+			"equalityTransitivity"[
+				"equalitySymmetry"["differenceInverseShift"[b, q[[1]], q[[2]], s[[2]]]],
+				"equalityTransitivity"[
+					"equalityCongruence"[Function[{Typed[c, NonNegativeIntegers]}, "differenceInverse"[b, c, q[[2]] + s[[2]]]], e],
+					"equalityTransitivity"[
+						"equalityCongruence"[Function[{Typed[c, NonNegativeIntegers]}, "differenceInverse"[b, s[[1]] + q[[2]], c]], "additionCommutativity"[q[[2]], s[[2]]]],
 						"differenceInverseShift"[b, s[[1]], s[[2]], q[[2]]]
 					]
 				]
@@ -620,45 +584,45 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"inverseOfPairZero",
 		ForAll[{Typed[p, pairs]}, Implies[p[[1]] == 0, "inverseOfPair"[p] == 0]],
 		Function[{Typed[p, pairs], Typed[h, p[[1]] == 0]}, Construct[
-			EqualitySubstitution,
+			"equalitySubstitution",
 			Integers,
-			Function[{Typed[w, Integers]}, "inverseOfPair"[Pair[w, p[[2]]]] == 0],
+			Function[{Typed[w, Integers]}, "inverseOfPair"["pair"[w, p[[2]]]] == 0],
 			"integerOfNatural"[0],
 			p[[1]],
-			EqualitySymmetry[h],
-			EqualityReflexivity["rationalOfInteger"["integerOfNatural"[0]]]
+			"equalitySymmetry"[h],
+			"equalityReflexivity"["rationalOfInteger"["integerOfNatural"[0]]]
 		]]
 	],
 	rationalTheorem[
 		"unitProduct",
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers]},
-			"rationalMultiplication"["differenceInverse"[b, i + 1, 0], "rationalOfPair"[Pair["integerOfNatural"[i + 1], b]]] == 1
+			"rationalMultiplication"["differenceInverse"[b, i + 1, 0], "rationalOfPair"["pair"["integerOfNatural"[i + 1], b]]] == 1
 		],
-		{TypeTheoryTactic["Introduce", b, i], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		{TypeTheoryTactic["Introduce", b, i], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 	rationalTheorem[
 		"negativeUnitProduct",
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers]},
-			"rationalMultiplication"["differenceInverse"[b, 0, i + 1], "rationalOfPair"[Pair["integerNegation"["integerOfNatural"[i + 1]], b]]] == 1
+			"rationalMultiplication"["differenceInverse"[b, 0, i + 1], "rationalOfPair"["pair"["integerNegation"["integerOfNatural"[i + 1]], b]]] == 1
 		],
-		{TypeTheoryTactic["Introduce", b, i], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["Ring"]}
+		{TypeTheoryTactic["Introduce", b, i], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 	TypeTheoryTheorem[
 		"positiveInverseProduct",
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
-			"rationalMultiplication"["differenceInverse"[b, n + (i + 1), n], "rationalOfPair"[Pair["integerOfPair"[Pair[n + (i + 1), n]], b]]] == 1
+			"rationalMultiplication"["differenceInverse"[b, n + (i + 1), n], "rationalOfPair"["pair"["integerOfPair"["pair"[n + (i + 1), n]], b]]] == 1
 		],
-		Function[{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, EqualityTransitivity[
-			EqualityCongruence[
-				Function[{Typed[w, Rationals]}, "rationalMultiplication"[w, "rationalOfPair"[Pair["integerOfPair"[Pair[n + (i + 1), n]], b]]]],
+		Function[{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, "equalityTransitivity"[
+			"equalityCongruence"[
+				Function[{Typed[w, Rationals]}, "rationalMultiplication"[w, "rationalOfPair"["pair"["integerOfPair"["pair"[n + (i + 1), n]], b]]]],
 				"differenceInverseShiftLeft"[b, i + 1, 0, n]
 			],
-			EqualityTransitivity[
-				EqualityCongruence[
-					Function[{Typed[w, Integers]}, "rationalMultiplication"["differenceInverse"[b, i + 1, 0], "rationalOfPair"[Pair[w, b]]]],
+			"equalityTransitivity"[
+				"equalityCongruence"[
+					Function[{Typed[w, Integers]}, "rationalMultiplication"["differenceInverse"[b, i + 1, 0], "rationalOfPair"["pair"[w, b]]]],
 					"integerOfDifference"[n, i + 1]
 				],
 				"unitProduct"[b, i]
@@ -669,16 +633,16 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"negativeInverseProduct",
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
-			"rationalMultiplication"["differenceInverse"[b, n, n + (i + 1)], "rationalOfPair"[Pair["integerOfPair"[Pair[n, n + (i + 1)]], b]]] == 1
+			"rationalMultiplication"["differenceInverse"[b, n, n + (i + 1)], "rationalOfPair"["pair"["integerOfPair"["pair"[n, n + (i + 1)]], b]]] == 1
 		],
-		Function[{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, EqualityTransitivity[
-			EqualityCongruence[
-				Function[{Typed[w, Rationals]}, "rationalMultiplication"[w, "rationalOfPair"[Pair["integerOfPair"[Pair[n, n + (i + 1)]], b]]]],
+		Function[{Typed[b, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, "equalityTransitivity"[
+			"equalityCongruence"[
+				Function[{Typed[w, Rationals]}, "rationalMultiplication"[w, "rationalOfPair"["pair"["integerOfPair"["pair"[n, n + (i + 1)]], b]]]],
 				"differenceInverseShiftLeft"[b, 0, i + 1, n]
 			],
-			EqualityTransitivity[
-				EqualityCongruence[
-					Function[{Typed[w, Integers]}, "rationalMultiplication"["differenceInverse"[b, 0, i + 1], "rationalOfPair"[Pair[w, b]]]],
+			"equalityTransitivity"[
+				"equalityCongruence"[
+					Function[{Typed[w, Integers]}, "rationalMultiplication"["differenceInverse"[b, 0, i + 1], "rationalOfPair"["pair"[w, b]]]],
 					"integerOfDifferenceNegative"[n, i + 1]
 				],
 				"negativeUnitProduct"[b, i]
@@ -695,25 +659,25 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[j, NonNegativeIntegers]},
 			Or[
-				"integerOfPair"[Pair[n + j, n]] == 0,
-				"rationalMultiplication"["differenceInverse"[b, n + j, n], "rationalOfPair"[Pair["integerOfPair"[Pair[n + j, n]], b]]] == 1
+				"integerOfPair"["pair"[n + j, n]] == 0,
+				"rationalMultiplication"["differenceInverse"[b, n + j, n], "rationalOfPair"["pair"["integerOfPair"["pair"[n + j, n]], b]]] == 1
 			]
 		],
 		Function[{Typed[b, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[j, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[t, NonNegativeIntegers]}, Or[
-				"integerOfPair"[Pair[n + t, n]] == 0,
-				"rationalMultiplication"["differenceInverse"[b, n + t, n], "rationalOfPair"[Pair["integerOfPair"[Pair[n + t, n]], b]]] == 1
+				"integerOfPair"["pair"[n + t, n]] == 0,
+				"rationalMultiplication"["differenceInverse"[b, n + t, n], "rationalOfPair"["pair"["integerOfPair"["pair"[n + t, n]], b]]] == 1
 			]],
-			OrIntroductionLeft["integerOfDifference"[n, 0]],
+			"orIntroductionLeft"["integerOfDifference"[n, 0]],
 			Function[
 				{
 					Typed[t, NonNegativeIntegers],
 					Typed[ih, Or[
-						"integerOfPair"[Pair[n + t, n]] == 0,
-						"rationalMultiplication"["differenceInverse"[b, n + t, n], "rationalOfPair"[Pair["integerOfPair"[Pair[n + t, n]], b]]] == 1
+						"integerOfPair"["pair"[n + t, n]] == 0,
+						"rationalMultiplication"["differenceInverse"[b, n + t, n], "rationalOfPair"["pair"["integerOfPair"["pair"[n + t, n]], b]]] == 1
 					]]
 				},
-				OrIntroductionRight["positiveInverseProduct"[b, t, n]]
+				"orIntroductionRight"["positiveInverseProduct"[b, t, n]]
 			],
 			j
 		]]
@@ -723,67 +687,67 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
 			Or[
-				"integerOfPair"[Pair[m, n]] == 0,
-				"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"[Pair["integerOfPair"[Pair[m, n]], b]]] == 1
+				"integerOfPair"["pair"[m, n]] == 0,
+				"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"["pair"["integerOfPair"["pair"[m, n]], b]]] == 1
 			]
 		],
 		Function[{Typed[b, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Or][
 			Function[{Typed[t, Or[n <= m, m < n]]}, Or[
-				"integerOfPair"[Pair[m, n]] == 0,
-				"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"[Pair["integerOfPair"[Pair[m, n]], b]]] == 1
+				"integerOfPair"["pair"[m, n]] == 0,
+				"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"["pair"["integerOfPair"["pair"[m, n]], b]]] == 1
 			]],
 			Function[{Typed[le, n <= m]}, InductiveRecursor[Exists][
 				Function[{Typed[o, Exists[{Typed[j, NonNegativeIntegers]}, m == n + j]]}, Or[
-					"integerOfPair"[Pair[m, n]] == 0,
-					"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"[Pair["integerOfPair"[Pair[m, n]], b]]] == 1
+					"integerOfPair"["pair"[m, n]] == 0,
+					"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"["pair"["integerOfPair"["pair"[m, n]], b]]] == 1
 				]],
 				Function[{Typed[j, NonNegativeIntegers], Typed[ej, m == n + j]}, Construct[
-					EqualitySubstitution,
+					"equalitySubstitution",
 					NonNegativeIntegers,
 					Function[{Typed[c, NonNegativeIntegers]}, Or[
-						"integerOfPair"[Pair[c, n]] == 0,
-						"rationalMultiplication"["differenceInverse"[b, c, n], "rationalOfPair"[Pair["integerOfPair"[Pair[c, n]], b]]] == 1
+						"integerOfPair"["pair"[c, n]] == 0,
+						"rationalMultiplication"["differenceInverse"[b, c, n], "rationalOfPair"["pair"["integerOfPair"["pair"[c, n]], b]]] == 1
 					]],
 					n + j,
 					m,
-					EqualitySymmetry[ej],
+					"equalitySymmetry"[ej],
 					"nonnegativeInverseOrZero"[b, n, j]
 				]],
 				"lessEqualWitness"[n, m, le]
 			]],
 			Function[{Typed[lt, m < n]}, InductiveRecursor[Exists][
 				Function[{Typed[o, Exists[{Typed[j, NonNegativeIntegers]}, n == m + 1 + j]]}, Or[
-					"integerOfPair"[Pair[m, n]] == 0,
-					"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"[Pair["integerOfPair"[Pair[m, n]], b]]] == 1
+					"integerOfPair"["pair"[m, n]] == 0,
+					"rationalMultiplication"["differenceInverse"[b, m, n], "rationalOfPair"["pair"["integerOfPair"["pair"[m, n]], b]]] == 1
 				]],
 				Function[{Typed[j, NonNegativeIntegers], Typed[ej, n == m + 1 + j]}, Construct[
-					EqualitySubstitution,
+					"equalitySubstitution",
 					NonNegativeIntegers,
 					Function[{Typed[c, NonNegativeIntegers]}, Or[
-						"integerOfPair"[Pair[m, c]] == 0,
-						"rationalMultiplication"["differenceInverse"[b, m, c], "rationalOfPair"[Pair["integerOfPair"[Pair[m, c]], b]]] == 1
+						"integerOfPair"["pair"[m, c]] == 0,
+						"rationalMultiplication"["differenceInverse"[b, m, c], "rationalOfPair"["pair"["integerOfPair"["pair"[m, c]], b]]] == 1
 					]],
 					m + (j + 1),
 					n,
-					EqualityTransitivity["successorAddition"[m, j], EqualitySymmetry[ej]],
-					OrIntroductionRight["negativeInverseProduct"[b, j, m]]
+					"equalityTransitivity"["successorAddition"[m, j], "equalitySymmetry"[ej]],
+					"orIntroductionRight"["negativeInverseProduct"[b, j, m]]
 				]],
 				"lessEqualWitness"[m + 1, n, lt]
 			]],
-			LessEqualTotality[n, m]
+			"lessEqualTotality"[n, m]
 		]]
 	],
 	TypeTheoryTheorem[
 		"inverseOrZero",
 		ForAll[
 			{Typed[b, NonNegativeIntegers], Typed[x, Integers]},
-			Or[x == 0, "rationalMultiplication"["inverseOfPair"[Pair[x, b]], "rationalOfPair"[Pair[x, b]]] == 1]
+			Or[x == 0, "rationalMultiplication"["inverseOfPair"["pair"[x, b]], "rationalOfPair"["pair"[x, b]]] == 1]
 		],
 		Function[{Typed[b, NonNegativeIntegers], Typed[x, Integers]}, Construct[
 			QuotientInduction,
 			differences,
 			"integerRelation",
-			Function[{Typed[w, Integers]}, Or[w == 0, "rationalMultiplication"["inverseOfPair"[Pair[w, b]], "rationalOfPair"[Pair[w, b]]] == 1]],
+			Function[{Typed[w, Integers]}, Or[w == 0, "rationalMultiplication"["inverseOfPair"["pair"[w, b]], "rationalOfPair"["pair"[w, b]]] == 1]],
 			Function[{Typed[r, differences]}, "pairInverseOrZero"[b, r[[1]], r[[2]]]],
 			x
 		]]
@@ -804,17 +768,17 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"inverseUniqueness",
 		ForAll[{Typed[u, Rationals], Typed[v, Rationals], Typed[x, Rationals]}, Implies[u x == 1, Implies[v x == 1, u == v]]],
 		Function[{Typed[u, Rationals], Typed[v, Rationals], Typed[x, Rationals], Typed[hu, u x == 1], Typed[hv, v x == 1]},
-			EqualityTransitivity[
-				EqualitySymmetry[RationalMultiplicationOne[u]],
-				EqualityTransitivity[
-					EqualityCongruence[Function[{Typed[w, Rationals]}, u w], EqualitySymmetry[hv]],
-					EqualityTransitivity[
-						EqualityCongruence[Function[{Typed[w, Rationals]}, u w], RationalMultiplicationCommutativity[v, x]],
-						EqualityTransitivity[
-							EqualitySymmetry[RationalMultiplicationAssociativity[u, x, v]],
-							EqualityTransitivity[
-								EqualityCongruence[Function[{Typed[w, Rationals]}, w v], hu],
-								EqualityTransitivity[RationalMultiplicationCommutativity["rationalOfInteger"["integerOfNatural"[1]], v], RationalMultiplicationOne[v]]
+			"equalityTransitivity"[
+				"equalitySymmetry"["rationalMultiplicationOne"[u]],
+				"equalityTransitivity"[
+					"equalityCongruence"[Function[{Typed[w, Rationals]}, u w], "equalitySymmetry"[hv]],
+					"equalityTransitivity"[
+						"equalityCongruence"[Function[{Typed[w, Rationals]}, u w], "rationalMultiplicationCommutativity"[v, x]],
+						"equalityTransitivity"[
+							"equalitySymmetry"["rationalMultiplicationAssociativity"[u, x, v]],
+							"equalityTransitivity"[
+								"equalityCongruence"[Function[{Typed[w, Rationals]}, w v], hu],
+								"equalityTransitivity"["rationalMultiplicationCommutativity"["rationalOfInteger"["integerOfNatural"[1]], v], "rationalMultiplicationOne"[v]]
 							]
 						]
 					]
@@ -827,18 +791,18 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		ForAll[{Typed[p, pairs], Typed[q, pairs]}, Implies["rationalRelation"[p, q], "inverseOfPair"[p] == "inverseOfPair"[q]]],
 		Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]}, InductiveRecursor[Or][
 			Function[{Typed[t, Or[p[[1]] == 0, "rationalMultiplication"["inverseOfPair"[p], "rationalOfPair"[p]] == 1]]}, "inverseOfPair"[p] == "inverseOfPair"[q]],
-			Function[{Typed[zp, p[[1]] == 0]}, EqualityTransitivity["inverseOfPairZero"[p, zp], EqualitySymmetry["inverseOfPairZero"[q, "numeratorZero"[p, q, e, zp]]]]],
+			Function[{Typed[zp, p[[1]] == 0]}, "equalityTransitivity"["inverseOfPairZero"[p, zp], "equalitySymmetry"["inverseOfPairZero"[q, "numeratorZero"[p, q, e, zp]]]]],
 			Function[{Typed[up, "rationalMultiplication"["inverseOfPair"[p], "rationalOfPair"[p]] == 1]}, InductiveRecursor[Or][
 				Function[{Typed[t, Or[q[[1]] == 0, "rationalMultiplication"["inverseOfPair"[q], "rationalOfPair"[q]] == 1]]}, "inverseOfPair"[p] == "inverseOfPair"[q]],
 				Function[{Typed[zq, q[[1]] == 0]},
-					EqualityTransitivity["inverseOfPairZero"[p, "numeratorZero"[q, p, EqualitySymmetry[e], zq]], EqualitySymmetry["inverseOfPairZero"[q, zq]]]
+					"equalityTransitivity"["inverseOfPairZero"[p, "numeratorZero"[q, p, "equalitySymmetry"[e], zq]], "equalitySymmetry"["inverseOfPairZero"[q, zq]]]
 				],
 				Function[{Typed[uq, "rationalMultiplication"["inverseOfPair"[q], "rationalOfPair"[q]] == 1]}, "inverseUniqueness"[
 					"inverseOfPair"[p],
 					"inverseOfPair"[q],
 					"rationalOfPair"[q],
-					EqualityTransitivity[
-						EqualityCongruence[Function[{Typed[w, Rationals]}, "rationalMultiplication"["inverseOfPair"[p], w]], EqualitySymmetry[QuotientSoundness[e]]],
+					"equalityTransitivity"[
+						"equalityCongruence"[Function[{Typed[w, Rationals]}, "rationalMultiplication"["inverseOfPair"[p], w]], "equalitySymmetry"["quotientSoundness"[e]]],
 						up
 					],
 					uq
@@ -867,10 +831,10 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	rationalTheorem[
 		"zeroClass",
 		ForAll[{Typed[p, pairs]}, Implies[p[[1]] == 0, "rationalOfPair"[p] == 0]],
-		{TypeTheoryTactic["Introduce", p, h], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["PolynomialReduce"]}
+		{TypeTheoryTactic["Introduce", p, h], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["PolynomialReduce"]}
 	],
 	TypeTheoryTheorem[
-		RationalMultiplicationInverse,
+		"rationalMultiplicationInverse",
 		ForAll[{Typed[x, Rationals]}, Implies[Not[x == 0], x "rationalInverse"[x] == 1]],
 		Function[{Typed[x, Rationals]}, Construct[
 			QuotientInduction,
@@ -881,16 +845,16 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 				Function[{Typed[t, Or[p[[1]] == 0, "rationalMultiplication"["inverseOfPair"[p], "rationalOfPair"[p]] == 1]]},
 					"rationalOfPair"[p] "rationalInverse"["rationalOfPair"[p]] == 1
 				],
-				Function[{Typed[z, p[[1]] == 0]}, FalseElimination[nonzero["zeroClass"[p, z]]]],
+				Function[{Typed[z, p[[1]] == 0]}, "falseElimination"[nonzero["zeroClass"[p, z]]]],
 				Function[{Typed[u, "rationalMultiplication"["inverseOfPair"[p], "rationalOfPair"[p]] == 1]},
-					EqualityTransitivity[RationalMultiplicationCommutativity["rationalOfPair"[p], "inverseOfPair"[p]], u]
+					"equalityTransitivity"["rationalMultiplicationCommutativity"["rationalOfPair"[p], "inverseOfPair"[p]], u]
 				],
 				"inverseOrZero"[p[[2]], p[[1]]]
 			]],
 			x
 		]]
 	],
-	rationalTheorem[RationalInverseZero, "rationalInverse"[0] == 0, {TypeTheoryTactic["Reflexivity"]}],
+	rationalTheorem["rationalInverseZero", "rationalInverse"[0] == 0, {TypeTheoryTactic["Reflexivity"]}],
 
 	(* Deciding equations: "rationalEqual" lifts the comparison of a (d + 1) and c (b + 1) with "integerEqual"
 	   from pairs; related pairs give equivalent equations, so the same Boolean *)
@@ -936,7 +900,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 					q[[1]] "integerOfNatural"[p[[2]] + 1],
 					p[[1]] "integerOfNatural"[s[[2]] + 1],
 					s[[1]] "integerOfNatural"[p[[2]] + 1],
-					EquivalentIntroduction["crossEquationRight"[p, q, s, e], "crossEquationRightBack"[p, q, s, e]]
+					"equivalentIntroduction"["crossEquationRight"[p, q, s, e], "crossEquationRightBack"[p, q, s, e]]
 				]],
 				y
 			]],
@@ -959,7 +923,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 							s[[1]] "integerOfNatural"[p[[2]] + 1],
 							q[[1]] "integerOfNatural"[s[[2]] + 1],
 							s[[1]] "integerOfNatural"[q[[2]] + 1],
-							EquivalentIntroduction["crossEquationLeft"[p, q, s, e], "crossEquationLeftBack"[p, q, s, e]]
+							"equivalentIntroduction"["crossEquationLeft"[p, q, s, e], "crossEquationLeftBack"[p, q, s, e]]
 						]],
 						y
 					]
@@ -976,7 +940,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 			TypeTheoryTactic["Introduce", x, y],
 			TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
 			TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q, h],
-			TypeTheoryTactic["Apply", QuotientSoundness],
+			TypeTheoryTactic["Apply", "quotientSoundness"],
 			TypeTheoryTactic["Exact", "integerEqualTrue"[p[[1]] "integerOfNatural"[q[[2]] + 1], q[[1]] "integerOfNatural"[p[[2]] + 1], h]]
 		}
 	],
@@ -993,20 +957,20 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalEqualFalse",
 		ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies["rationalEqual"[x, y] == "false", Not[x == y]]],
 		Function[{Typed[x, Rationals], Typed[y, Rationals], Typed[e, "rationalEqual"[x, y] == "false"], Typed[k, x == y]},
-			"falseNotTrue"[EqualityTransitivity[
-				EqualitySymmetry[e],
-				EqualityTransitivity[EqualityCongruence[Function[{Typed[z, Rationals]}, "rationalEqual"[x, z]], EqualitySymmetry[k]], "rationalEqualSelf"[x]]
+			"falseNotTrue"["equalityTransitivity"[
+				"equalitySymmetry"[e],
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[z, Rationals]}, "rationalEqual"[x, z]], "equalitySymmetry"[k]], "rationalEqualSelf"[x]]
 			]]
 		]
 	],
 	TypeTheoryDefinition[
-		RationalEqualityDecidable,
+		"rationalEqualityDecidable",
 		Function[{Typed[x, Rationals], Typed[y, Rationals]}, InductiveRecursor[Booleans][
 			Function[{Typed[b, Booleans]}, Implies["rationalEqual"[x, y] == b, Decidable[x == y]]],
-			Function[{Typed[e, "rationalEqual"[x, y] == "false"]}, DecidableFalse["rationalEqualFalse"[x, y, e]]],
-			Function[{Typed[e, "rationalEqual"[x, y] == "true"]}, DecidableTrue["rationalEqualTrue"[x, y, e]]],
+			Function[{Typed[e, "rationalEqual"[x, y] == "false"]}, "decidableFalse"["rationalEqualFalse"[x, y, e]]],
+			Function[{Typed[e, "rationalEqual"[x, y] == "true"]}, "decidableTrue"["rationalEqualTrue"[x, y, e]]],
 			"rationalEqual"[x, y]
-		][EqualityReflexivity["rationalEqual"[x, y]]]],
+		]["equalityReflexivity"["rationalEqual"[x, y]]]],
 		"Instance" -> True
 	],
 
@@ -1015,7 +979,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalLessEqual",
 		Typed[
 			Function[{Typed[x, Rationals], Typed[y, Rationals]},
-				Exists[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, y == "rationalAddition"[x, "rationalOfPair"[Pair["integerOfNatural"[n], d]]]]
+				Exists[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, y == "rationalAddition"[x, "rationalOfPair"["pair"["integerOfNatural"[n], d]]]]
 			],
 			TypeSpecifier[{Rationals, Rationals} -> TypeUniverse[0]]
 		]
@@ -1024,7 +988,7 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		"rationalLess",
 		Typed[
 			Function[{Typed[x, Rationals], Typed[y, Rationals]},
-				Exists[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, y == "rationalAddition"[x, "rationalOfPair"[Pair["integerOfNatural"[n + 1], d]]]]
+				Exists[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, y == "rationalAddition"[x, "rationalOfPair"["pair"["integerOfNatural"[n + 1], d]]]]
 			],
 			TypeSpecifier[{Rationals, Rationals} -> TypeUniverse[0]]
 		]
@@ -1033,9 +997,9 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 	TypeTheoryDefinition["rationalGreater", Typed[Function[{Typed[x, Rationals], Typed[y, Rationals]}, "rationalLess"[y, x]], TypeSpecifier[{Rationals, Rationals} -> TypeUniverse[0]]]],
 	(* x is x plus 0 / 1 *)
 	TypeTheoryTheorem[
-		RationalLessEqualReflexivity,
+		"rationalLessEqualReflexivity",
 		ForAll[{Typed[x, Rationals]}, x <= x],
-		Function[{Typed[x, Rationals]}, ExistsIntroduction[0, ExistsIntroduction[0, EqualitySymmetry[RationalAdditionZero[x]]]]]
+		Function[{Typed[x, Rationals]}, "existsIntroduction"[0, "existsIntroduction"[0, "equalitySymmetry"["rationalAdditionZero"[x]]]]]
 	],
 	(* the square of the class of (a, b) is that of (a a, b b + b + b), and a a is a natural number *)
 	rationalTheorem[
@@ -1044,13 +1008,13 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 			{Typed[p, pairs], Typed[n, NonNegativeIntegers]},
 			Implies[
 				p[[1]] p[[1]] == 0 + "integerOfNatural"[n],
-				"rationalOfPair"[p] "rationalOfPair"[p] == 0 + "rationalOfPair"[Pair["integerOfNatural"[n], p[[2]] p[[2]] + p[[2]] + p[[2]]]]
+				"rationalOfPair"[p] "rationalOfPair"[p] == 0 + "rationalOfPair"["pair"["integerOfNatural"[n], p[[2]] p[[2]] + p[[2]] + p[[2]]]]
 			]
 		],
-		{TypeTheoryTactic["Introduce", p, n, h], TypeTheoryTactic["Apply", QuotientSoundness], TypeTheoryTactic["PolynomialReduce"]}
+		{TypeTheoryTactic["Introduce", p, n, h], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["PolynomialReduce"]}
 	],
 	TypeTheoryTheorem[
-		RationalSquareNonnegative,
+		"rationalSquareNonnegative",
 		ForAll[{Typed[x, Rationals]}, 0 <= x x],
 		Function[{Typed[x, Rationals]}, Construct[
 			QuotientInduction,
@@ -1060,9 +1024,9 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 			Function[{Typed[p, pairs]}, InductiveRecursor[Exists][
 				Function[{Typed[o, 0 <= p[[1]] p[[1]]]}, 0 <= "rationalOfPair"[p] "rationalOfPair"[p]],
 				Function[{Typed[n, NonNegativeIntegers], Typed[e, p[[1]] p[[1]] == 0 + "integerOfNatural"[n]]},
-					ExistsIntroduction[n, ExistsIntroduction[p[[2]] p[[2]] + p[[2]] + p[[2]], "squareWitness"[p, n, e]]]
+					"existsIntroduction"[n, "existsIntroduction"[p[[2]] p[[2]] + p[[2]] + p[[2]], "squareWitness"[p, n, e]]]
 				],
-				IntegerSquareNonnegative[p[[1]]]
+				"integerSquareNonnegative"[p[[1]]]
 			]],
 			x
 		]]

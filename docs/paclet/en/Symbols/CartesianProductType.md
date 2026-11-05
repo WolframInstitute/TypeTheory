@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/CartesianProductType
 Keywords: [pair, product, Cartesian product, structure, prelude, inductive type]
-SeeAlso: [Pair, DisjointUnionType, Option, List]
+SeeAlso: [DisjointUnionType, Option, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [CartesianProductType]() is an inductive type of the prelude, with the one constructor [Pair](), as Lean's `Prod`.
+- [CartesianProductType]() is an inductive type of the prelude, with the one constructor `"pair"`, as Lean's `Prod`.
 - It is a structure: a pair `p` has the fields `p[[1]]` and `p[[2]]`.
 - For *α* in `Type u` and *β* in `Type v`, <code>[CartesianProductType]()[*α*, *β*]</code> is in `Type (max u v)`.
 - <code>[CartesianProductType]()[*α*, *β*]</code> displays as *α* × *β*, as Lean writes `Prod`, and a product nested to the right, <code>[CartesianProductType]()[*α*, [CartesianProductType]()[*β*, *γ*]]</code>, as *α* × *β* × *γ*.
@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[CartesianProductType]]
 A pair of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Pair[2, 3]]]
+TypeTheoryCheck[TypeTheoryTerm["pair"[2, 3]]]
 ```
 
 <!-- => ℕ × ℕ -->
@@ -46,7 +46,7 @@ TypeTheoryCheck[TypeTheoryTerm[Pair[2, 3]]]
 The fields of a pair compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[2]]]]
+WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[2]]]]
 ```
 
 <!-- => 3 -->

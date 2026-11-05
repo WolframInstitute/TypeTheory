@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
 Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, FindEquationalProof, equational reasoning, SumOfSquares, sum of squares, SemidefiniteOptimization, oracle]
-SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, List, IntegerLessEqualOfMultiple]
+SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryTerm, Decidable, List]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -36,12 +36,12 @@ RelatedGuides: [TypeTheory]
 | `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
 | `"Decide"` | proves a statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's decide `==` and `<=` of natural numbers, [And](), [Or](), [Not](), [True]() and [False](). A closed statement always computes; one with variables computes only where its decision does not depend on them |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws |
-| `"Classical"` | proves a statement of classical propositional logic from the hypotheses that are propositions, by a truth table: each atom, a proposition that no connective builds, is split by [ExcludedMiddle](), and the goal is built from the cases under every assignment that makes the hypotheses true |
+| `"Classical"` | proves a statement of classical propositional logic from the hypotheses that are propositions, by a truth table: each atom, a proposition that no connective builds, is split by `"excludedMiddle"`, and the goal is built from the cases under every assignment that makes the hypotheses true |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks |
 | `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
 | `"FindEquationalProof"` | proves an equation from the hypotheses that are equations of its type for all values of their variables, by replaying the proof that Wolfram's [FindEquationalProof]() finds, step by step |
-| `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); [IntegerLessEqualOfMultiple]() takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
+| `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); `"integerLessEqualOfMultiple"` takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
@@ -76,12 +76,12 @@ TypeTheoryTactic["Reflexivity"][proof]
 
 ## Scope
 
-`"Apply"` leaves a goal for each argument of [AndIntroduction]():
+`"Apply"` leaves a goal for each argument of `"andIntroduction"`:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
     TypeTheoryTactic["Introduce", a, b, ha, hb],
-    TypeTheoryTactic["Apply", AndIntroduction]
+    TypeTheoryTactic["Apply", "andIntroduction"]
 }]
 ```
 
@@ -113,12 +113,12 @@ proof["Term"]
 
 ---
 
-Applying [EqualityTransitivity]() leaves a goal for each equation, and one for the term between them, which both mention:
+Applying `"equalityTransitivity"` leaves a goal for each equation, and one for the term between them, which both mention:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x == y, Implies[y == z, x == z]]], {
     TypeTheoryTactic["Introduce", x, y, z, h1, h2],
-    TypeTheoryTactic["Apply", EqualityTransitivity]
+    TypeTheoryTactic["Apply", "equalityTransitivity"]
 }]
 ```
 
@@ -259,7 +259,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Or[n == 0, Exists[{Typed[k, Natural
 
 ---
 
-`"Constructor"` applies [AndIntroduction](), the constructor of [And]():
+`"Constructor"` applies `"andIntroduction"`, the constructor of [And]():
 
 ```wl
 TypeTheoryProof[And[True, 2 == 2], {TypeTheoryTactic["Constructor"]}]
@@ -333,7 +333,7 @@ proof = TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2
 
 <!-- => Proof complete -->
 
-The proof holds the witnesses; the decision that the kernel computes for them is the instance argument of [DecideSoundness](), which a term does not show:
+The proof holds the witnesses; the decision that the kernel computes for them is the instance argument of `"decideSoundness"`, which a term does not show:
 
 ```wl
 proof["Term"]

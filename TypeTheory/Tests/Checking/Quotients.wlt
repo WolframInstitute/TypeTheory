@@ -26,33 +26,33 @@ VerificationTest[
 		Information[prelude, "Kinds"]["Quotient"],
 		Count[Normal[prelude], TypeTheoryQuotients[]],
 		Information[prelude, "Axioms"],
-		MatchQ[prelude[FunctionExtensionality], TypeTheoryTheorem[__]]
+		MatchQ[prelude["functionExtensionality"], TypeTheoryTheorem[__]]
 	},
-	{4, 1, {PropositionalExtensionality, QuotientSoundness, Choice}, True},
+	{4, 1, {"propositionalExtensionality", "quotientSoundness", "choice"}, True},
 	TestID -> "The-prelude-has-Lean's-quotients-and-axioms"
 ]
 
 VerificationTest[
 	{
 		WeakHeadNormalForm[TypeTheoryTerm[
-			QuotientLift[Function[{Typed[k, NonNegativeIntegers]}, 7], Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[e, related[a, b]]}, EqualityReflexivity[7]], QuotientIntroduction[related, 5]]
+			QuotientLift[Function[{Typed[k, NonNegativeIntegers]}, 7], Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[e, related[a, b]]}, "equalityReflexivity"[7]], QuotientIntroduction[related, 5]]
 		]],
 		WeakHeadNormalForm[TypeTheoryTerm[Construct[
 			QuotientInduction,
 			NonNegativeIntegers,
 			related,
 			Function[{Typed[q, QuotientType[related]]}, True],
-			Function[{Typed[a, NonNegativeIntegers]}, TrueIntroduction],
+			Function[{Typed[a, NonNegativeIntegers]}, "trueIntroduction"],
 			QuotientIntroduction[related, 5]
 		]]]
 	},
-	{TypeTheoryTerm[7, prelude], TypeTheoryTerm[TrueIntroduction, prelude]},
+	{TypeTheoryTerm[7, prelude], TypeTheoryTerm["trueIntroduction", prelude]},
 	TestID -> "A-lift-and-an-induction-compute-on-a-class"
 ]
 
 VerificationTest[
 	First @ TypeTheoryCheck[TypeTheoryTerm[
-		QuotientLift[Function[{Typed[k, NonNegativeIntegers]}, k], Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[e, related[a, b]]}, EqualityReflexivity[a]], QuotientIntroduction[related, 5]]
+		QuotientLift[Function[{Typed[k, NonNegativeIntegers]}, k], Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[e, related[a, b]]}, "equalityReflexivity"[a]], QuotientIntroduction[related, 5]]
 	]],
 	"TypeMismatch",
 	TestID -> "A-lift-needs-a-proof-that-its-function-respects-the-relation"
@@ -87,7 +87,7 @@ VerificationTest[
 		With[{introductionType = First[prelude]["Records"][HoldComplete[QuotientIntroduction]]["Type"]},
 			First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Append[record, "Type" -> introductionType]]]]
 		],
-		First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Append[record, "Introduction" -> HoldComplete[NaturalNumberSuccessor]]]]]
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Append[record, "Introduction" -> HoldComplete["successor"]]]]]
 	},
 	{"DeclarationMismatch", "DeclarationMismatch"},
 	TestID -> "A-forged-quotient-is-caught"

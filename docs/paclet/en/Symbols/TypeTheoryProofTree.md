@@ -18,10 +18,10 @@ RelatedGuides: [TypeTheory]
 ## Details & Options
 
 - The rules are those of natural deduction for implication, conjunction, disjunction and falsity: `"Assumption"`, `"ImpliesIntro"`, `"ImpliesElim"`, `"AndIntro"`, `"AndElim"`, `"OrIntro"`, `"OrElim"` and `"FalseElim"`.
-- A proof maps to a derivation by its form, as the Curry-Howard correspondence has it: a hypothesis is an assumption, a function of a proof introduces an implication and an application eliminates one, [AndIntroduction](), [AndEliminationLeft]() and [AndEliminationRight]() introduce and eliminate a conjunction, [OrIntroductionLeft](), [OrIntroductionRight]() and the recursor of [Or]() a disjunction, and [FalseElimination]() falsity.
+- A proof maps to a derivation by its form, as the Curry-Howard correspondence has it: a hypothesis is an assumption, a function of a proof introduces an implication and an application eliminates one, `"andIntroduction"`, `"andEliminationLeft"` and `"andEliminationRight"` introduce and eliminate a conjunction, `"orIntroductionLeft"`, `"orIntroductionRight"` and the recursor of [Or]() a disjunction, and `"falseElimination"` falsity.
 - The functions of propositions a proof begins with bind the atoms of the derivation.
 - Each claim is the proposition its part of the proof proves, and must be a formula over the atoms: an atom, [True](), [False](), a conjunction, a disjunction, a negation or an implication.
-- A constant applied to formulas, as [ExcludedMiddle]() of an atom, is an open assumption, discharged by no rule.
+- A constant applied to formulas, as `"excludedMiddle"` of an atom, is an open assumption, discharged by no rule.
 - A proof that has another part, or a claim that is not such a formula, gives `Missing["Untranslatable"]`.
 - `Information[proof, "ProofTree"]` gives the same derivation.
 - A [TypeTheoryProofTree]() shows drawn, each conclusion under a line over its premises, with the rule named at the line's right, as →I, →E, ∧I, ∧E, ∨I, ∨E or ⊥E.
@@ -39,12 +39,12 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 The two eliminations of a conjunction and its introduction swap the conjuncts:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]} |-> AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]]]
+TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]} |-> "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]]
 ```
 
 ## Scope
 
-Peirce's law by excluded middle: the instance of [ExcludedMiddle]() is an open assumption, and the recursor of [Or]() eliminates it:
+Peirce's law by excluded middle: the instance of `"excludedMiddle"` is an open assumption, and the recursor of [Or]() eliminates it:
 
 ```wl
 TypeTheoryProofTree[TypeTheoryTerm[
@@ -52,8 +52,8 @@ TypeTheoryProofTree[TypeTheoryTerm[
         InductiveRecursor[Or][
             Function[{Typed[t, Or[a, Not[a]]]}, a],
             Function[{Typed[x, a]}, x],
-            Function[{Typed[n, Not[a]]}, f[Typed[y, a] |-> FalseElimination[n[y]]]],
-            ExcludedMiddle[a]
+            Function[{Typed[n, Not[a]]}, f[Typed[y, a] |-> "falseElimination"[n[y]]]],
+            "excludedMiddle"[a]
         ]
     ]
 ]]
@@ -74,7 +74,7 @@ Cases[TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[x, a]
 A proof that is not one of propositional logic has no derivation:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[EqualityReflexivity[2]]]
+TypeTheoryProofTree[TypeTheoryTerm["equalityReflexivity"[2]]]
 ```
 
 <!-- => Missing[Untranslatable] -->

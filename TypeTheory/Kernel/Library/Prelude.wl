@@ -11,14 +11,14 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 
 	True, False                propositions with one proof and with none
 	Not[p]                     Implies[p, False], a definition
-	And[p, q], Or[p, q]        with AndIntroduction, OrIntroductionLeft and OrIntroductionRight
-	a == b                     Equal, with EqualityReflexivity
-	Exists[{Typed[x, A]}, p]   Exists applied to a predicate, with ExistsIntroduction
-	NonNegativeIntegers        the natural numbers, with NaturalNumberZero and NaturalNumberSuccessor,
+	And[p, q], Or[p, q]        with "andIntroduction", "orIntroductionLeft" and "orIntroductionRight"
+	a == b                     Equal, with "equalityReflexivity"
+	Exists[{Typed[x, A]}, p]   Exists applied to a predicate, with "existsIntroduction"
+	NonNegativeIntegers        the natural numbers, with "zero" and "successor",
 	                           registered so that the literals 0, 1, 2, ... are natural numbers
 	m + n                      Plus, by recursion on n
 
-	Equivalent[p, q]           with EquivalentIntroduction, the two implications
+	Equivalent[p, q]           with "equivalentIntroduction", the two implications
 	x != y                     Unequal, Not[x == y]
 	Identity, Composition      the identity function and composition of functions
 	QuotientType[r]            the quotient types of Lean's kernel, with QuotientIntroduction, QuotientLift and
@@ -28,25 +28,24 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Booleans                   with the constants "false" and "true", "not", "and" and "or", named by strings;
 	                           True, False, Not, And and Or stand for these where a Boolean is expected
 	"equal", "lessEqual"       the Boolean comparisons of natural numbers, which the kernel computes on literals
-	Decidable[p]               decisions, with Decide, DecideSoundness, and the instances deciding == and <= of
+	Decidable[p]               decisions, with Decide, "decideSoundness", and the instances deciding == and <= of
 	                           natural numbers, True, False, the connectives and == of Booleans, the last three
 	                           named "trueDecidable", "falseDecidable" and "booleanEqualityDecidable"
 	CartesianProductType, DisjointUnionType, Option, List
 	                           pairs, sums, optional values and lists, with Join, Length, Map, Append and Reverse:
-	                           {a}, List[a], is the type of lists of a where a type is expected, and a list elsewhere;
-	                           Lists[a], the name it had, is read as it
+	                           {a}, List[a], is the type of lists of a where a type is expected, and a list elsewhere
 
-	Nonempty[a], Subtype[P]    with NonemptyIntroduction, and SubtypeIntroduction, an element and its proof
+	Nonempty[a], Subtype[P]    with "nonempty", and "subtype", an element and its proof
 
-The theorems are proved by terms, mostly with the recursors: FalseElimination, AndEliminationLeft,
-AndEliminationRight, EqualitySymmetry, EqualityTransitivity, EqualityCongruence and
-EqualitySubstitution for logic and equality; the Equivalent theorems; and the laws of arithmetic and
+The theorems are proved by terms, mostly with the recursors: "falseElimination", "andEliminationLeft",
+"andEliminationRight", "equalitySymmetry", "equalityTransitivity", "equalityCongruence" and
+"equalitySubstitution" for logic and equality; the Equivalent theorems; and the laws of arithmetic and
 order: commutativity, associativity and distributivity of addition and multiplication, cancellation,
 injectivity of the successor, and the order's reflexivity, transitivity and antisymmetry.
 
-The classical declarations come last: Lean's axioms PropositionalExtensionality, QuotientSoundness and
-Choice, ChosenWitness defined from Choice, and FunctionExtensionality, ExcludedMiddle and
-DoubleNegationElimination proved from the axioms.
+The classical declarations come last: Lean's axioms "propositionalExtensionality", "quotientSoundness" and
+"choice", ChosenWitness defined from "choice", and "functionExtensionality", "excludedMiddle" and
+"doubleNegationElimination" proved from the axioms.
 
 Bound variables are plain symbols: a binder scopes its variable, so no value can reach it, and the
 display shows each by its name.
@@ -57,113 +56,16 @@ display shows each by its name.
 (*PackageExported*)
 
 
-PackageExported[TrueIntroduction]
-PackageExported[AndIntroduction]
-PackageExported[OrIntroductionLeft]
-PackageExported[OrIntroductionRight]
-PackageExported[EqualityReflexivity]
-PackageExported[ExistsIntroduction]
 PackageExported[Naturals]
-PackageExported[NaturalNumberZero]
-PackageExported[NaturalNumberSuccessor]
-PackageExported[FalseElimination]
-PackageExported[AndEliminationLeft]
-PackageExported[AndEliminationRight]
-PackageExported[EqualitySymmetry]
-PackageExported[EqualityTransitivity]
-PackageExported[EqualityCongruence]
-PackageExported[EqualitySubstitution]
-PackageExported[EquivalentIntroduction]
-PackageExported[EquivalentForward]
-PackageExported[EquivalentBackward]
-PackageExported[EquivalentReflexivity]
-PackageExported[EquivalentSymmetry]
-PackageExported[EquivalentTransitivity]
 PackageExported[NaturalNumberPredecessor]
-PackageExported[LessEqualReflexivity]
-PackageExported[LessEqualStep]
-PackageExported[AdditionZeroRight]
-PackageExported[AdditionZeroLeft]
-PackageExported[AdditionSuccessorRight]
-PackageExported[AdditionSuccessorLeft]
-PackageExported[AdditionCommutativity]
-PackageExported[AdditionAssociativity]
-PackageExported[MultiplicationZeroRight]
-PackageExported[MultiplicationZeroLeft]
-PackageExported[MultiplicationSuccessorRight]
-PackageExported[MultiplicationOneRight]
-PackageExported[MultiplicationOneLeft]
-PackageExported[MultiplicationSuccessorLeft]
-PackageExported[MultiplicationCommutativity]
-PackageExported[MultiplicationDistributivityLeft]
-PackageExported[MultiplicationDistributivityRight]
-PackageExported[MultiplicationAssociativity]
-PackageExported[SuccessorInjectivity]
-PackageExported[SuccessorNotZero]
-PackageExported[SubtractionZeroRight]
-PackageExported[SubtractionZeroLeft]
-PackageExported[SubtractionSuccessor]
-PackageExported[SubtractionSelf]
-PackageExported[AdditionSubtractionCancellation]
-PackageExported[MultiplicationCancellation]
-PackageExported[PowerZero]
-PackageExported[PowerSuccessor]
-PackageExported[PowerOne]
-PackageExported[PowerAddition]
-PackageExported[PredecessorLessEqual]
-PackageExported[LessEqualZero]
-PackageExported[LessEqualSuccessor]
-PackageExported[LessEqualTransitivity]
-PackageExported[LessEqualAddition]
-PackageExported[SuccessorNotLessEqualZero]
-PackageExported[LessEqualPredecessor]
-PackageExported[LessIrreflexivity]
-PackageExported[LessEqualAntisymmetry]
-PackageExported[AdditionMonotonicity]
-PackageExported[MultiplicationMonotonicity]
-PackageExported[LessEqualTotality]
-PackageExported[NonemptyIntroduction]
-PackageExported[SubtypeIntroduction]
 PackageExported[Nonempty]
 PackageExported[Subtype]
-PackageExported[PropositionalExtensionality]
-PackageExported[FunctionExtensionality]
-PackageExported[QuotientSoundness]
-PackageExported[Choice]
 PackageExported[ChosenWitness]
-PackageExported[ChosenWitnessProperty]
-PackageExported[ExcludedMiddle]
-PackageExported[DoubleNegationElimination]
 PackageExported[Decidable]
-PackageExported[DecidableFalse]
-PackageExported[DecidableTrue]
 PackageExported[Decide]
 PackageExported[CartesianProductType]
-PackageExported[Pair]
 PackageExported[DisjointUnionType]
-PackageExported[LeftInjection]
-PackageExported[RightInjection]
 PackageExported[Option]
-PackageExported[OptionNone]
-PackageExported[OptionSome]
-PackageExported[Lists]
-PackageExported[EmptyList]
-PackageExported[ListPrepend]
-PackageExported[DecideSoundness]
-PackageExported[NotDecidable]
-PackageExported[AndDecidable]
-PackageExported[OrDecidable]
-PackageExported[NaturalNumberEqualityDecidable]
-PackageExported[LessEqualDecidable]
-PackageExported[JoinEmptyRight]
-PackageExported[JoinAssociativity]
-PackageExported[LengthJoin]
-PackageExported[LengthMap]
-PackageExported[MapJoin]
-PackageExported[MapComposition]
-PackageExported[ReverseJoin]
-PackageExported[ReverseReverse]
-PackageExported[LengthReverse]
 
 
 (* ::Section:: *)
@@ -182,117 +84,18 @@ PackageScoped[$preludeEnvironment]
 (*Usage Messages*)
 
 
-TrueIntroduction::usage = "TrueIntroduction is the proof of True."
-AndIntroduction::usage = "AndIntroduction[p, q] proves And[a, b] from a proof p of a and a proof q of b."
-OrIntroductionLeft::usage = "OrIntroductionLeft[p] proves Or[a, b] from a proof p of a."
-OrIntroductionRight::usage = "OrIntroductionRight[q] proves Or[a, b] from a proof q of b."
-EqualityReflexivity::usage = "EqualityReflexivity[x] proves x == x."
-ExistsIntroduction::usage = "ExistsIntroduction[w, h] proves Exists[p] from a witness w and a proof h of p[w]."
 Naturals::usage = "Naturals is NonNegativeIntegers, the natural numbers of the prelude, by a shorter name: in a term, a symbol whose \
 value is a declared constant stands for that constant."
-NaturalNumberZero::usage = "NaturalNumberZero is the natural number zero, written 0."
-NaturalNumberSuccessor::usage = "NaturalNumberSuccessor[n] is the natural number after n."
-FalseElimination::usage = "FalseElimination[h] proves any proposition from a proof h of False."
-AndEliminationLeft::usage = "AndEliminationLeft[h] proves a from a proof h of And[a, b]."
-AndEliminationRight::usage = "AndEliminationRight[h] proves b from a proof h of And[a, b]."
-EqualitySymmetry::usage = "EqualitySymmetry[h] proves y == x from a proof h of x == y."
-EqualityTransitivity::usage = "EqualityTransitivity[h1, h2] proves x == z from proofs h1 of x == y and h2 of y == z."
-EqualityCongruence::usage = "EqualityCongruence[f, h] proves f[x] == f[y] from a proof h of x == y."
-EqualitySubstitution::usage = "EqualitySubstitution[h, p] proves P[y] from a proof h of x == y and a proof p of P[x]."
-EquivalentIntroduction::usage = "EquivalentIntroduction[f, g] proves Equivalent[a, b] from a proof f of Implies[a, b] and a proof g of Implies[b, a]."
-EquivalentForward::usage = "EquivalentForward[h] proves Implies[a, b] from a proof h of Equivalent[a, b]."
-EquivalentBackward::usage = "EquivalentBackward[h] proves Implies[b, a] from a proof h of Equivalent[a, b]."
-EquivalentReflexivity::usage = "EquivalentReflexivity[a] proves Equivalent[a, a]."
-EquivalentSymmetry::usage = "EquivalentSymmetry[h] proves Equivalent[b, a] from a proof h of Equivalent[a, b]."
-EquivalentTransitivity::usage = "EquivalentTransitivity[h1, h2] proves Equivalent[a, c] from proofs h1 of Equivalent[a, b] and h2 of Equivalent[b, c]."
 NaturalNumberPredecessor::usage = "NaturalNumberPredecessor[n] is the natural number before n, and 0 before 0."
-LessEqualReflexivity::usage = "LessEqualReflexivity proves n <= n."
-LessEqualStep::usage = "LessEqualStep[h] proves n <= m + 1 from a proof h of n <= m."
-AdditionZeroRight::usage = "AdditionZeroRight[n] proves n + 0 == n."
-AdditionZeroLeft::usage = "AdditionZeroLeft[n] proves 0 + n == n."
-AdditionSuccessorRight::usage = "AdditionSuccessorRight[m, n] proves m + (n + 1) == m + n + 1."
-AdditionSuccessorLeft::usage = "AdditionSuccessorLeft[m, n] proves m + 1 + n == m + n + 1."
-AdditionCommutativity::usage = "AdditionCommutativity[m, n] proves m + n == n + m."
-AdditionAssociativity::usage = "AdditionAssociativity[a, b, c] proves a + b + c == a + (b + c)."
-MultiplicationZeroRight::usage = "MultiplicationZeroRight[n] proves n * 0 == 0."
-MultiplicationZeroLeft::usage = "MultiplicationZeroLeft[n] proves 0 * n == 0."
-MultiplicationSuccessorRight::usage = "MultiplicationSuccessorRight[m, n] proves m * (n + 1) == m * n + m."
-MultiplicationOneRight::usage = "MultiplicationOneRight[n] proves n * 1 == n."
-MultiplicationOneLeft::usage = "MultiplicationOneLeft[n] proves 1 * n == n."
-MultiplicationSuccessorLeft::usage = "MultiplicationSuccessorLeft[m, n] proves (m + 1) * n == m * n + n."
-MultiplicationCommutativity::usage = "MultiplicationCommutativity[m, n] proves m * n == n * m."
-MultiplicationDistributivityLeft::usage = "MultiplicationDistributivityLeft[a, b, c] proves a * (b + c) == a * b + a * c."
-MultiplicationDistributivityRight::usage = "MultiplicationDistributivityRight[a, b, c] proves (a + b) * c == a * c + b * c."
-MultiplicationAssociativity::usage = "MultiplicationAssociativity[a, b, c] proves a * b * c == a * (b * c)."
-SuccessorInjectivity::usage = "SuccessorInjectivity[h] proves m == n from a proof h of m + 1 == n + 1."
-SuccessorNotZero::usage = "SuccessorNotZero[n] proves n + 1 != 0."
-SubtractionZeroRight::usage = "SubtractionZeroRight[n] proves n - 0 == n."
-SubtractionZeroLeft::usage = "SubtractionZeroLeft[n] proves 0 - n == 0: subtraction of natural numbers stops at 0."
-SubtractionSuccessor::usage = "SubtractionSuccessor[n, m] proves (n + 1) - (m + 1) == n - m."
-SubtractionSelf::usage = "SubtractionSelf[n] proves n - n == 0."
-AdditionSubtractionCancellation::usage = "AdditionSubtractionCancellation[n, m] proves (n + m) - m == n."
-MultiplicationCancellation::usage = "MultiplicationCancellation[k, a, b, h] proves a == b from a proof h of (k + 1) * a == (k + 1) * b."
-PowerZero::usage = "PowerZero[m] proves m^0 == 1."
-PowerSuccessor::usage = "PowerSuccessor[m, n] proves m^(n + 1) == m^n * m."
-PowerOne::usage = "PowerOne[m] proves m^1 == m."
-PowerAddition::usage = "PowerAddition[m, a, b] proves m^(a + b) == m^a * m^b."
-PredecessorLessEqual::usage = "PredecessorLessEqual[n] proves NaturalNumberPredecessor[n] <= n."
-LessEqualZero::usage = "LessEqualZero[n] proves 0 <= n."
-LessEqualSuccessor::usage = "LessEqualSuccessor[h] proves n + 1 <= m + 1 from a proof h of n <= m."
-LessEqualTransitivity::usage = "LessEqualTransitivity[h1, h2] proves a <= c from proofs h1 of a <= b and h2 of b <= c."
-LessEqualAddition::usage = "LessEqualAddition[n, m] proves n <= n + m."
-SuccessorNotLessEqualZero::usage = "SuccessorNotLessEqualZero[n] proves Not[n + 1 <= 0]."
-LessEqualPredecessor::usage = "LessEqualPredecessor[h] proves n <= m from a proof h of n + 1 <= m + 1."
-LessIrreflexivity::usage = "LessIrreflexivity[n] proves Not[n < n]."
-LessEqualAntisymmetry::usage = "LessEqualAntisymmetry[h1, h2] proves a == b from proofs h1 of a <= b and h2 of b <= a."
-AdditionMonotonicity::usage = "AdditionMonotonicity[h1, h2] proves a + c <= b + d from proofs h1 of a <= b and h2 of c <= d."
-MultiplicationMonotonicity::usage = "MultiplicationMonotonicity[k, h] proves a * k <= b * k from a proof h of a <= b."
-LessEqualTotality::usage = "LessEqualTotality[m, n] proves Or[m <= n, n < m]."
 Nonempty::usage = "Nonempty[a] is the proposition that the type a has an element."
-NonemptyIntroduction::usage = "NonemptyIntroduction[x] proves Nonempty[a] from an element x of a."
 Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]."
-SubtypeIntroduction::usage = "SubtypeIntroduction[x, h] is the element x of Subtype[P], with h a proof of P[x]."
-PropositionalExtensionality::usage = "PropositionalExtensionality[h] proves a == b from a proof h of Equivalent[a, b]: equivalent propositions are equal. It is an axiom of the prelude."
-FunctionExtensionality::usage = "FunctionExtensionality[h] proves f == g from a proof h that f[x] == g[x] for every x. It is a theorem of the prelude, \
-proved from QuotientSoundness as Lean proves funext."
-QuotientSoundness::usage = "QuotientSoundness[h] proves QuotientIntroduction[r, a] == QuotientIntroduction[r, b] from a proof h of r[a, b]: the classes \
-of related elements are equal. It is an axiom of the prelude, Lean's Quot.sound."
-Choice::usage = "Choice[h] is an element of the type a, chosen given a proof h of Nonempty[a]. It is an axiom of the prelude, so it does not compute."
 ChosenWitness::usage = "ChosenWitness[h] is an element x with P[x], chosen from a proof h of Exists[P]."
-ChosenWitnessProperty::usage = "ChosenWitnessProperty[h] proves P[ChosenWitness[h]] from a proof h of Exists[P]."
-ExcludedMiddle::usage = "ExcludedMiddle[p] proves Or[p, Not[p]]. It is a theorem of the prelude, proved from its axioms."
-DoubleNegationElimination::usage = "DoubleNegationElimination[p] proves Implies[Not[Not[p]], p]."
-Decidable::usage = "Decidable[p] is the type of decisions of the proposition p: DecidableFalse with a proof of Not[p], or DecidableTrue with a proof of p."
-DecidableFalse::usage = "DecidableFalse[h] decides p false, given a proof h of Not[p]."
-DecidableTrue::usage = "DecidableTrue[h] decides p true, given a proof h of p."
-Decide::usage = "Decide[p] is the Boolean that the decision of the proposition p computes, False for DecidableFalse and True for DecidableTrue, \
+Decidable::usage = "Decidable[p] is the type of decisions of the proposition p: \"decidableFalse\" with a proof of Not[p], or \"decidableTrue\" with a proof of p."
+Decide::usage = "Decide[p] is the Boolean that the decision of the proposition p computes, False for \"decidableFalse\" and True for \"decidableTrue\", \
 the decision being the instance of Decidable[p] that elaboration finds."
 CartesianProductType::usage = "CartesianProductType[a, b] is the type of the pairs of an element of the type a and one of the type b; p[[1]] and p[[2]] project a pair p."
-Pair::usage = "Pair[x, y] is the element of CartesianProductType[a, b] made of x of type a and y of type b."
 DisjointUnionType::usage = "DisjointUnionType[a, b] is the type of the elements of the type a or of the type b, each tagged with its side."
-LeftInjection::usage = "LeftInjection[x] is the element x of the type a in DisjointUnionType[a, b]."
-RightInjection::usage = "RightInjection[y] is the element y of the type b in DisjointUnionType[a, b]."
-Option::usage = "Option[a] is the type of optional elements of the type a: OptionNone, or OptionSome[x] with x of type a."
-OptionNone::usage = "OptionNone is the element of Option[a] with no element of a."
-OptionSome::usage = "OptionSome[x] is the element of Option[a] holding x of type a."
-Lists::usage = "Lists[a] is {a}, the type of finite lists of elements of the type a, the name it had: where a type is expected, List[a], written {a}, is the type, built from {} by Prepend; Join, Length, Map, Append and Reverse operate on lists."
-EmptyList::usage = "EmptyList is {}, the list with no elements, of type {a}, by the name it had."
-ListPrepend::usage = "ListPrepend[x, l] is Prepend[x][l], the list l with x in front, by the name it had."
-DecideSoundness::usage = "DecideSoundness[h] proves p from a proof h of Decide[p] == True, for the instance of Decidable[p] that elaboration finds."
-NotDecidable::usage = "NotDecidable is the instance deciding Not[p] from the instance of Decidable[p]."
-AndDecidable::usage = "AndDecidable is the instance deciding And[p, q] from the instances of Decidable[p] and Decidable[q]."
-OrDecidable::usage = "OrDecidable is the instance deciding Or[p, q] from the instances of Decidable[p] and Decidable[q]."
-NaturalNumberEqualityDecidable::usage = "NaturalNumberEqualityDecidable[m, n] decides m == n for natural numbers m and n; it is the instance of Decidable[m == n]."
-LessEqualDecidable::usage = "LessEqualDecidable[m, n] decides m <= n for natural numbers m and n; it is the instance of Decidable[m <= n]."
-JoinEmptyRight::usage = "JoinEmptyRight[l] proves Join[l, {}] == l."
-JoinAssociativity::usage = "JoinAssociativity[a, b, c] proves Join[Join[a, b], c] == Join[a, Join[b, c]]."
-LengthJoin::usage = "LengthJoin[a, b] proves Length[Join[a, b]] == Length[a] + Length[b]."
-LengthMap::usage = "LengthMap[f, l] proves Length[Map[f, l]] == Length[l]."
-MapJoin::usage = "MapJoin[f, a, b] proves Map[f, Join[a, b]] == Join[Map[f, a], Map[f, b]]."
-MapComposition::usage = "MapComposition[f, g, l] proves Map[f, Map[g, l]] == Map[Composition[f, g], l]."
-ReverseJoin::usage = "ReverseJoin[a, b] proves Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]."
-ReverseReverse::usage = "ReverseReverse[l] proves Reverse[Reverse[l]] == l."
-LengthReverse::usage = "LengthReverse[l] proves Length[Reverse[l]] == Length[l]."
+Option::usage = "Option[a] is the type of optional elements of the type a: \"none\", or \"some\"[x] with x of type a."
 
 preludeEnvironment::usage = "preludeEnvironment[] gives the environment of the prelude, built and checked when the paclet loads."
 $constructiveDeclarations::usage = "$constructiveDeclarations is the list of the declarations of the constructive environment, in order."
@@ -309,14 +112,14 @@ $preludeEnvironment::usage = "$preludeEnvironment is the environment of the prel
 Naturals = NonNegativeIntegers
 
 $constructiveDeclarations = {
-	TypeTheoryInductiveType[True, TypeUniverse[0], {TrueIntroduction -> True}],
+	TypeTheoryInductiveType[True, TypeUniverse[0], {"trueIntroduction" -> True}],
 	TypeTheoryInductiveType[False, TypeUniverse[0], {}],
 	TypeTheoryDefinition[Not, Function[{Typed[a, TypeUniverse[0]]}, Implies[a, False]]],
 	TypeTheoryInductiveType[
 		And,
 		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
-			AndIntroduction -> ForAll[
+			"andIntroduction" -> ForAll[
 				{
 					TypedImplicit[a, TypeUniverse[0]],
 					TypedImplicit[b, TypeUniverse[0]],
@@ -331,11 +134,11 @@ $constructiveDeclarations = {
 		Or,
 		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
-			OrIntroductionLeft -> ForAll[
+			"orIntroductionLeft" -> ForAll[
 				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[p, a]},
 				Or[a, b]
 			],
-			OrIntroductionRight -> ForAll[
+			"orIntroductionRight" -> ForAll[
 				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[q, b]},
 				Or[a, b]
 			]
@@ -345,7 +148,7 @@ $constructiveDeclarations = {
 		Equivalent,
 		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
-			EquivalentIntroduction -> ForAll[
+			"equivalentIntroduction" -> ForAll[
 				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[f, Implies[a, b]], Typed[g, Implies[b, a]]},
 				Equivalent[a, b]
 			]
@@ -355,7 +158,7 @@ $constructiveDeclarations = {
 		Equal,
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, TypeUniverse[0]],
 		{
-			EqualityReflexivity -> ForAll[
+			"equalityReflexivity" -> ForAll[
 				{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]},
 				x == x
 			]
@@ -368,7 +171,7 @@ $constructiveDeclarations = {
 			TypeUniverse[0]
 		],
 		{
-			ExistsIntroduction -> ForAll[
+			"existsIntroduction" -> ForAll[
 				{
 					TypedImplicit[\[Alpha], TypeUniverse[u]],
 					TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]],
@@ -395,14 +198,14 @@ $constructiveDeclarations = {
 		]
 	],
 	(* the quotient types of Lean's kernel, whose lift computes on a class; that related elements have equal
-	   classes is the axiom QuotientSoundness, among the classical declarations *)
+	   classes is the axiom "quotientSoundness", among the classical declarations *)
 	TypeTheoryQuotients[],
 	TypeTheoryInductiveType[
 		NonNegativeIntegers,
 		TypeUniverse[1],
 		{
-			NaturalNumberZero -> NonNegativeIntegers,
-			NaturalNumberSuccessor -> ForAll[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers]
+			"zero" -> NonNegativeIntegers,
+			"successor" -> ForAll[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers]
 		}
 	],
 	(* addition by recursion on the second argument, as Lean's *)
@@ -413,14 +216,14 @@ $constructiveDeclarations = {
 				InductiveRecursor[NonNegativeIntegers][
 					Function[{Typed[t, NonNegativeIntegers]}, NonNegativeIntegers],
 					m,
-					Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, NaturalNumberSuccessor[r]],
+					Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, "successor"[r]],
 					n
 				]
 			],
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
 		]
 	],
-	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, Plus],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", Plus],
 	(* the number before n, and 0 before 0 *)
 	TypeTheoryDefinition[
 		NaturalNumberPredecessor,
@@ -476,28 +279,28 @@ $constructiveDeclarations = {
 		]
 	],
 	(* the kernel computes these on literals with integers, as Lean's kernel computes its own *)
-	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>],
 	(* m <= n as Lean defines it: n is m, or the successor of a number m is at most *)
 	TypeTheoryInductiveType[
 		LessEqual,
 		TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> TypeUniverse[0]],
 		{
-			LessEqualReflexivity -> ForAll[{TypedImplicit[n, NonNegativeIntegers]}, n <= n],
-			LessEqualStep -> ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n <= m]}, n <= NaturalNumberSuccessor[m]]
+			"lessEqualReflexivity" -> ForAll[{TypedImplicit[n, NonNegativeIntegers]}, n <= n],
+			"lessEqualStep" -> ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n <= m]}, n <= "successor"[m]]
 		}
 	],
 	TypeTheoryDefinition[Less, Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m + 1 <= n]],
 	TypeTheoryDefinition[GreaterEqual, Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, n <= m]],
 	TypeTheoryDefinition[Greater, Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, n < m]],
 	TypeTheoryTheorem[
-		FalseElimination,
+		"falseElimination",
 		ForAll[{TypedImplicit[a, TypeUniverse[0]]}, Implies[False, a]],
 		Function[{TypedImplicit[a, TypeUniverse[0]], Typed[h, False]},
 			InductiveRecursor[False][Function[{Typed[t, False]}, a], h]
 		]
 	],
 	TypeTheoryTheorem[
-		AndEliminationLeft,
+		"andEliminationLeft",
 		ForAll[
 			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]},
 			Implies[And[a, b], a]
@@ -512,7 +315,7 @@ $constructiveDeclarations = {
 		]
 	],
 	TypeTheoryTheorem[
-		AndEliminationRight,
+		"andEliminationRight",
 		ForAll[
 			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]},
 			Implies[And[a, b], b]
@@ -527,7 +330,7 @@ $constructiveDeclarations = {
 		]
 	],
 	TypeTheoryTheorem[
-		EqualitySymmetry,
+		"equalitySymmetry",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u]],
@@ -545,13 +348,13 @@ $constructiveDeclarations = {
 			},
 			InductiveRecursor[Equal][
 				Function[{Typed[z, \[Alpha]], Typed[e, x == z]}, z == x],
-				EqualityReflexivity[x],
+				"equalityReflexivity"[x],
 				h
 			]
 		]
 	],
 	TypeTheoryTheorem[
-		EqualityTransitivity,
+		"equalityTransitivity",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u]],
@@ -578,7 +381,7 @@ $constructiveDeclarations = {
 		]
 	],
 	TypeTheoryTheorem[
-		EqualityCongruence,
+		"equalityCongruence",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u]],
@@ -600,13 +403,13 @@ $constructiveDeclarations = {
 			},
 			InductiveRecursor[Equal][
 				Function[{Typed[z, \[Alpha]], Typed[e, x == z]}, f[x] == f[z]],
-				EqualityReflexivity[f[x]],
+				"equalityReflexivity"[f[x]],
 				h
 			]
 		]
 	],
 	TypeTheoryTheorem[
-		EqualitySubstitution,
+		"equalitySubstitution",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u]],
@@ -633,168 +436,168 @@ $constructiveDeclarations = {
 		]
 	],
 	TypeTheoryTheorem[
-		EquivalentForward,
+		"equivalentForward",
 		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], Implies[a, b]]],
 		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, h[[1]]]
 	],
 	TypeTheoryTheorem[
-		EquivalentBackward,
+		"equivalentBackward",
 		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], Implies[b, a]]],
 		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, h[[2]]]
 	],
 	TypeTheoryTheorem[
-		EquivalentReflexivity,
+		"equivalentReflexivity",
 		ForAll[{Typed[a, TypeUniverse[0]]}, Equivalent[a, a]],
-		Function[{Typed[a, TypeUniverse[0]]}, EquivalentIntroduction[Function[{Typed[p, a]}, p], Function[{Typed[p, a]}, p]]]
+		Function[{Typed[a, TypeUniverse[0]]}, "equivalentIntroduction"[Function[{Typed[p, a]}, p], Function[{Typed[p, a]}, p]]]
 	],
 	TypeTheoryTheorem[
-		EquivalentSymmetry,
+		"equivalentSymmetry",
 		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], Equivalent[b, a]]],
-		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, EquivalentIntroduction[h[[2]], h[[1]]]]
+		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, Equivalent[a, b]]}, "equivalentIntroduction"[h[[2]], h[[1]]]]
 	],
 	TypeTheoryTheorem[
-		EquivalentTransitivity,
+		"equivalentTransitivity",
 		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], TypedImplicit[c, TypeUniverse[0]]}, Implies[Equivalent[a, b], Implies[Equivalent[b, c], Equivalent[a, c]]]],
-		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], TypedImplicit[c, TypeUniverse[0]], Typed[h, Equivalent[a, b]], Typed[k, Equivalent[b, c]]}, EquivalentIntroduction[Function[{Typed[p, a]}, k[[1]][h[[1]][p]]], Function[{Typed[r, c]}, h[[2]][k[[2]][r]]]]]
+		Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], TypedImplicit[c, TypeUniverse[0]], Typed[h, Equivalent[a, b]], Typed[k, Equivalent[b, c]]}, "equivalentIntroduction"[Function[{Typed[p, a]}, k[[1]][h[[1]][p]]], Function[{Typed[r, c]}, h[[2]][k[[2]][r]]]]]
 	],
 	TypeTheoryTheorem[
-		AdditionZeroRight,
+		"additionZeroRight",
 		ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n],
-		Function[{Typed[n, NonNegativeIntegers]}, EqualityReflexivity[n]]
+		Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n]]
 	],
 	TypeTheoryTheorem[
-		AdditionZeroLeft,
+		"additionZeroLeft",
 		ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 0 + k == k], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, 0 + k == k]}, EqualityCongruence[NaturalNumberSuccessor, ih]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 0 + k == k], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, 0 + k == k]}, "equalityCongruence"["successor", ih]], n]]
 	],
 	TypeTheoryTheorem[
-		AdditionSuccessorRight,
+		"additionSuccessorRight",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m + (n + 1) == m + n + 1],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, EqualityReflexivity[m + n + 1]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[m + n + 1]]
 	],
 	TypeTheoryTheorem[
-		AdditionSuccessorLeft,
+		"additionSuccessorLeft",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m + 1 + n == m + n + 1],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m + 1 + k == m + k + 1], EqualityReflexivity[m + 1], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m + 1 + k == m + k + 1]}, EqualityCongruence[NaturalNumberSuccessor, ih]], n]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m + 1 + k == m + k + 1], "equalityReflexivity"[m + 1], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m + 1 + k == m + k + 1]}, "equalityCongruence"["successor", ih]], n]]
 	],
 	TypeTheoryTheorem[
-		AdditionCommutativity,
+		"additionCommutativity",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m + n == n + m],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m + k == k + m], EqualitySymmetry[AdditionZeroLeft[m]], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m + k == k + m]}, EqualityTransitivity[EqualityCongruence[NaturalNumberSuccessor, ih], EqualitySymmetry[AdditionSuccessorLeft[k, m]]]], n]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m + k == k + m], "equalitySymmetry"["additionZeroLeft"[m]], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m + k == k + m]}, "equalityTransitivity"["equalityCongruence"["successor", ih], "equalitySymmetry"["additionSuccessorLeft"[k, m]]]], n]]
 	],
 	TypeTheoryTheorem[
-		AdditionAssociativity,
+		"additionAssociativity",
 		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, a + b + c == a + (b + c)],
-		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, a + b + k == a + (b + k)], EqualityReflexivity[a + b], Function[{Typed[k, NonNegativeIntegers], Typed[ih, a + b + k == a + (b + k)]}, EqualityCongruence[NaturalNumberSuccessor, ih]], c]]
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, a + b + k == a + (b + k)], "equalityReflexivity"[a + b], Function[{Typed[k, NonNegativeIntegers], Typed[ih, a + b + k == a + (b + k)]}, "equalityCongruence"["successor", ih]], c]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationZeroRight,
+		"multiplicationZeroRight",
 		ForAll[{Typed[n, NonNegativeIntegers]}, n * 0 == 0],
-		Function[{Typed[n, NonNegativeIntegers]}, EqualityReflexivity[0]]
+		Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[0]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationZeroLeft,
+		"multiplicationZeroLeft",
 		ForAll[{Typed[n, NonNegativeIntegers]}, 0 * n == 0],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 0 * k == 0], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, 0 * k == 0]}, ih], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 0 * k == 0], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, 0 * k == 0]}, ih], n]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationSuccessorRight,
+		"multiplicationSuccessorRight",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m * (n + 1) == m * n + m],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, EqualityReflexivity[m * n + m]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[m * n + m]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationOneRight,
+		"multiplicationOneRight",
 		ForAll[{Typed[n, NonNegativeIntegers]}, n * 1 == n],
-		Function[{Typed[n, NonNegativeIntegers]}, AdditionZeroLeft[n]]
+		Function[{Typed[n, NonNegativeIntegers]}, "additionZeroLeft"[n]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationOneLeft,
+		"multiplicationOneLeft",
 		ForAll[{Typed[n, NonNegativeIntegers]}, 1 * n == n],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 1 * k == k], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, 1 * k == k]}, EqualityCongruence[NaturalNumberSuccessor, ih]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 1 * k == k], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, 1 * k == k]}, "equalityCongruence"["successor", ih]], n]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationSuccessorLeft,
+		"multiplicationSuccessorLeft",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, (m + 1) * n == m * n + n],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, (m + 1) * k == m * k + k], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, (m + 1) * k == m * k + k]}, EqualityCongruence[NaturalNumberSuccessor, EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x + m], ih], EqualityTransitivity[AdditionAssociativity[m * k, k, m], EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, m * k + x], AdditionCommutativity[k, m]], EqualitySymmetry[AdditionAssociativity[m * k, m, k]]]]]]], n]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, (m + 1) * k == m * k + k], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, (m + 1) * k == m * k + k]}, "equalityCongruence"["successor", "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + m], ih], "equalityTransitivity"["additionAssociativity"[m * k, k, m], "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, m * k + x], "additionCommutativity"[k, m]], "equalitySymmetry"["additionAssociativity"[m * k, m, k]]]]]]], n]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationCommutativity,
+		"multiplicationCommutativity",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m * n == n * m],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m * k == k * m], EqualitySymmetry[MultiplicationZeroLeft[m]], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m * k == k * m]}, EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x + m], ih], EqualitySymmetry[MultiplicationSuccessorLeft[k, m]]]], n]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m * k == k * m], "equalitySymmetry"["multiplicationZeroLeft"[m]], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m * k == k * m]}, "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + m], ih], "equalitySymmetry"["multiplicationSuccessorLeft"[k, m]]]], n]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationDistributivityLeft,
+		"multiplicationDistributivityLeft",
 		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, a * (b + c) == a * b + a * c],
-		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, a * (b + k) == a * b + a * k], EqualityReflexivity[a * b], Function[{Typed[k, NonNegativeIntegers], Typed[ih, a * (b + k) == a * b + a * k]}, EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x + a], ih], AdditionAssociativity[a * b, a * k, a]]], c]]
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, a * (b + k) == a * b + a * k], "equalityReflexivity"[a * b], Function[{Typed[k, NonNegativeIntegers], Typed[ih, a * (b + k) == a * b + a * k]}, "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + a], ih], "additionAssociativity"[a * b, a * k, a]]], c]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationDistributivityRight,
+		"multiplicationDistributivityRight",
 		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, (a + b) * c == a * c + b * c],
-		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, EqualityTransitivity[MultiplicationCommutativity[a + b, c], EqualityTransitivity[MultiplicationDistributivityLeft[c, a, b], EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x + c * b], MultiplicationCommutativity[c, a]], EqualityCongruence[Function[{Typed[y, NonNegativeIntegers]}, a * c + y], MultiplicationCommutativity[c, b]]]]]]
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, "equalityTransitivity"["multiplicationCommutativity"[a + b, c], "equalityTransitivity"["multiplicationDistributivityLeft"[c, a, b], "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + c * b], "multiplicationCommutativity"[c, a]], "equalityCongruence"[Function[{Typed[y, NonNegativeIntegers]}, a * c + y], "multiplicationCommutativity"[c, b]]]]]]
 	],
 	TypeTheoryTheorem[
-		MultiplicationAssociativity,
+		"multiplicationAssociativity",
 		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, a * b * c == a * (b * c)],
-		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, a * b * k == a * (b * k)], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, a * b * k == a * (b * k)]}, EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x + a * b], ih], EqualitySymmetry[MultiplicationDistributivityLeft[a, b * k, b]]]], c]]
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, a * b * k == a * (b * k)], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, a * b * k == a * (b * k)]}, "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + a * b], ih], "equalitySymmetry"["multiplicationDistributivityLeft"[a, b * k, b]]]], c]]
 	],
 	TypeTheoryTheorem[
-		SuccessorInjectivity,
+		"successorInjectivity",
 		ForAll[{TypedImplicit[m, NonNegativeIntegers], TypedImplicit[n, NonNegativeIntegers]}, Implies[m + 1 == n + 1, m == n]],
-		Function[{TypedImplicit[m, NonNegativeIntegers], TypedImplicit[n, NonNegativeIntegers], Typed[h, m + 1 == n + 1]}, EqualityCongruence[NaturalNumberPredecessor, h]]
+		Function[{TypedImplicit[m, NonNegativeIntegers], TypedImplicit[n, NonNegativeIntegers], Typed[h, m + 1 == n + 1]}, "equalityCongruence"[NaturalNumberPredecessor, h]]
 	],
 	TypeTheoryTheorem[
-		SuccessorNotZero,
+		"successorNotZero",
 		ForAll[{Typed[n, NonNegativeIntegers]}, n + 1 != 0],
-		Function[{Typed[n, NonNegativeIntegers], Typed[h, n + 1 == 0]}, Construct[EqualitySubstitution, NonNegativeIntegers, Function[{Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[t, NonNegativeIntegers]}, TypeUniverse[0]], False, Function[{Typed[j, NonNegativeIntegers], Typed[r, TypeUniverse[0]]}, True], k]], n + 1, 0, h, TrueIntroduction]]
+		Function[{Typed[n, NonNegativeIntegers], Typed[h, n + 1 == 0]}, Construct["equalitySubstitution", NonNegativeIntegers, Function[{Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[t, NonNegativeIntegers]}, TypeUniverse[0]], False, Function[{Typed[j, NonNegativeIntegers], Typed[r, TypeUniverse[0]]}, True], k]], n + 1, 0, h, "trueIntroduction"]]
 	],
 	TypeTheoryTheorem[
-		SubtractionZeroRight,
+		"subtractionZeroRight",
 		ForAll[{Typed[n, NonNegativeIntegers]}, Subtract[n, 0] == n],
-		Function[{Typed[n, NonNegativeIntegers]}, EqualityReflexivity[n]]
+		Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n]]
 	],
 	TypeTheoryTheorem[
-		SubtractionZeroLeft,
+		"subtractionZeroLeft",
 		ForAll[{Typed[n, NonNegativeIntegers]}, Subtract[0, n] == 0],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[0, k] == 0], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[0, k] == 0]}, EqualityCongruence[NaturalNumberPredecessor, ih]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[0, k] == 0], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[0, k] == 0]}, "equalityCongruence"[NaturalNumberPredecessor, ih]], n]]
 	],
 	TypeTheoryTheorem[
-		SubtractionSuccessor,
+		"subtractionSuccessor",
 		ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Subtract[n + 1, m + 1] == Subtract[n, m]],
-		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[n + 1, k + 1] == Subtract[n, k]], EqualityReflexivity[n], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[n + 1, k + 1] == Subtract[n, k]]}, EqualityCongruence[NaturalNumberPredecessor, ih]], m]]
+		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[n + 1, k + 1] == Subtract[n, k]], "equalityReflexivity"[n], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[n + 1, k + 1] == Subtract[n, k]]}, "equalityCongruence"[NaturalNumberPredecessor, ih]], m]]
 	],
 	TypeTheoryTheorem[
-		SubtractionSelf,
+		"subtractionSelf",
 		ForAll[{Typed[n, NonNegativeIntegers]}, Subtract[n, n] == 0],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[k, k] == 0], EqualityReflexivity[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[k, k] == 0]}, EqualityTransitivity[SubtractionSuccessor[k, k], ih]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[k, k] == 0], "equalityReflexivity"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[k, k] == 0]}, "equalityTransitivity"["subtractionSuccessor"[k, k], ih]], n]]
 	],
 	TypeTheoryTheorem[
-		AdditionSubtractionCancellation,
+		"additionSubtractionCancellation",
 		ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Subtract[n + m, m] == n],
-		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[n + k, k] == n], EqualityReflexivity[n], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[n + k, k] == n]}, EqualityTransitivity[SubtractionSuccessor[n + k, k], ih]], m]]
+		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Subtract[n + k, k] == n], "equalityReflexivity"[n], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Subtract[n + k, k] == n]}, "equalityTransitivity"["subtractionSuccessor"[n + k, k], ih]], m]]
 	],
 	(* a product by a positive number determines the other factor *)
 	TypeTheoryTheorem[
-		MultiplicationCancellation,
+		"multiplicationCancellation",
 		ForAll[{Typed[k, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[(k + 1) * a == (k + 1) * b, a == b]],
 		Function[{Typed[k, NonNegativeIntegers], Typed[a, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[t, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Implies[(k + 1) * t == (k + 1) * b, t == b]]],
 			Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies[(k + 1) * 0 == (k + 1) * c, 0 == c]],
-				Function[{Typed[h, (k + 1) * 0 == (k + 1) * 0]}, EqualityReflexivity[0]],
+				Function[{Typed[h, (k + 1) * 0 == (k + 1) * 0]}, "equalityReflexivity"[0]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies[(k + 1) * 0 == (k + 1) * c, 0 == c]], Typed[h, (k + 1) * 0 == (k + 1) * (c + 1)]},
-					FalseElimination[SuccessorNotZero[(k + 1) * c + k][EqualitySymmetry[h]]]
+					"falseElimination"["successorNotZero"[(k + 1) * c + k]["equalitySymmetry"[h]]]
 				],
 				b
 			]],
 			Function[{Typed[t, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Implies[(k + 1) * t == (k + 1) * b, t == b]]]}, Function[{Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies[(k + 1) * (t + 1) == (k + 1) * c, t + 1 == c]],
-				Function[{Typed[h, (k + 1) * (t + 1) == (k + 1) * 0]}, FalseElimination[SuccessorNotZero[(k + 1) * t + k][h]]],
+				Function[{Typed[h, (k + 1) * (t + 1) == (k + 1) * 0]}, "falseElimination"["successorNotZero"[(k + 1) * t + k][h]]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies[(k + 1) * (t + 1) == (k + 1) * c, t + 1 == c]], Typed[h, (k + 1) * (t + 1) == (k + 1) * (c + 1)]},
-					EqualityCongruence[NaturalNumberSuccessor, ih[c, EqualityTransitivity[
-						EqualitySymmetry[AdditionSubtractionCancellation[(k + 1) * t, k + 1]],
-						EqualityTransitivity[
-							EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, Subtract[x, k + 1]], h],
-							AdditionSubtractionCancellation[(k + 1) * c, k + 1]
+					"equalityCongruence"["successor", ih[c, "equalityTransitivity"[
+						"equalitySymmetry"["additionSubtractionCancellation"[(k + 1) * t, k + 1]],
+						"equalityTransitivity"[
+							"equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, Subtract[x, k + 1]], h],
+							"additionSubtractionCancellation"[(k + 1) * c, k + 1]
 						]
 					]]]
 				],
@@ -804,73 +607,73 @@ $constructiveDeclarations = {
 		]]
 	],
 	TypeTheoryTheorem[
-		PowerZero,
+		"powerZero",
 		ForAll[{Typed[m, NonNegativeIntegers]}, m^0 == 1],
-		Function[{Typed[m, NonNegativeIntegers]}, EqualityReflexivity[1]]
+		Function[{Typed[m, NonNegativeIntegers]}, "equalityReflexivity"[1]]
 	],
 	TypeTheoryTheorem[
-		PowerSuccessor,
+		"powerSuccessor",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m^(n + 1) == m^n * m],
-		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, EqualityReflexivity[m^n * m]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[m^n * m]]
 	],
 	TypeTheoryTheorem[
-		PowerOne,
+		"powerOne",
 		ForAll[{Typed[m, NonNegativeIntegers]}, m^1 == m],
-		Function[{Typed[m, NonNegativeIntegers]}, MultiplicationOneLeft[m]]
+		Function[{Typed[m, NonNegativeIntegers]}, "multiplicationOneLeft"[m]]
 	],
 	TypeTheoryTheorem[
-		PowerAddition,
+		"powerAddition",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, m^(a + b) == m^a * m^b],
-		Function[{Typed[m, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m^(a + k) == m^a * m^k], EqualitySymmetry[MultiplicationOneRight[m^a]], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m^(a + k) == m^a * m^k]}, EqualityTransitivity[EqualityCongruence[Function[{Typed[x, NonNegativeIntegers]}, x * m], ih], MultiplicationAssociativity[m^a, m^k, m]]], b]]
+		Function[{Typed[m, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, m^(a + k) == m^a * m^k], "equalitySymmetry"["multiplicationOneRight"[m^a]], Function[{Typed[k, NonNegativeIntegers], Typed[ih, m^(a + k) == m^a * m^k]}, "equalityTransitivity"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x * m], ih], "multiplicationAssociativity"[m^a, m^k, m]]], b]]
 	],
 	TypeTheoryTheorem[
-		PredecessorLessEqual,
+		"predecessorLessEqual",
 		ForAll[{Typed[n, NonNegativeIntegers]}, NaturalNumberPredecessor[n] <= n],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, NaturalNumberPredecessor[k] <= k], LessEqualReflexivity, Function[{Typed[k, NonNegativeIntegers], Typed[ih, NaturalNumberPredecessor[k] <= k]}, LessEqualStep[LessEqualReflexivity]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, NaturalNumberPredecessor[k] <= k], "lessEqualReflexivity", Function[{Typed[k, NonNegativeIntegers], Typed[ih, NaturalNumberPredecessor[k] <= k]}, "lessEqualStep"["lessEqualReflexivity"]], n]]
 	],
 	TypeTheoryTheorem[
-		LessEqualZero,
+		"lessEqualZero",
 		ForAll[{Typed[n, NonNegativeIntegers]}, 0 <= n],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 0 <= k], LessEqualReflexivity, Function[{Typed[k, NonNegativeIntegers], Typed[ih, 0 <= k]}, LessEqualStep[ih]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, 0 <= k], "lessEqualReflexivity", Function[{Typed[k, NonNegativeIntegers], Typed[ih, 0 <= k]}, "lessEqualStep"[ih]], n]]
 	],
 	TypeTheoryTheorem[
-		LessEqualSuccessor,
+		"lessEqualSuccessor",
 		ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers]}, Implies[n <= m, n + 1 <= m + 1]],
-		Function[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n <= m]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j]}, n + 1 <= j + 1], LessEqualReflexivity, Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j], Typed[ih, n + 1 <= j + 1]}, LessEqualStep[ih]], h]]
+		Function[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n <= m]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j]}, n + 1 <= j + 1], "lessEqualReflexivity", Function[{Typed[j, NonNegativeIntegers], Typed[t, n <= j], Typed[ih, n + 1 <= j + 1]}, "lessEqualStep"[ih]], h]]
 	],
 	TypeTheoryTheorem[
-		LessEqualTransitivity,
+		"lessEqualTransitivity",
 		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers]}, Implies[a <= b, Implies[b <= c, a <= c]]],
-		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= c]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j]}, a <= j], h, Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j], Typed[ih, a <= j]}, LessEqualStep[ih]], k]]
+		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= c]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j]}, a <= j], h, Function[{Typed[j, NonNegativeIntegers], Typed[t, b <= j], Typed[ih, a <= j]}, "lessEqualStep"[ih]], k]]
 	],
 	TypeTheoryTheorem[
-		LessEqualAddition,
+		"lessEqualAddition",
 		ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n <= n + m],
-		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, n <= n + k], LessEqualReflexivity, Function[{Typed[k, NonNegativeIntegers], Typed[ih, n <= n + k]}, LessEqualStep[ih]], m]]
+		Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, n <= n + k], "lessEqualReflexivity", Function[{Typed[k, NonNegativeIntegers], Typed[ih, n <= n + k]}, "lessEqualStep"[ih]], m]]
 	],
 	TypeTheoryTheorem[
-		SuccessorNotLessEqualZero,
+		"successorNotLessEqualZero",
 		ForAll[{Typed[n, NonNegativeIntegers]}, Not[n + 1 <= 0]],
-		Function[{Typed[n, NonNegativeIntegers], Typed[h, n + 1 <= 0]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j]}, Implies[j == 0, False]], SuccessorNotZero[n], Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j], Typed[ih, Implies[j == 0, False]]}, SuccessorNotZero[j]], h][EqualityReflexivity[0]]]
+		Function[{Typed[n, NonNegativeIntegers], Typed[h, n + 1 <= 0]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j]}, Implies[j == 0, False]], "successorNotZero"[n], Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j], Typed[ih, Implies[j == 0, False]]}, "successorNotZero"[j]], h]["equalityReflexivity"[0]]]
 	],
 	TypeTheoryTheorem[
-		LessEqualPredecessor,
+		"lessEqualPredecessor",
 		ForAll[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers]}, Implies[n + 1 <= m + 1, n <= m]],
-		Function[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n + 1 <= m + 1]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j]}, n <= NaturalNumberPredecessor[j]], LessEqualReflexivity, Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j], Typed[ih, n <= NaturalNumberPredecessor[j]]}, LessEqualTransitivity[ih, PredecessorLessEqual[j]]], h]]
+		Function[{TypedImplicit[n, NonNegativeIntegers], TypedImplicit[m, NonNegativeIntegers], Typed[h, n + 1 <= m + 1]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j]}, n <= NaturalNumberPredecessor[j]], "lessEqualReflexivity", Function[{Typed[j, NonNegativeIntegers], Typed[t, n + 1 <= j], Typed[ih, n <= NaturalNumberPredecessor[j]]}, "lessEqualTransitivity"[ih, "predecessorLessEqual"[j]]], h]]
 	],
 	TypeTheoryTheorem[
-		LessIrreflexivity,
+		"lessIrreflexivity",
 		ForAll[{Typed[n, NonNegativeIntegers]}, Not[n < n]],
-		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Not[k < k]], SuccessorNotLessEqualZero[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Not[k < k]], Typed[h, k + 1 < k + 1]}, ih[LessEqualPredecessor[h]]], n]]
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, Not[k < k]], "successorNotLessEqualZero"[0], Function[{Typed[k, NonNegativeIntegers], Typed[ih, Not[k < k]], Typed[h, k + 1 < k + 1]}, ih["lessEqualPredecessor"[h]]], n]]
 	],
 	TypeTheoryTheorem[
-		LessEqualAntisymmetry,
+		"lessEqualAntisymmetry",
 		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers]}, Implies[a <= b, Implies[b <= a, a == b]]],
-		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= a]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j]}, Implies[j <= a, a == j]], Function[{Typed[r, a <= a]}, EqualityReflexivity[a]], Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j], Typed[ih, Implies[j <= a, a == j]], Typed[r, NaturalNumberSuccessor[j] <= a]}, FalseElimination[LessIrreflexivity[j][LessEqualTransitivity[r, t]]]], h][k]]
+		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[h, a <= b], Typed[k, b <= a]}, InductiveRecursor[LessEqual][Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j]}, Implies[j <= a, a == j]], Function[{Typed[r, a <= a]}, "equalityReflexivity"[a]], Function[{Typed[j, NonNegativeIntegers], Typed[t, a <= j], Typed[ih, Implies[j <= a, a == j]], Typed[r, "successor"[j] <= a]}, "falseElimination"["lessIrreflexivity"[j]["lessEqualTransitivity"[r, t]]]], h][k]]
 	],
 	(* sums and products of inequalities *)
 	TypeTheoryTheorem[
-		AdditionMonotonicity,
+		"additionMonotonicity",
 		ForAll[
 			{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], TypedImplicit[c, NonNegativeIntegers], TypedImplicit[d, NonNegativeIntegers]},
 			Implies[a <= b, Implies[c <= d, a + c <= b + d]]
@@ -881,48 +684,48 @@ $constructiveDeclarations = {
 				Function[{Typed[t, NonNegativeIntegers], Typed[e, c <= t]}, a + c <= b + t],
 				InductiveRecursor[LessEqual][
 					Function[{Typed[t, NonNegativeIntegers], Typed[e, a <= t]}, a + c <= t + c],
-					LessEqualReflexivity,
+					"lessEqualReflexivity",
 					Function[{Typed[t, NonNegativeIntegers], Typed[e, a <= t], Typed[r, a + c <= t + c]},
-						Construct[EqualitySubstitution,
+						Construct["equalitySubstitution",
 							NonNegativeIntegers,
 							Function[{Typed[s, NonNegativeIntegers]}, a + c <= s],
 							t + c + 1,
 							t + 1 + c,
-							EqualitySymmetry[AdditionSuccessorLeft[t, c]],
-							LessEqualStep[r]
+							"equalitySymmetry"["additionSuccessorLeft"[t, c]],
+							"lessEqualStep"[r]
 						]
 					],
 					h
 				],
-				Function[{Typed[t, NonNegativeIntegers], Typed[e, c <= t], Typed[r, a + c <= b + t]}, LessEqualStep[r]],
+				Function[{Typed[t, NonNegativeIntegers], Typed[e, c <= t], Typed[r, a + c <= b + t]}, "lessEqualStep"[r]],
 				k
 			]
 		]
 	],
 	TypeTheoryTheorem[
-		MultiplicationMonotonicity,
+		"multiplicationMonotonicity",
 		ForAll[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[a <= b, a * k <= b * k]],
 		Function[{TypedImplicit[a, NonNegativeIntegers], TypedImplicit[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers], Typed[h, a <= b]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[t, NonNegativeIntegers]}, a * t <= b * t],
-			LessEqualReflexivity,
-			Function[{Typed[t, NonNegativeIntegers], Typed[r, a * t <= b * t]}, AdditionMonotonicity[r, h]],
+			"lessEqualReflexivity",
+			Function[{Typed[t, NonNegativeIntegers], Typed[r, a * t <= b * t]}, "additionMonotonicity"[r, h]],
 			k
 		]]
 	],
 	(* either m <= n or n < m *)
 	TypeTheoryTheorem[
-		LessEqualTotality,
+		"lessEqualTotality",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Or[m <= n, n < m]],
 		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Or[a <= n, n < a]]],
-			Function[{Typed[n, NonNegativeIntegers]}, OrIntroductionLeft[LessEqualZero[n]]],
+			Function[{Typed[n, NonNegativeIntegers]}, "orIntroductionLeft"["lessEqualZero"[n]]],
 			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Or[a <= n, n < a]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Or[a + 1 <= c, c < a + 1]],
-				OrIntroductionRight[LessEqualSuccessor[LessEqualZero[a]]],
+				"orIntroductionRight"["lessEqualSuccessor"["lessEqualZero"[a]]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Or[a + 1 <= c, c < a + 1]]}, InductiveRecursor[Or][
 					Function[{Typed[s, Or[a <= c, c < a]]}, Or[a + 1 <= c + 1, c + 1 < a + 1]],
-					Function[{Typed[g, a <= c]}, OrIntroductionLeft[LessEqualSuccessor[g]]],
-					Function[{Typed[g, c < a]}, OrIntroductionRight[LessEqualSuccessor[g]]],
+					Function[{Typed[g, a <= c]}, "orIntroductionLeft"["lessEqualSuccessor"[g]]],
+					Function[{Typed[g, c < a]}, "orIntroductionRight"["lessEqualSuccessor"[g]]],
 					ih[c]
 				]],
 				n
@@ -946,8 +749,8 @@ $constructiveDeclarations = {
 		Decidable,
 		ForAll[{Typed[p, TypeUniverse[0]]}, TypeUniverse[1]],
 		{
-			DecidableFalse -> ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[h, Not[p]]}, Decidable[p]],
-			DecidableTrue -> ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[h, p]}, Decidable[p]]
+			"decidableFalse" -> ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[h, Not[p]]}, Decidable[p]],
+			"decidableTrue" -> ForAll[{TypedImplicit[p, TypeUniverse[0]], Typed[h, p]}, Decidable[p]]
 		}
 	],
 	TypeTheoryDefinition[
@@ -960,14 +763,14 @@ $constructiveDeclarations = {
 	(* Decide[p] == True proves p, as Lean's of_decide_eq_true; True, False, the connectives, and the
 	   equality and order of the natural numbers, are decidable, by instances *)
 	TypeTheoryTheorem[
-		DecideSoundness,
+		"decideSoundness",
 		ForAll[{TypedImplicit[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]}, Implies[Decide[p] == "true", p]],
 		Function[{TypedImplicit[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]}, InductiveRecursor[Decidable][
 			Function[{Typed[t, Decidable[p]]}, Implies[Construct[Decide, p, t] == "true", p]],
-			Function[{Typed[h, Not[p]], Typed[e, "false" == "true"]}, FalseElimination[
+			Function[{Typed[h, Not[p]], Typed[e, "false" == "true"]}, "falseElimination"[
 				InductiveRecursor[Equal][
 					Function[{Typed[y, Booleans], Typed[k, "false" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], True, False, y]],
-					TrueIntroduction,
+					"trueIntroduction",
 					e
 				]
 			]],
@@ -975,29 +778,29 @@ $constructiveDeclarations = {
 			d
 		]]
 	],
-	TypeTheoryDefinition["trueDecidable", Typed[DecidableTrue[TrueIntroduction], Decidable[True]], "Instance" -> True],
-	TypeTheoryDefinition["falseDecidable", Typed[DecidableFalse[Function[{Typed[h, False]}, h]], Decidable[False]], "Instance" -> True],
+	TypeTheoryDefinition["trueDecidable", Typed["decidableTrue"["trueIntroduction"], Decidable[True]], "Instance" -> True],
+	TypeTheoryDefinition["falseDecidable", Typed["decidableFalse"[Function[{Typed[h, False]}, h]], Decidable[False]], "Instance" -> True],
 	TypeTheoryDefinition[
-		NotDecidable,
+		"notDecidable",
 		Function[{TypedImplicit[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]}, InductiveRecursor[Decidable][
 			Function[{Typed[t, Decidable[p]]}, Decidable[Not[p]]],
-			Function[{Typed[h, Not[p]]}, DecidableTrue[h]],
-			Function[{Typed[h, p]}, DecidableFalse[Function[{Typed[k, Not[p]]}, k[h]]]],
+			Function[{Typed[h, Not[p]]}, "decidableTrue"[h]],
+			Function[{Typed[h, p]}, "decidableFalse"[Function[{Typed[k, Not[p]]}, k[h]]]],
 			d
 		]],
 		"Instance" -> True
 	],
 	TypeTheoryDefinition[
-		AndDecidable,
+		"andDecidable",
 		Function[
 			{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"], Annotation[Typed[e, Decidable[q]], "InstanceImplicit"]},
 			InductiveRecursor[Decidable][
 				Function[{Typed[t, Decidable[p]]}, Decidable[And[p, q]]],
-				Function[{Typed[h, Not[p]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, h[AndEliminationLeft[k]]]]],
+				Function[{Typed[h, Not[p]]}, "decidableFalse"[Function[{Typed[k, And[p, q]]}, h["andEliminationLeft"[k]]]]],
 				Function[{Typed[h, p]}, InductiveRecursor[Decidable][
 					Function[{Typed[t, Decidable[q]]}, Decidable[And[p, q]]],
-					Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, And[p, q]]}, g[AndEliminationRight[k]]]]],
-					Function[{Typed[g, q]}, DecidableTrue[AndIntroduction[h, g]]],
+					Function[{Typed[g, Not[q]]}, "decidableFalse"[Function[{Typed[k, And[p, q]]}, g["andEliminationRight"[k]]]]],
+					Function[{Typed[g, q]}, "decidableTrue"["andIntroduction"[h, g]]],
 					e
 				]],
 				d
@@ -1006,18 +809,18 @@ $constructiveDeclarations = {
 		"Instance" -> True
 	],
 	TypeTheoryDefinition[
-		OrDecidable,
+		"orDecidable",
 		Function[
 			{TypedImplicit[p, TypeUniverse[0]], TypedImplicit[q, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"], Annotation[Typed[e, Decidable[q]], "InstanceImplicit"]},
 			InductiveRecursor[Decidable][
 				Function[{Typed[t, Decidable[p]]}, Decidable[Or[p, q]]],
 				Function[{Typed[h, Not[p]]}, InductiveRecursor[Decidable][
 					Function[{Typed[t, Decidable[q]]}, Decidable[Or[p, q]]],
-					Function[{Typed[g, Not[q]]}, DecidableFalse[Function[{Typed[k, Or[p, q]]}, InductiveRecursor[Or][Function[{Typed[s, Or[p, q]]}, False], h, g, k]]]],
-					Function[{Typed[g, q]}, DecidableTrue[OrIntroductionRight[g]]],
+					Function[{Typed[g, Not[q]]}, "decidableFalse"[Function[{Typed[k, Or[p, q]]}, InductiveRecursor[Or][Function[{Typed[s, Or[p, q]]}, False], h, g, k]]]],
+					Function[{Typed[g, q]}, "decidableTrue"["orIntroductionRight"[g]]],
 					e
 				]],
-				Function[{Typed[h, p]}, DecidableTrue[OrIntroductionLeft[h]]],
+				Function[{Typed[h, p]}, "decidableTrue"["orIntroductionLeft"[h]]],
 				d
 			]
 		],
@@ -1029,7 +832,7 @@ $constructiveDeclarations = {
 		Not["false" == "true"],
 		Function[{Typed[e, "false" == "true"]}, InductiveRecursor[Equal][
 			Function[{Typed[y, Booleans], Typed[k, "false" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], True, False, y]],
-			TrueIntroduction,
+			"trueIntroduction",
 			e
 		]]
 	],
@@ -1038,7 +841,7 @@ $constructiveDeclarations = {
 		Not["true" == "false"],
 		Function[{Typed[e, "true" == "false"]}, InductiveRecursor[Equal][
 			Function[{Typed[y, Booleans], Typed[k, "true" == y]}, InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, TypeUniverse[0]], False, True, y]],
-			TrueIntroduction,
+			"trueIntroduction",
 			e
 		]]
 	],
@@ -1047,8 +850,8 @@ $constructiveDeclarations = {
 		"booleanEqualityDecidable",
 		Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][
 			Function[{Typed[x, Booleans]}, Decidable[x == b]],
-			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["false" == y]], DecidableTrue[EqualityReflexivity["false"]], DecidableFalse["falseNotTrue"], b],
-			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["true" == y]], DecidableFalse["trueNotFalse"], DecidableTrue[EqualityReflexivity["true"]], b],
+			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["false" == y]], "decidableTrue"["equalityReflexivity"["false"]], "decidableFalse"["falseNotTrue"], b],
+			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["true" == y]], "decidableFalse"["trueNotFalse"], "decidableTrue"["equalityReflexivity"["true"]], b],
 			a
 		]],
 		"Instance" -> True
@@ -1095,7 +898,7 @@ $constructiveDeclarations = {
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> Booleans]
 		]
 	],
-	TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Equal" -> "equal", "LessEqual" -> "lessEqual"|>],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Equal" -> "equal", "LessEqual" -> "lessEqual"|>],
 
 	(* what the comparisons give says what holds *)
 	TypeTheoryTheorem[
@@ -1105,15 +908,15 @@ $constructiveDeclarations = {
 			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "true", a == n]]],
 			Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[0, c] == "true", 0 == c]],
-				Function[{Typed[e, "equal"[0, 0] == "true"]}, EqualityReflexivity[0]],
-				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[0, c] == "true", 0 == c]], Typed[e, "equal"[0, c + 1] == "true"]}, FalseElimination["falseNotTrue"[e]]],
+				Function[{Typed[e, "equal"[0, 0] == "true"]}, "equalityReflexivity"[0]],
+				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[0, c] == "true", 0 == c]], Typed[e, "equal"[0, c + 1] == "true"]}, "falseElimination"["falseNotTrue"[e]]],
 				n
 			]],
 			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "true", a == n]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[a + 1, c] == "true", a + 1 == c]],
-				Function[{Typed[e, "equal"[a + 1, 0] == "true"]}, FalseElimination["falseNotTrue"[e]]],
+				Function[{Typed[e, "equal"[a + 1, 0] == "true"]}, "falseElimination"["falseNotTrue"[e]]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[a + 1, c] == "true", a + 1 == c]], Typed[e, "equal"[a + 1, c + 1] == "true"]},
-					EqualityCongruence[NaturalNumberSuccessor, ih[c, e]]
+					"equalityCongruence"["successor", ih[c, e]]
 				],
 				n
 			]]],
@@ -1127,17 +930,17 @@ $constructiveDeclarations = {
 			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "false", Not[a == n]]]],
 			Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[0, c] == "false", Not[0 == c]]],
-				Function[{Typed[e, "equal"[0, 0] == "false"]}, FalseElimination["trueNotFalse"[e]]],
+				Function[{Typed[e, "equal"[0, 0] == "false"]}, "falseElimination"["trueNotFalse"[e]]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[0, c] == "false", Not[0 == c]]], Typed[e, "equal"[0, c + 1] == "false"], Typed[k, 0 == c + 1]},
-					SuccessorNotZero[c][EqualitySymmetry[k]]
+					"successorNotZero"[c]["equalitySymmetry"[k]]
 				],
 				n
 			]],
 			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["equal"[a, n] == "false", Not[a == n]]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies["equal"[a + 1, c] == "false", Not[a + 1 == c]]],
-				Function[{Typed[e, "equal"[a + 1, 0] == "false"], Typed[k, a + 1 == 0]}, SuccessorNotZero[a][k]],
+				Function[{Typed[e, "equal"[a + 1, 0] == "false"], Typed[k, a + 1 == 0]}, "successorNotZero"[a][k]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["equal"[a + 1, c] == "false", Not[a + 1 == c]]], Typed[e, "equal"[a + 1, c + 1] == "false"], Typed[k, a + 1 == c + 1]},
-					ih[c, e][SuccessorInjectivity[k]]
+					ih[c, e]["successorInjectivity"[k]]
 				],
 				n
 			]]],
@@ -1149,12 +952,12 @@ $constructiveDeclarations = {
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[m, n] == "true", m <= n]],
 		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "true", a <= n]]],
-			Function[{Typed[n, NonNegativeIntegers], Typed[e, "lessEqual"[0, n] == "true"]}, LessEqualZero[n]],
+			Function[{Typed[n, NonNegativeIntegers], Typed[e, "lessEqual"[0, n] == "true"]}, "lessEqualZero"[n]],
 			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "true", a <= n]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies["lessEqual"[a + 1, c] == "true", a + 1 <= c]],
-				Function[{Typed[e, "lessEqual"[a + 1, 0] == "true"]}, FalseElimination["falseNotTrue"[e]]],
+				Function[{Typed[e, "lessEqual"[a + 1, 0] == "true"]}, "falseElimination"["falseNotTrue"[e]]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["lessEqual"[a + 1, c] == "true", a + 1 <= c]], Typed[e, "lessEqual"[a + 1, c + 1] == "true"]},
-					LessEqualSuccessor[ih[c, e]]
+					"lessEqualSuccessor"[ih[c, e]]
 				],
 				n
 			]]],
@@ -1166,12 +969,12 @@ $constructiveDeclarations = {
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[m, n] == "false", Not[m <= n]]],
 		Function[{Typed[m, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[a, NonNegativeIntegers]}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "false", Not[a <= n]]]],
-			Function[{Typed[n, NonNegativeIntegers], Typed[e, "lessEqual"[0, n] == "false"]}, FalseElimination["trueNotFalse"[e]]],
+			Function[{Typed[n, NonNegativeIntegers], Typed[e, "lessEqual"[0, n] == "false"]}, "falseElimination"["trueNotFalse"[e]]],
 			Function[{Typed[a, NonNegativeIntegers], Typed[ih, ForAll[{Typed[n, NonNegativeIntegers]}, Implies["lessEqual"[a, n] == "false", Not[a <= n]]]]}, Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 				Function[{Typed[c, NonNegativeIntegers]}, Implies["lessEqual"[a + 1, c] == "false", Not[a + 1 <= c]]],
-				Function[{Typed[e, "lessEqual"[a + 1, 0] == "false"]}, SuccessorNotLessEqualZero[a]],
+				Function[{Typed[e, "lessEqual"[a + 1, 0] == "false"]}, "successorNotLessEqualZero"[a]],
 				Function[{Typed[c, NonNegativeIntegers], Typed[r, Implies["lessEqual"[a + 1, c] == "false", Not[a + 1 <= c]]], Typed[e, "lessEqual"[a + 1, c + 1] == "false"], Typed[k, a + 1 <= c + 1]},
-					ih[c, e][LessEqualPredecessor[k]]
+					ih[c, e]["lessEqualPredecessor"[k]]
 				],
 				n
 			]]],
@@ -1183,23 +986,23 @@ $constructiveDeclarations = {
 	   Nat.decEq and Nat.decLe, instances as they are: on literals it is one step of the kernel, however
 	   large they are *)
 	TypeTheoryDefinition[
-		NaturalNumberEqualityDecidable,
+		"naturalNumberEqualityDecidable",
 		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Booleans][
 			Function[{Typed[b, Booleans]}, Implies["equal"[m, n] == b, Decidable[m == n]]],
-			Function[{Typed[e, "equal"[m, n] == "false"]}, DecidableFalse["equalFalse"[m, n, e]]],
-			Function[{Typed[e, "equal"[m, n] == "true"]}, DecidableTrue["equalTrue"[m, n, e]]],
+			Function[{Typed[e, "equal"[m, n] == "false"]}, "decidableFalse"["equalFalse"[m, n, e]]],
+			Function[{Typed[e, "equal"[m, n] == "true"]}, "decidableTrue"["equalTrue"[m, n, e]]],
 			"equal"[m, n]
-		][EqualityReflexivity["equal"[m, n]]]],
+		]["equalityReflexivity"["equal"[m, n]]]],
 		"Instance" -> True
 	],
 	TypeTheoryDefinition[
-		LessEqualDecidable,
+		"lessEqualDecidable",
 		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Booleans][
 			Function[{Typed[b, Booleans]}, Implies["lessEqual"[m, n] == b, Decidable[m <= n]]],
-			Function[{Typed[e, "lessEqual"[m, n] == "false"]}, DecidableFalse["lessEqualFalse"[m, n, e]]],
-			Function[{Typed[e, "lessEqual"[m, n] == "true"]}, DecidableTrue["lessEqualTrue"[m, n, e]]],
+			Function[{Typed[e, "lessEqual"[m, n] == "false"]}, "decidableFalse"["lessEqualFalse"[m, n, e]]],
+			Function[{Typed[e, "lessEqual"[m, n] == "true"]}, "decidableTrue"["lessEqualTrue"[m, n, e]]],
 			"lessEqual"[m, n]
-		][EqualityReflexivity["lessEqual"[m, n]]]],
+		]["equalityReflexivity"["lessEqual"[m, n]]]],
 		"Instance" -> True
 	],
 
@@ -1208,7 +1011,7 @@ $constructiveDeclarations = {
 		CartesianProductType,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
 		{
-			Pair -> ForAll[
+			"pair" -> ForAll[
 				{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]], Typed[y, \[Beta]]},
 				CartesianProductType[\[Alpha], \[Beta]]
 			]
@@ -1218,16 +1021,16 @@ $constructiveDeclarations = {
 		DisjointUnionType,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
 		{
-			LeftInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]]}, DisjointUnionType[\[Alpha], \[Beta]]],
-			RightInjection -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[y, \[Beta]]}, DisjointUnionType[\[Alpha], \[Beta]]]
+			"left" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]]}, DisjointUnionType[\[Alpha], \[Beta]]],
+			"right" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[y, \[Beta]]}, DisjointUnionType[\[Alpha], \[Beta]]]
 		}
 	],
 	TypeTheoryInductiveType[
 		Option,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
 		{
-			OptionNone -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Option[\[Alpha]]],
-			OptionSome -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, Option[\[Alpha]]]
+			"none" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]]}, Option[\[Alpha]]],
+			"some" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, Option[\[Alpha]]]
 		}
 	],
 	TypeTheoryInductiveType[
@@ -1292,65 +1095,65 @@ $constructiveDeclarations = {
 
 	(* the laws of the operations on lists, each by recursion on a list *)
 	TypeTheoryTheorem[
-		JoinEmptyRight,
+		"joinEmptyRight",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, Join[l, {}] == l],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Join[t, {}] == t],
-			EqualityReflexivity[{}],
+			"equalityReflexivity"[{}],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Join[rest, {}] == rest]},
-				EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Prepend[x][r]], ih]
+				"equalityCongruence"[Function[{Typed[r, {\[Alpha]}]}, Prepend[x][r]], ih]
 			],
 			l
 		]]
 	],
 	TypeTheoryTheorem[
-		JoinAssociativity,
+		"joinAssociativity",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}], Typed[c, {\[Alpha]}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}], Typed[c, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Join[Join[t, b], c] == Join[t, Join[b, c]]],
-			EqualityReflexivity[Join[b, c]],
+			"equalityReflexivity"[Join[b, c]],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Join[Join[rest, b], c] == Join[rest, Join[b, c]]]},
-				EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Prepend[x][r]], ih]
+				"equalityCongruence"[Function[{Typed[r, {\[Alpha]}]}, Prepend[x][r]], ih]
 			],
 			a
 		]]
 	],
 	TypeTheoryTheorem[
-		LengthJoin,
+		"lengthJoin",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Join[a, b]] == Length[a] + Length[b]],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Length[Join[t, b]] == Length[t] + Length[b]],
-			EqualitySymmetry[AdditionZeroLeft[Length[b]]],
+			"equalitySymmetry"["additionZeroLeft"[Length[b]]],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Join[rest, b]] == Length[rest] + Length[b]]},
-				EqualityTransitivity[EqualityCongruence[NaturalNumberSuccessor, ih], EqualitySymmetry[AdditionSuccessorLeft[Length[rest], Length[b]]]]
+				"equalityTransitivity"["equalityCongruence"["successor", ih], "equalitySymmetry"["additionSuccessorLeft"[Length[rest], Length[b]]]]
 			],
 			a
 		]]
 	],
 	TypeTheoryTheorem[
-		LengthMap,
+		"lengthMap",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, {\[Alpha]}]}, Length[Map[f, l]] == Length[l]],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Length[Map[f, t]] == Length[t]],
-			EqualityReflexivity[0],
-			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Map[f, rest]] == Length[rest]]}, EqualityCongruence[NaturalNumberSuccessor, ih]],
+			"equalityReflexivity"[0],
+			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Map[f, rest]] == Length[rest]]}, "equalityCongruence"["successor", ih]],
 			l
 		]]
 	],
 	TypeTheoryTheorem[
-		MapJoin,
+		"mapJoin",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Map[f, Join[a, b]] == Join[Map[f, a], Map[f, b]]],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{\[Alpha]} -> \[Beta]]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Map[f, Join[t, b]] == Join[Map[f, t], Map[f, b]]],
-			EqualityReflexivity[Map[f, b]],
+			"equalityReflexivity"[Map[f, b]],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Map[f, Join[rest, b]] == Join[Map[f, rest], Map[f, b]]]},
-				EqualityCongruence[Function[{Typed[r, {\[Beta]}]}, Prepend[f[x]][r]], ih]
+				"equalityCongruence"[Function[{Typed[r, {\[Beta]}]}, Prepend[f[x]][r]], ih]
 			],
 			a
 		]]
 	],
 	TypeTheoryTheorem[
-		MapComposition,
+		"mapComposition",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], TypedImplicit[\[Gamma], TypeUniverse[w + 1]],
@@ -1365,52 +1168,52 @@ $constructiveDeclarations = {
 			},
 			InductiveRecursor[List][
 				Function[{Typed[t, {\[Alpha]}]}, Map[f, Map[g, t]] == Map[Composition[f, g], t]],
-				EqualityReflexivity[{}],
+				"equalityReflexivity"[{}],
 				Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Map[f, Map[g, rest]] == Map[Composition[f, g], rest]]},
-					EqualityCongruence[Function[{Typed[r, {\[Gamma]}]}, Prepend[f[g[x]]][r]], ih]
+					"equalityCongruence"[Function[{Typed[r, {\[Gamma]}]}, Prepend[f[g[x]]][r]], ih]
 				],
 				l
 			]
 		]
 	],
 	TypeTheoryTheorem[
-		ReverseJoin,
+		"reverseJoin",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Reverse[Join[t, b]] == Join[Reverse[b], Reverse[t]]],
-			EqualitySymmetry[JoinEmptyRight[Reverse[b]]],
+			"equalitySymmetry"["joinEmptyRight"[Reverse[b]]],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Reverse[Join[rest, b]] == Join[Reverse[b], Reverse[rest]]]},
-				EqualityTransitivity[
-					EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Join[r, Prepend[x][{}]]], ih],
-					JoinAssociativity[Reverse[b], Reverse[rest], Prepend[x][{}]]
+				"equalityTransitivity"[
+					"equalityCongruence"[Function[{Typed[r, {\[Alpha]}]}, Join[r, Prepend[x][{}]]], ih],
+					"joinAssociativity"[Reverse[b], Reverse[rest], Prepend[x][{}]]
 				]
 			],
 			a
 		]]
 	],
 	TypeTheoryTheorem[
-		ReverseReverse,
+		"reverseReverse",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, Reverse[Reverse[l]] == l],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Reverse[Reverse[t]] == t],
-			EqualityReflexivity[{}],
+			"equalityReflexivity"[{}],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Reverse[Reverse[rest]] == rest]},
-				EqualityTransitivity[
-					ReverseJoin[Reverse[rest], Prepend[x][{}]],
-					EqualityCongruence[Function[{Typed[r, {\[Alpha]}]}, Join[Prepend[x][{}], r]], ih]
+				"equalityTransitivity"[
+					"reverseJoin"[Reverse[rest], Prepend[x][{}]],
+					"equalityCongruence"[Function[{Typed[r, {\[Alpha]}]}, Join[Prepend[x][{}], r]], ih]
 				]
 			],
 			l
 		]]
 	],
 	TypeTheoryTheorem[
-		LengthReverse,
+		"lengthReverse",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, Length[Reverse[l]] == Length[l]],
 		Function[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, InductiveRecursor[List][
 			Function[{Typed[t, {\[Alpha]}]}, Length[Reverse[t]] == Length[t]],
-			EqualityReflexivity[0],
+			"equalityReflexivity"[0],
 			Function[{Typed[x, \[Alpha]], Typed[rest, {\[Alpha]}], Typed[ih, Length[Reverse[rest]] == Length[rest]]},
-				EqualityTransitivity[LengthJoin[Reverse[rest], Prepend[x][{}]], EqualityCongruence[NaturalNumberSuccessor, ih]]
+				"equalityTransitivity"["lengthJoin"[Reverse[rest], Prepend[x][{}]], "equalityCongruence"["successor", ih]]
 			],
 			l
 		]]
@@ -1425,19 +1228,19 @@ $classicalDeclarations = {
 	TypeTheoryInductiveType[
 		Nonempty,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u]]}, TypeUniverse[0]],
-		{NonemptyIntroduction -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]}, Nonempty[\[Alpha]]]}
+		{"nonempty" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]}, Nonempty[\[Alpha]]]}
 	],
 	TypeTheoryInductiveType[
 		Subtype,
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]}, TypeUniverse[Max[1, u]]],
-		{SubtypeIntroduction -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[x, \[Alpha]], Typed[h, P[x]]}, Subtype[P]]}
+		{"subtype" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[x, \[Alpha]], Typed[h, P[x]]}, Subtype[P]]}
 	],
 	TypeTheoryAxiom[
-		PropositionalExtensionality,
+		"propositionalExtensionality",
 		ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[Equivalent[a, b], a == b]]
 	],
 	TypeTheoryAxiom[
-		QuotientSoundness,
+		"quotientSoundness",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u]],
@@ -1451,7 +1254,7 @@ $classicalDeclarations = {
 	(* two functions equal at every point are equal: they have the same class in the quotient of functions by
 	   that relation, and applying a class to a point gives the value there, as Lean proves funext *)
 	TypeTheoryTheorem[
-		FunctionExtensionality,
+		"functionExtensionality",
 		ForAll[
 			{
 				TypedImplicit[\[Alpha], TypeUniverse[u]],
@@ -1469,7 +1272,7 @@ $classicalDeclarations = {
 				TypedImplicit[g, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]],
 				Typed[h, ForAll[{Typed[x, \[Alpha]]}, f[x] == g[x]]]
 			},
-			EqualityCongruence[
+			"equalityCongruence"[
 				Function[
 					{
 						Typed[q, QuotientType[Function[{Typed[k, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]], Typed[l, ForAll[{Typed[x, \[Alpha]]}, \[Beta][x]]]}, ForAll[{Typed[x, \[Alpha]]}, k[x] == l[x]]]]],
@@ -1481,49 +1284,49 @@ $classicalDeclarations = {
 						q
 					]
 				],
-				QuotientSoundness[h]
+				"quotientSoundness"[h]
 			]
 		]
 	],
-	TypeTheoryAxiom[Choice, ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[h, Nonempty[\[Alpha]]]}, \[Alpha]]],
+	TypeTheoryAxiom["choice", ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[h, Nonempty[\[Alpha]]]}, \[Alpha]]],
 	TypeTheoryDefinition[
 		ChosenWitness,
 		Function[
 			{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
-			Choice[InductiveRecursor[Exists][
+			"choice"[InductiveRecursor[Exists][
 				Function[{Typed[t, Exists[P]]}, Nonempty[Subtype[P]]],
-				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, NonemptyIntroduction[SubtypeIntroduction[w, k]]],
+				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, "nonempty"["subtype"[w, k]]],
 				h
 			]][[1]]
 		]
 	],
 	TypeTheoryTheorem[
-		ChosenWitnessProperty,
+		"chosenWitnessProperty",
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[h, Exists[P]]}, P[ChosenWitness[h]]],
 		Function[
 			{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[h, Exists[P]]},
-			Choice[InductiveRecursor[Exists][
+			"choice"[InductiveRecursor[Exists][
 				Function[{Typed[t, Exists[P]]}, Nonempty[Subtype[P]]],
-				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, NonemptyIntroduction[SubtypeIntroduction[w, k]]],
+				Function[{Typed[w, \[Alpha]], Typed[k, P[w]]}, "nonempty"["subtype"[w, k]]],
 				h
 			]][[2]]
 		]
 	],
 	TypeTheoryTheorem[
-		ExcludedMiddle,
+		"excludedMiddle",
 		ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]],
 		Function[{Typed[p, TypeUniverse[0]]},
 			With[
 				{
-					existsTrue = Typed[ExistsIntroduction[True, OrIntroductionLeft[EqualityReflexivity[True]]], Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]]]],
-					existsFalse = Typed[ExistsIntroduction[False, OrIntroductionLeft[EqualityReflexivity[False]]], Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == False, p]]]]
+					existsTrue = Typed["existsIntroduction"[True, "orIntroductionLeft"["equalityReflexivity"[True]]], Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]]]],
+					existsFalse = Typed["existsIntroduction"[False, "orIntroductionLeft"["equalityReflexivity"[False]]], Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == False, p]]]]
 				},
 				With[
 					{
 						chosenTrue = ChosenWitness[existsTrue],
 						chosenFalse = ChosenWitness[existsFalse],
-						trueProperty = ChosenWitnessProperty[existsTrue],
-						falseProperty = ChosenWitnessProperty[existsFalse]
+						trueProperty = "chosenWitnessProperty"[existsTrue],
+						falseProperty = "chosenWitnessProperty"[existsFalse]
 					},
 					With[
 						{
@@ -1534,41 +1337,41 @@ $classicalDeclarations = {
 									InductiveRecursor[Or][
 										Function[{Typed[t, Or[chosenFalse == False, p]]}, Or[Not[chosenTrue == chosenFalse], p]],
 										Function[{Typed[isFalse, chosenFalse == False]},
-											OrIntroductionLeft[Function[{Typed[e, chosenTrue == chosenFalse]},
-												Construct[EqualitySubstitution, TypeUniverse[0], Function[{Typed[x, TypeUniverse[0]]}, x], True, False,
-													EqualityTransitivity[EqualitySymmetry[isTrue], EqualityTransitivity[e, isFalse]],
-													TrueIntroduction
+											"orIntroductionLeft"[Function[{Typed[e, chosenTrue == chosenFalse]},
+												Construct["equalitySubstitution", TypeUniverse[0], Function[{Typed[x, TypeUniverse[0]]}, x], True, False,
+													"equalityTransitivity"["equalitySymmetry"[isTrue], "equalityTransitivity"[e, isFalse]],
+													"trueIntroduction"
 												]
 											]]
 										],
-										Function[{Typed[holds, p]}, OrIntroductionRight[holds]],
+										Function[{Typed[holds, p]}, "orIntroductionRight"[holds]],
 										falseProperty
 									]
 								],
-								Function[{Typed[holds, p]}, OrIntroductionRight[holds]],
+								Function[{Typed[holds, p]}, "orIntroductionRight"[holds]],
 								trueProperty
 							],
 							(* if p holds, the two predicates are equal, and so are the choices *)
 							sameIfP = Function[{Typed[holds, p]},
-								Construct[EqualitySubstitution,
+								Construct["equalitySubstitution",
 									TypeSpecifier[{TypeUniverse[0]} -> TypeUniverse[0]],
 									Function[{Typed[W, TypeSpecifier[{TypeUniverse[0]} -> TypeUniverse[0]]]}, ForAll[{Typed[e, Exists[W]]}, chosenTrue == ChosenWitness[e]]],
 									Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]],
 									Function[{Typed[x, TypeUniverse[0]]}, Or[x == False, p]],
-									FunctionExtensionality[Function[{Typed[x, TypeUniverse[0]]},
-										PropositionalExtensionality[EquivalentIntroduction[
-											Function[{Typed[k, Or[x == True, p]]}, OrIntroductionRight[holds]],
-											Function[{Typed[k, Or[x == False, p]]}, OrIntroductionRight[holds]]
+									"functionExtensionality"[Function[{Typed[x, TypeUniverse[0]]},
+										"propositionalExtensionality"["equivalentIntroduction"[
+											Function[{Typed[k, Or[x == True, p]]}, "orIntroductionRight"[holds]],
+											Function[{Typed[k, Or[x == False, p]]}, "orIntroductionRight"[holds]]
 										]]
 									]],
-									Function[{Typed[e, Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]]]]}, EqualityReflexivity[chosenTrue]]
+									Function[{Typed[e, Exists[Function[{Typed[x, TypeUniverse[0]]}, Or[x == True, p]]]]}, "equalityReflexivity"[chosenTrue]]
 								][existsFalse]
 							]
 						},
 						InductiveRecursor[Or][
 							Function[{Typed[t, Or[Not[chosenTrue == chosenFalse], p]]}, Or[p, Not[p]]],
-							Function[{Typed[different, Not[chosenTrue == chosenFalse]]}, OrIntroductionRight[Function[{Typed[holds, p]}, different[sameIfP[holds]]]]],
-							Function[{Typed[holds, p]}, OrIntroductionLeft[holds]],
+							Function[{Typed[different, Not[chosenTrue == chosenFalse]]}, "orIntroductionRight"[Function[{Typed[holds, p]}, different[sameIfP[holds]]]]],
+							Function[{Typed[holds, p]}, "orIntroductionLeft"[holds]],
 							differentOrP
 						]
 					]
@@ -1577,14 +1380,14 @@ $classicalDeclarations = {
 		]
 	],
 	TypeTheoryTheorem[
-		DoubleNegationElimination,
+		"doubleNegationElimination",
 		ForAll[{Typed[p, TypeUniverse[0]]}, Implies[Not[Not[p]], p]],
 		Function[{Typed[p, TypeUniverse[0]], Typed[h, Not[Not[p]]]},
 			InductiveRecursor[Or][
 				Function[{Typed[t, Or[p, Not[p]]]}, p],
 				Function[{Typed[k, p]}, k],
-				Function[{Typed[k, Not[p]]}, FalseElimination[h[k]]],
-				ExcludedMiddle[p]
+				Function[{Typed[k, Not[p]]}, "falseElimination"[h[k]]],
+				"excludedMiddle"[p]
 			]
 		]
 	]

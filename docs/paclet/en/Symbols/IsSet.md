@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/IsSet
 Keywords: [set, uniqueness of identity proofs, HoTT]
-SeeAlso: [UniverseNotSet, Equal]
+SeeAlso: [Equal]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [HomotopyTypeTheory]
 ---
@@ -16,7 +16,7 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 ## Details & Options
 
-- [IsSet]() is a definition. The types of the prelude's rules are all sets, since their proofs of an equality are all equal; in the HoTT environment some types are not, by [UniverseNotSet]().
+- [IsSet]() is a definition. The types of the prelude's rules are all sets, since their proofs of an equality are all equal; in the HoTT environment some types are not, by `"universeNotSet"`.
 - It is a constant of <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>; terms that use it name that environment.
 
 ## Basic Examples

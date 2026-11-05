@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/IntervalReverse
 Keywords: [interval, reversal, De Morgan algebra, cubical type theory, symmetry]
-SeeAlso: [IntervalMeet, IntervalJoin, PathSymmetry]
+SeeAlso: [IntervalMeet, IntervalJoin]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [CubicalTypeTheory]
 ---
@@ -18,7 +18,7 @@ RelatedTutorials: [CubicalTypeTheory]
 
 - Reversal is an involution and turns meets into joins, as in a De Morgan algebra, but `Min[r, 1 - r]` is not 0.
 - Read as a face, <code>[IntervalReverse]()[*i*]</code> holds where *i* is 0, which a system writes `i == 0`.
-- It shows as `~r`. A path at `1 - i` is the path reversed, [PathSymmetry]().
+- It shows as `~r`. A path at `1 - i` is the path reversed, `"pathSymmetry"`.
 
 ## Basic Examples
 

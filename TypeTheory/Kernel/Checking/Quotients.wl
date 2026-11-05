@@ -13,7 +13,7 @@ Quotients: the quotient types of Lean's kernel, which the declaration TypeTheory
 	QuotientInduction[premise, QuotientIntroduction[r, a]]  computes to premise[a]
 
 These two rules are all the kernel adds. That the classes of two related elements are equal is an axiom,
-Lean's Quot.sound, which the prelude declares as QuotientSoundness. TypeTheoryQuotients[equality, {type,
+Lean's Quot.sound, which the prelude declares as "quotientSoundness". TypeTheoryQuotients[equality, {type,
 introduction, lift, induction}] declares the four constants under other names, with another equality,
 as LeanLink declares Lean's own: TypeTheoryQuotients["Eq", {"Quot", "Quot.mk", "Quot.lift", "Quot.ind"}].
 

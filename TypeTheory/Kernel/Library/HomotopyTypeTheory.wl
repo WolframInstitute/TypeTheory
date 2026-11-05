@@ -10,20 +10,20 @@ them. Propositions are types: True has one element, False none, and Not[a] is a 
 Equal is the type of paths: x == y has an element for each path from x to y, and its recursor is path
 induction. The operations on paths are definitions, so they compute on reflexivity:
 
-	EqualitySymmetry[p], EqualityTransitivity[p, q]    the inverse and the concatenation of paths
-	EqualityCongruence[f, p]                            the path f[x] == f[y] from p : x == y
+	"equalitySymmetry"[p], "equalityTransitivity"[p, q]    the inverse and the concatenation of paths
+	"equalityCongruence"[f, p]                            the path f[x] == f[y] from p : x == y
 	Transport[P, p, b]                                  b : P[x] carried along p : x == y to P[y]
-	DependentCongruence[f, p]                           Transport[P, p, f[x]] == f[y], for f : (x : A) -> P[x]
+	"dependentCongruence"[f, p]                           Transport[P, p, f[x]] == f[y], for f : (x : A) -> P[x]
 
-An equivalence is bi-invertible: a function with a left inverse and a right inverse. Univalence is the
-axiom that EqualityToEquivalence, which takes a path between types to an equivalence, is itself an
-equivalence; EquivalenceToEquality is its right inverse. With it, UniverseNotSet proves that two types can
+An equivalence is bi-invertible: a function with a left inverse and a right inverse. "univalence" is the
+axiom that "equalityToEquivalence", which takes a path between types to an equivalence, is itself an
+equivalence; "equivalenceToEquality" is its right inverse. With it, "universeNotSet" proves that two types can
 be equal in more than one way: the negation of the Booleans gives a path Booleans == Booleans that is not
 reflexivity.
 
-The circle is a higher inductive type, given by axioms: a point CircleBase, a path CircleLoop from it to
-itself, and CircleInduction. On CircleBase, CircleInduction computes, by the rewrite rule
-CircleInductionBase; on CircleLoop it does so up to a path, by the axiom CircleInductionLoop, whose
+The circle is a higher inductive type, given by axioms: a point "circleBase", a path "circleLoop" from it to
+itself, and "circleInduction". On "circleBase", "circleInduction" computes, by the rewrite rule
+"circleInductionBase"; on "circleLoop" it does so up to a path, by the axiom "circleInductionLoop", whose
 statement only type-checks because the rewrite rule computes.
 *)
 
@@ -33,25 +33,10 @@ statement only type-checks because the rewrite rule computes.
 
 
 PackageExported[Transport]
-PackageExported[DependentCongruence]
-PackageExported[TransportConstant]
 PackageExported[IsEquivalence]
 PackageExported[EquivalenceProof]
 PackageExported[Equivalence]
-PackageExported[EquivalenceIntroduction]
-PackageExported[IdentityEquivalence]
-PackageExported[EqualityToEquivalence]
-PackageExported[Univalence]
-PackageExported[EquivalenceToEquality]
-PackageExported[UnivalenceComputation]
-PackageExported[NegationEquivalence]
 PackageExported[IsSet]
-PackageExported[UniverseNotSet]
-PackageExported[CircleBase]
-PackageExported[CircleLoop]
-PackageExported[CircleInduction]
-PackageExported[CircleInductionBase]
-PackageExported[CircleInductionLoop]
 
 
 (* ::Section:: *)
@@ -70,35 +55,13 @@ PackageScoped[$circleDeclarations]
 
 Transport::usage = "Transport[P, p, b] carries b, an element of P[x], along the path p : x == y to an element of P[y]; it is b when p is reflexivity. \
 It is a definition of the HoTT environment."
-DependentCongruence::usage = "DependentCongruence[f, p] is the path Transport[P, p, f[x]] == f[y] that a dependent function f : (x : A) -> P[x] gives from \
-a path p : x == y. It is a definition of the HoTT environment."
-TransportConstant::usage = "TransportConstant[p, b] is the path Transport[Function[{x}, B], p, b] == b: transport in a constant family leaves b where it is."
 IsEquivalence::usage = "IsEquivalence[f] is the type of proofs that f is an equivalence. In the HoTT environment it is an inductive type, a left inverse and a \
 right inverse, each with its path, with the one constructor EquivalenceProof; in the cubical environment it is a definition, the contractibility of every fiber of f."
 EquivalenceProof::usage = "EquivalenceProof[g, retraction, h, section] proves IsEquivalence[f] from a function g with g[f[x]] == x for every x and a function h \
 with f[h[y]] == y for every y."
 Equivalence::usage = "Equivalence[A, B] is the type of equivalences from A to B: a function with a proof that it is an equivalence, and e[[1]] is the function \
-of an equivalence e. In the HoTT environment its one constructor is EquivalenceIntroduction; in the cubical environment it is a dependent sum, DependentSum[A -> B, IsEquivalence]."
-EquivalenceIntroduction::usage = "EquivalenceIntroduction[f, e] is the equivalence given by the function f and the proof e of IsEquivalence[f]."
-IdentityEquivalence::usage = "IdentityEquivalence[A] is the identity function of A as an equivalence, in the HoTT and cubical environments."
-EqualityToEquivalence::usage = "EqualityToEquivalence[p] is the equivalence a path p : A == B between types gives; reflexivity gives the identity."
-Univalence::usage = "Univalence[A, B] proves IsEquivalence[EqualityToEquivalence] for the types A and B: equivalent types are equal, in as many ways as \
-they are equivalent. It is the axiom of the HoTT environment."
-EquivalenceToEquality::usage = "EquivalenceToEquality[e] is the path A == B that univalence gives for the equivalence e from A to B."
-UnivalenceComputation::usage = "UnivalenceComputation[e] proves EqualityToEquivalence[EquivalenceToEquality[e]] == e: carrying along the path of an \
-equivalence is that equivalence."
-NegationEquivalence::usage = "NegationEquivalence is the negation of Booleans, \"not\", as an equivalence from Booleans to Booleans, its own inverse, in the HoTT \
-and cubical environments."
+of an equivalence e. In the HoTT environment its one constructor is \"equivalenceIntroduction\"; in the cubical environment it is a dependent sum, DependentSum[A -> B, IsEquivalence]."
 IsSet::usage = "IsSet[A] is the type of proofs that any two paths between the same elements of A are equal."
-UniverseNotSet::usage = "UniverseNotSet proves Not[IsSet[TypeUniverse[1]]]: by univalence, NegationEquivalence gives a path Booleans == Booleans that is not \
-reflexivity, as the HoTT book shows."
-CircleBase::usage = "CircleBase is the point of the circle, Circle, in the HoTT environment."
-CircleLoop::usage = "CircleLoop is the path CircleBase == CircleBase that goes once around the circle."
-CircleInduction::usage = "CircleInduction[P, b, l, x] gives an element of P[x] for every point x of the circle, from b : P[CircleBase] and a path \
-l : Transport[P, CircleLoop, b] == b. It computes to b on CircleBase, by the rewrite rule CircleInductionBase."
-CircleInductionBase::usage = "CircleInductionBase is the rewrite rule CircleInduction[P, b, l, CircleBase] -> b of the HoTT environment."
-CircleInductionLoop::usage = "CircleInductionLoop[P, b, l] proves DependentCongruence[CircleInduction[P, b, l, #] &, CircleLoop] == l: on the loop, \
-induction gives the path l."
 
 homotopyTypeTheoryEnvironment::usage = "homotopyTypeTheoryEnvironment[] gives the HoTT environment, built and checked the first time."
 $homotopyTypeTheoryRules::usage = "$homotopyTypeTheoryRules is the rules of the HoTT environment: Martin-Löf type theory with rewrite rules."
@@ -119,11 +82,11 @@ homotopyTypeTheoryEnvironment[] := homotopyTypeTheoryEnvironment[] = withoutStor
 
 $univalentDeclarations = {
 	(* propositions as types *)
-	TypeTheoryInductiveType[True, TypeUniverse[1], {TrueIntroduction -> True}],
+	TypeTheoryInductiveType[True, TypeUniverse[1], {"trueIntroduction" -> True}],
 	TypeTheoryInductiveType[False, TypeUniverse[1], {}],
 	TypeTheoryDefinition[Not, Function[{Typed[a, TypeUniverse[u + 1]]}, Implies[a, False]]],
 	TypeTheoryDefinition[
-		FalseElimination,
+		"falseElimination",
 		Function[{TypedImplicit[a, TypeUniverse[u + 1]], Typed[h, False]}, InductiveRecursor[False][Function[{Typed[t, False]}, a], h]]
 	],
 
@@ -131,17 +94,17 @@ $univalentDeclarations = {
 	TypeTheoryInductiveType[
 		Equal,
 		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A], Typed[y, A]}, TypeUniverse[u + 1]],
-		{EqualityReflexivity -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, x == x]}
+		{"equalityReflexivity" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A]}, x == x]}
 	],
 	TypeTheoryDefinition[
-		EqualitySymmetry,
+		"equalitySymmetry",
 		Function[
 			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y]},
-			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, z == x], EqualityReflexivity[x], p]
+			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, z == x], "equalityReflexivity"[x], p]
 		]
 	],
 	TypeTheoryDefinition[
-		EqualityTransitivity,
+		"equalityTransitivity",
 		Function[
 			{
 				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[x, A], TypedImplicit[y, A],
@@ -151,13 +114,13 @@ $univalentDeclarations = {
 		]
 	],
 	TypeTheoryDefinition[
-		EqualityCongruence,
+		"equalityCongruence",
 		Function[
 			{
 				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[f, TypeSpecifier[{A} -> B]],
 				TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y]
 			},
-			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, f[x] == f[z]], EqualityReflexivity[f[x]], p]
+			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, f[x] == f[z]], "equalityReflexivity"[f[x]], p]
 		]
 	],
 	TypeTheoryDefinition[
@@ -171,23 +134,23 @@ $univalentDeclarations = {
 		]
 	],
 	TypeTheoryDefinition[
-		DependentCongruence,
+		"dependentCongruence",
 		Function[
 			{
 				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[P, TypeSpecifier[{A} -> TypeUniverse[v + 1]]],
 				Typed[f, ForAll[{Typed[z, A]}, P[z]]], TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y]
 			},
-			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, Transport[P, q, f[x]] == f[z]], EqualityReflexivity[f[x]], p]
+			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, Transport[P, q, f[x]] == f[z]], "equalityReflexivity"[f[x]], p]
 		]
 	],
 	TypeTheoryDefinition[
-		TransportConstant,
+		"transportConstant",
 		Function[
 			{
 				TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
 				TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, x == y], Typed[b, B]
 			},
-			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, Transport[Function[{Typed[w, A]}, B], q, b] == b], EqualityReflexivity[b], p]
+			InductiveRecursor[Equal][Function[{Typed[z, A], Typed[q, x == z]}, Transport[Function[{Typed[w, A]}, B], q, b] == b], "equalityReflexivity"[b], p]
 		]
 	],
 
@@ -218,7 +181,7 @@ $univalentDeclarations = {
 		Equivalence,
 		ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
 		{
-			EquivalenceIntroduction -> ForAll[
+			"equivalenceIntroduction" -> ForAll[
 				{
 					TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
 					Typed[f, TypeSpecifier[{A} -> B]], Typed[e, IsEquivalence[f]]
@@ -228,43 +191,43 @@ $univalentDeclarations = {
 		}
 	],
 	TypeTheoryDefinition[
-		IdentityEquivalence,
+		"identityEquivalence",
 		Function[{Typed[A, TypeUniverse[u + 1]]},
-			EquivalenceIntroduction[
+			"equivalenceIntroduction"[
 				Function[{Typed[x, A]}, x],
-				EquivalenceProof[Function[{Typed[x, A]}, x], Function[{Typed[x, A]}, EqualityReflexivity[x]], Function[{Typed[x, A]}, x], Function[{Typed[x, A]}, EqualityReflexivity[x]]]
+				EquivalenceProof[Function[{Typed[x, A]}, x], Function[{Typed[x, A]}, "equalityReflexivity"[x]], Function[{Typed[x, A]}, x], Function[{Typed[x, A]}, "equalityReflexivity"[x]]]
 			]
 		]
 	],
 	TypeTheoryDefinition[
-		EqualityToEquivalence,
+		"equalityToEquivalence",
 		Function[
 			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[p, A == B]},
-			InductiveRecursor[Equal][Function[{Typed[C, TypeUniverse[u + 1]], Typed[q, A == C]}, Equivalence[A, C]], IdentityEquivalence[A], p]
+			InductiveRecursor[Equal][Function[{Typed[C, TypeUniverse[u + 1]], Typed[q, A == C]}, Equivalence[A, C]], "identityEquivalence"[A], p]
 		]
 	],
 
 	(* univalence *)
 	TypeTheoryAxiom[
-		Univalence,
-		ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeUniverse[u + 1]]}, IsEquivalence[Function[{Typed[p, A == B]}, EqualityToEquivalence[p]]]]
+		"univalence",
+		ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeUniverse[u + 1]]}, IsEquivalence[Function[{Typed[p, A == B]}, "equalityToEquivalence"[p]]]]
 	],
 	TypeTheoryDefinition[
-		EquivalenceToEquality,
+		"equivalenceToEquality",
 		Function[
 			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[e, Equivalence[A, B]]},
-			Univalence[A, B][[3]][e]
+			"univalence"[A, B][[3]][e]
 		]
 	],
 	TypeTheoryTheorem[
-		UnivalenceComputation,
+		"univalenceComputation",
 		ForAll[
 			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[e, Equivalence[A, B]]},
-			EqualityToEquivalence[EquivalenceToEquality[e]] == e
+			"equalityToEquivalence"["equivalenceToEquality"[e]] == e
 		],
 		Function[
 			{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[u + 1]], Typed[e, Equivalence[A, B]]},
-			Univalence[A, B][[4]][e]
+			"univalence"[A, B][[4]][e]
 		]
 	],
 
@@ -274,42 +237,42 @@ $univalentDeclarations = {
 		Function[{Typed[A, TypeUniverse[u + 1]]}, ForAll[{Typed[x, A], Typed[y, A], Typed[p, x == y], Typed[q, x == y]}, p == q]]
 	],
 	TypeTheoryDefinition[
-		NegationEquivalence,
+		"negationEquivalence",
 		Typed[
 			With[
 				{
 					involution = Function[{Typed[b, Booleans]},
-						InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "not"["not"[t]] == t], EqualityReflexivity["false"], EqualityReflexivity["true"], b]
+						InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "not"["not"[t]] == t], "equalityReflexivity"["false"], "equalityReflexivity"["true"], b]
 					]
 				},
-				EquivalenceIntroduction["not", EquivalenceProof["not", involution, "not", involution]]
+				"equivalenceIntroduction"["not", EquivalenceProof["not", involution, "not", involution]]
 			],
 			Equivalence[Booleans, Booleans]
 		]
 	],
 	TypeTheoryTheorem[
-		UniverseNotSet,
+		"universeNotSet",
 		Not[IsSet[TypeUniverse[1]]],
 		Function[{Typed[s, IsSet[TypeUniverse[1]]]},
 			With[
 				{
-					negationPath = EquivalenceToEquality[NegationEquivalence],
+					negationPath = "equivalenceToEquality"["negationEquivalence"],
 					onTrue = Function[{Typed[e, Equivalence[Booleans, Booleans]]}, e[[1]]["true"]]
 				},
 				With[
 					{
 						(* if every path were reflexivity, carrying true along the negation path would give true *)
-						viaSet = EqualityCongruence[
-							Function[{Typed[r, Booleans == Booleans]}, onTrue[EqualityToEquivalence[r]]],
-							s[Booleans, Booleans, negationPath, EqualityReflexivity[Booleans]]
+						viaSet = "equalityCongruence"[
+							Function[{Typed[r, Booleans == Booleans]}, onTrue["equalityToEquivalence"[r]]],
+							s[Booleans, Booleans, negationPath, "equalityReflexivity"[Booleans]]
 						],
 						(* by univalence it gives what negation does, false *)
-						viaUnivalence = EqualityCongruence[onTrue, UnivalenceComputation[NegationEquivalence]]
+						viaUnivalence = "equalityCongruence"[onTrue, "univalenceComputation"["negationEquivalence"]]
 					},
 					Transport[
 						Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, TypeUniverse[1]], True, False, b]],
-						EqualityTransitivity[EqualitySymmetry[viaUnivalence], viaSet],
-						TrueIntroduction
+						"equalityTransitivity"["equalitySymmetry"[viaUnivalence], viaSet],
+						"trueIntroduction"
 					]
 				]
 			]
@@ -319,30 +282,30 @@ $univalentDeclarations = {
 
 $circleDeclarations = {
 	TypeTheoryAxiom[Circle, TypeUniverse[1]],
-	TypeTheoryAxiom[CircleBase, Circle],
-	TypeTheoryAxiom[CircleLoop, CircleBase == CircleBase],
+	TypeTheoryAxiom["circleBase", Circle],
+	TypeTheoryAxiom["circleLoop", "circleBase" == "circleBase"],
 	TypeTheoryAxiom[
-		CircleInduction,
+		"circleInduction",
 		ForAll[
 			{
-				Typed[P, TypeSpecifier[{Circle} -> TypeUniverse[u + 1]]], Typed[b, P[CircleBase]], Typed[l, Transport[P, CircleLoop, b] == b],
+				Typed[P, TypeSpecifier[{Circle} -> TypeUniverse[u + 1]]], Typed[b, P["circleBase"]], Typed[l, Transport[P, "circleLoop", b] == b],
 				Typed[x, Circle]
 			},
 			P[x]
 		]
 	],
 	TypeTheoryRewriteRule[
-		CircleInductionBase,
+		"circleInductionBase",
 		ForAll[
-			{Typed[P, TypeSpecifier[{Circle} -> TypeUniverse[u + 1]]], Typed[b, P[CircleBase]], Typed[l, Transport[P, CircleLoop, b] == b]},
-			CircleInduction[P, b, l, CircleBase] -> b
+			{Typed[P, TypeSpecifier[{Circle} -> TypeUniverse[u + 1]]], Typed[b, P["circleBase"]], Typed[l, Transport[P, "circleLoop", b] == b]},
+			"circleInduction"[P, b, l, "circleBase"] -> b
 		]
 	],
 	TypeTheoryAxiom[
-		CircleInductionLoop,
+		"circleInductionLoop",
 		ForAll[
-			{Typed[P, TypeSpecifier[{Circle} -> TypeUniverse[u + 1]]], Typed[b, P[CircleBase]], Typed[l, Transport[P, CircleLoop, b] == b]},
-			DependentCongruence[Function[{Typed[x, Circle]}, CircleInduction[P, b, l, x]], CircleLoop] == l
+			{Typed[P, TypeSpecifier[{Circle} -> TypeUniverse[u + 1]]], Typed[b, P["circleBase"]], Typed[l, Transport[P, "circleLoop", b] == b]},
+			"dependentCongruence"[Function[{Typed[x, Circle]}, "circleInduction"[P, b, l, x]], "circleLoop"] == l
 		]
 	]
 }

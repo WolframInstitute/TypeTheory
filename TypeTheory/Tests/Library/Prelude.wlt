@@ -20,8 +20,8 @@ VerificationTest[
 	Complement[
 		{
 			True, False, Not, And, Or, Equal, Exists, NonNegativeIntegers, Plus,
-			FalseElimination, AndEliminationLeft, AndEliminationRight,
-			EqualitySymmetry, EqualityTransitivity, EqualityCongruence, EqualitySubstitution
+			"falseElimination", "andEliminationLeft", "andEliminationRight",
+			"equalitySymmetry", "equalityTransitivity", "equalityCongruence", "equalitySubstitution"
 		},
 		Keys[prelude]
 	],
@@ -31,12 +31,12 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualitySymmetry[EqualityReflexivity[3]], prelude], TypeTheoryTerm[3 == 3]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, False]}, FalseElimination[h]], prelude], TypeTheoryTerm[Implies[False, 1 == 2]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[AndEliminationRight[AndIntroduction[TrueIntroduction, EqualityReflexivity[2]]], prelude], TypeTheoryTerm[1 + 1 == 2]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityCongruence[NaturalNumberSuccessor, EqualityReflexivity[2]], prelude], TypeTheoryTerm[3 == 3]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalitySymmetry"["equalityReflexivity"[3]], prelude], TypeTheoryTerm[3 == 3]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, False]}, "falseElimination"[h]], prelude], TypeTheoryTerm[Implies[False, 1 == 2]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["andEliminationRight"["andIntroduction"["trueIntroduction", "equalityReflexivity"[2]]], prelude], TypeTheoryTerm[1 + 1 == 2]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalityCongruence"["successor", "equalityReflexivity"[2]], prelude], TypeTheoryTerm[3 == 3]], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h, x == 2]}, EqualitySubstitution[EqualitySymmetry[h], EqualityReflexivity[2]]], prelude],
+			TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[h, x == 2]}, "equalitySubstitution"["equalitySymmetry"[h], "equalityReflexivity"[2]]], prelude],
 			TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, Implies[x == 2, x == 2]]]
 		], _Success]
 	},
@@ -46,8 +46,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[OrIntroductionLeft[TrueIntroduction], prelude], TypeTheoryTerm[Or[True, False]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[OrIntroductionRight[TrueIntroduction], prelude], TypeTheoryTerm[Or[False, True]]], _Success]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["orIntroductionLeft"["trueIntroduction"], prelude], TypeTheoryTerm[Or[True, False]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["orIntroductionRight"["trueIntroduction"], prelude], TypeTheoryTerm[Or[False, True]]], _Success]
 	},
 	{True, True},
 	TestID -> "Disjunction-introduction"
@@ -68,12 +68,12 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, a + b == b + a]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[AdditionAssociativity], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, a + b + c == a + (b + c)]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[MultiplicationCommutativity], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, a * b == b * a]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[MultiplicationDistributivityRight], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, (a + b) * c == a * c + b * c]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[PowerAddition], TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, m^(a + b) == m^a * m^b]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[AdditionSubtractionCancellation], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, (a + b) - b == a]]], _Success]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["additionCommutativity"], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, a + b == b + a]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["additionAssociativity"], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, a + b + c == a + (b + c)]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["multiplicationCommutativity"], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, a * b == b * a]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["multiplicationDistributivityRight"], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, (a + b) * c == a * c + b * c]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["powerAddition"], TypeTheoryTerm[ForAll[{Typed[m, NonNegativeIntegers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, m^(a + b) == m^a * m^b]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["additionSubtractionCancellation"], TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, (a + b) - b == a]]], _Success]
 	},
 	{True, True, True, True, True, True},
 	TestID -> "The-laws-of-arithmetic-have-their-statements"
@@ -81,12 +81,12 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[MultiplicationCommutativity[3, 4]], TypeTheoryTerm[3 * 4 == 4 * 3]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[SuccessorNotZero[4]], TypeTheoryTerm[5 != 0]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[LessEqualStep[LessEqualStep[LessEqualStep[LessEqualReflexivity]]]], TypeTheoryTerm[2 <= 5]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[LessEqualAddition[4, 2]], TypeTheoryTerm[3 < 6]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, 3 <= 2]}, LessIrreflexivity[2][LessEqualTransitivity[h, LessEqualReflexivity]]]], TypeTheoryTerm[Not[3 <= 2]]], _Success],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[LessEqualZero[7]], TypeTheoryTerm[7 >= 0]], _Success]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["multiplicationCommutativity"[3, 4]], TypeTheoryTerm[3 * 4 == 4 * 3]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["successorNotZero"[4]], TypeTheoryTerm[5 != 0]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["lessEqualStep"["lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]]], TypeTheoryTerm[2 <= 5]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["lessEqualAddition"[4, 2]], TypeTheoryTerm[3 < 6]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[h, 3 <= 2]}, "lessIrreflexivity"[2]["lessEqualTransitivity"[h, "lessEqualReflexivity"]]]], TypeTheoryTerm[Not[3 <= 2]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["lessEqualZero"[7]], TypeTheoryTerm[7 >= 0]], _Success]
 	},
 	{True, True, True, True, True, True},
 	TestID -> "The-order-of-the-natural-numbers"
@@ -94,14 +94,14 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EquivalentReflexivity[True]], TypeTheoryTerm[Equivalent[True, True]]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equivalentReflexivity"[True]], TypeTheoryTerm[Equivalent[True, True]]], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, Equivalent[p, q]], Typed[x, q]}, EquivalentBackward[EquivalentSymmetry[EquivalentSymmetry[h]]][x]]],
+			TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, Equivalent[p, q]], Typed[x, q]}, "equivalentBackward"["equivalentSymmetry"["equivalentSymmetry"[h]]][x]]],
 			TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[Equivalent[p, q], Implies[q, p]]]]
 		], _Success],
 		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Identity[3]], TypeTheoryTerm[NonNegativeIntegers]], _Success],
-		WeakHeadNormalForm[TypeTheoryTerm[Composition[NaturalNumberSuccessor, NaturalNumberSuccessor][3]]] === TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[3]], prelude],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[AndIntroduction[TrueIntroduction, AndIntroduction[TrueIntroduction, TrueIntroduction]]], TypeTheoryTerm[True && True && True]], _Success]
+		WeakHeadNormalForm[TypeTheoryTerm[Composition["successor", "successor"][3]]] === TypeTheoryTerm["successor"["successor"[3]], prelude],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["andIntroduction"["trueIntroduction", "andIntroduction"["trueIntroduction", "trueIntroduction"]]], TypeTheoryTerm[True && True && True]], _Success]
 	},
 	{True, True, True, True, True},
 	TestID -> "Equivalence-identity-composition-and-conjunctions"
@@ -122,20 +122,20 @@ VerificationTest[
 			Length[constructive],
 			Information[constructive, "Axioms"],
 			Take[Keys[prelude], Length[constructive]] === Keys[constructive],
-			KeyExistsQ[constructive, ExcludedMiddle],
+			KeyExistsQ[constructive, "excludedMiddle"],
 			Information[prelude, "Axioms"]
 		}
 	],
-	{155, {}, True, False, {PropositionalExtensionality, QuotientSoundness, Choice}},
+	{155, {}, True, False, {"propositionalExtensionality", "quotientSoundness", "choice"}},
 	TestID -> "The-constructive-environment-is-the-prelude-without-its-classical-part"
 ]
 
 VerificationTest[
 	{
-		Head[prelude[ExcludedMiddle]],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle[2 + 2 == 5]], TypeTheoryTerm[Or[2 + 2 == 5, Not[2 + 2 == 5]]]], _Success],
+		Head[prelude["excludedMiddle"]],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"[2 + 2 == 5]], TypeTheoryTerm[Or[2 + 2 == 5, Not[2 + 2 == 5]]]], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, Not[Not[p]]]}, DoubleNegationElimination[p][h]]],
+			TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, Not[Not[p]]]}, "doubleNegationElimination"[p][h]]],
 			TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[Not[Not[p]], p]]]
 		], _Success]
 	},
@@ -146,15 +146,15 @@ VerificationTest[
 VerificationTest[
 	{
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Function[{Typed[h, True]}, AndIntroduction[h, h]], Function[{Typed[h, True && True]}, AndEliminationLeft[h]]]]],
+			TypeTheoryTerm["propositionalExtensionality"["equivalentIntroduction"[Function[{Typed[h, True]}, "andIntroduction"[h, h]], Function[{Typed[h, True && True]}, "andEliminationLeft"[h]]]]],
 			TypeTheoryTerm[Typed[True, TypeUniverse[0]] == (True && True)]
 		], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]],
+			TypeTheoryTerm["functionExtensionality"["additionZeroLeft"]],
 			TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, 0 + n] == Function[{Typed[n, NonNegativeIntegers]}, n]]
 		], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitnessProperty[h]]],
+			TypeTheoryTerm[Function[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, "chosenWitnessProperty"[h]]],
 			TypeTheoryTerm[ForAll[{Typed[h, Exists[Function[{Typed[n, NonNegativeIntegers]}, n + n == 6]]]}, ChosenWitness[h] + ChosenWitness[h] == 6]]
 		], _Success]
 	},
@@ -170,7 +170,7 @@ VerificationTest[
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]],
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[Not[False] || False, Booleans]]],
 		WeakHeadNormalForm[TypeTheoryTerm[Typed[True && True && False, Booleans]]],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity["true"]], TypeTheoryTerm[Not[Not[Typed[True, Booleans]]] == True]], _Success]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"["true"]], TypeTheoryTerm[Not[Not[Typed[True, Booleans]]] == True]], _Success]
 	},
 	{TypeTheoryTerm["false", prelude], TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude], True},
 	TestID -> "The-Booleans-compute"
@@ -178,7 +178,7 @@ VerificationTest[
 
 VerificationTest[
 	MatchQ[TypeTheoryCheck[
-		TypeTheoryTerm[Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], EqualityReflexivity["false"], EqualityReflexivity["true"], b]]],
+		TypeTheoryTerm[Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Not[Not[t]] == t], "equalityReflexivity"["false"], "equalityReflexivity"["true"], b]]],
 		TypeTheoryTerm[ForAll[{Typed[b, Booleans]}, Not[Not[b]] == b]]
 	], _Success],
 	True,
@@ -193,23 +193,23 @@ VerificationTest[
 		WeakHeadNormalForm[TypeTheoryTerm[Decide[5 <= 2], prelude]],
 		WeakHeadNormalForm[TypeTheoryTerm[Decide[Not[1 == 2] && (3 <= 1 || 1 <= 3)], prelude]],
 		WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5 && True && Not[False]], prelude]],
-		WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 5 <= 2, LessEqualDecidable[5, 2]], prelude]]
+		WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 5 <= 2, "lessEqualDecidable"[5, 2]], prelude]]
 	},
 	{TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude], TypeTheoryTerm["true", prelude], TypeTheoryTerm["true", prelude], TypeTheoryTerm["false", prelude]},
 	TestID -> "Decisions-are-found-among-the-instances-and-compute-to-Booleans"
 ]
 
 VerificationTest[
-	MatchQ[TypeTheoryCheck[TypeTheoryTerm[DecideSoundness[EqualityReflexivity[True]], prelude], TypeTheoryTerm[3 + 4 == 7, prelude]], _Success],
+	MatchQ[TypeTheoryCheck[TypeTheoryTerm["decideSoundness"["equalityReflexivity"[True]], prelude], TypeTheoryTerm[3 + 4 == 7, prelude]], _Success],
 	True,
 	TestID -> "A-decision-that-computes-to-True-proves-its-proposition"
 ]
 
 VerificationTest[
 	{
-		TypeOf[TypeTheoryTerm[Pair[1, "true"][[2]], prelude]],
-		TypeOf[TypeTheoryTerm[Typed[LeftInjection[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
-		TypeOf[TypeTheoryTerm[OptionSome[5], prelude]],
+		TypeOf[TypeTheoryTerm["pair"[1, "true"][[2]], prelude]],
+		TypeOf[TypeTheoryTerm[Typed["left"[3], DisjointUnionType[NonNegativeIntegers, Booleans]], prelude]],
+		TypeOf[TypeTheoryTerm["some"[5], prelude]],
 		TypeOf[TypeTheoryTerm[Prepend[1][{}], prelude]]
 	},
 	{
@@ -225,11 +225,11 @@ VerificationTest[
 	{
 		WeakHeadNormalForm[TypeTheoryTerm[Length[Join[Prepend[1][Prepend[2][{}]], Prepend[3][{}]]], prelude]],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[EqualityReflexivity[Prepend[3][Prepend[2][Prepend[1][{}]]]], prelude],
+			TypeTheoryTerm["equalityReflexivity"[Prepend[3][Prepend[2][Prepend[1][{}]]]], prelude],
 			TypeTheoryTerm[Reverse[Prepend[1][Prepend[2][Prepend[3][{}]]]] == Prepend[3][Prepend[2][Prepend[1][{}]]], prelude]
 		], _Success],
 		MatchQ[TypeTheoryCheck[
-			TypeTheoryTerm[ReverseReverse[Prepend[1][{}]], prelude],
+			TypeTheoryTerm["reverseReverse"[Prepend[1][{}]], prelude],
 			TypeTheoryTerm[Reverse[Reverse[Prepend[1][{}]]] == Prepend[1][{}], prelude]
 		], _Success]
 	},

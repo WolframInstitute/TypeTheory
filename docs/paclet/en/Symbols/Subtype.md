@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Subtype
 Keywords: [subtype, property, element, structure, prelude, classical logic]
-SeeAlso: [SubtypeIntroduction, ChosenWitness, Exists, Nonempty]
+SeeAlso: [ChosenWitness, Exists, Nonempty]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Subtype]() is an inductive type of the prelude, with the one constructor [SubtypeIntroduction](). The type of the elements is an implicit argument, found from the type of *P*.
+- [Subtype]() is an inductive type of the prelude, with the one constructor `"subtype"`. The type of the elements is an implicit argument, found from the type of *P*.
 - An element `s` of <code>[Subtype]()[*P*]</code> is a structure: `s[[1]]` is the element and `s[[2]]` the proof of its property.
 - For elements in `Sort u`, <code>[Subtype]()[*P*]</code> is in `Sort (max 1 u)`: it is a type of data even when its elements are proofs.
 - <code>[Subtype]()[[Function]()[{[Typed]()[*x*, *A*]}, *p*]]</code> displays as `{x ∶ A // p}`, as Lean writes `{ x // p }`.
@@ -46,7 +46,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] 
 The first field of an element computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[SubtypeIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Subtype[Typed[n, Naturals] |-> 2 <= n]][[1]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed["subtype"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Subtype[Typed[n, Naturals] |-> 2 <= n]][[1]]]]
 ```
 
 <!-- => 4 -->

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/QuotientIntroduction
 Keywords: [quotient, equivalence class, Quot.mk, Lean, prelude]
-SeeAlso: [QuotientType, QuotientLift, QuotientSoundness, TypeTheoryQuotients]
+SeeAlso: [QuotientType, QuotientLift, TypeTheoryQuotients]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation]
 ---
@@ -18,7 +18,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 
 - [QuotientIntroduction]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot.mk`.
 - The type α of *a* is an implicit argument.
-- The classes of two elements that *r* relates are equal by [QuotientSoundness](), not by computation.
+- The classes of two elements that *r* relates are equal by `"quotientSoundness"`, not by computation.
 
 ## Basic Examples
 
@@ -43,7 +43,7 @@ differences = TypeTheoryEnvironment[{
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientIntroduction[SameDifference, Pair[2, 5]], differences]]
+TypeTheoryCheck[TypeTheoryTerm[QuotientIntroduction[SameDifference, "pair"[2, 5]], differences]]
 ```
 
 <!-- => QuotientType[SameDifference] -->
@@ -60,10 +60,10 @@ differences = TypeTheoryEnvironment[{
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
-The classes of (2, 5) and (3, 6) are equal by [QuotientSoundness](), since 2 + 6 and 3 + 5 compute to 8:
+The classes of (2, 5) and (3, 6) are equal by `"quotientSoundness"`, since 2 + 6 and 3 + 5 compute to 8:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[QuotientSoundness[EqualityReflexivity[8]], QuotientIntroduction[SameDifference, Pair[2, 5]] == QuotientIntroduction[SameDifference, Pair[3, 6]]], differences]]
+TypeTheoryCheck[TypeTheoryTerm[Typed["quotientSoundness"["equalityReflexivity"[8]], QuotientIntroduction[SameDifference, "pair"[2, 5]] == QuotientIntroduction[SameDifference, "pair"[3, 6]]], differences]]
 ```
 
 <!-- => QuotientIntroduction[SameDifference, (2, 5)] == QuotientIntroduction[SameDifference, (3, 6)] -->
@@ -71,7 +71,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[QuotientSoundness[EqualityReflexivity[8]], 
 They are not equal by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[QuotientIntroduction[SameDifference, Pair[2, 5]], differences], TypeTheoryTerm[QuotientIntroduction[SameDifference, Pair[3, 6]], differences]]
+DefinitionallyEqualQ[TypeTheoryTerm[QuotientIntroduction[SameDifference, "pair"[2, 5]], differences], TypeTheoryTerm[QuotientIntroduction[SameDifference, "pair"[3, 6]], differences]]
 ```
 
 <!-- => False -->

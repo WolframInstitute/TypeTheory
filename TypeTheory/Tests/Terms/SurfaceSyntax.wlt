@@ -79,14 +79,14 @@ VerificationTest[
 ]
 
 VerificationTest[
-	Module[{statement = TypeTheoryTerm[2 + 2 == 4]}, MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[statement]], _Success]],
+	Module[{statement = TypeTheoryTerm[2 + 2 == 4]}, MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[statement]], _Success]],
 	True,
 	TestID -> "A-symbol-whose-value-is-a-TypeTheoryTerm-stands-for-it"
 ]
 
 VerificationTest[
-	Take[Normal[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]], -1],
-	{TypeTheoryTheorem[TwoPlusTwo, Construct[Subscript[Equal, 1], NonNegativeIntegers, 2 + 2, 4], Construct[Subscript[EqualityReflexivity, 1], NonNegativeIntegers, 4]]},
+	Take[Normal[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]], -1],
+	{TypeTheoryTheorem[TwoPlusTwo, Construct[Subscript[Equal, 1], NonNegativeIntegers, 2 + 2, 4], Construct[Subscript["equalityReflexivity", 1], NonNegativeIntegers, 4]]},
 	TestID -> "Exact-read-back-writes-every-argument-and-level"
 ]
 
@@ -145,13 +145,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	MatchQ[ToBoxes[prelude[EqualityCongruence]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
+	MatchQ[ToBoxes[prelude["equalityCongruence"]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
 	True,
 	TestID -> "A-declaration-displays-as-a-keyword-a-name-and-a-type"
 ]
 
 VerificationTest[
-	With[{boxes = ToBoxes[TypeOf[TypeTheoryTerm[AndIntroduction, prelude]]]},
+	With[{boxes = ToBoxes[TypeOf[TypeTheoryTerm["andIntroduction", prelude]]]},
 		{FreeQ[boxes, "&&"], ! FreeQ[boxes, "\[And]"], StringFreeQ[ToString[boxes, InputForm, CharacterEncoding -> "ASCII"], "Formal"]}
 	],
 	{True, True, True},
@@ -159,8 +159,8 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + NaturalNumberSuccessor[k] == NaturalNumberSuccessor[NaturalNumberZero]], prelude]] //. (StyleBox | TooltipBox)[name_, ___] :> name},
-		{FreeQ[boxes, "NaturalNumberZero" | "NaturalNumberSuccessor"], ! FreeQ[boxes, RowBox[{"k", "+", "1"}]], ! FreeQ[boxes, RowBox[{"0", "+", "1"}]]}
+	With[{boxes = ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 0 + "successor"[k] == "successor"["zero"]], prelude]] //. (StyleBox | TooltipBox)[name_, ___] :> name},
+		{FreeQ[boxes, "\"zero\"" | "\"successor\""], ! FreeQ[boxes, RowBox[{"k", "+", "1"}]], ! FreeQ[boxes, RowBox[{"0", "+", "1"}]]}
 	],
 	{True, True, True},
 	TestID -> "The-natural-numbers-show-as-zero-and-n-plus-one"
@@ -168,7 +168,7 @@ VerificationTest[
 
 VerificationTest[
 	Cases[
-		TypeOf[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[h, a]}, Construct[AndIntroduction]], prelude]],
+		TypeOf[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[h, a]}, Construct["andIntroduction"]], prelude]],
 		(Typed | TypedImplicit)[name_Symbol, _] :> SymbolName[Unevaluated[name]],
 		Infinity,
 		Heads -> True
@@ -178,7 +178,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[NaturalNumberSuccessor[k]] == k + 2]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, RowBox[{"k", "+", "1", "+", "1"}]],
+	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"["successor"[k]] == k + 2]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, RowBox[{"k", "+", "1", "+", "1"}]],
 	False,
 	TestID -> "Successors-of-successors-add-up-from-the-left"
 ]
@@ -220,8 +220,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Cases[ToBoxes[TypeTheoryTerm[Pair[1, Pair[2, 3]]]], TemplateBox[{"\"(\"", TemplateBox[{", ", "\", \"", "1", "2", "3"}, "RowWithSeparators"], "\")\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[DependentPair[1, 2]]], TemplateBox[{"\"\[LeftAngleBracket]\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"\[RightAngleBracket]\""}, "RowDefault"], Infinity] =!= {}
+		Cases[ToBoxes[TypeTheoryTerm["pair"[1, "pair"[2, 3]]]], TemplateBox[{"\"(\"", TemplateBox[{", ", "\", \"", "1", "2", "3"}, "RowWithSeparators"], "\")\""}, "RowDefault"], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm["dependentPair"[1, 2]]], TemplateBox[{"\"\[LeftAngleBracket]\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"\[RightAngleBracket]\""}, "RowDefault"], Infinity] =!= {}
 	},
 	{True, True},
 	TestID -> "Pairs-show-as-tuples-and-dependent-pairs-in-angle-brackets"
@@ -279,10 +279,10 @@ VerificationTest[
 
 VerificationTest[
 	{
-		ToBoxes[TypeTheoryTerm["rationalOfPair"[Pair[3, 0]]]],
-		Cases[ToBoxes[TypeTheoryTerm[QuotientIntroduction["rationalRelation", Pair[5, 1]]]], FractionBox["5", "2"], Infinity, 1]
+		ToBoxes[TypeTheoryTerm["rationalOfPair"["pair"[3, 0]]]],
+		Cases[ToBoxes[TypeTheoryTerm[QuotientIntroduction["rationalRelation", "pair"[5, 1]]]], FractionBox["5", "2"], Infinity, 1]
 	},
-	{InterpretationBox["3", TypeTheoryTerm["rationalOfPair"[Pair[3, 0]]]], {FractionBox["5", "2"]}},
+	{InterpretationBox["3", TypeTheoryTerm["rationalOfPair"["pair"[3, 0]]]], {FractionBox["5", "2"]}},
 	TestID -> "A-class-of-a-pair-with-a-literal-denominator-still-shows-as-a-fraction"
 ]
 
@@ -339,11 +339,11 @@ VerificationTest[
 	With[{tips = Function[boxes, Cases[boxes, TooltipBox[shown_, tip_, ___] :> {shown /. StyleBox[inner_, ___] :> inner, FreeQ[tip, TooltipBox]}, Infinity]]},
 		{
 			DeleteDuplicates[tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]],
-			First[tips[ToBoxes[TypeTheoryTerm[AndIntroduction]]]],
-			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm[AndIntroduction]], TooltipBox]]
+			First[tips[ToBoxes[TypeTheoryTerm["andIntroduction"]]]],
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm["andIntroduction"]], TooltipBox]]
 		}
 	],
-	{{{"n", True}}, {"AndIntroduction", True}, True},
+	{{{"n", True}}, {"\"andIntroduction\"", True}, True},
 	TestID -> "A-constant-and-a-bound-variable-show-their-types-on-mouseover"
 ]
 
@@ -353,8 +353,8 @@ VerificationTest[
 	With[{spaces = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[ModularSpace, NonNegativeIntegers -> TypeUniverse[1]]}]},
 		{
 			First[ToBoxes[TypeTheoryTerm[ModularSpace[12], spaces]]] /. TooltipBox[shown_, ___] :> shown,
-			MatchQ[TypeOf[TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "EqualityReflexivity"][2], prelude]], TypeTheoryTerm[HoldPattern[2 == 2], _]],
-			TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "EqualityReflexivity"][2], prelude] === TypeTheoryTerm[EqualityReflexivity[2], prelude],
+			MatchQ[TypeOf[TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude]], TypeTheoryTerm[Booleans, _]],
+			TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude] === TypeTheoryTerm[Decide[True], prelude],
 			Hold @@ {TypeTheoryTerm[PacletSymbol["Nowhere/Nothing", "x"]]}
 		}
 	],

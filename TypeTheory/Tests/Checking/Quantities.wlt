@@ -60,7 +60,7 @@ VerificationTest[
 		translated["Failures"],
 		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[CartesianProductType], prelude]]],
 		quantities[TypeOf[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers], prelude]]],
-		quantities[TypeOf[TypeTheoryTerm[Pair, prelude]]],
+		quantities[TypeOf[TypeTheoryTerm["pair", prelude]]],
 		Information[prelude, "Kinds"]["Quotient"]
 	},
 	{<||>, {0, 0, 0, 1, 1}, {0, Infinity, Infinity, Infinity}, {0, 0, Infinity, Infinity}, 4},
@@ -82,7 +82,7 @@ VerificationTest[
 	{
 		definitionFailure[prelude, Function[{Typed[n, NonNegativeIntegers, 0]}, n]],
 		definitionFailure[prelude, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A]}, x]],
-		MatchQ[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[reflexive, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Function[{Typed[n, NonNegativeIntegers, 0]}, EqualityReflexivity[n]]]}], _TypeTheoryEnvironment]
+		MatchQ[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[reflexive, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Function[{Typed[n, NonNegativeIntegers, 0]}, "equalityReflexivity"[n]]]}], _TypeTheoryEnvironment]
 	},
 	{"QuantityExceeded", "Checked", True},
 	TestID -> "An-erased-variable-appears-only-in-dead-parts"

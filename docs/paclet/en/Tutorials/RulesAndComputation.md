@@ -79,7 +79,7 @@ The quotient types of Lean's kernel compute too: lifting a function to the class
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Function[{Typed[k, Naturals]}, 7],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, True]}, EqualityReflexivity[7]],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, True]}, "equalityReflexivity"[7]],
     QuotientIntroduction[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> True, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]], 5]
 ]]]
 ```
@@ -110,7 +110,7 @@ With Prop, any two proofs of a proposition are equal by computation, so reflexiv
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]} |-> EqualityReflexivity[p]],
+    TypeTheoryTerm[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]} |-> "equalityReflexivity"[p]],
     TypeTheoryTerm[ForAll[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]}, p == q]]
 ]
 ```
@@ -129,8 +129,8 @@ There, two paths from the base point of the circle to itself are not equal by co
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]} |-> EqualityReflexivity[p], hott],
-    TypeTheoryTerm[ForAll[{Typed[p, CircleBase == CircleBase], Typed[q, CircleBase == CircleBase]}, p == q], hott]
+    TypeTheoryTerm[{Typed[p, "circleBase" == "circleBase"], Typed[q, "circleBase" == "circleBase"]} |-> "equalityReflexivity"[p], hott],
+    TypeTheoryTerm[ForAll[{Typed[p, "circleBase" == "circleBase"], Typed[q, "circleBase" == "circleBase"]}, p == q], hott]
 ]
 ```
 
@@ -221,7 +221,7 @@ same = TypeTheoryTerm[{Typed[a, Booleans], Typed[b, Booleans]} |-> a == b, quoti
 And the proof that negation respects it:
 
 ```wl
-respects = TypeTheoryTerm[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]} |-> EqualityCongruence[Not, e], quotient]
+respects = TypeTheoryTerm[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]} |-> "equalityCongruence"[Not, e], quotient]
 ```
 
 <!-- => (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[Not, e] -->
@@ -268,7 +268,7 @@ TypeTheoryEnvironment[Append[quotientDeclarations, liftClass]]
 
 ## Computation Up to a Path
 
-A computation rule that is an axiom, an equation the kernel does not use by itself, holds only up to a proof: a term that needs it to have its type does not check. Homotopy type theory has both kinds. Induction on the circle computes on its base point by a rewrite rule, and on its loop only up to a path, by the axiom [CircleInductionLoop]():
+A computation rule that is an axiom, an equation the kernel does not use by itself, holds only up to a proof: a term that needs it to have its type does not check. Homotopy type theory has both kinds. Induction on the circle computes on its base point by a rewrite rule, and on its loop only up to a path, by the axiom `"circleInductionLoop"`:
 
 ```wl
 Information[hott, "RewriteRules"]
@@ -276,7 +276,7 @@ Information[hott, "RewriteRules"]
 
 <!-- => {CircleInductionBase} -->
 
-Univalence is an axiom too, and what carrying along the path of an equivalence gives is the theorem [UnivalenceComputation](), not a computation. Cubical type theory makes it one, with rules that TypeTheory does not have yet.
+Univalence is an axiom too, and what carrying along the path of an equivalence gives is the theorem `"univalenceComputation"`, not a computation. Cubical type theory makes it one, with rules that TypeTheory does not have yet.
 
 ## Rewrite Rules Are Trusted
 
@@ -315,9 +315,9 @@ So the kernel accepts a proof that two different constructors are equal, from wh
 confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
     Confusion,
     BitOne == BitZero,
-    EqualityCongruence[
+    "equalityCongruence"[
         Function[{Typed[g, TypeSpecifier[{Bit} -> Bit]]}, g[BitZero]],
-        Typed[EqualityReflexivity[Typed[b, Bit] |-> b], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
+        Typed["equalityReflexivity"[Typed[b, Bit] |-> b], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
     ]
 ]}]
 ```
@@ -355,7 +355,7 @@ Keys[martinLof["Failures"]]
 The laws of arithmetic hold there, proved as in the prelude:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity, martinLof["Environment"]]]
+TypeTheoryCheck[TypeTheoryTerm["additionCommutativity", martinLof["Environment"]]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ m + n == n + m -->
@@ -363,7 +363,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity, martinLof["Environment"]]]
 Axioms stay behind unless asked for, since an axiom about propositions need not hold of types. Propositional extensionality, kept, does not check there; if every type counted as a proposition it would be inconsistent:
 
 ```wl
-First @ TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], TypeTheoryRules["MartinLofTypeTheory"], "Axioms" -> True]["Failures"][PropositionalExtensionality]
+First @ TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], TypeTheoryRules["MartinLofTypeTheory"], "Axioms" -> True]["Failures"]["propositionalExtensionality"]
 ```
 
 <!-- => "TypeMismatch" -->

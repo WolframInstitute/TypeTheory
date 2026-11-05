@@ -63,7 +63,7 @@ TypeTheoryCheck[TypeTheoryTerm[IntervalMeet, cubical]]
 
 ## Applications
 
-The meet gives a connection, the square that [PathInduction]() transports along: the function of `i` and `j` that is `p[Min[i, j]]` is a path from the constant path at `x` to `p`.
+The meet gives a connection, the square that `"pathInduction"` transports along: the function of `i` and `j` that is `p[Min[i, j]]` is a path from the constant path at `x` to `p`.
 
 The cubical environment:
 

@@ -32,7 +32,7 @@ Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
 
 ## Propositions
 
-[True]() has one proof, [TrueIntroduction](), and [False]() none. [Not]() is a definition, which unfolds to an implication into [False]():
+[True]() has one proof, `"trueIntroduction"`, and [False]() none. [Not]() is a definition, which unfolds to an implication into [False]():
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
@@ -40,18 +40,18 @@ WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
 
 <!-- => 1 == 2 ⇒ False -->
 
-From [False](), [FalseElimination]() proves anything:
+From [False](), `"falseElimination"` proves anything:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[FalseElimination]]
+TypeTheoryCheck[TypeTheoryTerm["falseElimination"]]
 ```
 
 <!-- => ∀_{a ∶ Prop} False ⇒ a -->
 
-[And]() is proved by [AndIntroduction]() and used by [AndEliminationLeft]() and [AndEliminationRight](); a proof of a conjunction is a structure, so `h[[1]]` and `h[[2]]` are its two parts. Conjunction is commutative:
+[And]() is proved by `"andIntroduction"` and used by `"andEliminationLeft"` and `"andEliminationRight"`; a proof of a conjunction is a structure, so `h[[1]]` and `h[[2]]` are its two parts. Conjunction is commutative:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p && q]} |-> AndIntroduction[h[[2]], h[[1]]]]]
+TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p && q]} |-> "andIntroduction"[h[[2]], h[[1]]]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∧ q) ⇒ (q ∧ p) -->
@@ -59,19 +59,19 @@ TypeTheoryCheck[TypeTheoryTerm[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse
 `a && b && c` is read as `a && (b && c)`, as in Lean:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndIntroduction[TrueIntroduction, AndIntroduction[TrueIntroduction, TrueIntroduction]]], TypeTheoryTerm[True && True && True]]
+TypeTheoryCheck[TypeTheoryTerm["andIntroduction"["trueIntroduction", "andIntroduction"["trueIntroduction", "trueIntroduction"]]], TypeTheoryTerm[True && True && True]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
 
-[Or]() is proved by [OrIntroductionLeft]() or [OrIntroductionRight](), and used by its recursor, one case for each side. Disjunction is commutative too:
+[Or]() is proved by `"orIntroductionLeft"` or `"orIntroductionRight"`, and used by its recursor, one case for each side. Disjunction is commutative too:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p || q]},
     InductiveRecursor[Or][
         Function[{Typed[t, p || q]}, q || p],
-        Function[{Typed[x, p]}, OrIntroductionRight[x]],
-        Function[{Typed[y, q]}, OrIntroductionLeft[y]],
+        Function[{Typed[x, p]}, "orIntroductionRight"[x]],
+        Function[{Typed[y, q]}, "orIntroductionLeft"[y]],
         h
     ]
 ]]]
@@ -79,28 +79,28 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[q, Typ
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∨ q) ⇒ (q ∨ p) -->
 
-[Equivalent](), shown as `⧦`, is proved by [EquivalentIntroduction]() from the two implications, and used by [EquivalentForward]() and [EquivalentBackward](). It is reflexive, symmetric and transitive:
+[Equivalent](), shown as `⧦`, is proved by `"equivalentIntroduction"` from the two implications, and used by `"equivalentForward"` and `"equivalentBackward"`. It is reflexive, symmetric and transitive:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EquivalentTransitivity]]
+TypeTheoryCheck[TypeTheoryTerm["equivalentTransitivity"]]
 ```
 
 <!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} ∀_{c ∶ Prop} (a ⧦ b) ⇒ (b ⧦ c) ⇒ (a ⧦ c) -->
 
-[Exists]() is proved by [ExistsIntroduction]() from a witness and a proof about it:
+[Exists]() is proved by `"existsIntroduction"` from a witness and a proof about it:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ExistsIntroduction[3, EqualityReflexivity[6]]], TypeTheoryTerm[Exists[{Typed[n, Naturals]}, n + n == 6]]]
+TypeTheoryCheck[TypeTheoryTerm["existsIntroduction"[3, "equalityReflexivity"[6]]], TypeTheoryTerm[Exists[{Typed[n, Naturals]}, n + n == 6]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
 
 ## Equality
 
-[Equal]() is proved by [EqualityReflexivity](), and computation counts: `2 + 2 == 4` holds because both sides compute to `4`. [EqualitySymmetry](), [EqualityTransitivity](), [EqualityCongruence]() and [EqualitySubstitution]() are its laws; congruence applies a function to both sides:
+[Equal]() is proved by `"equalityReflexivity"`, and computation counts: `2 + 2 == 4` holds because both sides compute to `4`. `"equalitySymmetry"`, `"equalityTransitivity"`, `"equalityCongruence"` and `"equalitySubstitution"` are its laws; congruence applies a function to both sides:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityCongruence]]
+TypeTheoryCheck[TypeTheoryTerm["equalityCongruence"]]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{β ∶ Sort v} ∀_{x ∶ α} ∀_{y ∶ α} ∀_f∶α → β x == y ⇒ f[x] == f[y] -->
@@ -118,7 +118,7 @@ WeakHeadNormalForm[TypeTheoryTerm[3 != 4]]
 [Identity]() is the polymorphic identity function, and [Composition]() composes two functions:
 
 ```wl
-TypeOf[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity]]]
+TypeOf[TypeTheoryTerm[Composition["successor", Identity]]]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -126,7 +126,7 @@ TypeOf[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity]]]
 Applied to 3, it gives the successor of 3:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Composition[NaturalNumberSuccessor, Identity][3]], TypeTheoryTerm[4]]
+DefinitionallyEqualQ[TypeTheoryTerm[Composition["successor", Identity][3]], TypeTheoryTerm[4]]
 ```
 
 <!-- => True -->
@@ -146,21 +146,21 @@ The successor respects it, so it lifts to the classes, and the lift computes on 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Function[{Typed[k, Naturals]}, k + 1],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Typed[k, Naturals] |-> k + 1, e]],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, "equalityCongruence"[Typed[k, Naturals] |-> k + 1, e]],
     QuotientIntroduction[equalNaturals, 5]
 ]]]
 ```
 
 <!-- => 6 -->
 
-That the classes of related elements are equal is an axiom, [QuotientSoundness](), one of the three below.
+That the classes of related elements are equal is an axiom, `"quotientSoundness"`, one of the three below.
 
 ## The Natural Numbers
 
-[NonNegativeIntegers](), shown as ℕ and written [Naturals]() for short, is an inductive type with the constructors [NaturalNumberZero]() and [NaturalNumberSuccessor](). It is registered as the natural numbers, so the literals `0`, `1`, `2`, ... are its elements, and the constructors show as `0` and `n + 1`:
+[NonNegativeIntegers](), shown as ℕ and written [Naturals]() for short, is an inductive type with the constructors `"zero"` and `"successor"`. It is registered as the natural numbers, so the literals `0`, `1`, `2`, ... are its elements, and the constructors show as `0` and `n + 1`:
 
 ```wl
-TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[NaturalNumberZero]]]
+TypeTheoryTerm["successor"["successor"["zero"]]]
 ```
 
 <!-- => 0 + 1 + 1 -->
@@ -196,7 +196,7 @@ The recursor [InductiveRecursor]() of the natural numbers defines functions by r
 The prelude proves the laws of addition, multiplication, subtraction and powers. Commutativity of addition:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity]]
+TypeTheoryCheck[TypeTheoryTerm["additionCommutativity"]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ m + n == n + m -->
@@ -204,7 +204,7 @@ TypeTheoryCheck[TypeTheoryTerm[AdditionCommutativity]]
 Distributivity:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[MultiplicationDistributivityLeft]]
+TypeTheoryCheck[TypeTheoryTerm["multiplicationDistributivityLeft"]]
 ```
 
 <!-- => ∀_a∶ℕ ∀_b∶ℕ ∀_c∶ℕ a (b + c) == a b + a c -->
@@ -212,19 +212,19 @@ TypeTheoryCheck[TypeTheoryTerm[MultiplicationDistributivityLeft]]
 Powers add their exponents:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[PowerAddition]]
+TypeTheoryCheck[TypeTheoryTerm["powerAddition"]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_a∶ℕ ∀_b∶ℕ m^(a + b) == m^a m^b -->
 
-The others are [AdditionZeroRight](), [AdditionZeroLeft](), [AdditionSuccessorRight](), [AdditionSuccessorLeft](), [AdditionAssociativity](), [MultiplicationZeroRight](), [MultiplicationZeroLeft](), [MultiplicationSuccessorRight](), [MultiplicationSuccessorLeft](), [MultiplicationOneRight](), [MultiplicationOneLeft](), [MultiplicationCommutativity](), [MultiplicationDistributivityRight](), [MultiplicationAssociativity](), [SubtractionZeroRight](), [SubtractionZeroLeft](), [SubtractionSuccessor](), [SubtractionSelf](), [AdditionSubtractionCancellation](), [MultiplicationCancellation](), [PowerZero](), [PowerSuccessor]() and [PowerOne](), with [SuccessorInjectivity]() and [SuccessorNotZero]().
+The others are `"additionZeroRight"`, `"additionZeroLeft"`, `"additionSuccessorRight"`, `"additionSuccessorLeft"`, `"additionAssociativity"`, `"multiplicationZeroRight"`, `"multiplicationZeroLeft"`, `"multiplicationSuccessorRight"`, `"multiplicationSuccessorLeft"`, `"multiplicationOneRight"`, `"multiplicationOneLeft"`, `"multiplicationCommutativity"`, `"multiplicationDistributivityRight"`, `"multiplicationAssociativity"`, `"subtractionZeroRight"`, `"subtractionZeroLeft"`, `"subtractionSuccessor"`, `"subtractionSelf"`, `"additionSubtractionCancellation"`, `"multiplicationCancellation"`, `"powerZero"`, `"powerSuccessor"` and `"powerOne"`, with `"successorInjectivity"` and `"successorNotZero"`.
 
-A theorem applies like a function. Here `n * 2` computes to `0 + n + n`, and [AdditionZeroLeft]() under [EqualityCongruence]() finishes a proof that doubling is adding:
+A theorem applies like a function. Here `n * 2` computes to `0 + n + n`, and `"additionZeroLeft"` under `"equalityCongruence"` finishes a proof that doubling is adding:
 
 ```wl
 doubling = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n * 2 == n + n], {
     TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Exact", EqualityCongruence[Typed[x, Naturals] |-> x + n, AdditionZeroLeft[n]]]
+    TypeTheoryTactic["Exact", "equalityCongruence"[Typed[x, Naturals] |-> x + n, "additionZeroLeft"[n]]]
 }]
 ```
 
@@ -232,18 +232,18 @@ doubling = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n * 2 == n + n], {
 
 ## Order
 
-[LessEqual](), written `m <= n`, is inductive as in Lean: [LessEqualReflexivity]() proves `n <= n`, and [LessEqualStep]() goes from `n <= m` to `n <= m + 1`:
+[LessEqual](), written `m <= n`, is inductive as in Lean: `"lessEqualReflexivity"` proves `n <= n`, and `"lessEqualStep"` goes from `n <= m` to `n <= m + 1`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[LessEqualStep[LessEqualStep[LessEqualReflexivity]]], TypeTheoryTerm[2 <= 4]]
+TypeTheoryCheck[TypeTheoryTerm["lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], TypeTheoryTerm[2 <= 4]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
 
-[Less](), [GreaterEqual]() and [Greater]() are defined from it: `m < n` is `m + 1 <= n`. So [LessEqualAddition]() proves strict inequalities too:
+[Less](), [GreaterEqual]() and [Greater]() are defined from it: `m < n` is `m + 1 <= n`. So `"lessEqualAddition"` proves strict inequalities too:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[LessEqualAddition[4, 2]], TypeTheoryTerm[3 < 6]]
+TypeTheoryCheck[TypeTheoryTerm["lessEqualAddition"[4, 2]], TypeTheoryTerm[3 < 6]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -251,12 +251,12 @@ TypeTheoryCheck[TypeTheoryTerm[LessEqualAddition[4, 2]], TypeTheoryTerm[3 < 6]]
 The order is reflexive, transitive and antisymmetric, and `n < n` never holds:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[LessEqualAntisymmetry]]
+TypeTheoryCheck[TypeTheoryTerm["lessEqualAntisymmetry"]]
 ```
 
 <!-- => ∀_{a ∶ ℕ} ∀_{b ∶ ℕ} a ≤ b ⇒ b ≤ a ⇒ a == b -->
 
-The other theorems are [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualTransitivity](), [LessIrreflexivity](), [SuccessorNotLessEqualZero](), [PredecessorLessEqual]() and [LessEqualTotality](), and [AdditionMonotonicity]() and [MultiplicationMonotonicity](), which add and multiply inequalities.
+The other theorems are `"lessEqualZero"`, `"lessEqualSuccessor"`, `"lessEqualPredecessor"`, `"lessEqualTransitivity"`, `"lessIrreflexivity"`, `"successorNotLessEqualZero"`, `"predecessorLessEqual"` and `"lessEqualTotality"`, and `"additionMonotonicity"` and `"multiplicationMonotonicity"`, which add and multiply inequalities.
 
 ## Booleans
 
@@ -296,7 +296,7 @@ A statement about every Boolean is proved by cases, with the recursor of [Boolea
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
-    InductiveRecursor[Booleans][Typed[t, Booleans] |-> Not[Not[t]] == t, EqualityReflexivity[False], EqualityReflexivity[True], b]
+    InductiveRecursor[Booleans][Typed[t, Booleans] |-> Not[Not[t]] == t, "equalityReflexivity"[False], "equalityReflexivity"[True], b]
 ]]]
 ```
 
@@ -304,7 +304,7 @@ TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[b, Booleans]},
 
 ## Decisions
 
-A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with [DecidableTrue]() or [DecidableFalse](). It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class, as in Lean: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's decide equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), combine decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
+A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with `"decidableTrue"` or `"decidableFalse"`. It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class, as in Lean: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && 2 == 2]]]
@@ -312,10 +312,10 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && 2 == 2]]]
 
 <!-- => true -->
 
-[DecideSoundness]() turns a decision that computes to `"true"` into a proof of the proposition it is checked against, which the kernel checks by computing:
+`"decideSoundness"` turns a decision that computes to `"true"` into a proof of the proposition it is checked against, which the kernel checks by computing:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[DecideSoundness[EqualityReflexivity["true"]], 1 <= 2 && 2 == 2]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed["decideSoundness"["equalityReflexivity"["true"]], 1 <= 2 && 2 == 2]]]
 ```
 
 <!-- => 1 ≤ 2 ∧ 2 == 2 -->
@@ -332,10 +332,10 @@ The tutorial *Instances and Coercions* shows how an environment adds instances o
 
 ## Pairs, Sums and Options
 
-<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with [Pair](), whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with [LeftInjection](), and those of `β` on the right, with [RightInjection](); and <code>[Option]()[α]</code> has [OptionNone]() and the values <code>[OptionSome]()[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
+<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with `"pair"`, whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with `"left"`, and those of `β` on the right, with `"right"`; and <code>[Option]()[α]</code> has `"none"` and the values <code>`"some"`[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Pair[2, 3][[1]]]]
+WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[1]]]]
 ```
 
 <!-- => 2 -->
@@ -350,15 +350,15 @@ DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Prepend[1][Prepend[2][{}]]]], TypeTh
 
 <!-- => True -->
 
-Their laws are theorems: [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse]() and [LengthReverse](). Each is proved by recursion on a list, and tactics prove such laws too: `"Induction"` splits a list into the empty list and a list with a first element, and `"Simplify"` unfolds a definition where its list is one of these, folding the recursive call back, before it rewrites with the induction hypothesis and the laws of arithmetic:
+Their laws are theorems: `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`, `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"` and `"lengthReverse"`. Each is proved by recursion on a list, and tactics prove such laws too: `"Induction"` splits a list into the empty list and a list with a first element, and `"Simplify"` unfolds a definition where its list is one of these, folding the recursive call back, before it rewrites with the induction hypothesis and the laws of arithmetic:
 
 ```wl
 lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Join[a, b]] == Length[a] + Length[b]], {
     TypeTheoryTactic["Introduce", a, b],
     TypeTheoryTactic["Induction", a],
-    TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
+    TypeTheoryTactic["Simplify", {Join, Length, "additionZeroLeft"}],
     TypeTheoryTactic["Introduce", x, rest, ih],
-    TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
+    TypeTheoryTactic["Simplify", {Join, Length, ih, "additionSuccessorLeft"}]
 }]
 ```
 
@@ -366,34 +366,34 @@ lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}
 
 ## Classical Logic
 
-The prelude's three axioms are those of Lean's library. [PropositionalExtensionality]() makes equivalent propositions equal:
+The prelude's three axioms are those of Lean's library. `"propositionalExtensionality"` makes equivalent propositions equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[PropositionalExtensionality[EquivalentIntroduction[Typed[h, True] |-> AndIntroduction[h, h], Typed[h, True && True] |-> AndEliminationLeft[h]]]]]
+TypeTheoryCheck[TypeTheoryTerm["propositionalExtensionality"["equivalentIntroduction"[Typed[h, True] |-> "andIntroduction"[h, h], Typed[h, True && True] |-> "andEliminationLeft"[h]]]]]
 ```
 
 <!-- => True == (True ∧ True) -->
 
-[QuotientSoundness]() makes the classes of related elements equal. From it the prelude proves [FunctionExtensionality](), as Lean proves `funext`: functions that agree on every argument are equal:
+`"quotientSoundness"` makes the classes of related elements equal. From it the prelude proves `"functionExtensionality"`, as Lean proves `funext`: functions that agree on every argument are equal:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[FunctionExtensionality[AdditionZeroLeft]]]
+TypeTheoryCheck[TypeTheoryTerm["functionExtensionality"["additionZeroLeft"]]]
 ```
 
 <!-- => ((n∶ℕ) ↦ 0 + n) == ((n∶ℕ) ↦ n) -->
 
-[Choice]() takes a proof that a type has an element, a proof of [Nonempty](), to an element of it. Being an axiom, it does not compute:
+`"choice"` takes a proof that a type has an element, a proof of [Nonempty](), to an element of it. Being an axiom, it does not compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Choice[NonemptyIntroduction[3]]]]
+WeakHeadNormalForm[TypeTheoryTerm["choice"["nonempty"[3]]]]
 ```
 
 <!-- => Choice[NonemptyIntroduction[3]] -->
 
-A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and [ChosenWitnessProperty]() proves that the witness has the property:
+A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and `"chosenWitnessProperty"` proves that the witness has the property:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWitnessProperty[h]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> "chosenWitnessProperty"[h]]]
 ```
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->
@@ -401,7 +401,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6
 From the three axioms the prelude proves the excluded middle, by Diaconescu's argument, as Lean does:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]
+TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]
 ```
 
 <!-- => ∀_p∶Prop (p ∨ ¬p) -->
@@ -412,16 +412,16 @@ So every proposition is [True]() or [False](), by cases on the excluded middle a
 TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]]},
     InductiveRecursor[Or][
         Function[{Typed[t, p || Not[p]]}, p == True || p == False],
-        Function[{Typed[h, p]}, OrIntroductionLeft[PropositionalExtensionality[EquivalentIntroduction[Typed[k, p] |-> TrueIntroduction, Typed[k, True] |-> h]]]],
-        Function[{Typed[h, Not[p]]}, OrIntroductionRight[PropositionalExtensionality[EquivalentIntroduction[h, Typed[k, False] |-> FalseElimination[k]]]]],
-        ExcludedMiddle[p]
+        Function[{Typed[h, p]}, "orIntroductionLeft"["propositionalExtensionality"["equivalentIntroduction"[Typed[k, p] |-> "trueIntroduction", Typed[k, True] |-> h]]]],
+        Function[{Typed[h, Not[p]]}, "orIntroductionRight"["propositionalExtensionality"["equivalentIntroduction"[h, Typed[k, False] |-> "falseElimination"[k]]]]],
+        "excludedMiddle"[p]
     ]
 ]]]
 ```
 
 <!-- => ∀_p∶Prop (p == True ∨ p == False) -->
 
-[DoubleNegationElimination]() is proved from the excluded middle too.
+`"doubleNegationElimination"` is proved from the excluded middle too.
 
 ## The Constructive Environment
 
@@ -444,7 +444,7 @@ Information[constructive, "Axioms"]
 And no excluded middle:
 
 ```wl
-KeyExistsQ[constructive, ExcludedMiddle]
+KeyExistsQ[constructive, "excludedMiddle"]
 ```
 
 <!-- => False -->
@@ -452,7 +452,7 @@ KeyExistsQ[constructive, ExcludedMiddle]
 Whatever is proved in it uses no axiom. Other axioms can be assumed there with [TypeTheoryAxiom](), such as the excluded middle without choice:
 
 ```wl
-excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
+excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 156 constants -->
@@ -468,3 +468,21 @@ Information[excludedMiddle, "Axioms"]
 ## What the Prelude Does Not Have Yet
 
 Lean's library is much larger than this prelude. The integers and the rationals are not here yet. The kernel has what Lean's library needs of it, mutual and nested inductive types and quotients among it, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
+
+## Theorems
+
+Every theorem of the prelude is a constant named by a string, as its constructors are, so no symbol of the paclet stands for it outside a term: `"equalityReflexivity"[2]` proves `2 == 2`, and `TypeTheoryTactic["Rewrite", "additionCommutativity"]` rewrites with a law. These are all of them, each with its statement, in the order the prelude declares them:
+
+```wl
+Information[TypeTheoryEnvironment["Prelude"], "Theorems"]
+```
+
+<!-- => <|"falseElimination" -> ∀_{a∶Prop} False ⇒ a, "andEliminationLeft" -> ..., ...|>, 72 theorems -->
+
+A theorem is applied as any constant is, its implicit arguments found by elaboration:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm["additionCommutativity"[2, 3]]]
+```
+
+<!-- => 2 + 3 == 3 + 2 -->

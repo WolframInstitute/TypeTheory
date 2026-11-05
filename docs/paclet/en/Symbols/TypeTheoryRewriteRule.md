@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryRewriteRule
 Keywords: [rewrite rule, computation, axiom, definitional equality, higher inductive type]
-SeeAlso: [TypeTheoryRules, TypeTheoryAxiom, TypeTheoryEnvironment, CircleInductionBase]
+SeeAlso: [TypeTheoryRules, TypeTheoryAxiom, TypeTheoryEnvironment]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory]
 ---
@@ -22,7 +22,7 @@ RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory]
 - An axiom whose arguments match the left side of one of its rules reduces to the right side, the first rule that matches first; definitional equality then uses the rule too.
 - Like an axiom, a rewrite rule is trusted: rules that overlap or loop can make the theory inconsistent or computation endless. <code>[Information]()[*env*, "RewriteRules"]</code> lists them, and [TypeTheoryCheck]() replays them like any declaration.
 - A rewrite rule is not a term, and its name cannot be used as one.
-- Rewrite rules need rules with `"RewriteRules" -> True`, as <code>[TypeTheoryRules]()["MartinLofTypeTheory", "RewriteRules" -> True]</code>. In the HoTT environment, [CircleInductionBase]() makes circle induction compute on the base point.
+- Rewrite rules need rules with `"RewriteRules" -> True`, as <code>[TypeTheoryRules]()["MartinLofTypeTheory", "RewriteRules" -> True]</code>. In the HoTT environment, `"circleInductionBase"` makes circle induction compute on the base point.
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters.
 
 ## Basic Examples

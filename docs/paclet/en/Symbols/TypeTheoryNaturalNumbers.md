@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryNaturalNumbers
 Keywords: [natural numbers, literals, addition, multiplication, arithmetic, integers, GMP, trusted, declaration, environment]
-SeeAlso: [TypeTheoryInductiveType, TypeTheoryEnvironment, NaturalNumberZero, NaturalNumberSuccessor]
+SeeAlso: [TypeTheoryInductiveType, TypeTheoryEnvironment]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -40,7 +40,7 @@ RelatedGuides: [TypeTheory]
 - These are the operations Lean's kernel computes on its literals with GMP, with the same values at 0. An operation of a role must be a definition or an axiom of type <code>*type* → *type* → *type*</code>, <code>*type* → *type*</code> for `"Log2"`, and <code>*type* → *type* → *B*</code> for `"Equal"` and `"LessEqual"`, where *B* is an inductive type with two constructors without fields, false and then true, as [Booleans]() is.
 - The kernel trusts that an operation computes what its role says, as Lean's kernel trusts GMP: an operation that computes something else makes the environment inconsistent. It checks the operation's type, not its definition.
 - An operation computes on arguments that compute to literals, and unfolds otherwise. Powers and left shifts by 2^24 or more unfold, as in Lean.
-- An environment registers its natural numbers once. A later registration of the same *type*, *zero* and *successor* adds operations. The prelude registers [NonNegativeIntegers]() with [Plus](), [Subtract](), [Times]() and [Power](), and with the Boolean comparisons `"equal"` and `"lessEqual"`, through which [NaturalNumberEqualityDecidable]() and [LessEqualDecidable]() decide literals in one step; <code>[Information]()[*env*, "NaturalNumbers"]</code> lists the operations of an environment.
+- An environment registers its natural numbers once. A later registration of the same *type*, *zero* and *successor* adds operations. The prelude registers [NonNegativeIntegers]() with [Plus](), [Subtract](), [Times]() and [Power](), and with the Boolean comparisons `"equal"` and `"lessEqual"`, through which `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"` decide literals in one step; <code>[Information]()[*env*, "NaturalNumbers"]</code> lists the operations of an environment.
 - Natural numbers of your own go in an environment built on the empty one, <code>[TypeTheoryEnvironment]()[]</code>.
 - In a notebook, the zero of the registered natural numbers shows as `0`, and the successor of *n* as <code>*n* + 1</code>, as Lean shows them.
 
@@ -106,7 +106,7 @@ A later registration adds an operation: here the left shift, *m* 2^*n*, register
 ```wl
 shifted = TypeTheoryEnvironment[{
     TypeTheoryDefinition[NaturalNumberShiftLeft, {Typed[m, Naturals], Typed[n, Naturals]} |-> m * 2^n],
-    TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"ShiftLeft" -> NaturalNumberShiftLeft|>]
+    TypeTheoryNaturalNumbers[Naturals, "zero", "successor", <|"ShiftLeft" -> NaturalNumberShiftLeft|>]
 }]
 ```
 
@@ -168,7 +168,7 @@ WeakHeadNormalForm[TypeTheoryTerm[FirstNumber[2, 3], trusted]]
 An operation must have the type of its role:
 
 ```wl
-Append[TypeTheoryEnvironment["Prelude"], TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Quotient" -> NaturalNumberPredecessor|>]]
+Append[TypeTheoryEnvironment["Prelude"], TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Quotient" -> NaturalNumberPredecessor|>]]
 ```
 
 <!-- => Failure["InvalidNaturalNumberOperation", ...] -->

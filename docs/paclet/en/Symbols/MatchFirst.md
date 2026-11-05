@@ -12,7 +12,7 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Usage
 
-[MatchFirst]()[*m*] is the first result of the match *m*, [OptionSome]() of it, or [OptionNone]() where *m* has none.
+[MatchFirst]()[*m*] is the first result of the match *m*, `"some"` of it, or `"none"` where *m* has none.
 
 ## Details & Options
 
@@ -30,7 +30,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"]
 <!-- => TypeTheoryEnvironment summary box -->
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], wolfram], TypeTheoryTerm[OptionSome[1], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], wolfram], TypeTheoryTerm["some"[1], wolfram]]
 ```
 
 <!-- => True -->

@@ -43,7 +43,7 @@ equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n
 Every class equals itself, from every element's class doing so:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Construct[QuotientInduction, Naturals, equal, Typed[q, QuotientType[equal]] |-> q == q, Typed[a, Naturals] |-> EqualityReflexivity[QuotientIntroduction[equal, a]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Construct[QuotientInduction, Naturals, equal, Typed[q, QuotientType[equal]] |-> q == q, Typed[a, Naturals] |-> "equalityReflexivity"[QuotientIntroduction[equal, a]]]]]
 ```
 
 <!-- => ∀_q∶QuotientType[(m ∶ ℕ) (n ∶ ℕ) ↦ m == n] q == q -->

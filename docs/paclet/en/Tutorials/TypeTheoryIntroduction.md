@@ -79,10 +79,10 @@ DefinitionallyEqualQ[
 
 ## Declaring Theorems and Definitions
 
-Declarations, such as [TypeTheoryTheorem](), are inert until [TypeTheoryEnvironment]() checks them, which gives a new environment: the prelude extended with them. Here `2 + 2 == 4` is proved by computation, with [EqualityReflexivity]():
+Declarations, such as [TypeTheoryTheorem](), are inert until [TypeTheoryEnvironment]() checks them, which gives a new environment: the prelude extended with them. Here `2 + 2 == 4` is proved by computation, with `"equalityReflexivity"`:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -98,7 +98,7 @@ arithmetic[TwoPlusTwo]
 A proof of the wrong statement is rejected, with the reason:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => Failure["TypeMismatch", ...]: EqualityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 -->
@@ -258,10 +258,10 @@ proof = TypeTheoryTactic["Reflexivity"][proof]
 
 <!-- => Proof, 1 goal: case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
-In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal reads `0 + (k + 1) == k + 1`, where `k + 1` is how <code>[NaturalNumberSuccessor]()[k]</code> shows. Addition recurses on its second argument, so the goal computes to `(0 + k) + 1 == k + 1`, which [EqualityCongruence]() proves from `ih`:
+In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal reads `0 + (k + 1) == k + 1`, where `k + 1` is how <code>`"successor"`[k]</code> shows. Addition recurses on its second argument, so the goal computes to `(0 + k) + 1 == k + 1`, which `"equalityCongruence"` proves from `ih`:
 
 ```wl
-proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][TypeTheoryTactic["Introduce", k, ih][proof]]
+proof = TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]][TypeTheoryTactic["Introduce", k, ih][proof]]
 ```
 
 <!-- => Proof complete -->
@@ -274,7 +274,7 @@ proof["Term"]
 
 <!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, EqualityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
 
-Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term. The prelude has this theorem already, as [AdditionZeroLeft](), so it is declared here under a name of its own:
+Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term. The prelude has this theorem already, as `"additionZeroLeft"`, so it is declared here under a name of its own:
 
 ```wl
 proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}]

@@ -20,14 +20,14 @@ strictEqual = TypeTheoryInductiveType[
 
 VerificationTest[
 	{Information[hott, "Rules"]["Name"], Information[hott, "Axioms"], Information[hott, "RewriteRules"], MatchQ[TypeTheoryCheck[hott], _Success]},
-	{"MartinLofTypeTheory", {Univalence, Circle, CircleBase, CircleLoop, CircleInduction, CircleInductionLoop}, {CircleInductionBase}, True},
+	{"MartinLofTypeTheory", {"univalence", Circle, "circleBase", "circleLoop", "circleInduction", "circleInductionLoop"}, {"circleInductionBase"}, True},
 	TestID -> "The-HoTT-environment-and-its-assumptions"
 ]
 
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], EqualityReflexivity["true"], "false"], hott]],
-		WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Function[{Typed[x, Circle]}, Booleans], "true", TransportConstant[CircleLoop, "true"], CircleBase], hott]]
+		WeakHeadNormalForm[TypeTheoryTerm[Transport[Function[{Typed[b, Booleans]}, Booleans], "equalityReflexivity"["true"], "false"], hott]],
+		WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Function[{Typed[x, Circle]}, Booleans], "true", "transportConstant"["circleLoop", "true"], "circleBase"], hott]]
 	},
 	{TypeTheoryTerm["false", hott], TypeTheoryTerm["true", hott]},
 	TestID -> "Transport-computes-on-reflexivity-and-the-circle-on-its-base"
@@ -35,12 +35,12 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[UniverseNotSet, hott], TypeTheoryTerm[Not[IsSet[TypeUniverse[1]]], hott]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["universeNotSet", hott], TypeTheoryTerm[Not[IsSet[TypeUniverse[1]]], hott]], _Success],
 		TypeOf[TypeTheoryTerm[Typed[True, Booleans], hott]],
-		TypeOf[TypeTheoryTerm[TrueIntroduction, hott]]
+		TypeOf[TypeTheoryTerm["trueIntroduction", hott]]
 	},
 	{True, TypeTheoryTerm[Booleans, hott], TypeTheoryTerm[True, hott]},
-	TestID -> "Univalence-shows-the-universe-is-not-a-set"
+	TestID -> "\"univalence\"-shows-the-universe-is-not-a-set"
 ]
 
 VerificationTest[
@@ -60,7 +60,7 @@ VerificationTest[
 				TypeTheoryDefinition[UnivalenceContradiction, Typed[
 					With[
 						{
-							negationPath = EquivalenceToEquality[NegationEquivalence],
+							negationPath = "equivalenceToEquality"["negationEquivalence"],
 							toStrict = Function[{Typed[C, TypeUniverse[1]], Typed[q, Booleans == C]},
 								InductiveRecursor[Equal][Function[{Typed[D, TypeUniverse[1]], Typed[r, Booleans == D]}, StrictEqual[Booleans, D]], StrictEqualReflexivity[Booleans], q]
 							],
@@ -72,16 +72,16 @@ VerificationTest[
 						With[
 							{
 								agree = InductiveRecursor[Equal][
-									Function[{Typed[C, TypeUniverse[1]], Typed[q, Booleans == C]}, ForAll[{Typed[b, Booleans]}, EqualityToEquivalence[q][[1]][b] == cast[C, toStrict[C, q], b]]],
-									Function[{Typed[b, Booleans]}, EqualityReflexivity[b]],
+									Function[{Typed[C, TypeUniverse[1]], Typed[q, Booleans == C]}, ForAll[{Typed[b, Booleans]}, "equalityToEquivalence"[q][[1]][b] == cast[C, toStrict[C, q], b]]],
+									Function[{Typed[b, Booleans]}, "equalityReflexivity"[b]],
 									negationPath
 								],
-								viaUnivalence = EqualityCongruence[onTrue, Univalence[Booleans, Booleans][[4]][NegationEquivalence]]
+								viaUnivalence = "equalityCongruence"[onTrue, "univalence"[Booleans, Booleans][[4]]["negationEquivalence"]]
 							},
 							Transport[
 								Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, TypeUniverse[1]], True, False, b]],
-								EqualityTransitivity[EqualitySymmetry[viaUnivalence], agree["true"]],
-								TrueIntroduction
+								"equalityTransitivity"["equalitySymmetry"[viaUnivalence], agree["true"]],
+								"trueIntroduction"
 							]
 						]
 					],

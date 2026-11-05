@@ -22,12 +22,12 @@ VerificationTest[
 				{
 					First[TypeOf[TypeTheoryTerm["DownValues[listed]", environment]]],
 					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[listed]"[ExpressionNormal[ExpressionAtom["Global`listed"], {ExpressionAtom["Global`a"], ExpressionAtom["Global`b"]}]], environment],
-						TypeTheoryTerm[OptionSome[ExpressionNormal[ExpressionAtom["System`List"], {ExpressionAtom["Global`a"], ExpressionAtom["Global`b"]}]], environment]
+						TypeTheoryTerm["DownValues[listed]"["normal"["atom"["Global`listed"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment],
+						TypeTheoryTerm["some"["normal"["atom"["System`List"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment]
 					],
 					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[listed]"[ExpressionNormal[ExpressionAtom["Global`listed"], {ExpressionAtom["Global`a"]}]], environment],
-						TypeTheoryTerm[Typed[OptionNone, Option[Expressions]], environment]
+						TypeTheoryTerm["DownValues[listed]"["normal"["atom"["Global`listed"], {"atom"["Global`a"]}]], environment],
+						TypeTheoryTerm[Typed["none", Option[Expressions]], environment]
 					]
 				} === {Expressions -> Option[Expressions], True, True}
 			]
@@ -47,12 +47,12 @@ VerificationTest[
 			With[{environment = rulesEnvironment[TypeTheoryFormalize[first, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"], {"Global`first", "Global`a", "Global`b"}]},
 				{
 					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[first]"[ExpressionNormal[ExpressionAtom["Global`first"], {ExpressionAtom["Global`a"], ExpressionAtom["Global`b"]}]], environment],
-						TypeTheoryTerm[OptionSome[ExpressionAtom["Global`a"]], environment]
+						TypeTheoryTerm["DownValues[first]"["normal"["atom"["Global`first"], {"atom"["Global`a"], "atom"["Global`b"]}]], environment],
+						TypeTheoryTerm["some"["atom"["Global`a"]], environment]
 					],
 					DefinitionallyEqualQ[
-						TypeTheoryTerm["DownValues[first]"[ExpressionNormal[ExpressionAtom["Global`first"], {ExpressionAtom["Global`a"], ExpressionAtom["Global`b"], ExpressionAtom["Global`a"]}]], environment],
-						TypeTheoryTerm[OptionSome[ExpressionAtom["Global`other"]], environment]
+						TypeTheoryTerm["DownValues[first]"["normal"["atom"["Global`first"], {"atom"["Global`a"], "atom"["Global`b"], "atom"["Global`a"]}]], environment],
+						TypeTheoryTerm["some"["atom"["Global`other"]], environment]
 					]
 				}
 			]

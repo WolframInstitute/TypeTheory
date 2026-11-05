@@ -58,7 +58,7 @@ A part of a proof left to give, under a binder:
 
 ```wl
 partial = TypeTheoryEnvironment[{TypeTheoryTheorem[BothZero, ForAll[{Typed[n, Naturals]}, n + 0 == n && 0 + n == n],
-    Function[{Typed[n, Naturals]}, AndIntroduction[EqualityReflexivity[n], TypeTheoryHole["zero plus n, by induction"]]]]}]
+    Function[{Typed[n, Naturals]}, "andIntroduction"["equalityReflexivity"[n], TypeTheoryHole["zero plus n, by induction"]]]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 171 constants -->

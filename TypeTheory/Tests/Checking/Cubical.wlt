@@ -10,7 +10,7 @@ Needs["WolframInstitute`TypeTheory`"]
 
 cubical = TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"], {
 	TypeTheoryInductiveType[DependentSum, ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]]}, TypeUniverse[Max[u + 1, v + 1]]], {
-		DependentPair -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], Typed[a, A], Typed[b, B[a]]}, DependentSum[A, B]]
+		"dependentPair" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], Typed[a, A], Typed[b, B[a]]}, DependentSum[A, B]]
 	}],
 	TypeTheoryCubical[DependentSum],
 	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {"false" -> Booleans, "true" -> Booleans}],
@@ -19,11 +19,11 @@ cubical = TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"], {
 
 paths = TypeTheoryEnvironment[cubical, {
 	TypeTheoryDefinition[Symmetry, Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[x, A], TypedImplicit[y, A], Typed[p, Path[A, x, y]]}, Typed[Function[{i}, p[1 - i]], Path[A, y, x]]]],
-	TypeTheoryDefinition[FunctionExtensionality, Function[
+	TypeTheoryDefinition["functionExtensionality", Function[
 		{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], TypedImplicit[f, TypeSpecifier[{A} -> B]], TypedImplicit[g, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{Typed[x, A]}, Path[B, f[x], g[x]]]]},
 		Typed[Function[{i}, Function[{Typed[x, A]}, h[x][i]]], Path[TypeSpecifier[{A} -> B], f, g]]
 	]],
-	TypeTheoryDefinition[PathInduction, Function[
+	TypeTheoryDefinition["pathInduction", Function[
 		{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[x, A], Typed[P, ForAll[{Typed[y, A]}, TypeSpecifier[{Path[A, x, y]} -> TypeUniverse[1]]]], Typed[d, P[x, Function[{i}, x]]], TypedImplicit[y, A], Typed[p, Path[A, x, y]]},
 		CubicalTransport[Function[{i}, P[p[i], Function[{j}, p[Min[i, j]]]]], 0, d]
 	]],
@@ -67,7 +67,7 @@ VerificationTest[
 			TypeTheoryTerm[ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[x, A], TypedImplicit[y, A]}, TypeSpecifier[{Path[A, x, y]} -> Path[A, y, x]]], paths]
 		],
 		DefinitionallyEqualQ[
-			TypeOf[TypeTheoryTerm[FunctionExtensionality, paths]],
+			TypeOf[TypeTheoryTerm["functionExtensionality", paths]],
 			TypeTheoryTerm[ForAll[
 				{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], TypedImplicit[f, TypeSpecifier[{A} -> B]], TypedImplicit[g, TypeSpecifier[{A} -> B]]},
 				TypeSpecifier[{ForAll[{Typed[x, A]}, Path[B, f[x], g[x]]]} -> Path[TypeSpecifier[{A} -> B], f, g]]
@@ -191,12 +191,12 @@ library = TypeTheoryEnvironment["Cubical"]
 VerificationTest[
 	{
 		definitionFailure[library, Function[{Typed[i, Interval]}, GlueType[Booleans, {i == 0 -> {Booleans, "not"}}]]],
-		DefinitionallyEqualQ[TypeTheoryTerm[GlueType[Booleans, {1 -> {Booleans, NegationEquivalence}}], library], TypeTheoryTerm[Booleans, library]],
-		WeakHeadNormalForm[TypeTheoryTerm[GlueElimination[Booleans, {1 -> {Booleans, NegationEquivalence}}, "true"], library]],
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]], library]], TypeTheoryTerm[Path[__], _]],
-		definitionFailure[library, Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "true"]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[GlueType[Booleans, {1 -> {Booleans, "negationEquivalence"}}], library], TypeTheoryTerm[Booleans, library]],
+		WeakHeadNormalForm[TypeTheoryTerm[GlueElimination[Booleans, {1 -> {Booleans, "negationEquivalence"}}, "true"], library]],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"]], library]], TypeTheoryTerm[Path[__], _]],
+		definitionFailure[library, Function[{Typed[i, Interval]}, GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "true"]]],
 		DefinitionallyEqualQ[
-			TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, NegationEquivalence}}, {i == 0 -> "true"}, "false"]]], library],
+			TypeTheoryTerm[Function[{Typed[i, Interval]}, GlueElimination[GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"]]], library],
 			TypeTheoryTerm[Function[{Typed[i, Interval]}, "false"], library]
 		]
 	},
@@ -207,9 +207,9 @@ VerificationTest[
 (* transport in a Glue type: along the path univalence gives, the equivalence is applied *)
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], library]],
-		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "false"], library]],
-		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[IdentityEquivalence[Booleans]], 0, "true"], library]]
+		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negationEquivalence"], 0, "true"], library]],
+		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negationEquivalence"], 0, "false"], library]],
+		WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["identityEquivalence"[Booleans]], 0, "true"], library]]
 	},
 	{TypeTheoryTerm["false", library], TypeTheoryTerm["true", library], TypeTheoryTerm["true", library]},
 	TestID -> "Transport-along-univalence-applies-the-equivalence"

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Transport
 Keywords: [transport, path, HoTT, homotopy type theory, substitution]
-SeeAlso: [DependentCongruence, TransportConstant, EqualityCongruence, EqualitySubstitution]
+SeeAlso: []
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [HomotopyTypeTheory]
 ---
@@ -51,7 +51,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 Along reflexivity, transport leaves an element as it is:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[b, Booleans] |-> Booleans, EqualityReflexivity[True], False], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[b, Booleans] |-> Booleans, "equalityReflexivity"[True], False], hott]]
 ```
 
 <!-- => false -->

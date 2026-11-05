@@ -61,7 +61,7 @@ TypeTheoryCheck[identity]
 The kernel counts the uses of each variable in the live parts of a term, the parts that run: everything but the types, and the arguments a function takes at quantity 0. A function that uses an affine variable twice does not check:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[DuplicatedPair, {TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]} |-> Pair[x, x]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[DuplicatedPair, {TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]} |-> "pair"[x, x]]}]
 ```
 
 <!-- => Failure["QuantityExceeded", ...] -->
@@ -98,10 +98,10 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[AffineSuccessor, Type
 
 <!-- => Failure["QuantityExceeded", ...] -->
 
-An erased variable may appear where it is dead. The parameters of [EqualityReflexivity]() are erased, so the proof that an erased `n` equals itself checks:
+An erased variable may appear where it is dead. The parameters of `"equalityReflexivity"` are erased, so the proof that an erased `n` equals itself checks:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Typed[n, NonNegativeIntegers, 0] |-> EqualityReflexivity[n]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Typed[n, NonNegativeIntegers, 0] |-> "equalityReflexivity"[n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -111,7 +111,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAl
 The kernel gives the constructors and recursors of an inductive type their quantities. A constructor's parameters are erased, since the value it builds does not hold them:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Pair, affinePrelude]]
+TypeTheoryCheck[TypeTheoryTerm["pair", affinePrelude]]
 ```
 
 <!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} α → β → α × β -->

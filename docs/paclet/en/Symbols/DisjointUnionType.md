@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/DisjointUnionType
 Keywords: [disjoint union, sum, coproduct, prelude, inductive type]
-SeeAlso: [LeftInjection, RightInjection, CartesianProductType, Option]
+SeeAlso: [CartesianProductType, Option]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [DisjointUnionType]() is an inductive type of the prelude, with the constructors [LeftInjection]() and [RightInjection](), as Lean's `Sum`.
+- [DisjointUnionType]() is an inductive type of the prelude, with the constructors `"left"` and `"right"`, as Lean's `Sum`.
 - For *α* in `Type u` and *β* in `Type v`, <code>[DisjointUnionType]()[*α*, *β*]</code> is in `Type (max u v)`.
 - <code>[DisjointUnionType]()[*α*, *β*]</code> displays as *α* ⊕ *β*, as Lean writes `Sum`; × binds tighter than ⊕, so *α* × *β* ⊕ *γ* is a sum of a product.
 
@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[DisjointUnionType]]
 A natural number on the left of a disjoint union with the Booleans:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[LeftInjection[2], DisjointUnionType[Naturals, Booleans]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed["left"[2], DisjointUnionType[Naturals, Booleans]]]]
 ```
 
 <!-- => ℕ ⊕ 𝔹 -->
@@ -65,7 +65,7 @@ sides = TypeTheoryEnvironment[{TypeTheoryDefinition[SideNumber, Function[{Typed[
 On the left side:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[SideNumber[LeftInjection[5]], sides]]
+WeakHeadNormalForm[TypeTheoryTerm[SideNumber["left"[5]], sides]]
 ```
 
 <!-- => 5 -->
@@ -73,23 +73,23 @@ WeakHeadNormalForm[TypeTheoryTerm[SideNumber[LeftInjection[5]], sides]]
 On the right side:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[SideNumber[RightInjection["true"]], sides]]
+WeakHeadNormalForm[TypeTheoryTerm[SideNumber["right"["true"]], sides]]
 ```
 
 <!-- => 0 -->
 
 ## Properties and Relations
 
-Every element is on one side: `"Cases"` gives a goal for each, which [OrIntroductionLeft]() and [OrIntroductionRight]() prove:
+Every element is on one side: `"Cases"` gives a goal for each, which `"orIntroductionLeft"` and `"orIntroductionRight"` prove:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exists[{Typed[n, Naturals]}, s == LeftInjection[n]], Exists[{Typed[b, Booleans]}, s == RightInjection[b]]]], {
+TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exists[{Typed[n, Naturals]}, s == "left"[n]], Exists[{Typed[b, Booleans]}, s == "right"[b]]]], {
     TypeTheoryTactic["Introduce", s],
     TypeTheoryTactic["Cases", s],
     TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Exact", OrIntroductionLeft[ExistsIntroduction[n, EqualityReflexivity[LeftInjection[n]]]]],
+    TypeTheoryTactic["Exact", "orIntroductionLeft"["existsIntroduction"[n, "equalityReflexivity"["left"[n]]]]],
     TypeTheoryTactic["Introduce", b],
-    TypeTheoryTactic["Exact", OrIntroductionRight[ExistsIntroduction[b, EqualityReflexivity[RightInjection[b]]]]]
+    TypeTheoryTactic["Exact", "orIntroductionRight"["existsIntroduction"[b, "equalityReflexivity"["right"[b]]]]]
 }]
 ```
 

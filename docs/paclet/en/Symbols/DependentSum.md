@@ -5,14 +5,14 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/DependentSum
 Keywords: [dependent sum, sigma type, pair, cubical type theory]
-SeeAlso: [DependentPair, TypeTheoryCubical, Equivalence]
+SeeAlso: [TypeTheoryCubical, Equivalence]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [CubicalTypeTheory]
 ---
 
 ## Usage
 
-<code>[DependentSum]()[*A*, *B*]</code> is the dependent sum Σ *x* : *A*, *B*[*x*] of the cubical environment, whose elements are the pairs <code>[DependentPair]()[*a*, *b*]</code>.
+<code>[DependentSum]()[*A*, *B*]</code> is the dependent sum Σ *x* : *A*, *B*[*x*] of the cubical environment, whose elements are the pairs <code>`"dependentPair"`[*a*, *b*]</code>.
 
 ## Details & Options
 
@@ -70,7 +70,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A pair of two Booleans:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], cubical]]
+TypeTheoryCheck[TypeTheoryTerm[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], cubical]]
 ```
 
 <!-- => Σ_b∶𝔹 𝔹 -->
@@ -78,7 +78,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSu
 Its second field:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[DependentPair["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]][[2]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]][[2]], cubical]]
 ```
 
 <!-- => false -->

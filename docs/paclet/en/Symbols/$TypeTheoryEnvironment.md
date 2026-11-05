@@ -68,7 +68,7 @@ $TypeTheoryEnvironment
 It has no excluded middle:
 
 ```wl
-KeyExistsQ[$TypeTheoryEnvironment, ExcludedMiddle]
+KeyExistsQ[$TypeTheoryEnvironment, "excludedMiddle"]
 ```
 
 <!-- => False -->
@@ -96,7 +96,7 @@ TypeTheoryProof[2 + 2 == 4]["Environment"] === $TypeTheoryEnvironment
 A name of a library environment, such as `"Constructive"`, stands for that environment, as in [SetTypeTheoryEnvironment](); any other value that is no environment leaves the prelude, where the excluded middle is declared:
 
 ```wl
-Block[{$TypeTheoryEnvironment = "Classical"}, TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]]
+Block[{$TypeTheoryEnvironment = "Classical"}, TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]]
 ```
 
 <!-- => ∀_p∶Prop (p ∨ ¬p) -->
@@ -104,7 +104,7 @@ Block[{$TypeTheoryEnvironment = "Classical"}, TypeTheoryCheck[TypeTheoryTerm[Exc
 <code>[TypeTheoryEnvironment]()["Constructive"]</code>, or its name, makes the constructive environment the default, which has no excluded middle:
 
 ```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]]
+Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

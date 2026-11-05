@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/QuotientType
 Keywords: [quotient, quotient type, equivalence class, Quot, Lean, prelude]
-SeeAlso: [QuotientIntroduction, QuotientLift, QuotientInduction, QuotientSoundness, TypeTheoryQuotients]
+SeeAlso: [QuotientIntroduction, QuotientLift, QuotientInduction, TypeTheoryQuotients]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation]
 ---
@@ -19,7 +19,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 - [QuotientType]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot`.
 - α is an implicit argument, found from the type of *r*, which is `α -> α -> Prop`. Any relation will do: two elements have equal classes when the equivalence relation *r* generates relates them.
 - <code>[QuotientType]()[*r*]</code> lives in the universe of α.
-- [QuotientIntroduction]() makes the class of an element, [QuotientLift]() takes a function on elements that respects *r* to a function on classes, [QuotientInduction]() proves a property of every class, and [QuotientSoundness]() makes the classes of related elements equal.
+- [QuotientIntroduction]() makes the class of an element, [QuotientLift]() takes a function on elements that respects *r* to a function on classes, [QuotientInduction]() proves a property of every class, and `"quotientSoundness"` makes the classes of related elements equal.
 
 ## Basic Examples
 

@@ -122,7 +122,7 @@ to an element of A[1]. A must be constant where the face φ holds, and there the
 CubicalComposition::usage = "CubicalComposition[A, Function[{i}, {face -> u, ...}], a] composes in the type A: it gives the lid of the open box whose base \
 is a and whose sides are the lines u, over the faces, which must be a at i = 0. Where a face holds, it is that side at i = 1."
 GlueType::usage = "GlueType[A, {face -> pair, ...}] is the type A glued, where each face holds, to the type T of the pair, an element {T, e} of the sum with \
-e an equivalence from T to A; where a face holds it is T. Univalence turns an equivalence into a path of Glue types."
+e an equivalence from T to A; where a face holds it is T. \"univalence\" turns an equivalence into a path of Glue types."
 GlueIntroduction::usage = "GlueIntroduction[{face -> t, ...}, a] is the element of the Glue type expected that is t where a face holds and lies over a, \
 an element of A that the equivalence takes t to. GlueIntroduction[A, system, {face -> t, ...}, a] gives the Glue type GlueType[A, system] in full."
 GlueElimination::usage = "GlueElimination[b] is the element of A under b, an element of GlueType[A, system]; where a face of the system holds it is the \

@@ -42,7 +42,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeOf[TypeTheoryTerm[NaturalNumberSuccessor[True], prelude]],
+	First @ TypeOf[TypeTheoryTerm["successor"[True], prelude]],
 	"TypeMismatch",
 	TestID -> "An-argument-of-the-wrong-type-is-rejected"
 ]
@@ -81,26 +81,26 @@ VerificationTest[
 ]
 
 VerificationTest[
-	DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[NaturalNumberZero]], prelude], TypeTheoryTerm[2]],
+	DefinitionallyEqualQ[TypeTheoryTerm["successor"["successor"["zero"]], prelude], TypeTheoryTerm[2]],
 	True,
 	TestID -> "A-literal-is-its-constructor-form"
 ]
 
 VerificationTest[
-	DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[2] + 1, prelude], TypeTheoryTerm[4]],
+	DefinitionallyEqualQ[TypeTheoryTerm["successor"[2] + 1, prelude], TypeTheoryTerm[4]],
 	True,
 	TestID -> "Addition-unfolds-on-a-constructor"
 ]
 
 VerificationTest[
-	DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, NaturalNumberSuccessor[n]], prelude], TypeTheoryTerm[NaturalNumberSuccessor]],
+	DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, "successor"[n]], prelude], TypeTheoryTerm["successor"]],
 	True,
 	TestID -> "Eta-equality"
 ]
 
 VerificationTest[
 	MatchQ[TypeTheoryCheck[
-		TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p], Typed[k, p]}, EqualityReflexivity[h]], prelude],
+		TypeTheoryTerm[Function[{Typed[p, TypeUniverse[0]], Typed[h, p], Typed[k, p]}, "equalityReflexivity"[h]], prelude],
 		TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]], Typed[h, p], Typed[k, p]}, h == k]]
 	], _Success],
 	True,
@@ -172,7 +172,7 @@ VerificationTest[
    beta reduction both sides are Subtract applied to equal arguments *)
 VerificationTest[
 	TypeTheoryCheck[
-		TypeTheoryTerm[Function[{Typed[n, Naturals]}, EqualityReflexivity[n - 5000]]],
+		TypeTheoryTerm[Function[{Typed[n, Naturals]}, "equalityReflexivity"[n - 5000]]],
 		TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, Function[{Typed[k, Naturals]}, n - k][5000] == n - (4999 + 1)]]
 	][[1]],
 	"TypeChecked",
@@ -202,7 +202,7 @@ VerificationTest[
 ]
 
 (* FirstOfPair reads a field of a pair, so it is an abbreviation, as Lean's projections are, and unfolds before a regular
-   definition: FirstOfPair[Pair[ParityAgain[100000], "false"]] is ParityAgain[100000] at once, where unfolding the higher
+   definition: FirstOfPair["pair"[ParityAgain[100000], "false"]] is ParityAgain[100000] at once, where unfolding the higher
    ParityAgain first would run Parity's recursion 100000 deep *)
 VerificationTest[
 	With[
@@ -218,7 +218,7 @@ VerificationTest[
 		{
 			Lookup[WolframInstitute`TypeTheory`PackageScope`constantRecord[pairs, HoldComplete[FirstOfPair]], "Hint", None],
 			Lookup[WolframInstitute`TypeTheory`PackageScope`constantRecord[pairs, HoldComplete[ParityAgain]], "Hint", None],
-			DefinitionallyEqualQ[TypeTheoryTerm[FirstOfPair[Pair[ParityAgain[100000], "false"]], pairs], TypeTheoryTerm[ParityAgain[100000], pairs]]
+			DefinitionallyEqualQ[TypeTheoryTerm[FirstOfPair["pair"[ParityAgain[100000], "false"]], pairs], TypeTheoryTerm[ParityAgain[100000], pairs]]
 		}
 	],
 	{"Abbreviation", None, True},

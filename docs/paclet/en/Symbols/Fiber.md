@@ -69,17 +69,17 @@ cubical = TypeTheoryEnvironment["Cubical"]
 
 <!-- => TypeTheoryEnvironment summary box: 34 constants -->
 
-A proof that gives the pair, a [DependentPair]():
+A proof that gives the pair, a `"dependentPair"`:
 
 ```wl
-TypeTheoryProof[Fiber["not", "true"], cubical, {TypeTheoryTactic["Exact", DependentPair["false", Typed[i, Interval] |-> "true"]]}]
+TypeTheoryProof[Fiber["not", "true"], cubical, {TypeTheoryTactic["Exact", "dependentPair"["false", Typed[i, Interval] |-> "true"]]}]
 ```
 
 <!-- => Proof complete -->
 
 ## Properties and Relations
 
-The fibers of an equivalence are contractible, [IsContractible](), so each has a center. For [NegationEquivalence]() over `"true"`, it is `"not"["true"]`, with the path <code>[NegationInvolution]()["true"]</code> from its negation to `"true"`.
+The fibers of an equivalence are contractible, [IsContractible](), so each has a center. For `"negationEquivalence"` over `"true"`, it is `"not"["true"]`, with the path <code>`"negationInvolution"`["true"]</code> from its negation to `"true"`.
 
 The cubical environment:
 
@@ -89,10 +89,10 @@ cubical = TypeTheoryEnvironment["Cubical"]
 
 <!-- => TypeTheoryEnvironment summary box: 34 constants -->
 
-The center of the fiber of [NegationEquivalence]() over `"true"`:
+The center of the fiber of `"negationEquivalence"` over `"true"`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[NegationEquivalence[[2]]["true"][[1]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], cubical]]
 ```
 
 <!-- => 〈!true, NegationInvolution[true]〉 -->

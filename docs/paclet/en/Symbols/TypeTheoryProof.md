@@ -46,7 +46,7 @@ proof = TypeTheoryTactic["Induction", n][TypeTheoryTactic["Introduce", n][proof]
 The first is true by computation; the second follows from the induction hypothesis:
 
 ```wl
-proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][
+proof = TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]][
     TypeTheoryTactic["Introduce", k, ih][TypeTheoryTactic["Reflexivity"][proof]]
 ]
 ```
@@ -76,12 +76,12 @@ proof["Term"]
 
 ---
 
-Applying [AndIntroduction]() leaves a goal for each side of the conjunction:
+Applying `"andIntroduction"` leaves a goal for each side of the conjunction:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
     TypeTheoryTactic["Introduce", a, b, ha, hb],
-    TypeTheoryTactic["Apply", AndIntroduction]
+    TypeTheoryTactic["Apply", "andIntroduction"]
 }]
 ```
 

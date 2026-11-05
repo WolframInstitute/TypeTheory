@@ -34,16 +34,16 @@ the difference pi - qi of two with natural coefficients. PolynomialReduce finds 
 hypotheses reduce the goal, and otherwise linear algebra over the rationals finds cofactors of each
 degree up to the goal's, d clearing their denominators. Then d l + X == d r + X' holds in every
 commutative semiring, with X the sum of the pi bi and qi ai, and X' that of the pi ai and qi bi; the
-hypotheses make X' equal to X, taking X from both sides leaves d l == d r, and MultiplicationCancellation
+hypotheses make X' equal to X, taking X from both sides leaves d l == d r, and "multiplicationCancellation"
 leaves l == r. Over the integers, with d = 1, l == r + c1 (a1 - b1) + ... and r + c1 (b1 - b1) + ... == r
 hold in every commutative ring, and the hypotheses carry the one sum to the other.
 
 Linear arithmetic proves l <= r from hypotheses a1 <= b1, ..., each monomial of the atoms counted as a
-variable. LessEqualTotality gives l <= r or r < l, and the second is refuted: Wolfram's FindInstance
+variable. "lessEqualTotality" gives l <= r or r < l, and the second is refuted: Wolfram's FindInstance
 finds natural multipliers yi of r + 1 <= l and the hypotheses with y1 (a1 - b1) + ... a positive
-constant c. The inequalities, multiplied by MultiplicationMonotonicity and added by AdditionMonotonicity,
+constant c. The inequalities, multiplied by "multiplicationMonotonicity" and added by "additionMonotonicity",
 give A <= B, where B + c == A holds in every commutative semiring, so B + c <= B, which is
-(B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1), and LessIrreflexivity refutes it.
+(B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1), and "lessIrreflexivity" refutes it.
 *)
 
 
@@ -193,7 +193,7 @@ combination[left_, right_, scale_Integer, parts_List] := With[
 		{
 			None -> None,
 			equation_ /; scale == 1 :> equation,
-			{_, _, proof_} :> law[MultiplicationCancellation, {literal[scale - 1], left, right, proof}, left, right]
+			{_, _, proof_} :> law["multiplicationCancellation", {literal[scale - 1], left, right, proof}, left, right]
 		}
 	]
 ]
@@ -262,10 +262,10 @@ ringLinearProof[left_, right_, inequalities_List] := With[{id = freshFreeVariabl
 				lambdaAbstraction,
 				HoldComplete[g],
 				less[right, left],
-				makeApplication[constantReference[HoldComplete[FalseElimination], {}], {lessEqual[left, right], abstractFreeVariable[contradiction, id]}],
+				makeApplication[constantReference[HoldComplete["falseElimination"], {}], {lessEqual[left, right], abstractFreeVariable[contradiction, id]}],
 				"Explicit"
 			],
-			makeApplication[constantReference[HoldComplete[LessEqualTotality], {}], {left, right}]
+			makeApplication[constantReference[HoldComplete["lessEqualTotality"], {}], {left, right}]
 		}]
 	}]
 ]
@@ -282,7 +282,7 @@ ringContradictionProof[given_List] := Module[{inequalities, forms, atoms, variab
 ]
 
 nonnegativity[forms_List] := Function[factors, With[{term = productTerm[factors]},
-	{literal[0], term, makeApplication[constantReference[HoldComplete[LessEqualZero], {}], {term}]}
+	{literal[0], term, makeApplication[constantReference[HoldComplete["lessEqualZero"], {}], {term}]}
 ]] /@ DeleteCases[DeleteDuplicates[Last /@ Catenate[Catenate[forms]]], {}]
 
 (* Natural numbers y with y . differences a positive constant, or None. FindInstance's integer instance depends on how
@@ -318,7 +318,7 @@ contradiction[inequalities_List, multipliers_List, constant_Integer] := With[
 	{sum = Fold[Function[{accumulated, inequality}, addedInequalities[inequality, accumulated]], Last[scaled], Reverse[Most[scaled]]]},
 	Replace[sum, {small_, large_, proof_} :> Replace[ringEquation[plus[large, literal[constant]], small], {
 		None -> None,
-		identity_ :> irreflexivityContradiction[large, constant, makeApplication[constantReference[HoldComplete[EqualitySubstitution], {1}], {
+		identity_ :> irreflexivityContradiction[large, constant, makeApplication[constantReference[HoldComplete["equalitySubstitution"], {1}], {
 			$naturals,
 			Construct[lambdaAbstraction, HoldComplete[t], $naturals, lessEqual[boundVariable[0], large], "Explicit"],
 			small,
@@ -332,21 +332,21 @@ contradiction[inequalities_List, multipliers_List, constant_Integer] := With[
 scaledInequality[_, 0] := None
 scaledInequality[inequality_List, 1] := inequality
 scaledInequality[{a_, b_, proof_}, multiplier_Integer] :=
-	{times[a, literal[multiplier]], times[b, literal[multiplier]], makeApplication[constantReference[HoldComplete[MultiplicationMonotonicity], {}], {a, b, literal[multiplier], proof}]}
+	{times[a, literal[multiplier]], times[b, literal[multiplier]], makeApplication[constantReference[HoldComplete["multiplicationMonotonicity"], {}], {a, b, literal[multiplier], proof}]}
 
 addedInequalities[{a_, b_, proof_}, {c_, d_, otherProof_}] :=
-	{plus[a, c], plus[b, d], makeApplication[constantReference[HoldComplete[AdditionMonotonicity], {}], {a, b, c, d, proof, otherProof}]}
+	{plus[a, c], plus[b, d], makeApplication[constantReference[HoldComplete["additionMonotonicity"], {}], {a, b, c, d, proof, otherProof}]}
 
 (* False from a proof of B + c <= B, c >= 1: it is (B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1) *)
 irreflexivityContradiction[large_, constant_Integer, proof_] := Construct[
 	application,
-	makeApplication[constantReference[HoldComplete[LessIrreflexivity], {}], {plus[large, literal[constant - 1]]}],
-	makeApplication[constantReference[HoldComplete[LessEqualTransitivity], {}], {
+	makeApplication[constantReference[HoldComplete["lessIrreflexivity"], {}], {plus[large, literal[constant - 1]]}],
+	makeApplication[constantReference[HoldComplete["lessEqualTransitivity"], {}], {
 		plus[large, literal[constant]],
 		large,
 		plus[large, literal[constant - 1]],
 		proof,
-		makeApplication[constantReference[HoldComplete[LessEqualAddition], {}], {large, literal[constant - 1]}]
+		makeApplication[constantReference[HoldComplete["lessEqualAddition"], {}], {large, literal[constant - 1]}]
 	}]
 ]
 
@@ -357,13 +357,13 @@ ringEquationInequalities[a_, b_, proof_] := {
 }
 
 (* predicate[b] from predicate[a], which is a <= a *)
-carriedReflexivity[a_, b_, proof_, predicate_] := makeApplication[constantReference[HoldComplete[EqualitySubstitution], {1}], {
+carriedReflexivity[a_, b_, proof_, predicate_] := makeApplication[constantReference[HoldComplete["equalitySubstitution"], {1}], {
 	$naturals,
 	Construct[lambdaAbstraction, HoldComplete[t], $naturals, predicate[boundVariable[0]], "Explicit"],
 	a,
 	b,
 	proof,
-	application[constantReference[HoldComplete[LessEqualReflexivity], {}], a]
+	application[constantReference[HoldComplete["lessEqualReflexivity"], {}], a]
 }]
 
 
@@ -383,21 +383,21 @@ $naturalNumberRing = <|
 	"NormalForm" -> naturalNormalForm,
 	"LiteralSum" -> computedLiteralSum,
 	"Laws" -> <|
-		"AdditionAssociativity" -> HoldComplete[AdditionAssociativity],
-		"AdditionCommutativity" -> HoldComplete[AdditionCommutativity],
-		"AdditionZeroLeft" -> HoldComplete[AdditionZeroLeft],
-		"AdditionZeroRight" -> HoldComplete[AdditionZeroRight],
-		"MultiplicationAssociativity" -> HoldComplete[MultiplicationAssociativity],
-		"MultiplicationCommutativity" -> HoldComplete[MultiplicationCommutativity],
-		"MultiplicationZeroLeft" -> HoldComplete[MultiplicationZeroLeft],
-		"MultiplicationZeroRight" -> HoldComplete[MultiplicationZeroRight],
-		"MultiplicationOneLeft" -> HoldComplete[MultiplicationOneLeft],
-		"MultiplicationDistributivityLeft" -> HoldComplete[MultiplicationDistributivityLeft],
-		"MultiplicationDistributivityRight" -> HoldComplete[MultiplicationDistributivityRight],
-		"PowerZero" -> HoldComplete[PowerZero],
-		"PowerOne" -> HoldComplete[PowerOne],
-		"PowerSuccessor" -> HoldComplete[PowerSuccessor],
-		"PowerAddition" -> HoldComplete[PowerAddition]
+		"\"additionAssociativity\"" -> HoldComplete["additionAssociativity"],
+		"\"additionCommutativity\"" -> HoldComplete["additionCommutativity"],
+		"\"additionZeroLeft\"" -> HoldComplete["additionZeroLeft"],
+		"\"additionZeroRight\"" -> HoldComplete["additionZeroRight"],
+		"\"multiplicationAssociativity\"" -> HoldComplete["multiplicationAssociativity"],
+		"\"multiplicationCommutativity\"" -> HoldComplete["multiplicationCommutativity"],
+		"\"multiplicationZeroLeft\"" -> HoldComplete["multiplicationZeroLeft"],
+		"\"multiplicationZeroRight\"" -> HoldComplete["multiplicationZeroRight"],
+		"\"multiplicationOneLeft\"" -> HoldComplete["multiplicationOneLeft"],
+		"\"multiplicationDistributivityLeft\"" -> HoldComplete["multiplicationDistributivityLeft"],
+		"\"multiplicationDistributivityRight\"" -> HoldComplete["multiplicationDistributivityRight"],
+		"\"powerZero\"" -> HoldComplete["powerZero"],
+		"\"powerOne\"" -> HoldComplete["powerOne"],
+		"\"powerSuccessor\"" -> HoldComplete["powerSuccessor"],
+		"\"powerAddition\"" -> HoldComplete["powerAddition"]
 	|>
 |>
 
@@ -408,21 +408,21 @@ $integerRing = <|
 	"NormalForm" -> integerNormalForm,
 	"LiteralSum" -> integerLiteralSum,
 	"Laws" -> <|
-		"AdditionAssociativity" -> HoldComplete[IntegerAdditionAssociativity],
-		"AdditionCommutativity" -> HoldComplete[IntegerAdditionCommutativity],
-		"AdditionZeroLeft" -> HoldComplete["integerAdditionZeroLeft"],
-		"AdditionZeroRight" -> HoldComplete[IntegerAdditionZero],
-		"MultiplicationAssociativity" -> HoldComplete[IntegerMultiplicationAssociativity],
-		"MultiplicationCommutativity" -> HoldComplete[IntegerMultiplicationCommutativity],
-		"MultiplicationZeroLeft" -> HoldComplete["integerMultiplicationZeroLeft"],
-		"MultiplicationZeroRight" -> HoldComplete["integerMultiplicationZeroRight"],
-		"MultiplicationOneLeft" -> HoldComplete["integerMultiplicationOneLeft"],
-		"MultiplicationDistributivityLeft" -> HoldComplete[IntegerDistributivity],
-		"MultiplicationDistributivityRight" -> HoldComplete["integerDistributivityRight"],
-		"PowerZero" -> HoldComplete["integerPowerZero"],
-		"PowerOne" -> HoldComplete["integerPowerOne"],
-		"PowerSuccessor" -> HoldComplete["integerPowerSuccessor"],
-		"PowerAddition" -> HoldComplete["integerPowerAddition"]
+		"\"additionAssociativity\"" -> HoldComplete["integerAdditionAssociativity"],
+		"\"additionCommutativity\"" -> HoldComplete["integerAdditionCommutativity"],
+		"\"additionZeroLeft\"" -> HoldComplete["integerAdditionZeroLeft"],
+		"\"additionZeroRight\"" -> HoldComplete["integerAdditionZero"],
+		"\"multiplicationAssociativity\"" -> HoldComplete["integerMultiplicationAssociativity"],
+		"\"multiplicationCommutativity\"" -> HoldComplete["integerMultiplicationCommutativity"],
+		"\"multiplicationZeroLeft\"" -> HoldComplete["integerMultiplicationZeroLeft"],
+		"\"multiplicationZeroRight\"" -> HoldComplete["integerMultiplicationZeroRight"],
+		"\"multiplicationOneLeft\"" -> HoldComplete["integerMultiplicationOneLeft"],
+		"\"multiplicationDistributivityLeft\"" -> HoldComplete["integerDistributivity"],
+		"\"multiplicationDistributivityRight\"" -> HoldComplete["integerDistributivityRight"],
+		"\"powerZero\"" -> HoldComplete["integerPowerZero"],
+		"\"powerOne\"" -> HoldComplete["integerPowerOne"],
+		"\"powerSuccessor\"" -> HoldComplete["integerPowerSuccessor"],
+		"\"powerAddition\"" -> HoldComplete["integerPowerAddition"]
 	|>
 |>
 
@@ -431,8 +431,8 @@ $ring = $naturalNumberRing
 (* the constants the integers' normal forms are built from, beside the ring's laws and operations *)
 $integerNormalFormConstants = HoldComplete /@ Unevaluated[{
 	Integers, "integerOfNatural", "integerNegation", "integerSubtraction", "integerNegationProduct", "integerLiteralDifferenceNonnegative",
-	"integerLiteralDifferenceNegative", IntegerOfNaturalAddition, IntegerOfNaturalMultiplication, "integerOfNaturalPower",
-	EqualityReflexivity, EqualitySymmetry, EqualityTransitivity, EqualityCongruence
+	"integerLiteralDifferenceNegative", "integerOfNaturalAddition", "integerOfNaturalMultiplication", "integerOfNaturalPower",
+	"equalityReflexivity", "equalitySymmetry", "equalityTransitivity", "equalityCongruence"
 }]
 
 literal[n_Integer] := $ring["Literal"][n]
@@ -478,9 +478,9 @@ monomialBeforeQ[{_, factors_}, {_, otherFactors_}] := Order[factors, otherFactor
 (*Equations*)
 
 
-reflexivityProof[term_] := makeApplication[constantReference[HoldComplete[EqualityReflexivity], {1}], {$ring["Type"], term}]
+reflexivityProof[term_] := makeApplication[constantReference[HoldComplete["equalityReflexivity"], {1}], {$ring["Type"], term}]
 
-reflexivityProofQ[proof_] := MatchQ[proof, application[application[constantReference[HoldComplete[EqualityReflexivity], _], _], _]]
+reflexivityProofQ[proof_] := MatchQ[proof, application[application[constantReference[HoldComplete["equalityReflexivity"], _], _], _]]
 
 reflexive[term_] := {term, term, reflexivityProof[term]}
 
@@ -488,13 +488,13 @@ reflexive[term_] := {term, term, reflexivityProof[term]}
 computed[left_, right_] := {left, right, reflexivityProof[right]}
 
 symmetric[{left_, right_, proof_}] /; reflexivityProofQ[proof] := computed[right, left]
-symmetric[{left_, right_, proof_}] := {right, left, makeApplication[constantReference[HoldComplete[EqualitySymmetry], {1}], {$ring["Type"], left, right, proof}]}
+symmetric[{left_, right_, proof_}] := {right, left, makeApplication[constantReference[HoldComplete["equalitySymmetry"], {1}], {$ring["Type"], left, right, proof}]}
 
 (* a step by reflexivity is left out: the kernel checks the computation where the other proof is used *)
 transitive[{left_, _, proof_}, {_, right_, otherProof_}] /; reflexivityProofQ[proof] := {left, right, otherProof}
 transitive[{left_, _, proof_}, {_, right_, otherProof_}] /; reflexivityProofQ[otherProof] := {left, right, proof}
 transitive[{left_, middle_, proof_}, {_, right_, otherProof_}] :=
-	{left, right, makeApplication[constantReference[HoldComplete[EqualityTransitivity], {1}], {$ring["Type"], left, middle, right, proof, otherProof}]}
+	{left, right, makeApplication[constantReference[HoldComplete["equalityTransitivity"], {1}], {$ring["Type"], left, middle, right, proof, otherProof}]}
 
 chain[first_, rest___] := Fold[transitive, first, {rest}]
 
@@ -505,7 +505,7 @@ congruent[context_, {left_, right_, proof_}] := {
 	context[left],
 	context[right],
 	makeApplication[
-		constantReference[HoldComplete[EqualityCongruence], {1, 1}],
+		constantReference[HoldComplete["equalityCongruence"], {1, 1}],
 		{$ring["Type"], $ring["Type"], left, right, Construct[lambdaAbstraction, HoldComplete[x], $ring["Type"], context[boundVariable[0]], "Explicit"], proof}
 	]
 }
@@ -519,22 +519,22 @@ law[name_, arguments_List, left_, right_] := {left, right, makeApplication[const
 (* a law of the ring, by the name of the natural numbers' *)
 ringLaw[name_String, arguments_List, left_, right_] := {left, right, makeApplication[constantReference[$ring["Laws"][name], {}], arguments]}
 
-additionAssociativity[a_, b_, c_] := ringLaw["AdditionAssociativity", {a, b, c}, plus[plus[a, b], c], plus[a, plus[b, c]]]
-additionCommutativity[a_, b_] := ringLaw["AdditionCommutativity", {a, b}, plus[a, b], plus[b, a]]
-additionZeroLeft[n_] := ringLaw["AdditionZeroLeft", {n}, plus[literal[0], n], n]
-additionZeroRight[n_] := ringLaw["AdditionZeroRight", {n}, plus[n, literal[0]], n]
-multiplicationAssociativity[a_, b_, c_] := ringLaw["MultiplicationAssociativity", {a, b, c}, times[times[a, b], c], times[a, times[b, c]]]
-multiplicationCommutativity[a_, b_] := ringLaw["MultiplicationCommutativity", {a, b}, times[a, b], times[b, a]]
-multiplicationZeroLeft[n_] := ringLaw["MultiplicationZeroLeft", {n}, times[literal[0], n], literal[0]]
-multiplicationZeroRight[n_] := ringLaw["MultiplicationZeroRight", {n}, times[n, literal[0]], literal[0]]
-multiplicationOneLeft[n_] := ringLaw["MultiplicationOneLeft", {n}, times[literal[1], n], n]
-distributivityLeft[a_, b_, c_] := ringLaw["MultiplicationDistributivityLeft", {a, b, c}, times[a, plus[b, c]], plus[times[a, b], times[a, c]]]
-distributivityRight[a_, b_, c_] := ringLaw["MultiplicationDistributivityRight", {a, b, c}, times[plus[a, b], c], plus[times[a, c], times[b, c]]]
-powerZero[m_] := ringLaw["PowerZero", {m}, power[m, exponent[0]], literal[1]]
-powerOne[m_] := ringLaw["PowerOne", {m}, power[m, exponent[1]], m]
-powerSuccessor[m_, n_] := ringLaw["PowerSuccessor", {m, n}, power[m, exponentSum[n, exponent[1]]], times[power[m, n], m]]
-powerAddition[m_, a_, b_] := ringLaw["PowerAddition", {m, a, b}, power[m, exponentSum[a, b]], times[power[m, a], power[m, b]]]
-additionSubtractionCancellation[n_, m_] := law[AdditionSubtractionCancellation, {n, m}, subtract[plus[n, m], m], n]
+additionAssociativity[a_, b_, c_] := ringLaw["\"additionAssociativity\"", {a, b, c}, plus[plus[a, b], c], plus[a, plus[b, c]]]
+additionCommutativity[a_, b_] := ringLaw["\"additionCommutativity\"", {a, b}, plus[a, b], plus[b, a]]
+additionZeroLeft[n_] := ringLaw["\"additionZeroLeft\"", {n}, plus[literal[0], n], n]
+additionZeroRight[n_] := ringLaw["\"additionZeroRight\"", {n}, plus[n, literal[0]], n]
+multiplicationAssociativity[a_, b_, c_] := ringLaw["\"multiplicationAssociativity\"", {a, b, c}, times[times[a, b], c], times[a, times[b, c]]]
+multiplicationCommutativity[a_, b_] := ringLaw["\"multiplicationCommutativity\"", {a, b}, times[a, b], times[b, a]]
+multiplicationZeroLeft[n_] := ringLaw["\"multiplicationZeroLeft\"", {n}, times[literal[0], n], literal[0]]
+multiplicationZeroRight[n_] := ringLaw["\"multiplicationZeroRight\"", {n}, times[n, literal[0]], literal[0]]
+multiplicationOneLeft[n_] := ringLaw["\"multiplicationOneLeft\"", {n}, times[literal[1], n], n]
+distributivityLeft[a_, b_, c_] := ringLaw["\"multiplicationDistributivityLeft\"", {a, b, c}, times[a, plus[b, c]], plus[times[a, b], times[a, c]]]
+distributivityRight[a_, b_, c_] := ringLaw["\"multiplicationDistributivityRight\"", {a, b, c}, times[plus[a, b], c], plus[times[a, c], times[b, c]]]
+powerZero[m_] := ringLaw["\"powerZero\"", {m}, power[m, exponent[0]], literal[1]]
+powerOne[m_] := ringLaw["\"powerOne\"", {m}, power[m, exponent[1]], m]
+powerSuccessor[m_, n_] := ringLaw["\"powerSuccessor\"", {m, n}, power[m, exponentSum[n, exponent[1]]], times[power[m, n], m]]
+powerAddition[m_, a_, b_] := ringLaw["\"powerAddition\"", {m, a, b}, power[m, exponentSum[a, b]], times[power[m, a], power[m, b]]]
+additionSubtractionCancellation[n_, m_] := law["additionSubtractionCancellation", {n, m}, subtract[plus[n, m], m], n]
 
 (* literal[a] + literal[b] == literal[a + b]: by computation, but for integers of opposite signs, which
    are two pairs equal by a lemma; a negative one first is moved second *)
@@ -561,14 +561,14 @@ leftCommutativity[operation_, associativity_, commutativity_, x_, y_, z_] := cha
 
 ringNormalForm[term_] := $ring["NormalForm"][term]
 
-(* a successor is a sum with 1, and NaturalNumberZero is 0, by computation; Subtract, which stops at 0,
+(* a successor is a sum with 1, and "zero" is 0, by computation; Subtract, which stops at 0,
    is no operation of a semiring, so a difference is an atom, and so is a power by a large exponent of
    anything but an atom *)
 naturalNormalForm[term_] := Replace[term, {
 	naturalLiteral[0] :> {{}, reflexive[term]},
 	naturalLiteral[n_Integer] :> {{{n, {}}}, reflexive[term]},
-	constantReference[HoldComplete[NaturalNumberZero], _] :> {{}, computed[term, literal[0]]},
-	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], argument_] :> With[{sum = ringNormalForm[plus[argument, literal[1]]]},
+	constantReference[HoldComplete["zero"], _] :> {{}, computed[term, literal[0]]},
+	application[constantReference[HoldComplete["successor"], _], argument_] :> With[{sum = ringNormalForm[plus[argument, literal[1]]]},
 		{First[sum], Replace[Last[sum], {_, right_, proof_} :> {term, right, proof}]}
 	],
 	application[application[constantReference[HoldComplete[Plus], {}], a_], b_] :> sumNormalForm[a, b],
@@ -605,13 +605,13 @@ integerNormalForm[term_] := Replace[term, {
 
 (* the integer term of the natural number n *)
 castNormalForm[term_, n_] := Replace[n, {
-	application[application[constantReference[HoldComplete[Plus], _], a_], b_] :> castThrough[term, law[IntegerOfNaturalAddition, {a, b}, term, plus[integerOfNatural[a], integerOfNatural[b]]]],
-	application[application[constantReference[HoldComplete[Times], _], a_], b_] :> castThrough[term, law[IntegerOfNaturalMultiplication, {a, b}, term, times[integerOfNatural[a], integerOfNatural[b]]]],
+	application[application[constantReference[HoldComplete[Plus], _], a_], b_] :> castThrough[term, law["integerOfNaturalAddition", {a, b}, term, plus[integerOfNatural[a], integerOfNatural[b]]]],
+	application[application[constantReference[HoldComplete[Times], _], a_], b_] :> castThrough[term, law["integerOfNaturalMultiplication", {a, b}, term, times[integerOfNatural[a], integerOfNatural[b]]]],
 	application[application[constantReference[HoldComplete[Power], _], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :>
 		castThrough[term, law["integerOfNaturalPower", {a, naturalLiteral[k]}, term, power[integerOfNatural[a], naturalLiteral[k]]]],
-	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :>
-		castThrough[term, law[IntegerOfNaturalAddition, {a, naturalLiteral[1]}, term, plus[integerOfNatural[a], literal[1]]]],
-	constantReference[HoldComplete[NaturalNumberZero], _] :> {{}, computed[term, literal[0]]},
+	application[constantReference[HoldComplete["successor"], _], a_] :>
+		castThrough[term, law["integerOfNaturalAddition", {a, naturalLiteral[1]}, term, plus[integerOfNatural[a], literal[1]]]],
+	constantReference[HoldComplete["zero"], _] :> {{}, computed[term, literal[0]]},
 	_ :> {{{1, {{term, 1}}}}, reflexive[term]}
 }]
 

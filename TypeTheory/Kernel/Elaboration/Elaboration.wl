@@ -326,15 +326,6 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* a list written as a term is the list of its elements, Prepend over {}, as such a list shows *)
 	(* List and Sequence are each a type and its elements: where a type is expected, {A} is the type of lists of A and
 	   Sequence[A, B] the type of the sequences of an A and a B; elsewhere {a, b} is a list and Sequence[a, b] a sequence *)
-	(* the names the lists had: Lists is List, the type wherever it is applied, EmptyList is {}, and ListPrepend[x, l]
-	   is Prepend[x][l] *)
-	syntaxSymbol[HoldComplete[EmptyList]] /; formerListNameQ[HoldComplete[EmptyList]] :> elaborateSyntax[syntaxString["{}"], expected],
-	syntaxApplication[syntaxSymbol[HoldComplete[ListPrepend]], {element_, rest_}] /; formerListNameQ[HoldComplete[ListPrepend]] :>
-		elaborateSyntax[syntaxApplication[syntaxString["Prepend"], {element, rest}], expected],
-	syntaxApplication[syntaxSymbol[HoldComplete[Lists]], arguments_List] /; formerListNameQ[HoldComplete[Lists]] :>
-		applyArguments[elaborateHead[syntaxSymbol[HoldComplete[List]]], arguments, syntaxSymbol[HoldComplete[List]], expected],
-	syntaxSymbol[HoldComplete[Lists]] /; formerListNameQ[HoldComplete[Lists]] :> elaborateSyntax[syntaxSymbol[HoldComplete[List]], expected],
-	(* where nothing decides, as in a term on its own, the elements decide, elaborated once: types make the type *)
 	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], {element_}] /; listsDeclaredQ[] && typeExpectedQ[expected] :>
 		applyArguments[elaborateHead[head], {element}, head, expected],
 	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], {element_}] /; listsDeclaredQ[] && openExpectedQ[expected] :>
@@ -380,10 +371,6 @@ integersDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["
 rationalsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["rationalInverse"]]
 
 listsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["Prepend"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["{}"]]
-
-(* a name the lists had, read as theirs where the environment declares no constant of that name, as an inductive type
-   whose constructor is named EmptyList does *)
-formerListNameQ[name_HoldComplete] := listsDeclaredQ[] && ! constantDeclaredQ[$elaborationEnvironment, name]
 
 (* a hole is a metavariable of the type expected, in the variables in scope, which nothing solves *)
 elaborateHole[arguments_List, expected_, syntax_] := Which[
@@ -544,7 +531,7 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax, expected]
 		],
 		(* a binder of a type Sequence[...] takes the arguments that are left as one Sequence, as the Wolfram Language gives a
-		   function its arguments; one argument that is a sequence is the sequence itself, as the tail of SequencePrepend *)
+		   function its arguments; one argument that is a sequence is the sequence itself, as the tail of "sequencePrepend" *)
 		dependentFunctionType[_, domain_, codomain_, binder_] /; explicitBinderQ[binder] && sequenceTypeQ[domain] :> With[
 			{argument = sequenceArgument[arguments, domain]},
 			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], {}, postponed, headSyntax, expected]
@@ -585,7 +572,7 @@ sequenceArgument[arguments_List, domain_] := checkAgainst[syntaxHead[Sequence, a
 (* a term elaborated already, {term, type}, with the syntax it was elaborated from, which messages show *)
 heldFromSyntax[syntaxElaborated[_, syntax_]] := heldFromSyntax[syntax]
 
-sequencesDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[SequencePrepend]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[EmptySequence]]
+sequencesDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["sequencePrepend"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["emptySequence"]]
 
 (* Sequence[A, B, ...] is the family at the list of its types, Sequence[A, B, ...]; one argument that is a list of
    types, as As in Sequence[As], is the list itself: its type tells, a list's never being a universe, as a type's is *)
@@ -612,18 +599,18 @@ typeListQ[type_] := MatchQ[
 ]
 
 (* the syntax of the expression a quotation stands for, of the type Expressions: a symbol its atom, named by its full name,
-   a natural number by "naturalAtom", any other atom by its InputForm, and h[a, ...] ExpressionNormal[h, {a, ...}] *)
-expressionsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete[ExpressionNormal]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete[ExpressionAtom]]
+   a natural number by "naturalAtom", any other atom by its InputForm, and h[a, ...] "normal"[h, {a, ...}] *)
+expressionsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["normal"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["atom"]]
 
 quotationSyntax[syntax : syntaxSymbol[held_]] /; KeyExistsQ[$elaborationScope, held] := syntax
-quotationSyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] := syntaxHead[ExpressionAtom, {syntaxString[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]]}]
-quotationSyntax[syntaxInteger[n_Integer?NonNegative]] := syntaxHead[ExpressionAtom, {syntaxApplication[syntaxString["naturalAtom"], {syntaxInteger[n]}]}]
-quotationSyntax[syntaxInteger[n_Integer]] := syntaxHead[ExpressionAtom, {syntaxString[ToString[n, InputForm]]}]
+quotationSyntax[syntaxSymbol[HoldComplete[symbol_Symbol]]] := syntaxApplication[syntaxString["atom"], {syntaxString[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]]]}]
+quotationSyntax[syntaxInteger[n_Integer?NonNegative]] := syntaxApplication[syntaxString["atom"], {syntaxApplication[syntaxString["naturalAtom"], {syntaxInteger[n]}]}]
+quotationSyntax[syntaxInteger[n_Integer]] := syntaxApplication[syntaxString["atom"], {syntaxString[ToString[n, InputForm]]}]
 quotationSyntax[syntaxString[text_String]] /; constantDeclaredQ[$elaborationEnvironment, HoldComplete["stringAtom"]] :=
-	syntaxHead[ExpressionAtom, {syntaxApplication[syntaxString["stringAtom"], {syntaxString[ToString[text, InputForm]]}]}]
-quotationSyntax[syntaxString[text_String]] := syntaxHead[ExpressionAtom, {syntaxString[ToString[text, InputForm]]}]
-quotationSyntax[syntaxOther[HoldComplete[atom_]]] := syntaxHead[ExpressionAtom, {syntaxString[ToString[Unevaluated[atom], InputForm]]}]
-quotationSyntax[syntaxApplication[head_, arguments_List]] := syntaxHead[ExpressionNormal, {quotationSyntax[head], quotedArgumentsSyntax[arguments]}]
+	syntaxApplication[syntaxString["atom"], {syntaxApplication[syntaxString["stringAtom"], {syntaxString[ToString[text, InputForm]]}]}]
+quotationSyntax[syntaxString[text_String]] := syntaxApplication[syntaxString["atom"], {syntaxString[ToString[text, InputForm]]}]
+quotationSyntax[syntaxOther[HoldComplete[atom_]]] := syntaxApplication[syntaxString["atom"], {syntaxString[ToString[Unevaluated[atom], InputForm]]}]
+quotationSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[syntaxString["normal"], {quotationSyntax[head], quotedArgumentsSyntax[arguments]}]
 
 (* the arguments as a list of expressions: runs of them in list literals, and each list of expressions, a variable of
    that type or Sequence @@ l, joined in *)
@@ -657,11 +644,11 @@ listTypeQ[type_] := MatchQ[
 	application[constantReference[HoldComplete[List], _], _]
 ]
 
-(* Sequence[a, b, ...] is SequencePrepend over EmptySequence, as a list is Prepend over {}; a Sequence among
+(* Sequence[a, b, ...] is "sequencePrepend" over "emptySequence", as a list is Prepend over {}; a Sequence among
    the elements is spliced, as the Wolfram Language splices it *)
 sequenceLiteralSyntax[elements_List] := Fold[
-	Function[{rest, element}, syntaxHead[SequencePrepend, {element, rest}]],
-	syntaxSymbol[HoldComplete[EmptySequence]],
+	Function[{rest, element}, syntaxApplication[syntaxString["sequencePrepend"], {element, rest}]],
+	syntaxString["emptySequence"],
 	Reverse[splicedSequenceElements[elements]]
 ]
 
@@ -1368,7 +1355,7 @@ readBeforeNamesQ[_, _] := False
    sum of sums *)
 notationHeadQ[syntaxSymbol[HoldComplete[Function | ForAll | RightTee | Exists | Implies | TypeSpecifier | Rule | TypeUniverse | Typed | With | Subscript | Construct | Part]], _] := True
 (* a type or its elements, as the position decides, which an explicit term does not know *)
-notationHeadQ[syntaxSymbol[HoldComplete[List | Sequence | Lists]], _] := True
+notationHeadQ[syntaxSymbol[HoldComplete[List | Sequence]], _] := True
 notationHeadQ[syntaxSymbol[HoldComplete[Plus | Times | And | Or]], count_Integer] := count =!= 2
 notationHeadQ[_, _] := False
 

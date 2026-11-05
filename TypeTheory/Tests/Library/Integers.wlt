@@ -16,14 +16,14 @@ VerificationTest[
 		MatchQ[TypeTheoryCheck[integers], _Success],
 		Information[integers, "Axioms"],
 		Function[name, MatchQ[integers[name], TypeTheoryTheorem[__]]] /@ {
-			IntegerAdditionCommutativity, IntegerAdditionAssociativity, IntegerAdditionZero, IntegerAdditionNegation,
-			IntegerMultiplicationCommutativity, IntegerMultiplicationAssociativity, IntegerMultiplicationOne, IntegerDistributivity,
-			IntegerSubtractionNegation, IntegerOfNaturalAddition, IntegerOfNaturalMultiplication, IntegerLessEqualReflexivity,
-			IntegerSquareNonnegative, IntegerNonnegativeAddition, IntegerNonnegativeScaling, IntegerNonnegativeCancellation,
-			IntegerLessEqualOfDifference, IntegerLessEqualOfMultiple, IntegerOfNaturalLessEqual
+			"integerAdditionCommutativity", "integerAdditionAssociativity", "integerAdditionZero", "integerAdditionNegation",
+			"integerMultiplicationCommutativity", "integerMultiplicationAssociativity", "integerMultiplicationOne", "integerDistributivity",
+			"integerSubtractionNegation", "integerOfNaturalAddition", "integerOfNaturalMultiplication", "integerLessEqualReflexivity",
+			"integerSquareNonnegative", "integerNonnegativeAddition", "integerNonnegativeScaling", "integerNonnegativeCancellation",
+			"integerLessEqualOfDifference", "integerLessEqualOfMultiple", "integerOfNaturalLessEqual"
 		}
 	},
-	{True, {PropositionalExtensionality, QuotientSoundness, Choice}, ConstantArray[True, 19]},
+	{True, {"propositionalExtensionality", "quotientSoundness", "choice"}, ConstantArray[True, 19]},
 	TestID -> "The-integers-and-their-laws-check"
 ]
 
@@ -49,7 +49,7 @@ VerificationTest[
    they are two representatives, not equal by computation *)
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[QuotientSoundness[EqualityReflexivity[5]], integers], TypeTheoryTerm[Typed[2 - 5, Integers] == -3, integers]], _Success],
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["quotientSoundness"["equalityReflexivity"[5]], integers], TypeTheoryTerm[Typed[2 - 5, Integers] == -3, integers]], _Success],
 		DefinitionallyEqualQ[TypeTheoryTerm[Typed[2 - 5, Integers], integers], TypeTheoryTerm[Typed[-3, Integers], integers]]
 	},
 	{True, False},
@@ -59,10 +59,10 @@ VerificationTest[
 VerificationTest[
 	TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x + y) - y == x], integers, {
 		TypeTheoryTactic["Introduce", x, y],
-		TypeTheoryTactic["Rewrite", IntegerSubtractionNegation],
-		TypeTheoryTactic["Rewrite", IntegerAdditionAssociativity],
-		TypeTheoryTactic["Rewrite", IntegerAdditionNegation],
-		TypeTheoryTactic["Rewrite", IntegerAdditionZero]
+		TypeTheoryTactic["Rewrite", "integerSubtractionNegation"],
+		TypeTheoryTactic["Rewrite", "integerAdditionAssociativity"],
+		TypeTheoryTactic["Rewrite", "integerAdditionNegation"],
+		TypeTheoryTactic["Rewrite", "integerAdditionZero"]
 	}]["Goals"],
 	{},
 	TestID -> "The-laws-rewrite-integer-terms"
@@ -77,7 +77,7 @@ VerificationTest[
 				TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
 				TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
 				TypeTheoryTactic["Induction", z], TypeTheoryTactic["Introduce", s],
-				TypeTheoryTactic["Apply", QuotientSoundness],
+				TypeTheoryTactic["Apply", "quotientSoundness"],
 				TypeTheoryTactic["Ring"]
 			}]
 		},
@@ -104,7 +104,7 @@ VerificationTest[
 		WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == -3], integers]],
 		WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == 3], integers]],
 		TypeTheoryProof[Typed[7 * (-3) + 21, Integers] == 0, integers, {TypeTheoryTactic["Decide"]}]["Goals"],
-		MatchQ[integers[IntegerEqualityDecidable], TypeTheoryDefinition[__]]
+		MatchQ[integers["integerEqualityDecidable"], TypeTheoryDefinition[__]]
 	},
 	{TypeTheoryTerm["true", integers], TypeTheoryTerm["false", integers], {}, True},
 	TestID -> "Equations-of-integers-are-decided-by-computation"
@@ -165,15 +165,15 @@ VerificationTest[
 	{
 		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 0 <= 3 (x x) + y y], integers, {
 			TypeTheoryTactic["Introduce", x, y],
-			TypeTheoryTactic["Exact", IntegerNonnegativeAddition[IntegerNonnegativeScaling[3, IntegerSquareNonnegative[x]], IntegerSquareNonnegative[y]]]
+			TypeTheoryTactic["Exact", "integerNonnegativeAddition"["integerNonnegativeScaling"[3, "integerSquareNonnegative"[x]], "integerSquareNonnegative"[y]]]
 		}]["Goals"],
 		TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[0 <= 2 (y - x), x <= y]], integers, {
 			TypeTheoryTactic["Introduce", x, y, h],
-			TypeTheoryTactic["Exact", IntegerLessEqualOfDifference[x, y, IntegerNonnegativeCancellation[1, y - x, h]]]
+			TypeTheoryTactic["Exact", "integerLessEqualOfDifference"[x, y, "integerNonnegativeCancellation"[1, y - x, h]]]
 		}]["Goals"],
 		TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[Typed[m, Integers] <= n, m <= n]], integers, {
 			TypeTheoryTactic["Introduce", m, n, h],
-			TypeTheoryTactic["Exact", IntegerOfNaturalLessEqual[m, n, h]]
+			TypeTheoryTactic["Exact", "integerOfNaturalLessEqual"[m, n, h]]
 		}]["Goals"]
 	},
 	{{}, {}, {}},

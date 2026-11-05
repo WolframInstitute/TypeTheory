@@ -54,10 +54,10 @@ Without Prop, every universe is `Type u`, written <code>[TypeUniverse]()[u + 1]<
 
 ## Propositions as Types
 
-[True](), [False]() and [Not]() are types here: [True]() has the one element [TrueIntroduction](), [False]() has none, and <code>[Not]()[*a*]</code> is a function into [False](). From [False](), anything follows:
+[True](), [False]() and [Not]() are types here: [True]() has the one element `"trueIntroduction"`, [False]() has none, and <code>[Not]()[*a*]</code> is a function into [False](). From [False](), anything follows:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[FalseElimination, hott]]
+TypeTheoryCheck[TypeTheoryTerm["falseElimination", hott]]
 ```
 
 <!-- => ∀_{a ∶ Type u} False → a -->
@@ -82,10 +82,10 @@ TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Equal], hott]]
 
 <!-- => ∀_{A ∶ Type u} ∀_{x ∶ A} ∀_m∶∀_y∶A x == y → Type v m[x, EqualityReflexivity[x]] → ∀_{y ∶ A} ∀_t∶x == y m[y, t] -->
 
-The inverse, concatenation and congruence of paths, [EqualitySymmetry](), [EqualityTransitivity]() and [EqualityCongruence](), are definitions by path induction, and so are [Transport]() and [DependentCongruence](). They compute on reflexivity: carrying an element along reflexivity leaves it as it is.
+The inverse, concatenation and congruence of paths, `"equalitySymmetry"`, `"equalityTransitivity"` and `"equalityCongruence"`, are definitions by path induction, and so are [Transport]() and `"dependentCongruence"`. They compute on reflexivity: carrying an element along reflexivity leaves it as it is.
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[b, Booleans] |-> Booleans, EqualityReflexivity[True], False], hott]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[b, Booleans] |-> Booleans, "equalityReflexivity"[True], False], hott]]
 ```
 
 <!-- => false -->
@@ -95,23 +95,23 @@ WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[b, Booleans] |-> Booleans, Equ
 An equivalence is a function with a left inverse and a right inverse, each with its path: [IsEquivalence]() and [Equivalence](). Negation is one, from the Booleans to themselves:
 
 ```wl
-TypeOf[TypeTheoryTerm[NegationEquivalence, hott]]
+TypeOf[TypeTheoryTerm["negationEquivalence", hott]]
 ```
 
 <!-- => Equivalence[𝔹, 𝔹] -->
 
-A path between types gives an equivalence, [EqualityToEquivalence](), with the identity for reflexivity. [Univalence]() is the axiom that this map is itself an equivalence:
+A path between types gives an equivalence, `"equalityToEquivalence"`, with the identity for reflexivity. `"univalence"` is the axiom that this map is itself an equivalence:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Univalence, hott]]
+TypeTheoryCheck[TypeTheoryTerm["univalence", hott]]
 ```
 
 <!-- => ∀_A∶Type u ∀_B∶Type u IsEquivalence[(p∶A == B) ↦ EqualityToEquivalence[p]] -->
 
-Its right inverse, [EquivalenceToEquality](), gives a path for each equivalence, and [UnivalenceComputation]() says that carrying along that path is the equivalence:
+Its right inverse, `"equivalenceToEquality"`, gives a path for each equivalence, and `"univalenceComputation"` says that carrying along that path is the equivalence:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[UnivalenceComputation, hott]]
+TypeTheoryCheck[TypeTheoryTerm["univalenceComputation", hott]]
 ```
 
 <!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type u} ∀_e∶Equivalence[A, B] EqualityToEquivalence[EquivalenceToEquality[e]] == e -->
@@ -121,19 +121,19 @@ TypeTheoryCheck[TypeTheoryTerm[UnivalenceComputation, hott]]
 A type is a set when any two paths between the same elements are equal, [IsSet](). Under the prelude's rules every type is one. Here the universe is not:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[UniverseNotSet, hott]]
+TypeTheoryCheck[TypeTheoryTerm["universeNotSet", hott]]
 ```
 
 <!-- => ¬IsSet[Type] -->
 
-The proof is the HoTT book's. If any two paths between types were equal, the path that negation gives through univalence would be reflexivity, so carrying `true` along it would give `true`. By [UnivalenceComputation]() it gives what negation does, `false`, and a path from `false` to `true` carries the element of [True]() to an element of [False]().
+The proof is the HoTT book's. If any two paths between types were equal, the path that negation gives through univalence would be reflexivity, so carrying `true` along it would give `true`. By `"univalenceComputation"` it gives what negation does, `false`, and a path from `false` to `true` carries the element of [True]() to an element of [False]().
 
 ## The Circle
 
-The circle is a higher inductive type: a point [CircleBase](), a path [CircleLoop]() from it to itself, and an induction principle, [CircleInduction](). All three are axioms. The HoTT book makes induction compute on the point, which an axiom cannot do, so the rewrite rule [CircleInductionBase]() does it:
+The circle is a higher inductive type: a point `"circleBase"`, a path `"circleLoop"` from it to itself, and an induction principle, `"circleInduction"`. All three are axioms. The HoTT book makes induction compute on the point, which an axiom cannot do, so the rewrite rule `"circleInductionBase"` does it:
 
 ```wl
-hott[CircleInductionBase]
+hott["circleInductionBase"]
 ```
 
 <!-- => rewrite CircleInductionBase : ∀_P∶𝕊¹ → Type u ∀_b∶P[CircleBase] ∀_l∶Transport[P, CircleLoop, b] == b CircleInduction[P, b, l, CircleBase] ⟶ b -->
@@ -141,15 +141,15 @@ hott[CircleInductionBase]
 So induction on the base point computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CircleInduction[Typed[x, Circle] |-> Booleans, True, TransportConstant[CircleLoop, True], CircleBase], hott]]
+WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Typed[x, Circle] |-> Booleans, True, "transportConstant"["circleLoop", True], "circleBase"], hott]]
 ```
 
 <!-- => true -->
 
-On the loop, induction gives its path only up to a path, by the axiom [CircleInductionLoop](). Its two sides are paths between `CircleInduction[P, b, l, CircleBase]` and `b`, so the statement type-checks only because the rewrite rule computes:
+On the loop, induction gives its path only up to a path, by the axiom `"circleInductionLoop"`. Its two sides are paths between `"circleInduction"[P, b, l, "circleBase"]` and `b`, so the statement type-checks only because the rewrite rule computes:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[CircleInductionLoop, hott]]
+TypeTheoryCheck[TypeTheoryTerm["circleInductionLoop", hott]]
 ```
 
 <!-- => ∀_P∶𝕊¹ → Type u ∀_b∶P[CircleBase] ∀_l∶Transport[P, CircleLoop, b] == b DependentCongruence[(x∶𝕊¹) ↦ CircleInduction[P, b, l, x], CircleLoop] == l -->
@@ -169,3 +169,13 @@ Declarations then build a theory of one's own on them, with [TypeTheoryRewriteRu
 ## What It Does Not Have Yet
 
 Univalence is an axiom here, so a path it gives does not compute; in cubical type theory it does, and <code>[TypeTheoryEnvironment]()["Cubical"]</code> has it, with the rules of the tutorial *Cubical Type Theory*. Higher inductive types come one at a time, as axioms with rewrite rules, and truncations and quotients are not here yet.
+
+## Theorems
+
+The theorems and the axiom of the HoTT environment are constants named by strings, as `"univalence"` is. These are its theorems, each with its statement:
+
+```wl
+Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Theorems"]
+```
+
+<!-- => <|"univalenceComputation" -> ..., "universeNotSet" -> ¬IsSet[Type]|> -->

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/CubicalComposition
 Keywords: [composition, open box, system, face, cubical type theory, hcomp]
-SeeAlso: [CubicalTransport, PathTransitivity, TypeTheoryCubical]
+SeeAlso: [CubicalTransport, TypeTheoryCubical]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [CubicalTypeTheory]
 ---
@@ -52,7 +52,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The concatenation of paths is a composition:
 
 ```wl
-cubical[PathTransitivity]
+cubical["pathTransitivity"]
 ```
 
 <!-- => definition PathTransitivity : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} ∀_{z∶A} x≡y→y≡z→x≡z := {A∶Type u} {x∶A} {y∶A} {z∶A} (p∶x≡y) (q∶y≡z) (i∶Interval)↦CubicalComposition[A,(j∶Interval)↦{i == 0->x,i == 1->q[j]},p[i]] -->

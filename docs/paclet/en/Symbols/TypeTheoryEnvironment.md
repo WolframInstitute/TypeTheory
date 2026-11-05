@@ -40,7 +40,7 @@ RelatedGuides: [TypeTheory]
 - A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers]() and [TypeTheoryRewriteRule](). Each is checked by the kernel in the environment so far, and the result is a new environment, or a [Failure]() for the first declaration that does not check.
 - The default environment, [$TypeTheoryEnvironment](), is the environment wherever none is given: declarations without one extend it, and a [TypeTheoryTerm]() or [TypeTheoryProof]() without one is in it. It is the prelude unless [SetTypeTheoryEnvironment]() set another. <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[], {*declaration1*, ...}]</code> starts from no constants instead.
 - Every environment carries the rules it was started with, which say what the kernel allows and computes: the prelude follows the calculus of inductive constructions, the HoTT environment Martin-Löf type theory with rewrite rules. Environments made from one follow its rules, and <code>[Information]()[*env*, "Rules"]</code> gives them.
-- The prelude is classical: it assumes [PropositionalExtensionality](), [FunctionExtensionality]() and [Choice](), and proves [ExcludedMiddle]() from them. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
+- The prelude is classical: it assumes `"propositionalExtensionality"`, `"functionExtensionality"` and `"choice"`, and proves `"excludedMiddle"` from them. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
 - An environment never changes: adding declarations gives a new one and leaves the old one as it was. <code>[Append]()[*env*, *declaration*]</code> adds one declaration, and <code>[TypeTheoryEnvironment]()[*declaration*]</code> adds one to the default environment.
 - An environment behaves like an [Association]() of its constants. <code>*env*[*name*]</code> gives the declaration that introduced the constant *name*, and [Keys](), [Length](), [KeyExistsQ]() and [Normal]() work as for an [Association](). [Normal]() gives all the declarations, the prelude's included, written out exactly, so <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[[Information]()[*env*, "Rules"]], [Normal]()[*env*]]</code> rebuilds *env* on the empty environment of its rules.
 - <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Axioms"`, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"` and `"Provenance"`, which says whether *env* was read from a file without checking it.
@@ -57,7 +57,7 @@ RelatedGuides: [TypeTheory]
 Add a theorem to the prelude, proved by computation:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -116,7 +116,17 @@ Its natural numbers, which literals belong to, and the operations the kernel com
 Information[TypeTheoryEnvironment["Prelude"], "NaturalNumbers"]
 ```
 
-<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|> -->
+<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> "zero", "Successor" -> "successor", "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|> -->
+
+---
+
+Its theorems, constants named by strings, each with its statement:
+
+```wl
+Take[Information[TypeTheoryEnvironment["Prelude"], "Theorems"], 3]
+```
+
+<!-- => <|"falseElimination" -> ∀_{a∶Prop} False ⇒ a, "andEliminationLeft" -> ..., "andEliminationRight" -> ...|> -->
 
 ---
 
@@ -139,7 +149,7 @@ Information[constructive, "Axioms"]
 And no excluded middle:
 
 ```wl
-KeyExistsQ[constructive, ExcludedMiddle]
+KeyExistsQ[constructive, "excludedMiddle"]
 ```
 
 <!-- => False -->
@@ -179,7 +189,7 @@ TypeTheoryEnvironment["Rationals"]
 An environment with a theorem:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -227,7 +237,7 @@ Information[TypeTheoryEnvironment[file, "Check" -> True], "Provenance"]["Checked
 Add a theorem to the prelude:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -261,7 +271,7 @@ KeyExistsQ[arithmetic, Origin]
 Add a theorem to the prelude:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
@@ -302,7 +312,7 @@ TypeTheoryEnvironment[{
 A declaration that does not check gives a [Failure]():
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

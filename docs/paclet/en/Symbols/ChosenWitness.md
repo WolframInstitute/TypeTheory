@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/ChosenWitness
 Keywords: [witness, choice, existential, exists, prelude, classical logic]
-SeeAlso: [ChosenWitnessProperty, Choice, Exists, Subtype]
+SeeAlso: [Exists, Subtype]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,10 +16,10 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [ChosenWitness]() is a definition of the prelude. The recursor of [Exists]() turns *h* into a proof of <code>[Nonempty]()[[Subtype]()[*P*]]</code>, [Choice]() chooses an element of the [Subtype](), and [ChosenWitness]() is its first field.
-- A proof of an existential statement cannot be taken apart to give its witness as data; [ChosenWitness]() gives one, and [ChosenWitnessProperty]() proves that it has the property.
+- [ChosenWitness]() is a definition of the prelude. The recursor of [Exists]() turns *h* into a proof of <code>[Nonempty]()[[Subtype]()[*P*]]</code>, `"choice"` chooses an element of the [Subtype](), and [ChosenWitness]() is its first field.
+- A proof of an existential statement cannot be taken apart to give its witness as data; [ChosenWitness]() gives one, and `"chosenWitnessProperty"` proves that it has the property.
 - The type of the witness and *P* are implicit arguments, found from the type of *h*.
-- It does not compute, as [Choice]() does not.
+- It does not compute, as `"choice"` does not.
 
 ## Basic Examples
 
@@ -46,7 +46,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6
 A witness chosen from a proof made with 3; [Typed]() gives the property, which the proof alone does not determine:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[3, EqualityReflexivity[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]]
+TypeTheoryCheck[TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]]
 ```
 
 <!-- => ℕ -->
@@ -75,8 +75,8 @@ The witness does not depend on the proof: proofs made with 2 and with 4 give the
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[2, LessEqualReflexivity], Exists[Typed[n, Naturals] |-> 2 <= n]]]],
-    TypeTheoryTerm[ChosenWitness[Typed[ExistsIntroduction[4, LessEqualStep[LessEqualStep[LessEqualReflexivity]]], Exists[Typed[n, Naturals] |-> 2 <= n]]]]
+    TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[2, "lessEqualReflexivity"], Exists[Typed[n, Naturals] |-> 2 <= n]]]],
+    TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Exists[Typed[n, Naturals] |-> 2 <= n]]]]
 ]
 ```
 
@@ -87,7 +87,7 @@ DefinitionallyEqualQ[
 It does not compute, so even from a proof made with 3 the chosen number is not 3 by computation:
 
 ```wl
-TypeTheoryProof[ChosenWitness[Typed[ExistsIntroduction[3, EqualityReflexivity[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]] == 3, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]] == 3, {TypeTheoryTactic["Reflexivity"]}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

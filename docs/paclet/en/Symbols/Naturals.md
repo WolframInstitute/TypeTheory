@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Naturals
 Keywords: [natural numbers, NonNegativeIntegers, Nat, alias, prelude]
-SeeAlso: [NaturalNumberZero, NaturalNumberSuccessor, InductiveRecursor, TypeTheoryNaturalNumbers, TypeTheoryTerm]
+SeeAlso: [InductiveRecursor, TypeTheoryNaturalNumbers, TypeTheoryTerm]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, ThePrelude]
 ---
@@ -61,7 +61,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
     TypeTheoryTactic["Induction", n],
     TypeTheoryTactic["Reflexivity"],
     TypeTheoryTactic["Introduce", k, ih],
-    TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]]
+    TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]]
 }]
 ```
 

@@ -5,7 +5,7 @@ WolframRules: the rules of a Wolfram Language symbol as a term of TypeTheoryEnvi
 TypeTheoryFormalize[f, "Meaning" -> "Rules"] declares.
 
 The rules of f, its DownValues, are a definition of type Expressions -> Option[Expressions]: the expression f[...]
-rewrites to by the first rule that matches it, OptionNone where none does and the expression stays as it is. It is
+rewrites to by the first rule that matches it, "none" where none does and the expression stays as it is. It is
 
 	Function[{Typed[expression, Expressions]}, MatchFirst[MatchSum[rule1, MatchSum[rule2, ...]]]]
 
@@ -73,7 +73,7 @@ rulesDefinition[held_, HoldComplete[value_]] := With[{name = rulesName[held]}, T
 (* the value of the rules, or {"Untranslatable", rule} for the first rule that does not translate *)
 translatedRules[HoldComplete[symbol_Symbol]] := Catch[
 	Replace[Function[statement, ruleMatch[fullName[symbol], statement]] /@ definitionStatements[symbol], {
-		{} :> HoldComplete[Function[{Typed[expression, Expressions]}, Typed[OptionNone, Option[Expressions]]]],
+		{} :> HoldComplete[Function[{Typed[expression, Expressions]}, Typed["none", Option[Expressions]]]],
 		matches_List :> Replace[Fold[Function[{rest, match}, Replace[{match, rest}, {HoldComplete[m_], HoldComplete[r_]} :> HoldComplete[Wolfram`Patterns`MatchSum[m, r]]]], Reverse[matches]], {
 			HoldComplete[sum_] :> HoldComplete[Function[{Typed[expression, Expressions]}, MatchFirst[sum]]]
 		}]

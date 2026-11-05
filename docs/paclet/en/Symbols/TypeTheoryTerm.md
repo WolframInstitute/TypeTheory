@@ -91,7 +91,7 @@ TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
 Implicit arguments are filled in; [Construct]() gives them explicitly:
 
 ```wl
-TypeOf[TypeTheoryTerm[Construct[EqualityReflexivity, Naturals, 3]]]
+TypeOf[TypeTheoryTerm[Construct["equalityReflexivity", Naturals, 3]]]
 ```
 
 <!-- => 3 == 3 -->

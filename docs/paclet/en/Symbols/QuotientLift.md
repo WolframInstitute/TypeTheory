@@ -19,7 +19,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 - [QuotientLift]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot.lift`.
 - The type α, the relation *r* and the codomain of *f* are implicit arguments.
 - It computes on a class: <code>[QuotientLift]()[*f*, *h*, [QuotientIntroduction]()[*r*, *a*]]</code> is *f*[*a*]. This is one of the two computation rules of quotients.
-- *h* is what makes the lift well defined: two related elements, whose classes are equal by [QuotientSoundness](), give the same value.
+- *h* is what makes the lift well defined: two related elements, whose classes are equal by `"quotientSoundness"`, give the same value.
 
 ## Basic Examples
 
@@ -46,7 +46,7 @@ The successor respects equality, so it lifts to the classes, and computes on one
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Function[{Typed[k, Naturals]}, k + 1],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, EqualityCongruence[Typed[k, Naturals] |-> k + 1, e]],
+    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, "equalityCongruence"[Typed[k, Naturals] |-> k + 1, e]],
     QuotientIntroduction[equal, 5]
 ]]]
 ```
@@ -66,7 +66,7 @@ equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n
 A wrong proof is refused:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientLift[Typed[k, Naturals] |-> 7, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]} |-> EqualityReflexivity[a], QuotientIntroduction[equal, 5]]]]
+TypeTheoryCheck[TypeTheoryTerm[QuotientLift[Typed[k, Naturals] |-> 7, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]} |-> "equalityReflexivity"[a], QuotientIntroduction[equal, 5]]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

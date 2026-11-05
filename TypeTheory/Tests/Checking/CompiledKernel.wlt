@@ -38,8 +38,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		bothKernels[forge[prelude, HoldComplete[FalseElimination], Function[record, Append[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
-		bothKernels[forge[prelude, HoldComplete[AdditionZeroLeft], Function[record, Append[record, "Value" -> naturalLiteral[0]]]]]
+		bothKernels[forge[prelude, HoldComplete["falseElimination"], Function[record, Append[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
+		bothKernels[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Append[record, "Value" -> naturalLiteral[0]]]]]
 	},
 	{{"TypeMismatch", "TypeMismatch"}, {"TypeMismatch", "TypeMismatch"}},
 	TestID -> "Both-kernels-catch-a-forged-statement-and-a-forged-proof"
@@ -73,7 +73,7 @@ VerificationTest[
 
 (* a literal from 2^62 on is not the compiled kernel's: the environment is checked by the other kernel *)
 VerificationTest[
-	First @ TypeTheoryCheck[Append[prelude, TypeTheoryTheorem[Large, 2^70 + 1 == 2^70 + 1, EqualityReflexivity[2^70 + 1]]], Method -> Automatic],
+	First @ TypeTheoryCheck[Append[prelude, TypeTheoryTheorem[Large, 2^70 + 1 == 2^70 + 1, "equalityReflexivity"[2^70 + 1]]], Method -> Automatic],
 	"EnvironmentChecked",
 	TestID -> "A-literal-too-large-for-the-compiled-kernel-is-checked-by-the-other"
 ]
@@ -83,8 +83,8 @@ VerificationTest[
 		{
 			declarations = {
 				TypeTheoryDefinition[Twice, Function[{Typed[n, NonNegativeIntegers]}, n + n]],
-				TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]],
-				TypeTheoryTheorem[TwiceTwo, Twice[2] == 4, EqualityReflexivity[4]]
+				TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]],
+				TypeTheoryTheorem[TwiceTwo, Twice[2] == 4, "equalityReflexivity"[4]]
 			}
 		},
 		With[{sequential = TypeTheoryEnvironment[prelude, declarations], batch = TypeTheoryEnvironment[prelude, declarations, Method -> compiledMethod]},
@@ -96,7 +96,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{declarations = {TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]], TypeTheoryTheorem[TwoPlusTwoFive, 2 + 2 == 5, EqualityReflexivity[4]]}},
+	With[{declarations = {TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]], TypeTheoryTheorem[TwoPlusTwoFive, 2 + 2 == 5, "equalityReflexivity"[4]]}},
 		{First @ TypeTheoryEnvironment[prelude, declarations], First @ TypeTheoryEnvironment[prelude, declarations, Method -> compiledMethod]}
 	],
 	{"TypeMismatch", "TypeMismatch"},

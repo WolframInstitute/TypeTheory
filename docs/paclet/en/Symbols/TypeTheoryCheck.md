@@ -32,7 +32,7 @@ RelatedGuides: [TypeTheory]
 The type of a term:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]]]
+TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4]]]
 ```
 
 <!-- => 4 == 4 -->
@@ -42,7 +42,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]]]
 A proof of `2 + 2 == 4` by computation:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 4]]
+TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4]], TypeTheoryTerm[2 + 2 == 4]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -52,7 +52,7 @@ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 
 Check an environment again from scratch, the prelude's declarations included:
 
 ```wl
-TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]]
+TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]]
 ```
 
 <!-- => Success["EnvironmentChecked", ...] -->
@@ -72,7 +72,7 @@ TypeTheoryCheck[TypeTheoryEnvironment["Integers"], Method -> "Symbolic"]
 The declared type of a constant:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[AndIntroduction]]
+TypeTheoryCheck[TypeTheoryTerm["andIntroduction"]]
 ```
 
 <!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ b ⇒ (a ∧ b) -->
@@ -82,7 +82,7 @@ TypeTheoryCheck[TypeTheoryTerm[AndIntroduction]]
 A term against a type it does not have:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4]], TypeTheoryTerm[2 + 2 == 5]]
+TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4]], TypeTheoryTerm[2 + 2 == 5]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

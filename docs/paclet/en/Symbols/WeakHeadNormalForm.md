@@ -56,7 +56,7 @@ A recursor applied to a constructor:
 WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[And][
     Function[{Typed[t, And[True, True]]}, Naturals],
     Function[{Typed[p, True], Typed[q, True]}, 7],
-    AndIntroduction[TrueIntroduction, TrueIntroduction]
+    "andIntroduction"["trueIntroduction", "trueIntroduction"]
 ]]]
 ```
 

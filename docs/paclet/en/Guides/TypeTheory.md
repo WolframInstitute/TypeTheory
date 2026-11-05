@@ -46,9 +46,9 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryAxiomClosure]() the axioms a term rests on, as Lean's `#print axioms`
 - [TypeTheoryProofTree]() the natural-deduction derivation of a proof of propositional logic, drawn
 - [TypeTheoryFormalize]() the declarations that make a Wolfram Language function a constant: a definition where its definitions translate, an axiom it computes otherwise
-- [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), [ExpressionAtom](), [ExpressionNormal](), [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"]
+- [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), `"atom"`, `"normal"`, [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"]
 - [Strings]() the strings, each literal a constant of it, with signatures for the string functions
-- [EmptySequence]() and [SequencePrepend]() the sequences of elements of different types, `Sequence[a, b]`, of the type `Sequence[A, B]`: the arguments a Wolfram Language function is applied to
+- `"emptySequence"` and `"sequencePrepend"` the sequences of elements of different types, `Sequence[a, b]`, of the type `Sequence[A, B]`: the arguments a Wolfram Language function is applied to
 - [MatchBind]() and [MatchFirst]() the monad of pattern matching, with the match objects of Wolfram/Patterns
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce
@@ -60,13 +60,13 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: logic and equality
 
-- [TrueIntroduction]() the proof of [True](); [FalseElimination]() anything follows from [False]()
-- [AndIntroduction](), [AndEliminationLeft](), [AndEliminationRight]() proving and using [And]()
-- [OrIntroductionLeft](), [OrIntroductionRight]() proving [Or]()
-- [EquivalentIntroduction](), [EquivalentForward](), [EquivalentBackward]() proving and using [Equivalent]()
-- [EquivalentReflexivity](), [EquivalentSymmetry](), [EquivalentTransitivity]() the laws of [Equivalent]()
-- [ExistsIntroduction]() proving [Exists]() with a witness
-- [EqualityReflexivity](), [EqualitySymmetry](), [EqualityTransitivity](), [EqualityCongruence](), [EqualitySubstitution]() equality, with [Unequal]() its negation
+- `"trueIntroduction"` the proof of [True](); `"falseElimination"` anything follows from [False]()
+- `"andIntroduction"`, `"andEliminationLeft"`, `"andEliminationRight"` proving and using [And]()
+- `"orIntroductionLeft"`, `"orIntroductionRight"` proving [Or]()
+- `"equivalentIntroduction"`, `"equivalentForward"`, `"equivalentBackward"` proving and using [Equivalent]()
+- `"equivalentReflexivity"`, `"equivalentSymmetry"`, `"equivalentTransitivity"` the laws of [Equivalent]()
+- `"existsIntroduction"` proving [Exists]() with a witness
+- `"equalityReflexivity"`, `"equalitySymmetry"`, `"equalityTransitivity"`, `"equalityCongruence"`, `"equalitySubstitution"` equality, with [Unequal]() its negation
 - [Identity](), [Composition]() the identity function and composition
 
 ### The prelude: quotients
@@ -78,19 +78,19 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: classical logic
 
-- [PropositionalExtensionality](), [QuotientSoundness](), [Choice]() the axioms of the prelude, Lean's three
-- [FunctionExtensionality]() functions equal at every point are equal, proved from [QuotientSoundness]()
-- [NonemptyIntroduction]() proving [Nonempty](), which [Choice]() takes to an element
-- [SubtypeIntroduction]() an element of a [Subtype](), with a proof of its property
-- [ChosenWitness](), [ChosenWitnessProperty]() a witness chosen from a proof of [Exists](), and its property
-- [ExcludedMiddle](), [DoubleNegationElimination]() classical logic, proved from the axioms
+- `"propositionalExtensionality"`, `"quotientSoundness"`, `"choice"` the axioms of the prelude, Lean's three
+- `"functionExtensionality"` functions equal at every point are equal, proved from `"quotientSoundness"`
+- `"nonempty"` proving [Nonempty](), which `"choice"` takes to an element
+- `"subtype"` an element of a [Subtype](), with a proof of its property
+- [ChosenWitness](), `"chosenWitnessProperty"` a witness chosen from a proof of [Exists](), and its property
+- `"excludedMiddle"`, `"doubleNegationElimination"` classical logic, proved from the axioms
 
 ### The prelude: natural numbers
 
 - [Naturals]() the natural numbers, [NonNegativeIntegers](), by a shorter name
-- [NaturalNumberZero](), [NaturalNumberSuccessor](), [NaturalNumberPredecessor]() the constructors of [NonNegativeIntegers](), and the number before
+- `"zero"`, `"successor"`, [NaturalNumberPredecessor]() the constructors of [NonNegativeIntegers](), and the number before
 - [Plus](), [Times](), [Power](), [Subtract]() arithmetic, each by recursion on its second argument
-- [LessEqualReflexivity](), [LessEqualStep]() the constructors of [LessEqual](), with [Less](), [GreaterEqual]() and [Greater]() defined from it
+- `"lessEqualReflexivity"`, `"lessEqualStep"` the constructors of [LessEqual](), with [Less](), [GreaterEqual]() and [Greater]() defined from it
 
 ### The prelude: Booleans
 
@@ -98,31 +98,31 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: decisions
 
-- [Decidable]() the class of decisions of a proposition, made with [DecidableTrue]() and [DecidableFalse]()
-- [Decide]() the Boolean of a proposition's decision, found among the instances, and [DecideSoundness]() the proof from a decision that computes to `"true"`
-- [NaturalNumberEqualityDecidable](), [LessEqualDecidable]() the instances deciding `==` and `<=` of natural numbers
-- [NotDecidable](), [AndDecidable](), [OrDecidable]() the instances deciding [Not](), [And]() and [Or]() from the decisions of their parts
+- [Decidable]() the class of decisions of a proposition, made with `"decidableTrue"` and `"decidableFalse"`
+- [Decide]() the Boolean of a proposition's decision, found among the instances, and `"decideSoundness"` the proof from a decision that computes to `"true"`
+- `"naturalNumberEqualityDecidable"`, `"lessEqualDecidable"` the instances deciding `==` and `<=` of natural numbers
+- `"notDecidable"`, `"andDecidable"`, `"orDecidable"` the instances deciding [Not](), [And]() and [Or]() from the decisions of their parts
 
 ### The integers
 
 - <code>[TypeTheoryEnvironment]()["Integers"]</code> the prelude with the integers, classes of pairs of natural numbers, where `+`, `*`, `-` and the comparisons are the integers' wherever the types say so
-- [IntegerAdditionCommutativity](), [IntegerAdditionAssociativity](), [IntegerAdditionZero](), [IntegerAdditionNegation](), [IntegerSubtractionNegation]() addition and negation
-- [IntegerMultiplicationCommutativity](), [IntegerMultiplicationAssociativity](), [IntegerMultiplicationOne](), [IntegerDistributivity]() multiplication
-- [IntegerOfNaturalAddition](), [IntegerOfNaturalMultiplication]() the natural numbers among the integers, and [IntegerLessEqualReflexivity]() the order
-- [IntegerEqualityDecidable]() the instance deciding `==` of integers
-- [IntegerSquareNonnegative](), [IntegerNonnegativeAddition](), [IntegerNonnegativeScaling]() squares, sums and natural multiples at least 0
-- [IntegerNonnegativeCancellation](), [IntegerLessEqualOfDifference](), [IntegerLessEqualOfMultiple]() inequalities from differences and their multiples, as `"SumOfSquares"` proves them
-- [IntegerOfNaturalLessEqual]() an inequality of natural numbers from that of their integers
+- `"integerAdditionCommutativity"`, `"integerAdditionAssociativity"`, `"integerAdditionZero"`, `"integerAdditionNegation"`, `"integerSubtractionNegation"` addition and negation
+- `"integerMultiplicationCommutativity"`, `"integerMultiplicationAssociativity"`, `"integerMultiplicationOne"`, `"integerDistributivity"` multiplication
+- `"integerOfNaturalAddition"`, `"integerOfNaturalMultiplication"` the natural numbers among the integers, and `"integerLessEqualReflexivity"` the order
+- `"integerEqualityDecidable"` the instance deciding `==` of integers
+- `"integerSquareNonnegative"`, `"integerNonnegativeAddition"`, `"integerNonnegativeScaling"` squares, sums and natural multiples at least 0
+- `"integerNonnegativeCancellation"`, `"integerLessEqualOfDifference"`, `"integerLessEqualOfMultiple"` inequalities from differences and their multiples, as `"SumOfSquares"` proves them
+- `"integerOfNaturalLessEqual"` an inequality of natural numbers from that of their integers
 
 ### The rationals
 
 - <code>[TypeTheoryEnvironment]()["Rationals"]</code> the integers with the rationals, classes of pairs of an integer and a natural number, where `+`, `*`, `-`, `/`, `^` and the comparisons are the rationals' wherever the types say so
-- [RationalAdditionCommutativity](), [RationalAdditionAssociativity](), [RationalAdditionZero](), [RationalAdditionNegation](), [RationalSubtractionNegation]() addition and negation
-- [RationalMultiplicationCommutativity](), [RationalMultiplicationAssociativity](), [RationalMultiplicationOne](), [RationalDistributivity]() multiplication
-- [RationalMultiplicationInverse](), [RationalInverseZero]() the inverse, which makes the rationals a field
-- [RationalOfIntegerAddition](), [RationalOfIntegerMultiplication]() the integers among the rationals
-- [RationalEqualityDecidable]() the instance deciding `==` of rationals
-- [RationalLessEqualReflexivity](), [RationalSquareNonnegative]() the order
+- `"rationalAdditionCommutativity"`, `"rationalAdditionAssociativity"`, `"rationalAdditionZero"`, `"rationalAdditionNegation"`, `"rationalSubtractionNegation"` addition and negation
+- `"rationalMultiplicationCommutativity"`, `"rationalMultiplicationAssociativity"`, `"rationalMultiplicationOne"`, `"rationalDistributivity"` multiplication
+- `"rationalMultiplicationInverse"`, `"rationalInverseZero"` the inverse, which makes the rationals a field
+- `"rationalOfIntegerAddition"`, `"rationalOfIntegerMultiplication"` the integers among the rationals
+- `"rationalEqualityDecidable"` the instance deciding `==` of rationals
+- `"rationalLessEqualReflexivity"`, `"rationalSquareNonnegative"` the order
 
 ### Cubical type theory
 
@@ -132,35 +132,35 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [CubicalTransport]() transport along a line of types, constant where its face holds
 - [CubicalComposition]() the lid of an open box, from its base and its sides over faces
 - [GlueType](), [GlueIntroduction](), [GlueElimination]() types glued along equivalences, their elements, and the elements under them
-- [DependentSum](), [DependentPair]() the dependent sum of the cubical environment
-- [PathSymmetry](), [PathTransitivity](), [PathCongruence](), [PathFunctionExtensionality](), [PathInduction]() the operations on paths, as terms
-- [Fiber](), [IsContractible](), [IsomorphismEquivalence](), [NegationInvolution]() equivalences as functions with contractible fibers
-- [EquivalenceToPath]() univalence, a path of Glue types along which transport applies the equivalence
+- [DependentSum](), `"dependentPair"` the dependent sum of the cubical environment
+- `"pathSymmetry"`, `"pathTransitivity"`, `"pathCongruence"`, `"pathFunctionExtensionality"`, `"pathInduction"` the operations on paths, as terms
+- [Fiber](), [IsContractible](), `"isomorphismEquivalence"`, `"negationInvolution"` equivalences as functions with contractible fibers
+- `"equivalenceToPath"` univalence, a path of Glue types along which transport applies the equivalence
 
 ### The prelude: pairs, sums, options and lists
 
-- [CartesianProductType]() pairs, made with [Pair]()
-- [DisjointUnionType]() sums, made with [LeftInjection]() and [RightInjection]()
-- [Option]() optional values, [OptionNone]() and [OptionSome]()
+- [CartesianProductType]() pairs, made with `"pair"`
+- [DisjointUnionType]() sums, made with `"left"` and `"right"`
+- [Option]() optional values, `"none"` and `"some"`
 - [List]() lists, built from `{}` by [Prepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
-- [JoinEmptyRight](), [JoinAssociativity](), [LengthJoin](), [LengthMap](), [MapJoin](), [MapComposition](), [ReverseJoin](), [ReverseReverse](), [LengthReverse]() the laws of lists
+- `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`, `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"`, `"lengthReverse"` the laws of lists
 
 ### Homotopy type theory
 
-- [Transport](), [DependentCongruence](), [TransportConstant]() carrying along paths, which compute on reflexivity
-- [IsEquivalence](), [EquivalenceProof](), [Equivalence](), [EquivalenceIntroduction](), [IdentityEquivalence]() equivalences
-- [EqualityToEquivalence](), [Univalence](), [EquivalenceToEquality](), [UnivalenceComputation]() univalence
-- [NegationEquivalence](), [IsSet](), [UniverseNotSet]() the universe is not a set
-- [CircleBase](), [CircleLoop](), [CircleInduction](), [CircleInductionBase](), [CircleInductionLoop]() the circle, a higher inductive type
+- [Transport](), `"dependentCongruence"`, `"transportConstant"` carrying along paths, which compute on reflexivity
+- [IsEquivalence](), [EquivalenceProof](), [Equivalence](), `"equivalenceIntroduction"`, `"identityEquivalence"` equivalences
+- `"equalityToEquivalence"`, `"univalence"`, `"equivalenceToEquality"`, `"univalenceComputation"` univalence
+- `"negationEquivalence"`, [IsSet](), `"universeNotSet"` the universe is not a set
+- `"circleBase"`, `"circleLoop"`, `"circleInduction"`, `"circleInductionBase"`, `"circleInductionLoop"` the circle, a higher inductive type
 
 ### The prelude: theorems about the natural numbers
 
-- [AdditionZeroRight](), [AdditionZeroLeft](), [AdditionSuccessorRight](), [AdditionSuccessorLeft](), [AdditionCommutativity](), [AdditionAssociativity]() addition
-- [MultiplicationZeroRight](), [MultiplicationZeroLeft](), [MultiplicationSuccessorRight](), [MultiplicationSuccessorLeft](), [MultiplicationOneRight](), [MultiplicationOneLeft]() multiplication by small numbers
-- [MultiplicationCommutativity](), [MultiplicationAssociativity](), [MultiplicationDistributivityLeft](), [MultiplicationDistributivityRight]() the laws of multiplication
-- [SubtractionZeroRight](), [SubtractionZeroLeft](), [SubtractionSuccessor](), [SubtractionSelf](), [AdditionSubtractionCancellation]() subtraction, and [MultiplicationCancellation]() cancelling a positive factor
-- [PowerZero](), [PowerSuccessor](), [PowerOne](), [PowerAddition]() powers
-- [SuccessorInjectivity](), [SuccessorNotZero]() the successor
-- [LessEqualZero](), [LessEqualSuccessor](), [LessEqualPredecessor](), [LessEqualAddition](), [PredecessorLessEqual]() the order and the successor
-- [LessEqualTransitivity](), [LessEqualAntisymmetry](), [LessIrreflexivity](), [SuccessorNotLessEqualZero](), [LessEqualTotality]() the laws of the order
-- [AdditionMonotonicity](), [MultiplicationMonotonicity]() sums and multiples of inequalities
+- `"additionZeroRight"`, `"additionZeroLeft"`, `"additionSuccessorRight"`, `"additionSuccessorLeft"`, `"additionCommutativity"`, `"additionAssociativity"` addition
+- `"multiplicationZeroRight"`, `"multiplicationZeroLeft"`, `"multiplicationSuccessorRight"`, `"multiplicationSuccessorLeft"`, `"multiplicationOneRight"`, `"multiplicationOneLeft"` multiplication by small numbers
+- `"multiplicationCommutativity"`, `"multiplicationAssociativity"`, `"multiplicationDistributivityLeft"`, `"multiplicationDistributivityRight"` the laws of multiplication
+- `"subtractionZeroRight"`, `"subtractionZeroLeft"`, `"subtractionSuccessor"`, `"subtractionSelf"`, `"additionSubtractionCancellation"` subtraction, and `"multiplicationCancellation"` cancelling a positive factor
+- `"powerZero"`, `"powerSuccessor"`, `"powerOne"`, `"powerAddition"` powers
+- `"successorInjectivity"`, `"successorNotZero"` the successor
+- `"lessEqualZero"`, `"lessEqualSuccessor"`, `"lessEqualPredecessor"`, `"lessEqualAddition"`, `"predecessorLessEqual"` the order and the successor
+- `"lessEqualTransitivity"`, `"lessEqualAntisymmetry"`, `"lessIrreflexivity"`, `"successorNotLessEqualZero"`, `"lessEqualTotality"` the laws of the order
+- `"additionMonotonicity"`, `"multiplicationMonotonicity"` sums and multiples of inequalities

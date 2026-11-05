@@ -197,7 +197,7 @@ An opaque definition equals only itself, so a proof that needs its value does no
 ```wl
 Append[
     TypeTheoryEnvironment[TypeTheoryDefinition[Secret, Typed[42, Naturals], "Opaque" -> True]],
-    TypeTheoryTheorem[SecretValue, Secret == 42, EqualityReflexivity[42]]
+    TypeTheoryTheorem[SecretValue, Secret == 42, "equalityReflexivity"[42]]
 ]
 ```
 

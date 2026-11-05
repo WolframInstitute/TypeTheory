@@ -146,11 +146,11 @@ coreTerm[expression_, freeOf_Association] := Replace[expression, {
 
 equalityConstant[name_] := constantReference[HoldComplete[name], {$replayLevel}]
 
-reflexivityProof[term_] := makeApplication[equalityConstant[EqualityReflexivity], {$replayType, term}]
+reflexivityProof[term_] := makeApplication[equalityConstant["equalityReflexivity"], {$replayType, term}]
 
-symmetricProof[left_, right_, proof_] := makeApplication[equalityConstant[EqualitySymmetry], {$replayType, left, right, proof}]
+symmetricProof[left_, right_, proof_] := makeApplication[equalityConstant["equalitySymmetry"], {$replayType, left, right, proof}]
 
-transitiveProof[left_, middle_, right_, proof_, otherProof_] := makeApplication[equalityConstant[EqualityTransitivity], {$replayType, left, middle, right, proof, otherProof}]
+transitiveProof[left_, middle_, right_, proof_, otherProof_] := makeApplication[equalityConstant["equalityTransitivity"], {$replayType, left, middle, right, proof, otherProof}]
 
 (* context[left] == context[right] from left == right, for core terms in the local context *)
 congruenceProof[contextBody_, left_, right_, proof_, local_Association] := With[
@@ -159,7 +159,7 @@ congruenceProof[contextBody_, left_, right_, proof_, local_Association] := With[
 		outerType = inferType[$replayEnvironment, local, instantiateBoundVariable[contextBody, left]]
 	},
 	makeApplication[
-		constantReference[HoldComplete[EqualityCongruence], {sortLevel[$replayEnvironment, local, innerType], sortLevel[$replayEnvironment, local, outerType]}],
+		constantReference[HoldComplete["equalityCongruence"], {sortLevel[$replayEnvironment, local, innerType], sortLevel[$replayEnvironment, local, outerType]}],
 		{innerType, outerType, left, right, lambdaAbstraction[HoldComplete[x], innerType, contextBody, "Explicit"], proof}
 	]
 ]

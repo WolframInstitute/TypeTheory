@@ -66,7 +66,7 @@ pairs = TypeTheoryEnvironment[inhabited, {
     TypeTheoryDefinition[PairInhabited, Typed[
         Function[
             {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"], Annotation[Typed[k, Inhabited[\[Beta]]], "InstanceImplicit"]},
-            InhabitedIntroduction[Pair[h[[1]], k[[1]]]]
+            InhabitedIntroduction["pair"[h[[1]], k[[1]]]]
         ],
         ForAll[
             {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"], Annotation[Typed[k, Inhabited[\[Beta]]], "InstanceImplicit"]},
@@ -102,7 +102,7 @@ Inside a function, a variable bound by an instance-implicit binder is an instanc
 defaultPairs = TypeTheoryEnvironment[pairs, {
     TypeTheoryDefinition[DefaultPair, Function[
         {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Annotation[Typed[h, Inhabited[\[Alpha]]], "InstanceImplicit"]},
-        Pair[Typed[Default, \[Alpha]], Typed[Default, \[Alpha]]]
+        "pair"[Typed[Default, \[Alpha]], Typed[Default, \[Alpha]]]
     ]]
 }]
 ```
@@ -112,7 +112,7 @@ defaultPairs = TypeTheoryEnvironment[pairs, {
 At the naturals it is a pair of zeros:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProductType[Naturals, Naturals]], defaultPairs], TypeTheoryTerm[Pair[0, 0], defaultPairs]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[DefaultPair, CartesianProductType[Naturals, Naturals]], defaultPairs], TypeTheoryTerm["pair"[0, 0], defaultPairs]]
 ```
 
 <!-- => True -->
@@ -139,7 +139,7 @@ An instance deciding that the naturals are nonempty is enough:
 
 ```wl
 TypeTheoryProof[Nonempty[Naturals], TypeTheoryEnvironment[{
-    TypeTheoryDefinition[NaturalsNonempty, Typed[DecidableTrue[NonemptyIntroduction[0]], Decidable[Nonempty[Naturals]]], "Instance" -> True]
+    TypeTheoryDefinition[NaturalsNonempty, Typed["decidableTrue"["nonempty"[0]], Decidable[Nonempty[Naturals]]], "Instance" -> True]
 }], {TypeTheoryTactic["Decide"]}]
 ```
 
@@ -152,7 +152,7 @@ A coercion is a function of one explicit argument declared with `"Coercion" -> T
 ```wl
 coercions = TypeTheoryEnvironment[{
     TypeTheoryDefinition[NaturalOfBoolean, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> Naturals, 0, 1, b], "Coercion" -> True],
-    TypeTheoryDefinition[OptionOf, {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]} |-> OptionSome[x], "Coercion" -> True]
+    TypeTheoryDefinition[OptionOf, {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]} |-> "some"[x], "Coercion" -> True]
 }]
 ```
 
@@ -169,7 +169,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Naturals], coercions]]
 An argument is coerced the same way:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberSuccessor["true"], coercions]]
+WeakHeadNormalForm[TypeTheoryTerm["successor"["true"], coercions]]
 ```
 
 <!-- => NaturalOfBoolean[true] + 1 -->

@@ -41,7 +41,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[2 + 3], TypeTheoryTerm[6]]
 A literal is its constructor form:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[NaturalNumberSuccessor[NaturalNumberSuccessor[NaturalNumberZero]]], TypeTheoryTerm[2]]
+DefinitionallyEqualQ[TypeTheoryTerm["successor"["successor"["zero"]]], TypeTheoryTerm[2]]
 ```
 
 <!-- => True -->
@@ -52,8 +52,8 @@ Eta: a function equals the function that applies it:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed[n, Naturals] |-> NaturalNumberSuccessor[n]],
-    TypeTheoryTerm[NaturalNumberSuccessor]
+    TypeTheoryTerm[Typed[n, Naturals] |-> "successor"[n]],
+    TypeTheoryTerm["successor"]
 ]
 ```
 

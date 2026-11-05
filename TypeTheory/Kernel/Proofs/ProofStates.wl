@@ -48,7 +48,7 @@ The tactics:
 	"Decide"                proves a closed statement by computing its decision, the instance of Decidable found:
 	                        the prelude's decide equations and inequalities of natural numbers and the connectives
 	"Classical"             proves a statement of classical propositional logic from the hypotheses that are
-	                        propositions, by a truth table: each atom split by ExcludedMiddle, the goal built from
+	                        propositions, by a truth table: each atom split by "excludedMiddle", the goal built from
 	                        its cases under every assignment that makes the hypotheses true
 	"FindInstance"          proves an existential statement over the natural numbers with witnesses that
 	                        Wolfram's FindInstance finds, the instance proved by "Decide"
@@ -894,22 +894,22 @@ closedByReflexivity[state_, goal_] := Replace[
 
 (* A closed proposition gets its decision from the instances of Decidable[p], as Lean's decide: the
    prelude's decide == and <= on the natural numbers, And, Or, Not, True and False, and an environment may
-   declare more; the kernel computes Decide of it to True, and DecideSoundness turns
-   EqualityReflexivity[True] into a proof of the goal. *)
+   declare more; the kernel computes Decide of it to True, and "decideSoundness" turns
+   "equalityReflexivity"[True] into a proof of the goal. *)
 decide[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[$decisionConstants, Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["DecisionUnavailable", "The environment of the goal `1` lacks the decisions of the prelude.", data, goal]
 	];
 	With[{decision = findInstance[environment, current["Context"], makeApplication[preludeConstant[Decidable], {current["Type"]}]]},
 		If[ decision === None,
-			tacticFailure["NotDecidable", "No instance of Decidable decides the goal `1`.", data, goal]
+			tacticFailure["\"notDecidable\"", "No instance of Decidable decides the goal `1`.", data, goal]
 		];
 		(* the computation of a closed decision remembers its steps, as a kernel check does *)
 		Replace[withKernelCaches[weakHeadNormalForm[environment, current["Context"], makeApplication[preludeConstant[Decide], {current["Type"], decision}]]], {
-			constantReference[HoldComplete["true"], _] :> solveGoal[data, goal, makeApplication[preludeConstant[DecideSoundness], {
+			constantReference[HoldComplete["true"], _] :> solveGoal[data, goal, makeApplication[preludeConstant["decideSoundness"], {
 				current["Type"],
 				decision,
-				makeApplication[constantReference[HoldComplete[EqualityReflexivity], {1}], {preludeConstant[Booleans], preludeConstant["true"]}]
+				makeApplication[constantReference[HoldComplete["equalityReflexivity"], {1}], {preludeConstant[Booleans], preludeConstant["true"]}]
 			}], {}],
 			constantReference[HoldComplete["false"], _] :> tacticFailure["DecidedFalse", "The goal `1` is false.", data, goal],
 			_ :> tacticFailure["NotDecided", "The decision of the goal `1` does not compute to True or False, as when it has variables.", data, goal]
@@ -917,7 +917,7 @@ decide[data_, goal_] := With[{current = currentGoal[data, goal], environment = d
 	]
 ]
 
-$decisionConstants = HoldComplete /@ Unevaluated[{Decidable, Decide, DecideSoundness, Booleans, "true", EqualityReflexivity}]
+$decisionConstants = HoldComplete /@ Unevaluated[{Decidable, Decide, "decideSoundness", Booleans, "true", "equalityReflexivity"}]
 
 SetAttributes[preludeConstant, HoldAll]
 preludeConstant[name_] := constantReference[HoldComplete[name], {}]
@@ -930,8 +930,8 @@ preludeConstant[name_] := constantReference[HoldComplete[name], {}]
 (* A goal of classical propositional logic, from the hypotheses that are propositions. Its atoms are the parts that no
    connective builds: any proposition but a conjunction, a disjunction, a negation, an implication, True or False. A truth
    table checks that every assignment of the atoms that makes the hypotheses true makes the goal true. Then each atom is
-   split by ExcludedMiddle, with the recursor of Or, and under each assignment a hypothesis false there proves the goal by
-   FalseElimination, and otherwise the goal, true there, is built from the atoms' cases by its connectives. *)
+   split by "excludedMiddle", with the recursor of Or, and under each assignment a hypothesis false there proves the goal by
+   "falseElimination", and otherwise the goal, true there, is built from the atoms' cases by its connectives. *)
 classical[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[$classicalConstants, Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["ClassicalUnavailable", "The environment of the goal `1` lacks the connectives and the excluded middle of the prelude.", data, goal]
@@ -943,8 +943,8 @@ classical[data_, goal_] := With[{current = currentGoal[data, goal], environment 
 ]
 
 $classicalConstants = HoldComplete /@ Unevaluated[{
-	True, False, And, Or, Not, TrueIntroduction, AndIntroduction, AndEliminationLeft, AndEliminationRight, OrIntroductionLeft, OrIntroductionRight,
-	FalseElimination, ExcludedMiddle
+	True, False, And, Or, Not, "trueIntroduction", "andIntroduction", "andEliminationLeft", "andEliminationRight", "orIntroductionLeft", "orIntroductionRight",
+	"falseElimination", "excludedMiddle"
 }]
 
 propositionTermQ[environment_, context_, type_] := levelEquivalentQ[sortLevel[environment, context, type], 0]
@@ -1002,7 +1002,7 @@ classicalCases[setting_, {atom_, rest___}, assignment_] := makeApplication[const
 	classicalLambda[t, makeApplication[preludeConstant[Or], {atom, negationOf[atom]}], Function[ignored, setting["Goal"]]],
 	classicalLambda[h, atom, Function[proof, classicalCases[setting, {rest}, Append[assignment, atom -> {True, proof}]]]],
 	classicalLambda[h, negationOf[atom], Function[proof, classicalCases[setting, {rest}, Append[assignment, atom -> {False, proof}]]]],
-	makeApplication[preludeConstant[ExcludedMiddle], {atom}]
+	makeApplication[preludeConstant["excludedMiddle"], {atom}]
 }]
 
 negationOf[term_] := makeApplication[preludeConstant[Not], {term}]
@@ -1017,31 +1017,31 @@ classicalLeaf[setting_, assignment_] := Replace[
 	SelectFirst[setting["Hypotheses"], Function[hypothesis, ! classicalTruth[First[hypothesis], assignment]], None],
 	{
 		None :> classicalPositive[setting["Formula"], assignment],
-		{formula_, proof_} :> makeApplication[preludeConstant[FalseElimination], {setting["Goal"], makeApplication[classicalNegative[formula, assignment], {proof}]}]
+		{formula_, proof_} :> makeApplication[preludeConstant["falseElimination"], {setting["Goal"], makeApplication[classicalNegative[formula, assignment], {proof}]}]
 	}
 ]
 
 (* a proof of a formula true under the assignment *)
 classicalPositive[{"Atom", term_}, assignment_] := Last[assignment[term]]
-classicalPositive[{"True", _}, _] := preludeConstant[TrueIntroduction]
+classicalPositive[{"True", _}, _] := preludeConstant["trueIntroduction"]
 classicalPositive[{"And", _, left_, right_}, assignment_] :=
-	makeApplication[preludeConstant[AndIntroduction], {left[[2]], right[[2]], classicalPositive[left, assignment], classicalPositive[right, assignment]}]
+	makeApplication[preludeConstant["andIntroduction"], {left[[2]], right[[2]], classicalPositive[left, assignment], classicalPositive[right, assignment]}]
 classicalPositive[{"Or", _, left_, right_}, assignment_] := If[ classicalTruth[left, assignment],
-	makeApplication[preludeConstant[OrIntroductionLeft], {left[[2]], right[[2]], classicalPositive[left, assignment]}],
-	makeApplication[preludeConstant[OrIntroductionRight], {left[[2]], right[[2]], classicalPositive[right, assignment]}]
+	makeApplication[preludeConstant["orIntroductionLeft"], {left[[2]], right[[2]], classicalPositive[left, assignment]}],
+	makeApplication[preludeConstant["orIntroductionRight"], {left[[2]], right[[2]], classicalPositive[right, assignment]}]
 ]
 classicalPositive[{"Not", _, negated_}, assignment_] := classicalNegative[negated, assignment]
 classicalPositive[{"Implies", _, domain_, codomain_}, assignment_] := classicalLambda[x, domain[[2]], If[ classicalTruth[codomain, assignment],
 	Function[ignored, classicalPositive[codomain, assignment]],
-	Function[proof, makeApplication[preludeConstant[FalseElimination], {codomain[[2]], makeApplication[classicalNegative[domain, assignment], {proof}]}]]
+	Function[proof, makeApplication[preludeConstant["falseElimination"], {codomain[[2]], makeApplication[classicalNegative[domain, assignment], {proof}]}]]
 ]]
 
 (* a proof that a formula false under the assignment implies False *)
 classicalNegative[{"Atom", term_}, assignment_] := Last[assignment[term]]
 classicalNegative[{"False", term_}, _] := classicalLambda[x, term, Function[proof, proof]]
 classicalNegative[{"And", term_, left_, right_}, assignment_] := classicalLambda[c, term, If[ ! classicalTruth[left, assignment],
-	Function[proof, makeApplication[classicalNegative[left, assignment], {makeApplication[preludeConstant[AndEliminationLeft], {left[[2]], right[[2]], proof}]}]],
-	Function[proof, makeApplication[classicalNegative[right, assignment], {makeApplication[preludeConstant[AndEliminationRight], {left[[2]], right[[2]], proof}]}]]
+	Function[proof, makeApplication[classicalNegative[left, assignment], {makeApplication[preludeConstant["andEliminationLeft"], {left[[2]], right[[2]], proof}]}]],
+	Function[proof, makeApplication[classicalNegative[right, assignment], {makeApplication[preludeConstant["andEliminationRight"], {left[[2]], right[[2]], proof}]}]]
 ]]
 classicalNegative[{"Or", term_, left_, right_}, assignment_] := classicalLambda[d, term, Function[proof, makeApplication[constantReference[HoldComplete[InductiveRecursor[Or]], {}], {
 	left[[2]],
@@ -1102,12 +1102,12 @@ integerArithmeticReduced[environment_, context_, term_] := Replace[term, {
 
 (* A term of natural numbers with its atoms, the subterms that are no sum, product, power or successor,
    reduced as far as they reduce without unfolding a definition: a field of a pair written out is the
-   term in it, Pair[a, b][[1]] is a. The term is equal to it by computation, which is all the kernel
+   term in it, "pair"[a, b][[1]] is a. The term is equal to it by computation, which is all the kernel
    needs of a proof built from the reduced one. *)
 arithmeticReduced[environment_, context_, term_] := Replace[term, {
 	application[application[head : constantReference[HoldComplete[Plus | Times | Power], _], a_], b_] :>
 		makeApplication[head, {arithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b]}],
-	application[head : constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :> Construct[application, head, arithmeticReduced[environment, context, a]],
+	application[head : constantReference[HoldComplete["successor"], _], a_] :> Construct[application, head, arithmeticReduced[environment, context, a]],
 	_ :> With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
 		If[reduced === term, term, arithmeticReduced[environment, context, reduced]]
 	]
@@ -1123,10 +1123,10 @@ solvedByCheckedProof[data_, goal_, current_, proof_] := (
 )
 
 $ringConstants = HoldComplete /@ Unevaluated[{
-	NonNegativeIntegers, Plus, Times, Power, Equal, EqualityReflexivity, EqualitySymmetry, EqualityTransitivity, EqualityCongruence,
-	AdditionAssociativity, AdditionCommutativity, AdditionZeroLeft, AdditionZeroRight, MultiplicationAssociativity, MultiplicationCommutativity,
-	MultiplicationZeroLeft, MultiplicationZeroRight, MultiplicationOneLeft, MultiplicationDistributivityLeft, MultiplicationDistributivityRight,
-	PowerZero, PowerOne, PowerSuccessor, PowerAddition
+	NonNegativeIntegers, Plus, Times, Power, Equal, "equalityReflexivity", "equalitySymmetry", "equalityTransitivity", "equalityCongruence",
+	"additionAssociativity", "additionCommutativity", "additionZeroLeft", "additionZeroRight", "multiplicationAssociativity", "multiplicationCommutativity",
+	"multiplicationZeroLeft", "multiplicationZeroRight", "multiplicationOneLeft", "multiplicationDistributivityLeft", "multiplicationDistributivityRight",
+	"powerZero", "powerOne", "powerSuccessor", "powerAddition"
 }]
 
 (* ::Subsection:: *)
@@ -1138,7 +1138,7 @@ $ringConstants = HoldComplete /@ Unevaluated[{
 
    "FindInstance": for a goal Exists[{Typed[x1, Naturals], ...}, p], with p built from == and <= of
    arithmetic on the variables and literals, and the connectives, Wolfram's FindInstance finds the
-   witnesses over the natural numbers. ExistsIntroduction takes them, and "Decide" proves p of them by
+   witnesses over the natural numbers. "existsIntroduction" takes them, and "Decide" proves p of them by
    computing; an instance it cannot decide is left as the new goal. *)
 findInstance[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[$oracleConstants, Function[name, constantDeclaredQ[environment, name]]],
@@ -1159,7 +1159,7 @@ findInstance[data_, goal_] := With[{current = currentGoal[data, goal], environme
 	]
 ]
 
-$oracleConstants = HoldComplete /@ Unevaluated[{Exists, ExistsIntroduction, NonNegativeIntegers, Equal, LessEqual}]
+$oracleConstants = HoldComplete /@ Unevaluated[{Exists, "existsIntroduction", NonNegativeIntegers, Equal, LessEqual}]
 
 (* {<|id -> variable, ...|>, body}: the variables of the existential statements over the natural numbers
    at the head of statement, outermost first, each a fresh free variable of the body standing for the
@@ -1210,7 +1210,7 @@ classRing[data_, goal_, current_, typeQ_] := With[{narrowedGoal = freshMetavaria
 					variables
 				]
 			},
-			With[{related = applyTerm[classes, First[classes["Goals"]], HoldComplete[QuotientSoundness]]},
+			With[{related = applyTerm[classes, First[classes["Goals"]], HoldComplete["quotientSoundness"]]},
 				ring[related, First[related["Goals"]]]
 			]
 		],
@@ -1270,8 +1270,8 @@ wolframCondition[data_, goal_, context_, variables_, proposition_] := Replace[pr
 wolframExpression[data_, goal_, variables_, term_] := Replace[term, {
 	freeVariable[id_] /; KeyExistsQ[variables, id] :> variables[id],
 	naturalLiteral[n_Integer] :> n,
-	constantReference[HoldComplete[NaturalNumberZero], _] :> 0,
-	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], argument_] :> wolframExpression[data, goal, variables, argument] + 1,
+	constantReference[HoldComplete["zero"], _] :> 0,
+	application[constantReference[HoldComplete["successor"], _], argument_] :> wolframExpression[data, goal, variables, argument] + 1,
 	application[application[constantReference[HoldComplete[operation : Plus | Times | Power | Subtract], _], left_], right_] :> With[
 		{first = wolframExpression[data, goal, variables, left], second = wolframExpression[data, goal, variables, right]},
 		Replace[operation, {Plus :> first + second, Times :> first * second, Power :> first ^ second, Subtract :> Max[first - second, 0]}]
@@ -1279,13 +1279,13 @@ wolframExpression[data_, goal_, variables_, term_] := Replace[term, {
 	_ :> tacticFailure["NotTranslatable", "In the goal `1`, the term `2` is not arithmetic on the variables and natural number literals.", data, goal, {displayCoreTerm[data["Environment"], <||>, term]}]
 }]
 
-(* {proof, instance}: ExistsIntroduction applied to each witness in turn, the statement left for the
+(* {proof, instance}: "existsIntroduction" applied to each witness in turn, the statement left for the
    last being instance, whose proof is the metavariable newGoal *)
 witnessedProof[environment_, context_, statement_, {}, newGoal_] := {metavariable[newGoal], statement}
 witnessedProof[environment_, context_, statement_, {witness_, rest___}, newGoal_] := Replace[weakHeadNormalForm[environment, context, statement], {
 	application[application[constantReference[HoldComplete[Exists], levels_], type_], predicate_] :> With[
 		{inner = witnessedProof[environment, context, betaNormalize[application[predicate, naturalLiteral[witness]]], {rest}, newGoal]},
-		{makeApplication[constantReference[HoldComplete[ExistsIntroduction], levels], {type, predicate, naturalLiteral[witness], First[inner]}], Last[inner]}
+		{makeApplication[constantReference[HoldComplete["existsIntroduction"], levels], {type, predicate, naturalLiteral[witness], First[inner]}], Last[inner]}
 	]
 }]
 
@@ -1293,7 +1293,7 @@ witnessedProof[environment_, context_, statement_, {witness_, rest___}, newGoal_
    hypotheses by a polynomial combination, whose cofactors Wolfram's PolynomialReduce, or else linear
    algebra, finds (Ring.wl); or an equation of integers from the equations of integers among them *)
 polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
-	If[ ! AllTrue[Join[$ringConstants, HoldComplete /@ Unevaluated[{Subtract, AdditionSubtractionCancellation}]], Function[name, constantDeclaredQ[environment, name]]],
+	If[ ! AllTrue[Join[$ringConstants, HoldComplete /@ Unevaluated[{Subtract, "additionSubtractionCancellation"}]], Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
 	];
 	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
@@ -1343,7 +1343,7 @@ linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], envir
 							one = ringLinearProof[arithmeticReduced[environment, current["Context"], left], arithmeticReduced[environment, current["Context"], right], inequalities],
 							other = ringLinearProof[arithmeticReduced[environment, current["Context"], right], arithmeticReduced[environment, current["Context"], left], inequalities]
 						},
-						If[one === None || other === None, None, makeApplication[constantReference[HoldComplete[LessEqualAntisymmetry], {}], {left, right, one, other}]]
+						If[one === None || other === None, None, makeApplication[constantReference[HoldComplete["lessEqualAntisymmetry"], {}], {left, right, one, other}]]
 					],
 				constantReference[HoldComplete[False], _] :> ringContradictionProof[inequalities],
 				_ :> tacticFailure["InequalityExpected", "The goal `1` is not an inequality or an equation of natural numbers, or False.", data, goal]
@@ -1357,8 +1357,8 @@ linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], envir
 ]
 
 $linearConstants = HoldComplete /@ Unevaluated[{
-	LessEqual, Less, Or, FalseElimination, EqualitySubstitution, LessEqualReflexivity, LessEqualZero, LessEqualTotality, AdditionMonotonicity, MultiplicationMonotonicity,
-	LessEqualTransitivity, LessEqualAddition, LessIrreflexivity, LessEqualAntisymmetry
+	LessEqual, Less, Or, "falseElimination", "equalitySubstitution", "lessEqualReflexivity", "lessEqualZero", "lessEqualTotality", "additionMonotonicity", "multiplicationMonotonicity",
+	"lessEqualTransitivity", "lessEqualAddition", "lessIrreflexivity", "lessEqualAntisymmetry"
 }]
 
 (* {{a, b, proof}, ...} for the hypotheses that are inequalities a <= b of natural numbers, an equation
@@ -1449,12 +1449,12 @@ closeIfSidesSame[data_, goal_, type_] := If[
 
 (* "SumOfSquares": an inequality x <= y of integers whose difference y - x, times a positive integer d, is
    a sum c1 g1^2 + ... of squares of polynomials, which Wolfram finds (SumsOfSquares.wl).
-   IntegerLessEqualOfMultiple takes the equation d (y - x) == c1 g1 g1 + ..., which "Ring" proves, and the
-   proof that the sum is at least 0, made of IntegerSquareNonnegative, IntegerNonnegativeScaling and
-   IntegerNonnegativeAddition. The atoms of the polynomials are the subterms that are no sum, difference,
+   "integerLessEqualOfMultiple" takes the equation d (y - x) == c1 g1 g1 + ..., which "Ring" proves, and the
+   proof that the sum is at least 0, made of "integerSquareNonnegative", "integerNonnegativeScaling" and
+   "integerNonnegativeAddition". The atoms of the polynomials are the subterms that are no sum, difference,
    product, negation or power by a literal of integers, nor the integer of a sum, product, power by a
    literal or literal of natural numbers. An inequality of natural numbers is that of their integers, by
-   IntegerOfNaturalLessEqual, and a goal x >= y, x < y or x > y is the inequality it unfolds to. *)
+   "integerOfNaturalLessEqual", and a goal x >= y, x < y or x > y is the inequality it unfolds to. *)
 sumOfSquares[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[Join[$ringConstants, $sumOfSquaresConstants], Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["SumOfSquaresUnavailable", "The environment of the goal `1` lacks the integers of TypeTheoryEnvironment[\"Integers\"] and their order.", data, goal]
@@ -1466,7 +1466,7 @@ sumOfSquares[data_, goal_] := With[{current = currentGoal[data, goal], environme
 				state = solveGoal[
 					data,
 					goal,
-					makeApplication[constantReference[HoldComplete[IntegerOfNaturalLessEqual], {}], {smaller, larger, metavariable[integerGoal]}],
+					makeApplication[constantReference[HoldComplete["integerOfNaturalLessEqual"], {}], {smaller, larger, metavariable[integerGoal]}],
 					{integerGoal -> <|"Context" -> current["Context"], "Type" -> integerLessEqual[integerOfNatural[smaller], integerOfNatural[larger]], "Case" -> None|>}
 				]
 			},
@@ -1477,8 +1477,8 @@ sumOfSquares[data_, goal_] := With[{current = currentGoal[data, goal], environme
 ]
 
 $sumOfSquaresConstants = HoldComplete /@ Unevaluated[{
-	Integers, QuotientSoundness, "integerLessEqual", "integerOfNatural", "integerAddition", "integerSubtraction", "integerMultiplication", "integerNegation",
-	IntegerLessEqualOfMultiple, IntegerNonnegativeAddition, IntegerNonnegativeScaling, IntegerSquareNonnegative, IntegerLessEqualReflexivity, IntegerOfNaturalLessEqual
+	Integers, "quotientSoundness", "integerLessEqual", "integerOfNatural", "integerAddition", "integerSubtraction", "integerMultiplication", "integerNegation",
+	"integerLessEqualOfMultiple", "integerNonnegativeAddition", "integerNonnegativeScaling", "integerSquareNonnegative", "integerLessEqualReflexivity", "integerOfNaturalLessEqual"
 }]
 
 (* {"Integers" | "NaturalNumbers", x, y} for a goal that is x <= y of integers or of natural numbers, or
@@ -1518,7 +1518,7 @@ integerSumOfSquares[state_, target_, data_, goal_, smaller_, larger_] := With[{p
 	]
 ]
 
-(* The goal solved by IntegerLessEqualOfMultiple applied to d and to the sum s of the squares, its
+(* The goal solved by "integerLessEqualOfMultiple" applied to d and to the sum s of the squares, its
    equation a new goal that "Ring" proves, and the proof that s is at least 0 checked by the kernel first.
    The premises are read off the lemma's type. *)
 certifiedInequality[state_, target_, data_, goal_, {smaller_, larger_, d_Integer}, squares_List] := With[
@@ -1528,7 +1528,7 @@ certifiedInequality[state_, target_, data_, goal_, {smaller_, larger_, d_Integer
 		equationGoal = freshMetavariableId[],
 		sum = nonnegativeSum[squares]
 	},
-	{lemma = makeApplication[constantReference[HoldComplete[IntegerLessEqualOfMultiple], {}], {naturalLiteral[d], smaller, larger, First[sum]}]},
+	{lemma = makeApplication[constantReference[HoldComplete["integerLessEqualOfMultiple"], {}], {naturalLiteral[d], smaller, larger, First[sum]}]},
 	Replace[
 		catchKernelFailure @ Replace[lemmaPremises[environment, context, lemma, metavariable[equationGoal]], {equation_, nonnegativity_} :> (
 			withKernelCaches[checkHasType[environment, context, Last[sum], nonnegativity]];
@@ -1556,21 +1556,21 @@ lemmaPremises[environment_, context_, lemma_, proof_] := Replace[weakHeadNormalF
 }]
 
 (* {s, proof of 0 <= s} for s the sum of the c g g, right nested; 0 for no squares *)
-nonnegativeSum[{}] := {integerLiteral[0], makeApplication[constantReference[HoldComplete[IntegerLessEqualReflexivity], {}], {integerLiteral[0]}]}
+nonnegativeSum[{}] := {integerLiteral[0], makeApplication[constantReference[HoldComplete["integerLessEqualReflexivity"], {}], {integerLiteral[0]}]}
 nonnegativeSum[{square_}] := nonnegativeSquare @@ square
 nonnegativeSum[{square_, rest__}] := With[{first = nonnegativeSquare @@ square, others = nonnegativeSum[{rest}]},
 	{
 		integerAddition[First[first], First[others]],
-		makeApplication[constantReference[HoldComplete[IntegerNonnegativeAddition], {}], {First[first], First[others], Last[first], Last[others]}]
+		makeApplication[constantReference[HoldComplete["integerNonnegativeAddition"], {}], {First[first], First[others], Last[first], Last[others]}]
 	}
 ]
 
 (* {c g g, proof of 0 <= c g g}, a coefficient 1 left out *)
-nonnegativeSquare[1, term_] := {integerMultiplication[term, term], makeApplication[constantReference[HoldComplete[IntegerSquareNonnegative], {}], {term}]}
+nonnegativeSquare[1, term_] := {integerMultiplication[term, term], makeApplication[constantReference[HoldComplete["integerSquareNonnegative"], {}], {term}]}
 nonnegativeSquare[coefficient_Integer, term_] := With[{square = nonnegativeSquare[1, term]},
 	{
 		integerMultiplication[integerLiteral[coefficient], First[square]],
-		makeApplication[constantReference[HoldComplete[IntegerNonnegativeScaling], {}], {naturalLiteral[coefficient], First[square], Last[square]}]
+		makeApplication[constantReference[HoldComplete["integerNonnegativeScaling"], {}], {naturalLiteral[coefficient], First[square], Last[square]}]
 	}
 ]
 
@@ -1589,8 +1589,8 @@ integerPolynomial[term_] := Replace[term, {
    literals and literals carry over, and the integer of any other subterm is an atom *)
 naturalPolynomial[term_] := Replace[term, {
 	naturalLiteral[n_Integer] :> n,
-	constantReference[HoldComplete[NaturalNumberZero], _] :> 0,
-	application[constantReference[HoldComplete[NaturalNumberSuccessor], _], a_] :> naturalPolynomial[a] + 1,
+	constantReference[HoldComplete["zero"], _] :> 0,
+	application[constantReference[HoldComplete["successor"], _], a_] :> naturalPolynomial[a] + 1,
 	application[application[constantReference[HoldComplete[Plus], _], a_], b_] :> naturalPolynomial[a] + naturalPolynomial[b],
 	application[application[constantReference[HoldComplete[Times], _], a_], b_] :> naturalPolynomial[a] * naturalPolynomial[b],
 	application[application[constantReference[HoldComplete[Power], _], a_], naturalLiteral[k_Integer]] :> naturalPolynomial[a] ^ k,

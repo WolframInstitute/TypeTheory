@@ -65,12 +65,12 @@ Declarations are inert constructors until an environment checks them. `TypeTheor
 gives the prelude extended with them, and `Append` extends any environment; neither changes the old one:
 
 ```wolfram
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}];
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}];
 arithmetic[TwoPlusTwo]
 (* theorem TwoPlusTwo : 2 + 2 == 4 *)
 
-TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
-(* Failure["TypeMismatch", ...]: EqualityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 *)
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity"[4]]}]
+(* Failure["TypeMismatch", ...]: "equalityReflexivity"[4] has type 4 == 4, but the expected type is 2 + 2 == 5 *)
 ```
 
 A proof by induction, one tactic at a time:
@@ -81,7 +81,7 @@ proof = TypeTheoryTactic["Introduce", n][proof];
 proof = TypeTheoryTactic["Induction", n][proof];        (* goals 0 + 0 == 0 and 0 + n == n ⇒ 0 + (n + 1) == n + 1 *)
 proof = TypeTheoryTactic["Reflexivity"][proof];         (* 0 + 0 == 0 by computation *)
 proof = TypeTheoryTactic["Introduce", k, ih][proof];    (* ih : 0 + k == k *)
-proof = TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]][proof];
+proof = TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]][proof];
 
 proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}];
 TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 7 == 7]]
@@ -156,11 +156,11 @@ store is never changed once built, and it lasts for the session.
 
 `TypeTheoryEnvironment["Integers"]` is the prelude with the integers, built and checked the first time it
 is asked for: classes of pairs of natural numbers (a, b), standing for a - b, a quotient type. The
-operations are lifted from pairs, and the laws of a commutative ring, `IntegerAdditionCommutativity`
-through `IntegerDistributivity`, are proved by the tactics themselves: `"Induction"` on each class,
-`QuotientSoundness`, and `"Ring"` on the pairs. With those laws, `"Ring"` proves any identity of
+operations are lifted from pairs, and the laws of a commutative ring, `"integerAdditionCommutativity"`
+through `"integerDistributivity"`, are proved by the tactics themselves: `"Induction"` on each class,
+`"quotientSoundness"`, and `"Ring"` on the pairs. With those laws, `"Ring"` proves any identity of
 commutative rings over the integers by normal forms of its own, as it does over the natural numbers;
-`IntegerEqualityDecidable` decides their equations, so `"Decide"` proves a closed one. There `+`, `*`,
+`"integerEqualityDecidable"` decides their equations, so `"Decide"` proves a closed one. There `+`, `*`,
 `-`, `^`, the comparisons and negative literals are the integers' wherever the types say so, and a
 natural number coerces to an integer:
 
@@ -169,7 +169,7 @@ integers = TypeTheoryEnvironment["Integers"];
 TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]]   (* ℤ → ℕ → Prop *)
 ```
 
-Squares are at least 0, `IntegerSquareNonnegative`, and `IntegerLessEqualOfMultiple` gives `x <= y` from
+Squares are at least 0, `"integerSquareNonnegative"`, and `"integerLessEqualOfMultiple"` gives `x <= y` from
 `(d + 1) (y - x) == s` with `0 <= s`. `"SumOfSquares"` proves an inequality with them: Wolfram finds `d`
 and a sum `s` of squares of polynomials, by exact linear algebra on a Gram matrix and, where it has free
 entries, a diagonally dominant one from linear inequalities or else `SemidefiniteOptimization`; `"Ring"`
@@ -187,13 +187,13 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integer
 `TypeTheoryEnvironment["Rationals"]` is the integers' environment with the rationals: classes of pairs
 (a, b) of an integer and a natural number, standing for a / (b + 1), so no denominator is 0. The
 operations are lifted from pairs, each respecting the relation by a polynomial combination of it that
-`"PolynomialReduce"` finds over the integers, and the laws of a commutative ring, `RationalAdditionCommutativity`
-through `RationalDistributivity`, are proved by `"Induction"` on each class, `QuotientSoundness`, and
+`"PolynomialReduce"` finds over the integers, and the laws of a commutative ring, `"rationalAdditionCommutativity"`
+through `"rationalDistributivity"`, are proved by `"Induction"` on each class, `"quotientSoundness"`, and
 `"Ring"` on the equation of integers it leaves. The inverse computes, by recursion on the pair of natural
-numbers of the numerator, and `RationalMultiplicationInverse` proves `x x^-1 == 1` for `x` not 0, which makes
+numbers of the numerator, and `"rationalMultiplicationInverse"` proves `x x^-1 == 1` for `x` not 0, which makes
 the rationals a field; `0^-1` is 0. There `+`, `*`, `-`, `/`, `^`, `x^-1` and the comparisons are the
 rationals' wherever the types say so, and an integer or a natural number coerces to a rational. `"Ring"`
-proves identities of rationals by their classes, and `RationalEqualityDecidable` decides equations, so
+proves identities of rationals by their classes, and `"rationalEqualityDecidable"` decides equations, so
 `"Decide"` settles one of literals:
 
 ```wl
@@ -228,7 +228,7 @@ equivalence. It has no axiom, so transport along univalence computes:
 
 ```wl
 cubical = TypeTheoryEnvironment["Cubical"];
-WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], cubical]]   (* "false" *)
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negationEquivalence"], 0, "true"], cubical]]   (* "false" *)
 ```
 
 ### Instances and coercions
@@ -245,7 +245,7 @@ coerced = TypeTheoryEnvironment[{
     TypeTheoryDefinition[NaturalOfBoolean, Function[{Typed[b, Booleans]},
         InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Naturals], 0, 1, b]], "Coercion" -> True]
 }];
-WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberSuccessor["true"], coerced]]   (* NaturalOfBoolean["true"] + 1 *)
+WeakHeadNormalForm[TypeTheoryTerm["successor"["true"], coerced]]   (* NaturalOfBoolean["true"] + 1 *)
 WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (* "true", by the instances of Decidable *)
 ```
 
@@ -257,23 +257,26 @@ none, unless `SetTypeTheoryEnvironment` sets another. Each of its
 three constants are axioms, Lean's three, propositional extensionality, the soundness of quotients and
 choice, and function extensionality and the excluded middle are proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
-*The TypeTheory Prelude* on the documentation site goes through all of it.
+*The TypeTheory Prelude* on the documentation site goes through all of it. Its types and the functions
+written in terms are symbols; its constructors, theorems and axioms are constants named by strings, as
+`"equalityReflexivity"` and `"successor"`, so that no symbol of the paclet stands for them outside a term, and
+`Information[environment, "Theorems"]` lists the theorems with their statements.
 
-- **Logic:** `True` (`TrueIntroduction`), `False` (`FalseElimination`), `Not`, `And` (`AndIntroduction`,
-  `AndEliminationLeft`, `AndEliminationRight`), `Or` (`OrIntroductionLeft`, `OrIntroductionRight`),
-  `Equivalent` (`EquivalentIntroduction`, `EquivalentForward`, `EquivalentBackward`, with reflexivity,
-  symmetry and transitivity) and `Exists` (`ExistsIntroduction`).
-- **Equality:** `Equal` (`EqualityReflexivity`, `EqualitySymmetry`, `EqualityTransitivity`,
-  `EqualityCongruence`, `EqualitySubstitution`) and `Unequal`, `x != y`.
+- **Logic:** `True` (`"trueIntroduction"`), `False` (`"falseElimination"`), `Not`, `And` (`"andIntroduction"`,
+  `"andEliminationLeft"`, `"andEliminationRight"`), `Or` (`"orIntroductionLeft"`, `"orIntroductionRight"`),
+  `Equivalent` (`"equivalentIntroduction"`, `"equivalentForward"`, `"equivalentBackward"`, with reflexivity,
+  symmetry and transitivity) and `Exists` (`"existsIntroduction"`).
+- **Equality:** `Equal` (`"equalityReflexivity"`, `"equalitySymmetry"`, `"equalityTransitivity"`,
+  `"equalityCongruence"`, `"equalitySubstitution"`) and `Unequal`, `x != y`.
 - **Functions:** `Identity` and `Composition`.
 - **Quotients:** the quotient types of Lean's kernel, `QuotientType[r]`, with `QuotientIntroduction`,
   `QuotientLift` and `QuotientInduction`, declared by `TypeTheoryQuotients[]`: a lift computes on a
-  class, and `QuotientSoundness`, Lean's `Quot.sound`, is an axiom.
-- **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `NaturalNumberZero`, `NaturalNumberSuccessor` and
+  class, and `"quotientSoundness"`, Lean's `Quot.sound`, is an axiom.
+- **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `"zero"`, `"successor"` and
   `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
   and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean, and computed
   on literals with integers, as Lean's kernel computes them with GMP; `LessEqual`,
-  inductive as Lean's `Nat.le` (`LessEqualReflexivity`, `LessEqualStep`), with `Less`, `GreaterEqual`
+  inductive as Lean's `Nat.le` (`"lessEqualReflexivity"`, `"lessEqualStep"`), with `Less`, `GreaterEqual`
   and `Greater`.
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
   multiplication, the zero, one and successor laws, cancellation of subtraction and of a positive factor,
@@ -282,23 +285,23 @@ axioms and what is proved from them, to prove theorems without axioms or to assu
 - **Booleans:** `Booleans`, with the constants `"false"` and `"true"`, and `"not"`, `"and"` and `"or"`,
   named by strings, by cases on the first argument as Lean's `Bool`. `True`, `False`, `Not`, `And` and
   `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
-- **Decisions:** `Decidable` (`DecidableFalse`, `DecidableTrue`), a class as Lean's, with `Decide[p]`
-  giving the Boolean of the decision of `p`, found among the instances, and `DecideSoundness` the proof
+- **Decisions:** `Decidable` (`"decidableFalse"`, `"decidableTrue"`), a class as Lean's, with `Decide[p]`
+  giving the Boolean of the decision of `p`, found among the instances, and `"decideSoundness"` the proof
   from one that computes to `"true"`, as Lean's `decide` and `of_decide_eq_true`. The instances
-  `NaturalNumberEqualityDecidable` and `LessEqualDecidable` decide `==` and `<=` of natural numbers
+  `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"` decide `==` and `<=` of natural numbers
   through the Boolean comparisons `"equal"` and `"lessEqual"`, which the kernel computes on literals;
-  `NotDecidable`, `AndDecidable` and `OrDecidable` combine decisions, and `"trueDecidable"`,
+  `"notDecidable"`, `"andDecidable"` and `"orDecidable"` combine decisions, and `"trueDecidable"`,
   `"falseDecidable"` and `"booleanEqualityDecidable"` decide `True`, `False` and equations of Booleans.
-- **Pairs, sums, options and lists:** `CartesianProductType` (`Pair`), `DisjointUnionType` (`LeftInjection`,
-  `RightInjection`), `Option` (`OptionNone`, `OptionSome`) and `Lists` (`EmptyList`, `ListPrepend`), as
+- **Pairs, sums, options and lists:** `CartesianProductType` (`"pair"`), `DisjointUnionType` (`"left"`,
+  `"right"`), `Option` (`"none"`, `"some"`) and lists, `{A}` (`{}`, `Prepend[x][l]`), as
   Lean's `Prod`, `Sum`, `Option` and `List`; `Join`, `Length`, `Map`, `Append` and `Reverse` on lists,
-  and their laws `JoinEmptyRight`, `JoinAssociativity`, `LengthJoin`, `LengthMap`, `MapJoin`,
-  `MapComposition`, `ReverseJoin`, `ReverseReverse` and `LengthReverse`.
-- **Classical logic:** `Nonempty` (`NonemptyIntroduction`) and `Subtype` (`SubtypeIntroduction`); the
-  axioms `PropositionalExtensionality`, `QuotientSoundness` and `Choice`; `ChosenWitness` with
-  `ChosenWitnessProperty`; and the theorems `FunctionExtensionality`, proved from the soundness of
-  quotients as Lean proves it, `ExcludedMiddle`, proved by Diaconescu's argument, and
-  `DoubleNegationElimination`.
+  and their laws `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`,
+  `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"` and `"lengthReverse"`.
+- **Classical logic:** `Nonempty` (`"nonempty"`) and `Subtype` (`"subtype"`); the
+  axioms `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`; `ChosenWitness` with
+  `"chosenWitnessProperty"`; and the theorems `"functionExtensionality"`, proved from the soundness of
+  quotients as Lean proves it, `"excludedMiddle"`, proved by Diaconescu's argument, and
+  `"doubleNegationElimination"`.
 
 The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)` for propositions
 and `(a && b) && c` for Booleans. `True`, `False`, `Not`, `And` and `Or` are propositions or Booleans, as
@@ -320,8 +323,8 @@ which give an axiom computation rules that weak head normalization and definitio
 `TypeTheoryEnvironment["HomotopyTypeTheory"]` is homotopy type theory as in the HoTT book, on Martin-Löf
 rules with rewrite rules: `True`, `False` and `Not` as types; `Equal` as the type of paths, with path
 induction as its recursor; `Transport` and the operations on paths, which compute on reflexivity;
-bi-invertible equivalences and the axiom `Univalence`, with `UniverseNotSet` proved from it; and the
-circle, by axioms, with the rewrite rule `CircleInductionBase` making induction compute on its base
+bi-invertible equivalences and the axiom `"univalence"`, with `"universeNotSet"` proved from it; and the
+circle, by axioms, with the rewrite rule `"circleInductionBase"` making induction compute on its base
 point. On the prelude's rules the same declarations with an equality in Prop prove False, which is why
 the HoTT rules refuse one.
 
@@ -366,12 +369,12 @@ is trusted: the finished term is checked by the kernel when the theorem is added
 its recursive calls back, so the laws of lists go through with induction and simplification alone:
 
 ```wolfram
-TypeTheoryProof[ForAll[{Typed[a, Lists[Naturals]], Typed[b, Lists[Naturals]], Typed[c, Lists[Naturals]]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
+TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
     TypeTheoryTactic["Introduce", a, b, c],
     TypeTheoryTactic["Induction", a],
-    TypeTheoryTactic["Simplify", {Join}],                (* Join[EmptyList, m] is m *)
+    TypeTheoryTactic["Simplify", {Join}],                (* Join[{}, m] is m *)
     TypeTheoryTactic["Introduce", x, rest, ih],
-    TypeTheoryTactic["Simplify", {Join, ih}]             (* Join[ListPrepend[x, l], m] is ListPrepend[x, Join[l, m]] *)
+    TypeTheoryTactic["Simplify", {Join, ih}]             (* Join[Prepend[x][l], m] is Prepend[x][Join[l, m]] *)
 }]
 ```
 

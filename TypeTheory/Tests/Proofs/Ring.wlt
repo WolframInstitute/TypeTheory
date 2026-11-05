@@ -47,7 +47,7 @@ VerificationTest[
 VerificationTest[
 	{
 		ringProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, a b + b == b (a + 1)], {a, b}]["Goals"],
-		ringProof[ForAll[{Typed[n, NonNegativeIntegers]}, NaturalNumberSuccessor[n] * 2 == 2 n + 2], {n}]["Goals"],
+		ringProof[ForAll[{Typed[n, NonNegativeIntegers]}, "successor"[n] * 2 == 2 n + 2], {n}]["Goals"],
 		TypeTheoryProof[2^10 + 3 * 4 == 1036, prelude, {TypeTheoryTactic["Ring"]}]["Goals"],
 		ringProof[ForAll[{Typed[a, NonNegativeIntegers]}, a^0 + 0 a + a 1 == a + 1], {a}]["Goals"]
 	},

@@ -82,7 +82,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[1/2, Rationals], rationals], TypeTheor
 
 <!-- => False -->
 
-[RationalEqualityDecidable]() decides equations of rationals by comparing a (d + 1) and c (b + 1), so `"Decide"` proves them:
+`"rationalEqualityDecidable"` decides equations of rationals by comparing a (d + 1) and c (b + 1), so `"Decide"` proves them:
 
 ```wl
 TypeTheoryProof[Typed[1/2, Rationals] == 2/4, rationals, {TypeTheoryTactic["Decide"]}]
@@ -110,15 +110,15 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[1/2, Rationals] == 1/3], rational
 
 ## The Laws
 
-The laws of a commutative ring are theorems, such as [RationalDistributivity]():
+The laws of a commutative ring are theorems, such as `"rationalDistributivity"`:
 
 ```wl
-rationals[RationalDistributivity]
+rationals["rationalDistributivity"]
 ```
 
 <!-- => theorem RationalDistributivity : ∀_x∶ℚ ∀_y∶ℚ ∀_z∶ℚ x (y + z) == x y + x z -->
 
-`"Ring"` proves identities of rationals: `"Induction"` on each rational gives the class of a pair, [QuotientSoundness]() the relation of two pairs, an equation of integers, which `"Ring"` proves by the integers' normal forms. That equation multiplies each side by the other's denominator, so its degree, and the time `"Ring"` takes, grows with the denominators of the two sides:
+`"Ring"` proves identities of rationals: `"Induction"` on each rational gives the class of a pair, `"quotientSoundness"` the relation of two pairs, an equation of integers, which `"Ring"` proves by the integers' normal forms. That equation multiplies each side by the other's denominator, so its degree, and the time `"Ring"` takes, grows with the denominators of the two sides:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Rationals]}, (x + 1) (x - 1) == x^2 - 1], rationals, {
@@ -142,15 +142,15 @@ TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x / 2 + x / 3 == 5 x / 6], rationa
 
 ## The Inverse
 
-[RationalMultiplicationInverse]() makes the rationals a field:
+`"rationalMultiplicationInverse"` makes the rationals a field:
 
 ```wl
-rationals[RationalMultiplicationInverse]
+rationals["rationalMultiplicationInverse"]
 ```
 
 <!-- => theorem RationalMultiplicationInverse : ∀_x∶ℚ (¬x == 0) ⇒ x/x == 1 -->
 
-The inverse computes. For the class of (a, b) it is the class of (b + 1, |a| - 1) with the sign of a, found by recursion on the pair of natural numbers of the integer a, and the inverse of 0 is 0, [RationalInverseZero]():
+The inverse computes. For the class of (a, b) it is the class of (b + 1, |a| - 1) with the sign of a, found by recursion on the pair of natural numbers of the integer a, and the inverse of 0 is 0, `"rationalInverseZero"`:
 
 ```wl
 TypeTheoryProof[Typed[(2/3)^-1, Rationals] == 3/2, rationals, {TypeTheoryTactic["Decide"]}]
@@ -160,10 +160,28 @@ TypeTheoryProof[Typed[(2/3)^-1, Rationals] == 3/2, rationals, {TypeTheoryTactic[
 
 ## Order
 
-`x <= y` means that `y` is `x` plus n / (d + 1) for natural numbers n and d. A square is at least 0, [RationalSquareNonnegative]():
+`x <= y` means that `y` is `x` plus n / (d + 1) for natural numbers n and d. A square is at least 0, `"rationalSquareNonnegative"`:
 
 ```wl
-rationals[RationalSquareNonnegative]
+rationals["rationalSquareNonnegative"]
 ```
 
 <!-- => theorem RationalSquareNonnegative : ∀_x∶ℚ 0 ≤ x x -->
+
+## Theorems
+
+The theorems of the rationals are constants named by strings. These are those the rationals add to the integers', each with its statement:
+
+```wl
+KeyDrop[Information[TypeTheoryEnvironment["Rationals"], "Theorems"], Keys[Information[TypeTheoryEnvironment["Integers"], "Theorems"]]]
+```
+
+<!-- => <|"integerOfDifference" -> ..., ..., "rationalAdditionCommutativity" -> ∀_x∶ℚ ∀_y∶ℚ x + y == y + x, ...|>, 57 theorems -->
+
+Distributivity with a factor 1/2 halves a sum:
+
+```wl
+TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Rationals], Typed[y, Rationals]} |-> "rationalDistributivity"[1/2, x, y], TypeTheoryEnvironment["Rationals"]]]
+```
+
+<!-- => ∀_x∶ℚ ∀_y∶ℚ 1/2 (x + y) == 1/2 x + 1/2 y -->

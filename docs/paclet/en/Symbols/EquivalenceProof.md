@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/EquivalenceProof
 Keywords: [equivalence, proof, inverse, HoTT]
-SeeAlso: [IsEquivalence, EquivalenceIntroduction, NegationEquivalence]
+SeeAlso: [IsEquivalence]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [HomotopyTypeTheory]
 ---
@@ -51,7 +51,7 @@ The function *f* is found from the paths:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm[
-    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x]],
+    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x]],
     hott
 ]]
 ```
@@ -60,7 +60,7 @@ TypeTheoryCheck[TypeTheoryTerm[
 
 ## Applications
 
-With [EquivalenceIntroduction](), it makes an equivalence, in the HoTT environment:
+With `"equivalenceIntroduction"`, it makes an equivalence, in the HoTT environment:
 
 ```wl
 hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
@@ -71,9 +71,9 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The identity of the Booleans as an equivalence:
 
 ```wl
-TypeOf[TypeTheoryTerm[EquivalenceIntroduction[
+TypeOf[TypeTheoryTerm["equivalenceIntroduction"[
     Function[{Typed[x, Booleans]}, x],
-    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> EqualityReflexivity[x]]
+    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x]]
 ], hott]]
 ```
 

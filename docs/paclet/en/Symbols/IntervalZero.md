@@ -33,7 +33,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A path at 0 is its start:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[PathSymmetry[Typed[i, Interval] |-> "true"][0], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm["pathSymmetry"[Typed[i, Interval] |-> "true"][0], cubical]]
 ```
 
 <!-- => true -->

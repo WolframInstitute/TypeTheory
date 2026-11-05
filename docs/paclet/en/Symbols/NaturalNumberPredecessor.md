@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/NaturalNumberPredecessor
 Keywords: [natural, number, predecessor, prelude, natural numbers]
-SeeAlso: [NaturalNumberSuccessor, NaturalNumberZero, PredecessorLessEqual, SuccessorInjectivity]
+SeeAlso: []
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---

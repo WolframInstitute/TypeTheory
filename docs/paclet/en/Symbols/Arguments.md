@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Arguments
 Keywords: [Wolfram Language, expressions, pattern matching, Match]
-SeeAlso: [Expressions, ExpressionNormal, MatchBind]
+SeeAlso: [Expressions, MatchBind]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage]
 ---
@@ -25,7 +25,7 @@ The arguments of an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments[ExpressionNormal[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments["normal"[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
 ```
 
 <!-- => True -->

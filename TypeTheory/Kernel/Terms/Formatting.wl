@@ -32,7 +32,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Rationals                           ℚ                    the rationals of TypeTheoryEnvironment["Rationals"]
 	"rationalAddition" and the others   x + y, x y, x - y, -x, x^n, x^-1, x / y, x ≤ y, ...   as the integers' operations
 	"rationalOfInteger"[x]              ↑x, or the literal itself
-	"rationalOfPair"[Pair[a, b]]        a / (b + 1), and a where b is 0, for a literal b
+	"rationalOfPair"["pair"[a, b]]        a / (b + 1), and a where b is 0, for a literal b
 	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
 	NaturalNumberPredecessor[n]         n - 1
 	IntervalZero, IntervalOne           0, 1                 the endpoints of the interval of cubical type theory
@@ -40,12 +40,12 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Path[Function[{i}, A], a, b]        a ≡ b                Congruent, where the line is constant
 	CartesianProductType[A, B]          A × B                Cross, which takes ×; A × B × C for A × (B × C)
 	DisjointUnionType[A, B]             A ⊕ B                CirclePlus; A ⊕ B ⊕ C for A ⊕ (B ⊕ C)
-	Pair[a, Pair[b, c]]                 (a, b, c)
+	"pair"[a, "pair"[b, c]]                 (a, b, c)
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
-	DependentPair[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
+	"dependentPair"[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
 	Prepend[1][Prepend[2][{}]]          {1, 2}               in braces: [1, 2] in f[[1, 2]] would read as Part
 	Prepend[x][l]                       Prepend • x • l      by Application, where l is no literal
-	SequencePrepend[1, EmptySequence]   [1]                  EmptySequence as [], a sequence in brackets
+	"sequencePrepend"[1, "emptySequence"]   [1]                  "emptySequence" as [], a sequence in brackets
 	Sequence[A, B]                      [A, B]               the type, as the sequences show; Sequence @@ As for a list
 	                                                         As of types that is no literal
 	List[A]                             {A}                  the type, as the Wolfram Language shows List[A]
@@ -258,9 +258,9 @@ displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[CartesianProd
 	syntaxHead[Cross, displaySyntax /@ rightNested[CartesianProductType, syntax]]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DisjointUnionType]], {_, _}]] :=
 	syntaxHead[CirclePlus, displaySyntax /@ rightNested[DisjointUnionType, syntax]]
-displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, _}]] := tupleDisplay["(", displaySyntax /@ rightNested[Pair, syntax], ")"]
-displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DependentPair]], {_, _}]] :=
-	tupleDisplay["\[LeftAngleBracket]", displaySyntax /@ rightNested[DependentPair, syntax], "\[RightAngleBracket]"]
+displaySyntax[syntax : syntaxApplication[syntaxString["pair"], {_, _}]] := tupleDisplay["(", displaySyntax /@ rightNested["pair", syntax], ")"]
+displaySyntax[syntax : syntaxApplication[syntaxString["dependentPair"], {_, _}]] :=
+	tupleDisplay["\[LeftAngleBracket]", displaySyntax /@ rightNested["dependentPair", syntax], "\[RightAngleBracket]"]
 (* the constructor of lists applied as it reads back, "Prepend"[x, l], as written in operator form, Prepend[x][l], and
    in the Wolfram Language's two-argument form, Prepend[l, x] *)
 $prependSyntaxPatterns = {
@@ -280,21 +280,21 @@ Scan[
 displaySyntax[syntax : syntaxApplication[syntaxString["Prepend"], arguments_List]] /; ! listLiteralQ[syntax] :=
 	Fold[Function[{applied, argument}, syntaxHead[Application, {applied, argument}]], syntaxSymbol[HoldComplete[Prepend]], displaySyntax /@ arguments]
 displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
-displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, _}]] /; sequenceLiteralQ[syntax] :=
-	tupleDisplay["[", displaySyntax /@ Most[rightNested[SequencePrepend, syntax]], "]"]
-displaySyntax[syntaxSymbol[HoldComplete[EmptySequence]]] := syntaxString["[]"]
+displaySyntax[syntax : syntaxApplication[syntaxString["sequencePrepend"], {_, _}]] /; sequenceLiteralQ[syntax] :=
+	tupleDisplay["[", displaySyntax /@ Most[rightNested["sequencePrepend", syntax]], "]"]
+displaySyntax[syntaxString["emptySequence"]] := syntaxString["[]"]
 (* an expression of the Wolfram Language shows quoted, HoldForm[e], as it is written: its atoms as symbols, numbers and
    strings, its arguments in order, a list of them that is no literal as Sequence @@ l; where a part is none of these,
    it shows as built *)
-displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ExpressionNormal]], {_, _}]] /; quotableQ[syntax] :=
+displaySyntax[syntax : syntaxApplication[syntaxString["normal"], {_, _}]] /; quotableQ[syntax] :=
 	syntaxApplication[syntaxString["HoldForm"], {displaySyntax[unquoted[syntax]]}]
-displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[ExpressionAtom]], {_}]] /; quotableQ[syntax] :=
+displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] :=
 	syntaxApplication[syntaxString["HoldForm"], {displaySyntax[unquoted[syntax]]}]
 (* a quotation as written shows the same, its HoldForm in sight, which the Wolfram Language would hide *)
 displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}]] := syntaxApplication[syntaxString["HoldForm"], {displaySyntax[quoted]}]
 
-quotableQ[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionAtom]], {atom_}]] := atomSyntax[atom] =!= None
-quotableQ[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionNormal]], {head_, arguments_}]] := quotableQ[head] && quotableArgumentsQ[arguments]
+quotableQ[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom] =!= None
+quotableQ[syntaxApplication[syntaxString["normal"], {head_, arguments_}]] := quotableQ[head] && quotableArgumentsQ[arguments]
 quotableQ[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {_syntaxInteger}]] := True
 quotableQ[syntaxSymbol[_]] := True
 quotableQ[_] := False
@@ -317,8 +317,8 @@ atomSyntax[syntaxString[name_String]] := Replace[Quiet[ToExpression[name, InputF
 }]
 atomSyntax[_] := None
 
-unquoted[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionAtom]], {atom_}]] := atomSyntax[atom]
-unquoted[syntaxApplication[syntaxSymbol[HoldComplete[ExpressionNormal]], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]
+unquoted[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom]
+unquoted[syntaxApplication[syntaxString["normal"], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]
 unquoted[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {n_syntaxInteger}]] := n
 unquoted[variable_] := variable
 
@@ -473,12 +473,12 @@ displayApplication[syntaxString["rationalOfInteger"], {argument_}] := prefixed["
    These rules read the pair before it is rewritten as a tuple, so they rewrite the syntax, not displayed arguments. *)
 displaySyntax[syntaxApplication[
 	syntaxSymbol[HoldComplete[QuotientIntroduction]],
-	{syntaxString["rationalRelation"], pair : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, syntaxInteger[_Integer]}]}
+	{syntaxString["rationalRelation"], pair : syntaxApplication[syntaxString["pair"], {_, syntaxInteger[_Integer]}]}
 ]] := displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {pair}]]
-displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[0]}]}]] := displaySyntax[numerator]
+displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxString["pair"], {numerator_, syntaxInteger[0]}]}]] := displaySyntax[numerator]
 (* a literal numerator makes the fraction the rational number itself, which a product takes without parentheses,
    1/2 (x + y); any other shows as a division *)
-displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[denominator_Integer]}]}]] :=
+displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxString["pair"], {numerator_, syntaxInteger[denominator_Integer]}]}]] :=
 	fractionDisplay[displaySyntax[numerator], denominator + 1]
 
 fractionDisplay[numerator_, denominator_Integer] /; integerSyntaxQ[numerator] := syntaxOther[HoldComplete @@ {literalFraction[integerOfSyntax[numerator], denominator]}]
@@ -581,6 +581,8 @@ tupleDisplay[left_String, elements_List, right_String] := delimited[left, syntax
 (* the elements of head[a, head[b, c]]: a, b and c *)
 rightNested[head_Symbol, syntaxApplication[syntaxSymbol[HoldComplete[head_]], {first_, rest_}]] := Prepend[rightNested[head, rest], first]
 rightNested[_Symbol, last_] := {last}
+rightNested[head_String, syntaxApplication[syntaxString[head_], {first_, rest_}]] := Prepend[rightNested[head, rest], first]
+rightNested[_String, last_] := {last}
 
 Scan[Function[pattern, With[{each = pattern}, listLiteralQ[syntax : each] := listLiteralQ[prependedRest[syntax]]]], $prependSyntaxPatterns]
 listLiteralQ[syntaxString["{}"]] := True
@@ -602,8 +604,8 @@ Scan[Function[pattern, With[{each = pattern}, prependedElements[syntax : each] :
 prependedElements[syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List]] := elements
 prependedElements[_] := {}
 
-sequenceLiteralQ[syntaxApplication[syntaxSymbol[HoldComplete[SequencePrepend]], {_, rest_}]] := sequenceLiteralQ[rest]
-sequenceLiteralQ[syntaxSymbol[HoldComplete[EmptySequence]]] := True
+sequenceLiteralQ[syntaxApplication[syntaxString["sequencePrepend"], {_, rest_}]] := sequenceLiteralQ[rest]
+sequenceLiteralQ[syntaxString["emptySequence"]] := True
 sequenceLiteralQ[_] := False
 
 (* a dependent sum over a function of one variable shows its binder, as ∀ does *)
@@ -773,7 +775,7 @@ declarationRow[{name_, type_}, form_] := {nameBoxes[name, form], ":", typeTheory
 declarationRow[{name_, None, value_}, form_] := {nameBoxes[name, form], ":=", typeTheoryBoxes[value, form]}
 declarationRow[{name_, type_, value_}, form_] := {nameBoxes[name, form], ":", RowBox[{typeTheoryBoxes[type, form], " := ", typeTheoryBoxes[value, form]}]}
 
-(* a declared name shows as itself: the constructor NaturalNumberZero is not shown as 0 where it is declared *)
+(* a declared name shows as itself: the constructor "zero" is not shown as 0 where it is declared *)
 nameBoxes[name_, form_] := Block[{$displayedNaturalNumbers = <||>}, typeTheoryBoxes[name, form]]
 
 

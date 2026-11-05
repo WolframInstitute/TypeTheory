@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Option
 Keywords: [option, optional value, maybe, prelude, inductive type]
-SeeAlso: [OptionNone, OptionSome, DisjointUnionType, List]
+SeeAlso: [DisjointUnionType, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Option]() is an inductive type of the prelude, with the constructors [OptionNone]() and [OptionSome](), as Lean's `Option`.
+- [Option]() is an inductive type of the prelude, with the constructors `"none"` and `"some"`, as Lean's `Option`.
 - For *α* in `Type u`, <code>[Option]()[*α*]</code> is in `Type u` too.
 
 ## Basic Examples
@@ -34,17 +34,17 @@ TypeTheoryCheck[TypeTheoryTerm[Option]]
 Some natural number:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[OptionSome[3]]]
+TypeTheoryCheck[TypeTheoryTerm["some"[3]]]
 ```
 
 <!-- => Option[ℕ] -->
 
 ## Scope
 
-Options nest; [Typed]() gives the type of the inner [OptionNone]():
+Options nest; [Typed]() gives the type of the inner `"none"`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[OptionSome[OptionNone], Option[Option[Naturals]]]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed["some"["none"], Option[Option[Naturals]]]]]
 ```
 
 <!-- => Option[Option[ℕ]] -->
@@ -55,7 +55,7 @@ The first element of a list, if it has one, defined with the recursor of [List](
 
 ```wl
 heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed[l, {Naturals}]},
-    InductiveRecursor[List][Typed[t, {Naturals}] |-> Option[Naturals], OptionNone, {Typed[x, Naturals], Typed[rest, {Naturals}], Typed[r, Option[Naturals]]} |-> OptionSome[x], l]
+    InductiveRecursor[List][Typed[t, {Naturals}] |-> Option[Naturals], "none", {Typed[x, Naturals], Typed[rest, {Naturals}], Typed[r, Option[Naturals]]} |-> "some"[x], l]
 ]]}]
 ```
 
@@ -79,15 +79,15 @@ WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[{}], heads]]
 
 ## Properties and Relations
 
-Every option is [OptionNone]() or a value: `"Cases"` gives a goal for each constructor:
+Every option is `"none"` or a value: `"Cases"` gives a goal for each constructor:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == OptionNone, Exists[{Typed[x, Naturals]}, o == OptionSome[x]]]], {
+TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == "none", Exists[{Typed[x, Naturals]}, o == "some"[x]]]], {
     TypeTheoryTactic["Introduce", o],
     TypeTheoryTactic["Cases", o],
-    TypeTheoryTactic["Exact", OrIntroductionLeft[EqualityReflexivity[OptionNone]]],
+    TypeTheoryTactic["Exact", "orIntroductionLeft"["equalityReflexivity"["none"]]],
     TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["Exact", OrIntroductionRight[ExistsIntroduction[x, EqualityReflexivity[OptionSome[x]]]]]
+    TypeTheoryTactic["Exact", "orIntroductionRight"["existsIntroduction"[x, "equalityReflexivity"["some"[x]]]]]
 }]
 ```
 

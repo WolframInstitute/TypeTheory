@@ -59,7 +59,7 @@ WeakHeadNormalForm[TypeTheoryTerm[IsContractible[Booleans], cubical]]
 
 ## Applications
 
-The fibers of an equivalence are contractible: [IdentityEquivalence]() proves it for the fiber of the identity of the Booleans over `"true"`.
+The fibers of an equivalence are contractible: `"identityEquivalence"` proves it for the fiber of the identity of the Booleans over `"true"`.
 
 The cubical environment:
 
@@ -72,7 +72,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The proof:
 
 ```wl
-TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], cubical, {TypeTheoryTactic["Exact", IdentityEquivalence[Booleans][[2]]["true"]]}]
+TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], cubical, {TypeTheoryTactic["Exact", "identityEquivalence"[Booleans][[2]]["true"]]}]
 ```
 
 <!-- => Proof complete -->
@@ -80,7 +80,7 @@ TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], cubical
 The center of that fiber is `"true"` with the constant path:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[IdentityEquivalence[Booleans][[2]]["true"][[1]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm["identityEquivalence"[Booleans][[2]]["true"][[1]], cubical]]
 ```
 
 <!-- => 〈true, (j∶Interval) ↦ true〉 -->

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryAxiom
 Keywords: [axiom, declaration, assumption, excluded middle, classical logic, constructive, environment]
-SeeAlso: [TypeTheoryEnvironment, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType, Choice, ExcludedMiddle]
+SeeAlso: [TypeTheoryEnvironment, TypeTheoryDefinition, TypeTheoryTheorem, TypeTheoryInductiveType]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -17,7 +17,7 @@ RelatedGuides: [TypeTheory]
 
 - A declaration is inert until it is added to an environment with <code>[TypeTheoryEnvironment]()[*env*, {*declaration*}]</code> or <code>[Append]()[*env*, *declaration*]</code>, which check that *type* is a type.
 - An axiom is assumed, not proved. <code>[Information]()[*env*, "Axioms"]</code> lists the axioms of an environment.
-- The prelude assumes [PropositionalExtensionality](), [FunctionExtensionality]() and [Choice](). <code>[TypeTheoryEnvironment]()["Constructive"]</code> is the prelude without them and the theorems proved from them, a start for other axioms.
+- The prelude assumes `"propositionalExtensionality"`, `"functionExtensionality"` and `"choice"`. <code>[TypeTheoryEnvironment]()["Constructive"]</code> is the prelude without them and the theorems proved from them, a start for other axioms.
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear, and makes each level that nothing in the declaration decides one more, `"u_1"`, `"u_2"`, …, as Lean does.
 - The option `"Implementation" -> f` names the Wolfram Language function `f`, a symbol, that computes the constant. The kernel never runs it, so the constant stays opaque to checking; `Information[term, "Implementation"]` gives it, and a saved environment keeps only its name.
 - The option `"Annotation" -> *data*` keeps *data* in the axiom's record as it is given: <code>[Information]()[[TypeTheoryTerm]()[*name*, *env*], "Annotation"]</code> gives it back, and [Normal]() and a saved environment keep it.
@@ -39,7 +39,7 @@ Assume the excluded middle in the constructive environment, which has no axioms:
 
 ```wl
 excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {
-    TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]
+    TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]
 }]
 ```
 
@@ -48,7 +48,7 @@ excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {
 Applied to a proposition, the axiom proves it or its negation:
 
 ```wl
-TypeOf[TypeTheoryTerm[ExcludedMiddle[True], excludedMiddle]]
+TypeOf[TypeTheoryTerm["excludedMiddle"[True], excludedMiddle]]
 ```
 
 <!-- => True ∨ ¬True -->
@@ -103,7 +103,7 @@ TypeTheoryEnvironment[TypeTheoryAxiom[Five, 5]]
 The prelude proves the excluded middle from its axioms, so the name is taken there:
 
 ```wl
-TypeTheoryEnvironment[TypeTheoryAxiom[ExcludedMiddle, ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]]
+TypeTheoryEnvironment[TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]]
 ```
 
 <!-- => Failure["AlreadyDeclared", ...] -->

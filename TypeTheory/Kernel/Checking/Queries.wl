@@ -250,7 +250,16 @@ registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ he
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
-environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Axioms", "RewriteRules", "NaturalNumbers", "Rules", "Provenance"}
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "RewriteRules", "NaturalNumbers", "Rules", "Provenance"}
+(* the theorems by name, each with its statement, in the order they were declared *)
+environmentInformation[environment_, "Theorems"] := Association[
+	Function[name, theoremKey[name] -> coreToTypeTheoryTerm[environment, <||>, constantRecord[environment, name]["Type"]]] /@
+		Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Theorem"]]
+]
+
+(* a theorem's name as a key: its string, or its symbol held; a rule of its own, as an enclosing -> would scope the pattern *)
+theoremKey[HoldComplete[text_String]] := text
+theoremKey[held_HoldComplete] := HoldForm @@ held
 environmentInformation[environment_, "Constants"] := Keys[environment]
 environmentInformation[environment_, "Kinds"] := Counts[Function[name, constantRecord[environment, name]["Kind"]] /@ environmentNames[environment]]
 environmentInformation[environment_, "Axioms"] :=
@@ -743,9 +752,9 @@ registerWhenDeclared[replayed_, None] := replayed
 
 (* The natural-deduction derivation of a proof of propositional logic. Its leading functions of propositions bind its atoms;
    then each part is a rule by its form, its claim the type the part has where it stands, which must be a formula over the
-   atoms: a hypothesis is an assumption, a function of a proof an implication introduced, AndIntroduction,
-   AndEliminationLeft and AndEliminationRight, the two introductions of Or, Or's recursor and FalseElimination their rules,
-   and any other application an implication eliminated. A constant applied to formulas, as ExcludedMiddle[p], is an open
+   atoms: a hypothesis is an assumption, a function of a proof an implication introduced, "andIntroduction",
+   "andEliminationLeft" and "andEliminationRight", the two introductions of Or, Or's recursor and "falseElimination" their rules,
+   and any other application an implication eliminated. A constant applied to formulas, as "excludedMiddle"[p], is an open
    assumption. A part whose claim is not a formula, as a proof of 2 == 2, or that has another form, makes the whole
    Missing["Untranslatable"]. *)
 proofTree[environment_, term_] := Catch[
@@ -797,11 +806,11 @@ derivationNode[___] := notTranslated[]
 assumed[environment_, context_, name_, domain_, binder_, body_, id_] :=
 	derivation[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]]
 
-applicationDerivation[environment_, context_, {constantReference[HoldComplete[AndIntroduction], _], {_, _, left_, right_}}, _, claim_] :=
+applicationDerivation[environment_, context_, {constantReference[HoldComplete["andIntroduction"], _], {_, _, left_, right_}}, _, claim_] :=
 	treeNode[environment, context, "AndIntro", claim, {derivation[environment, context, left], derivation[environment, context, right]}]
-applicationDerivation[environment_, context_, {constantReference[HoldComplete[AndEliminationLeft | AndEliminationRight], _], {_, _, conjunction_}}, _, claim_] :=
+applicationDerivation[environment_, context_, {constantReference[HoldComplete["andEliminationLeft" | "andEliminationRight"], _], {_, _, conjunction_}}, _, claim_] :=
 	treeNode[environment, context, "AndElim", claim, {derivation[environment, context, conjunction]}]
-applicationDerivation[environment_, context_, {constantReference[HoldComplete[OrIntroductionLeft | OrIntroductionRight], _], {_, _, disjunct_}}, _, claim_] :=
+applicationDerivation[environment_, context_, {constantReference[HoldComplete["orIntroductionLeft" | "orIntroductionRight"], _], {_, _, disjunct_}}, _, claim_] :=
 	treeNode[environment, context, "OrIntro", claim, {derivation[environment, context, disjunct]}]
 applicationDerivation[
 	environment_,
@@ -814,7 +823,7 @@ applicationDerivation[
 	caseDerivation[environment, context, left, leftCase],
 	caseDerivation[environment, context, right, rightCase]
 }]
-applicationDerivation[environment_, context_, {constantReference[HoldComplete[FalseElimination], _], {_, falsity_}}, _, claim_] :=
+applicationDerivation[environment_, context_, {constantReference[HoldComplete["falseElimination"], _], {_, falsity_}}, _, claim_] :=
 	treeNode[environment, context, "FalseElim", claim, {derivation[environment, context, falsity]}]
 (* a constant applied to formulas is an open assumption, and any proofs it is applied to after them eliminate implications *)
 applicationDerivation[environment_, context_, {head_constantReference, arguments_List}, _, claim_] := If[

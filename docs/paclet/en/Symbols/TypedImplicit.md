@@ -57,7 +57,7 @@ A theorem whose propositions are implicit:
 swap = TypeTheoryEnvironment[{TypeTheoryTheorem[
     ConjunctionSwap,
     ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[a && b, b && a]],
-    Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, a && b]}, AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]]
+    Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, a && b]}, "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]
 ]}]
 ```
 
@@ -74,7 +74,7 @@ swap[ConjunctionSwap]
 The propositions are found from the type of the proof it is applied to:
 
 ```wl
-TypeOf[TypeTheoryTerm[ConjunctionSwap[AndIntroduction[TrueIntroduction, EqualityReflexivity[0]]], swap]]
+TypeOf[TypeTheoryTerm[ConjunctionSwap["andIntroduction"["trueIntroduction", "equalityReflexivity"[0]]], swap]]
 ```
 
 <!-- => 0 == 0 ∧ True -->

@@ -82,33 +82,33 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[2 - 5, Integers], integers], TypeTheor
 
 <!-- => False -->
 
-They are equal by [QuotientSoundness](): `2 - 5` is the class of (2, 5) and `-3` that of (0, 3), and 2 + 3 and 0 + 5 both compute to 5:
+They are equal by `"quotientSoundness"`: `2 - 5` is the class of (2, 5) and `-3` that of (0, 3), and 2 + 3 and 0 + 5 both compute to 5:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientSoundness[EqualityReflexivity[5]], integers], TypeTheoryTerm[Typed[2 - 5, Integers] == -3, integers]]
+TypeTheoryCheck[TypeTheoryTerm["quotientSoundness"["equalityReflexivity"[5]], integers], TypeTheoryTerm[Typed[2 - 5, Integers] == -3, integers]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
 
 ## The Laws
 
-The laws of a commutative ring are theorems, such as [IntegerDistributivity]():
+The laws of a commutative ring are theorems, such as `"integerDistributivity"`:
 
 ```wl
-integers[IntegerDistributivity]
+integers["integerDistributivity"]
 ```
 
 <!-- => theorem IntegerDistributivity : ∀_x∶ℤ ∀_y∶ℤ ∀_z∶ℤ x (y + z) == x y + x z -->
 
-They rewrite integer terms as the laws of the natural numbers rewrite theirs. A difference is a sum with the negation, [IntegerSubtractionNegation](); then associativity, the inverse and zero finish the proof:
+They rewrite integer terms as the laws of the natural numbers rewrite theirs. A difference is a sum with the negation, `"integerSubtractionNegation"`; then associativity, the inverse and zero finish the proof:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x + y) - y == x], integers, {
     TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Rewrite", IntegerSubtractionNegation],
-    TypeTheoryTactic["Rewrite", IntegerAdditionAssociativity],
-    TypeTheoryTactic["Rewrite", IntegerAdditionNegation],
-    TypeTheoryTactic["Rewrite", IntegerAdditionZero]
+    TypeTheoryTactic["Rewrite", "integerSubtractionNegation"],
+    TypeTheoryTactic["Rewrite", "integerAdditionAssociativity"],
+    TypeTheoryTactic["Rewrite", "integerAdditionNegation"],
+    TypeTheoryTactic["Rewrite", "integerAdditionZero"]
 }]
 ```
 
@@ -128,14 +128,14 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
 
 <!-- => Proof, 1 goal: p ∶ ℕ × ℕ, q ∶ ℕ × ℕ ⊢ QuotientIntroduction[integerRelation, p] QuotientIntroduction[integerRelation, q] == QuotientIntroduction[integerRelation, q] QuotientIntroduction[integerRelation, p] -->
 
-The product of two classes computes to the class of a pair, so [QuotientSoundness]() leaves the relation of two pairs, an equation of natural numbers:
+The product of two classes computes to the class of a pair, so `"quotientSoundness"` leaves the relation of two pairs, an equation of natural numbers:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], integers, {
     TypeTheoryTactic["Introduce", x, y],
     TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
     TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
-    TypeTheoryTactic["Apply", QuotientSoundness]
+    TypeTheoryTactic["Apply", "quotientSoundness"]
 }]
 ```
 
@@ -148,7 +148,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
     TypeTheoryTactic["Introduce", x, y],
     TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
     TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
-    TypeTheoryTactic["Apply", QuotientSoundness],
+    TypeTheoryTactic["Apply", "quotientSoundness"],
     TypeTheoryTactic["Ring"]
 }]
 ```
@@ -191,29 +191,29 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {TypeTheoryT
 
 ## Inequalities and Sums of Squares
 
-`x <= y` means that `y` is `x` plus a natural number. A square is at least 0, [IntegerSquareNonnegative]():
+`x <= y` means that `y` is `x` plus a natural number. A square is at least 0, `"integerSquareNonnegative"`:
 
 ```wl
-integers[IntegerSquareNonnegative]
+integers["integerSquareNonnegative"]
 ```
 
 <!-- => theorem IntegerSquareNonnegative : ∀_z∶ℤ 0 ≤ z z -->
 
-So are sums and natural multiples of what is at least 0, by [IntegerNonnegativeAddition]() and [IntegerNonnegativeScaling]():
+So are sums and natural multiples of what is at least 0, by `"integerNonnegativeAddition"` and `"integerNonnegativeScaling"`:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 0 <= 3 (x x) + y y], integers, {
     TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Exact", IntegerNonnegativeAddition[IntegerNonnegativeScaling[3, IntegerSquareNonnegative[x]], IntegerSquareNonnegative[y]]]
+    TypeTheoryTactic["Exact", "integerNonnegativeAddition"["integerNonnegativeScaling"[3, "integerSquareNonnegative"[x]], "integerSquareNonnegative"[y]]]
 }]
 ```
 
 <!-- => Proof complete -->
 
-An inequality `x <= y` follows when a positive multiple of `y - x` is equal to something at least 0, [IntegerLessEqualOfMultiple]():
+An inequality `x <= y` follows when a positive multiple of `y - x` is equal to something at least 0, `"integerLessEqualOfMultiple"`:
 
 ```wl
-integers[IntegerLessEqualOfMultiple]
+integers["integerLessEqualOfMultiple"]
 ```
 
 <!-- => theorem IntegerLessEqualOfMultiple : ∀_d∶ℕ ∀_{x∶ℤ} ∀_{y∶ℤ} ∀_s∶ℤ ↑(d + 1) (y - x) == s ⇒ 0 ≤ s ⇒ x ≤ y -->
@@ -229,7 +229,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integer
 
 <!-- => Proof complete -->
 
-An inequality of natural numbers is that of their integers, by [IntegerOfNaturalLessEqual]():
+An inequality of natural numbers is that of their integers, by `"integerOfNaturalLessEqual"`:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, 2 a b <= a^2 + b^2], integers, {
@@ -261,7 +261,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], integers, {TypeTheoryTac
 
 ## Deciding Equations
 
-An equation of integers is decidable, by [IntegerEqualityDecidable](): the Boolean it computes compares a + d and c + b for the pairs (a, b) and (c, d). So [Decide]() computes:
+An equation of integers is decidable, by `"integerEqualityDecidable"`: the Boolean it computes compares a + d and c + b for the pairs (a, b) and (c, d). So [Decide]() computes:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == -3], integers]]
@@ -276,3 +276,13 @@ TypeTheoryProof[Typed[2 - 5, Integers] == -3, integers, {TypeTheoryTactic["Decid
 ```
 
 <!-- => Proof complete -->
+
+## Theorems
+
+The theorems of the integers are constants named by strings. These are those the integers add to the prelude's, each with its statement:
+
+```wl
+KeyDrop[Information[TypeTheoryEnvironment["Integers"], "Theorems"], Keys[Information[TypeTheoryEnvironment["Prelude"], "Theorems"]]]
+```
+
+<!-- => <|"integerNegationRespects" -> ..., ..., "integerAdditionCommutativity" -> ∀_x∶ℤ ∀_y∶ℤ x + y == y + x, ...|>, 57 theorems -->

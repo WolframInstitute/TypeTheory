@@ -14,23 +14,23 @@ beforeNaturalNumbers = TypeTheoryEnvironment[TypeTheoryEnvironment[], TakeWhile[
 
 
 VerificationTest[
-	Information[Append[beforeNaturalNumbers, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor]], "NaturalNumbers"],
-	<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <||>|>,
+	Information[Append[beforeNaturalNumbers, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor"]], "NaturalNumbers"],
+	<|"Type" -> NonNegativeIntegers, "Zero" -> "zero", "Successor" -> "successor", "Operations" -> <||>|>,
 	TestID -> "The-natural-numbers-register-without-operations"
 ]
 
 VerificationTest[
-	First @ Append[beforeNaturalNumbers, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberSuccessor, NaturalNumberZero]],
+	First @ Append[beforeNaturalNumbers, TypeTheoryNaturalNumbers[NonNegativeIntegers, "successor", "zero"]],
 	"InvalidNaturalNumbers",
 	TestID -> "Zero-and-successor-cannot-be-swapped"
 ]
 
 VerificationTest[
 	First /@ {
-		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Quotient" -> NaturalNumberPredecessor|>]],
-		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Modulo" -> Times|>]],
-		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"Addition" -> Times|>]],
-		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, <|"GCD" -> Times|>]]
+		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Quotient" -> NaturalNumberPredecessor|>]],
+		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Modulo" -> Times|>]],
+		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Addition" -> Times|>]],
+		Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"GCD" -> Times|>]]
 	},
 	{"InvalidNaturalNumberOperation", "InvalidNaturalNumberOperation", "InvalidNaturalNumberOperation", "InvalidNaturalNumberOperation"},
 	TestID -> "An-operation-needs-the-type-of-a-role-that-is-free"
@@ -75,7 +75,7 @@ withEquality = TypeTheoryEnvironment[beforeComparisons, {
 			InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "false"], (m - n) + (n - m)]
 		]
 	],
-	TypeTheoryNaturalNumbers[Naturals, NaturalNumberZero, NaturalNumberSuccessor, <|"Equal" -> NaturalNumberEqual|>]
+	TypeTheoryNaturalNumbers[Naturals, "zero", "successor", <|"Equal" -> NaturalNumberEqual|>]
 }]
 
 VerificationTest[
@@ -96,7 +96,7 @@ VerificationTest[
 			FirstNumber,
 			Typed[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]
 		],
-		TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor, FirstNumber]
+		TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", FirstNumber]
 	}]]],
 	5,
 	TestID -> "A-registered-operation-is-trusted"
@@ -112,7 +112,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, NaturalNumberZero, NaturalNumberSuccessor]],
+	First @ Append[prelude, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor"]],
 	"NaturalNumbersRegistered",
 	TestID -> "The-natural-numbers-are-registered-once"
 ]

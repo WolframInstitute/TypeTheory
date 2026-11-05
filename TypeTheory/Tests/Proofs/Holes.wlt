@@ -11,7 +11,7 @@ Needs["WolframInstitute`TypeTheory`"]
 open = TypeTheoryEnvironment[{
 	TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], Function[{Typed[n, Naturals]}, TypeTheoryHole[<|"Citation" -> "nowhere", "Evaluation" -> HoldForm[2 + 2]|>]]],
 	TypeTheoryTheorem[ThreeIsZero, 3 == 0, AllZero[3]],
-	TypeTheoryTheorem[Proved, 1 == 1, EqualityReflexivity[1]]
+	TypeTheoryTheorem[Proved, 1 == 1, "equalityReflexivity"[1]]
 }]
 
 
@@ -59,7 +59,7 @@ VerificationTest[
 VerificationTest[
 	{
 		TypeTheoryCheck[TypeTheoryTerm[Typed[TypeTheoryHole[], 1 == 1]]]["Tag"],
-		TypeTheoryEnvironment[{TypeTheoryTheorem[InStatement, TypeTheoryHole[], EqualityReflexivity[1]]}]["Tag"],
+		TypeTheoryEnvironment[{TypeTheoryTheorem[InStatement, TypeTheoryHole[], "equalityReflexivity"[1]]}]["Tag"],
 		TypeTheoryEnvironment[{TypeTheoryTheorem[Unfinished, TypeTheoryProof[1 == 1, {}]]}]["Tag"]
 	},
 	{"ElaborationFailed", "ElaborationFailed", "ProofIncomplete"},
@@ -81,12 +81,12 @@ VerificationTest[
 VerificationTest[
 	With[{annotated = TypeTheoryEnvironment[{
 			TypeTheoryAxiom[Signature, TypeUniverse[1], "Annotation" -> <|"Statement" -> "a type of things"|>],
-			TypeTheoryTheorem[TwoPlusTwoAnnotated, 2 + 2 == 4, EqualityReflexivity[4], "Annotation" -> <|"Claims" -> {"Plus"}, "WolframStatement" -> HoldForm[2 + 2 == 4]|>]
+			TypeTheoryTheorem[TwoPlusTwoAnnotated, 2 + 2 == 4, "equalityReflexivity"[4], "Annotation" -> <|"Claims" -> {"Plus"}, "WolframStatement" -> HoldForm[2 + 2 == 4]|>]
 		}]},
 		{
 			Information[TypeTheoryTerm[TwoPlusTwoAnnotated, annotated], "Annotation"],
 			Information[TypeTheoryTerm[Signature, annotated], "Annotation"],
-			Information[TypeTheoryTerm[EqualitySymmetry, annotated], "Annotation"],
+			Information[TypeTheoryTerm["equalitySymmetry", annotated], "Annotation"],
 			MatchQ[TypeTheoryCheck[annotated], _Success],
 			Normal[TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[annotated]]] === Normal[annotated],
 			MatchQ[Last[Normal[annotated]], TypeTheoryTheorem[TwoPlusTwoAnnotated, __, "Annotation" -> _Association]]

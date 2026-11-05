@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Decide
 Keywords: [decide, decision, Boolean, computation, instance, prelude]
-SeeAlso: [Decidable, DecideSoundness, NaturalNumberEqualityDecidable, TypeTheoryTactic]
+SeeAlso: [Decidable, TypeTheoryTactic]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 ---
@@ -77,17 +77,17 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide["true" == "not"["false"]]]]
 A decision given explicitly:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 3 <= 2, LessEqualDecidable[3, 2]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 3 <= 2, "lessEqualDecidable"[3, 2]]]]
 ```
 
 <!-- => false -->
 
 ## Properties and Relations
 
-[DecideSoundness]() turns a decision that computes to `"true"` into a proof:
+`"decideSoundness"` turns a decision that computes to `"true"` into a proof:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[DecideSoundness[EqualityReflexivity["true"]], 3 == 3]]]
+TypeTheoryCheck[TypeTheoryTerm[Typed["decideSoundness"["equalityReflexivity"["true"]], 3 == 3]]]
 ```
 
 <!-- => 3 == 3 -->

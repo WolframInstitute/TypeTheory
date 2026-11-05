@@ -31,7 +31,7 @@ forge[TypeTheoryEnvironment[store_Symbol], name_HoldComplete, change_] := Module
 
 
 VerificationTest[
-	TypeOf[TypeTheoryTerm[AndIntroduction, prelude]],
+	TypeOf[TypeTheoryTerm["andIntroduction", prelude]],
 	With[{a = WolframInstitute`TypeTheory`Library`Prelude`Private`a, b = WolframInstitute`TypeTheory`Library`Prelude`Private`b},
 		TypeTheoryTerm[
 			ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[a, Implies[b, a && b]]],
@@ -49,8 +49,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		MatchQ[TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]], _Success],
-		First @ TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 5]]
+		MatchQ[TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[2 + 2 == 4]], _Success],
+		First @ TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[2 + 2 == 5]]
 	},
 	{True, "TypeMismatch"},
 	TestID -> "TypeTheoryCheck-checks-a-term-against-a-type"
@@ -79,12 +79,12 @@ VerificationTest[
 
 VerificationTest[
 	{Length[prelude], Take[Keys[prelude], 3], KeyExistsQ[prelude, Plus], KeyExistsQ[prelude, Divide]},
-	{169, {True, TrueIntroduction, InductiveRecursor[True]}, True, False},
+	{169, {True, "trueIntroduction", InductiveRecursor[True]}, True, False},
 	TestID -> "Keys-Length-and-KeyExistsQ"
 ]
 
 VerificationTest[
-	{prelude[NaturalNumberSuccessor] === prelude[NonNegativeIntegers], Head[prelude[Plus]], prelude[Divide]},
+	{prelude["successor"] === prelude[NonNegativeIntegers], Head[prelude[Plus]], prelude[Divide]},
 	{True, TypeTheoryDefinition, Missing["KeyAbsent", Divide]},
 	TestID -> "Indexing-gives-the-declaration-of-a-constant"
 ]
@@ -93,8 +93,8 @@ VerificationTest[
 	{Information[prelude, "Kinds"], Information[prelude, "Axioms"], Information[prelude, "NaturalNumbers"]},
 	{
 		<|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 3|>,
-		{PropositionalExtensionality, QuotientSoundness, Choice},
-		<|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|>
+		{"propositionalExtensionality", "quotientSoundness", "choice"},
+		<|"Type" -> NonNegativeIntegers, "Zero" -> "zero", "Successor" -> "successor", "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|>
 	},
 	TestID -> "Information-about-an-environment"
 ]
@@ -115,7 +115,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeTheoryCheck[forge[prelude, HoldComplete[FalseElimination], Function[record, Append[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete["falseElimination"], Function[record, Append[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
 	"TypeMismatch",
 	TestID -> "A-forged-theorem-statement-is-caught"
 ]
@@ -143,18 +143,18 @@ VerificationTest[
 ]
 
 (* An application's arguments are checked along its spine, each against its binder's domain with the arguments
-   before it put in: EqualitySymmetry with x = 1 and y = 2 needs a proof of 1 == 2, and gets one of 1 == 1. A
+   before it put in: "equalitySymmetry" with x = 1 and y = 2 needs a proof of 1 == 2, and gets one of 1 == 1. A
    spine with more arguments than its function's type has binders, even after reducing it, applies a value that
    is no function. *)
 VerificationTest[
 	{
-		First @ TypeTheoryCheck[forge[prelude, HoldComplete[AdditionZeroLeft], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete[EqualitySymmetry], {1}], {
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete["equalitySymmetry"], {1}], {
 			natural,
 			naturalLiteral[1],
 			naturalLiteral[2],
-			application[application[constantReference[HoldComplete[EqualityReflexivity], {1}], natural], naturalLiteral[1]]
+			application[application[constantReference[HoldComplete["equalityReflexivity"], {1}], natural], naturalLiteral[1]]
 		}]]]]],
-		First @ TypeTheoryCheck[forge[prelude, HoldComplete[AdditionZeroLeft], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete[NaturalNumberSuccessor], {}], {naturalLiteral[1], naturalLiteral[2]}]]]]]
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete["successor"], {}], {naturalLiteral[1], naturalLiteral[2]}]]]]]
 	},
 	{"TypeMismatch", "FunctionExpected"},
 	TestID -> "A-forged-argument-is-caught-against-the-domain-its-earlier-arguments-give"
@@ -162,20 +162,20 @@ VerificationTest[
 
 (* Inside a check, proof irrelevance compares two proofs by propositions inferred without checking the proofs, as
    in Lean's kernel. h of ForAll[{Typed[m, NonNegativeIntegers]}, True] applied to a proof is ill typed, yet
-   inferred so it is a proof of True, which irrelevance finds equal to h[0]. Each forged proof of AdditionZeroLeft
-   below is its own proof under a redex that binds such an h and reaches h[TrueIntroduction] only through that
+   inferred so it is a proof of True, which irrelevance finds equal to h[0]. Each forged proof of "additionZeroLeft"
+   below is its own proof under a redex that binds such an h and reaches h["trueIntroduction"] only through that
    comparison: as an argument, as a function's domain, and as a local definition's value. The statement is kept,
    so no later declaration fails in its place, and the theorem's own check catches each one. *)
 VerificationTest[
 	With[
 		{
 			true = constantReference[HoldComplete[True], {}],
-			trivial = constantReference[HoldComplete[TrueIntroduction], {}],
+			trivial = constantReference[HoldComplete["trueIntroduction"], {}],
 			equal = Function[{x, y}, Fold[application, constantReference[HoldComplete[Equal], {0}], {constantReference[HoldComplete[True], {}], x, y}]],
-			reflexivity = Function[x, Fold[application, constantReference[HoldComplete[EqualityReflexivity], {0}], {constantReference[HoldComplete[True], {}], x}]],
+			reflexivity = Function[x, Fold[application, constantReference[HoldComplete["equalityReflexivity"], {0}], {constantReference[HoldComplete[True], {}], x}]],
 			family = dependentFunctionType[HoldComplete[m], natural, constantReference[HoldComplete[True], {}], "Explicit"]
 		},
-		(* Function[{Typed[n, NonNegativeIntegers]}, Function[{Typed[h, family]}, inner][Function[{Typed[m, NonNegativeIntegers]}, TrueIntroduction]] *)
+		(* Function[{Typed[n, NonNegativeIntegers]}, Function[{Typed[h, family]}, inner][Function[{Typed[m, NonNegativeIntegers]}, "trueIntroduction"]] *)
 		With[
 			{
 				forgedProof = Function[inner, Function[record, Append[record, "Value" -> lambdaAbstraction[HoldComplete[n], natural, application[
@@ -183,7 +183,7 @@ VerificationTest[
 					lambdaAbstraction[HoldComplete[m], natural, trivial, "Explicit"]
 				], "Explicit"]]]]
 			},
-			First @ TypeTheoryCheck[forge[prelude, HoldComplete[AdditionZeroLeft], forgedProof[#]]]& /@ {
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], forgedProof[#]]]& /@ {
 				Function[proof, application[
 					lambdaAbstraction[HoldComplete[e], equal[application[boundVariable[0], naturalLiteral[0]], application[boundVariable[0], naturalLiteral[0]]], application[proof, boundVariable[2]], "Explicit"],
 					reflexivity[application[boundVariable[0], trivial]]
@@ -244,11 +244,11 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryAxiomClosure[TypeTheoryTerm[ExcludedMiddle]],
-		TypeTheoryAxiomClosure[TypeTheoryTerm[EqualitySymmetry]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["excludedMiddle"]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["equalitySymmetry"]],
 		TypeTheoryAxiomClosure[TypeTheoryTerm[True]]
 	},
-	{<|Choice -> "Signature", QuotientSoundness -> "Proposition", PropositionalExtensionality -> "Proposition"|>, <||>, <||>},
+	{<|"choice" -> "Signature", "quotientSoundness" -> "Proposition", "propositionalExtensionality" -> "Proposition"|>, <||>, <||>},
 	TestID -> "The-axiom-closure-of-excluded-middle-is-Lean's-three-axioms"
 ]
 
@@ -276,8 +276,8 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{closure = TypeTheoryAxiomClosure[TypeTheoryTerm[CircleInduction, TypeTheoryEnvironment["HomotopyTypeTheory"]]]},
-		{closure[CircleInductionBase], closure[CircleInduction]}
+	With[{closure = TypeTheoryAxiomClosure[TypeTheoryTerm["circleInduction", TypeTheoryEnvironment["HomotopyTypeTheory"]]]},
+		{closure["circleInductionBase"], closure["circleInduction"]}
 	],
 	{"RewriteRule", "Signature"},
 	TestID -> "The-axiom-closure-lists-the-rewrite-rules-of-a-constant-reached"
@@ -287,28 +287,28 @@ VerificationTest[
 	With[{rationals = TypeTheoryEnvironment["Rationals"]},
 		Union @@ Map[Function[name, Keys[TypeTheoryAxiomClosure[TypeTheoryTerm[name, rationals]]]], Keys[rationals]]
 	],
-	{Choice, PropositionalExtensionality, QuotientSoundness},
+	{"choice", "propositionalExtensionality", "quotientSoundness"},
 	TestID -> "Every-constant-of-the-rationals-rests-on-Lean's-three-axioms-at-most"
 ]
 
 VerificationTest[
 	{
-		Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]], "Constants"],
+		Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]], "Constants"],
 		Information[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]], "Constants"]
 	},
-	{{Equal, NonNegativeIntegers, Plus, EqualityReflexivity}, {NonNegativeIntegers, Equal, Plus}},
+	{{Equal, NonNegativeIntegers, Plus, "equalityReflexivity"}, {NonNegativeIntegers, Equal, Plus}},
 	TestID -> "The-constants-of-a-constant-are-those-of-its-type-and-value"
 ]
 
 (* the natural-deduction derivation of a proof of propositional logic: the functions of its propositions bind the atoms, a
-   constant applied to them, as ExcludedMiddle[a], is an open assumption, and a proof of anything else is untranslatable *)
+   constant applied to them, as "excludedMiddle"[a], is an open assumption, and a proof of anything else is untranslatable *)
 rules[tree_] := Cases[tree, TypeTheoryProofTree[rule_String, __] :> rule, {0, Infinity}]
 
 VerificationTest[
 	With[
 		{
 			k = TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[y, b]}, x], prelude]],
-			swap = Information[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]}, AndIntroduction[AndEliminationRight[h], AndEliminationLeft[h]]], prelude], "ProofTree"]
+			swap = Information[TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]}, "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]], prelude], "ProofTree"]
 		},
 		{
 			k[[1]], k[[2]] === TypeTheoryTerm[Implies[a, Implies[b, a]], prelude], rules[k],
@@ -331,8 +331,8 @@ VerificationTest[
 						InductiveRecursor[Or][
 							Function[{Typed[t, Or[a, Not[a]]]}, a],
 							Function[{Typed[x, a]}, x],
-							Function[{Typed[n, Not[a]]}, f[Function[{Typed[y, a]}, FalseElimination[n[y]]]]],
-							ExcludedMiddle[a]
+							Function[{Typed[n, Not[a]]}, f[Function[{Typed[y, a]}, "falseElimination"[n[y]]]]],
+							"excludedMiddle"[a]
 						]
 					],
 					prelude
@@ -357,9 +357,25 @@ VerificationTest[
 VerificationTest[
 	{
 		Information[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n], prelude], "ProofTree"],
-		Information[TypeTheoryTerm[EqualityReflexivity[2], prelude], "ProofTree"],
+		Information[TypeTheoryTerm["equalityReflexivity"[2], prelude], "ProofTree"],
 		MemberQ[Information[TypeTheoryTerm[2, prelude], "Properties"], "ProofTree"]
 	},
 	{Missing["Untranslatable"], Missing["Untranslatable"], True},
 	TestID -> "A-proof-beyond-propositional-logic-has-no-proof-tree"
+]
+
+(* an environment's theorems by name, each with its statement: the prelude's are named by strings, and a library adds
+   its own *)
+VerificationTest[
+	With[{theorems = Information[TypeTheoryEnvironment["Prelude"], "Theorems"], integers = Information[TypeTheoryEnvironment["Integers"], "Theorems"]},
+		{
+			AllTrue[Keys[theorems], StringQ],
+			Head[theorems["additionCommutativity"]],
+			MatchQ[theorems["additionCommutativity"], TypeTheoryTerm[_ForAll, _]],
+			MemberQ[Keys[KeyDrop[integers, Keys[theorems]]], "integerDistributivity"],
+			MemberQ[Information[TypeTheoryEnvironment["Prelude"], "Properties"], "Theorems"]
+		}
+	],
+	{True, TypeTheoryTerm, True, True, True},
+	TestID -> "An-environment-lists-its-theorems-with-their-statements"
 ]

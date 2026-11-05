@@ -26,7 +26,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{back = TypeTheoryTranslate[translated["Environment"], TypeTheoryRules["CalculusOfInductiveConstructions"]]},
-		{back["Failures"], MatchQ[TypeTheoryCheck[back["Environment"]], _Success], MatchQ[back["Environment"][AdditionCommutativity], _TypeTheoryDefinition]}
+		{back["Failures"], MatchQ[TypeTheoryCheck[back["Environment"]], _Success], MatchQ[back["Environment"]["additionCommutativity"], _TypeTheoryDefinition]}
 	],
 	{<||>, True, True},
 	TestID -> "A-translation-goes-back-its-theorems-definitions"
@@ -38,8 +38,8 @@ VerificationTest[
 	With[{environment = translated["Environment"]},
 		{
 			TypeOf[TypeTheoryTerm[Exists, environment]],
-			TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], environment, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Exact", AdditionZeroLeft[n]]}]["Goals"],
-			TypeTheoryProof[2 + 2 == 4 && Not[NaturalNumberSuccessor[3] == 0], environment, {TypeTheoryTactic["Decide"]}]["Goals"]
+			TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], environment, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Exact", "additionZeroLeft"[n]]}]["Goals"],
+			TypeTheoryProof[2 + 2 == 4 && Not["successor"[3] == 0], environment, {TypeTheoryTactic["Decide"]}]["Goals"]
 		}
 	],
 	{
@@ -57,9 +57,9 @@ VerificationTest[
 	With[{withAxioms = TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], martinLof, "Axioms" -> True]},
 		{
 			First @ translated["Failures"][QuotientType],
-			First @ TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], martinLof]["Failures"][PropositionalExtensionality],
-			KeyExistsQ[withAxioms["Failures"], PropositionalExtensionality],
-			KeyExistsQ[withAxioms["Environment"], Choice]
+			First @ TypeTheoryTranslate[TypeTheoryEnvironment["Prelude"], martinLof]["Failures"]["propositionalExtensionality"],
+			KeyExistsQ[withAxioms["Failures"], "propositionalExtensionality"],
+			KeyExistsQ[withAxioms["Environment"], "choice"]
 		}
 	],
 	{"QuotientsNotAllowed", "AxiomLeftOut", True, True},
@@ -89,7 +89,7 @@ VerificationTest[
 				"Axioms" -> True
 			]
 		},
-		{hott["Failures"], MatchQ[TypeTheoryCheck[hott["Environment"]], _Success], KeyExistsQ[hott["Environment"], UniverseNotSet]}
+		{hott["Failures"], MatchQ[TypeTheoryCheck[hott["Environment"]], _Success], KeyExistsQ[hott["Environment"], "universeNotSet"]}
 	],
 	{<||>, True, True},
 	TestID -> "Homotopy-type-theory-translates-to-the-calculus-of-inductive-constructions-with-rewrite-rules"

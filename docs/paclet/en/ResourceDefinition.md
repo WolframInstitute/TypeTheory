@@ -28,7 +28,7 @@ Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarat
 
 ## Usage
 
-[TypeTheoryTerm]() writes terms; [TypeOf](), [TypeTheoryCheck](), [WeakHeadNormalForm]() and [DefinitionallyEqualQ]() check and compute them. [TypeTheoryEnvironment]() builds environments from the declarations [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType]() and [TypeTheoryNaturalNumbers](). [TypeTheoryProof]() and [TypeTheoryTactic]() prove theorems interactively. [TypeUniverse](), [ImpredicativeMaximum]() and [InductiveRecursor]() are part of the term language, and [TrueIntroduction](), [AndIntroduction](), [EqualityReflexivity](), [EqualityCongruence]() and the other constants of the prelude are proofs to build on.
+[TypeTheoryTerm]() writes terms; [TypeOf](), [TypeTheoryCheck](), [WeakHeadNormalForm]() and [DefinitionallyEqualQ]() check and compute them. [TypeTheoryEnvironment]() builds environments from the declarations [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType]() and [TypeTheoryNaturalNumbers](). [TypeTheoryProof]() and [TypeTheoryTactic]() prove theorems interactively. [TypeUniverse](), [ImpredicativeMaximum]() and [InductiveRecursor]() are part of the term language, and `"trueIntroduction"`, `"andIntroduction"`, `"equalityReflexivity"`, `"equalityCongruence"` and the other constants of the prelude are proofs to build on.
 
 ## Basic Examples
 
@@ -55,7 +55,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n][21]]]
 Add a theorem to the prelude, checked by the kernel:
 
 ```wl
-arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]
+arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 110 constants -->
@@ -73,7 +73,7 @@ arithmetic[TwoPlusTwo]
 A wrong proof is rejected:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, EqualityReflexivity[4]]}]
+TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity"[4]]}]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -88,7 +88,7 @@ proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
     TypeTheoryTactic["Induction", n],
     TypeTheoryTactic["Reflexivity"],
     TypeTheoryTactic["Introduce", k, ih],
-    TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]]
+    TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]]
 }]
 ```
 
@@ -139,7 +139,7 @@ WeakHeadNormalForm[TypeTheoryTerm[ListSum[ConsList[5, ConsList[6, ConsList[7, Em
 Check every declaration of an environment again from scratch, the prelude's included:
 
 ```wl
-TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]]
+TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]]
 ```
 
 <!-- => Success["EnvironmentChecked", ...] -->

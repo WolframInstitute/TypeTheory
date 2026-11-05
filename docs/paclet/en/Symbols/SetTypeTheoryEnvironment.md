@@ -64,7 +64,7 @@ SetTypeTheoryEnvironment["Prelude"]
 [Block]() makes an environment the default for one computation. In the constructive environment, the prelude without its axioms, the excluded middle is not declared:
 
 ```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]]
+Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
@@ -72,7 +72,7 @@ Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheo
 Outside the [Block](), the default is the prelude, where it is a theorem:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ExcludedMiddle]]
+TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]
 ```
 
 <!-- => ∀_p∶Prop (p ∨ ¬p) -->

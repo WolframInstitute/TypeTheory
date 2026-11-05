@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Atoms
 Keywords: [Wolfram Language, expressions, pattern matching, Match]
-SeeAlso: [Expressions, ExpressionAtom, TypeTheoryEnvironment]
+SeeAlso: [Expressions, TypeTheoryEnvironment]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage]
 ---
@@ -17,7 +17,7 @@ RelatedTutorials: [TheWolframLanguage]
 ## Details & Options
 
 - [Atoms]() is a constant of [TypeTheoryEnvironment]()["WolframLanguage"], an axiom: the atoms are opaque to the kernel.
-- [ExpressionAtom]() makes an expression of an atom, and a natural number is an expression where one is expected, by a coercion.
+- `"atom"` makes an expression of an atom, and a natural number is an expression where one is expected, by a coercion.
 - The head of an atom is an axiom that the Wolfram Language computes, [Head]().
 
 ## Basic Examples
@@ -26,7 +26,7 @@ An atom is an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeOf[TypeTheoryTerm[ExpressionAtom, wolfram]]
+TypeOf[TypeTheoryTerm["atom", wolfram]]
 ```
 
 <!-- => Atoms → Expressions -->

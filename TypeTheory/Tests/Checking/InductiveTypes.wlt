@@ -113,7 +113,7 @@ VerificationTest[
 		Function[{Typed[t, Or[True, True]]}, NonNegativeIntegers],
 		Function[{Typed[p, True]}, 0],
 		Function[{Typed[q, True]}, 1],
-		OrIntroductionLeft[TrueIntroduction]
+		"orIntroductionLeft"["trueIntroduction"]
 	], prelude]],
 	"TypeMismatch",
 	TestID -> "A-proof-of-a-disjunction-cannot-choose-a-number"
@@ -123,7 +123,7 @@ VerificationTest[
 	WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[And][
 		Function[{Typed[t, And[True, True]]}, NonNegativeIntegers],
 		Function[{Typed[p, True], Typed[q, True]}, 7],
-		AndIntroduction[TrueIntroduction, TrueIntroduction]
+		"andIntroduction"["trueIntroduction", "trueIntroduction"]
 	], prelude]],
 	TypeTheoryTerm[7, prelude],
 	TestID -> "A-conjunction-eliminates-into-any-universe"

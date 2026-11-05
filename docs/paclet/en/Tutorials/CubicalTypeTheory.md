@@ -70,27 +70,27 @@ DefinitionallyEqualQ[
 
 <!-- => True -->
 
-The path reversed is the function of `i` that is `p[1 - i]`, [PathSymmetry]():
+The path reversed is the function of `i` that is `p[1 - i]`, `"pathSymmetry"`:
 
 ```wl
-cubical[PathSymmetry]
+cubical["pathSymmetry"]
 ```
 
 <!-- => definition PathSymmetry : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} x≡y→y≡x := {A∶Type u} {x∶A} {y∶A} (p∶x≡y) (i∶Interval)↦p[~i] -->
 
-Function extensionality is a term: a path between functions is a function of the interval into functions, [PathFunctionExtensionality]():
+Function extensionality is a term: a path between functions is a function of the interval into functions, `"pathFunctionExtensionality"`:
 
 ```wl
-cubical[PathFunctionExtensionality]
+cubical["pathFunctionExtensionality"]
 ```
 
 <!-- => definition PathFunctionExtensionality : ∀_{A∶Type u} ∀_{B∶Type v} ∀_{f∶A→B} ∀_{g∶A→B} (∀_x∶A f[x]≡g[x])→f≡g := {A∶Type u} {B∶Type v} {f∶A→B} {g∶A→B} (h∶∀_x∶A f[x]≡g[x]) (i∶Interval) (x∶A)↦h[x,i] -->
 
-At 0 it is the first function, by computation. The path from `"not"["not"[b]]` to `b` for every Boolean `b`, [NegationInvolution](), gives a path between functions whose start is the double negation:
+At 0 it is the first function, by computation. The path from `"not"["not"[b]]` to `b` for every Boolean `b`, `"negationInvolution"`, gives a path between functions whose start is the double negation:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[PathFunctionExtensionality[Typed[b, Booleans] |-> NegationInvolution[b]][0], cubical],
+    TypeTheoryTerm["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]][0], cubical],
     TypeTheoryTerm[Typed[b, Booleans] |-> "not"["not"[b]], cubical]
 ]
 ```
@@ -115,18 +115,18 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[p, Path[TypeUniverse[1], Booleans, Booleans
 
 <!-- => Failure["TransportNotConstant", ...] -->
 
-Path induction transports along the path's connection, the function of `i` and `j` that is `p[Min[i, j]]`, [PathInduction]():
+Path induction transports along the path's connection, the function of `i` and `j` that is `p[Min[i, j]]`, `"pathInduction"`:
 
 ```wl
-cubical[PathInduction]
+cubical["pathInduction"]
 ```
 
 <!-- => definition PathInduction : ∀_{A∶Type u} ∀_{x∶A} ∀_P∶∀_y∶A x≡y→Type v P[x,(i∶Interval)↦x]→∀_{y∶A} ∀_p∶x≡y P[y,p] := {A∶Type u} {x∶A} (P∶∀_y∶A x≡y→Type v) (d∶P[x,(i∶Interval)↦x]) {y∶A} (p∶x≡y)↦CubicalTransport[(i∶Interval)↦P[p[i],(j∶Interval)↦p[i∧j]],0,d] -->
 
-[CubicalComposition]() fills an open box: given its base and its sides over faces, it gives the lid. The concatenation of two paths composes along the second, [PathTransitivity]():
+[CubicalComposition]() fills an open box: given its base and its sides over faces, it gives the lid. The concatenation of two paths composes along the second, `"pathTransitivity"`:
 
 ```wl
-cubical[PathTransitivity]
+cubical["pathTransitivity"]
 ```
 
 <!-- => definition PathTransitivity : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} ∀_{z∶A} x≡y→y≡z→x≡z := {A∶Type u} {x∶A} {y∶A} {z∶A} (p∶x≡y) (q∶y≡z) (i∶Interval)↦CubicalComposition[A,(j∶Interval)↦{i == 0->x,i == 1->q[j]},p[i]] -->
@@ -149,18 +149,18 @@ cubical[Equivalence]
 
 <!-- => definition Equivalence : Type u → Type u → Type u := (A ∶ Type u) (B ∶ Type u) ↦ Σ_f∶A → B IsEquivalence[f] -->
 
-A [GlueType]() over `B` is, where each face of its system holds, a type glued to `B` along an equivalence. Univalence, [EquivalenceToPath](), is the line of Glue types over `B` that is `A` at 0, glued along the equivalence `e`, and `B` at 1, glued along the identity:
+A [GlueType]() over `B` is, where each face of its system holds, a type glued to `B` along an equivalence. Univalence, `"equivalenceToPath"`, is the line of Glue types over `B` that is `A` at 0, glued along the equivalence `e`, and `B` at 1, glued along the identity:
 
 ```wl
-cubical[EquivalenceToPath]
+cubical["equivalenceToPath"]
 ```
 
 <!-- => definition EquivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->〈A,e〉,i == 1->〈B,IdentityEquivalence[B]〉}] -->
 
-Transport along it applies the equivalence. Negation is an equivalence of the Booleans, [NegationEquivalence](), made from the isomorphism it is with itself by [IsomorphismEquivalence]():
+Transport along it applies the equivalence. Negation is an equivalence of the Booleans, `"negationEquivalence"`, made from the isomorphism it is with itself by `"isomorphismEquivalence"`:
 
 ```wl
-transported = TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], cubical]
+transported = TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negationEquivalence"], 0, "true"], cubical]
 ```
 
 <!-- => CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, true] -->
@@ -176,7 +176,7 @@ WeakHeadNormalForm[transported]
 In the HoTT environment univalence is an axiom, so the same transport stops at it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, EquivalenceToEquality[NegationEquivalence], "true"], TypeTheoryEnvironment["HomotopyTypeTheory"]]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], TypeTheoryEnvironment["HomotopyTypeTheory"]]]
 ```
 
 <!-- => Equal_rec[(z∶Type) (q∶𝔹 == z)↦((X∶Type)↦X)[z],true,EquivalenceToEquality[NegationEquivalence]] -->
@@ -184,3 +184,13 @@ WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, Equ
 ## What Has No Rule Here
 
 A transport or a composition that no rule covers does not compute, which loses canonicity and never consistency: every rule the kernel has is one of cubical type theory. Composition in a universe has no rule, so transport along a concatenation of two paths of univalence stops. Transport in a Glue type computes where its own face is 0 and no face of the Glue type holds all along the line, as on the paths of univalence. Higher inductive types, such as the circle, are not primitives, and the rules have no Prop.
+
+## Its Constants
+
+The operations on paths and the equivalences of the cubical environment are definitions named by strings, as `"pathSymmetry"` and `"equivalenceToPath"` are, since a path is a term, not a proof of a proposition:
+
+```wl
+Select[Keys[TypeTheoryEnvironment["Cubical"]], StringQ]
+```
+
+<!-- => {"dependentPair", "false", "true", "not", "pathSymmetry", "pathTransitivity", ...} -->

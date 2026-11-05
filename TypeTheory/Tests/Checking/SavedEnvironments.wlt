@@ -14,7 +14,7 @@ savedFile[name_String] := FileNameJoin[{directory, name <> ".wxf"}]
 
 prelude = TypeTheoryEnvironment["Prelude"]
 
-arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]
+arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]
 
 savedData[name_String] := First[BinaryDeserialize[ReadByteArray[savedFile[name]], HoldComplete]]
 
@@ -161,7 +161,7 @@ VerificationTest[
    association it holds that is not made yet *)
 VerificationTest[
 	Module[{annotated = savedFile["annotated"], printed = {}, loaded},
-		Export[annotated, Append[prelude, TypeTheoryTheorem[Annotated, 1 == 1, EqualityReflexivity[1], "Annotation" -> <|"Check" -> HoldForm[Association[Print["evaluated while reading"]]]|>]]];
+		Export[annotated, Append[prelude, TypeTheoryTheorem[Annotated, 1 == 1, "equalityReflexivity"[1], "Annotation" -> <|"Check" -> HoldForm[Association[Print["evaluated while reading"]]]|>]]];
 		Block[{Print = Function[Null, AppendTo[printed, {##}], HoldAll]},
 			loaded = TypeTheoryEnvironment[File[annotated]]
 		];
@@ -172,7 +172,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	Module[{again = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]},
+	Module[{again = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]},
 		Export[savedFile["again"], again];
 		savedData["again"]["Hash"] === savedData["arithmetic"]["Hash"]
 	],

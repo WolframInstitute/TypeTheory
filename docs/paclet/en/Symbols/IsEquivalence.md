@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/IsEquivalence
 Keywords: [equivalence, bi-invertible, HoTT, univalence]
-SeeAlso: [EquivalenceProof, Equivalence, Univalence]
+SeeAlso: [EquivalenceProof, Equivalence]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [HomotopyTypeTheory]
 ---

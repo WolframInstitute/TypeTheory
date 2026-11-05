@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Decidable
 Keywords: [decidable, decision, proposition, Boolean, prelude, inductive type]
-SeeAlso: [DecidableTrue, DecidableFalse, Decide, DecideSoundness, TypeTheoryTactic]
+SeeAlso: [Decide, TypeTheoryTactic]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude]
 ---
@@ -16,11 +16,11 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Decidable]() is an inductive type of the prelude, with the constructors [DecidableFalse]() and [DecidableTrue](), in that order, as Lean's `Decidable`.
-- A decision is data, in `Type`, not a proposition, so it computes: [Decide]() turns it into a Boolean, and [DecideSoundness]() turns a decision that computes to `"true"` into a proof of *p*.
+- [Decidable]() is an inductive type of the prelude, with the constructors `"decidableFalse"` and `"decidableTrue"`, in that order, as Lean's `Decidable`.
+- A decision is data, in `Type`, not a proposition, so it computes: [Decide]() turns it into a Boolean, and `"decideSoundness"` turns a decision that computes to `"true"` into a proof of *p*.
 - [Decidable]() is a class: its instances are definitions declared with `"Instance" -> True`, and elaboration finds the decision of a proposition among them, as Lean's type class resolution does.
-- The prelude's instances decide equations and inequalities of natural numbers with [NaturalNumberEqualityDecidable]() and [LessEqualDecidable](), which compare literals in one step of the kernel, combine decisions with [NotDecidable](), [AndDecidable]() and [OrDecidable](), and decide [True](), [False]() and equations of Booleans with `"trueDecidable"`, `"falseDecidable"` and `"booleanEqualityDecidable"`.
-- The tactic `"Decide"` of [TypeTheoryTactic]() finds the decision of the goal and proves it with [DecideSoundness](); an environment extends it with instances of its own.
+- The prelude's instances decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, which compare literals in one step of the kernel, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans with `"trueDecidable"`, `"falseDecidable"` and `"booleanEqualityDecidable"`.
+- The tactic `"Decide"` of [TypeTheoryTactic]() finds the decision of the goal and proves it with `"decideSoundness"`; an environment extends it with instances of its own.
 
 ## Basic Examples
 
@@ -47,7 +47,7 @@ TypeTheoryCheck[TypeTheoryTerm[Decidable[2 == 3]]]
 A decision computes to the constructor that holds, with its proof:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[LessEqualDecidable[1, 4]]]
+WeakHeadNormalForm[TypeTheoryTerm["lessEqualDecidable"[1, 4]]]
 ```
 
 <!-- => DecidableTrue[lessEqualTrue[1, 4, EqualityReflexivity[lessEqual[1, 4]]]] -->

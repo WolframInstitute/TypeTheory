@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/CubicalTransport
 Keywords: [transport, line of types, cubical type theory, face, univalence, coercion]
-SeeAlso: [CubicalComposition, TypeTheoryCubical, EquivalenceToPath, PathInduction]
+SeeAlso: [CubicalComposition, TypeTheoryCubical]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [CubicalTypeTheory]
 ---
@@ -19,7 +19,7 @@ RelatedTutorials: [CubicalTypeTheory]
 - *A* may be written as a type, the constant line, or as a path of types, which is a function of the interval.
 - The kernel checks that *A* is constant on every conjunction of the face *φ*, and fails with `"TransportNotConstant"` otherwise.
 - Transport computes by the type it is in: it is *a* where *φ* holds, and in a universe or an inductive type with no parameters and no indices; in a function type and a path type it is built from transport and composition in the parts.
-- In a Glue type, where *φ* is 0 and no face of the Glue type holds all along the line, it carries the element under *a* along the base and takes the centers of the fibers of the equivalences at the end: along the path of [EquivalenceToPath](), it applies the equivalence.
+- In a Glue type, where *φ* is 0 and no face of the Glue type holds all along the line, it carries the element under *a* along the base and takes the centers of the fibers of the equivalences at the end: along the path of `"equivalenceToPath"`, it applies the equivalence.
 - Where no rule applies the transport does not compute. [CubicalTransport]() must be given all three arguments.
 
 ## Basic Examples
@@ -53,7 +53,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Transport along univalence applies the equivalence:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, "true"], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negationEquivalence"], 0, "true"], cubical]]
 ```
 
 <!-- => false -->
@@ -71,7 +71,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Path induction is transport along the connection of a path, `p[Min[i, j]]`:
 
 ```wl
-cubical[PathInduction]
+cubical["pathInduction"]
 ```
 
 <!-- => definition PathInduction : ∀_{A∶Type u} ∀_{x∶A} ∀_P∶∀_y∶A x≡y→Type v P[x,(i∶Interval)↦x]→∀_{y∶A} ∀_p∶x≡y P[y,p] := {A∶Type u} {x∶A} (P∶∀_y∶A x≡y→Type v) (d∶P[x,(i∶Interval)↦x]) {y∶A} (p∶x≡y)↦CubicalTransport[(i∶Interval)↦P[p[i],(j∶Interval)↦p[i∧j]],0,d] -->

@@ -26,10 +26,10 @@ The type is read back into surface syntax and shown in mathematical notation, so
 
 ## Names
 
-A name is a variable that a binder in scope introduces, or a constant that the environment declares. [EqualityReflexivity]() is a constant of the prelude, and its argument 2 gives the type `2 == 2`:
+A name is a variable that a binder in scope introduces, or a constant that the environment declares. `"equalityReflexivity"` is a constant of the prelude, and its argument 2 gives the type `2 == 2`:
 
 ```wl
-TypeOf[TypeTheoryTerm[EqualityReflexivity[2]]]
+TypeOf[TypeTheoryTerm["equalityReflexivity"[2]]]
 ```
 
 <!-- => 2 == 2 -->
@@ -53,8 +53,8 @@ TypeOf[TypeTheoryTerm[undeclaredName]]
 A symbol whose value is a [TypeTheoryTerm]() stands for that term, so terms can be built in steps:
 
 ```wl
-reflexivity = TypeTheoryTerm[EqualityReflexivity[2]];
-TypeOf[TypeTheoryTerm[EqualitySymmetry[reflexivity]]]
+reflexivity = TypeTheoryTerm["equalityReflexivity"[2]];
+TypeOf[TypeTheoryTerm["equalitySymmetry"[reflexivity]]]
 ```
 
 <!-- => 2 == 2 -->
@@ -96,7 +96,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 
 <!-- => {{ℕ}, Type} -->
 
-A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`, so a binder of a type `Sequence[...]` takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of [SequencePrepend](), is the sequence itself; it is elaborated once, and its type tells which:
+A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`, so a binder of a type `Sequence[...]` takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of `"sequencePrepend"`, is the sequence itself; it is elaborated once, and its type tells which:
 
 ```wl
 pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequence[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers]}];
@@ -138,7 +138,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 A level still undecided becomes a universe parameter of the declaration, `"u_1"`, as Lean binds one:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, Typed[y, A]} |-> EqualityReflexivity[y]]}][SelfEquality]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, Typed[y, A]} |-> "equalityReflexivity"[y]]}][SelfEquality]
 ```
 
 <!-- => TypeTheoryTheorem[SelfEquality, ∀_{A∶Sort u_1} ∀_{y∶A} y == y, ...] -->

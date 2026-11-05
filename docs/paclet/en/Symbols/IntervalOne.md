@@ -83,7 +83,7 @@ DefinitionallyEqualQ[
 
 ## Applications
 
-At 1, the path between two functions that [PathFunctionExtensionality]() gives is the second function.
+At 1, the path between two functions that `"pathFunctionExtensionality"` gives is the second function.
 
 The cubical environment:
 
@@ -93,11 +93,11 @@ cubical = TypeTheoryEnvironment["Cubical"]
 
 <!-- => TypeTheoryEnvironment summary box: 34 constants -->
 
-Made from the paths <code>[NegationInvolution]()[*b*]</code> from `"not"["not"[b]]` to `b`, the path ends at the identity:
+Made from the paths <code>`"negationInvolution"`[*b*]</code> from `"not"["not"[b]]` to `b`, the path ends at the identity:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[PathFunctionExtensionality[Typed[b, Booleans] |-> NegationInvolution[b]][1], cubical],
+    TypeTheoryTerm["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]][1], cubical],
     TypeTheoryTerm[Typed[b, Booleans] |-> b, cubical]
 ]
 ```

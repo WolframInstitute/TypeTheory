@@ -21,9 +21,9 @@ VerificationTest[
 (* the part of an expression at a position: 0 its head, k its k-th argument, no result out of range *)
 VerificationTest[
 	{
-		equalQ[MatchPart[ExpressionNormal[7, {1, 2}], 2, MatchValues], MatchValues[Typed[2, Expressions]]],
-		equalQ[MatchPart[ExpressionNormal[7, {1}], 0, MatchValues], MatchValues[Typed[7, Expressions]]],
-		equalQ[MatchPart[ExpressionNormal[7, {1}], 5, MatchValues], Typed[{}, Match[Expressions]]]
+		equalQ[MatchPart["normal"[7, {1, 2}], 2, MatchValues], MatchValues[Typed[2, Expressions]]],
+		equalQ[MatchPart["normal"[7, {1}], 0, MatchValues], MatchValues[Typed[7, Expressions]]],
+		equalQ[MatchPart["normal"[7, {1}], 5, MatchValues], Typed[{}, Match[Expressions]]]
 	},
 	{True, True, True},
 	TestID -> "The-parts-of-an-expression-are-matches"
@@ -32,9 +32,9 @@ VerificationTest[
 (* alternatives in order, the first result the one taken, none where nothing matches; bind sequences, guard filters *)
 VerificationTest[
 	{
-		equalQ[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], OptionSome[1]],
-		equalQ[MatchFirst[MatchSum[Typed[{}, Match[NonNegativeIntegers]], MatchValues[3]]], OptionSome[3]],
-		equalQ[MatchFirst[Typed[{}, Match[NonNegativeIntegers]]], Typed[OptionNone, Option[NonNegativeIntegers]]],
+		equalQ[MatchFirst[MatchSum[MatchValues[1], MatchValues[2]]], "some"[1]],
+		equalQ[MatchFirst[MatchSum[Typed[{}, Match[NonNegativeIntegers]], MatchValues[3]]], "some"[3]],
+		equalQ[MatchFirst[Typed[{}, Match[NonNegativeIntegers]]], Typed["none", Option[NonNegativeIntegers]]],
 		equalQ[MatchBind[{1, 2}, Function[{Typed[x, NonNegativeIntegers]}, {x, x}]], {1, 1, 2, 2}],
 		equalQ[Condition[MatchValues[1], "false"], Typed[{}, Match[NonNegativeIntegers]]],
 		equalQ[Condition[MatchValues[1], "true"], MatchValues[1]]
@@ -47,8 +47,8 @@ VerificationTest[
    in order *)
 VerificationTest[
 	{
-		equalQ[Arguments[ExpressionNormal[7, {1, 2}]], Typed[{1, 2}, {Expressions}]],
-		equalQ[MatchProduct[{1, 2}, {3}], {Pair[1, 3], Pair[2, 3]}]
+		equalQ[Arguments["normal"[7, {1, 2}]], Typed[{1, 2}, {Expressions}]],
+		equalQ[MatchProduct[{1, 2}, {3}], {"pair"[1, 3], "pair"[2, 3]}]
 	},
 	{True, True},
 	TestID -> "Arguments-are-a-sequence-and-a-product-pairs-results"
@@ -60,7 +60,7 @@ VerificationTest[
 VerificationTest[
 	With[{quoting = TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], {TypeTheoryAxiom["Global`f", Atoms], TypeTheoryAxiom["\"abc\"", Strings]}]},
 		{
-			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm[ExpressionNormal[ExpressionAtom["Global`f"], {1, 2}], quoting]],
+			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm["normal"["atom"["Global`f"], {1, 2}], quoting]],
 			Head[TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest, Sequence @@ rest]], quoting]]] === TypeTheoryTerm,
 			DefinitionallyEqualQ[
 				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, {Expressions}]} |-> HoldForm[f[x, rest]])[1, {2, 3}], quoting],

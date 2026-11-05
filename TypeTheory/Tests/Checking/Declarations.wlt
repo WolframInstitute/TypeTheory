@@ -40,7 +40,7 @@ VerificationTest[
 	With[{identity = Append[prelude, TypeTheoryDefinition[PolymorphicIdentity, Function[{TypedImplicit[A, TypeUniverse[u]], Typed[x, A]}, x]]]},
 		First /@ {
 			TypeOf[TypeTheoryTerm[PolymorphicIdentity[3], identity]],
-			TypeOf[TypeTheoryTerm[PolymorphicIdentity[TrueIntroduction], identity]],
+			TypeOf[TypeTheoryTerm[PolymorphicIdentity["trueIntroduction"], identity]],
 			TypeOf[TypeTheoryTerm[PolymorphicIdentity[NonNegativeIntegers], identity]]
 		}
 	],
@@ -88,8 +88,8 @@ VerificationTest[
 VerificationTest[
 	With[{secret = Append[prelude, TypeTheoryDefinition[Secret, Typed[42, NonNegativeIntegers], "Opaque" -> True]]},
 		{
-			Head[Append[secret, TypeTheoryTheorem[SecretItself, Secret == Secret, EqualityReflexivity[Secret]]]],
-			Head[Append[secret, TypeTheoryTheorem[SecretValue, Secret == 42, EqualityReflexivity[42]]]]
+			Head[Append[secret, TypeTheoryTheorem[SecretItself, Secret == Secret, "equalityReflexivity"[Secret]]]],
+			Head[Append[secret, TypeTheoryTheorem[SecretValue, Secret == 42, "equalityReflexivity"[42]]]]
 		}
 	],
 	{TypeTheoryEnvironment, Failure},
@@ -97,13 +97,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	Head[Append[prelude, TypeTheoryDefinition[Forged, Typed[TrueIntroduction, NonNegativeIntegers], "Opaque" -> True]]],
+	Head[Append[prelude, TypeTheoryDefinition[Forged, Typed["trueIntroduction", NonNegativeIntegers], "Opaque" -> True]]],
 	Failure,
 	TestID -> "An-opaque-definition-whose-value-has-another-type-gives-a-Failure"
 ]
 
 VerificationTest[
-	With[{arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]]},
+	With[{arithmetic = Append[prelude, TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]},
 		TypeOf[TypeTheoryTerm[TwoPlusTwo, arithmetic]] === TypeTheoryTerm[2 + 2 == 4, arithmetic]
 	],
 	True,
@@ -189,7 +189,7 @@ VerificationTest[
 
 VerificationTest[
 	First /@ {
-		Append[prelude, TypeTheoryTheorem[Bogus, 2 + 2 == 5, EqualityReflexivity[4]]],
+		Append[prelude, TypeTheoryTheorem[Bogus, 2 + 2 == 5, "equalityReflexivity"[4]]],
 		Append[prelude, TypeTheoryTheorem[NotAProposition, NonNegativeIntegers, 3]],
 		Append[prelude, TypeTheoryAxiom[Plus, True]],
 		Append[prelude, TypeTheoryDefinition[Loop, Typed[Function[{Typed[n, NonNegativeIntegers]}, Loop[n]], TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]]]],
@@ -248,7 +248,7 @@ VerificationTest[
 VerificationTest[
 	{
 		$TypeTheoryEnvironment === prelude,
-		Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], ExcludedMiddle]],
+		Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], "excludedMiddle"]],
 		Block[{$TypeTheoryEnvironment}, Keys[SetTypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}]] === Append[Keys[prelude], Point]],
 		First[SetTypeTheoryEnvironment[42]]
 	},
@@ -260,9 +260,9 @@ VerificationTest[
    environment leaves the prelude *)
 VerificationTest[
 	{
-		Block[{$TypeTheoryEnvironment = "Constructive"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], ExcludedMiddle]],
-		Block[{$TypeTheoryEnvironment = "Integers"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], IntegerAdditionCommutativity]],
-		Block[{$TypeTheoryEnvironment = "Classical"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], ExcludedMiddle]]
+		Block[{$TypeTheoryEnvironment = "Constructive"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], "excludedMiddle"]],
+		Block[{$TypeTheoryEnvironment = "Integers"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], "integerAdditionCommutativity"]],
+		Block[{$TypeTheoryEnvironment = "Classical"}, KeyExistsQ[TypeTheoryEnvironment[{TypeTheoryAxiom[Point, Naturals]}], "excludedMiddle"]]
 	},
 	{False, True, True},
 	TestID -> "A-library-environment-name-stands-for-it-in-a-Block"
@@ -301,7 +301,7 @@ VerificationTest[
 		{
 			Head[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[numbers, Typed[Sequence[1, 2], Sequence[NonNegativeIntegers, NonNegativeIntegers]]]}]],
 			First[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[forged, Typed[Sequence[1, 2], Sequence[NonNegativeIntegers]]]}]],
-			First[TypeTheoryEnvironment[wolfram, {TypeTheoryTheorem[forgedTheorem, 1 == 2, Sequence[EqualityReflexivity[1]]]}]]
+			First[TypeTheoryEnvironment[wolfram, {TypeTheoryTheorem[forgedTheorem, 1 == 2, Sequence["equalityReflexivity"[1]]]}]]
 		}
 	],
 	{TypeTheoryEnvironment, "TypeMismatch", "TypeMismatch"},

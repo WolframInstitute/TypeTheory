@@ -18,7 +18,7 @@ RelatedGuides: [TypeTheory]
 ## Details & Options
 
 - The closure follows every constant *term* mentions, then the constants in the type and value of each of those, as Lean's `#print axioms` does. A constructor or recursor leads to its inductive type, and an inductive type to its constructors.
-- An axiom is `"Proposition"` when its type is a proposition, such as [PropositionalExtensionality](), and `"Signature"` otherwise: an axiom of a type, such as a constant of [NonNegativeIntegers]() or a type of its own, which a theorem holds for whatever it stands for, as for a variable. [Choice](), whose value is an element of a type, is a signature by this rule.
+- An axiom is `"Proposition"` when its type is a proposition, such as `"propositionalExtensionality"`, and `"Signature"` otherwise: an axiom of a type, such as a constant of [NonNegativeIntegers]() or a type of its own, which a theorem holds for whatever it stands for, as for a variable. `"choice"`, whose value is an element of a type, is a signature by this rule.
 - A rewrite rule of a constant the closure reaches is listed as `"RewriteRule"`: the kernel computes with it, so it is trusted as an axiom is.
 - A theorem that rests on no axiom has the closure <code><\|\|></code>.
 - A hole, <code>[TypeTheoryHole]()[*theorem*, *k*]</code>, is no axiom and is left out; <code>[Information]()[*term*, "Holes"]</code> gives the holes *term* rests on, those of the theorems it uses included.
@@ -29,7 +29,7 @@ RelatedGuides: [TypeTheory]
 Excluded middle rests on the three axioms Lean's proof of it uses:
 
 ```wl
-TypeTheoryAxiomClosure[TypeTheoryTerm[ExcludedMiddle]]
+TypeTheoryAxiomClosure[TypeTheoryTerm["excludedMiddle"]]
 ```
 
 <!-- => <|Choice -> Signature, QuotientSoundness -> Proposition, PropositionalExtensionality -> Proposition|> -->
@@ -39,7 +39,7 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[ExcludedMiddle]]
 A theorem proved by computation rests on none:
 
 ```wl
-TypeTheoryAxiomClosure[TypeTheoryTerm[EqualitySymmetry]]
+TypeTheoryAxiomClosure[TypeTheoryTerm["equalitySymmetry"]]
 ```
 
 <!-- => <||> -->
@@ -85,7 +85,7 @@ TypeTheoryAxiomClosure[TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Decide"]}]
 Homotopy type theory's circle is given by axioms, and its induction principle computes on the base point by a rewrite rule:
 
 ```wl
-TypeTheoryAxiomClosure[TypeTheoryTerm[CircleInduction, TypeTheoryEnvironment["HomotopyTypeTheory"]]]
+TypeTheoryAxiomClosure[TypeTheoryTerm["circleInduction", TypeTheoryEnvironment["HomotopyTypeTheory"]]]
 ```
 
 <!-- => <|CircleInduction -> Signature, Circle -> Signature, CircleBase -> Signature, CircleLoop -> Signature, CircleInductionBase -> RewriteRule|> -->
@@ -95,7 +95,7 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[CircleInduction, TypeTheoryEnvironment["Ho
 [Information]() gives the same closure:
 
 ```wl
-Information[TypeTheoryTerm[ExcludedMiddle], "AxiomClosure"] === TypeTheoryAxiomClosure[TypeTheoryTerm[ExcludedMiddle]]
+Information[TypeTheoryTerm["excludedMiddle"], "AxiomClosure"] === TypeTheoryAxiomClosure[TypeTheoryTerm["excludedMiddle"]]
 ```
 
 <!-- => True -->
@@ -115,7 +115,7 @@ Information[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]], "Constants
 The constants of a theorem are those of its statement and its proof, the closure's first step:
 
 ```wl
-Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]], "Constants"]
+Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]], "Constants"]
 ```
 
 <!-- => {Equal, NonNegativeIntegers, Plus, EqualityReflexivity} -->
@@ -137,7 +137,7 @@ With[{rationals = TypeTheoryEnvironment["Rationals"]},
 The closure of a constant includes the axioms its proof uses, not only its statement's: the statement of excluded middle mentions no axiom.
 
 ```wl
-TypeTheoryAxiomClosure[TypeOf[TypeTheoryTerm[ExcludedMiddle]]]
+TypeTheoryAxiomClosure[TypeOf[TypeTheoryTerm["excludedMiddle"]]]
 ```
 
 <!-- => <||> -->

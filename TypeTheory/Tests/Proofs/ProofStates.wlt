@@ -14,7 +14,7 @@ zeroLeft = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], 
 	TypeTheoryTactic["Induction", n],
 	TypeTheoryTactic["Reflexivity"],
 	TypeTheoryTactic["Introduce", k, ih],
-	TypeTheoryTactic["Exact", EqualityCongruence[NaturalNumberSuccessor, ih]]
+	TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]]
 }]
 
 
@@ -87,8 +87,8 @@ VerificationTest[
 	TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Induction", n]}]["Goals"],
 	With[{n = WolframInstitute`TypeTheory`Library`Prelude`Private`n},
 		{
-			TypeTheoryTerm[RightTee[{}, 0 + NaturalNumberZero == NaturalNumberZero], prelude],
-			TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies[0 + n == n, 0 + NaturalNumberSuccessor[n] == NaturalNumberSuccessor[n]]]], prelude]
+			TypeTheoryTerm[RightTee[{}, 0 + "zero" == "zero"], prelude],
+			TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies[0 + n == n, 0 + "successor"[n] == "successor"[n]]]], prelude]
 		}
 	],
 	TestID -> "Induction-gives-a-goal-per-constructor"
@@ -121,18 +121,18 @@ VerificationTest[
 VerificationTest[
 	TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], prelude, {
 		TypeTheoryTactic["Introduce", a, b, ha, hb],
-		TypeTheoryTactic["Apply", AndIntroduction],
+		TypeTheoryTactic["Apply", "andIntroduction"],
 		TypeTheoryTactic["Assumption"],
 		TypeTheoryTactic["Exact", hb]
 	}]["Term"],
-	TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[ha, a], Typed[hb, b]}, AndIntroduction[ha, hb]], prelude],
+	TypeTheoryTerm[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[ha, a], Typed[hb, b]}, "andIntroduction"[ha, hb]], prelude],
 	TestID -> "Apply-leaves-a-goal-per-argument"
 ]
 
 VerificationTest[
 	TypeTheoryProof[ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[z, NonNegativeIntegers]}, Implies[x == y, Implies[y == z, x == z]]], prelude, {
 		TypeTheoryTactic["Introduce", x, y, z, h1, h2],
-		TypeTheoryTactic["Apply", EqualityTransitivity],
+		TypeTheoryTactic["Apply", "equalityTransitivity"],
 		TypeTheoryTactic["Exact", h1],
 		TypeTheoryTactic["Exact", h2]
 	}]["Goals"],
@@ -153,7 +153,7 @@ VerificationTest[
 	First /@ {
 		TypeTheoryTactic["Introduce", x][TypeTheoryProof[2 + 2 == 4, prelude]],
 		TypeTheoryTactic["Bogus"][TypeTheoryProof[2 + 2 == 4, prelude]],
-		TypeTheoryTactic["Exact", EqualityReflexivity[5]][TypeTheoryProof[2 + 2 == 4, prelude]],
+		TypeTheoryTactic["Exact", "equalityReflexivity"[5]][TypeTheoryProof[2 + 2 == 4, prelude]],
 		TypeTheoryTactic["Reflexivity"][TypeTheoryProof[2 + 2 == 5, prelude]],
 		TypeTheoryTactic["Reflexivity"][TypeTheoryTactic["Reflexivity"][TypeTheoryProof[2 + 2 == 4, prelude]]]
 	},
@@ -181,8 +181,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		TypeTheoryCheck[TypeTheoryTerm[EqualityReflexivity[4], prelude], TypeTheoryTerm[2 + 2 == 4]][[1]],
-		TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, EqualityReflexivity[4]]}]][[1]]
+		TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4], prelude], TypeTheoryTerm[2 + 2 == 4]][[1]],
+		TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]][[1]]
 	},
 	{"TypeChecked", "EnvironmentChecked"},
 	TestID -> "A-check-that-passes-gives-a-Success"
@@ -208,7 +208,7 @@ VerificationTest[
 	{
 		TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, a + b + c == b + a + c], prelude, {
 			TypeTheoryTactic["Introduce", a, b, c],
-			TypeTheoryTactic["Rewrite", AdditionCommutativity]
+			TypeTheoryTactic["Rewrite", "additionCommutativity"]
 		}]["Goals"],
 		rewritten["Goals"]
 	},
@@ -249,7 +249,7 @@ VerificationTest[
 VerificationTest[
 	{
 		TypeTheoryProof[And[True, True], prelude, {TypeTheoryTactic["Constructor"], TypeTheoryTactic["Constructor"], TypeTheoryTactic["Constructor"]}]["Goals"],
-		TypeTheoryProof[Exists[{Typed[k, NonNegativeIntegers]}, k == 2], prelude, {TypeTheoryTactic["Constructor"], TypeTheoryTactic["Exact", EqualityReflexivity[2]]}]["Goals"],
+		TypeTheoryProof[Exists[{Typed[k, NonNegativeIntegers]}, k == 2], prelude, {TypeTheoryTactic["Constructor"], TypeTheoryTactic["Exact", "equalityReflexivity"[2]]}]["Goals"],
 		First @ TypeTheoryProof[False, prelude, {TypeTheoryTactic["Constructor"]}],
 		First @ TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], prelude, {TypeTheoryTactic["Constructor"]}]
 	},
@@ -271,10 +271,10 @@ VerificationTest[
 			TypeTheoryTactic["Introduce", p, q, h],
 			TypeTheoryTactic["Cases", h],
 			TypeTheoryTactic["Introduce", hp],
-			TypeTheoryTactic["Apply", OrIntroductionRight],
+			TypeTheoryTactic["Apply", "orIntroductionRight"],
 			TypeTheoryTactic["Exact", hp],
 			TypeTheoryTactic["Introduce", hq],
-			TypeTheoryTactic["Apply", OrIntroductionLeft],
+			TypeTheoryTactic["Apply", "orIntroductionLeft"],
 			TypeTheoryTactic["Exact", hq]
 		}]["Goals"],
 		TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[False, p]], prelude, {TypeTheoryTactic["Introduce", p, h], TypeTheoryTactic["Cases", h]}]["Goals"]
@@ -290,8 +290,8 @@ VerificationTest[
 	}]["Goals"],
 	With[{n = WolframInstitute`TypeTheory`Library`Prelude`Private`n},
 		{
-			TypeTheoryTerm[RightTee[{}, Or[NaturalNumberZero == 0, Exists[{Typed[k, NonNegativeIntegers]}, NaturalNumberZero == k + 1]]], prelude],
-			TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, Or[NaturalNumberSuccessor[n] == 0, Exists[{Typed[k, NonNegativeIntegers]}, NaturalNumberSuccessor[n] == k + 1]]]], prelude]
+			TypeTheoryTerm[RightTee[{}, Or["zero" == 0, Exists[{Typed[k, NonNegativeIntegers]}, "zero" == k + 1]]], prelude],
+			TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, Or["successor"[n] == 0, Exists[{Typed[k, NonNegativeIntegers]}, "successor"[n] == k + 1]]]], prelude]
 		}
 	],
 	TestID -> "Cases-gives-the-fields-without-induction-hypotheses"
@@ -304,10 +304,10 @@ VerificationTest[
 	}]["Goals"],
 	With[{n = WolframInstitute`TypeTheory`Library`Prelude`Private`n},
 		{
-			TypeTheoryTerm[RightTee[{}, Implies[NaturalNumberZero + 0 == NaturalNumberZero, 0 + NaturalNumberZero == NaturalNumberZero]], prelude],
+			TypeTheoryTerm[RightTee[{}, Implies["zero" + 0 == "zero", 0 + "zero" == "zero"]], prelude],
 			TypeTheoryTerm[RightTee[{}, ForAll[{Typed[n, NonNegativeIntegers]}, Implies[
 				Implies[n + 0 == n, 0 + n == n],
-				Implies[NaturalNumberSuccessor[n] + 0 == NaturalNumberSuccessor[n], 0 + NaturalNumberSuccessor[n] == NaturalNumberSuccessor[n]]
+				Implies["successor"[n] + 0 == "successor"[n], 0 + "successor"[n] == "successor"[n]]
 			]]], prelude]
 		}
 	],
@@ -320,10 +320,10 @@ VerificationTest[
 			proof = TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a <= b, a <= b + 1]], prelude, {
 				TypeTheoryTactic["Introduce", a, b, h],
 				TypeTheoryTactic["Induction", h],
-				TypeTheoryTactic["Apply", LessEqualStep],
-				TypeTheoryTactic["Apply", LessEqualReflexivity],
+				TypeTheoryTactic["Apply", "lessEqualStep"],
+				TypeTheoryTactic["Apply", "lessEqualReflexivity"],
 				TypeTheoryTactic["Introduce", m, hm, ih],
-				TypeTheoryTactic["Apply", LessEqualStep],
+				TypeTheoryTactic["Apply", "lessEqualStep"],
 				TypeTheoryTactic["Exact", ih]
 			}]
 		},
@@ -368,7 +368,7 @@ reverseTwice = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 
 	TypeTheoryTactic["Reflexivity"],
 	TypeTheoryTactic["Introduce", x, rest, ih],
 	TypeTheoryTactic["Change", Reverse[Join[Reverse[rest], Prepend[x][{}]]] == Prepend[x][rest]],
-	TypeTheoryTactic["Rewrite", ReverseJoin],
+	TypeTheoryTactic["Rewrite", "reverseJoin"],
 	TypeTheoryTactic["Rewrite", ih],
 	TypeTheoryTactic["Reflexivity"]
 }]
@@ -393,11 +393,11 @@ VerificationTest[
 	{
 		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Reverse[Join[a, b]]] == Length[a] + Length[b]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a, b],
-			TypeTheoryTactic["Simplify", {LengthReverse, LengthJoin}]
+			TypeTheoryTactic["Simplify", {"lengthReverse", "lengthJoin"}]
 		}]["Goals"],
 		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Reverse[Join[a, b]]] == Length[b] + Length[a]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a, b],
-			TypeTheoryTactic["Simplify", {LengthReverse, LengthJoin}]
+			TypeTheoryTactic["Simplify", {"lengthReverse", "lengthJoin"}]
 		}]["Goals"]
 	},
 	{
@@ -410,7 +410,7 @@ VerificationTest[
 VerificationTest[
 	First @ TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m == m + 1], prelude, {
 		TypeTheoryTactic["Introduce", m],
-		TypeTheoryTactic["Simplify", {AdditionCommutativity}]
+		TypeTheoryTactic["Simplify", {"additionCommutativity"}]
 	}],
 	"NoProgress",
 	TestID -> "Simplify-that-leaves-the-goal-as-it-is-gives-a-Failure"
@@ -432,7 +432,7 @@ VerificationTest[
 	First @ TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, ForAll[{Typed[y, NonNegativeIntegers]}, y == x]], prelude, {
 		TypeTheoryTactic["Constructor"],
 		TypeTheoryTactic["Introduce", y],
-		TypeTheoryTactic["Exact", EqualityReflexivity[y]]
+		TypeTheoryTactic["Exact", "equalityReflexivity"[y]]
 	}],
 	"TypeMismatch",
 	TestID -> "A-goal-is-not-solved-with-a-hypothesis-it-does-not-have"
@@ -451,17 +451,17 @@ joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse
 lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Join[a, b]] == Length[a] + Length[b]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
-	TypeTheoryTactic["Simplify", {Join, Length, AdditionZeroLeft}],
+	TypeTheoryTactic["Simplify", {Join, Length, "additionZeroLeft"}],
 	TypeTheoryTactic["Introduce", x, rest, ih],
-	TypeTheoryTactic["Simplify", {Join, Length, ih, AdditionSuccessorLeft}]
+	TypeTheoryTactic["Simplify", {Join, Length, ih, "additionSuccessorLeft"}]
 }]
 
 reverseJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
-	TypeTheoryTactic["Simplify", {Join, Reverse, JoinEmptyRight}],
+	TypeTheoryTactic["Simplify", {Join, Reverse, "joinEmptyRight"}],
 	TypeTheoryTactic["Introduce", x, rest, ih],
-	TypeTheoryTactic["Simplify", {Join, Reverse, ih, Append, JoinAssociativity}]
+	TypeTheoryTactic["Simplify", {Join, Reverse, ih, Append, "joinAssociativity"}]
 }]
 
 VerificationTest[
@@ -552,7 +552,7 @@ VerificationTest[
 	{
 		{},
 		TypeTheoryTerm[
-			ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[EqualityReflexivity["true"]]]],
+			"existsIntroduction"[3, "existsIntroduction"[4, "decideSoundness"["equalityReflexivity"["true"]]]],
 			prelude
 		],
 		{},
@@ -578,13 +578,13 @@ VerificationTest[
 		{
 			rewritten = TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m * 2 == m + m], {
 				TypeTheoryTactic["Introduce", m],
-				TypeTheoryTactic["Rewrite", MultiplicationSuccessorRight[m, 1]]
+				TypeTheoryTactic["Rewrite", "multiplicationSuccessorRight"[m, 1]]
 			}]
 		},
 		{
 			MatchQ[rewritten["Goals"], {TypeTheoryTerm[_ ⊢ m * 1 + m == m + m, _]}],
-			TypeTheoryTactic["Rewrite", MultiplicationOneRight[m]][rewritten]["Goals"],
-			First @ TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m * 2 == m + m], {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["Rewrite", AdditionCommutativity[m, 5]]}]
+			TypeTheoryTactic["Rewrite", "multiplicationOneRight"[m]][rewritten]["Goals"],
+			First @ TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m * 2 == m + m], {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["Rewrite", "additionCommutativity"[m, 5]]}]
 		}
 	],
 	{True, {}, "NoInstance"},
@@ -597,8 +597,8 @@ VerificationTest[
 VerificationTest[
 	With[{doubled = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Function[{Typed[n, NonNegativeIntegers]}, n + n]]}]},
 		{
-			MatchQ[TypeTheoryProof[(2 + 2) + 1 == 5, doubled, {TypeTheoryTactic["Rewrite", AdditionCommutativity[4, 1]]}]["Goals"], {TypeTheoryTerm[_ ⊢ 1 + 4 == 5, _]}],
-			First @ TypeTheoryProof[Doubled[2] + 1 == 5, doubled, {TypeTheoryTactic["Rewrite", AdditionCommutativity[4, 1]]}]
+			MatchQ[TypeTheoryProof[(2 + 2) + 1 == 5, doubled, {TypeTheoryTactic["Rewrite", "additionCommutativity"[4, 1]]}]["Goals"], {TypeTheoryTerm[_ ⊢ 1 + 4 == 5, _]}],
+			First @ TypeTheoryProof[Doubled[2] + 1 == 5, doubled, {TypeTheoryTactic["Rewrite", "additionCommutativity"[4, 1]]}]
 		}
 	],
 	{True, "NoInstance"},
@@ -607,14 +607,14 @@ VerificationTest[
 
 (* a premise P[x] whose P the goal fixes as a function is beta reduced in the new goal, not left as a redex *)
 VerificationTest[
-	With[{applied = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, x + 1 == 3], {TypeTheoryTactic["Apply", ExistsIntroduction]}]},
-		{FreeQ[applied["Goals"], Function], TypeTheoryTactic["Exact", EqualityReflexivity[3]][applied]["Goals"]}
+	With[{applied = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, x + 1 == 3], {TypeTheoryTactic["Apply", "existsIntroduction"]}]},
+		{FreeQ[applied["Goals"], Function], TypeTheoryTactic["Exact", "equalityReflexivity"[3]][applied]["Goals"]}
 	],
 	{True, {}},
 	TestID -> "Apply-states-its-new-goals-beta-reduced"
 ]
 
-(* classical propositional logic by a truth table: each atom split by ExcludedMiddle, the hypotheses that are propositions
+(* classical propositional logic by a truth table: each atom split by "excludedMiddle", the hypotheses that are propositions
    used, and an atom any proposition no connective builds *)
 VerificationTest[
 	With[
