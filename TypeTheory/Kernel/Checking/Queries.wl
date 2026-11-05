@@ -45,6 +45,7 @@ PackageExported[TypeTheoryAxiomClosure]
 PackageExported[TypeTheoryTranslate]
 PackageExported[DefinitionallyEqualQ]
 PackageExported[WeakHeadNormalForm]
+PackageExported[NormalForm]
 PackageExported[TypeTheoryProofTree]
 
 
@@ -82,6 +83,7 @@ types, as propositional extensionality does not; the option \"Axioms\" -> True k
 DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
+NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every part of it, under its binders too, until nothing can reduce: its normal form."
 TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of the TypeTheoryTerm proof, a proof of propositional logic. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\" or \"FalseElim\"."
 
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
@@ -194,6 +196,31 @@ WeakHeadNormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environmen
 		weakHeadNormalForm[environment, <||>, First @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]
 	]
 ]
+
+(* the normal form: the head reduced, then each part, a binder's body with its variable free *)
+NormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
+	coreToTypeTheoryTerm[
+		environment,
+		<||>,
+		withKernelCaches[normalForm[environment, <||>, First @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]]
+	]
+]
+
+normalForm[environment_, context_, term_] := normalParts[environment, context, weakHeadNormalForm[environment, context, term]]
+
+normalParts[environment_, context_, application[f_, a_]] := application[normalForm[environment, context, f], normalForm[environment, context, a]]
+normalParts[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_]] := With[{id = freshFreeVariable[]},
+	lambdaAbstraction[name, normalForm[environment, context, domain], abstractFreeVariable[
+		normalForm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]], id
+	], binder]
+]
+normalParts[environment_, context_, dependentFunctionType[name_, domain_, codomain_, binder_]] := With[{id = freshFreeVariable[]},
+	dependentFunctionType[name, normalForm[environment, context, domain], abstractFreeVariable[
+		normalForm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]]], id
+	], binder]
+]
+normalParts[environment_, context_, projection[structure_, index_, structureTerm_]] := projection[structure, index, normalForm[environment, context, structureTerm]]
+normalParts[_, _, term_] := term
 
 
 (* ::Subsection:: *)

@@ -423,3 +423,14 @@ VerificationTest[
 	{True, TypeTheoryTerm, True, True, True},
 	TestID -> "An-environment-lists-its-theorems-with-their-statements"
 ]
+
+(* NormalForm reduces every part of a term, under binders too, where WeakHeadNormalForm stops at the head *)
+VerificationTest[
+	{
+		MatchQ[NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}, prelude]], HoldPattern[TypeTheoryTerm["Prepend"[2, "Prepend"[6, "{}"]], _]]],
+		FreeQ[NormalForm[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n + 0, prelude]], Plus],
+		FreeQ[WeakHeadNormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}, prelude]], Plus]
+	},
+	{True, True, False},
+	TestID -> "NormalForm-reduces-every-part-under-binders-too"
+]
