@@ -212,9 +212,16 @@ readableSyntax[syntax : syntaxApplication[syntaxString["Prepend"], {_, _}]] /; l
 readableSyntax[syntaxApplication[syntaxString["Prepend"], {element_, rest_}]] := syntaxHead[Prepend, {readableSyntax[rest], readableSyntax[element]}]
 readableSyntax[syntaxString["{}"]] := syntaxHead[List, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringOfSyntax[syntax]] := syntaxString[stringOfSyntax[syntax]]
-readableSyntax[syntax : syntaxApplication[syntaxString["construct" | "atom"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
-readableSyntax[syntaxApplication[syntaxString["construct"], {head_, arguments_}]] /; literalListSyntaxQ[arguments] :=
-	syntaxApplication[syntaxString["construct"], Prepend[readableSyntax /@ literalListElements[arguments], readableSyntax[head]]]
+readableSyntax[syntax : syntaxApplication[syntaxString["Construct"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
+readableSyntax[syntax : syntaxApplication[syntaxString["atom"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
+readableSyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, readableSyntax /@ Prepend[constructedPieces[sequence], head]]
+readableSyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
+(* a sequence as it is written, Unevaluated[a, b, ...], and its type, A... *)
+readableSyntax[syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
+readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]
+readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]
+readableSyntax[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Unevaluated]], readableSyntax[list]}]
+readableSyntax[syntaxApplication[syntaxString["sequenceOf"], {element_}]] := syntaxHead[RepeatedNull, {readableSyntax[element]}]
 readableSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[readableSyntax[head], readableSyntax /@ arguments]
 readableSyntax[syntax_] := syntax
 

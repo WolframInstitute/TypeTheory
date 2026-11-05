@@ -11,7 +11,8 @@ Needs["WolframInstitute`TypeTheory`"]
 
 wolfram = TypeTheoryEnvironment["WolframLanguage"]
 
-(* an expression is ex[e], held; a variable of a sequence is a list, spliced where it is quoted; each constant of matches
+(* an expression is ex[e], held; a variable of a sequence is a list, Unevaluated @@ l the list l, spliced where it is
+   quoted; each constant of matches
    is renamed to a function of this file, so that the paclet's symbols get no definitions *)
 SetAttributes[{ex, quote, splice}, HoldAllComplete]
 
@@ -22,11 +23,12 @@ $renamed = {
 	WolframInstitute`TypeTheory`MatchFirst -> mFirst, WolframInstitute`TypeTheory`MatchPart -> mPart, WolframInstitute`TypeTheory`Arguments -> mArguments,
 	WolframInstitute`TypeTheory`ExpressionEvaluate -> mValueOf, WolframInstitute`TypeTheory`Decide -> mDecide, Head -> mHead, AtomQ -> mAtomQ,
 	Condition -> mCondition, MatchQ -> mMatchQ, SameQ -> mSameQ, InductiveRecursor[List] -> mListRecursion,
-	"splits" -> mSplits, "longestSplits" -> mLongestSplits, "permutations" -> mPermutations, "matchElement" -> mElement, "pair" -> List, "construct" -> mNormal
+	"splits" -> mSplits, "longestSplits" -> mLongestSplits, "permutations" -> mPermutations, "matchElement" -> mElement, "pair" -> List, Construct -> mNormal
 }
 
 interpretedTerm[held_HoldComplete] := ReleaseHold[ReplaceRepeated[held, {
-	HoldPattern[Function[{Typed[x_Symbol, {WolframInstitute`TypeTheory`Expressions}]}, body_]] :> RuleCondition[functionOf[x, markedQuotes[HoldComplete[body], x]]],
+	HoldPattern[Function[{Typed[x_Symbol, Verbatim[RepeatedNull][WolframInstitute`TypeTheory`Expressions]]}, body_]] :> RuleCondition[functionOf[x, markedQuotes[HoldComplete[body], x]]],
+	HoldPattern[Apply[Unevaluated, l_]] :> l,
 	HoldPattern[Function[{Typed[x_Symbol, _]}, body_]] :> RuleCondition[functionOf[x, HoldComplete[body]]],
 	HoldPattern[Function[binders : {__Typed}, body_]] :> RuleCondition[functionsOf[binders, HoldComplete[body]]],
 	HoldPattern[Typed[e_, _]] :> e

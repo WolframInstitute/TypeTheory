@@ -16,7 +16,8 @@ left side of each rule is translated from the pattern itself, construct by const
 	a literal expression               a Condition on SameQ of the part and the expression, quoted
 	h[p1, p2, ...]                     a normal expression: a Condition on its length, then each part by MatchPart
 	__, ___, p.., p..., OptionsPattern a prefix of the arguments, every split by "splits" tried, shortest first, or
-	                                   longest first under Longest; a named one binds the list of its expressions
+	                                   longest first under Longest; a named one binds the sequence of its expressions,
+	                                   Unevaluated @@ l of type Expressions..., spliced where it is used
 	PatternSequence, OrderlessPatternSequence   patterns that take a run of arguments, in turn or in every order
 	p | q, Except, p /; c, p?t         MatchSum of the alternatives, a Condition on MatchQ, on SameQ of the
 	                                   ExpressionEvaluate of the condition, quoted, and True
@@ -27,8 +28,8 @@ left side of each rule is translated from the pattern itself, construct by const
 
 The matches are those of the Wolfram Language, in its order, so the first is the rule it applies, but an Association is
 an atom and KeyValuePattern does not translate. A name met a second time is a Condition on SameQ; a repeated pattern
-that binds names binds them at its first repetition. Every symbol and every atom but a natural number is an axiom of
-type Atoms, named by its full name or its InputForm, declared where a rule uses it. The right side is quoted as it is:
+that binds names binds them at its first repetition. Every symbol and every atom is data of type Atoms, a symbol by its
+full name and any other atom by its value or its InputForm, which nothing declares. The right side is quoted as it is:
 the rules give one step of evaluation, and the Wolfram Language evaluates the result further.
 *)
 
@@ -78,19 +79,20 @@ rulesDefinition[held_, HoldComplete[value_]] := With[{name = rulesName[held]}, T
 translatedRules[HoldComplete[symbol_Symbol]] := Catch[
 	Replace[Function[statement, ruleMatch[fullName[symbol], statement]] /@ definitionStatements[symbol], {
 		{} :> HoldComplete[Function[{Typed[expression, Expressions]}, Typed["none", Option[Expressions]]]],
-		matches_List :> Replace[Fold[Function[{rest, match}, Replace[{match, rest}, {HoldComplete[m_], HoldComplete[r_]} :> HoldComplete[MatchSum[m, r]]]], Reverse[matches]], {
-			HoldComplete[sum_] :> HoldComplete[Function[{Typed[expression, Expressions]}, MatchFirst[sum]]]
-		}]
+		matches_List :> firstMatch[sumOf[matches]]
 	}],
 	untranslatableRule
 ]
+
+firstMatch[HoldComplete[sum_]] := HoldComplete[Function[{Typed[expression, Expressions]}, MatchFirst[sum]]]
+matchFunction[HoldComplete[sum_]] := HoldComplete[Function[{Typed[expression, Expressions]}, sum]]
 
 (* rules written as a term, lhs -> rhs and lhs :> rhs, as Replace takes them: the function from an expression to the
    results of every rule that matches it, in order, the left side of each matched as a whole, head included *)
 rulesMatchFunction[rules_List] := Catch[
 	Replace[Function[rule, standaloneRuleMatch[rule]] /@ rules, {
 		{} :> HoldComplete[Function[{Typed[expression, Expressions]}, Typed[{}, Match[Expressions]]]],
-		matches_List :> Replace[sumOf[matches], HoldComplete[sum_] :> HoldComplete[Function[{Typed[expression, Expressions]}, sum]]]
+		matches_List :> matchFunction[sumOf[matches]]
 	}],
 	untranslatableRule
 ]
@@ -167,15 +169,17 @@ patternMatch[held : HoldComplete[p_], v_, environment_, k_] := Which[
 		Throw[None, untranslatable],
 	literalQ[held],
 		conditioned[k[environment], sameTest[v, quoted[held, environment]]],
-	MatchQ[held, HoldComplete[_Symbol[___]]],
-		Replace[held, HoldComplete[head_[arguments___]] :>
-			argumentsMatch[v, HoldComplete[head], heldList[arguments], environment, k, sameTest[headOf[v], headAtom[HoldComplete[head], environment]]]],
 	MatchQ[held, HoldComplete[_[___]]],
-		Replace[held, HoldComplete[head_[arguments___]] :> With[{variable = partVariable[HoldComplete[head], environment, "head"]},
-			partTerm[v, 0, variable, patternMatch[HoldComplete[head], variable, withLocal[environment, variable, "Expression"], Function[inner, argumentsMatch[v, None, heldList[arguments], inner, k]]]]
-		]],
+		normalMatch[held, v, environment, k],
 	True,
 		Throw[None, untranslatable]
+]
+
+(* h[p1, ...], a symbol h tested at once, or any other head matched as the part 0 *)
+normalMatch[HoldComplete[head_Symbol[arguments___]], v_, environment_, k_] :=
+	argumentsMatch[v, HoldComplete[head], heldList[arguments], environment, k, sameTest[headOf[v], headAtom[HoldComplete[head], environment]]]
+normalMatch[HoldComplete[head_[arguments___]], v_, environment_, k_] := With[{variable = partVariable[HoldComplete[head], environment, "head"]},
+	partTerm[v, 0, variable, patternMatch[HoldComplete[head], variable, withLocal[environment, variable, "Expression"], Function[inner, argumentsMatch[v, None, heldList[arguments], inner, k]]]]
 ]
 
 (* the arguments of the expression v against the patterns: a fixed number of them, parts at positions, or a list with
@@ -186,7 +190,7 @@ argumentsMatch[v_, head_, patterns0_List, environment_, k_, headTest_] := With[{
 		MemberQ[attributes, Orderless],
 			With[{permuted = freshVariable["arguments"]},
 				conditioned[
-					bindTerm[Replace[v, HoldComplete[e_] :> HoldComplete["permutations"[Arguments[e]]]], permuted, HoldComplete[{Expressions}],
+					bindTerm[permutationsOf[v], permuted, HoldComplete[{Expressions}],
 						listMatch[patterns, permuted, withLocal[environment, permuted, "Sequence"], k, flatHead[head, attributes]]],
 					andTests[notAtom[v], headTest]
 				]
@@ -194,11 +198,13 @@ argumentsMatch[v_, head_, patterns0_List, environment_, k_, headTest_] := With[{
 		fixedArgumentsQ[patterns] && ! MemberQ[attributes, Flat],
 			fixedArguments[v, patterns, environment, k, headTest],
 		True,
-			conditioned[listMatch[patterns, Replace[v, HoldComplete[e_] :> HoldComplete[Arguments[e]]], environment, k, flatHead[head, attributes]], andTests[notAtom[v], headTest]]
+			conditioned[listMatch[patterns, argumentsOf[v], environment, k, flatHead[head, attributes]], andTests[notAtom[v], headTest]]
 	]
 ]
 
 notAtom[HoldComplete[e_]] := HoldComplete[Not[AtomQ[e]]]
+argumentsOf[HoldComplete[e_]] := HoldComplete[Arguments[e]]
+permutationsOf[HoldComplete[e_]] := HoldComplete["permutations"[Arguments[e]]]
 andTests[test_, None] := test
 andTests[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[And[a, b]]
 
@@ -209,9 +215,11 @@ flatHead[_, _] := None
 
 (* x_. takes the default of its head at its position, Default[f, i, n], Default[f, i] or Default[f] *)
 defaultsFilled[head_, patterns_List] := MapIndexed[Function[{pattern, position}, Replace[pattern, {
-	HoldComplete[Verbatim[Optional][p_]] :> Replace[defaultValue[head, First[position], Length[patterns]], {HoldComplete[d_] :> HoldComplete[Optional[p, d]], None :> HoldComplete[Optional[p]]}],
+	HoldComplete[Verbatim[Optional][p_]] :> withDefault[HoldComplete[p], defaultValue[head, First[position], Length[patterns]]],
 	other_ :> other
 }]], patterns]
+withDefault[HoldComplete[p_], HoldComplete[d_]] := HoldComplete[Optional[p, d]]
+withDefault[HoldComplete[p_], None] := HoldComplete[Optional[p]]
 defaultValue[HoldComplete[head_Symbol], i_Integer, n_Integer] := Replace[
 	Select[{HoldComplete @@ {Default[head, i, n]}, HoldComplete @@ {Default[head, i]}, HoldComplete @@ {Default[head]}}, FreeQ[#, Default] &],
 	{{d_, ___} :> d, {} :> None}
@@ -324,13 +332,16 @@ singleMatch[pattern_HoldComplete, HoldComplete[l_], environment_, k_, flat_] := 
 	}]
 ]
 
-flatRunMatch[pattern_, HoldComplete[l_], environment_, k_, HoldComplete[head_]] := With[{pair = freshVariable["split"], run = freshVariable["run"]},
-	bindTerm[HoldComplete["splits"[l]], pair, HoldComplete[CartesianProductType[{Expressions}, {Expressions}]],
-		Replace[pair, HoldComplete[p_] :> conditioned[
-			bindTerm[HoldComplete[MatchValue["construct"[HoldForm[head], Sequence @@ p[[1]]]]], run, HoldComplete[Expressions],
-				patternMatch[pattern, run, withLocal[environment, run, "Expression"], Function[inner, k[inner, HoldComplete[p[[2]]]]]]],
-			HoldComplete[Decide[2 <= Length[p[[1]]]]]
-		]]
+flatRunMatch[pattern_, HoldComplete[l_], environment_, k_, head_HoldComplete] := With[{pair = freshVariable["split"]},
+	bindTerm[HoldComplete["splits"[l]], pair, HoldComplete[CartesianProductType[{Expressions}, {Expressions}]], flatRun[pattern, pair, environment, k, head]]
+]
+
+(* the run, the first of the split p, of two or more arguments, wrapped in the head *)
+flatRun[pattern_, HoldComplete[p_], environment_, k_, HoldComplete[head_]] := With[{run = freshVariable["run"]},
+	conditioned[
+		bindTerm[HoldComplete[MatchValue[Construct[HoldForm[head], Sequence @@ p[[1]]]]], run, HoldComplete[Expressions],
+			patternMatch[pattern, run, withLocal[environment, run, "Expression"], Function[inner, k[inner, HoldComplete[p[[2]]]]]]],
+		HoldComplete[Decide[2 <= Length[p[[1]]]]]
 	]
 ]
 
@@ -343,17 +354,17 @@ defaultMatch[_, _, environment_, k_] := k[environment]
 
 (* a sequence pattern takes a prefix of the list, every split tried in order *)
 splitMatch[pattern_, HoldComplete[l_], environment_, k_, splits_String] := With[{pair = freshVariable["split"]},
-	bindTerm[HoldComplete[splits[l]], pair, HoldComplete[CartesianProductType[{Expressions}, {Expressions}]],
-		Replace[pair, HoldComplete[p_] :> sequenceMatch[pattern, HoldComplete[p[[1]]], withLocal[environment, pair, "Pair"], Function[inner, k[inner, HoldComplete[p[[2]]]]]]]
-	]
+	bindTerm[HoldComplete[splits[l]], pair, HoldComplete[CartesianProductType[{Expressions}, {Expressions}]], splitPrefix[pattern, pair, withLocal[environment, pair, "Pair"], k]]
 ]
+
+(* the sequence pattern against the prefix of the split p, what follows against the rest *)
+splitPrefix[pattern_, HoldComplete[p_], environment_, k_] := sequenceMatch[pattern, HoldComplete[p[[1]]], environment, Function[inner, k[inner, HoldComplete[p[[2]]]]]]
 
 (* a sequence pattern against the whole of a list *)
 sequenceMatch[HoldComplete[Verbatim[Pattern][x_Symbol, p_]], s_, environment_, k_] := With[{name = fullName[x]},
 	If[KeyExistsQ[environment["Names"], name], Throw[None, untranslatable]];
 	sequenceMatch[HoldComplete[p], s, environment, Function[inner,
-		bindTerm[Replace[s, HoldComplete[e_] :> HoldComplete[MatchValue[Typed[e, {Expressions}]]]], HoldComplete[x], HoldComplete[{Expressions}],
-			k[withName[inner, name, {HoldComplete[x], "Sequence"}]]]
+		bindTerm[sequenceValue[s], HoldComplete[x], HoldComplete[Expressions...], k[withName[inner, name, {HoldComplete[x], "Sequence"}]]]
 	]]
 ]
 sequenceMatch[HoldComplete[Verbatim[Condition][p_, c_]], s_, environment_, k_] := sequenceMatch[HoldComplete[p], s, environment, Function[inner, conditioned[k[inner], truthTest[HoldComplete[c], inner]]]]
@@ -383,6 +394,9 @@ sequenceMatch[HoldComplete[Verbatim[Alternatives][alternatives__]], s_, environm
 (* a pattern of one expression as a sequence takes exactly one *)
 sequenceMatch[pattern_HoldComplete, s_, environment_, k_] := listMatch[{pattern}, s, environment, k, None]
 
+(* the expressions of a list as one sequence, as a sequence pattern binds them *)
+sequenceValue[HoldComplete[l_]] := HoldComplete[MatchValue[Unevaluated @@ l]]
+
 lengthOfAtLeast[HoldComplete[s_], n_Integer] := HoldComplete[Decide[n <= Length[s]]]
 repetitionsTest[s_, {}, minimum_] := If[minimum == 0, None, lengthOfAtLeast[s, minimum]]
 repetitionsTest[HoldComplete[s_], {max_Integer}, minimum_] := HoldComplete[Decide[minimum <= Length[s] && Length[s] <= max]]
@@ -396,12 +410,12 @@ andTests[None, test_] := test
 (* whether every expression of a list matches a pattern whose names are bound already *)
 everyMatch[HoldComplete[p_], HoldComplete[s_], environment_] := With[{first = freshVariable["element"], others = freshVariable["others"], result = freshVariable["result"]},
 	If[! SubsetQ[Keys[environment["Names"]], Cases[Unevaluated[p], Verbatim[Pattern][x_Symbol, _] :> fullName[x], {0, Infinity}]], Throw[None, untranslatable]];
-	Replace[{first, others, result, matchTest[patternMatch[HoldComplete[p], first, withLocal[environment, first, "Expression"], Function[inner, valuesOf[first]]]]}, {
-		{HoldComplete[f_], HoldComplete[o_], HoldComplete[r_], HoldComplete[t_]} :> HoldComplete[InductiveRecursor[List][
-			Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[f, Expressions], Typed[o, {Expressions}], Typed[r, Booleans]}, And[t, r]], s
-		]]
-	}]
+	everyTerm[first, others, result, matchTest[patternMatch[HoldComplete[p], first, withLocal[environment, first, "Expression"], Function[inner, valuesOf[first]]]], HoldComplete[s]]
 ]
+
+everyTerm[HoldComplete[f_], HoldComplete[o_], HoldComplete[r_], HoldComplete[t_], HoldComplete[s_]] := HoldComplete[InductiveRecursor[List][
+	Function[{Typed[list, {Expressions}]}, Booleans], True, Function[{Typed[f, Expressions], Typed[o, {Expressions}], Typed[r, Booleans]}, And[t, r]], s
+]]
 
 
 (* ::Subsection:: *)
@@ -409,7 +423,8 @@ everyMatch[HoldComplete[p_], HoldComplete[s_], environment_] := With[{first = fr
 
 
 sumOf[{m_HoldComplete}] := m
-sumOf[{HoldComplete[a_], rest__}] := Replace[sumOf[{rest}], HoldComplete[b_] :> HoldComplete[MatchSum[a, b]]]
+sumOf[{first_HoldComplete, rest__}] := matchSum[first, sumOf[{rest}]]
+matchSum[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[MatchSum[a, b]]
 
 conditioned[HoldComplete[m_], HoldComplete[b_]] := HoldComplete[Condition[m, b]]
 conditioned[m_HoldComplete, None] := m
@@ -419,7 +434,8 @@ notTest[HoldComplete[t_]] := HoldComplete[Not[t]]
 headOf[HoldComplete[e_]] := HoldComplete[Head[e]]
 
 (* a condition or a test as the expression it evaluates, quoted, whose value must be True *)
-truthTest[test_HoldComplete, environment_] := sameTest[Replace[quoted[test, environment], HoldComplete[e_] :> HoldComplete[ExpressionEvaluate[e]]], atomTerm["System`True"]]
+truthTest[test_HoldComplete, environment_] := sameTest[evaluated[quoted[test, environment]], atomTerm["System`True"]]
+evaluated[HoldComplete[e_]] := HoldComplete[ExpressionEvaluate[e]]
 applied[HoldComplete[f_], HoldComplete[v_]] := HoldComplete[f[v]]
 
 (* the head of a pattern, an atom: a symbol by its full name *)
@@ -427,7 +443,9 @@ headAtom[HoldComplete[head_Symbol], _] := atomTerm[fullName[head]]
 headAtom[head_HoldComplete, environment_] := quoted[head, environment]
 
 (* a normal expression whose length passes the test *)
-lengthTest[HoldComplete[e_], test_] := Replace[test[e], {HoldComplete[True] :> HoldComplete[Not[AtomQ[e]]], HoldComplete[t_] :> HoldComplete[And[Not[AtomQ[e]], t]]}]
+lengthTest[v : HoldComplete[e_], test_] := normalOfLength[v, test[e]]
+normalOfLength[v_, HoldComplete[True]] := notAtom[v]
+normalOfLength[v_, test_] := andTests[notAtom[v], test]
 
 (* the arguments of a part from the from-th to the after-th from the end, exclusive *)
 sequenceTerm[HoldComplete[e_], 1, 0] := HoldComplete[Arguments[e]]
@@ -449,19 +467,16 @@ everyHead[HoldComplete[s_], HoldComplete[head_], True] := HoldComplete[Inductive
    natural number an axiom, declared with the rules *)
 quoted[HoldComplete[e_Symbol], environment_] /; MatchQ[environment["Names"][fullName[e]], {_, "Sequence"}] :=
 	quoted[HoldComplete[Sequence[e]], environment]
-quoted[held_HoldComplete, environment_] := Replace[renamed[held, environment], renamedHeld : HoldComplete[e_] :> (
-	declareAtoms[renamedHeld, environment];
-	HoldComplete[HoldForm[e]]
-)]
+quoted[held_HoldComplete, environment_] := quotation[renamed[held, environment]]
+quotation[HoldComplete[e_]] := HoldComplete[HoldForm[e]]
 
 (* each pattern variable as the variable of the part it matches *)
 renamed[held_HoldComplete, environment_] := ReplaceAll[held, KeyValueMap[
-	Function[{name, binding}, Replace[{ToExpression[name, InputForm, HoldComplete], First[binding]}, {HoldComplete[source_], HoldComplete[variable_]} :> (HoldPattern[source] :> variable)]],
+	Function[{name, binding}, renaming[ToExpression[name, InputForm, HoldComplete], First[binding]]],
 	environment["Names"]
 ]]
 
-(* the atoms of a quotation are data of the type Atoms, a symbol by its name, which nothing needs to declare *)
-declareAtoms[_, _] := Null
+renaming[HoldComplete[source_], HoldComplete[variable_]] := HoldPattern[source] :> variable
 
 (* the atom of a symbol, by its full name, quoted *)
 atomTerm[name_String] := ToExpression[name, InputForm, Function[symbol, HoldComplete[HoldForm[symbol]], HoldAllComplete]]

@@ -76,6 +76,8 @@ a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of funct
 
 PackageScoped[typeTheoryBoxes]
 PackageScoped[expressionOfSyntax]
+PackageScoped[sequencePieces]
+PackageScoped[constructedPieces]
 PackageScoped[stringOfSyntax]
 PackageScoped[rememberDisplayEnvironment]
 PackageScoped[displaySyntax]
@@ -294,10 +296,23 @@ displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
 displaySyntax[syntax : syntaxApplication[syntaxString["sequencePrepend"], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["[", displaySyntax /@ Most[rightNested["sequencePrepend", syntax]], "]"]
 displaySyntax[syntaxString["emptySequence"]] := syntaxString["[]"]
+(* a sequence of any number of elements shows held, as the Wolfram Language holds one it passes on, Unevaluated[a, b, ...],
+   a sequence joined in that is no literal among the elements, and its type as A... *)
+displaySyntax[syntax : syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
+displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, displaySyntax /@ sequencePieces[syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := syntaxHead[Unevaluated, displaySyntax /@ sequencePieces[syntax]]
+displaySyntax[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Unevaluated]], displaySyntax[list]}]
+(* A... in one piece, as a sequence's type shows in brackets: an arrow, which binds tighter than ..., would put it in
+   parentheses, A → (B...) → C *)
+displaySyntax[syntaxApplication[syntaxString["sequenceOf"], {element_}]] := displaySyntax[syntaxHead[RepeatedNull, {element}]]
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {element_}]] := delimited["", displaySyntax[element], "..."]
 (* an expression of the Wolfram Language shows as the Wolfram Language shows it: its atoms as symbols, numbers and
-   strings in quotes, its arguments in order, a list of them that is no literal as Sequence @@ l; where a part is none
-   of these, it shows as built. The display holds the term, so what it shows copies as the term. *)
-displaySyntax[syntax : syntaxApplication[syntaxString["construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
+   strings in quotes, its arguments in order, a sequence of them that is no literal spliced in; where a part is none of
+   these, it shows as Construct[h, a, ...], the head and the arguments it is built from. The display holds the term, so
+   what it shows copies as the term. *)
+displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
+displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, displaySyntax /@ Prepend[constructedPieces[sequence], head]]
+displaySyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
 displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
 (* a quotation shows as the expression it quotes, as the Wolfram Language shows HoldForm[e]; a string in it is a string,
    no name of a constant *)
@@ -310,15 +325,23 @@ expressionOfSyntax[syntax_] := If[quotableQ[syntax], unquoted[syntax], None]
 stringOfSyntax[syntax_] := Replace[stringText[syntax], Except[_String] -> None]
 
 quotableQ[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom] =!= None
-quotableQ[syntaxApplication[syntaxString["construct"], {head_, arguments_}]] := quotableQ[head] && quotableArgumentsQ[arguments]
+quotableQ[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := quotableQ[head] && AllTrue[sequencePieces[sequence], quotablePieceQ]
 quotableQ[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {_syntaxInteger}]] := True
 quotableQ[syntaxSymbol[_]] := True
 quotableQ[_] := False
 
-quotableArgumentsQ[syntax_?listLiteralQ] := AllTrue[prependedElements[syntax], quotableQ]
-quotableArgumentsQ[syntaxApplication[syntaxSymbol[HoldComplete[Join]], parts_List]] := AllTrue[parts, quotableArgumentsQ]
-quotableArgumentsQ[syntaxSymbol[_]] := True
-quotableArgumentsQ[_] := False
+(* an argument, or a sequence of them: a variable, or the sequence of the elements of a list variable, Sequence @@ l *)
+quotablePieceQ[syntaxApplication[syntaxString["sequenceOfList"], {syntaxSymbol[_]}]] := True
+quotablePieceQ[piece_] := quotableQ[piece]
+
+(* the elements of a sequence, in order, and each sequence joined in that is no literal: a variable, or the sequence of
+   the elements of a list; the arguments of Construct, Unevaluated[] where there are none *)
+sequencePieces[syntaxString["emptySequenceOf"]] := {}
+sequencePieces[syntaxApplication[syntaxString["sequenceOfPrepend"], {element_, rest_}]] := Prepend[sequencePieces[rest], element]
+sequencePieces[syntaxApplication[syntaxString["sequenceOfJoin"], {first_, rest_}]] := Join[sequencePieces[first], sequencePieces[rest]]
+sequencePieces[other_] := {other}
+
+constructedPieces[sequence_] := Replace[sequencePieces[sequence], {} -> {syntaxString["emptySequenceOf"]}]
 
 (* the atom an atom's syntax names, or None: a symbol by its full name, a natural number, a negative integer, a string,
    or another atom by its InputForm *)
@@ -355,13 +378,12 @@ stringText[_] := None
 displaySyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringText[syntax]] := syntaxString[ToString[stringText[syntax], InputForm]]
 
 unquoted[syntaxApplication[syntaxString["atom"], {atom_}]] := atomSyntax[atom]
-unquoted[syntaxApplication[syntaxString["construct"], {head_, arguments_}]] := syntaxApplication[unquoted[head], unquotedArguments[arguments]]
+unquoted[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxApplication[unquoted[head], unquotedPiece /@ sequencePieces[sequence]]
 unquoted[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {n_syntaxInteger}]] := n
 unquoted[variable_] := variable
 
-unquotedArguments[syntax_?listLiteralQ] := unquoted /@ prependedElements[syntax]
-unquotedArguments[syntaxApplication[syntaxSymbol[HoldComplete[Join]], parts_List]] := Catenate[unquotedArguments /@ parts]
-unquotedArguments[variable_] := {syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], variable}]}
+unquotedPiece[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], list}]
+unquotedPiece[piece_] := unquoted[piece]
 
 (* a sequence and its type alike in brackets, [a, b] and [A, B], as a sequence shows *)
 displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List]] := tupleDisplay["[", displaySyntax /@ elements, "]"]

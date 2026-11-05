@@ -9,8 +9,12 @@ Language and the monad of pattern matching, built and checked the first time it 
 	Atoms                           the expressions with no parts, as data: "symbolAtom" of a symbol's full name,
 	                                "naturalAtom" and "negativeAtom" of an integer, "stringAtom" of a string, and
 	                                "otherAtom" of the head and the InputForm of any other atom
-	Expressions                     an expression: "atom"[a], or "construct"[h, a, ...], h applied to its
-	                                arguments, written as a sequence and kept as their list
+	A...                            the sequences of any number of elements of A, held as the Wolfram Language holds
+	                                the arguments it passes on, Unevaluated[a, b, ...]: "emptySequenceOf" and
+	                                "sequenceOfPrepend" construct them, Prepend[s, x] writes the second, and
+	                                "sequenceOfJoin" and "sequenceOfList", Unevaluated @@ l, splice sequences in
+	Expressions                     an expression: "atom"[a], or Construct[h, a, ...], h applied to the sequence of
+	                                its arguments, of the type Expressions...
 	Head, Arguments, AtomQ          the head of an expression, the list of its arguments, {} for an atom, and whether it
 	                                is an atom
 	Sequence[A, B, ...]             where a type is expected, the type of the sequences Sequence[a, b, ...] of an element
@@ -45,7 +49,8 @@ rewrites the expression f[1, 2], and HoldForm keeps a constant that computes, as
 A Wolfram Language function is applied to a sequence: f[a, b] gives f the sequence of a and b, and the curried f[a][b]
 gives f the sequence of a, then gives its value that of b. A binder of a type Sequence[...] takes the arguments of an
 application that are left as one Sequence, so a function of the type Sequence[A, B] -> C is applied as f[a, b],
-and is another function than one of the curried type A -> B -> C.
+and is another function than one of the curried type A -> B -> C; the last binder of a function, if its type is A...,
+takes any number of them, as Construct[h, a, b] does.
 *)
 
 
@@ -78,7 +83,7 @@ PackageScoped[wolframLanguageEnvironment]
 
 
 Atoms::usage = "Atoms is the type of the expressions of the Wolfram Language with no parts, as data: a symbol by its full name, an integer, a string, or another atom by its head and InputForm. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
-Expressions::usage = "Expressions is the type of the expressions of the Wolfram Language, each \"atom\"[a] or \"normal\"[h, s]. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
+Expressions::usage = "Expressions is the type of the expressions of the Wolfram Language, each \"atom\"[a] or Construct[h, a, ...], h applied to the sequence of its arguments, of the type Expressions.... It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
 Arguments::usage = "Arguments[e] is the list of the arguments of the expression e, {} for an atom."
 Strings::usage = "Strings is the type of the strings of the Wolfram Language, each the list of its character codes: a string literal \"abc\" is one where a string is expected, and an expression where one is expected."
 ExpressionEvaluate::usage = "ExpressionEvaluate[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
@@ -113,9 +118,33 @@ $wolframLanguageDeclarations = {
 		"stringAtom" -> (Strings -> Atoms),
 		"otherAtom" -> (Strings -> Strings -> Atoms)
 	}],
+	(* the sequences of any number of elements of one type, A..., held as the Wolfram Language holds the
+	   arguments it passes on, Unevaluated[a, b, ...]: "emptySequenceOf" and "sequenceOfPrepend" construct them *)
+	TypeTheoryInductiveType[
+		"sequenceOf",
+		ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+		{
+			"emptySequenceOf" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, "sequenceOf"[A]],
+			"sequenceOfPrepend" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[x, A], Typed[s, "sequenceOf"[A]]}, "sequenceOf"[A]]
+		}
+	],
+	(* a sequence, then another; the sequence of the elements of a list *)
+	TypeTheoryDefinition["sequenceOfJoin", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[s, A...], Typed[t, A...]},
+			InductiveRecursor["sequenceOf"][Typed[r, A...] |-> A..., t, {Typed[x, A], Typed[rest, A...], Typed[joined, A...]} |-> Unevaluated[x, joined], s]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A... -> A... -> A...]
+	]],
+	TypeTheoryDefinition["sequenceOfList", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}]},
+			InductiveRecursor[List][Typed[m, {A}] |-> A..., Typed[Unevaluated[], A...], {Typed[x, A], Typed[rest, {A}], Typed[s, A...]} |-> Unevaluated[x, s], l]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> A...]
+	]],
+	(* an expression is an atom, or a head applied to the sequence of its arguments, as Construct[h, a, ...] gives h[a, ...] *)
 	TypeTheoryInductiveType[Expressions, TypeUniverse[1], {
 		"atom" -> (Atoms -> Expressions),
-		"construct" -> (Expressions -> {Expressions} -> Expressions)
+		"Construct" -> (Expressions -> Expressions... -> Expressions)
 	}],
 	(* the sequences of elements of the types of a list, as Lean's HList, a universe above its elements *)
 	TypeTheoryInductiveType[
@@ -206,11 +235,11 @@ $wolframLanguageDeclarations = {
 		Function[{Typed[e, Expressions]},
 			InductiveRecursor[Expressions][
 				Function[{Typed[x, Expressions]}, Expressions],
-				Function[{Typed[xs, {Expressions}]}, {Expressions}],
+				Function[{Typed[xs, Expressions...]}, Booleans],
 				Function[{Typed[a, Atoms]}, "atom"["atomHead"[a]]],
-				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Expressions], Typed[ar, {Expressions}]}, h],
-				{},
-				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, Expressions], Typed[rr, {Expressions}]}, rr],
+				Function[{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[hr, Expressions], Typed[ar, Booleans]}, h],
+				"true",
+				Function[{Typed[x, Expressions], Typed[rest, Expressions...], Typed[xr, Expressions], Typed[rr, Booleans]}, rr],
 				e
 			]
 		],
@@ -220,11 +249,11 @@ $wolframLanguageDeclarations = {
 		Function[{Typed[e, Expressions]},
 			InductiveRecursor[Expressions][
 				Function[{Typed[x, Expressions]}, {Expressions}],
-				Function[{Typed[xs, {Expressions}]}, {Expressions}],
+				Function[{Typed[xs, Expressions...]}, {Expressions}],
 				Function[{Typed[a, Atoms]}, {}],
-				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, {Expressions}], Typed[ar, {Expressions}]}, arguments],
+				Function[{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[hr, {Expressions}], Typed[ar, {Expressions}]}, ar],
 				{},
-				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, {Expressions}], Typed[rr, {Expressions}]}, rr],
+				Function[{Typed[x, Expressions], Typed[rest, Expressions...], Typed[xr, {Expressions}], Typed[rr, {Expressions}]}, Prepend[x][rr]],
 				e
 			]
 		],
@@ -235,11 +264,11 @@ $wolframLanguageDeclarations = {
 		Function[{Typed[e, Expressions]},
 			InductiveRecursor[Expressions][
 				Function[{Typed[x, Expressions]}, Booleans],
-				Function[{Typed[xs, {Expressions}]}, Booleans],
+				Function[{Typed[xs, Expressions...]}, Booleans],
 				Function[{Typed[a, Atoms]}, "true"],
-				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Booleans], Typed[ar, Booleans]}, "false"],
+				Function[{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[hr, Booleans], Typed[ar, Booleans]}, "false"],
 				"false",
-				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, Booleans], Typed[rr, Booleans]}, rr],
+				Function[{Typed[x, Expressions], Typed[rest, Expressions...], Typed[xr, Booleans], Typed[rr, Booleans]}, rr],
 				e
 			]
 		],
@@ -250,31 +279,31 @@ $wolframLanguageDeclarations = {
 		Function[{Typed[e, Expressions], Typed[f, Expressions]},
 			InductiveRecursor[Expressions][
 				Function[{Typed[x, Expressions]}, Expressions -> Booleans],
-				Function[{Typed[xs, {Expressions}]}, {Expressions} -> Booleans],
+				Function[{Typed[xs, Expressions...]}, Expressions... -> Booleans],
 				Function[{Typed[a, Atoms]}, Function[{Typed[g, Expressions]}, InductiveRecursor[Expressions][
-					Typed[y, Expressions] |-> Booleans, Typed[ys, {Expressions}] |-> Booleans,
+					Typed[y, Expressions] |-> Booleans, Typed[ys, Expressions...] |-> Booleans,
 					Typed[b, Atoms] |-> "atomSameQ"[a, b],
-					{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Booleans], Typed[ar, Booleans]} |-> "false",
+					{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[hr, Booleans], Typed[ar, Booleans]} |-> "false",
 					"false",
-					{Typed[y, Expressions], Typed[rest, {Expressions}], Typed[yr, Booleans], Typed[rr, Booleans]} |-> "false",
+					{Typed[y, Expressions], Typed[rest, Expressions...], Typed[yr, Booleans], Typed[rr, Booleans]} |-> "false",
 					g
 				]]],
-				Function[{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[sameHead, Expressions -> Booleans], Typed[sameArguments, {Expressions} -> Booleans]},
+				Function[{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[sameHead, Expressions -> Booleans], Typed[sameArguments, Expressions... -> Booleans]},
 					Function[{Typed[g, Expressions]}, InductiveRecursor[Expressions][
-						Typed[y, Expressions] |-> Booleans, Typed[ys, {Expressions}] |-> Booleans,
+						Typed[y, Expressions] |-> Booleans, Typed[ys, Expressions...] |-> Booleans,
 						Typed[b, Atoms] |-> "false",
-						{Typed[k, Expressions], Typed[others, {Expressions}], Typed[kr, Booleans], Typed[or, Booleans]} |-> And[sameHead[k], sameArguments[others]],
+						{Typed[k, Expressions], Typed[others, Expressions...], Typed[kr, Booleans], Typed[or, Booleans]} |-> And[sameHead[k], sameArguments[others]],
 						"false",
-						{Typed[y, Expressions], Typed[rest, {Expressions}], Typed[yr, Booleans], Typed[rr, Booleans]} |-> "false",
+						{Typed[y, Expressions], Typed[rest, Expressions...], Typed[yr, Booleans], Typed[rr, Booleans]} |-> "false",
 						g
 					]]
 				],
-				Function[{Typed[l, {Expressions}]}, InductiveRecursor[List][Typed[t, {Expressions}] |-> Booleans, "true", {Typed[y, Expressions], Typed[ys, {Expressions}], Typed[r, Booleans]} |-> "false", l]],
-				Function[{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[sameFirst, Expressions -> Booleans], Typed[sameRest, {Expressions} -> Booleans]},
-					Function[{Typed[l, {Expressions}]}, InductiveRecursor[List][
-						Typed[t, {Expressions}] |-> Booleans,
+				Function[{Typed[l, Expressions...]}, InductiveRecursor["sequenceOf"][Typed[t, Expressions...] |-> Booleans, "true", {Typed[y, Expressions], Typed[ys, Expressions...], Typed[r, Booleans]} |-> "false", l]],
+				Function[{Typed[x, Expressions], Typed[rest, Expressions...], Typed[sameFirst, Expressions -> Booleans], Typed[sameRest, Expressions... -> Booleans]},
+					Function[{Typed[l, Expressions...]}, InductiveRecursor["sequenceOf"][
+						Typed[t, Expressions...] |-> Booleans,
 						"false",
-						{Typed[y, Expressions], Typed[ys, {Expressions}], Typed[r, Booleans]} |-> And[sameFirst[y], sameRest[ys]],
+						{Typed[y, Expressions], Typed[ys, Expressions...], Typed[r, Booleans]} |-> And[sameFirst[y], sameRest[ys]],
 						l
 					]]
 				],
@@ -427,12 +456,12 @@ $wolframLanguageDeclarations = {
 		Function[{Typed[e, Expressions], Typed[rules, Expressions -> Match[Expressions]]},
 			InductiveRecursor[Expressions][
 				Typed[x, Expressions] |-> Expressions,
-				Typed[xs, {Expressions}] |-> {Expressions},
+				Typed[xs, Expressions...] |-> Expressions...,
 				Typed[a, Atoms] |-> InductiveRecursor[Option][Typed[o, Option[Expressions]] |-> Expressions, "atom"[a], Typed[r, Expressions] |-> r, MatchFirst[rules["atom"[a]]]],
-				{Typed[h, Expressions], Typed[arguments, {Expressions}], Typed[hr, Expressions], Typed[ar, {Expressions}]} |->
-					InductiveRecursor[Option][Typed[o, Option[Expressions]] |-> Expressions, "construct"[hr, ar], Typed[r, Expressions] |-> r, MatchFirst[rules["construct"[h, arguments]]]],
-				Typed[{}, {Expressions}],
-				{Typed[x, Expressions], Typed[rest, {Expressions}], Typed[xr, Expressions], Typed[rr, {Expressions}]} |-> Prepend[xr][rr],
+				{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[hr, Expressions], Typed[ar, Expressions...]} |->
+					InductiveRecursor[Option][Typed[o, Option[Expressions]] |-> Expressions, Construct[hr, ar], Typed[r, Expressions] |-> r, MatchFirst[rules[Construct[h, arguments]]]],
+				Typed[Unevaluated[], Expressions...],
+				{Typed[x, Expressions], Typed[rest, Expressions...], Typed[xr, Expressions], Typed[rr, Expressions...]} |-> Unevaluated[xr, rr],
 				e
 			]
 		],
