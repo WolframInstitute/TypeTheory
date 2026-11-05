@@ -120,8 +120,21 @@ buildDocumentation[] := (
 		$pacletDirectory,
 		Sequence @@ $buildOptions,
 		Sequence @@ If[MemberQ[$ScriptCommandLine, "--no-cache"], {"UseCache" -> False}, {}]
-	]]
+	]];
+	removeStaleNotebooks[]
 )
+
+(* A notebook whose page is gone from docs/paclet/en stays where an earlier build wrote it, and the archive and the site
+   would carry it, as they carried 162 pages of symbols no longer exported, 387 MB, one of them 358 MB; it is removed. *)
+removeStaleNotebooks[] := Module[
+	{
+		sources = FileBaseName /@ FileNames["*.md", $docsDirectory, Infinity],
+		stale
+	},
+	stale = Select[FileNames["*.nb", FileNameJoin[{$pacletDirectory, "Documentation"}], Infinity], Function[notebook, ! MemberQ[sources, FileBaseName[notebook]]]];
+	Scan[DeleteFile, stale];
+	If[stale =!= {}, Print["removed ", Length[stale], " notebooks of pages gone: ", StringRiffle[FileBaseName /@ stale, ", "]]]
+]
 
 $resourceOptions = {}
 
