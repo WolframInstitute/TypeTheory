@@ -47,7 +47,8 @@ result = WolframInstitute`PacletPage`PublishPacletPage[$pacletDirectory, "TypeTh
 	"DryRun" -> dryRun,
 	"Account" -> $siteAccount,
 	"ResourceOptions" -> If[MemberQ[$ScriptCommandLine, "--republish"], Append[$resourceOptions, "Republish" -> True], $resourceOptions],
-	"SiteOptions" -> $siteOptions
+	"SiteOptions" -> $siteOptions,
+	"Monitor" -> True
 ]
 
 If[ ! AssociationQ[result],

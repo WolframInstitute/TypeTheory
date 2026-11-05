@@ -15,7 +15,7 @@ $docsDirectory = FileNameJoin[{$repoDirectory, "docs", "paclet", "en"}]
 
 $siteAccount = "wolframinstitute@wolframinstitute.org"
 
-$minimumPacletPage = "0.3.40"
+$minimumPacletPage = "0.3.50"
 
 $pacletPageResource = "https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/PacletPage"
 
@@ -81,10 +81,12 @@ loadPacletPage[] := Module[{directory = Environment["PACLETPAGE_DIR"], paclet},
 
 (* as many parallel kernels as PACLETPAGE_PARALLEL says when it is set, a small count on a machine other builds share;
    after a complete build, the notebooks of pages whose markdown is gone are pruned, as an earlier build left 162 of them,
-   387 MB, one of them 358 MB, for the archive and the site to carry *)
+   387 MB, one of them 358 MB, for the archive and the site to carry; the build cache does not count the
+   paclet version, so a version bump alone rebuilds no page *)
 $buildOptions = {
 	"Source" -> $docsDirectory,
 	"Prune" -> True,
+	"CacheVersion" -> False,
 	"Parallel" -> Replace[Environment["PACLETPAGE_PARALLEL"], {count_String /; StringMatchQ[count, DigitCharacter ..] && FromDigits[count] > 0 :> FromDigits[count], _ -> Automatic}]
 }
 
