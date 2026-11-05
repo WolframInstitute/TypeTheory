@@ -91,22 +91,20 @@ VerificationTest[
 	TestID -> "Heads-literals-repeated-names-alternatives-and-conditions-translate"
 ]
 
-(* a pattern that needs a search, which the compiler leaves to the evaluator, and an environment without expressions
-   are Failures *)
+(* a pattern inside an association, an atom, another environment and another meaning are Failures; a search translates *)
 VerificationTest[
-	Block[{searched},
+	Block[{searched, keyed},
 		searched[x__, y__] := {x};
+		keyed[KeyValuePattern["a" -> x_]] := x;
 		{
-			If[ PacletFind["Wolfram/KernelCompiler"] === {},
-				"Untranslatable",
-				First[TypeTheoryFormalize[searched, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]
-			],
+			MatchQ[TypeTheoryFormalize[searched, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"], {___, _TypeTheoryDefinition}],
+			First[TypeTheoryFormalize[keyed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]],
 			First[TypeTheoryFormalize[searched, TypeTheoryEnvironment["Prelude"], "Meaning" -> "Rules"]],
 			First[TypeTheoryFormalize[searched, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Everything"]]
 		}
 	],
-	{"Untranslatable", "RulesEnvironment", "InvalidOption"},
-	TestID -> "A-search-another-environment-and-another-meaning-are-Failures"
+	{True, "Untranslatable", "RulesEnvironment", "InvalidOption"},
+	TestID -> "A-search-translates-and-an-association-another-environment-and-another-meaning-are-Failures"
 ]
 
 (* the declarations TypeTheoryFormalize gives show in the environment they were made for: the constants of matches and

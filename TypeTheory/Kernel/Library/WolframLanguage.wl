@@ -224,6 +224,73 @@ $wolframLanguageDeclarations = {
 		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Match[A] -> Option[A]]
 	]],
 
+	(* the splits of a list into a prefix and the rest, as pairs: the shortest prefix first, as a sequence pattern tries
+	   them, or the longest first, as Longest does *)
+	TypeTheoryDefinition["splits", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}]},
+			InductiveRecursor[List][
+				Function[{Typed[t, {A}]}, Match[CartesianProductType[{A}, {A}]]],
+				MatchValue["pair"[Typed[{}, {A}], Typed[{}, {A}]]],
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, Match[CartesianProductType[{A}, {A}]]]},
+					MatchSum[
+						MatchValue["pair"[Typed[{}, {A}], Prepend[x][rest]]],
+						MatchBind[r, Function[{Typed[p, CartesianProductType[{A}, {A}]]}, MatchValue["pair"[Prepend[x][p[[1]]], p[[2]]]]]]
+					]
+				],
+				l
+			]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> Match[CartesianProductType[{A}, {A}]]]
+	]],
+	TypeTheoryDefinition["longestSplits", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}]},
+			InductiveRecursor[List][
+				Function[{Typed[t, {A}]}, Match[CartesianProductType[{A}, {A}]]],
+				MatchValue["pair"[Typed[{}, {A}], Typed[{}, {A}]]],
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, Match[CartesianProductType[{A}, {A}]]]},
+					MatchSum[
+						MatchBind[r, Function[{Typed[p, CartesianProductType[{A}, {A}]]}, MatchValue["pair"[Prepend[x][p[[1]]], p[[2]]]]]],
+						MatchValue["pair"[Typed[{}, {A}], Prepend[x][rest]]]
+					]
+				],
+				l
+			]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> Match[CartesianProductType[{A}, {A}]]]
+	]],
+	(* each element of a list with the others, in order; the permutations of a list, in the order of Permutations *)
+	TypeTheoryDefinition["picks", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}]},
+			InductiveRecursor[List][
+				Function[{Typed[t, {A}]}, Match[CartesianProductType[A, {A}]]],
+				Typed[{}, Match[CartesianProductType[A, {A}]]],
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, Match[CartesianProductType[A, {A}]]]},
+					MatchSum[
+						MatchValue["pair"[x, rest]],
+						MatchBind[r, Function[{Typed[p, CartesianProductType[A, {A}]]}, MatchValue["pair"[p[[1]], Prepend[x][p[[2]]]]]]]
+					]
+				],
+				l
+			]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> Match[CartesianProductType[A, {A}]]]
+	]],
+	TypeTheoryDefinition["permutations", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[l, {A}]},
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, {A} -> Match[{A}]],
+				Function[{Typed[m, {A}]}, MatchValue[m]],
+				Function[{Typed[k, NonNegativeIntegers], Typed[r, {A} -> Match[{A}]]},
+					Function[{Typed[m, {A}]}, MatchBind["picks"[m], Function[{Typed[p, CartesianProductType[A, {A}]]},
+						MatchBind[r[p[[2]]], Function[{Typed[q, {A}]}, MatchValue[Prepend[p[[1]]][q]]]]
+					]]]
+				],
+				Length[l]
+			][l]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, {A} -> Match[{A}]]
+	]],
+
 	(* the element of a list at an index from 0, no result out of range; a match at the part of an expression at a position,
 	   0 its head and k its k-th argument *)
 	TypeTheoryDefinition["matchElement", Typed[
