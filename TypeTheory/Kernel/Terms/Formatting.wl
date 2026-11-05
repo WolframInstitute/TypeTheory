@@ -417,10 +417,34 @@ displayApplication[syntaxString["rationalAddition"], arguments_List] := displayA
    is the product n d^-1, which shows as the fraction n/d, as Power[d, -1] does; as a factor of a larger product the
    Wolfram Language would merge it with the other factors into one fraction, x/2 and 2 3/2, losing the factor 1
    and the grouping. A lone inverse may merge: x d^-1 is x/d. *)
+displayApplication[syntaxString["rationalMultiplication"], {numerator_, syntaxApplication[syntaxSymbol[HoldComplete[Power]], {syntaxInteger[denominator_Integer], syntaxInteger[-1]}]}] /;
+	integerSyntaxQ[numerator] := syntaxOther[HoldComplete @@ {literalFraction[integerOfSyntax[numerator], denominator]}]
 displayApplication[syntaxString["rationalMultiplication"], arguments_List] := displayApplication[
 	syntaxString["integerMultiplication"],
-	Replace[arguments, fraction_ ? fractionSyntaxQ :> delimited["(", fraction, ")"], {1}]
+	afterNumbersParenthesized[Replace[literalFractionSyntax /@ arguments, fraction_ ? fractionSyntaxQ :> delimited["(", fraction, ")"], {1}]]
 ]
+
+(* a literal fraction right after a number is parenthesized, 5 (2/3), which would read as the mixed number 5 2/3 *)
+afterNumbersParenthesized[factors_List] := MapThread[
+	Function[{factor, previous}, If[ MatchQ[factor, syntaxOther[HoldComplete[_literalFraction]]] && (integerSyntaxQ[previous] || MatchQ[previous, syntaxOther[HoldComplete[_literalFraction]]]),
+		delimited["(", factor, ")"],
+		factor
+	]],
+	{factors, Prepend[Most[factors], None]}
+]
+
+(* A literal fraction, n d^-1 of integers, as a factor shows as the fraction n/d, which no product merges and which
+   needs no parentheses, 1/2 (x + y), but after a number *)
+literalFractionSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Times]], {numerator_, syntaxApplication[syntaxSymbol[HoldComplete[Power]], {syntaxInteger[denominator_Integer], syntaxInteger[-1]}]}]] /;
+	integerSyntaxQ[numerator] := syntaxOther[HoldComplete @@ {literalFraction[integerOfSyntax[numerator], denominator]}]
+literalFractionSyntax[syntax_] := syntax
+
+integerSyntaxQ[syntax_] := IntegerQ[integerOfSyntax[syntax]]
+integerOfSyntax[syntaxInteger[n_Integer]] := n
+integerOfSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["-"], syntaxInteger[n_Integer]}]}]] := -n
+integerOfSyntax[_] := None
+
+literalFraction /: MakeBoxes[literalFraction[numerator_Integer, denominator_Integer], form_] := FractionBox[MakeBoxes[numerator, form], MakeBoxes[denominator, form]]
 
 fractionSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Divide]], _]] := True
 fractionSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Times]], factors_List]] := AnyTrue[factors, inverseSyntaxQ]
@@ -452,8 +476,13 @@ displaySyntax[syntaxApplication[
 	{syntaxString["rationalRelation"], pair : syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {_, syntaxInteger[_Integer]}]}
 ]] := displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {pair}]]
 displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[0]}]}]] := displaySyntax[numerator]
+(* a literal numerator makes the fraction the rational number itself, which a product takes without parentheses,
+   1/2 (x + y); any other shows as a division *)
 displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxSymbol[HoldComplete[Pair]], {numerator_, syntaxInteger[denominator_Integer]}]}]] :=
-	syntaxHead[Divide, {displaySyntax[numerator], syntaxInteger[denominator + 1]}]
+	fractionDisplay[displaySyntax[numerator], denominator + 1]
+
+fractionDisplay[numerator_, denominator_Integer] /; integerSyntaxQ[numerator] := syntaxOther[HoldComplete @@ {literalFraction[integerOfSyntax[numerator], denominator]}]
+fractionDisplay[numerator_, denominator_Integer] := syntaxHead[Divide, {numerator, syntaxInteger[denominator]}]
 
 (* -x and ↑x, with an argument that is no name or number in parentheses, so x + -y keeps its sign and
    ↑(m + n) its sum *)
@@ -530,8 +559,10 @@ styled[syntax_, role_String] := With[{color = $displayColors[role]}, syntaxHead[
 juxtaposed[syntax_] /; atomicDisplayQ[syntax] := syntax
 juxtaposed[syntax_] := delimited["(", syntax, ")"]
 
-(* a name or a number, also in bold or in a color, which an operator before it takes without parentheses *)
+(* a name, a number or a fraction, also in bold or in a color, which an operator before it takes without parentheses *)
 atomicDisplayQ[syntaxSymbol[_] | syntaxString[_] | syntaxInteger[_]] := True
+(* a literal fraction, its bar delimiting it *)
+atomicDisplayQ[syntaxOther[HoldComplete[_literalFraction]]] := True
 atomicDisplayQ[syntaxApplication[syntaxSymbol[HoldComplete[Style | typeTooltipped]], {syntax_, _}]] := atomicDisplayQ[syntax]
 atomicDisplayQ[_] := False
 

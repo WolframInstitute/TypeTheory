@@ -95,20 +95,21 @@ VerificationTest[
 	TestID -> "A-natural-number-among-the-rationals-shows-as-Lean-shows-it"
 ]
 
-(* a factor that is itself a fraction is parenthesized in a product: (1/2) 1 keeps its factor 1, which merged into one
-   fraction it lost, and (2/3) 5 == 5 (2/3) shows which factor is which *)
+(* a literal fraction among the factors of a product shows as the fraction, 1/2 (x + y) and 1/2 1, which keeps its
+   factor 1; after a number it is parenthesized, 5 (2/3), so it does not read as a mixed number *)
 VerificationTest[
 	With[
 		{
-			parenthesized = TemplateBox[{"\"(\"", FractionBox["1", "2"], "\")\""}, "RowDefault"],
-			one = ToBoxes[TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationOne[1/2], rationals]]],
-			swapped = ToBoxes[TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationCommutativity[2/3, 5], rationals]]]
+			parenthesized = TemplateBox[{"\"(\"", FractionBox["2", "3"], "\")\""}, "RowDefault"],
+			one = ToBoxes[TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationOne[1/2], rationals]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes,
+			swapped = ToBoxes[TypeTheoryCheck[TypeTheoryTerm[RationalMultiplicationCommutativity[2/3, 5], rationals]]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes
 		},
 		{
-			Cases[one, RowBox[{parenthesized, " ", "1"}], Infinity] =!= {},
-			Length[Cases[swapped, TemplateBox[{"\"(\"", FractionBox["2", "3"], "\")\""}, "RowDefault"], Infinity]]
+			Cases[one, RowBox[{FractionBox["1", "2"], " ", "1"}], Infinity] =!= {},
+			Length[Cases[swapped, parenthesized, Infinity]],
+			Cases[swapped, RowBox[{FractionBox["2", "3"], " ", "5"}], Infinity] =!= {}
 		}
 	],
-	{True, 2},
-	TestID -> "A-fraction-among-the-factors-of-a-product-is-parenthesized"
+	{True, 1, True},
+	TestID -> "A-literal-fraction-among-the-factors-of-a-product-shows-bare-but-after-a-number"
 ]
