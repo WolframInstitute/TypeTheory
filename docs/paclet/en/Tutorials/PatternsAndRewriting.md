@@ -143,7 +143,7 @@ NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x], wolfram]]
 
 <!-- => {HoldForm["blank"], HoldForm[f[1]]} -->
 
-A condition, `x_ /; test`, and a pattern test, `x_?test`, are [SameQ]() of the [ExpressionValue]() of the test and `True`, which only the Wolfram Language evaluates: a rewriting by one computes in the kernel up to that test.
+A condition, `x_ /; test`, and a pattern test, `x_?test`, are [SameQ]() of the [ExpressionEvaluate]() of the test and `True`, which only the Wolfram Language evaluates: a rewriting by one computes in the kernel up to that test.
 
 ## ReplaceAll and ReplaceRepeated
 

@@ -25,7 +25,7 @@ The arguments of an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments["normal"[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments["construct"[7, 1, 2]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
 ```
 
 <!-- => True -->

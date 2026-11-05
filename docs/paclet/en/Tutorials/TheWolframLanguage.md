@@ -14,21 +14,21 @@ RelatedTutorials: [PatternsAndRewriting, Elaboration, ThePrelude, TypeTheoryIntr
 
 ## Expressions
 
-An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions, its arguments. An atom is data, of the type [Atoms](): a symbol by its full name, an integer, a string, the list of its character codes, or any other atom by its head and its [InputForm](). So [Head](), [Arguments](), [AtomQ]() and [SameQ]() are definitions, which the kernel computes, and only [ExpressionValue](), the expression an expression evaluates to, is an axiom that the Wolfram Language computes. A natural number is an expression where one is expected:
+An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions, its arguments. An atom is data, of the type [Atoms](): a symbol by its full name, an integer, a string, the list of its character codes, or any other atom by its head and its [InputForm](). So [Head](), [Arguments](), [AtomQ]() and [SameQ]() are definitions, which the kernel computes, and only [ExpressionEvaluate](), the expression an expression evaluates to, is an axiom that the Wolfram Language computes. A natural number is an expression where one is expected:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeTheoryType["normal"[7, {1, 2}], wolfram]
+TypeTheoryType["construct"[7, 1, 2], wolfram]
 ```
 
 <!-- => Expressions -->
 
-An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `"normal"` and `"atom"` build what it stands for:
+An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `"construct"` and `"atom"` build what it stands for:
 
 ```wl
 DefinitionallyEqualQ[
     TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[{x, rest}]][1, {2, 3}], wolfram],
-    TypeTheoryTerm["normal"["atom"["symbolAtom"["System`List"]], {1, 2, 3}], wolfram]
+    TypeTheoryTerm["construct"["atom"["symbolAtom"["System`List"]], 1, 2, 3], wolfram]
 ]
 ```
 
@@ -37,7 +37,7 @@ DefinitionallyEqualQ[
 [Arguments]() gives the list of an expression's arguments:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments["normal"[7, {1, 2}]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[Arguments["construct"[7, 1, 2]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
 ```
 
 <!-- => True -->
@@ -114,8 +114,8 @@ TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram]
 
 ```wl
 {
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["normal"[7, {1, 2}], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]],
-    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["normal"[7, {1}], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1, 2], 2, MatchValue], wolfram], TypeTheoryTerm[MatchValue[Typed[2, Expressions]], wolfram]],
+    DefinitionallyEqualQ[TypeTheoryTerm[MatchPart["construct"[7, 1], 5, MatchValue], wolfram], TypeTheoryTerm[Typed[{}, Match[Expressions]], wolfram]]
 }
 ```
 
@@ -144,4 +144,4 @@ listing = TypeTheoryEnvironment[wolfram, rules];
 
 <!-- => {True, True} -->
 
-A condition or a pattern test is [SameQ]() of the [ExpressionValue]() of an expression and `True`, which only the Wolfram Language evaluates, so a rule with one computes in the kernel up to its test.
+A condition or a pattern test is [SameQ]() of the [ExpressionEvaluate]() of an expression and `True`, which only the Wolfram Language evaluates, so a rule with one computes in the kernel up to its test.
