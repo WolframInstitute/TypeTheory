@@ -26,7 +26,7 @@ An expression with head 7 and arguments 1 and 2:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeOf[TypeTheoryTerm["normal"[7, {1, 2}], wolfram]]
+TypeTheoryType["normal"[7, {1, 2}], wolfram]
 ```
 
 <!-- => Expressions -->

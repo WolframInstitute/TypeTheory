@@ -26,7 +26,7 @@ RelatedTutorials: [ThePrelude]
 The type of [Subtype]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Subtype]]
+TypeTheoryType[Subtype]
 ```
 
 <!-- => ∀_{α ∶ Sort u} (α → Prop) → Sort (max 1 u) -->
@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[Subtype]]
 The second field of an element proves the property of the first:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[2]]]]
+TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[2]]]
 ```
 
 <!-- => ∀_s∶{n∶ℕ // 2 ≤ n} 2 ≤ s〚1〛 -->

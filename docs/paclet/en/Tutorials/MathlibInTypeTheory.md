@@ -79,7 +79,7 @@ SetTypeTheoryEnvironment[mathlib]
 A constant keeps its Lean name, as a string. The statement of `Nat.sq_sub_sq`, as TypeTheory has checked it:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"]]
+TypeTheoryType["Nat.sq_sub_sq"]
 ```
 
 <!-- => ∀_a∶Nat ∀_b∶Nat Eq[HSub.hSub[HPow.hPow[a, OfNat.ofNat[2]], HPow.hPow[b, OfNat.ofNat[2]]], HMul.hMul[HAdd.hAdd[a, b], HSub.hSub[a, b]]] -->
@@ -100,7 +100,7 @@ MakeBoxes["HMul.hMul"[a_, b_], form_] := MakeBoxes[a * b, form];
 MakeBoxes["HPow.hPow"[a_, b_], form_] := MakeBoxes[a^b, form];
 MakeBoxes["Dvd.dvd"[a_, b_], form_] := MakeBoxes[VerticalBar[a, b], form];
 MakeBoxes["OfNat.ofNat"[n_], form_] := MakeBoxes[n, form];
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"]]
+TypeTheoryType["Nat.sq_sub_sq"]
 ```
 
 <!-- => ∀_a∶Nat ∀_b∶Nat a^2 - b^2 == (a + b) (a - b) -->
@@ -108,7 +108,7 @@ TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"]]
 The notation holds wherever a term shows, as in this theorem of divisibility:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.dvd_add_self_right"]]
+TypeTheoryType["Nat.dvd_add_self_right"]
 ```
 
 <!-- => ∀_{m ∶ Nat} ∀_{n ∶ Nat} (m | n + m ⧦ m | n) -->
@@ -118,7 +118,7 @@ TypeTheoryCheck[TypeTheoryTerm["Nat.dvd_add_self_right"]]
 A theorem applies to arguments like a function. Applied to 7 and 3, `Nat.sq_sub_sq` proves an equation of numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["Nat.sq_sub_sq"[7, 3]]]
+TypeTheoryType["Nat.sq_sub_sq"[7, 3]]
 ```
 
 <!-- => 7^2 - 3^2 == (7 + 3) (7 - 3) -->
@@ -168,8 +168,8 @@ SetTypeTheoryEnvironment[LeanToTypeTheory[stated, {"DividesShift", "DoubleIsTwic
 
 ```wl
 proof = TypeTheoryProof["DividesShift", {
-    TypeTheoryTactic["Introduce", a, b, h],
-    TypeTheoryTactic["Apply", "And.intro"]
+    "Introduce"[a, b, h],
+    "Apply"["And.intro"]
 }]
 ```
 
@@ -197,8 +197,8 @@ proof = TypeTheoryTactic["Exact", "Nat.dvd_add"[h, "Nat.dvd_mul_left"[a, 2]]][pr
 
 ```wl
 induction = TypeTheoryProof["DoubleIsTwice", {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Induction", n]
+    "Introduce"[n],
+    "Induction"[n]
 }]
 ```
 
@@ -208,11 +208,11 @@ Both sides of the first goal compute to 0. In the second, `double[k + 1]` comput
 
 ```wl
 induction = TypeTheoryProof["DoubleIsTwice", {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Induction", n],
-    TypeTheoryTactic["Reflexivity"],
-    TypeTheoryTactic["Introduce", k, ih],
-    TypeTheoryTactic["Exact", "congrArg"["Nat.succ", "congrArg"["Nat.succ", ih]]]
+    "Introduce"[n],
+    "Induction"[n],
+    "Reflexivity",
+    "Introduce"[k, ih],
+    "Exact"["congrArg"["Nat.succ", "congrArg"["Nat.succ", ih]]]
 }]
 ```
 

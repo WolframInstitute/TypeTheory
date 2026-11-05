@@ -26,7 +26,7 @@ RelatedTutorials: [ThePrelude]
 The type of [ChosenWitness]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ChosenWitness]]
+TypeTheoryType[ChosenWitness]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{P ∶ α → Prop} Exists[P] → α -->
@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[ChosenWitness]]
 A number whose double is 6, from a proof that there is one:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWitness[h]]]
+TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWitness[h]]
 ```
 
 <!-- => (∃_n∶ℕ n + n == 6) → ℕ -->
@@ -46,7 +46,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6
 A witness chosen from a proof made with 3; [Typed]() gives the property, which the proof alone does not determine:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]]
+TypeTheoryType[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]
 ```
 
 <!-- => ℕ -->
@@ -87,7 +87,7 @@ DefinitionallyEqualQ[
 It does not compute, so even from a proof made with 3 the chosen number is not 3 by computation:
 
 ```wl
-TypeTheoryProof[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]] == 3, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]] == 3, {"Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

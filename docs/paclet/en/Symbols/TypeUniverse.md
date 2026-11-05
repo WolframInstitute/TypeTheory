@@ -26,7 +26,7 @@ RelatedGuides: [TypeTheory]
 Prop is in Type:
 
 ```wl
-TypeOf[TypeTheoryTerm[TypeUniverse[0]]]
+TypeTheoryType[TypeUniverse[0]]
 ```
 
 <!-- => Type -->
@@ -44,7 +44,7 @@ TypeTheoryTerm[TypeUniverse[u + 1]]
 Its type is the next universe:
 
 ```wl
-TypeOf[TypeTheoryTerm[TypeUniverse[u + 1]]]
+TypeTheoryType[TypeUniverse[u + 1]]
 ```
 
 <!-- => Type (u + 1) -->

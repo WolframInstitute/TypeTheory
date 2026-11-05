@@ -53,7 +53,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The type of [IntervalOne]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[IntervalOne, cubical]]
+TypeTheoryType[IntervalOne, cubical]
 ```
 
 <!-- => Interval -->
@@ -119,7 +119,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Transport along a path of types `p` over the face 1:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]]
+TypeTheoryType[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

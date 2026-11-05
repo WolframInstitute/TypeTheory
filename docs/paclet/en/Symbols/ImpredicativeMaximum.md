@@ -24,7 +24,7 @@ RelatedGuides: [TypeTheory]
 A statement about every type is still a proposition:
 
 ```wl
-TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]]]]
+TypeTheoryType[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]]]
 ```
 
 <!-- => Prop -->
@@ -34,7 +34,7 @@ TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, Implies[True, True]]]]
 A universe at that level, for parameters `u` and `v`:
 
 ```wl
-TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v]]]]
+TypeTheoryType[TypeUniverse[ImpredicativeMaximum[u, v]]]
 ```
 
 <!-- => Type (imax u v) -->
@@ -44,7 +44,7 @@ TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v]]]]
 A level whose second argument is never 0 is a maximum:
 
 ```wl
-TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v + 1]]]]
+TypeTheoryType[TypeUniverse[ImpredicativeMaximum[u, v + 1]]]
 ```
 
 <!-- => Type (max u (v + 1)) -->
@@ -54,7 +54,7 @@ TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, v + 1]]]]
 A level whose second argument is 0 is 0:
 
 ```wl
-TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, 0]]]]
+TypeTheoryType[TypeUniverse[ImpredicativeMaximum[u, 0]]]
 ```
 
 <!-- => Type -->
@@ -64,7 +64,7 @@ TypeOf[TypeTheoryTerm[TypeUniverse[ImpredicativeMaximum[u, 0]]]]
 A function type over a universe parameter has an impredicative level:
 
 ```wl
-TypeOf[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[u]]}, A]]]
+TypeTheoryType[ForAll[{Typed[A, TypeUniverse[u]]}, A]]
 ```
 
 <!-- => Sort (imax (u + 1) u) -->

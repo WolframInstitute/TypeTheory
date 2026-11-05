@@ -132,7 +132,7 @@ TypeTheoryCheck[TypeTheoryTerm[OddSuccessor[EvenSuccessor[OddSuccessor[EvenZero]
 The recursor of either takes a motive for both:
 
 ```wl
-TypeOf[TypeTheoryTerm[InductiveRecursor[Even], parity]]
+TypeTheoryType[InductiveRecursor[Even], parity]
 ```
 
 <!-- => ∀_m1∶∀_x∶ℕ Even[x] → Prop ∀_m2∶∀_x∶ℕ Odd[x] → Prop m1[0, EvenZero] ⇒ (∀_{n∶ℕ} ∀_h∶Odd[n] m2[n, h] ⇒ m1[n + 1, EvenSuccessor[h]]) ⇒ (∀_{n∶ℕ} ∀_h∶Even[n] m1[n, h] ⇒ m2[n + 1, OddSuccessor[h]]) ⇒ ∀_{x∶ℕ} ∀_t∶Even[x] m1[x, t] -->
@@ -156,7 +156,7 @@ roses = TypeTheoryEnvironment[{
 The recursor of the trees takes a motive for the list too:
 
 ```wl
-TypeOf[TypeTheoryTerm[InductiveRecursor[Rose], roses]]
+TypeTheoryType[InductiveRecursor[Rose], roses]
 ```
 
 <!-- => ∀_m1∶Rose → Sort u ∀_m2∶Chain[Rose] → Sort u (∀_label∶ℕ ∀_children∶Chain[Rose] m2[children] → m1[RoseNode[label, children]]) → m2[ChainEmpty] → (∀_head∶Rose ∀_tail∶Chain[Rose] m1[head] → m2[tail] → m2[ChainLink[head, tail]]) → ∀_t∶Rose m1[t] -->

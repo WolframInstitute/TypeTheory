@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryFormalize
 Keywords: [formalization, Wolfram Language definitions, DownValues, implementation, compiler, built-in signatures, rules, pattern matching, Match]
-SeeAlso: [TypeTheoryDefinition, TypeTheoryAxiom, TypeTheoryEnvironment, TypeOf, MatchFirst, Expressions]
+SeeAlso: [TypeTheoryDefinition, TypeTheoryAxiom, TypeTheoryEnvironment, TypeTheoryType, MatchFirst, Expressions]
 RelatedGuides: [TypeTheory]
 ---
 
@@ -60,7 +60,7 @@ formalized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[next, integers]
 <!-- => TypeTheoryEnvironment summary box -->
 
 ```wl
-TypeOf[TypeTheoryTerm[next, formalized]]
+TypeTheoryType[next, formalized]
 ```
 
 <!-- => ℤ → ℤ -->
@@ -73,7 +73,7 @@ A function of strings is a definition over [Strings](), and a string literal a c
 greeting[s_] := StringJoin["Hello, ", s];
 integers = TypeTheoryEnvironment["Integers"];
 greeted = TypeTheoryEnvironment[integers, TypeTheoryFormalize[greeting, integers]];
-TypeOf[TypeTheoryTerm[greeting, greeted]]
+TypeTheoryType[greeting, greeted]
 ```
 
 <!-- => Strings → Strings -->
@@ -98,7 +98,7 @@ size[{}] = 0;
 size[{x_, rest___}] := 1 + size[{rest}];
 integers = TypeTheoryEnvironment["Integers"];
 sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]];
-{TypeOf[TypeTheoryTerm[size, sized]], WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]]}
+{TypeTheoryType[size, sized], WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]]}
 ```
 
 <!-- => {∀_{α∶Type u} List α → ℕ, 3} -->
@@ -112,7 +112,7 @@ fact[0] = 1;
 fact[n_] := n fact[n - 1];
 prelude = TypeTheoryEnvironment["Prelude"];
 facts = TypeTheoryEnvironment[prelude, TypeTheoryFormalize[fact, prelude]];
-{TypeOf[TypeTheoryTerm[fact, facts]], WeakHeadNormalForm[TypeTheoryTerm[fact[5], facts]]}
+{TypeTheoryType[fact, facts], WeakHeadNormalForm[TypeTheoryTerm[fact[5], facts]]}
 ```
 
 <!-- => {ℕ → ℕ, 120} -->

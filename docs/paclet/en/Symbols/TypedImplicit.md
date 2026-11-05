@@ -26,7 +26,7 @@ RelatedTutorials: [TypeTheoryIntroduction]
 A polymorphic identity whose type argument is implicit:
 
 ```wl
-TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]
 ```
 
 <!-- => ∀_{A ∶ Type} A → A -->
@@ -74,7 +74,7 @@ swap[ConjunctionSwap]
 The propositions are found from the type of the proof it is applied to:
 
 ```wl
-TypeOf[TypeTheoryTerm[ConjunctionSwap["andIntroduction"["trueIntroduction", "equalityReflexivity"[0]]], swap]]
+TypeTheoryType[ConjunctionSwap["andIntroduction"["trueIntroduction", "equalityReflexivity"[0]]], swap]
 ```
 
 <!-- => 0 == 0 ∧ True -->
@@ -92,7 +92,7 @@ identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {Typ
 [Construct]() gives the implicit argument explicitly:
 
 ```wl
-TypeOf[TypeTheoryTerm[Construct[PolymorphicIdentity, Naturals], identity]]
+TypeTheoryType[Construct[PolymorphicIdentity, Naturals], identity]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -102,7 +102,7 @@ TypeOf[TypeTheoryTerm[Construct[PolymorphicIdentity, Naturals], identity]]
 [TypedImplicit]() is the same binder as an implicit [Annotation]():
 
 ```wl
-TypeOf[TypeTheoryTerm[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]} |-> x]] === TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
+TypeTheoryType[{Annotation[Typed[A, TypeUniverse[1]], "Implicit"], Typed[x, A]} |-> x] === TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]
 ```
 
 <!-- => True -->
@@ -130,7 +130,7 @@ InputForm[identity[PolymorphicIdentity]]
 A strict implicit binder is an [Annotation]() of another kind:
 
 ```wl
-TypeOf[TypeTheoryTerm[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], Typed[x, A]} |-> x]]
+TypeTheoryType[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], Typed[x, A]} |-> x]
 ```
 
 <!-- => ∀_⦃A ∶ Type⦄ A → A -->
@@ -140,7 +140,7 @@ TypeOf[TypeTheoryTerm[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], 
 [TypedImplicit]() takes a variable and its type:
 
 ```wl
-TypeOf[TypeTheoryTerm[{TypedImplicit[A], Typed[x, A]} |-> x]]
+TypeTheoryType[{TypedImplicit[A], Typed[x, A]} |-> x]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

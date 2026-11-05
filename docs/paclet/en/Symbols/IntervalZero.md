@@ -53,7 +53,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The type of [IntervalZero]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[IntervalZero, cubical]]
+TypeTheoryType[IntervalZero, cubical]
 ```
 
 <!-- => Interval -->
@@ -119,7 +119,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A `0` on its own:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[0, cubical]]
+TypeTheoryType[0, cubical]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

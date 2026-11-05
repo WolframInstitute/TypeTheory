@@ -43,7 +43,7 @@ Information[cubical, "Axioms"]
 A path from `x` to `y` is a function of an element of the interval, `Interval`, whose values at 0 and 1 are `x` and `y`. A constant function is a path:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[i, Interval] |-> "true", cubical]]
+TypeTheoryType[Typed[i, Interval] |-> "true", cubical]
 ```
 
 <!-- => true ≡ true -->
@@ -110,7 +110,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[i |-> TypeSpecifier[{Booleans
 Its second argument is a face where the line must be constant, and where the transport is the element itself. A path of types need not be constant where `1` holds, everywhere:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]]
+TypeTheoryType[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

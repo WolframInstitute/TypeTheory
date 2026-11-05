@@ -32,7 +32,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The statement of [EquivalenceProof]() in the HoTT environment:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EquivalenceProof, hott]]
+TypeTheoryType[EquivalenceProof, hott]
 ```
 
 <!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_g∶B → A (∀_x∶A g[f[x]] == x) → ∀_h∶B → A (∀_y∶B f[h[y]] == y) → IsEquivalence[f] -->
@@ -50,10 +50,10 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The function *f* is found from the paths:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[
+TypeTheoryType[
     EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x]],
     hott
-]]
+]
 ```
 
 <!-- => IsEquivalence[(x ∶ 𝔹) ↦ x] -->
@@ -71,10 +71,10 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The identity of the Booleans as an equivalence:
 
 ```wl
-TypeOf[TypeTheoryTerm["equivalenceIntroduction"[
+TypeTheoryType["equivalenceIntroduction"[
     Function[{Typed[x, Booleans]}, x],
     EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x]]
-], hott]]
+], hott]
 ```
 
 <!-- => Equivalence[𝔹, 𝔹] -->
@@ -92,7 +92,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The fourth field:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[{Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[e, IsEquivalence[f]]} |-> e[[4]], hott]]
+TypeTheoryType[{Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[e, IsEquivalence[f]]} |-> e[[4]], hott]
 ```
 
 <!-- => ∀_f∶𝔹 → 𝔹 ∀_e∶IsEquivalence[f] ∀_y∶𝔹 f[e〚3〛[y]] == y -->
@@ -102,7 +102,7 @@ TypeTheoryCheck[TypeTheoryTerm[{Typed[f, TypeSpecifier[{Booleans} -> Booleans]],
 The cubical environment has an [IsEquivalence]() of its own, contractible fibers, and no [EquivalenceProof]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[EquivalenceProof, TypeTheoryEnvironment["Cubical"]]]
+TypeTheoryType[EquivalenceProof, TypeTheoryEnvironment["Cubical"]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

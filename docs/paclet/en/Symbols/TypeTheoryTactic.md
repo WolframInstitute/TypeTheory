@@ -13,6 +13,8 @@ RelatedGuides: [TypeTheory]
 
 <code>[TypeTheoryTactic]()[*name*, *arguments*...]</code> is a tactic: <code>[TypeTheoryTactic]()[*name*, *arguments*...][*proof*]</code> applies it to the first goal of the [TypeTheoryProof]() *proof*.
 
+<code>[TypeTheoryTactic]()[*name*[*arguments*...]]</code> is <code>[TypeTheoryTactic]()[*name*, *arguments*...]</code>.
+
 ## Details & Options
 
 - The tactics:
@@ -44,11 +46,22 @@ RelatedGuides: [TypeTheory]
 | `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); `"integerLessEqualOfMultiple"` takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
+- In a list of tactics written out in [TypeTheoryProof](), a tactic is written as its name, or its name applied to its arguments: <code>{"Introduce"[n], "Reflexivity"}</code> is <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, and its arguments are held as well.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`, as Lean's `simp [f]` unfolds `f`.
 - `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - A tactic that does not apply gives a [Failure]().
 
 ## Basic Examples
+
+A proof as a list of tactics, each its name applied to its arguments:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+---
 
 Start a proof with [TypeTheoryProof]():
 
@@ -80,8 +93,8 @@ TypeTheoryTactic["Reflexivity"][proof]
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
-    TypeTheoryTactic["Introduce", a, b, ha, hb],
-    TypeTheoryTactic["Apply", "andIntroduction"]
+    "Introduce"[a, b, ha, hb],
+    "Apply"["andIntroduction"]
 }]
 ```
 
@@ -117,8 +130,8 @@ Applying `"equalityTransitivity"` leaves a goal for each equation, and one for t
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[z, Naturals]}, Implies[x == y, Implies[y == z, x == z]]], {
-    TypeTheoryTactic["Introduce", x, y, z, h1, h2],
-    TypeTheoryTactic["Apply", "equalityTransitivity"]
+    "Introduce"[x, y, z, h1, h2],
+    "Apply"["equalityTransitivity"]
 }]
 ```
 
@@ -146,7 +159,7 @@ proof = TypeTheoryTactic["Exact", h2][proof]
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, Not[Not[p]]]], {
-    TypeTheoryTactic["Introduce", p, hp, hnp]
+    "Introduce"[p, hp, hnp]
 }]
 ```
 
@@ -166,8 +179,8 @@ proof = TypeTheoryTactic["Exact", hnp[hp]][proof]
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {
-    TypeTheoryTactic["Introduce", l],
-    TypeTheoryTactic["Induction", l]
+    "Introduce"[l],
+    "Induction"[l]
 }]
 ```
 
@@ -203,8 +216,8 @@ On an integer, a class of pairs of natural numbers, `"Induction"` leaves a goal 
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 == x], TypeTheoryEnvironment["Integers"], {
-    TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["Induction", x]
+    "Introduce"[x],
+    "Induction"[x]
 }]
 ```
 
@@ -216,8 +229,8 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x + 0 == x], TypeTheoryEnvironment[
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a == b, a + 1 == b + 1]], {
-    TypeTheoryTactic["Introduce", a, b, h],
-    TypeTheoryTactic["Rewrite", h]
+    "Introduce"[a, b, h],
+    "Rewrite"[h]
 }]
 ```
 
@@ -229,8 +242,8 @@ With `"At" -> k`, the hypothesis `k` is rewritten instead:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a == b, Implies[a + 1 == 3, b + 1 == 3]]], {
-    TypeTheoryTactic["Introduce", a, b, h, k],
-    TypeTheoryTactic["Rewrite", h, "At" -> k]
+    "Introduce"[a, b, h, k],
+    "Rewrite"[h, "At" -> k]
 }]
 ```
 
@@ -250,8 +263,8 @@ TypeTheoryTactic["Exact", k][proof]
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Or[n == 0, Exists[{Typed[k, Naturals]}, n == k + 1]]], {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Cases", n]
+    "Introduce"[n],
+    "Cases"[n]
 }]
 ```
 
@@ -262,7 +275,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Or[n == 0, Exists[{Typed[k, Natural
 `"Constructor"` applies `"andIntroduction"`, the constructor of [And]():
 
 ```wl
-TypeTheoryProof[And[True, 2 == 2], {TypeTheoryTactic["Constructor"]}]
+TypeTheoryProof[And[True, 2 == 2], {"Constructor"}]
 ```
 
 <!-- => Proof, 2 goals: ⊢ True; ⊢ 2 == 2 -->
@@ -273,8 +286,8 @@ TypeTheoryProof[And[True, 2 == 2], {TypeTheoryTactic["Constructor"]}]
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[n, Naturals], Typed[m, Naturals]}, Implies[n == m, m == n]], {
-    TypeTheoryTactic["Introduce", n, m, h],
-    TypeTheoryTactic["Generalize", m]
+    "Introduce"[n, m, h],
+    "Generalize"[m]
 }]
 ```
 
@@ -285,7 +298,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals], Typed[m, Naturals]}, Implies[n == m,
 `"Change"` replaces the goal by one equal to it by computation:
 
 ```wl
-TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Change", 4 == 4]}]
+TypeTheoryProof[2 + 2 == 4, {"Change"[4 == 4]}]
 ```
 
 <!-- => Proof, 1 goal: ⊢ 4 == 4 -->
@@ -296,7 +309,7 @@ TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Change", 4 == 4]}]
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[Implies[Implies[a, b], a], a]], {
-    TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Introduce"], TypeTheoryTactic["Classical"]
+    "Introduce", "Introduce", "Introduce", "Classical"
 }]
 ```
 
@@ -305,7 +318,7 @@ TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, I
 `"Decide"` proves a statement by computing its decision, which it finds among the instances of [Decidable](); a closed statement always computes:
 
 ```wl
-TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {"Decide"}]
 ```
 
 <!-- => Proof complete -->
@@ -316,8 +329,8 @@ TypeTheoryProof[And[3 + 4 == 7, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^2 + 2 a b + b^2], {
-    TypeTheoryTactic["Introduce", a, b],
-    TypeTheoryTactic["Ring"]
+    "Introduce"[a, b],
+    "Ring"
 }]
 ```
 
@@ -328,7 +341,7 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^
 `"FindInstance"` asks Wolfram for natural numbers with a property:
 
 ```wl
-proof = TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {TypeTheoryTactic["FindInstance"]}]
+proof = TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {"FindInstance"}]
 ```
 
 <!-- => Proof complete -->
@@ -347,8 +360,8 @@ proof["Term"]
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y == 10, Implies[x == 2 y + 1, x y == 21]]], {
-    TypeTheoryTactic["Introduce", x, y, h, k],
-    TypeTheoryTactic["PolynomialReduce"]
+    "Introduce"[x, y, h, k],
+    "PolynomialReduce"
 }]
 ```
 
@@ -360,8 +373,8 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y =
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[2 x + 3 y <= 12, Implies[4 <= x, y <= 1]]], {
-    TypeTheoryTactic["Introduce", x, y, h, k],
-    TypeTheoryTactic["LinearArithmetic"]
+    "Introduce"[x, y, h, k],
+    "LinearArithmetic"
 }]
 ```
 
@@ -378,8 +391,8 @@ TypeTheoryProof[ForAll[
         Implies[ForAll[{Typed[a, G]}, op[e, a] == a],
             Implies[ForAll[{Typed[a, G]}, op[inv[a], a] == e], ForAll[{Typed[x, G]}, op[x, e] == x]]]]
 ], {
-    TypeTheoryTactic["Introduce", G, op, e, inv, associativity, identity, inverse, x],
-    TypeTheoryTactic["FindEquationalProof"]
+    "Introduce"[G, op, e, inv, associativity, identity, inverse, x],
+    "FindEquationalProof"
 }]
 ```
 
@@ -391,8 +404,8 @@ TypeTheoryProof[ForAll[
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], TypeTheoryEnvironment["Integers"], {
-    TypeTheoryTactic["Introduce", x, y, z],
-    TypeTheoryTactic["SumOfSquares"]
+    "Introduce"[x, y, z],
+    "SumOfSquares"
 }]
 ```
 
@@ -404,8 +417,8 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integer
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Reflexivity"]
+    "Introduce"[n],
+    "Reflexivity"
 }]
 ```
 
@@ -416,7 +429,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
 `"Decide"` needs a decision that computes. With a variable it computes only where the decision does not depend on the variable, and the decision of `n <= n + 1` depends on `n`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n <= n + 1], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n <= n + 1], {"Introduce"[n], "Decide"}]
 ```
 
 <!-- => Failure["NotDecided", ...] -->
@@ -424,7 +437,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n <= n + 1], {TypeTheoryTactic["Int
 The decision of `n + 1 != 0` does not depend on `n`, since a successor is never 0, so it computes:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 1 != 0], {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 1 != 0], {"Introduce"[n], "Decide"}]
 ```
 
 <!-- => Proof complete -->
@@ -434,7 +447,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 1 != 0], {TypeTheoryTactic["Int
 A definition by recursion does not unfold on a variable, where it does not compute; `"Induction"` on the variable comes first:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {TypeTheoryTactic["Introduce", l], TypeTheoryTactic["Simplify", {Join}]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {"Introduce"[l], "Simplify"[{Join}]}]
 ```
 
 <!-- => Failure["NoProgress", ...] -->
@@ -445,8 +458,8 @@ TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {TypeTheoryTac
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a <= b + 1, a <= b + 2]], {
-    TypeTheoryTactic["Introduce", a, b, h],
-    TypeTheoryTactic["Induction", h]
+    "Introduce"[a, b, h],
+    "Induction"[h]
 }]
 ```
 
@@ -457,7 +470,7 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, Implies[a <= b 
 `"Ring"` proves only what holds in every commutative semiring:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^2 + b^2], {TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Ring"]}]
+TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^2 + b^2], {"Introduce"[a, b], "Ring"}]
 ```
 
 <!-- => Failure["NotRingEquation", ...] -->
@@ -467,7 +480,7 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, (a + b)^2 == a^
 `"FindInstance"` needs a statement of the variables it binds alone; a hypothesis in it is not translated:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals]}, Exists[{Typed[n, Naturals]}, n == m + 1]], {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["FindInstance"]}]
+TypeTheoryProof[ForAll[{Typed[m, Naturals]}, Exists[{Typed[n, Naturals]}, n == m + 1]], {"Introduce"[m], "FindInstance"}]
 ```
 
 <!-- => Failure["NotTranslatable", ...] -->
@@ -477,7 +490,7 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals]}, Exists[{Typed[n, Naturals]}, n == m
 `"LinearArithmetic"` proves only what follows from the hypotheses:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, y <= x]], {TypeTheoryTactic["Introduce", x, y, h], TypeTheoryTactic["LinearArithmetic"]}]
+TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y, y <= x]], {"Introduce"[x, y, h], "LinearArithmetic"}]
 ```
 
 <!-- => Failure["NoLinearCombination", ...] -->
@@ -487,7 +500,7 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x <= y,
 `"SumOfSquares"` proves only what a sum of squares shows; `x^2 <= 2` is false for `x = 2`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], TypeTheoryEnvironment["Integers"], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], TypeTheoryEnvironment["Integers"], {"Introduce"[x], "SumOfSquares"}]
 ```
 
 <!-- => Failure["NoSumOfSquares", ...] -->

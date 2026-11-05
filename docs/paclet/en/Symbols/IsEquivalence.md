@@ -34,7 +34,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The type of [IsEquivalence]() in the HoTT environment:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[IsEquivalence, hott]]
+TypeTheoryType[IsEquivalence, hott]
 ```
 
 <!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type v} (A → B) → Type (max u v) -->
@@ -52,7 +52,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 Being an equivalence is a type:
 
 ```wl
-TypeOf[TypeTheoryTerm[IsEquivalence["not"], hott]]
+TypeTheoryType[IsEquivalence["not"], hott]
 ```
 
 <!-- => Type -->

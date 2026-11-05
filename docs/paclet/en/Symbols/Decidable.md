@@ -27,7 +27,7 @@ RelatedTutorials: [ThePrelude]
 The type of [Decidable]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Decidable]]
+TypeTheoryType[Decidable]
 ```
 
 <!-- => Prop → Type -->
@@ -37,7 +37,7 @@ TypeTheoryCheck[TypeTheoryTerm[Decidable]]
 A decision of an equation is a type:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Decidable[2 == 3]]]
+TypeTheoryType[Decidable[2 == 3]]
 ```
 
 <!-- => Type -->
@@ -67,7 +67,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && Not[2 == 3]]]]
 The tactic `"Decide"` proves a closed statement by computing its decision:
 
 ```wl
-TypeTheoryProof[And[1 <= 2, Not[2 == 3]], {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[And[1 <= 2, Not[2 == 3]], {"Decide"}]
 ```
 
 <!-- => Proof complete -->

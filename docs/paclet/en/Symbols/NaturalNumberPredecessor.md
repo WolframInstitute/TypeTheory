@@ -24,7 +24,7 @@ RelatedTutorials: [ThePrelude]
 The statement of [NaturalNumberPredecessor]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[NaturalNumberPredecessor]]
+TypeTheoryType[NaturalNumberPredecessor]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -45,8 +45,8 @@ At a successor of a variable it computes, so the number before `n + 1` is *n* by
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[n, Naturals]}, NaturalNumberPredecessor[n + 1] == n], {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Reflexivity"]
+    "Introduce"[n],
+    "Reflexivity"
 }]
 ```
 

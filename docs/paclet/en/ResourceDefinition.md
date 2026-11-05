@@ -28,14 +28,14 @@ Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarat
 
 ## Usage
 
-[TypeTheoryTerm]() writes terms; [TypeOf](), [TypeTheoryCheck](), [WeakHeadNormalForm]() and [DefinitionallyEqualQ]() check and compute them. [TypeTheoryEnvironment]() builds environments from the declarations [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType]() and [TypeTheoryNaturalNumbers](). [TypeTheoryProof]() and [TypeTheoryTactic]() prove theorems interactively. [TypeUniverse](), [ImpredicativeMaximum]() and [InductiveRecursor]() are part of the term language, and `"trueIntroduction"`, `"andIntroduction"`, `"equalityReflexivity"`, `"equalityCongruence"` and the other constants of the prelude are proofs to build on.
+[TypeTheoryTerm]() writes terms; [TypeTheoryType](), [TypeTheoryCheck](), [WeakHeadNormalForm]() and [DefinitionallyEqualQ]() check and compute them. [TypeTheoryEnvironment]() builds environments from the declarations [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType]() and [TypeTheoryNaturalNumbers](). [TypeTheoryProof]() and [TypeTheoryTactic]() prove theorems interactively. [TypeUniverse](), [ImpredicativeMaximum]() and [InductiveRecursor]() are part of the term language, and `"trueIntroduction"`, `"andIntroduction"`, `"equalityReflexivity"`, `"equalityCongruence"` and the other constants of the prelude are proofs to build on.
 
 ## Basic Examples
 
 The type of a term in the prelude:
 
 ```wl
-TypeOf[TypeTheoryTerm[2 + 3]]
+TypeTheoryType[2 + 3]
 ```
 
 <!-- => ℕ -->
@@ -84,11 +84,11 @@ Prove `0 + n == n` by induction:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Induction", n],
-    TypeTheoryTactic["Reflexivity"],
-    TypeTheoryTactic["Introduce", k, ih],
-    TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]]
+    "Introduce"[n],
+    "Induction"[n],
+    "Reflexivity",
+    "Introduce"[k, ih],
+    "Exact"["equalityCongruence"["successor", ih]]
 }]
 ```
 
@@ -109,8 +109,8 @@ Declare an inductive type, and a sum defined with its recursor:
 ```wl
 lists = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[NaturalList, TypeUniverse[1], {
-        EmptyList -> NaturalList,
-        ConsList -> ForAll[{Typed[h, Naturals], Typed[t, NaturalList]}, NaturalList]
+        "empty" -> NaturalList,
+        "cons" -> ForAll[{Typed[h, Naturals], Typed[t, NaturalList]}, NaturalList]
     }],
     TypeTheoryDefinition[ListSum, Typed[
         Function[{Typed[l, NaturalList]}, InductiveRecursor[NaturalList][
@@ -129,7 +129,7 @@ lists = TypeTheoryEnvironment[{
 The sum computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[ListSum[ConsList[5, ConsList[6, ConsList[7, EmptyList]]]], lists]]
+WeakHeadNormalForm[TypeTheoryTerm[ListSum["cons"[5, "cons"[6, "cons"[7, "empty"]]]], lists]]
 ```
 
 <!-- => 18 -->
@@ -146,8 +146,9 @@ TypeTheoryCheck[TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4,
 
 ## Possible Issues
 
-- Elaboration fills in implicit arguments by first-order unification, extended to patterns; there are no type classes. Mutual and nested inductive types and quotients are not supported yet, and the tactic `"Induction"` does not handle indexed families.
-- The kernel is interpreted Wolfram Language: checking is fast enough for interactive proofs and libraries of hundreds of declarations, not for Mathlib.
+- Elaboration fills in implicit arguments by unification, extended to patterns, and finds instances of classes and coercions; it does not search for proofs, so a statement that needs one is proved with [TypeTheoryProof]() and its tactics.
+- The tactic `"Induction"` eliminates a variable of an indexed family only when the indices are distinct variables.
+- Elaboration, and the kernel that checks each declaration as it is made, run in Wolfram Language. <code>[TypeTheoryCheck]()[*env*]</code> checks a whole environment again with the compiled kernel, about a hundred times faster.
 
 ## Author Notes
 

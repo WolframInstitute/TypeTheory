@@ -139,7 +139,7 @@ TypeTheoryCheck[
 Prop is also impredicative: a statement about every proposition is a proposition.
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, p]]]
+TypeTheoryType[ForAll[{Typed[p, TypeUniverse[0]]}, p]]
 ```
 
 <!-- => Prop -->
@@ -147,7 +147,7 @@ TypeTheoryCheck[TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]]}, p]]]
 Without Prop every universe is predicative, and a statement about every type lives in a higher universe:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, A], hott]]
+TypeTheoryType[ForAll[{Typed[A, TypeUniverse[1]]}, A], hott]
 ```
 
 <!-- => Type 1 -->
@@ -355,7 +355,7 @@ Keys[martinLof["Failures"]]
 The laws of arithmetic hold there, proved as in the prelude:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["additionCommutativity", martinLof["Environment"]]]
+TypeTheoryType["additionCommutativity", martinLof["Environment"]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ m + n == n + m -->

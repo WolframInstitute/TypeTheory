@@ -25,7 +25,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 The type of [QuotientIntroduction]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientIntroduction]]
+TypeTheoryType[QuotientIntroduction]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_r∶α → α → Prop α → QuotientType[r] -->
@@ -43,7 +43,7 @@ differences = TypeTheoryEnvironment[{
 <!-- => TypeTheoryEnvironment summary box: 170 constants -->
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientIntroduction[SameDifference, "pair"[2, 5]], differences]]
+TypeTheoryType[QuotientIntroduction[SameDifference, "pair"[2, 5]], differences]
 ```
 
 <!-- => QuotientType[SameDifference] -->
@@ -63,7 +63,7 @@ differences = TypeTheoryEnvironment[{
 The classes of (2, 5) and (3, 6) are equal by `"quotientSoundness"`, since 2 + 6 and 3 + 5 compute to 8:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed["quotientSoundness"["equalityReflexivity"[8]], QuotientIntroduction[SameDifference, "pair"[2, 5]] == QuotientIntroduction[SameDifference, "pair"[3, 6]]], differences]]
+TypeTheoryType[Typed["quotientSoundness"["equalityReflexivity"[8]], QuotientIntroduction[SameDifference, "pair"[2, 5]] == QuotientIntroduction[SameDifference, "pair"[3, 6]]], differences]
 ```
 
 <!-- => QuotientIntroduction[SameDifference, (2, 5)] == QuotientIntroduction[SameDifference, (3, 6)] -->

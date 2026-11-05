@@ -49,7 +49,7 @@ RelatedGuides: [TypeTheory]
 The prelude registers [NonNegativeIntegers]() as its natural numbers, so literals are natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[3]]
+TypeTheoryType[3]
 ```
 
 <!-- => ℕ -->
@@ -78,7 +78,7 @@ unary = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
 Literals are of the new type:
 
 ```wl
-TypeOf[TypeTheoryTerm[3, unary]]
+TypeTheoryType[3, unary]
 ```
 
 <!-- => Unary -->

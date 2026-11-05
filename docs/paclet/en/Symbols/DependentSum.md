@@ -52,7 +52,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The type of [DependentSum]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DependentSum, cubical]]
+TypeTheoryType[DependentSum, cubical]
 ```
 
 <!-- => ∀_A∶Type u (A → Type v) → Type (max u v) -->
@@ -70,7 +70,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A pair of two Booleans:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], cubical]]
+TypeTheoryType[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], cubical]
 ```
 
 <!-- => Σ_b∶𝔹 𝔹 -->
@@ -106,7 +106,7 @@ cubical[Fiber]
 The prelude does not have it, so a term that uses it names the cubical environment:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DependentSum]]
+TypeTheoryType[DependentSum]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

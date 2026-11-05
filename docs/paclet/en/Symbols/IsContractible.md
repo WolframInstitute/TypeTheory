@@ -72,7 +72,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The proof:
 
 ```wl
-TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], cubical, {TypeTheoryTactic["Exact", "identityEquivalence"[Booleans][[2]]["true"]]}]
+TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], cubical, {"Exact"["identityEquivalence"[Booleans][[2]]["true"]]}]
 ```
 
 <!-- => Proof complete -->
@@ -112,7 +112,7 @@ A term without an environment is in the prelude, which has no [IsContractible]()
 The contractibility of the Booleans, in the prelude:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[IsContractible[Booleans]]]
+TypeTheoryType[IsContractible[Booleans]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

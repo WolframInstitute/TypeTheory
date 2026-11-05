@@ -77,7 +77,7 @@ The tactic `"Hole"` closes a goal with a hole:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n && 0 + n == n], {
-    TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Constructor"], TypeTheoryTactic["Reflexivity"], TypeTheoryTactic["Hole", "zero plus n"]
+    "Introduce"[n], "Constructor", "Reflexivity", "Hole"["zero plus n"]
 }]
 ```
 
@@ -125,7 +125,7 @@ uses[AllZero]
 A hole stands only in a declared theorem's proof:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[TypeTheoryHole[], 1 == 1]]]
+TypeTheoryType[Typed[TypeTheoryHole[], 1 == 1]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

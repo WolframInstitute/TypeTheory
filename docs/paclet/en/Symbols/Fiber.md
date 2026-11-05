@@ -72,7 +72,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A proof that gives the pair, a `"dependentPair"`:
 
 ```wl
-TypeTheoryProof[Fiber["not", "true"], cubical, {TypeTheoryTactic["Exact", "dependentPair"["false", Typed[i, Interval] |-> "true"]]}]
+TypeTheoryProof[Fiber["not", "true"], cubical, {"Exact"["dependentPair"["false", Typed[i, Interval] |-> "true"]]}]
 ```
 
 <!-- => Proof complete -->
@@ -112,7 +112,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 [Fiber]() is not one of its constants:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Fiber, hott]]
+TypeTheoryType[Fiber, hott]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

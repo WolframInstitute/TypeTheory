@@ -26,7 +26,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 The type of [QuotientLift]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientLift]]
+TypeTheoryType[QuotientLift]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{r ∶ α → α → Prop} ∀_{β ∶ Sort v} ∀_f∶α → β (∀_a∶α ∀_b∶α r[a, b] ⇒ f[a] == f[b]) → QuotientType[r] → β -->
@@ -66,7 +66,7 @@ equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n
 A wrong proof is refused:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientLift[Typed[k, Naturals] |-> 7, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]} |-> "equalityReflexivity"[a], QuotientIntroduction[equal, 5]]]]
+TypeTheoryType[QuotientLift[Typed[k, Naturals] |-> 7, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]} |-> "equalityReflexivity"[a], QuotientIntroduction[equal, 5]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

@@ -24,7 +24,7 @@ RelatedTutorials: [ThePrelude]
 The type of [Option]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Option]]
+TypeTheoryType[Option]
 ```
 
 <!-- => Type u → Type u -->
@@ -34,7 +34,7 @@ TypeTheoryCheck[TypeTheoryTerm[Option]]
 Some natural number:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["some"[3]]]
+TypeTheoryType["some"[3]]
 ```
 
 <!-- => Option[ℕ] -->
@@ -44,7 +44,7 @@ TypeTheoryCheck[TypeTheoryTerm["some"[3]]]
 Options nest; [Typed]() gives the type of the inner `"none"`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed["some"["none"], Option[Option[Naturals]]]]]
+TypeTheoryType[Typed["some"["none"], Option[Option[Naturals]]]]
 ```
 
 <!-- => Option[Option[ℕ]] -->
@@ -83,11 +83,11 @@ Every option is `"none"` or a value: `"Cases"` gives a goal for each constructor
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == "none", Exists[{Typed[x, Naturals]}, o == "some"[x]]]], {
-    TypeTheoryTactic["Introduce", o],
-    TypeTheoryTactic["Cases", o],
-    TypeTheoryTactic["Exact", "orIntroductionLeft"["equalityReflexivity"["none"]]],
-    TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["Exact", "orIntroductionRight"["existsIntroduction"[x, "equalityReflexivity"["some"[x]]]]]
+    "Introduce"[o],
+    "Cases"[o],
+    "Exact"["orIntroductionLeft"["equalityReflexivity"["none"]]],
+    "Introduce"[x],
+    "Exact"["orIntroductionRight"["existsIntroduction"[x, "equalityReflexivity"["some"[x]]]]]
 }]
 ```
 
@@ -98,7 +98,7 @@ TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == "none", Exists[{Typ
 [Option]() takes a type, and a proposition such as [True]() is not in `Type u`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Option[True]]]
+TypeTheoryType[Option[True]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

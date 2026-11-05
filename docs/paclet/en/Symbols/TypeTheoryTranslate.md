@@ -64,7 +64,7 @@ translated["Environment"][True]
 Terms and proofs work in the translated environment as in any other:
 
 ```wl
-TypeTheoryProof[2 + 2 == 4, TypeTheoryTranslate[TypeTheoryEnvironment["Constructive"], TypeTheoryRules["MartinLofTypeTheory"]]["Environment"], {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[2 + 2 == 4, TypeTheoryTranslate[TypeTheoryEnvironment["Constructive"], TypeTheoryRules["MartinLofTypeTheory"]]["Environment"], {"Decide"}]
 ```
 
 <!-- => Proof complete -->

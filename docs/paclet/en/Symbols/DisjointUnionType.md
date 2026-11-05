@@ -25,7 +25,7 @@ RelatedTutorials: [ThePrelude]
 The type of [DisjointUnionType]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DisjointUnionType]]
+TypeTheoryType[DisjointUnionType]
 ```
 
 <!-- => Type u → Type v → Type (max u v) -->
@@ -35,7 +35,7 @@ TypeTheoryCheck[TypeTheoryTerm[DisjointUnionType]]
 A natural number on the left of a disjoint union with the Booleans:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed["left"[2], DisjointUnionType[Naturals, Booleans]]]]
+TypeTheoryType[Typed["left"[2], DisjointUnionType[Naturals, Booleans]]]
 ```
 
 <!-- => ℕ ⊕ 𝔹 -->
@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed["left"[2], DisjointUnionType[Naturals, Bool
 A disjoint union of two types in `Type` is in `Type`:
 
 ```wl
-TypeOf[TypeTheoryTerm[DisjointUnionType[Naturals, Booleans]]]
+TypeTheoryType[DisjointUnionType[Naturals, Booleans]]
 ```
 
 <!-- => Type -->
@@ -84,12 +84,12 @@ Every element is on one side: `"Cases"` gives a goal for each, which `"orIntrodu
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exists[{Typed[n, Naturals]}, s == "left"[n]], Exists[{Typed[b, Booleans]}, s == "right"[b]]]], {
-    TypeTheoryTactic["Introduce", s],
-    TypeTheoryTactic["Cases", s],
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Exact", "orIntroductionLeft"["existsIntroduction"[n, "equalityReflexivity"["left"[n]]]]],
-    TypeTheoryTactic["Introduce", b],
-    TypeTheoryTactic["Exact", "orIntroductionRight"["existsIntroduction"[b, "equalityReflexivity"["right"[b]]]]]
+    "Introduce"[s],
+    "Cases"[s],
+    "Introduce"[n],
+    "Exact"["orIntroductionLeft"["existsIntroduction"[n, "equalityReflexivity"["left"[n]]]]],
+    "Introduce"[b],
+    "Exact"["orIntroductionRight"["existsIntroduction"[b, "equalityReflexivity"["right"[b]]]]]
 }]
 ```
 
@@ -100,7 +100,7 @@ TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exi
 The sides are types: propositions such as [True]() and [False]() are not in `Type u`, and [Or]() is their disjunction:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[DisjointUnionType[True, False]]]
+TypeTheoryType[DisjointUnionType[True, False]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

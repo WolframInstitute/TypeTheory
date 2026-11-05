@@ -38,7 +38,7 @@ A string literal is a constant of [Strings]():
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeOf[TypeTheoryTerm["abc", TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["\"abc\"", Strings]}]]]
+TypeTheoryType["abc", TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["\"abc\"", Strings]}]]
 ```
 
 <!-- => Strings -->

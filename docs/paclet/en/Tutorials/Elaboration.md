@@ -14,10 +14,10 @@ A term is written as a Wolfram Language expression: `Function[{Typed[n, NonNegat
 
 ## From Surface Term to Core Term
 
-[TypeOf]() elaborates a term and gives its type:
+[TypeTheoryType]() elaborates a term and gives its type:
 
 ```wl
-TypeOf[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n + 1]]
+TypeTheoryType[Typed[n, NonNegativeIntegers] |-> n + 1]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -29,7 +29,7 @@ The type is read back into surface syntax and shown in mathematical notation, so
 A name is a variable that a binder in scope introduces, or a constant that the environment declares. `"equalityReflexivity"` is a constant of the prelude, and its argument 2 gives the type `2 == 2`:
 
 ```wl
-TypeOf[TypeTheoryTerm["equalityReflexivity"[2]]]
+TypeTheoryType["equalityReflexivity"[2]]
 ```
 
 <!-- => 2 == 2 -->
@@ -37,7 +37,7 @@ TypeOf[TypeTheoryTerm["equalityReflexivity"[2]]]
 A constant may be named by a string as well as by a symbol. The prelude's Booleans are the string-named constants `"true"` and `"false"`:
 
 ```wl
-TypeOf[TypeTheoryTerm["true"]]
+TypeTheoryType["true"]
 ```
 
 <!-- => 𝔹 -->
@@ -45,7 +45,7 @@ TypeOf[TypeTheoryTerm["true"]]
 A name that is neither a variable in scope nor a declared constant is refused:
 
 ```wl
-TypeOf[TypeTheoryTerm[undeclaredName]]
+TypeTheoryType[undeclaredName]
 ```
 
 <!-- => Failure["ElaborationFailed", ...]: undeclaredName is not a term of the type theory -->
@@ -54,25 +54,25 @@ A symbol whose value is a [TypeTheoryTerm]() stands for that term, so terms can 
 
 ```wl
 reflexivity = TypeTheoryTerm["equalityReflexivity"[2]];
-TypeOf[TypeTheoryTerm["equalitySymmetry"[reflexivity]]]
+TypeTheoryType["equalitySymmetry"[reflexivity]]
 ```
 
 <!-- => 2 == 2 -->
 
-Code copied from a documentation page holds `PacletSymbol[paclet, name]` where a symbol stood. A term stores the symbol it names instead, without loading or evaluating anything:
+Code copied from a documentation page holds `PacletSymbol[paclet, name]` where a symbol stood, the paclet often guarded by an `If` that installs it. A term stores the symbol each `PacletSymbol` names instead, without loading or evaluating anything, so the copied code works as written:
 
 ```wl
-TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "EqualityReflexivity"][2]]
+PacletSymbol["WolframInstitute/TypeTheory", "TypeTheoryType"][PacletSymbol["WolframInstitute/TypeTheory", "TypeTheoryTerm"][PacletSymbol["WolframInstitute/TypeTheory", "NaturalNumberPredecessor"][3]]]
 ```
 
-<!-- => EqualityReflexivity[2] -->
+<!-- => ℕ -->
 
 ## Implicit Arguments
 
 [Length]() takes the type of the list's elements as an implicit argument, which nobody writes. Elaboration puts a metavariable in its place, an unknown, and unification solves it from the list:
 
 ```wl
-TypeOf[TypeTheoryTerm[Length[{1, 2, 3}]]]
+TypeTheoryType[Length[{1, 2, 3}]]
 ```
 
 <!-- => ℕ -->
@@ -87,11 +87,11 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]
 
 ## Lists, Sequences and Their Types
 
-`List` and `Sequence` are each a type and its elements, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{A}` is the type of the lists of `A`, and `Sequence[A, B]` the type of the sequences of an `A` and a `B`; elsewhere `{a, b}` is a list and `Sequence[a, b]` a sequence. In a term on its own, where nothing decides, the elements do, elaborated once: types make the type, so a type that [TypeOf]() gives reads back as itself:
+`List` and `Sequence` are each a type and its elements, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{A}` is the type of the lists of `A`, and `Sequence[A, B]` the type of the sequences of an `A` and a `B`; elsewhere `{a, b}` is a list and `Sequence[a, b]` a sequence. In a term on its own, where nothing decides, the elements do, elaborated once: types make the type, so a type that [TypeTheoryType]() gives reads back as itself:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-{TypeOf[TypeTheoryTerm[{1, 2}, wolfram]], TypeOf[TypeTheoryTerm[{NonNegativeIntegers}, wolfram]]}
+{TypeTheoryType[{1, 2}, wolfram], TypeTheoryType[{NonNegativeIntegers}, wolfram]}
 ```
 
 <!-- => {{ℕ}, Type} -->
@@ -105,14 +105,14 @@ DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequen
 
 <!-- => True -->
 
-A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`. `Lists[A]`, the name the type of lists had, is read as `{A}`.
+A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`.
 
 ## Binders Without Types
 
 A variable written without a type gets a metavariable for its type, solved by the uses of the variable. Here `x + 0` makes `x` a natural number, and the statement is a proposition:
 
 ```wl
-TypeOf[TypeTheoryTerm[ForAll[{x}, x + 0 == x]]]
+TypeTheoryType[ForAll[{x}, x + 0 == x]]
 ```
 
 <!-- => Prop -->
@@ -120,7 +120,7 @@ TypeOf[TypeTheoryTerm[ForAll[{x}, x + 0 == x]]]
 Where nothing decides the type, it is asked for by name:
 
 ```wl
-TypeOf[TypeTheoryTerm[ForAll[{a}, a == a]]]
+TypeTheoryType[ForAll[{a}, a == a]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...]: The type of the variable a is needed: write Typed[x, type]. -->
@@ -146,7 +146,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, 
 A term on its own has no universe parameters, so an undecided level there is that of Type:
 
 ```wl
-TypeOf[TypeTheoryTerm[a |-> Function[Typed[z, a], z]]]
+TypeTheoryType[a |-> Function[Typed[z, a], z]]
 ```
 
 <!-- => ∀_{a∶Type} a → a -->
@@ -164,7 +164,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]]
 Where nothing decides, elaboration says so instead of guessing:
 
 ```wl
-TypeOf[TypeTheoryTerm[True && False]]
+TypeTheoryType[True && False]
 ```
 
 <!-- => Failure["Ambiguous", ...]: say which with Typed[True && False, TypeUniverse[0]] or Typed[True && False, Booleans] -->
@@ -198,7 +198,7 @@ A function of strings is typed the same way, over [Strings](), the type of the s
 
 ```wl
 greeting[s_] := StringJoin["Hello, ", s];
-TypeOf[TypeTheoryTerm[greeting, TypeTheoryEnvironment[integers, TypeTheoryFormalize[greeting, integers]]]]
+TypeTheoryType[greeting, TypeTheoryEnvironment[integers, TypeTheoryFormalize[greeting, integers]]]
 ```
 
 <!-- => Strings → Strings -->
@@ -224,7 +224,7 @@ Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
 
 ## Typing in the Compiler and in Mathematics
 
-The Wolfram Language has two type systems that share names: the compiler's, which [FunctionCompile]() uses to choose machine code, and the type theory's, in which a type is a mathematical statement of what a term is. Both write a function type with [TypeSpecifier]() or `->`, and both answer [TypeOf](), so the difference is easy to miss.
+The Wolfram Language has two type systems that share names: the compiler's, which [FunctionCompile]() uses to choose machine code, and the type theory's, in which a type is a mathematical statement of what a term is. Both write a function type with [TypeSpecifier]() or `->`, so the difference is easy to miss: [TypeOf]() gives the compiler's type of an expression, and [TypeTheoryType]() the type theory's type of a term.
 
 The compiler's [TypeOf]() types an expression by how its values are stored. A machine integer is an `Integer64`:
 
@@ -245,7 +245,7 @@ TypeOf[Typed[x, "MachineInteger"] |-> x + 1]
 The same function in the type theory has a type of integers, the mathematical ones:
 
 ```wl
-TypeOf[TypeTheoryTerm[Typed[x, Integers] |-> x + 1, integers]]
+TypeTheoryType[Typed[x, Integers] |-> x + 1, integers]
 ```
 
 <!-- => ℤ → ℤ -->
@@ -278,7 +278,7 @@ TypeOf[Typed[{1, 2, 3}, "PackedArray"::["MachineInteger", 1]]]
 The type theory has types that no compiler type has: a statement is a type, a proposition, whose elements are its proofs:
 
 ```wl
-TypeOf[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]
+TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 ```
 
 <!-- => Prop -->
@@ -297,10 +297,10 @@ TypeOf[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]
 | What runs | machine code | reduction in the kernel, or the Wolfram Language for an axiom with an `"Implementation"` |
 | Pattern matching | a match program, compiled to code that tests and binds the parts of the call | a term of the monad of matches, `Match[A]`, whose first result is the rule applied: a function's rules have type `Expressions -> Option[Expressions]` |
 
-[TypeOf]() is the compiler's function, which TypeTheory gives a meaning for a [TypeTheoryTerm](). Once the compiler has loaded it, it holds its argument, so it must be given the term itself; a term kept in a variable is elaborated by [TypeTheoryCheck]() instead:
+Both hold their argument: [TypeOf]() types the expression as the compiler would, and [TypeTheoryType]() elaborates it as a term of the type theory. A [TypeTheoryTerm]() kept in a variable stands for the term it holds:
 
 ```wl
-TypeTheoryCheck[reflexivity]
+TypeTheoryType[reflexivity]
 ```
 
 <!-- => 2 == 2 -->

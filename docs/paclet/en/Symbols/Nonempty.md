@@ -25,7 +25,7 @@ RelatedTutorials: [ThePrelude]
 The type of [Nonempty]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Nonempty]]
+TypeTheoryType[Nonempty]
 ```
 
 <!-- => Sort u → Prop -->
@@ -45,7 +45,7 @@ TypeTheoryCheck[TypeTheoryTerm["nonempty"[0]], TypeTheoryTerm[Nonempty[Naturals]
 The type may be a proposition: a proof of [True]() shows that [True]() has a proof:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["nonempty"["trueIntroduction"]]]
+TypeTheoryType["nonempty"["trueIntroduction"]]
 ```
 
 <!-- => Nonempty[True] -->
@@ -56,9 +56,9 @@ An element of a type gives a pair: `"Cases"` takes a proof of [Nonempty]() apart
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[h, Nonempty[A]]}, Nonempty[CartesianProductType[A, A]]], {
-    TypeTheoryTactic["Introduce", A, h],
-    TypeTheoryTactic["Cases", h],
-    TypeTheoryTactic["Introduce", x]
+    "Introduce"[A, h],
+    "Cases"[h],
+    "Introduce"[x]
 }]
 ```
 
@@ -77,7 +77,7 @@ TypeTheoryTactic["Exact", "nonempty"["pair"[x, x]]][proof]
 `"choice"` takes a proof of [Nonempty]() to an element:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[h, Nonempty[Naturals]] |-> "choice"[h]]]
+TypeTheoryType[Typed[h, Nonempty[Naturals]] |-> "choice"[h]]
 ```
 
 <!-- => Nonempty[ℕ] → ℕ -->
@@ -87,7 +87,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed[h, Nonempty[Naturals]] |-> "choice"[h]]]
 A proof of [Nonempty]() can be taken apart only to prove a proposition, not to compute data such as a natural number; `"choice"` gives an element instead:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[h, Nonempty[Naturals]]}, Naturals], {TypeTheoryTactic["Introduce", h], TypeTheoryTactic["Cases", h]}]
+TypeTheoryProof[ForAll[{Typed[h, Nonempty[Naturals]]}, Naturals], {"Introduce"[h], "Cases"[h]}]
 ```
 
 <!-- => Failure["LargeElimination", ...] -->

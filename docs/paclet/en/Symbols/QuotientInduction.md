@@ -25,7 +25,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 The type of [QuotientInduction]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientInduction]]
+TypeTheoryType[QuotientInduction]
 ```
 
 <!-- => ∀_{α ∶ Sort u} ∀_{r ∶ α → α → Prop} ∀_{β ∶ QuotientType[r] → Prop} (∀_a∶α β[QuotientIntroduction[r, a]]) ⇒ ∀_q∶QuotientType[r] β[q] -->
@@ -43,7 +43,7 @@ equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n
 Every class equals itself, from every element's class doing so:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Construct[QuotientInduction, Naturals, equal, Typed[q, QuotientType[equal]] |-> q == q, Typed[a, Naturals] |-> "equalityReflexivity"[QuotientIntroduction[equal, a]]]]]
+TypeTheoryType[Construct[QuotientInduction, Naturals, equal, Typed[q, QuotientType[equal]] |-> q == q, Typed[a, Naturals] |-> "equalityReflexivity"[QuotientIntroduction[equal, a]]]]
 ```
 
 <!-- => ∀_q∶QuotientType[(m ∶ ℕ) (n ∶ ℕ) ↦ m == n] q == q -->

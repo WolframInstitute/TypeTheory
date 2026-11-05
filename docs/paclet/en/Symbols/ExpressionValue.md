@@ -25,7 +25,7 @@ The value of an expression is an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeOf[TypeTheoryTerm[ExpressionValue["normal"[7, {1, 2}]], wolfram]]
+TypeTheoryType[ExpressionValue["normal"[7, {1, 2}]], wolfram]
 ```
 
 <!-- => Expressions -->

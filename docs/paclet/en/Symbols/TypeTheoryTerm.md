@@ -19,7 +19,7 @@ RelatedGuides: [TypeTheory]
 
 - [TypeTheoryTerm]() has the [HoldFirst]() attribute. It has to: on its own, <code>[ForAll]()[[Typed]()[x, A], B]</code> evaluates to `B`, and `n + 0 == n` to [True](). The environment is evaluated.
 - A term without an environment is in the prelude, except beside a term that has one, as in <code>[TypeTheoryCheck]()[*term*, *type*]</code>, where it takes that term's.
-- <code>[TypeOf]()[[TypeTheoryTerm]()[*term*, *env*]]</code> gives the type of *term*, and <code>[TypeOf]()[[TypeTheoryTerm]()[*term*], *env*]</code> gives its type in *env*. [TypeOf]() holds its argument, so give it a [TypeTheoryTerm]() written out, or use [TypeTheoryCheck]().
+- <code>[TypeTheoryType]()[[TypeTheoryTerm]()[*term*, *env*]]</code> gives the type of *term*, and <code>[TypeTheoryType]()[[TypeTheoryTerm]()[*term*], *env*]</code> gives its type in *env*.
 - The surface language:
 
 | Surface term | Meaning |
@@ -53,7 +53,7 @@ RelatedGuides: [TypeTheory]
 A term and its type:
 
 ```wl
-TypeOf[TypeTheoryTerm[2 + 3]]
+TypeTheoryType[2 + 3]
 ```
 
 <!-- => ℕ -->
@@ -68,10 +68,10 @@ statement = TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
 
-It is a proposition. [TypeTheoryCheck]() gives the type of a term held in a variable:
+It is a proposition. [TypeTheoryType]() gives the type of a term, here one held in a variable:
 
 ```wl
-TypeTheoryCheck[statement]
+TypeTheoryType[statement]
 ```
 
 <!-- => Prop -->
@@ -81,7 +81,7 @@ TypeTheoryCheck[statement]
 A polymorphic function with an implicit type argument:
 
 ```wl
-TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]
 ```
 
 <!-- => ∀_{A ∶ Type} A → A -->
@@ -91,7 +91,7 @@ TypeOf[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]]
 Implicit arguments are filled in; [Construct]() gives them explicitly:
 
 ```wl
-TypeOf[TypeTheoryTerm[Construct["equalityReflexivity", Naturals, 3]]]
+TypeTheoryType[Construct["equalityReflexivity", Naturals, 3]]
 ```
 
 <!-- => 3 == 3 -->
@@ -109,7 +109,7 @@ equation = TypeTheoryTerm[1 + 1 == 2]
 A term that holds another, spliced in:
 
 ```wl
-TypeOf[TypeTheoryTerm[Implies[equation, equation]]]
+TypeTheoryType[Implies[equation, equation]]
 ```
 
 <!-- => Prop -->
@@ -129,7 +129,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed[True && False, Booleans]]]
 A term in an environment of its own, here the empty one, [TypeTheoryEnvironment]()[], which declares no constants:
 
 ```wl
-TypeOf[TypeTheoryTerm[2 + 3, TypeTheoryEnvironment[]]]
+TypeTheoryType[2 + 3, TypeTheoryEnvironment[]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
@@ -144,38 +144,20 @@ bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {Bit
 
 <!-- => TypeTheoryEnvironment summary box: 173 constants -->
 
-[TypeOf]() also takes the environment as its second argument, as it takes a type environment for compiled types:
+[TypeTheoryType]() also takes the environment as its second argument:
 
 ```wl
-TypeOf[TypeTheoryTerm[BitOne], bits]
+TypeTheoryType[BitOne, bits]
 ```
 
 <!-- => Bit -->
 
 ## Possible Issues
 
-A term held in a variable:
-
-```wl
-term = TypeTheoryTerm[2 + 3]
-```
-
-<!-- => 2 + 3 -->
-
-[TypeOf]() holds its argument, so it does not see the term a variable holds; [TypeTheoryCheck]() evaluates its argument:
-
-```wl
-TypeTheoryCheck[term]
-```
-
-<!-- => ℕ -->
-
----
-
 On its own, [True]() could be the proposition or the Boolean, so its type is ambiguous:
 
 ```wl
-TypeOf[TypeTheoryTerm[True]]
+TypeTheoryType[True]
 ```
 
 <!-- => Failure["Ambiguous", ...] -->
@@ -183,7 +165,7 @@ TypeOf[TypeTheoryTerm[True]]
 [Typed]() says which it is:
 
 ```wl
-TypeOf[TypeTheoryTerm[Typed[True, Booleans]]]
+TypeTheoryType[Typed[True, Booleans]]
 ```
 
 <!-- => 𝔹 -->

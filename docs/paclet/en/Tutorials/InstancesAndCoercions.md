@@ -89,7 +89,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[Naturals, 
 The instances are tried the latest declared first, at most 32 deep. Where none applies, elaboration fails:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[Default, Option[Naturals]], pairs]]
+TypeTheoryType[Typed[Default, Option[Naturals]], pairs]
 ```
 
 <!-- => Failure["NoInstance", ...] -->
@@ -130,7 +130,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]
 The tactic `"Decide"` asks elaboration for the decision of its goal too, so an environment extends it with instances of its own. The prelude decides no [Nonempty]() type:
 
 ```wl
-TypeTheoryProof[Nonempty[Naturals], {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[Nonempty[Naturals], {"Decide"}]
 ```
 
 <!-- => Failure["NotDecidable", ...] -->
@@ -140,7 +140,7 @@ An instance deciding that the naturals are nonempty is enough:
 ```wl
 TypeTheoryProof[Nonempty[Naturals], TypeTheoryEnvironment[{
     TypeTheoryDefinition[NaturalsNonempty, Typed["decidableTrue"["nonempty"[0]], Decidable[Nonempty[Naturals]]], "Instance" -> True]
-}], {TypeTheoryTactic["Decide"]}]
+}], {"Decide"}]
 ```
 
 <!-- => Proof complete -->
@@ -185,7 +185,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[Naturals]], coercions]]
 Both types must be known: a coercion is inserted only where no metavariable is left in either, as Lean waits for them. With no coercion that applies, the term's type is a mismatch:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[{}, Naturals], coercions]]
+TypeTheoryType[Typed[{}, Naturals], coercions]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

@@ -26,7 +26,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 The type of [QuotientType]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientType]]
+TypeTheoryType[QuotientType]
 ```
 
 <!-- => ∀_{α ∶ Sort u} (α → α → Prop) → Sort u -->
@@ -46,7 +46,7 @@ differences = TypeTheoryEnvironment[{
 Their quotient is a type:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[QuotientType[SameDifference], differences]]
+TypeTheoryType[QuotientType[SameDifference], differences]
 ```
 
 <!-- => Type -->

@@ -47,8 +47,8 @@ A finished proof:
 
 ```wl
 proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Reflexivity"]
+    "Introduce"[n],
+    "Reflexivity"
 }]
 ```
 
@@ -65,7 +65,7 @@ proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
 The theorem states what the proof proved:
 
 ```wl
-TypeOf[TypeTheoryTerm[ZeroRightIdentity, proved]]
+TypeTheoryType[ZeroRightIdentity, proved]
 ```
 
 <!-- => ∀_n∶ℕ n + 0 == n -->
@@ -73,7 +73,7 @@ TypeOf[TypeTheoryTerm[ZeroRightIdentity, proved]]
 A theorem applies like a function:
 
 ```wl
-TypeOf[TypeTheoryTerm[ZeroRightIdentity[7], proved]]
+TypeTheoryType[ZeroRightIdentity[7], proved]
 ```
 
 <!-- => 7 + 0 == 7 -->

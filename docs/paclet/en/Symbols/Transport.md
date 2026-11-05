@@ -33,7 +33,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The statement of [Transport]() in the HoTT environment:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Transport, hott]]
+TypeTheoryType[Transport, hott]
 ```
 
 <!-- => ∀_{A ∶ Type u} ∀_P∶A → Type v ∀_{x ∶ A} ∀_{y ∶ A} x == y → P[x] → P[y] -->

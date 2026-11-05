@@ -54,7 +54,7 @@ A term carries the environment its constants come from. Without one, it is in th
 environment of logic, equality and the natural numbers:
 
 ```wolfram
-TypeOf[TypeTheoryTerm[2 + 3]]
+TypeTheoryType[2 + 3]
 (* ℕ, that is TypeTheoryTerm[NonNegativeIntegers, prelude] *)
 
 WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]
@@ -166,7 +166,7 @@ natural number coerces to an integer:
 
 ```wl
 integers = TypeTheoryEnvironment["Integers"];
-TypeOf[TypeTheoryTerm[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]]   (* ℤ → ℕ → Prop *)
+TypeTheoryType[Function[{Typed[x, Integers], Typed[n, Naturals]}, 2 x - 7 <= x + n], integers]   (* ℤ → ℕ → Prop *)
 ```
 
 Squares are at least 0, `"integerSquareNonnegative"`, and `"integerLessEqualOfMultiple"` gives `x <= y` from
@@ -177,8 +177,8 @@ proves the equation:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], integers, {
-    TypeTheoryTactic["Introduce", x, y, z],
-    TypeTheoryTactic["SumOfSquares"]                     (* 2 (x^2 + y^2 + z^2 - x y - y z - z x), a sum of three squares *)
+    "Introduce"[x, y, z],
+    "SumOfSquares"                     (* 2 (x^2 + y^2 + z^2 - x y - y z - z x), a sum of three squares *)
 }]
 ```
 
@@ -198,10 +198,10 @@ proves identities of rationals by their classes, and `"rationalEqualityDecidable
 
 ```wl
 rationals = TypeTheoryEnvironment["Rationals"];
-TypeTheoryProof[Typed[1/2 + 1/3, Rationals] == 5/6, rationals, {TypeTheoryTactic["Decide"]}]      (* Proof complete *)
+TypeTheoryProof[Typed[1/2 + 1/3, Rationals] == 5/6, rationals, {"Decide"}]      (* Proof complete *)
 TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x / 2 + x / 3 == 5 x / 6], rationals, {
-    TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["Ring"]                             (* by the classes of x and of the fractions *)
+    "Introduce"[x],
+    "Ring"                             (* by the classes of x and of the fractions *)
 }]
 ```
 
@@ -370,11 +370,11 @@ its recursive calls back, so the laws of lists go through with induction and sim
 
 ```wolfram
 TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
-    TypeTheoryTactic["Introduce", a, b, c],
-    TypeTheoryTactic["Induction", a],
-    TypeTheoryTactic["Simplify", {Join}],                (* Join[{}, m] is m *)
-    TypeTheoryTactic["Introduce", x, rest, ih],
-    TypeTheoryTactic["Simplify", {Join, ih}]             (* Join[Prepend[x][l], m] is Prepend[x][Join[l, m]] *)
+    "Introduce"[a, b, c],
+    "Induction"[a],
+    "Simplify"[{Join}],                (* Join[{}, m] is m *)
+    "Introduce"[x, rest, ih],
+    "Simplify"[{Join, ih}]             (* Join[Prepend[x][l], m] is Prepend[x][Join[l, m]] *)
 }]
 ```
 
@@ -384,11 +384,11 @@ hypotheses, a proof by completion from equational hypotheses, or a sum of square
 
 ```wolfram
 TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {
-    TypeTheoryTactic["FindInstance"]                     (* x = 3, y = 4, checked by computing *)
+    "FindInstance"                     (* x = 3, y = 4, checked by computing *)
 }]
 TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y == 10, Implies[x == 2 y + 1, x y == 21]]], {
-    TypeTheoryTactic["Introduce", x, y, h, k],
-    TypeTheoryTactic["PolynomialReduce"]                 (* cofactors over thirds, checked by "Ring" *)
+    "Introduce"[x, y, h, k],
+    "PolynomialReduce"                 (* cofactors over thirds, checked by "Ring" *)
 }]
 ```
 
@@ -408,7 +408,7 @@ TypeTheory/Kernel/
   Checking/Cubical.wl          the interval, paths, transport, composition and Glue types
   Checking/Environment.wl      environments as stores of definitions, and kernel failures
   Checking/Declarations.wl     the declaration constructors and environments built from them
-  Checking/Queries.wl          TypeOf, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
+  Checking/Queries.wl          TypeTheoryType, TypeTheoryCheck, DefinitionallyEqualQ, WeakHeadNormalForm, environments as associations
   Checking/CompiledKernel.wl   the kernel's checking compiled over hash-consed integer terms, for whole environments
   Elaboration/Elaboration.wl   implicit arguments, instances, coercions, universe levels, unification
   Proofs/ProofStates.wl        proof states and tactics

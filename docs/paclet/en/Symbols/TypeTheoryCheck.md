@@ -5,13 +5,13 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryCheck
 Keywords: [type checking, kernel, type inference, environment, replay, trust, proof checking]
-SeeAlso: [TypeTheoryTerm, TypeTheoryEnvironment, DefinitionallyEqualQ, WeakHeadNormalForm, TypeTheoryTheorem]
+SeeAlso: [TypeTheoryType, TypeTheoryTerm, TypeTheoryEnvironment, DefinitionallyEqualQ, WeakHeadNormalForm, TypeTheoryTheorem]
 RelatedGuides: [TypeTheory]
 ---
 
 ## Usage
 
-<code>[TypeTheoryCheck]()[*term*]</code> gives the type of the [TypeTheoryTerm]() *term* in its environment, or a [Failure]() if it does not type-check.
+<code>[TypeTheoryCheck]()[*term*]</code> gives the type of the [TypeTheoryTerm]() *term* by calling <code>[TypeTheoryType]()[*term*]</code>.
 
 <code>[TypeTheoryCheck]()[*term*, *type*]</code> gives a [Success]() if *term* has the given *type*, and a [Failure]() otherwise.
 
@@ -19,8 +19,7 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- <code>[TypeTheoryCheck]()[*term*]</code> is [TypeOf]() without holding its argument.
-- A constant on its own has its declared type, with its implicit arguments and universe parameters.
+- <code>[TypeTheoryCheck]()[*term*]</code> calls <code>[TypeTheoryType]()[*term*]</code>, which also takes an expression without a [TypeTheoryTerm]() around it; <code>[TypeTheoryCheck]()[*term*, *type*]</code> checks a term against a type that is given.
 - In <code>[TypeTheoryCheck]()[*term*, *type*]</code>, a term or type without an environment takes the other's, and both without one are in the prelude.
 - A check that passes gives a [Success]() whose message says what was checked: the tag `"TypeChecked"` with the term and the type under `"Term"` and `"Type"`, or `"EnvironmentChecked"` with the number of constants under `"Constants"`. A check that does not pass gives a [Failure](), so <code>[FailureQ]()[[TypeTheoryCheck]()[...]]</code> tells the two apart.
 - An environment's store could be changed by hand. <code>[TypeTheoryCheck]()[*env*]</code> replays every declaration on an empty environment and compares each record with the one the replay produces, which catches a forged theorem or recursor. Axioms are taken on trust.
@@ -29,7 +28,7 @@ RelatedGuides: [TypeTheory]
 
 ## Basic Examples
 
-The type of a term:
+The type of a term, given by [TypeTheoryType]():
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm["equalityReflexivity"[4]]]
@@ -66,16 +65,6 @@ TypeTheoryCheck[TypeTheoryEnvironment["Integers"], Method -> "Symbolic"]
 ```
 
 <!-- => Success["EnvironmentChecked", ...] -->
-
----
-
-The declared type of a constant:
-
-```wl
-TypeTheoryCheck[TypeTheoryTerm["andIntroduction"]]
-```
-
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} a ⇒ b ⇒ (a ∧ b) -->
 
 ## Possible Issues
 

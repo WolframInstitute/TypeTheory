@@ -27,7 +27,7 @@ RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 The type of [Decide]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Decide]]
+TypeTheoryType[Decide]
 ```
 
 <!-- => ∀_p∶Prop ∀_[d∶Decidable[p]] 𝔹 -->
@@ -87,7 +87,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 3 <= 2, "lessEqualDecidable"
 `"decideSoundness"` turns a decision that computes to `"true"` into a proof:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed["decideSoundness"["equalityReflexivity"["true"]], 3 == 3]]]
+TypeTheoryType[Typed["decideSoundness"["equalityReflexivity"["true"]], 3 == 3]]
 ```
 
 <!-- => 3 == 3 -->
@@ -97,7 +97,7 @@ TypeTheoryCheck[TypeTheoryTerm[Typed["decideSoundness"["equalityReflexivity"["tr
 A proposition with no instance of [Decidable]() has no decision:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Decide[Nonempty[Naturals]]]]
+TypeTheoryType[Decide[Nonempty[Naturals]]]
 ```
 
 <!-- => Failure["NoInstance", ...] -->

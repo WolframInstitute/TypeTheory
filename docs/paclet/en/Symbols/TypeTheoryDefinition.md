@@ -48,7 +48,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Double[21], doubled]]
 Its type:
 
 ```wl
-TypeOf[TypeTheoryTerm[Double, doubled]]
+TypeTheoryType[Double, doubled]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -68,7 +68,7 @@ identity = TypeTheoryEnvironment[
 A universe-polymorphic definition is used at each universe:
 
 ```wl
-TypeOf[TypeTheoryTerm[PolymorphicIdentity[3], identity]]
+TypeTheoryType[PolymorphicIdentity[3], identity]
 ```
 
 <!-- => ℕ -->
@@ -76,7 +76,7 @@ TypeOf[TypeTheoryTerm[PolymorphicIdentity[3], identity]]
 Applied to a type, it is used one universe up:
 
 ```wl
-TypeOf[TypeTheoryTerm[PolymorphicIdentity[Naturals], identity]]
+TypeTheoryType[PolymorphicIdentity[Naturals], identity]
 ```
 
 <!-- => Type -->

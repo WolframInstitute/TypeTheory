@@ -59,7 +59,7 @@ TypeTheoryTerm[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x + n, in
 Its type; the natural number `n` is coerced to an integer where it is added to one:
 
 ```wl
-TypeOf[TypeTheoryTerm[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x + n, integers]]
+TypeTheoryType[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x + n, integers]
 ```
 
 <!-- => ℤ → ℕ → Prop -->
@@ -67,7 +67,7 @@ TypeOf[TypeTheoryTerm[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x 
 Numbers alone are natural numbers, unless an integer is expected:
 
 ```wl
-{TypeOf[TypeTheoryTerm[2 + 3, integers]], TypeOf[TypeTheoryTerm[Typed[2 + 3, Integers], integers]]}
+{TypeTheoryType[2 + 3, integers], TypeTheoryType[Typed[2 + 3, Integers], integers]}
 ```
 
 <!-- => {ℕ, ℤ} -->
@@ -104,11 +104,11 @@ They rewrite integer terms as the laws of the natural numbers rewrite theirs. A 
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x + y) - y == x], integers, {
-    TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Rewrite", "integerSubtractionNegation"],
-    TypeTheoryTactic["Rewrite", "integerAdditionAssociativity"],
-    TypeTheoryTactic["Rewrite", "integerAdditionNegation"],
-    TypeTheoryTactic["Rewrite", "integerAdditionZero"]
+    "Introduce"[x, y],
+    "Rewrite"["integerSubtractionNegation"],
+    "Rewrite"["integerAdditionAssociativity"],
+    "Rewrite"["integerAdditionNegation"],
+    "Rewrite"["integerAdditionZero"]
 }]
 ```
 
@@ -120,9 +120,9 @@ The library proves each law the same way, and so can you. `"Induction"` on an in
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], integers, {
-    TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
-    TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q]
+    "Introduce"[x, y],
+    "Induction"[x], "Introduce"[p],
+    "Induction"[y], "Introduce"[q]
 }]
 ```
 
@@ -132,10 +132,10 @@ The product of two classes computes to the class of a pair, so `"quotientSoundne
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], integers, {
-    TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
-    TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
-    TypeTheoryTactic["Apply", "quotientSoundness"]
+    "Introduce"[x, y],
+    "Induction"[x], "Introduce"[p],
+    "Induction"[y], "Introduce"[q],
+    "Apply"["quotientSoundness"]
 }]
 ```
 
@@ -145,11 +145,11 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], integers, {
-    TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", p],
-    TypeTheoryTactic["Induction", y], TypeTheoryTactic["Introduce", q],
-    TypeTheoryTactic["Apply", "quotientSoundness"],
-    TypeTheoryTactic["Ring"]
+    "Introduce"[x, y],
+    "Induction"[x], "Introduce"[p],
+    "Induction"[y], "Introduce"[q],
+    "Apply"["quotientSoundness"],
+    "Ring"
 }]
 ```
 
@@ -163,8 +163,8 @@ With the laws proved, `"Ring"` proves an equation of integers on its own, as it 
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y)^2 == x^2 - 2 x y + y^2], integers, {
-    TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Ring"]
+    "Introduce"[x, y],
+    "Ring"
 }]
 ```
 
@@ -174,8 +174,8 @@ The atoms of the polynomials need not be variables, and the integers of natural 
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Integers} -> Integers]], Typed[n, Naturals]}, (f[n] + n)^2 == f[n]^2 + 2 n f[n] + Typed[n^2, Integers]], integers, {
-    TypeTheoryTactic["Introduce", f, n],
-    TypeTheoryTactic["Ring"]
+    "Introduce"[f, n],
+    "Ring"
 }]
 ```
 
@@ -184,7 +184,7 @@ TypeTheoryProof[ForAll[{Typed[f, TypeSpecifier[{Integers} -> Integers]], Typed[n
 What holds in no ring does not follow:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Ring"]}]
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {"Introduce"[x], "Ring"}]
 ```
 
 <!-- => Failure["NotRingEquation", ...] -->
@@ -203,8 +203,8 @@ So are sums and natural multiples of what is at least 0, by `"integerNonnegative
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, 0 <= 3 (x x) + y y], integers, {
-    TypeTheoryTactic["Introduce", x, y],
-    TypeTheoryTactic["Exact", "integerNonnegativeAddition"["integerNonnegativeScaling"[3, "integerSquareNonnegative"[x]], "integerSquareNonnegative"[y]]]
+    "Introduce"[x, y],
+    "Exact"["integerNonnegativeAddition"["integerNonnegativeScaling"[3, "integerSquareNonnegative"[x]], "integerSquareNonnegative"[y]]]
 }]
 ```
 
@@ -222,8 +222,8 @@ The tactic `"SumOfSquares"` proves an inequality this way. Wolfram finds a posit
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers], Typed[z, Integers]}, x y + y z + z x <= x^2 + y^2 + z^2], integers, {
-    TypeTheoryTactic["Introduce", x, y, z],
-    TypeTheoryTactic["SumOfSquares"]
+    "Introduce"[x, y, z],
+    "SumOfSquares"
 }]
 ```
 
@@ -233,8 +233,8 @@ An inequality of natural numbers is that of their integers, by `"integerOfNatura
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals]}, 2 a b <= a^2 + b^2], integers, {
-    TypeTheoryTactic["Introduce", a, b],
-    TypeTheoryTactic["SumOfSquares"]
+    "Introduce"[a, b],
+    "SumOfSquares"
 }]
 ```
 
@@ -244,8 +244,8 @@ Where the Gram matrix has free entries, a diagonally dominant one, each diagonal
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers]}, 4 x <= x^4 + 3], integers, {
-    TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["SumOfSquares"]
+    "Introduce"[x],
+    "SumOfSquares"
 }]
 ```
 
@@ -254,7 +254,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, 4 x <= x^4 + 3], integers, {
 Wolfram finds no sum of squares where there is none. Here the inequality is false at `x = 2`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], integers, {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["SumOfSquares"]}]
+TypeTheoryProof[ForAll[{Typed[x, Integers]}, x^2 <= 2], integers, {"Introduce"[x], "SumOfSquares"}]
 ```
 
 <!-- => Failure["NoSumOfSquares", ...] -->
@@ -272,7 +272,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[Typed[2 - 5, Integers] == -3], integers
 And `"Decide"` proves a closed equation, the two representatives that computation alone does not make equal included:
 
 ```wl
-TypeTheoryProof[Typed[2 - 5, Integers] == -3, integers, {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[Typed[2 - 5, Integers] == -3, integers, {"Decide"}]
 ```
 
 <!-- => Proof complete -->

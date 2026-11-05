@@ -26,7 +26,7 @@ RelatedGuides: [TypeTheory]
 The recursor of the natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[InductiveRecursor[Naturals]]]
+TypeTheoryType[InductiveRecursor[Naturals]]
 ```
 
 <!-- => ∀_m∶ℕ → Sort u m[0] → (∀_n∶ℕ m[n] → m[n + 1]) → ∀_t∶ℕ m[t] -->
@@ -73,7 +73,7 @@ roses = TypeTheoryEnvironment[{
 A tree nested in a list of trees has a recursor on the list as well, with the same motives and minor premises:
 
 ```wl
-TypeOf[TypeTheoryTerm[InductiveRecursor[Rose, 1], roses]]
+TypeTheoryType[InductiveRecursor[Rose, 1], roses]
 ```
 
 <!-- => ∀_m1∶Rose → Sort u ∀_m2∶Chain[Rose] → Sort u (∀_label∶ℕ ∀_children∶Chain[Rose] m2[children] → m1[RoseNode[label, children]]) → m2[ChainEmpty] → (∀_head∶Rose ∀_tail∶Chain[Rose] m1[head] → m2[tail] → m2[ChainLink[head, tail]]) → ∀_t∶Chain[Rose] m2[t] -->

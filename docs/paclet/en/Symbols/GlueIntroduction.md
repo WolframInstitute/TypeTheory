@@ -34,7 +34,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 An element of a Glue type over the Booleans, `"true"` where `i == 0` holds, over `"false"`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[i, Interval] |-> GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"], cubical]]
+TypeTheoryType[Typed[i, Interval] |-> GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"], cubical]
 ```
 
 <!-- => Path[(i ∶ Interval) ↦ GlueType[𝔹, {i == 0 -> 〈𝔹, NegationEquivalence〉}], true, GlueIntroduction[{False -> true}, false]] -->

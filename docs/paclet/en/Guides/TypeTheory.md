@@ -42,7 +42,8 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### Checking and computing
 
-- [TypeTheoryCheck]() the type of a term, a term checked against a type, or a whole environment checked again
+- [TypeTheoryType]() the type of a term
+- [TypeTheoryCheck]() a term checked against a type, or a whole environment checked again
 - [TypeTheoryAxiomClosure]() the axioms a term rests on, as Lean's `#print axioms`
 - [TypeTheoryProofTree]() the natural-deduction derivation of a proof of propositional logic, drawn
 - [TypeTheoryFormalize]() the declarations that make a Wolfram Language function a constant: a definition where its definitions translate, an axiom it computes otherwise

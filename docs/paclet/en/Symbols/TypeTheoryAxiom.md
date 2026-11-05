@@ -48,7 +48,7 @@ excludedMiddle = TypeTheoryEnvironment[TypeTheoryEnvironment["Constructive"], {
 Applied to a proposition, the axiom proves it or its negation:
 
 ```wl
-TypeOf[TypeTheoryTerm["excludedMiddle"[True], excludedMiddle]]
+TypeTheoryType["excludedMiddle"[True], excludedMiddle]
 ```
 
 <!-- => True ∨ ¬True -->

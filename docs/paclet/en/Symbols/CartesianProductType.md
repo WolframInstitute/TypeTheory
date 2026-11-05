@@ -26,7 +26,7 @@ RelatedTutorials: [ThePrelude]
 The type of [CartesianProductType]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[CartesianProductType]]
+TypeTheoryType[CartesianProductType]
 ```
 
 <!-- => Type u → Type v → Type (max u v) -->
@@ -36,7 +36,7 @@ TypeTheoryCheck[TypeTheoryTerm[CartesianProductType]]
 A pair of natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["pair"[2, 3]]]
+TypeTheoryType["pair"[2, 3]]
 ```
 
 <!-- => ℕ × ℕ -->
@@ -56,7 +56,7 @@ WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[2]]]]
 A function takes the second field of any pair:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p[[2]]]]
+TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p[[2]]]
 ```
 
 <!-- => ℕ × 𝔹 → 𝔹 -->

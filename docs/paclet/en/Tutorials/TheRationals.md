@@ -59,7 +59,7 @@ TypeTheoryTerm[{Typed[x, Rationals], Typed[n, Naturals]} |-> x / 2 + n <= x^2, r
 Its type; the natural number `n` is coerced to a rational where it is added to one:
 
 ```wl
-TypeOf[TypeTheoryTerm[{Typed[x, Rationals], Typed[n, Naturals]} |-> x / 2 + n <= x^2, rationals]]
+TypeTheoryType[{Typed[x, Rationals], Typed[n, Naturals]} |-> x / 2 + n <= x^2, rationals]
 ```
 
 <!-- => ℚ → ℕ → Prop -->
@@ -67,7 +67,7 @@ TypeOf[TypeTheoryTerm[{Typed[x, Rationals], Typed[n, Naturals]} |-> x / 2 + n <=
 A fraction of literals is a rational where one is expected:
 
 ```wl
-TypeOf[TypeTheoryTerm[Typed[-3/4, Rationals], rationals]]
+TypeTheoryType[Typed[-3/4, Rationals], rationals]
 ```
 
 <!-- => ℚ -->
@@ -85,7 +85,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[1/2, Rationals], rationals], TypeTheor
 `"rationalEqualityDecidable"` decides equations of rationals by comparing a (d + 1) and c (b + 1), so `"Decide"` proves them:
 
 ```wl
-TypeTheoryProof[Typed[1/2, Rationals] == 2/4, rationals, {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[Typed[1/2, Rationals] == 2/4, rationals, {"Decide"}]
 ```
 
 <!-- => Proof complete -->
@@ -95,7 +95,7 @@ TypeTheoryProof[Typed[1/2, Rationals] == 2/4, rationals, {TypeTheoryTactic["Deci
 Sums, products and inverses of literals compute, and are decided:
 
 ```wl
-TypeTheoryProof[Typed[1/2 + 1/3, Rationals] == 5/6, rationals, {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[Typed[1/2 + 1/3, Rationals] == 5/6, rationals, {"Decide"}]
 ```
 
 <!-- => Proof complete -->
@@ -122,8 +122,8 @@ rationals["rationalDistributivity"]
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Rationals]}, (x + 1) (x - 1) == x^2 - 1], rationals, {
-    TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["Ring"]
+    "Introduce"[x],
+    "Ring"
 }]
 ```
 
@@ -133,8 +133,8 @@ Fractions of literals are classes of pairs too:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x / 2 + x / 3 == 5 x / 6], rationals, {
-    TypeTheoryTactic["Introduce", x],
-    TypeTheoryTactic["Ring"]
+    "Introduce"[x],
+    "Ring"
 }]
 ```
 
@@ -153,7 +153,7 @@ rationals["rationalMultiplicationInverse"]
 The inverse computes. For the class of (a, b) it is the class of (b + 1, |a| - 1) with the sign of a, found by recursion on the pair of natural numbers of the integer a, and the inverse of 0 is 0, `"rationalInverseZero"`:
 
 ```wl
-TypeTheoryProof[Typed[(2/3)^-1, Rationals] == 3/2, rationals, {TypeTheoryTactic["Decide"]}]
+TypeTheoryProof[Typed[(2/3)^-1, Rationals] == 3/2, rationals, {"Decide"}]
 ```
 
 <!-- => Proof complete -->
@@ -181,7 +181,7 @@ KeyDrop[Information[TypeTheoryEnvironment["Rationals"], "Theorems"], Keys[Inform
 Distributivity with a factor 1/2 halves a sum:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[{Typed[x, Rationals], Typed[y, Rationals]} |-> "rationalDistributivity"[1/2, x, y], TypeTheoryEnvironment["Rationals"]]]
+TypeTheoryType[{Typed[x, Rationals], Typed[y, Rationals]} |-> "rationalDistributivity"[1/2, x, y], TypeTheoryEnvironment["Rationals"]]
 ```
 
 <!-- => ∀_x∶ℚ ∀_y∶ℚ 1/2 (x + y) == 1/2 x + 1/2 y -->

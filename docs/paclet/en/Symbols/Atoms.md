@@ -26,7 +26,7 @@ An atom is an expression:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeOf[TypeTheoryTerm["atom", wolfram]]
+TypeTheoryType["atom", wolfram]
 ```
 
 <!-- => Atoms → Expressions -->

@@ -89,7 +89,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 A path of types need not be constant where `1` holds, everywhere:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]]
+TypeTheoryType[Typed[p, Path[TypeUniverse[1], Booleans, Booleans]] |-> CubicalTransport[p, 1, "true"], cubical]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

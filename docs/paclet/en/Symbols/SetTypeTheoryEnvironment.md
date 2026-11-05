@@ -46,7 +46,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]
 And so do proofs:
 
 ```wl
-TypeTheoryProof[Doubled[2] == 4, {TypeTheoryTactic["Reflexivity"]}]
+TypeTheoryProof[Doubled[2] == 4, {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -64,7 +64,7 @@ SetTypeTheoryEnvironment["Prelude"]
 [Block]() makes an environment the default for one computation. In the constructive environment, the prelude without its axioms, the excluded middle is not declared:
 
 ```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]]
+Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryType["excludedMiddle"]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
@@ -72,7 +72,7 @@ Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheo
 Outside the [Block](), the default is the prelude, where it is a theorem:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["excludedMiddle"]]
+TypeTheoryType["excludedMiddle"]
 ```
 
 <!-- => ∀_p∶Prop (p ∨ ¬p) -->
@@ -106,7 +106,7 @@ SetTypeTheoryEnvironment["Prelude"]
 The term no longer has the definition:
 
 ```wl
-TypeTheoryCheck[term]
+TypeTheoryType[term]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

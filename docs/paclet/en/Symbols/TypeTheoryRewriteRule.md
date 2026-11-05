@@ -157,7 +157,7 @@ TypeTheoryEnvironment[bits, {TypeTheoryRewriteRule[ZeroOne, BitZero -> BitOne]}]
 A rewrite rule is not a term:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[FlipZero, bits]]
+TypeTheoryType[FlipZero, bits]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

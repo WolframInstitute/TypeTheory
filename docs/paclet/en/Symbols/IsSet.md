@@ -32,7 +32,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The type of [IsSet]() in the HoTT environment:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[IsSet, hott]]
+TypeTheoryType[IsSet, hott]
 ```
 
 <!-- => Type u → Type u -->

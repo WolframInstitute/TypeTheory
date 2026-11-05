@@ -74,7 +74,7 @@ Keys[units]
 Its recursor eliminates into `Type u`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Unit], units]]
+TypeTheoryType[InductiveRecursor[Unit], units]
 ```
 
 <!-- => ∀_m∶Unit → Type u m[UnitIntroduction] → ∀_t∶Unit m[t] -->

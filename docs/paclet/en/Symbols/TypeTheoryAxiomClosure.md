@@ -75,7 +75,7 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[OriginPositive, signed]]
 A finished proof rests on the axioms of its own term, implicit arguments included, which the term it reads back as leaves out:
 
 ```wl
-TypeTheoryAxiomClosure[TypeTheoryProof[2 + 2 == 4, {TypeTheoryTactic["Decide"]}]]
+TypeTheoryAxiomClosure[TypeTheoryProof[2 + 2 == 4, {"Decide"}]]
 ```
 
 <!-- => <||> -->
@@ -137,7 +137,7 @@ With[{rationals = TypeTheoryEnvironment["Rationals"]},
 The closure of a constant includes the axioms its proof uses, not only its statement's: the statement of excluded middle mentions no axiom.
 
 ```wl
-TypeTheoryAxiomClosure[TypeOf[TypeTheoryTerm["excludedMiddle"]]]
+TypeTheoryAxiomClosure[TypeTheoryType["excludedMiddle"]]
 ```
 
 <!-- => <||> -->

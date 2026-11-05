@@ -18,7 +18,7 @@ An expression is an atom, a symbol, a number or a string, which has no parts, or
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeOf[TypeTheoryTerm["normal"[7, {1, 2}], wolfram]]
+TypeTheoryType["normal"[7, {1, 2}], wolfram]
 ```
 
 <!-- => Expressions -->
@@ -48,7 +48,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Arguments["normal"[7, {1, 2}]], wolfram], Ty
 A Wolfram Language function is applied to a sequence of arguments: `f[a, b]` gives `f` the sequence of `a` and `b`, and the curried `f[a][b]` gives `f` the sequence of `a`, then gives its value the sequence of `b`. `Sequence[a, b]` is that sequence, and `Sequence[A, B]` its type, for `a` of the type `A` and `b` of the type `B`: a list of elements of different types, whose type gives its length and the type of each element, as Lean's `HList`. `Sequence`, as `List`, is a type and its elements alike: where a type is expected it is the type, elsewhere a sequence, and in a term on its own, its elements decide, types making the type. A sequence shows in brackets, `[a, b]`. It is `"sequencePrepend"` over `"emptySequence"`, as a list is [Prepend]() over `{}`, and a `Sequence` among its elements is spliced, as the Wolfram Language splices it:
 
 ```wl
-{TypeOf[TypeTheoryTerm[Sequence[1, Typed[2, Expressions]], wolfram]], DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], wolfram], TypeTheoryTerm[Sequence[1, 2, 3], wolfram]]}
+{TypeTheoryType[Sequence[1, Typed[2, Expressions]], wolfram], DefinitionallyEqualQ[TypeTheoryTerm[Sequence[1, Sequence[2, 3]], wolfram], TypeTheoryTerm[Sequence[1, 2, 3], wolfram]]}
 ```
 
 <!-- => {[ℕ, Expressions], True} -->
@@ -62,8 +62,8 @@ pairs = TypeTheoryEnvironment[wolfram, {
 }];
 {
     DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]],
-    FailureQ[TypeTheoryCheck[TypeTheoryTerm[sum[1], pairs]]],
-    TypeOf[TypeTheoryTerm[curried[1], pairs]]
+    FailureQ[TypeTheoryType[sum[1], pairs]],
+    TypeTheoryType[curried[1], pairs]
 }
 ```
 

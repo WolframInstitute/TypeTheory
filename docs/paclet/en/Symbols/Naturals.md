@@ -36,7 +36,7 @@ Naturals
 The successor function on the natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[Typed[n, Naturals] |-> n + 1]]
+TypeTheoryType[Typed[n, Naturals] |-> n + 1]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -46,7 +46,7 @@ TypeOf[TypeTheoryTerm[Typed[n, Naturals] |-> n + 1]]
 The recursor of the natural numbers:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[Naturals]]]
+TypeTheoryType[InductiveRecursor[Naturals]]
 ```
 
 <!-- => ∀_m∶ℕ → Sort u m[0] → (∀_n∶ℕ m[n] → m[n + 1]) → ∀_t∶ℕ m[t] -->
@@ -57,11 +57,11 @@ A proof by induction over the natural numbers:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
-    TypeTheoryTactic["Introduce", n],
-    TypeTheoryTactic["Induction", n],
-    TypeTheoryTactic["Reflexivity"],
-    TypeTheoryTactic["Introduce", k, ih],
-    TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]]
+    "Introduce"[n],
+    "Induction"[n],
+    "Reflexivity",
+    "Introduce"[k, ih],
+    "Exact"["equalityCongruence"["successor", ih]]
 }]
 ```
 
@@ -73,7 +73,7 @@ A symbol of your own whose value is a constant stands for it too:
 
 ```wl
 Counting = NonNegativeIntegers;
-TypeOf[TypeTheoryTerm[Typed[k, Counting] |-> k]]
+TypeTheoryType[Typed[k, Counting] |-> k]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -83,7 +83,7 @@ TypeOf[TypeTheoryTerm[Typed[k, Counting] |-> k]]
 A binder named [Naturals]() is a variable of its own:
 
 ```wl
-TypeOf[TypeTheoryTerm[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]} |-> x]]
+TypeTheoryType[{Typed[Naturals, TypeUniverse[1]], Typed[x, Naturals]} |-> x]
 ```
 
 <!-- => ∀_Naturals∶Type Naturals → Naturals -->

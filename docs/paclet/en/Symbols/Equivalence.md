@@ -34,7 +34,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 The type of [Equivalence]() in the HoTT environment:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Equivalence, hott]]
+TypeTheoryType[Equivalence, hott]
 ```
 
 <!-- => Type u → Type v → Type (max u v) -->
@@ -52,7 +52,7 @@ hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
 Negation is an equivalence of the Booleans:
 
 ```wl
-TypeOf[TypeTheoryTerm["negationEquivalence", hott]]
+TypeTheoryType["negationEquivalence", hott]
 ```
 
 <!-- => Equivalence[𝔹, 𝔹] -->

@@ -46,9 +46,9 @@ section gave a value.
   page in one kernel, and [$TypeTheoryEnvironment]() is the kernel's, so a page that calls
   [SetTypeTheoryEnvironment]() ends with <code>[SetTypeTheoryEnvironment]()["Prelude"]</code>, or the pages
   after it run in its environment. For one computation, use <code>[Block]()[{[$TypeTheoryEnvironment]() = *env*}, ...]</code>.
-- **[TypeOf]() takes a term written out.** It holds its argument, so `TypeOf[statement]` with
-  `statement` a variable does not reach TypeTheory and fails with a compiler message. Use
-  <code>[TypeTheoryCheck]()[*statement*]</code> for a term in a variable.
+- **[TypeTheoryType]() gives a term's type, never [TypeOf]().** [TypeOf]() is the compiler's: it holds
+  its argument, so it sees neither a term in a variable nor one written with `PacletSymbol`, as code
+  copied from a page is.
 - **Name constants with fresh symbols.** A declaration holds its name, but [Keys]() and
   <code>*env*[*name*]</code> evaluate it, and System symbols with values (`Red`, `Tree`, `Next`) do
   not stay names. Use descriptive names that are not System symbols, such as `BinaryTree` or
@@ -94,8 +94,9 @@ a term fragment (`n + 0 == n`), a tactic name (`"Induction"`), an option value. 
   tail), `Keywords`, and for a symbol page `SeeAlso` and `RelatedGuides`.
 - **Symbol page**: `## Usage`, `## Details & Options`, then `## Basic Examples`, `## Scope`,
   `## Properties and Relations`, `## Possible Issues` as warranted. Model a function on
-  [Symbols/TypeTheoryEnvironment.md](Symbols/TypeTheoryEnvironment.md) and a prelude constant on
-  [Symbols/AndIntroduction.md](Symbols/AndIntroduction.md).
+  [Symbols/TypeTheoryEnvironment.md](Symbols/TypeTheoryEnvironment.md) and a type on
+  [Symbols/Option.md](Symbols/Option.md). Constructors, theorems and axioms are constants named by
+  strings, with no page of their own; the tutorials list them.
 - **Guide**: an `## Abstract`, then `## Functions` as `[Symbol]() description` items under
   subheadings. See [Guides/TypeTheory.md](Guides/TypeTheory.md).
 - **Tutorial**: one running story with real prose. See

@@ -51,7 +51,7 @@ identity = TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1], 0], Typed[x, A, 1]}
 `A` appears only in the type of `x`, which is gone when the function runs, and `x` is used once. Its type:
 
 ```wl
-TypeTheoryCheck[identity]
+TypeTheoryType[identity]
 ```
 
 <!-- => ∀_{0 A ∶ Type} ∀_1 x∶A A -->
@@ -111,7 +111,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAl
 The kernel gives the constructors and recursors of an inductive type their quantities. A constructor's parameters are erased, since the value it builds does not hold them:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["pair", affinePrelude]]
+TypeTheoryType["pair", affinePrelude]
 ```
 
 <!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} α → β → α × β -->
@@ -119,7 +119,7 @@ TypeTheoryCheck[TypeTheoryTerm["pair", affinePrelude]]
 A recursor's parameters, motives and indices are erased too. The recursor of a type without a recursive field takes the value it matches, and its minor premises, once:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[CartesianProductType], affinePrelude]]
+TypeTheoryType[InductiveRecursor[CartesianProductType], affinePrelude]
 ```
 
 <!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} ∀_0 m∶α × β → Sort w ∀_1 Pair∶∀_x∶α ∀_y∶β m[(x, y)] ∀_1 t∶α × β m[t] -->
@@ -127,7 +127,7 @@ TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[CartesianProductType], affinePr
 The recursor of a recursive type takes them any number of times, since a recursive call uses the parts of its argument again:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers], affinePrelude]]
+TypeTheoryType[InductiveRecursor[NonNegativeIntegers], affinePrelude]
 ```
 
 <!-- => ∀_0 m∶ℕ → Sort u m[0] → (∀_n∶ℕ m[n] → m[n + 1]) → ∀_t∶ℕ m[t] -->
@@ -150,7 +150,7 @@ affine = TypeTheoryEnvironment[affinePrelude, {
 The type of the swap:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Swap, affine]]
+TypeTheoryType[Swap, affine]
 ```
 
 <!-- => ∀_{0 A ∶ Type} ∀_{0 B ∶ Type} ∀_1 p∶A ⊗ B B ⊗ A -->
@@ -224,7 +224,7 @@ back = TypeTheoryTranslate[affine, TypeTheoryRules["CalculusOfInductiveConstruct
 The swap there:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[Swap, back["Environment"]]]
+TypeTheoryType[Swap, back["Environment"]]
 ```
 
 <!-- => ∀_{A ∶ Type} ∀_{B ∶ Type} A ⊗ B → B ⊗ A -->

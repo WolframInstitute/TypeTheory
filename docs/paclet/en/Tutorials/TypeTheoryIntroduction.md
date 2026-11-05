@@ -29,18 +29,18 @@ ForAll[{Typed[n, Naturals]}, n + 0 == n]
 
 <!-- => True -->
 
-A statement is a type, and its type is the universe of propositions. [TypeTheoryCheck]() gives the type of a term:
+A statement is a type, and its type is the universe of propositions. [TypeTheoryType]() gives the type of a term:
 
 ```wl
-TypeTheoryCheck[statement]
+TypeTheoryType[statement]
 ```
 
 <!-- => Prop -->
 
-[TypeOf]() gives the type of a term written out, here a function from natural numbers to natural numbers:
+The type of a function from natural numbers to natural numbers:
 
 ```wl
-TypeOf[TypeTheoryTerm[Typed[n, Naturals] |-> n + n]]
+TypeTheoryType[Typed[n, Naturals] |-> n + n]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -203,7 +203,7 @@ Keys[trees][[-4 ;;]]
 Declaring the type also generated its recursor, [InductiveRecursor](), which is how functions on trees recurse and how proofs about them go by induction. Its type has a case for each constructor:
 
 ```wl
-TypeOf[TypeTheoryTerm[InductiveRecursor[BinaryTree], trees]]
+TypeTheoryType[InductiveRecursor[BinaryTree], trees]
 ```
 
 <!-- => ∀_m∶BinaryTree → Sort u m[BinaryLeaf] → (∀_left∶BinaryTree ∀_right∶BinaryTree m[left] → m[right] → m[BinaryNode[left, right]]) → ∀_t∶BinaryTree m[t] -->
@@ -293,7 +293,7 @@ proved[ZeroLeftIdentity]
 A theorem applies like a function, here to `7`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved]]
+TypeTheoryType[ZeroLeftIdentity[7], proved]
 ```
 
 <!-- => 0 + 7 == 7 -->

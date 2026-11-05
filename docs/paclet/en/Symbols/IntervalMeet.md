@@ -56,7 +56,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 The type of [IntervalMeet]():
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[IntervalMeet, cubical]]
+TypeTheoryType[IntervalMeet, cubical]
 ```
 
 <!-- => Interval → Interval → Interval -->
@@ -76,7 +76,7 @@ cubical = TypeTheoryEnvironment["Cubical"]
 Its type, a path over the line of paths from `x` to `p[i]`:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Min[i, j]]], cubical]]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Min[i, j]]], cubical]
 ```
 
 <!-- => ∀_{A ∶ Type} ∀_x∶A ∀_y∶A ∀_p∶x ≡ y Path[(i∶Interval) ↦ x ≡ p[i], (j∶Interval) ↦ x, p] -->
