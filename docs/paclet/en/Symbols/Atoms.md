@@ -16,9 +16,9 @@ RelatedTutorials: [TheWolframLanguage]
 
 ## Details & Options
 
-- [Atoms]() is a constant of [TypeTheoryEnvironment]()["WolframLanguage"], an axiom: the atoms are opaque to the kernel.
-- `"atom"` makes an expression of an atom, and a natural number is an expression where one is expected, by a coercion.
-- The head of an atom is an axiom that the Wolfram Language computes, [Head]().
+- [Atoms]() is an inductive type of [TypeTheoryEnvironment]()["WolframLanguage"], whose atoms are data: `"symbolAtom"` of a symbol's full name, `"naturalAtom"` of a natural number, `"negativeAtom"` of *n* for the integer -(*n* + 1), `"stringAtom"` of a string, and `"otherAtom"` of the head and the [InputForm]() of any other atom, as a real number.
+- `"atom"` makes an expression of an atom. A quotation, <code>[HoldForm]()[*e*]</code>, makes the atoms of *e* itself, and nothing declares them.
+- The head of an atom and [SameQ]() of two atoms are definitions, which the kernel computes: two symbols are the same where their names are, and two other atoms where their values are. Two real numbers are the same where their [InputForm]() is, which [SameQ]() of the Wolfram Language relaxes by a tolerance.
 
 ## Basic Examples
 
@@ -30,3 +30,36 @@ TypeTheoryType["atom", wolfram]
 ```
 
 <!-- => Atoms → Expressions -->
+
+---
+
+The symbol `f` quoted is the atom of its full name:
+
+```wl
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f], wolfram], TypeTheoryTerm["atom"["symbolAtom"["Global`f"]], wolfram]]
+```
+
+<!-- => True -->
+
+## Scope
+
+The head of an atom computes:
+
+```wl
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+{WeakHeadNormalForm[TypeTheoryTerm[Head[HoldForm[1]], wolfram]], WeakHeadNormalForm[TypeTheoryTerm[Head[HoldForm["text"]], wolfram]]}
+```
+
+<!-- => {HoldForm[Integer], HoldForm[String]} -->
+
+---
+
+Atoms compare by computation:
+
+```wl
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
+{WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[f], HoldForm[f]], wolfram]], WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[f], HoldForm[g]], wolfram]]}
+```
+
+<!-- => {true, false} -->

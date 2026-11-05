@@ -30,9 +30,9 @@ RelatedGuides: [TypeTheory]
 - The strings are [Strings](), declared where a definition needs them: [StringReverse]() has the signature `Strings -> Strings`, [StringLength]() `Strings -> ℕ`, [StringJoin]() `Strings -> Strings -> Strings`, and a string literal `"abc"` is a constant of [Strings](), named by its [InputForm]() and declared with the definition that uses it.
 - A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over [Expressions]() otherwise, as [D](). The numbers of the environment go into [Expressions]() by coercions. No equation about a built-in is assumed.
 - The option `"Meaning"` is `"Function"`, the default, for a constant that is the function *symbol* computes, or `"Rules"` for its rules, its [DownValues](), as a rewriting of expressions: the definition named `"DownValues[symbol]"` gives the expression that an expression rewrites to by the first rule that matches it, and `"none"` where none does and the expression stays as it is.
-- The rules are [MatchFirst]() of the `MatchSum` of the matches of the rules, in the order the Wolfram Language tries them. The left side of each rule is read from its match program: the lengths and parts of the expression by [Length](), [Arguments]() and `MatchPart`, its heads and literals by [SameQ](), alternatives and exceptions by `MatchQ`, and conditions by [SameQ]() of their [ExpressionValue]() and `True`. The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation.
-- Each symbol and atom that the rules use is an axiom of type [Atoms](), named by its full name, as `` "System`List" ``, or by its [InputForm](), declared with the rules. A natural number is `"naturalAtom"[n]`, which the kernel computes with.
-- A pattern that needs a search, as several sequences in one argument list or an [Orderless]() head, which the compiler leaves to the evaluator, gives a [Failure]().
+- The rules are [MatchFirst]() of the [MatchSum]() of the matches of the rules, in the order the Wolfram Language tries them. The left side of each rule is translated from its pattern: the lengths and parts of the expression by [Length](), [Arguments]() and [MatchPart](), its heads and literals by [SameQ](), sequences by every split, an [Orderless]() head by every order, alternatives by [MatchSum](), exceptions by [MatchQ](), and conditions by [SameQ]() of their [ExpressionValue]() and `True`. The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation. The tutorial *Patterns and Rewriting* goes through every pattern.
+- The atoms of the rules are data of the type [Atoms](), which nothing declares, so the kernel computes every test but a condition or a pattern test, which only the Wolfram Language evaluates.
+- [KeyValuePattern]() does not translate, as an [Association]() is an atom, and gives a [Failure]().
 - The result is a list of declarations, to extend an environment with: <code>[TypeTheoryEnvironment]()[*environment*, [TypeTheoryFormalize]()[*symbol*, *environment*]]</code>.
 
 ## Basic Examples
@@ -153,15 +153,15 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 rules = TypeTheoryFormalize[listed, wolfram, "Meaning" -> "Rules"]
 ```
 
-<!-- => {axiom System`List : Atoms, definition DownValues[listed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[...]} -->
+<!-- => {definition DownValues[listed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[...]} -->
 
 The kernel computes them: an expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is:
 
 ```wl
 listing = TypeTheoryEnvironment[wolfram, rules];
 {
-    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"["normal"[0, {1, 2}]], listing], TypeTheoryTerm["some"["normal"["atom"["System`List"], {1, 2}]], listing]],
-    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"["normal"[0, {1}]], listing], TypeTheoryTerm[Typed["none", Option[Expressions]], listing]]
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1, 2]], listing], TypeTheoryTerm["some"[HoldForm[{1, 2}]], listing]],
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1]], listing], TypeTheoryTerm[Typed["none", Option[Expressions]], listing]]
 }
 ```
 

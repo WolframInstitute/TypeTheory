@@ -7,14 +7,14 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheWolframLanguage
 Keywords: [Wolfram Language, expressions, Sequence, List, heterogeneous list, currying, pattern matching, Match, MatchValue, MatchSum, MatchPart, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [Elaboration, ThePrelude, TypeTheoryIntroduction]
+RelatedTutorials: [PatternsAndRewriting, Elaboration, ThePrelude, TypeTheoryIntroduction]
 ---
 
 [TypeTheoryEnvironment]()["WolframLanguage"] is the prelude with the expressions of the Wolfram Language as an inductive type, and with the monad of pattern matching. A pattern is a function from expressions to its matches, and a definition is the first match of its rules, so a Wolfram Language function has a meaning in the type theory: a total function, whose value is an [Option]() that is none where no rule matches and the expression stays as it is.
 
 ## Expressions
 
-An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions, its arguments. The atoms are opaque, and [SameQ]() and [Head]() of an atom are axioms that the Wolfram Language computes, as is [ExpressionValue](), the expression an expression evaluates to. [Head](), [Arguments]() and [AtomQ]() are definitions, which the kernel computes. A natural number is an expression where one is expected:
+An expression is an atom, a symbol, a number or a string, which has no parts, or a head applied to a list of expressions, its arguments. An atom is data, of the type [Atoms](): a symbol by its full name, an integer, a string, the list of its character codes, or any other atom by its head and its [InputForm](). So [Head](), [Arguments](), [AtomQ]() and [SameQ]() are definitions, which the kernel computes, and only [ExpressionValue](), the expression an expression evaluates to, is an axiom that the Wolfram Language computes. A natural number is an expression where one is expected:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
@@ -23,13 +23,12 @@ TypeTheoryType["normal"[7, {1, 2}], wolfram]
 
 <!-- => Expressions -->
 
-An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols are their atoms, declared as constants named by their full names, its natural numbers and strings theirs, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `"normal"` and `"atom"` build what it stands for:
+An expression is written as the Wolfram Language holds one, `HoldForm[e]`, and shows so: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a list of expressions among its arguments joined in, as `Sequence @@ l` is. `"normal"` and `"atom"` build what it stands for:
 
 ```wl
-quoting = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["System`List", Atoms, "Implementation" -> List]}];
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[{x, rest}]][1, {2, 3}], quoting],
-    TypeTheoryTerm["normal"["atom"["System`List"], {1, 2, 3}], quoting]
+    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, {Expressions}]}, HoldForm[{x, rest}]][1, {2, 3}], wolfram],
+    TypeTheoryTerm["normal"["atom"["symbolAtom"["System`List"]], {1, 2, 3}], wolfram]
 ]
 ```
 
@@ -124,37 +123,25 @@ TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram]
 
 ## The Rules of a Symbol
 
-The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is read from the match program the compiler writes for it, an instruction at a time:
-
-| the match program | the match |
-|---|---|
-| `Length[p, n]`, `MinLength[p, n]` | [Condition]() on the [Length]() of the [Arguments]() of the part at `p` |
-| `HeadIs[p, h]`, `Same[p, e]` | [Condition]() on [SameQ]() of its [Head]() and `h`, or of it and `e` |
-| `Bind[x, p]` | `MatchPart` at each position on the way to `p`, the part named `x` |
-| `Join[x, p]` | [Condition]() on [SameQ]() of the part and `x`: a name repeated |
-| `BindSequence[x, p, i, j]` | the arguments from position `i` to the `j`-th from the end, by [Drop]() |
-| `AnyOf`, `NoneOf` | [Condition]() on [MatchQ]() of the matches of the alternatives |
-| `Guard[test]` | [Condition]() on [SameQ]() of the [ExpressionValue]() of `test` and `True` |
-
-The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
+The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is translated from its pattern, every pattern the Wolfram Language has but [KeyValuePattern](), as the tutorial *Patterns and Rewriting* shows construct by construct. The right side is quoted as it is, its pattern variables the parts they match: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
 
 ```wl
 listed[x_, y_, z___] := {x, y, z};
 rules = TypeTheoryFormalize[listed, wolfram, "Meaning" -> "Rules"]
 ```
 
-<!-- => {axiom System`List : Atoms, definition DownValues[listed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[...]} -->
+<!-- => {definition DownValues[listed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[...]} -->
 
-Lengths, parts and sequences are definitions, so the kernel computes the rewriting. An expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is:
+Lengths, parts, sequences, heads and atoms are all definitions, so the kernel computes the rewriting. An expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is; `listed` names nothing in the environment, so where an expression is expected it stands for itself:
 
 ```wl
 listing = TypeTheoryEnvironment[wolfram, rules];
 {
-    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"["normal"[0, {1, 2, 3}]], listing], TypeTheoryTerm["some"["normal"["atom"["System`List"], {1, 2, 3}]], listing]],
-    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"["normal"[0, {1}]], listing], TypeTheoryTerm[Typed["none", Option[Expressions]], listing]]
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1, 2, 3]], listing], TypeTheoryTerm["some"[HoldForm[{1, 2, 3}]], listing]],
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1]], listing], TypeTheoryTerm[Typed["none", Option[Expressions]], listing]]
 }
 ```
 
 <!-- => {True, True} -->
 
-A test of a head, a literal or a condition is [SameQ]() of atoms, which the Wolfram Language computes and the kernel does not. A pattern that needs a search, as `f[x__, y__]` or an [Orderless]() head, is one the compiler leaves to the evaluator, and its rules do not translate yet.
+A condition or a pattern test is [SameQ]() of the [ExpressionValue]() of an expression and `True`, which only the Wolfram Language evaluates, so a rule with one computes in the kernel up to its test.

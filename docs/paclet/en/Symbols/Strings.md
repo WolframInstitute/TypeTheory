@@ -16,10 +16,9 @@ RelatedTutorials: [Elaboration, TheWolframLanguage]
 
 ## Details & Options
 
-- [Strings]() is opaque: its elements are the string literals, and what the built-ins compute from them, which the Wolfram Language computes and the kernel never does.
-- A string literal `"abc"` is a constant of [Strings](), named by its [InputForm](), `"\"abc\""`, and shows as the string. In a term, `"abc"` is that constant where no constant is named `abc`, as `"true"` is.
-- [Strings]() is a constant of [TypeTheoryEnvironment]()["WolframLanguage"], where a string is an expression by a coercion, and [TypeTheoryFormalize]() declares it, with each literal a definition uses, where an environment does not have it.
-- The string functions have signatures over [Strings](): [StringReverse]() and [ToUpperCase]() `Strings -> Strings`, [StringJoin]() `Strings -> Strings -> Strings`, [StringLength]() `Strings -> ℕ`, [StringTake]() `Strings -> ℕ -> Strings`, [StringContainsQ]() `Strings -> Strings -> Booleans`, [Characters]() `Strings -> {Strings}` and [ToString]() `Expressions -> Strings`.
+- In [TypeTheoryEnvironment]()["WolframLanguage"], [Strings]() is an inductive type: a string is `"string"` of the list of its character codes, so two strings compare by computation. A string literal `"abc"` is that string where a string is expected, or where nothing decides the type, and no constant is named `abc`; where an expression is expected it is the expression.
+- The string functions have signatures over [Strings](): [StringReverse]() and [ToUpperCase]() `Strings -> Strings`, [StringJoin]() `Strings -> Strings -> Strings`, [StringLength]() `Strings -> ℕ`, [StringTake]() `Strings -> ℕ -> Strings`, [StringContainsQ]() `Strings -> Strings -> Booleans`, [Characters]() `Strings -> {Strings}` and [ToString]() `Expressions -> Strings`. They are axioms, which the Wolfram Language computes.
+- Where an environment has no [Strings](), [TypeTheoryFormalize]() declares it as an axiom, opaque, with each literal a definition uses a constant of it named by its [InputForm]().
 
 ## Basic Examples
 
@@ -34,11 +33,11 @@ TypeTheoryFormalize[reversed, TypeTheoryEnvironment["Integers"]]
 
 ---
 
-A string literal is a constant of [Strings]():
+A string literal is a string, the list of its character codes:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
-TypeTheoryType["abc", TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom["\"abc\"", Strings]}]]
+{TypeTheoryType["abc", wolfram], DefinitionallyEqualQ[TypeTheoryTerm["abc", wolfram], TypeTheoryTerm["string"[{97, 98, 99}], wolfram]]}
 ```
 
-<!-- => Strings -->
+<!-- => {Strings, True} -->

@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, instances, type classes, coercions, Lean]
-RelatedTutorials: [TypeTheoryIntroduction, Elaboration, TheWolframLanguage, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory]
+RelatedTutorials: [TypeTheoryIntroduction, Elaboration, TheWolframLanguage, PatternsAndRewriting, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
@@ -47,12 +47,13 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [TypeTheoryAxiomClosure]() the axioms a term rests on, as Lean's `#print axioms`
 - [TypeTheoryProofTree]() the natural-deduction derivation of a proof of propositional logic, drawn
 - [TypeTheoryFormalize]() the declarations that make a Wolfram Language function a constant: a definition where its definitions translate, an axiom it computes otherwise
-- [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), `"atom"`, `"normal"`, [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"]
+- [Expressions]() the expressions of the Wolfram Language, written `HoldForm[e]`, with [Atoms](), `"atom"`, `"normal"`, [Arguments]() and [ExpressionValue](), in [TypeTheoryEnvironment]()["WolframLanguage"], where [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() rewrite with rules translated to matches
 - [Strings]() the strings, each literal a constant of it, with signatures for the string functions
 - `"emptySequence"` and `"sequencePrepend"` the sequences of elements of different types, `Sequence[a, b]`, of the type `Sequence[A, B]`: the arguments a Wolfram Language function is applied to
 - [Match]() the matches, lists of results, with [MatchValue]() one result, [MatchSum]() alternatives in order, [MatchBind]() parts in turn, [MatchPart]() a part of an expression and [MatchFirst]() the result the Wolfram Language applies
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce
+- [NormalForm]() a term reduced in every part, under its binders too: its value, as Lean's `#reduce`
 
 ### Proofs
 
