@@ -118,7 +118,7 @@ The declaration of the theorem with the hole writes the hole as it was written:
 uses[AllZero]
 ```
 
-<!-- => TypeTheoryTheorem[AllZero, ∀_n∶ℕ n == 0, hole] -->
+<!-- => theorem AllZero : ∀_n∶ℕ n == 0 -->
 
 ## Possible Issues
 

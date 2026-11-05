@@ -143,7 +143,7 @@ listed[x_, y_, z___] := {x, y, z};
 rules = TypeTheoryFormalize[listed, wolfram, "Meaning" -> "Rules"]
 ```
 
-<!-- => {TypeTheoryAxiom["System`List", Atoms, "Implementation" -> List], TypeTheoryDefinition["DownValues[listed]", ...]} -->
+<!-- => {axiom System`List : Atoms, definition DownValues[listed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[...]} -->
 
 Lengths, parts and sequences are definitions, so the kernel computes the rewriting. An expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is:
 

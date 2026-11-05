@@ -133,7 +133,7 @@ A variable whose type is a sort, but whose level nothing decides, gets the level
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], {p, h} |-> h]}][SelfImplication]
 ```
 
-<!-- => TypeTheoryTheorem[SelfImplication, ∀_{p∶Prop} p ⇒ p, ...] -->
+<!-- => theorem SelfImplication : ∀_p∶Prop p ⇒ p -->
 
 A level still undecided becomes a universe parameter of the declaration, `"u_1"`, as Lean binds one:
 
@@ -141,7 +141,7 @@ A level still undecided becomes a universe parameter of the declaration, `"u_1"`
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, Typed[y, A]} |-> "equalityReflexivity"[y]]}][SelfEquality]
 ```
 
-<!-- => TypeTheoryTheorem[SelfEquality, ∀_{A∶Sort u_1} ∀_{y∶A} y == y, ...] -->
+<!-- => theorem SelfEquality : ∀_A∶Sort u_1 ∀_y∶A y == y -->
 
 A term on its own has no universe parameters, so an undecided level there is that of Type:
 
@@ -149,7 +149,7 @@ A term on its own has no universe parameters, so an undecided level there is tha
 TypeTheoryType[a |-> Function[Typed[z, a], z]]
 ```
 
-<!-- => ∀_{a∶Type} a → a -->
+<!-- => ∀_a∶Type a → a -->
 
 ## Overloaded Names
 
@@ -192,7 +192,7 @@ integers = TypeTheoryEnvironment["Integers"];
 TypeTheoryFormalize[square, integers]
 ```
 
-<!-- => {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]} -->
+<!-- => {definition square := (x ∶ ℤ) ↦ x^2 + 1} -->
 
 A function of strings is typed the same way, over [Strings](), the type of the strings, each string literal a constant of it:
 
@@ -210,7 +210,7 @@ styled[x_] := Style[x, Bold];
 Last[TypeTheoryFormalize[styled, integers]]
 ```
 
-<!-- => TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled] -->
+<!-- => axiom styled : Expressions → Expressions -->
 
 A function has a second meaning, its rules, which every definition with a deterministic pattern has, whatever its body: with `"Meaning" -> "Rules"`, [TypeTheoryFormalize]() reads the match program of each rule as a match of [TypeTheoryEnvironment]()["WolframLanguage"], and the rules as a definition of type `Expressions -> Option[Expressions]`, the expression that an expression rewrites to. Nothing is elaborated but the term, and the types are those of expressions, so it is faithful to the Wolfram Language where the first meaning is mathematical. [The Wolfram Language](paclet:WolframInstitute/TypeTheory/tutorial/TheWolframLanguage) tutorial reads the rules of a function:
 
@@ -220,7 +220,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryDefinition["DownValues[reversed]", Typed[Function[{Typed[expression, Expressions]}, MatchFirst[... MatchValues[HoldForm[StringReverse[s]]] ...]], Expressions -> Option[Expressions]]] -->
+<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValues[HoldForm[StringReverse[s]]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->
 
 ## Typing in the Compiler and in Mathematics
 

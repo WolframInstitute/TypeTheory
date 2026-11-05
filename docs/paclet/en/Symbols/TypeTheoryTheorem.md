@@ -86,7 +86,7 @@ A variable written without a type, whose sort nothing else decides, is a proposi
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], {p, h} |-> h]}][SelfImplication]
 ```
 
-<!-- => TypeTheoryTheorem[SelfImplication, ∀_p∶Prop p ⇒ p, ...] -->
+<!-- => theorem SelfImplication : ∀_p∶Prop p ⇒ p -->
 
 ---
 
@@ -96,7 +96,7 @@ A variable of any type gets its universe as a parameter of the theorem, `"u_1"`,
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], {A, Typed[x, A]} |-> "equalityReflexivity"[x]]}][SelfEquality]
 ```
 
-<!-- => TypeTheoryTheorem[SelfEquality, ForAll[{Typed[A, TypeUniverse["u_1"]], Typed[x, A]}, x == x], ...] -->
+<!-- => theorem SelfEquality : ∀_A∶Sort u_1 ∀_x∶A x == x -->
 
 ## Possible Issues
 

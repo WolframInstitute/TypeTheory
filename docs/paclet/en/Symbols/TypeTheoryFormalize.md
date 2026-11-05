@@ -44,7 +44,7 @@ square[x_Integer] := x^2 + 1;
 TypeTheoryFormalize[square, TypeTheoryEnvironment["Integers"]]
 ```
 
-<!-- => {TypeTheoryDefinition[square, Function[{Typed[x, Integers]}, x^2 + 1]]} -->
+<!-- => {definition square := (x ∶ ℤ) ↦ x^2 + 1} -->
 
 ## Scope
 
@@ -101,7 +101,7 @@ sized = TypeTheoryEnvironment[integers, TypeTheoryFormalize[size, integers]];
 {TypeTheoryType[size, sized], WeakHeadNormalForm[TypeTheoryTerm[size[{4, 5, 6}], sized]]}
 ```
 
-<!-- => {∀_{α∶Type u} List α → ℕ, 3} -->
+<!-- => {∀_{elementType∶Type u} {elementType} → ℕ, 3} -->
 
 ---
 
@@ -141,7 +141,7 @@ styled[x_] := Style[x, Bold];
 TypeTheoryFormalize[styled, "Type" -> Integers -> Integers]
 ```
 
-<!-- => {TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]} -->
+<!-- => {axiom styled : ℤ → ℤ} -->
 
 ### Meaning
 
@@ -153,7 +153,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 rules = TypeTheoryFormalize[listed, wolfram, "Meaning" -> "Rules"]
 ```
 
-<!-- => {TypeTheoryAxiom["System`List", Atoms, "Implementation" -> List], TypeTheoryDefinition["DownValues[listed]", ...]} -->
+<!-- => {axiom System`List : Atoms, definition DownValues[listed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[...]} -->
 
 The kernel computes them: an expression with two arguments or more rewrites to the list of them, and one with fewer stays as it is:
 
@@ -176,4 +176,4 @@ styled[x_] := Style[x, Bold];
 Last[TypeTheoryFormalize[styled, TypeTheoryEnvironment["Integers"]]]
 ```
 
-<!-- => TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled] -->
+<!-- => axiom styled : Expressions → Expressions -->

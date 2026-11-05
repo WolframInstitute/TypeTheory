@@ -57,7 +57,7 @@ translated["Environment"]
 translated["Environment"][True]
 ```
 
-<!-- => inductive True : Type; | trueIntroduction : True -->
+<!-- => inductive True : Type | trueIntroduction : True -->
 
 ## Scope
 

@@ -30,7 +30,7 @@ reversed[s_] := StringReverse[s];
 TypeTheoryFormalize[reversed, TypeTheoryEnvironment["Integers"]]
 ```
 
-<!-- => {TypeTheoryAxiom[Strings, TypeUniverse[1]], TypeTheoryAxiom[StringReverse, Strings -> Strings, "Implementation" -> StringReverse], TypeTheoryDefinition[reversed, Function[{s}, StringReverse[s]]]} -->
+<!-- => {axiom Strings : Type, axiom StringReverse : Strings → Strings, definition reversed := s ↦ StringReverse[s]} -->
 
 ---
 
