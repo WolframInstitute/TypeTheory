@@ -48,6 +48,7 @@ TypeTheoryType[Construct, wolfram]
 A sequence is written held, `Unevaluated[a, b, ...]`, and [Prepend]() puts an element in front of one, as in the Wolfram Language:
 
 ```wl
+wolfram = TypeTheoryEnvironment["WolframLanguage"];
 NormalForm[TypeTheoryTerm[Prepend[Unevaluated[1, 2, 3], 0], wolfram]]
 ```
 
