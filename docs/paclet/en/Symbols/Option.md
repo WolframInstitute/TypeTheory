@@ -67,7 +67,7 @@ The list of 5 and 7 has the first element 5:
 WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[Prepend[5][Prepend[7][{}]]], heads]]
 ```
 
-<!-- => OptionSome[5] -->
+<!-- => some[5] -->
 
 The empty list has none:
 
@@ -75,7 +75,7 @@ The empty list has none:
 WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[{}], heads]]
 ```
 
-<!-- => OptionNone -->
+<!-- => none -->
 
 ## Properties and Relations
 

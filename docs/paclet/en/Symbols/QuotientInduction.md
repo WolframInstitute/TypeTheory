@@ -35,7 +35,7 @@ TypeTheoryType[QuotientInduction]
 The quotient of the natural numbers by equality:
 
 ```wl
-equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
 ```
 
 <!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->

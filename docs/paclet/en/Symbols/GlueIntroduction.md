@@ -37,7 +37,7 @@ An element of a Glue type over the Booleans, `"true"` where `i == 0` holds, over
 TypeTheoryType[Typed[i, Interval] |-> GlueIntroduction[Booleans, {i == 0 -> {Booleans, "negationEquivalence"}}, {i == 0 -> "true"}, "false"], cubical]
 ```
 
-<!-- => Path[(i ∶ Interval) ↦ GlueType[𝔹, {i == 0 -> 〈𝔹, NegationEquivalence〉}], true, GlueIntroduction[{False -> true}, false]] -->
+<!-- => Path[(i ∶ Interval) ↦ GlueType[𝔹, {i == 0 -> 〈𝔹, negationEquivalence〉}], true, GlueIntroduction[{False -> true}, false]] -->
 
 ## Possible Issues
 

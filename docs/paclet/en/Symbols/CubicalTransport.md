@@ -74,7 +74,7 @@ Path induction is transport along the connection of a path, `p[Min[i, j]]`:
 cubical["pathInduction"]
 ```
 
-<!-- => definition PathInduction : ∀_{A∶Type u} ∀_{x∶A} ∀_P∶∀_y∶A x≡y→Type v P[x,(i∶Interval)↦x]→∀_{y∶A} ∀_p∶x≡y P[y,p] := {A∶Type u} {x∶A} (P∶∀_y∶A x≡y→Type v) (d∶P[x,(i∶Interval)↦x]) {y∶A} (p∶x≡y)↦CubicalTransport[(i∶Interval)↦P[p[i],(j∶Interval)↦p[i∧j]],0,d] -->
+<!-- => definition pathInduction : ∀_{A∶Type u} ∀_{x∶A} ∀_P∶∀_y∶A x≡y→Type v P[x,(i∶Interval)↦x]→∀_{y∶A} ∀_p∶x≡y P[y,p] := {A∶Type u} {x∶A} (P∶∀_y∶A x≡y→Type v) (d∶P[x,(i∶Interval)↦x]) {y∶A} (p∶x≡y)↦CubicalTransport[(i∶Interval)↦P[p[i],(j∶Interval)↦p[i∧j]],0,d] -->
 
 ## Possible Issues
 

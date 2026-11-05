@@ -42,7 +42,7 @@ Induction on `n` gives a goal for each constructor:
 proof = TypeTheoryTactic["Induction", n][TypeTheoryTactic["Introduce", n][proof]]
 ```
 
-<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 + 0 == 0; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
+<!-- => Proof, 2 goals: case zero ⊢ 0 + 0 == 0; case successor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
 The first is true by computation; the second follows from the induction hypothesis:
 
@@ -73,7 +73,7 @@ The proof term:
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ EqualityReflexivity[n + 0] -->
+<!-- => (n ∶ ℕ) ↦ equalityReflexivity[n + 0] -->
 
 ---
 

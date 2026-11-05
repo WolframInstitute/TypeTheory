@@ -76,7 +76,7 @@ The path reversed is the function of `i` that is `p[1 - i]`, `"pathSymmetry"`:
 cubical["pathSymmetry"]
 ```
 
-<!-- => definition PathSymmetry : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} x≡y→y≡x := {A∶Type u} {x∶A} {y∶A} (p∶x≡y) (i∶Interval)↦p[~i] -->
+<!-- => definition pathSymmetry : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} x≡y→y≡x := {A∶Type u} {x∶A} {y∶A} (p∶x≡y) (i∶Interval)↦p[~i] -->
 
 Function extensionality is a term: a path between functions is a function of the interval into functions, `"pathFunctionExtensionality"`:
 
@@ -84,7 +84,7 @@ Function extensionality is a term: a path between functions is a function of the
 cubical["pathFunctionExtensionality"]
 ```
 
-<!-- => definition PathFunctionExtensionality : ∀_{A∶Type u} ∀_{B∶Type v} ∀_{f∶A→B} ∀_{g∶A→B} (∀_x∶A f[x]≡g[x])→f≡g := {A∶Type u} {B∶Type v} {f∶A→B} {g∶A→B} (h∶∀_x∶A f[x]≡g[x]) (i∶Interval) (x∶A)↦h[x,i] -->
+<!-- => definition pathFunctionExtensionality : ∀_{A∶Type u} ∀_{B∶Type v} ∀_{f∶A→B} ∀_{g∶A→B} (∀_x∶A f[x]≡g[x])→f≡g := {A∶Type u} {B∶Type v} {f∶A→B} {g∶A→B} (h∶∀_x∶A f[x]≡g[x]) (i∶Interval) (x∶A)↦h[x,i] -->
 
 At 0 it is the first function, by computation. The path from `"not"["not"[b]]` to `b` for every Boolean `b`, `"negationInvolution"`, gives a path between functions whose start is the double negation:
 
@@ -121,7 +121,7 @@ Path induction transports along the path's connection, the function of `i` and `
 cubical["pathInduction"]
 ```
 
-<!-- => definition PathInduction : ∀_{A∶Type u} ∀_{x∶A} ∀_P∶∀_y∶A x≡y→Type v P[x,(i∶Interval)↦x]→∀_{y∶A} ∀_p∶x≡y P[y,p] := {A∶Type u} {x∶A} (P∶∀_y∶A x≡y→Type v) (d∶P[x,(i∶Interval)↦x]) {y∶A} (p∶x≡y)↦CubicalTransport[(i∶Interval)↦P[p[i],(j∶Interval)↦p[i∧j]],0,d] -->
+<!-- => definition pathInduction : ∀_{A∶Type u} ∀_{x∶A} ∀_P∶∀_y∶A x≡y→Type v P[x,(i∶Interval)↦x]→∀_{y∶A} ∀_p∶x≡y P[y,p] := {A∶Type u} {x∶A} (P∶∀_y∶A x≡y→Type v) (d∶P[x,(i∶Interval)↦x]) {y∶A} (p∶x≡y)↦CubicalTransport[(i∶Interval)↦P[p[i],(j∶Interval)↦p[i∧j]],0,d] -->
 
 [CubicalComposition]() fills an open box: given its base and its sides over faces, it gives the lid. The concatenation of two paths composes along the second, `"pathTransitivity"`:
 
@@ -129,7 +129,7 @@ cubical["pathInduction"]
 cubical["pathTransitivity"]
 ```
 
-<!-- => definition PathTransitivity : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} ∀_{z∶A} x≡y→y≡z→x≡z := {A∶Type u} {x∶A} {y∶A} {z∶A} (p∶x≡y) (q∶y≡z) (i∶Interval)↦CubicalComposition[A,(j∶Interval)↦{i == 0->x,i == 1->q[j]},p[i]] -->
+<!-- => definition pathTransitivity : ∀_{A∶Type u} ∀_{x∶A} ∀_{y∶A} ∀_{z∶A} x≡y→y≡z→x≡z := {A∶Type u} {x∶A} {y∶A} {z∶A} (p∶x≡y) (q∶y≡z) (i∶Interval)↦CubicalComposition[A,(j∶Interval)↦{i == 0->x,i == 1->q[j]},p[i]] -->
 
 A composition is its side at 1 where a face holds:
 
@@ -155,7 +155,7 @@ A [GlueType]() over `B` is, where each face of its system holds, a type glued to
 cubical["equivalenceToPath"]
 ```
 
-<!-- => definition EquivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->〈A,e〉,i == 1->〈B,IdentityEquivalence[B]〉}] -->
+<!-- => definition equivalenceToPath : ∀_{A∶Type u} ∀_{B∶Type u} Equivalence[A,B]→A≡B := {A∶Type u} {B∶Type u} (e∶Equivalence[A,B]) (i∶Interval)↦GlueType[B,{i == 0->〈A,e〉,i == 1->〈B,identityEquivalence[B]〉}] -->
 
 Transport along it applies the equivalence. Negation is an equivalence of the Booleans, `"negationEquivalence"`, made from the isomorphism it is with itself by `"isomorphismEquivalence"`:
 
@@ -163,7 +163,7 @@ Transport along it applies the equivalence. Negation is an equivalence of the Bo
 transported = TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negationEquivalence"], 0, "true"], cubical]
 ```
 
-<!-- => CubicalTransport[EquivalenceToPath[NegationEquivalence], 0, true] -->
+<!-- => CubicalTransport[equivalenceToPath[negationEquivalence], 0, true] -->
 
 It computes to `"false"`:
 
@@ -179,7 +179,7 @@ In the HoTT environment univalence is an axiom, so the same transport stops at i
 WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], TypeTheoryEnvironment["HomotopyTypeTheory"]]]
 ```
 
-<!-- => Equal_rec[(z∶Type) (q∶𝔹 == z)↦((X∶Type)↦X)[z],true,EquivalenceToEquality[NegationEquivalence]] -->
+<!-- => Equal_rec[(z∶Type) (q∶𝔹 == z)↦((X∶Type)↦X)[z],true,equivalenceToEquality[negationEquivalence]] -->
 
 ## What Has No Rule Here
 

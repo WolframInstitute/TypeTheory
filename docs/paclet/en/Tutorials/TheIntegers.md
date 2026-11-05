@@ -98,7 +98,7 @@ The laws of a commutative ring are theorems, such as `"integerDistributivity"`:
 integers["integerDistributivity"]
 ```
 
-<!-- => theorem IntegerDistributivity : ∀_x∶ℤ ∀_y∶ℤ ∀_z∶ℤ x (y + z) == x y + x z -->
+<!-- => theorem integerDistributivity : ∀_x∶ℤ ∀_y∶ℤ ∀_z∶ℤ x (y + z) == x y + x z -->
 
 They rewrite integer terms as the laws of the natural numbers rewrite theirs. A difference is a sum with the negation, `"integerSubtractionNegation"`; then associativity, the inverse and zero finish the proof:
 
@@ -197,7 +197,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 1], integers, {"Introduce"
 integers["integerSquareNonnegative"]
 ```
 
-<!-- => theorem IntegerSquareNonnegative : ∀_z∶ℤ 0 ≤ z z -->
+<!-- => theorem integerSquareNonnegative : ∀_z∶ℤ 0 ≤ z z -->
 
 So are sums and natural multiples of what is at least 0, by `"integerNonnegativeAddition"` and `"integerNonnegativeScaling"`:
 
@@ -216,7 +216,7 @@ An inequality `x <= y` follows when a positive multiple of `y - x` is equal to s
 integers["integerLessEqualOfMultiple"]
 ```
 
-<!-- => theorem IntegerLessEqualOfMultiple : ∀_d∶ℕ ∀_{x∶ℤ} ∀_{y∶ℤ} ∀_s∶ℤ ↑(d + 1) (y - x) == s ⇒ 0 ≤ s ⇒ x ≤ y -->
+<!-- => theorem integerLessEqualOfMultiple : ∀_d∶ℕ ∀_{x∶ℤ} ∀_{y∶ℤ} ∀_s∶ℤ ↑(d + 1) (y - x) == s ⇒ 0 ≤ s ⇒ x ≤ y -->
 
 The tactic `"SumOfSquares"` proves an inequality this way. Wolfram finds a positive integer `d` and a sum `s` of squares of polynomials, each times a positive integer, with `d (y - x) == s`. `"Ring"` proves that equation, and the lemmas above prove that `s` is at least 0. Here `2 (x^2 + y^2 + z^2 - x y - y z - z x)` is the sum of the squares of `x - y`, `y - z` and `z - x`:
 

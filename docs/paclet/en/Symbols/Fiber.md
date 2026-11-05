@@ -95,7 +95,7 @@ The center of the fiber of `"negationEquivalence"` over `"true"`:
 WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], cubical]]
 ```
 
-<!-- => 〈!true, NegationInvolution[true]〉 -->
+<!-- => 〈!true, negationInvolution[true]〉 -->
 
 ## Possible Issues
 

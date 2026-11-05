@@ -31,7 +31,7 @@ The prelude assumes three axioms:
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
 ```
 
-<!-- => {PropositionalExtensionality, QuotientSoundness, Choice} -->
+<!-- => {propositionalExtensionality, quotientSoundness, choice} -->
 
 ---
 
@@ -59,7 +59,7 @@ That environment's axioms:
 Information[excludedMiddle, "Axioms"]
 ```
 
-<!-- => {ExcludedMiddle} -->
+<!-- => {excludedMiddle} -->
 
 ## Scope
 

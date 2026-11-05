@@ -224,7 +224,7 @@ And the proof that negation respects it:
 respects = TypeTheoryTerm[{Typed[a, Booleans], Typed[b, Booleans], Typed[e, a == b]} |-> "equalityCongruence"[Not, e], quotient]
 ```
 
-<!-- => (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[Not, e] -->
+<!-- => (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ equalityCongruence[Not, e] -->
 
 On a class the lift computes. [Not]() and [True]() stand for the Booleans' negation and truth here, since the types say so:
 
@@ -256,7 +256,7 @@ But the lift is stuck:
 WeakHeadNormalForm[TypeTheoryTerm[ClassLift[Not, respects, ClassOf[same, True]], stuck]]
 ```
 
-<!-- => ClassLift[not, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ EqualityCongruence[not, e], ClassOf[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->
+<!-- => ClassLift[not, (a∶𝔹) (b∶𝔹) (e∶a == b) ↦ equalityCongruence[not, e], ClassOf[(a∶𝔹) (b∶𝔹) ↦ a == b, true]] -->
 
 And the prelude's rules refuse the rule:
 
@@ -274,7 +274,7 @@ A computation rule that is an axiom, an equation the kernel does not use by itse
 Information[hott, "RewriteRules"]
 ```
 
-<!-- => {CircleInductionBase} -->
+<!-- => {circleInductionBase} -->
 
 Univalence is an axiom too, and what carrying along the path of an equivalence gives is the theorem `"univalenceComputation"`, not a computation. Cubical type theory makes it one, with rules that TypeTheory does not have yet.
 

@@ -100,7 +100,7 @@ The proof term the tactics built:
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, EqualityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, equalityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ equalityCongruence[successor, ih], n] -->
 
 ---
 

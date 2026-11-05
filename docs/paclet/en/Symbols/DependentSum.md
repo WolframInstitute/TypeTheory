@@ -37,7 +37,7 @@ Its declaration:
 cubical[DependentSum]
 ```
 
-<!-- => inductive DependentSum : ∀_A∶Type u (A→Type v)→Type (max u v) ; | DependentPair : ∀_{A∶Type u} ∀_{B∶A→Type v} ∀_a∶A B[a]→DependentSum[A,B] -->
+<!-- => inductive DependentSum : ∀_A∶Type u (A→Type v)→Type (max u v) ; | dependentPair : ∀_{A∶Type u} ∀_{B∶A→Type v} ∀_a∶A B[a]→DependentSum[A,B] -->
 
 ## Scope
 

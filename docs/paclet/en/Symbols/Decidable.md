@@ -50,7 +50,7 @@ A decision computes to the constructor that holds, with its proof:
 WeakHeadNormalForm[TypeTheoryTerm["lessEqualDecidable"[1, 4]]]
 ```
 
-<!-- => DecidableTrue[lessEqualTrue[1, 4, EqualityReflexivity[lessEqual[1, 4]]]] -->
+<!-- => decidableTrue[lessEqualTrue[1, 4, equalityReflexivity[lessEqual[1, 4]]]] -->
 
 ## Properties and Relations
 

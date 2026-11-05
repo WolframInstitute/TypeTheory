@@ -122,7 +122,7 @@ The proof term:
 proof["Term"]
 ```
 
-<!-- => (a ∶ Prop) (b ∶ Prop) (ha ∶ a) (hb ∶ b) ↦ AndIntroduction[ha, hb] -->
+<!-- => (a ∶ Prop) (b ∶ Prop) (ha ∶ a) (hb ∶ b) ↦ andIntroduction[ha, hb] -->
 
 ---
 
@@ -268,7 +268,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Or[n == 0, Exists[{Typed[k, Natural
 }]
 ```
 
-<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 == 0 ∨ ∃_k∶ℕ 0 == k + 1; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ (n + 1 == 0 ∨ ∃_k∶ℕ n + 1 == k + 1) -->
+<!-- => Proof, 2 goals: case zero ⊢ 0 == 0 ∨ ∃_k∶ℕ 0 == k + 1; case successor ⊢ ∀_n∶ℕ (n + 1 == 0 ∨ ∃_k∶ℕ n + 1 == k + 1) -->
 
 ---
 
@@ -352,7 +352,7 @@ The proof holds the witnesses; the decision that the kernel computes for them is
 proof["Term"]
 ```
 
-<!-- => ExistsIntroduction[3, ExistsIntroduction[4, DecideSoundness[EqualityReflexivity[true]]]] -->
+<!-- => existsIntroduction[3, existsIntroduction[4, decideSoundness[equalityReflexivity[true]]]] -->
 
 ---
 

@@ -101,7 +101,7 @@ A proof of the wrong statement is rejected, with the reason:
 TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => Failure["TypeMismatch", ...]: EqualityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 -->
+<!-- => Failure["TypeMismatch", ...]: equalityReflexivity[4] has type 4 == 4, but the expected type is 2 + 2 == 5 -->
 
 [Append]() adds a declaration to an environment:
 
@@ -248,7 +248,7 @@ A [TypeTheoryTactic]() works on the first goal. `"Introduce"` takes the variable
 proof = TypeTheoryTactic["Induction", n][TypeTheoryTactic["Introduce", n][proof]]
 ```
 
-<!-- => Proof, 2 goals: case NaturalNumberZero ⊢ 0 + 0 == 0; case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
+<!-- => Proof, 2 goals: case zero ⊢ 0 + 0 == 0; case successor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
 The first goal, `0 + 0 == 0`, holds by computation:
 
@@ -256,7 +256,7 @@ The first goal, `0 + 0 == 0`, holds by computation:
 proof = TypeTheoryTactic["Reflexivity"][proof]
 ```
 
-<!-- => Proof, 1 goal: case NaturalNumberSuccessor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
+<!-- => Proof, 1 goal: case successor ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1 -->
 
 In the second, `"Introduce"` names the number `k` and the induction hypothesis `ih`, which says `0 + k == k`. The goal reads `0 + (k + 1) == k + 1`, where `k + 1` is how <code>`"successor"`[k]</code> shows. Addition recurses on its second argument, so the goal computes to `(0 + k) + 1 == k + 1`, which `"equalityCongruence"` proves from `ih`:
 
@@ -272,7 +272,7 @@ The tactics built a proof term, an application of the recursor of the natural nu
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, EqualityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ EqualityCongruence[NaturalNumberSuccessor, ih], n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, equalityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ equalityCongruence[successor, ih], n] -->
 
 Nothing a tactic did is trusted. Declaring the theorem has the kernel check the finished term. The prelude has this theorem already, as `"additionZeroLeft"`, so it is declared here under a name of its own:
 

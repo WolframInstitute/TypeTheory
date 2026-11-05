@@ -28,7 +28,7 @@ It is built when the paclet loads, and every declaration in it is checked by the
 Information[TypeTheoryEnvironment["Prelude"], "Axioms"]
 ```
 
-<!-- => {PropositionalExtensionality, QuotientSoundness, Choice} -->
+<!-- => {propositionalExtensionality, quotientSoundness, choice} -->
 
 ## Propositions
 
@@ -136,7 +136,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Composition["successor", Identity][3]], Type
 The prelude has the quotient types of Lean's kernel, which [TypeTheoryQuotients]() declares: <code>[QuotientType]()[r]</code> is the type of the classes of a relation `r`, <code>[QuotientIntroduction]()[r, a]</code> is the class of `a`, [QuotientLift]() applies a function that respects `r` to a class, and [QuotientInduction]() proves a property of every class. Here is equality of natural numbers, as a relation:
 
 ```wl
-equalNaturals = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+equalNaturals = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
 ```
 
 <!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
@@ -388,7 +388,7 @@ TypeTheoryType["functionExtensionality"["additionZeroLeft"]]
 WeakHeadNormalForm[TypeTheoryTerm["choice"["nonempty"[3]]]]
 ```
 
-<!-- => Choice[NonemptyIntroduction[3]] -->
+<!-- => choice[nonempty[3]] -->
 
 A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and `"chosenWitnessProperty"` proves that the witness has the property:
 
@@ -463,7 +463,7 @@ Its one axiom:
 Information[excludedMiddle, "Axioms"]
 ```
 
-<!-- => {ExcludedMiddle} -->
+<!-- => {excludedMiddle} -->
 
 ## What the Prelude Does Not Have Yet
 

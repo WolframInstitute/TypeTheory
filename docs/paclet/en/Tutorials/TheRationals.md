@@ -116,7 +116,7 @@ The laws of a commutative ring are theorems, such as `"rationalDistributivity"`:
 rationals["rationalDistributivity"]
 ```
 
-<!-- => theorem RationalDistributivity : ∀_x∶ℚ ∀_y∶ℚ ∀_z∶ℚ x (y + z) == x y + x z -->
+<!-- => theorem rationalDistributivity : ∀_x∶ℚ ∀_y∶ℚ ∀_z∶ℚ x (y + z) == x y + x z -->
 
 `"Ring"` proves identities of rationals: `"Induction"` on each rational gives the class of a pair, `"quotientSoundness"` the relation of two pairs, an equation of integers, which `"Ring"` proves by the integers' normal forms. That equation multiplies each side by the other's denominator, so its degree, and the time `"Ring"` takes, grows with the denominators of the two sides:
 
@@ -148,7 +148,7 @@ TypeTheoryProof[ForAll[{Typed[x, Rationals]}, x / 2 + x / 3 == 5 x / 6], rationa
 rationals["rationalMultiplicationInverse"]
 ```
 
-<!-- => theorem RationalMultiplicationInverse : ∀_x∶ℚ (¬x == 0) ⇒ x/x == 1 -->
+<!-- => theorem rationalMultiplicationInverse : ∀_x∶ℚ (¬x == 0) ⇒ x/x == 1 -->
 
 The inverse computes. For the class of (a, b) it is the class of (b + 1, |a| - 1) with the sign of a, found by recursion on the pair of natural numbers of the integer a, and the inverse of 0 is 0, `"rationalInverseZero"`:
 
@@ -166,7 +166,7 @@ TypeTheoryProof[Typed[(2/3)^-1, Rationals] == 3/2, rationals, {"Decide"}]
 rationals["rationalSquareNonnegative"]
 ```
 
-<!-- => theorem RationalSquareNonnegative : ∀_x∶ℚ 0 ≤ x x -->
+<!-- => theorem rationalSquareNonnegative : ∀_x∶ℚ 0 ≤ x x -->
 
 ## Theorems
 

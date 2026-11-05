@@ -62,8 +62,8 @@ TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 The type of a term in an environment given as the second argument:
 
 ```wl
-bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {"zero" -> Bit, "one" -> Bit}]}];
-TypeTheoryType["one", bits]
+bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}];
+TypeTheoryType[BitOne, bits]
 ```
 
 <!-- => Bit -->
@@ -76,7 +76,7 @@ The declared type of a constant, with its implicit arguments:
 TypeTheoryType["equalitySymmetry"]
 ```
 
-<!-- => ∀_{α ∶ Sort u} ∀_{a ∶ α} ∀_{b ∶ α} a == b ⇒ b == a -->
+<!-- => ∀_{α∶Sort u} ∀_{x∶α} ∀_{y∶α} x == y ⇒ y == x -->
 
 ---
 

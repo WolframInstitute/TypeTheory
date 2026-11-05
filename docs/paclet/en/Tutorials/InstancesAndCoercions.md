@@ -180,7 +180,7 @@ Coercions chain, at most three of them: a Boolean where an optional natural numb
 WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[Naturals]], coercions]]
 ```
 
-<!-- => OptionSome[NaturalOfBoolean[true]] -->
+<!-- => some[NaturalOfBoolean[true]] -->
 
 Both types must be known: a coercion is inserted only where no metavariable is left in either, as Lean waits for them. With no coercion that applies, the term's type is a mismatch:
 

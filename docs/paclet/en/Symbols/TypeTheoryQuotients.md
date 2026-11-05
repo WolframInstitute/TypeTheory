@@ -56,7 +56,7 @@ Its constants:
 Keys[quotients]
 ```
 
-<!-- => {Equal, EqualityReflexivity, InductiveRecursor[Equal], QuotientType, QuotientIntroduction, QuotientLift, QuotientInduction} -->
+<!-- => {Equal, equalityReflexivity, InductiveRecursor[Equal], QuotientType, QuotientIntroduction, QuotientLift, QuotientInduction} -->
 
 ## Possible Issues
 

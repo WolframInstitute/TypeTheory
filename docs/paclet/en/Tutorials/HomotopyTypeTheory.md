@@ -80,7 +80,7 @@ Its recursor is path induction: to prove something of every path from `x`, it is
 TypeTheoryType[InductiveRecursor[Equal], hott]
 ```
 
-<!-- => ∀_{A ∶ Type u} ∀_{x ∶ A} ∀_m∶∀_y∶A x == y → Type v m[x, EqualityReflexivity[x]] → ∀_{y ∶ A} ∀_t∶x == y m[y, t] -->
+<!-- => ∀_{A ∶ Type u} ∀_{x ∶ A} ∀_m∶∀_y∶A x == y → Type v m[x, equalityReflexivity[x]] → ∀_{y ∶ A} ∀_t∶x == y m[y, t] -->
 
 The inverse, concatenation and congruence of paths, `"equalitySymmetry"`, `"equalityTransitivity"` and `"equalityCongruence"`, are definitions by path induction, and so are [Transport]() and `"dependentCongruence"`. They compute on reflexivity: carrying an element along reflexivity leaves it as it is.
 
@@ -106,7 +106,7 @@ A path between types gives an equivalence, `"equalityToEquivalence"`, with the i
 TypeTheoryType["univalence", hott]
 ```
 
-<!-- => ∀_A∶Type u ∀_B∶Type u IsEquivalence[(p∶A == B) ↦ EqualityToEquivalence[p]] -->
+<!-- => ∀_A∶Type u ∀_B∶Type u IsEquivalence[(p∶A == B) ↦ equalityToEquivalence[p]] -->
 
 Its right inverse, `"equivalenceToEquality"`, gives a path for each equivalence, and `"univalenceComputation"` says that carrying along that path is the equivalence:
 
@@ -114,7 +114,7 @@ Its right inverse, `"equivalenceToEquality"`, gives a path for each equivalence,
 TypeTheoryType["univalenceComputation", hott]
 ```
 
-<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type u} ∀_e∶Equivalence[A, B] EqualityToEquivalence[EquivalenceToEquality[e]] == e -->
+<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type u} ∀_e∶Equivalence[A, B] equalityToEquivalence[equivalenceToEquality[e]] == e -->
 
 ## The Universe Is Not a Set
 
@@ -136,7 +136,7 @@ The circle is a higher inductive type: a point `"circleBase"`, a path `"circleLo
 hott["circleInductionBase"]
 ```
 
-<!-- => rewrite CircleInductionBase : ∀_P∶𝕊¹ → Type u ∀_b∶P[CircleBase] ∀_l∶Transport[P, CircleLoop, b] == b CircleInduction[P, b, l, CircleBase] ⟶ b -->
+<!-- => rewrite circleInductionBase : ∀_P∶𝕊¹ → Type u ∀_b∶P[circleBase] ∀_l∶Transport[P, circleLoop, b] == b circleInduction[P, b, l, circleBase] ⟶ b -->
 
 So induction on the base point computes:
 
@@ -152,7 +152,7 @@ On the loop, induction gives its path only up to a path, by the axiom `"circleIn
 TypeTheoryType["circleInductionLoop", hott]
 ```
 
-<!-- => ∀_P∶𝕊¹ → Type u ∀_b∶P[CircleBase] ∀_l∶Transport[P, CircleLoop, b] == b DependentCongruence[(x∶𝕊¹) ↦ CircleInduction[P, b, l, x], CircleLoop] == l -->
+<!-- => ∀_P∶𝕊¹ → Type u ∀_b∶P[circleBase] ∀_l∶Transport[P, circleLoop, b] == b dependentCongruence[(x∶𝕊¹) ↦ circleInduction[P, b, l, x], circleLoop] == l -->
 
 ## Rules of Your Own
 

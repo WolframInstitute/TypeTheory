@@ -122,7 +122,7 @@ A recursor's parameters, motives and indices are erased too. The recursor of a t
 TypeTheoryType[InductiveRecursor[CartesianProductType], affinePrelude]
 ```
 
-<!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} ∀_0 m∶α × β → Sort w ∀_1 Pair∶∀_x∶α ∀_y∶β m[(x, y)] ∀_1 t∶α × β m[t] -->
+<!-- => ∀_{0 α ∶ Type u} ∀_{0 β ∶ Type v} ∀_0 m∶α × β → Sort w ∀_1 pair∶∀_x∶α ∀_y∶β m[(x, y)] ∀_1 t∶α × β m[t] -->
 
 The recursor of a recursive type takes them any number of times, since a recursive call uses the parts of its argument again:
 

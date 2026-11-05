@@ -32,7 +32,7 @@ Excluded middle rests on the three axioms Lean's proof of it uses:
 TypeTheoryAxiomClosure[TypeTheoryTerm["excludedMiddle"]]
 ```
 
-<!-- => <|Choice -> Signature, QuotientSoundness -> Proposition, PropositionalExtensionality -> Proposition|> -->
+<!-- => <|choice -> Signature, quotientSoundness -> Proposition, propositionalExtensionality -> Proposition|> -->
 
 ---
 
@@ -88,7 +88,7 @@ Homotopy type theory's circle is given by axioms, and its induction principle co
 TypeTheoryAxiomClosure[TypeTheoryTerm["circleInduction", TypeTheoryEnvironment["HomotopyTypeTheory"]]]
 ```
 
-<!-- => <|CircleInduction -> Signature, Circle -> Signature, CircleBase -> Signature, CircleLoop -> Signature, CircleInductionBase -> RewriteRule|> -->
+<!-- => <|circleInduction -> Signature, Circle -> Signature, circleBase -> Signature, circleLoop -> Signature, circleInductionBase -> RewriteRule|> -->
 
 ## Properties and Relations
 
@@ -118,7 +118,7 @@ The constants of a theorem are those of its statement and its proof, the closure
 Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]], "Constants"]
 ```
 
-<!-- => {Equal, NonNegativeIntegers, Plus, EqualityReflexivity} -->
+<!-- => {Equal, NonNegativeIntegers, Plus, equalityReflexivity} -->
 
 ---
 
@@ -130,7 +130,7 @@ With[{rationals = TypeTheoryEnvironment["Rationals"]},
 ]
 ```
 
-<!-- => {Choice, PropositionalExtensionality, QuotientSoundness} -->
+<!-- => {choice, propositionalExtensionality, quotientSoundness} -->
 
 ## Possible Issues
 

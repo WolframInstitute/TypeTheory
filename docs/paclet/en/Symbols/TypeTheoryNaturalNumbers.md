@@ -126,7 +126,7 @@ The operations of the environment's natural numbers:
 Information[shifted, "NaturalNumbers"]
 ```
 
-<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> NaturalNumberZero, "Successor" -> NaturalNumberSuccessor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual", "ShiftLeft" -> NaturalNumberShiftLeft|>|> -->
+<!-- => <|"Type" -> NonNegativeIntegers, "Zero" -> zero, "Successor" -> successor, "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual", "ShiftLeft" -> NaturalNumberShiftLeft|>|> -->
 
 ## Possible Issues
 
