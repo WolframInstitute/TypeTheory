@@ -668,10 +668,19 @@ levelArgumentDisplay[level_] := level
 (*Proofs*)
 
 
-(* the display is interpretable, as a term's is: copied or evaluated again it is the proof, which holds only a handle to its environment *)
+(* the display is interpretable: copied or evaluated again it is the proof. It holds a handle to the proof, a symbol of
+   the session whose value it is, as the proof holds one to its environment, not the proof itself: a proof term shares its
+   parts, which a notebook would write out each time they occur, hundreds of megabytes for a proof by "Ring" *)
 TypeTheoryProof /: MakeBoxes[proof : TypeTheoryProof[data_Association], form : StandardForm | TraditionalForm] := With[
-	{boxes = withDisplayEnvironment[data["Environment"], ToBoxes[proofPanel[data, form], form]]},
-	InterpretationBox[boxes, proof]
+	{boxes = withDisplayEnvironment[data["Environment"], ToBoxes[proofPanel[data, form], form]], name = storedProofName[proof]},
+	ToExpression[name, InputForm, Function[handle, InterpretationBox[boxes, handle], HoldAllComplete]]
+]
+
+$storedProofCount = 0
+
+storedProofName[proof_] := With[{name = Context[$storedProofCount] <> "storedProof" <> ToString[++$storedProofCount]},
+	ToExpression[name, InputForm, Function[handle, handle = proof, HoldAllComplete]];
+	name
 ]
 
 proofPanel[data_, form_] := Framed[

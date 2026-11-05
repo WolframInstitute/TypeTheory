@@ -168,8 +168,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	MatchQ[ToBoxes[zeroLeft], InterpretationBox[_FrameBox, _TypeTheoryProof]] && MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], InterpretationBox[_FrameBox, _TypeTheoryProof]],
-	True,
+	(* the display holds a handle to the proof, a symbol whose value it is, not the proof's term *)
+	{
+		MatchQ[ToBoxes[zeroLeft], InterpretationBox[_FrameBox, handle_Symbol /; handle === zeroLeft]],
+		MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], InterpretationBox[_FrameBox, _Symbol]],
+		ToExpression[ToBoxes[zeroLeft], StandardForm] === zeroLeft
+	},
+	{True, True, True},
 	TestID -> "A-proof-displays-its-goals"
 ]
 
