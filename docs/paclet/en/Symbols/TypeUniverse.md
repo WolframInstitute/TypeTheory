@@ -203,6 +203,42 @@ TypeTheoryType[ForAll[{Typed[A, TypeUniverse[u]]}, A]]
 
 <!-- => Sort (imax (u + 1) u) -->
 
+---
+
+As Prop is impredicative, a proposition may quantify over every proposition, itself included. The Church booleans of Nederpelt and Geuvers's *Type Theory and Formal Proof* (Exercise 3.14) are a proposition:
+
+```wl
+booleans = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[0]]}, A -> A -> A]]
+```
+
+<!-- => ∀_A∶Prop A → A → A -->
+
+The two booleans choose their first argument and their second:
+
+```wl
+truth = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[x, A], Typed[y, A]} |-> x];
+falsity = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[x, A], Typed[y, A]} |-> y];
+negation = TypeTheoryTerm[Typed[z, booleans] |-> z[booleans, falsity, truth]]
+```
+
+<!-- => (z ∶ booleans) ↦ z[booleans, falsity, truth] -->
+
+Negation instantiates the quantifier of its argument at the booleans themselves, and is a function of booleans:
+
+```wl
+TypeTheoryType[negation]
+```
+
+<!-- => (∀_A∶Prop A ⇒ A ⇒ A) ⇒ ∀_A∶Prop A ⇒ A ⇒ A -->
+
+The negation of truth computes to falsity:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[negation[truth]], falsity]
+```
+
+<!-- => True -->
+
 ## Possible Issues
 
 Type is not in Type:
@@ -242,3 +278,19 @@ TypeTheoryType[TypeUniverse[0], "HomotopyTypeTheory"]
 ```
 
 <!-- => Failure["NoProp", ...] -->
+
+---
+
+Above Prop the same booleans cannot negate: over Type they are in Type 1, and the quantifier over Type does not take them:
+
+```wl
+typeBooleans = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, A -> A -> A]]
+```
+
+<!-- => ∀_A∶Type A → A → A -->
+
+```wl
+TypeTheoryType[Typed[z, typeBooleans] |-> z[typeBooleans]]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->

@@ -94,13 +94,13 @@ mystery = TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals]}]
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
-Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stops at the recursor, waiting for a constructor the axiom never gives:
+Addition recurses on its second argument, so `Mystery + 0` computes, but `0 + Mystery` stays as it is, waiting for a constructor the axiom never gives. The kernel reduces the addition by its two defining equations, `t + 0 == t` and `t + (s + 1) == (t + s) + 1`, so a stuck sum stays a sum rather than unfolding into its recursor:
 
 ```wl
 {WeakHeadNormalForm[TypeTheoryTerm[Mystery + 0, mystery]], WeakHeadNormalForm[TypeTheoryTerm[0 + Mystery, mystery]]}
 ```
 
-<!-- => {Mystery, ℕ_rec[(t∶ℕ) ↦ ℕ, 0, (k∶ℕ) (r∶ℕ) ↦ r + 1, Mystery]} -->
+<!-- => {Mystery, 0 + Mystery} -->
 
 A theorem never unfolds either: what it states is all that is used of it.
 
@@ -151,6 +151,14 @@ TypeTheoryType[ForAll[{Typed[A, TypeUniverse[1]]}, A], hott]
 ```
 
 <!-- => Type 1 -->
+
+As pure type systems, the two rules differ in one place. Both have a sort `Sort u` for every level `u`, the axioms `Sort u : Sort (u + 1)`, and products by the rule `(Sort u, Sort v, Sort (imax u v))`: a function type is in the larger universe of its domain and its codomain, except that one into Prop is in Prop, as [ImpredicativeMaximum]() says. Without Prop no level is 0, and `imax` is `max`. Neither rule is cumulative, as Lean's is not: a type in `Type` is not one in `Type 1`, and `Type 1` does not take the natural numbers:
+
+```wl
+TypeTheoryType[Typed[Naturals, TypeUniverse[2]]]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
 
 Proof irrelevance, with an equality in Prop eliminating into any type, is what makes univalence contradict the prelude's rules, as the tutorial *Homotopy Type Theory* shows.
 
