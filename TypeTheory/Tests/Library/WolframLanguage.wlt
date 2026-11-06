@@ -43,16 +43,22 @@ VerificationTest[
 	TestID -> "The-match-monad-tries-alternatives-in-order"
 ]
 
-(* the arguments of an expression are a list; a value is one result, a sequence of values is one result written
-   MatchValue[Sequence[...]], and several results are a sum *)
+(* the arguments of an expression are a sequence, {Arguments[e]} their list, and Construct[Head[e], Arguments[e]] the
+   expression; a query that names a constant only the Wolfram Language environment has is in it; a value is one result,
+   a sequence of values is one result written MatchValue[Sequence[...]], and several results are a sum *)
 VerificationTest[
 	{
-		equalQ[Arguments[Construct[7, 1, 2]], Typed[{1, 2}, {Expressions}]],
+		equalQ[Arguments[Construct[7, 1, 2]], Typed[Unevaluated[1, 2], Expressions...]],
+		equalQ[{Arguments[Construct[7, 1, 2]]}, Typed[{1, 2}, {Expressions}]],
+		equalQ[Construct[Head[HoldForm[f[1, g[2]]]], Arguments[HoldForm[f[1, g[2]]]]], HoldForm[f[1, g[2]]]],
+		equalQ[Typed[{0, Arguments[HoldForm[f[1, 2]]], 3}, {Expressions}], Typed[{0, 1, 2, 3}, {Expressions}]],
+		TypeTheoryType[Arguments] === TypeTheoryTerm[Expressions -> Expressions..., wolfram],
+		TypeTheoryType[Head] === TypeTheoryTerm[Expressions -> Expressions, wolfram],
 		TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram] === TypeTheoryTerm[Match[Sequence[NonNegativeIntegers, Booleans]], wolfram],
 		equalQ[MatchFirst[MatchValue[Sequence[1, "true"]]], "some"[Sequence[1, "true"]]],
 		equalQ[MatchSum[MatchValue[1], MatchValue[2]], {1, 2}]
 	},
-	{True, True, True, True},
+	{True, True, True, True, True, True, True, True, True},
 	TestID -> "A-value-is-one-result-a-sequence-is-one-result-and-several-are-a-sum"
 ]
 

@@ -54,7 +54,7 @@ mPermutations[l_List] := Map[Function[order, l[[order]]], Permutations[Range[Len
 mNormal[ex[h_], arguments___ex] := Replace[Join[HoldComplete[h], HoldComplete[], Sequence @@ Replace[{arguments}, ex[a_] :> HoldComplete[a], {1}]], HoldComplete[head_, parts___] :> ex[head[parts]]]
 mHead[ex[e_]] := Extract[HoldComplete[e], {1, 0}, ex]
 mAtomQ[ex[e_]] := AtomQ[Unevaluated[e]]
-mArguments[ex[e_]] := If[AtomQ[Unevaluated[e]], {}, Replace[HoldComplete[e], HoldComplete[_[parts___]] :> (ex /@ Unevaluated[{parts}])]]
+mArguments[ex[e_]] := Sequence @@ If[AtomQ[Unevaluated[e]], {}, Replace[HoldComplete[e], HoldComplete[_[parts___]] :> (ex /@ Unevaluated[{parts}])]]
 mValueOf[ex[e_]] := With[{value = e}, ex[value]]
 mDecide[b_] := TrueQ[b]
 mListRecursion[_, base_, step_, {}] := base

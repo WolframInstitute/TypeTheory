@@ -307,6 +307,8 @@ displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], element
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {syntaxSymbol[HoldComplete[Unevaluated]], _}]] := sequenceDisplay[{syntax}]
 
 sequenceDisplay[pieces_List] := tupleDisplay["[", pieceDisplay /@ Catenate[splicedPieces /@ pieces], "]"]
+(* the list of the elements of a sequence, {s}, as the Wolfram Language splices a sequence into a list *)
+displaySyntax[syntaxApplication[syntaxString["listOfSequence"], {sequence_}]] := syntaxHead[List, pieceDisplay /@ splicedPieces[sequence]]
 
 splicedPieces[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], elements_List]] := Catenate[splicedPieces /@ elements]
 splicedPieces[syntax : syntaxString["emptySequenceOf"]] := sequencePieces[syntax]

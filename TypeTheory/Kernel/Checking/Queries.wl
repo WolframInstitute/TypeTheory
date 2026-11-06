@@ -97,9 +97,20 @@ its terms read back for display (mode \"Display\") or exactly (mode \"Exact\")."
 (*Function Definitions*)
 
 
-(* a term without an environment is in the default environment *)
+(* a term without an environment is in the default environment; where that is the prelude, a term that names what only
+   TypeTheoryEnvironment["WolframLanguage"] declares, as Arguments, Head or Expressions, is in that environment *)
 termEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
-termEnvironment[TypeTheoryTerm[_]] := defaultEnvironment[]
+termEnvironment[TypeTheoryTerm[term_]] := unnamedEnvironment[HoldComplete[term]]
+
+unnamedEnvironment[held_HoldComplete] := With[{default = defaultEnvironment[]},
+	If[default === preludeEnvironment[] && ! FreeQ[held, $wolframLanguageNames], wolframLanguageEnvironment[], default]
+]
+
+(* the names that only the Wolfram Language environment declares, and the forms of its sequences *)
+$wolframLanguageNames = Alternatives[
+	Atoms, Expressions, Strings, Arguments, ExpressionEvaluate, Match, MatchValue, MatchSum, MatchPart, MatchBind, MatchFirst,
+	Head, AtomQ, SameQ, MatchQ, Replace, ReplaceList, ReplaceAll, ReplaceRepeated, Unevaluated, RepeatedNull
+]
 
 heldTerm[TypeTheoryTerm[term_, ___]] := HoldComplete[term]
 
@@ -108,7 +119,7 @@ termSyntax[TypeTheoryTerm[term_, ___]] := toSyntax[term]
 (* the environment two terms share: a term without one takes the other's, and two without one are in
    the default environment *)
 sharedEnvironment[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[{givenEnvironment[first], givenEnvironment[second]}, {
-	{None, None} :> defaultEnvironment[],
+	{None, None} :> unnamedEnvironment[Join[heldTerm[first], heldTerm[second]]],
 	{environment_, None} | {None, environment_} :> environment,
 	{environment_, environment_} :> environment,
 	_ :> kernelFailure["DifferentEnvironments", "The terms carry different environments.", {}]

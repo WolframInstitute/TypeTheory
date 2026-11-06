@@ -440,11 +440,13 @@ closedHoleTypes[term_] := Association[Function[id, id -> instantiateMetavariable
 	Function[id, KeyExistsQ[$holeAnnotations, id]]
 ]]
 
-listLiteralSyntax[elements_List] := Fold[
-	Function[{rest, element}, syntaxApplication[syntaxString["Prepend"], {element, rest}]],
-	syntaxString["{}"],
-	Reverse[elements]
-]
+(* a list literal is Prepend over {}; a sequence among its elements is spliced in, {s} the list of its elements, as the
+   Wolfram Language splices a Sequence *)
+listLiteralSyntax[elements_List] := Fold[listedPiece, syntaxString["{}"], Reverse[If[variadicSequencesDeclaredQ[], variadicPiece /@ elements, elements]]]
+
+listedPiece[syntaxString["{}"], splicedPiece[sequence_]] := syntaxApplication[syntaxString["listOfSequence"], {sequence}]
+listedPiece[rest_, splicedPiece[sequence_]] := syntaxHead[Join, {syntaxApplication[syntaxString["listOfSequence"], {sequence}], rest}]
+listedPiece[rest_, element_] := syntaxApplication[syntaxString["Prepend"], {element, rest}]
 
 (* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], as in Lean, each Exists applied to a predicate *)
 nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]

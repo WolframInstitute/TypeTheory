@@ -203,8 +203,8 @@ argumentsMatch[v_, head_, patterns0_List, environment_, k_, headTest_] := With[{
 ]
 
 notAtom[HoldComplete[e_]] := HoldComplete[Not[AtomQ[e]]]
-argumentsOf[HoldComplete[e_]] := HoldComplete[Arguments[e]]
-permutationsOf[HoldComplete[e_]] := HoldComplete["permutations"[Arguments[e]]]
+argumentsOf[HoldComplete[e_]] := HoldComplete[{Arguments[e]}]
+permutationsOf[HoldComplete[e_]] := HoldComplete["permutations"[{Arguments[e]}]]
 andTests[test_, None] := test
 andTests[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[And[a, b]]
 
@@ -268,9 +268,9 @@ fixedArguments[v_, patterns_List, environment_, k_, headTest_] := With[
 (* the sequence among fixed arguments, whose least length the length of the arguments checks already *)
 lengthChecked[held_HoldComplete] := Replace[held, {Verbatim[BlankSequence][h___] :> BlankNullSequence[h], Verbatim[Repeated][q_] :> RepeatedNull[q]}, {1, 2}]
 
-lengthEquals[n_Integer] := Function[e, HoldComplete[Decide[Length[Arguments[e]] == n]], HoldAllComplete]
+lengthEquals[n_Integer] := Function[e, HoldComplete[Decide[Length[{Arguments[e]}] == n]], HoldAllComplete]
 lengthAtLeast[0] := Function[e, HoldComplete[True], HoldAllComplete]
-lengthAtLeast[n_Integer] := Function[e, HoldComplete[Decide[n <= Length[Arguments[e]]]], HoldAllComplete]
+lengthAtLeast[n_Integer] := Function[e, HoldComplete[Decide[n <= Length[{Arguments[e]}]]], HoldAllComplete]
 
 minimumLength[HoldComplete[(Verbatim[Pattern] | Verbatim[HoldPattern] | Verbatim[Longest] | Verbatim[Shortest])[___, p_]]] := minimumLength[HoldComplete[p]]
 minimumLength[HoldComplete[_BlankSequence | _Repeated]] := 1
@@ -289,7 +289,7 @@ partVariable[_, _, base_String] := freshVariable[base]
 
 partTerm[HoldComplete[v_], k_Integer, HoldComplete[variable_], HoldComplete[body_]] /; k >= 0 := HoldComplete[MatchPart[v, k, Function[{Typed[variable, Expressions]}, body]]]
 partTerm[HoldComplete[v_], k_Integer, HoldComplete[variable_], HoldComplete[body_]] := With[{index = -k - 1},
-	HoldComplete[MatchBind["matchElement"[Reverse[Arguments[v]], index], Function[{Typed[variable, Expressions]}, body]]]
+	HoldComplete[MatchBind["matchElement"[Reverse[{Arguments[v]}], index], Function[{Typed[variable, Expressions]}, body]]]
 ]
 
 bindTerm[HoldComplete[m_], HoldComplete[variable_], HoldComplete[type_], HoldComplete[body_]] := HoldComplete[MatchBind[m, Function[{Typed[variable, type]}, body]]]
@@ -448,9 +448,9 @@ normalOfLength[v_, HoldComplete[True]] := notAtom[v]
 normalOfLength[v_, test_] := andTests[notAtom[v], test]
 
 (* the arguments of a part from the from-th to the after-th from the end, exclusive *)
-sequenceTerm[HoldComplete[e_], 1, 0] := HoldComplete[Arguments[e]]
-sequenceTerm[HoldComplete[e_], from_Integer, 0] := With[{dropped = from - 1}, HoldComplete[Drop[Arguments[e], dropped]]]
-sequenceTerm[HoldComplete[e_], from_Integer, after_Integer] := With[{dropped = from - 1}, HoldComplete[Reverse[Drop[Reverse[Drop[Arguments[e], dropped]], after]]]]
+sequenceTerm[HoldComplete[e_], 1, 0] := HoldComplete[{Arguments[e]}]
+sequenceTerm[HoldComplete[e_], from_Integer, 0] := With[{dropped = from - 1}, HoldComplete[Drop[{Arguments[e]}, dropped]]]
+sequenceTerm[HoldComplete[e_], from_Integer, after_Integer] := With[{dropped = from - 1}, HoldComplete[Reverse[Drop[Reverse[Drop[{Arguments[e]}, dropped]], after]]]]
 
 (* whether every expression of a sequence has the head, or none has *)
 everyHead[HoldComplete[s_], HoldComplete[head_], True] := HoldComplete[InductiveRecursor[List][

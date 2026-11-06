@@ -223,6 +223,7 @@ readableSyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct
 readableSyntax[syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]
 readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]
+readableSyntax[syntaxApplication[syntaxString["listOfSequence"], {sequence_}]] := syntaxHead[List, readablePiece /@ sequencePieces[sequence]]
 readableSyntax[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Unevaluated]], readableSyntax[list]}]
 readableSyntax[syntaxApplication[syntaxString["sequenceOf"], {element_}]] := syntaxHead[RepeatedNull, {readableSyntax[element]}]
 readableSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[readableSyntax[head], readableSyntax /@ arguments]
