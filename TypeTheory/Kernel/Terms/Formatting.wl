@@ -91,7 +91,7 @@ PackageScoped[$displayTooltips]
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
-$displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover."
+$displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_TOOLTIPS is \"True\"."
 $displayColors::usage = "$displayColors is the Association of the colors a display gives a bound variable, a universe level and an unsolved metavariable."
 
 
@@ -114,7 +114,7 @@ displayed[syntax_, form_, body_] := Block[
 		$boundTypes = Join[$goalTypes, boundTypes[syntax]],
 		$symbolConstants = <||>,
 		$constantTypes = <||>,
-		$tooltipsShown = TrueQ[$displayTooltips] && form =!= OutputForm && LeafCount[syntax] <= $tooltipLeafLimit,
+		$tooltipsShown = tooltipsWanted[] && form =!= OutputForm && LeafCount[syntax] <= $tooltipLeafLimit,
 		$displayForm = form,
 		$notationHeads = notationHeads[]
 	},
@@ -653,9 +653,13 @@ bold[syntax_] := syntaxHead[Style, {syntax, syntaxSymbol[HoldComplete[Bold]]}]
 $displayColors = <|"BoundVariable" -> RGBColor[0.2, 0.55, 0.2], "Level" -> StandardGray, "Unsolved" -> StandardOrange|>
 
 (* Types on mouseover: a constant shows its declared type and a bound variable the type its binder gives, drawn as a
-   term is but without tooltips of their own; a term past $tooltipLeafLimit leaves them out, to keep its boxes small. *)
-$displayTooltips = True
+   term is but without tooltips of their own; a term past $tooltipLeafLimit leaves them out, to keep its boxes small.
+   Automatic shows them where a front end draws the boxes, or where the environment variable TYPETHEORY_TOOLTIPS is
+   "True", as for notebooks built without one; a terminal prints a message's terms from their boxes, and a
+   TooltipBox there as the box it is. *)
+$displayTooltips = Automatic
 $tooltipLeafLimit = 5000
+tooltipsWanted[] := TrueQ[Replace[$displayTooltips, Automatic :> ($FrontEnd =!= Null || Environment["TYPETHEORY_TOOLTIPS"] === "True")]]
 $tooltipsShown = False
 
 (* a TooltipBox alone, where Tooltip would also keep the tooltip's boxes in a TagBox's annotation, twice its size *)

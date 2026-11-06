@@ -92,7 +92,7 @@ VerificationTest[
 (* the declarations TypeTheoryFormalize gives show in the environment they were made for: the constants of matches and
    Expressions are bold, with their types on mouseover *)
 VerificationTest[
-	Block[{listed},
+	Block[{listed, WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True},
 		listed[x_, y_] := {y, x};
 		With[{boxes = ToBoxes[Last[TypeTheoryFormalize[listed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]]},
 			{

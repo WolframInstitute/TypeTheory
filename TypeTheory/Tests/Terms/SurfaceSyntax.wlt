@@ -334,16 +334,18 @@ VerificationTest[
 ]
 
 (* on mouseover a constant shows its declared type and a bound variable the type its binder gives, drawn without
-   tooltips of their own *)
+   tooltips of their own; by default only where a front end draws them, so that a terminal prints a failure's message,
+   whose terms it reads from their boxes, as text *)
 VerificationTest[
 	With[{tips = Function[boxes, Cases[boxes, TooltipBox[shown_, tip_, ___] :> {shown /. StyleBox[inner_, ___] :> inner, FreeQ[tip, TooltipBox]}, Infinity]]},
 		{
-			DeleteDuplicates[tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]],
-			First[tips[ToBoxes[TypeTheoryTerm["andIntroduction"]]]],
-			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm["andIntroduction"]], TooltipBox]]
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, DeleteDuplicates[tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]]],
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, First[tips[ToBoxes[TypeTheoryTerm["andIntroduction"]]]]],
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm["andIntroduction"]], TooltipBox]],
+			Block[{$FrontEnd = Null}, StringFreeQ[ToString[TypeTheoryType[Function[{Typed[l, {NonNegativeIntegers}]}, l === {}]], OutputForm], "TooltipBox"]]
 		}
 	],
-	{{{"n", True}}, {"\"andIntroduction\"", True}, True},
+	{{{"n", True}}, {"\"andIntroduction\"", True}, True, True},
 	TestID -> "A-constant-and-a-bound-variable-show-their-types-on-mouseover"
 ]
 
