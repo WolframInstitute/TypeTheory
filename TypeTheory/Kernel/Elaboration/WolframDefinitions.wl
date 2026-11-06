@@ -190,6 +190,8 @@ definitionOf[HoldComplete[symbol_], HoldComplete[value_], HoldComplete[type_]] :
 
 (* the axiom that the symbol computes, of the type given, or of the type Expressions -> ... -> Expressions its
    arguments take *)
+fallbackDeclarations[_, held_, None, {}] :=
+	kernelFailure["Unformalizable", "`1` has no definitions to formalize: define it, or give its type with \"Type\".", {HoldForm @@ held}]
 fallbackDeclarations[environment_, held_, None, definitions_] := Replace[definitionArities[definitions], {
 	{arity_Integer} :> Append[missingDeclarations[environment, expressionsDeclarations[environment]], implementedAxiom[held, expressionsType[arity]]],
 	_ :> kernelFailure["Unformalizable", "The definitions of `1` do not take one number of arguments: give its type with \"Type\".", {HoldForm @@ held}]

@@ -125,9 +125,11 @@ SetAttributes[TypeTheoryTerm, HoldFirst]
 (* a sequence, Sequence[a, b], is a term, not the arguments a and b *)
 SetAttributes[TypeTheoryTerm, SequenceHold]
 
-(* a term in a library environment named by its name, TypeTheoryTerm[term, "WolframLanguage"], is in that environment; a
-   term in an environment that failed, as a misspelled name, is that failure *)
-TypeTheoryTerm[term_, name_String] := With[{environment = TypeTheoryEnvironment[name]}, TypeTheoryTerm[term, environment]]
+(* a term in a library environment given by its name, TypeTheoryTerm[term, "WolframLanguage"], keeps the name, which the
+   functions that take the term read as the environment: no rule rewrites the term, as one would see a term written
+   Unevaluated[a, b] with its wrapper stripped; a term in an environment that failed, or under a name of none, is that
+   failure *)
+TypeTheoryTerm[_, name_String] /; ! MemberQ[$environmentNames, name] := TypeTheoryEnvironment[name]
 TypeTheoryTerm[_, failure_Failure] := failure
 
 (* A term copied from documentation keeps each symbol of a paclet as PacletSymbol[paclet, name], where paclet may be

@@ -123,7 +123,7 @@ displayed[syntax_, form_, body_] := Block[
 
 (* in text, as a front end that shows OutputForm prints it, a term shows as it shows in a notebook; a Format rule with a
    condition never applies, so the test is inside *)
-TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], OutputForm] := If[ MatchQ[{environment}, {} | {_?environmentQ}],
+TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], OutputForm] := If[ MatchQ[{environment}, {} | {_?environmentQ} | {_String}],
 	withDisplayEnvironment[termEnvironment[term], textDisplay[toSyntax[expression]]],
 	OutputForm[ToString[Unevaluated[term], InputForm]]
 ]
@@ -131,7 +131,7 @@ TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], Out
 textDisplay[syntax_] := displayed[syntax, OutputForm, shownForm[heldFromSyntax[displaySyntax[syntax]]]]
 shownForm[HoldComplete[shown_]] := HoldForm[shown]
 
-TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ}] := With[
+TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ} | {_String}] := With[
 	{boxes = withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]},
 	InterpretationBox[boxes, term]
 ]

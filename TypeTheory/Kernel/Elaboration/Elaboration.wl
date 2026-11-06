@@ -205,8 +205,8 @@ elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_]
 elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_, universeParameters_List] := withElaborationState[
 	{environment, context, scope, universeParameters},
 	With[{syntax = toSyntax @@ held},
-		With[{result = elaborateSyntax[syntax, expected]},
-			If[expected =!= None, unifyOrFail[Last[result], expected, syntax]];
+		(* a term checked against a type is coerced to it where its own type is another, as an argument is *)
+		With[{result = If[expected === None, elaborateSyntax[syntax, None], {checkAgainst[syntax, expected], expected}]},
 			finishElaboration[environment, context, result, expected]
 		]
 	]

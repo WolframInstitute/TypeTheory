@@ -100,6 +100,7 @@ its terms read back for display (mode \"Display\") or exactly (mode \"Exact\")."
 (* a term without an environment is in the default environment; where that is the prelude, a term that names what only
    TypeTheoryEnvironment["WolframLanguage"] declares, as Arguments, Head or Expressions, is in that environment *)
 termEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
+termEnvironment[TypeTheoryTerm[_, name_String]] := environmentNamed[name]
 termEnvironment[TypeTheoryTerm[term_]] := unnamedEnvironment[HoldComplete[term]]
 
 unnamedEnvironment[held_HoldComplete] := With[{default = defaultEnvironment[]},
@@ -109,7 +110,7 @@ unnamedEnvironment[held_HoldComplete] := With[{default = defaultEnvironment[]},
 (* the names that only the Wolfram Language environment declares, and the forms of its sequences *)
 $wolframLanguageNames = Alternatives[
 	Atoms, Expressions, Strings, Arguments, ExpressionEvaluate, Match, MatchValue, MatchSum, MatchPart, MatchBind, MatchFirst,
-	Head, AtomQ, SameQ, MatchQ, Replace, ReplaceList, ReplaceAll, ReplaceRepeated, Unevaluated, RepeatedNull
+	Head, AtomQ, SameQ, MatchQ, Replace, ReplaceList, ReplaceAll, ReplaceRepeated, HoldForm, Unevaluated, RepeatedNull
 ]
 
 heldTerm[TypeTheoryTerm[term_, ___]] := HoldComplete[term]
@@ -126,6 +127,7 @@ sharedEnvironment[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[{given
 }]
 
 givenEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
+givenEnvironment[TypeTheoryTerm[_, name_String]] := environmentNamed[name]
 givenEnvironment[TypeTheoryTerm[_]] := None
 
 (* a term on its own has no universe parameters, so a level nothing decided in it is the level of Type *)
@@ -146,6 +148,11 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := cat
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
 TypeTheoryProofTree[term : TypeTheoryTerm[_, ___]] := catchKernelFailure[proofTree[termEnvironment[term], term]]
+(* a finished proof, by its term *)
+TypeTheoryProofTree[TypeTheoryProof[data_Association]] := catchKernelFailure @ If[ data["Goals"] =!= {},
+	kernelFailure["ProofIncomplete", "The proof has `1` goals left: its term is not finished.", {Length[data["Goals"]]}],
+	coreProofTree[data["Environment"], instantiateProofTerm[data, metavariable[data["Root"]]]]
+]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := TypeTheoryProofTree[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] := catchKernelFailure[termImplementation[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"}
@@ -163,12 +170,15 @@ TypeTheoryType[_, environment_] := With[{evaluated = environmentNamed[environmen
 SetAttributes[givenTerm, HoldAllComplete]
 givenTerm[term : TypeTheoryTerm[__], None] := term
 givenTerm[TypeTheoryTerm[term_], environment_] := TypeTheoryTerm[term, environment]
+givenTerm[given : TypeTheoryTerm[_, own_], environment_] /; environment =!= None :=
+	If[ givenEnvironment[given] === environment, given, Failure["DifferentEnvironments", <|"MessageTemplate" -> "The term carries another environment than the one given.", "MessageParameters" -> {}|>]]
 givenTerm[(head : HoldPattern[PacletSymbol[_, _String]])[arguments___], environment_] /; head === TypeTheoryTerm := givenTerm[TypeTheoryTerm[arguments], environment]
 givenTerm[symbol_Symbol, None] /; MatchQ[OwnValues[symbol], {_ :> _TypeTheoryTerm}] := symbol
 givenTerm[term_, None] := TypeTheoryTerm[term]
 givenTerm[term_, environment_] := TypeTheoryTerm[term, environment]
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
+typeOfTerm[failure_Failure] := failure
 typeOfTerm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
 		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
@@ -568,6 +578,11 @@ Options[TypeTheoryCheck] = {Method -> Automatic}
    declaration in order that does not check. Where it does not handle the environment, or Method -> "Symbolic", every
    declaration is replayed with the kernel of TypeChecking.wl. *)
 TypeTheoryCheck[name_String, options : OptionsPattern[]] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryCheck[environment, options]]
+TypeTheoryCheck[environment_?environmentQ, options : OptionsPattern[]] /; ! MemberQ[{Automatic, "Compiled", "Symbolic"}, OptionValue[TypeTheoryCheck, {options}, Method]] :=
+	Failure["UnknownMethod", <|
+		"MessageTemplate" -> "`1` is no method of TypeTheoryCheck, which are Automatic, \"Compiled\" and \"Symbolic\".",
+		"MessageParameters" -> {OptionValue[TypeTheoryCheck, {options}, Method]}
+	|>]
 TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ Replace[
 	If[MemberQ[{Automatic, "Compiled"}, OptionValue[Method]], compiledKernelCheck[environment], None],
 	{
@@ -819,6 +834,10 @@ proofTree[environment_, term_] := Catch[
 	withCheckedTerms[atomsOpened[environment, <||>, First[checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]]],
 	untranslatable
 ]
+
+(* the tree of a core term, as a finished proof's own term, which reading it back could leave without its implicit
+   arguments *)
+coreProofTree[environment_, core_] := Catch[withCheckedTerms[atomsOpened[environment, <||>, core]], untranslatable]
 
 atomsOpened[environment_, context_, lambdaAbstraction[name_, universeSort[0], body_, binder_]] :=
 	atomOpened[environment, context, name, binder, body, freshFreeVariable[]]

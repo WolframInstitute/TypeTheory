@@ -460,3 +460,22 @@ VerificationTest[
 	{True, True, {}, TypeTheoryEnvironment, True, True},
 	TestID -> "A-library-environment-is-given-by-its-name"
 ]
+
+(* a term checked against a type is coerced to it, as an argument is; an unknown Method is a Failure; a finished proof
+   has a tree; a term given with another environment than its own is a Failure; HoldForm alone is in the Wolfram Language
+   environment *)
+VerificationTest[
+	Module[{proof, bits},
+		proof = TypeTheoryProof[ForAll[{a, b}, Implies[And[a, b], And[b, a]]], {"Introduce"[a, b, h], "Classical"}];
+		bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[CheckedBit, TypeUniverse[1], {"checkedBitZero" -> CheckedBit, "checkedBitOne" -> CheckedBit}]}];
+		{
+			Head[TypeTheoryCheck[TypeTheoryTerm[3, "Integers"], TypeTheoryTerm[Integers]]],
+			First[TypeTheoryCheck["Constructive", Method -> "Fast"]],
+			Head[TypeTheoryProofTree[proof]],
+			First[TypeTheoryType[TypeTheoryTerm["checkedBitOne", bits], TypeTheoryEnvironment["Prelude"]]],
+			TypeTheoryType[HoldForm[f[x]]] === TypeTheoryTerm[Expressions, TypeTheoryEnvironment["WolframLanguage"]]
+		}
+	],
+	{Success, "UnknownMethod", TypeTheoryProofTree, "DifferentEnvironments", True},
+	TestID -> "Checks-coerce-methods-are-known-finished-proofs-have-trees-and-environments-agree"
+]
