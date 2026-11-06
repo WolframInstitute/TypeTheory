@@ -1833,7 +1833,7 @@ refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArg
 	},
 	{prefix = makeApplication[recursor, Function[argument, instantiateBoundVariables[argument, given]] /@ Most[recursorArguments]]},
 	{reduced = reducedHeadWithoutUnfolding[environment, context, Construct[application, prefix, First[Drop[given, position - 1]]]]},
-	If[ MatchQ[reduced, application[Verbatim[prefix], _]],
+	If[ MatchQ[reduced, application[Verbatim[prefix], _]] || definitionApplicationQ[environment, context, First[Drop[given, position - 1]]],
 		None,
 		makeApplication[
 			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> With[
@@ -1843,6 +1843,15 @@ refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArg
 			Drop[arguments, count]
 		]
 	]
+]
+
+
+(* the argument recursed on is an application of a definition, which unfolds first, children before their parent: the
+   recursion reduced through it would leave that definition's own recursion in the result, where no recursive call of it
+   folds back, as total[Join[Prepend[l, x], m]] would leave the recursor of Join in the call of total on the rest *)
+definitionApplicationQ[environment_, context_, term_] := MatchQ[
+	First[applicationSpine[reducedHeadWithoutUnfolding[environment, context, term]]],
+	constantReference[name_, _] /; constantRecord[environment, name]["Kind"] === "Definition"
 ]
 
 

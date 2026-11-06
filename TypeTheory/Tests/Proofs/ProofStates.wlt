@@ -676,3 +676,20 @@ VerificationTest[
 	"NotATautology",
 	TestID -> "Classical-refuses-a-goal-its-hypotheses-do-not-imply"
 ]
+
+(* "Simplify" unfolds a definition applied to another before the outer one, so the inner one's recursive call folds back
+   too: total[Join[Prepend[x][l], m]] is x + total[Join[l, m]], where the induction hypothesis applies *)
+VerificationTest[
+	Module[{total, environment},
+		environment = TypeTheoryEnvironment[{TypeTheoryDefinition[total, Function[{Typed[l, {NonNegativeIntegers}]},
+			InductiveRecursor[List][Function[{Typed[t, {NonNegativeIntegers}]}, NonNegativeIntegers], 0, Function[{Typed[x, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[r, NonNegativeIntegers]}, x + r], l]
+		]]}];
+		TypeTheoryProof[
+			ForAll[{Typed[a, {NonNegativeIntegers}], Typed[b, {NonNegativeIntegers}]}, total[Join[a, b]] == total[a] + total[b]],
+			environment,
+			{"Introduce"[a, b], "Induction"[a], "Simplify"[{total, Join}], "Ring", "Introduce"[x, rest, ih], "Simplify"[{total, Join, ih}], "Ring"}
+		]["Goals"]
+	],
+	{},
+	TestID -> "Simplify-unfolds-an-inner-definition-first-so-its-recursive-call-folds-back"
+]
