@@ -94,3 +94,22 @@ VerificationTest[
 	{<||>, True, True},
 	TestID -> "Homotopy-type-theory-translates-to-the-calculus-of-inductive-constructions-with-rewrite-rules"
 ]
+
+(* a recursion whose motive is in Sort (max (u + 1) (v + 1)), over pairs of two types, has its level lowered as one in
+   Sort (u + 1) does, where the rules lose Prop *)
+VerificationTest[
+	With[
+		{
+			pairs = TypeTheoryEnvironment["Constructive", {TypeTheoryDefinition[Swap, Function[
+				{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[p, CartesianProductType[A, B]]},
+				InductiveRecursor[CartesianProductType][Typed[s, CartesianProductType[A, B]] |-> CartesianProductType[B, A], Function[{Typed[x, A], Typed[y, B]}, "pair"[y, x]], p]
+			]]}]
+		},
+		{
+			MemberQ[Keys[TypeTheoryTranslate[pairs, TypeTheoryRules["MartinLofTypeTheory"]]["Failures"]], Swap],
+			MemberQ[Keys[TypeTheoryTranslate["Prelude", TypeTheoryRules["MartinLofTypeTheory"]]["Failures"]], "associationInsert"]
+		}
+	],
+	{False, False},
+	TestID -> "A-recursion-into-a-type-of-two-levels-loses-Prop"
+]

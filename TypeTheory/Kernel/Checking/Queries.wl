@@ -810,7 +810,15 @@ recursorLevels[original_, target_, direction_, mode_, name_, levels_List] := Wit
    parameter that may be 0 has none, and stays, so what uses it fails to check *)
 loweredUniverse[level_Integer] := Max[level, 1] - 1
 loweredUniverse[levelSuccessor[base_, k_Integer]] /; k >= 1 := normalizeLevel[levelSuccessor[base, k - 1]]
+(* Sort (max (a + 1) (b + 1)) is Sort (max a b + 1), as for the motive of a recursion over pairs of two types *)
+loweredUniverse[level : levelMaximum[parts__]] /; lowerableUniverseQ[level] := normalizeLevel[levelMaximum @@ (loweredUniverse /@ {parts})]
 loweredUniverse[level_] := level
+
+(* a level that is never 0, so it has one less: a positive number, a successor, or the maximum of such *)
+lowerableUniverseQ[level_Integer] := level >= 1
+lowerableUniverseQ[levelSuccessor[_, k_Integer]] := k >= 1
+lowerableUniverseQ[levelMaximum[parts__]] := AllTrue[{parts}, lowerableUniverseQ]
+lowerableUniverseQ[_] := False
 
 (* each registration of the natural numbers is replayed as soon as the constants it names are declared *)
 registerWhenDeclared[replayed_, settings_Association] := With[
