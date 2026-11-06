@@ -253,13 +253,21 @@ Last[TypeTheoryFormalize[styled]]
 
 ## Possible Issues
 
-On its own, `f[1, 2]` is no term, since `f` names nothing:
+On its own, a symbol that names nothing is no term, as it is most often a misspelled name:
+
+```wl
+TypeTheoryType[f]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->
+
+An application of one is an expression, as in the Wolfram Language:
 
 ```wl
 TypeTheoryType[f[1, 2]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->
 
 Where an expression is expected, it is that expression:
 

@@ -250,10 +250,18 @@ TypeTheoryType[Typed[3, Atoms]]
 
 ---
 
-On its own, a negative integer is no term of the prelude, which has no integers:
+On its own, a negative integer is its atom, an expression, as the prelude has no integers:
 
 ```wl
 TypeTheoryType[-2]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->
+
+Where the integers are declared, it is an integer:
+
+```wl
+TypeTheoryType[-2, "Integers"]
+```
+
+<!-- => ℤ -->

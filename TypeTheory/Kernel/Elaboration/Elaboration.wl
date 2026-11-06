@@ -494,7 +494,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* and a symbol of the Wolfram Language that names constants none of which is an expression, as Plus or True, is the
 	   symbol, as it evaluates to itself *)
 	syntaxSymbol[held : HoldComplete[_Symbol]] /; expressionExpectedQ[expected] && languageSymbolQ[held] :> elaborateSyntax[quotationSyntax[syntax], expected],
-	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionOrNothingExpectedQ[expected] :>
+	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionHeadExpectedQ[held, expected] :>
 		constructed[quotationSyntax[syntaxSymbol[held]], arguments, expected],
 	syntaxApplication[head : syntaxApplication[_, _List], arguments_List] /; unnamedHeadQ[head] && expressionOrNothingExpectedQ[expected] :>
 		constructed[syntaxElaborated[elaborateSyntax[head, expected], head], arguments, expected],
@@ -904,6 +904,10 @@ rightNestedSum[{type_, rest__}] := syntaxHead[DisjointUnionType, {type, rightNes
 (* an expression is expected, or nothing says what is: an application of a head that names nothing is an expression
    there, as f[1, 2]; a lone symbol that names nothing is not, as it is most often a name misspelled *)
 expressionOrNothingExpectedQ[expected_] := expressionsDeclaredQ[] && (expected === None || expressionExpectedQ[expected])
+
+(* where nothing is expected, the head of an expression is a symbol without a value, as increment = n |-> n + 1 makes
+   increment[2] three in the Wolfram Language, not an expression *)
+expressionHeadExpectedQ[HoldComplete[symbol_Symbol], expected_] := expressionOrNothingExpectedQ[expected] && (expected =!= None || OwnValues[symbol] === {})
 
 (* a declared function applied to arguments that make it an expression of the Wolfram Language: an expression where
    it takes a number, or, where an expression is expected, any arguments of a function whose value is a proposition
