@@ -143,10 +143,11 @@ $exactReadBack = False
 
 SetAttributes[toSyntax, HoldAllComplete]
 toSyntax[TypeTheoryTerm[term_, ___]] := toSyntax[term]
-toSyntax[symbol_Symbol] := syntaxSymbol[HoldComplete[symbol]]
-toSyntax[n_Integer] := syntaxInteger[n]
+(* atoms only: a pattern of a head, as _Symbol, also matches an expression of that head, as Symbol[] *)
+toSyntax[symbol_Symbol] /; AtomQ[Unevaluated[symbol]] := syntaxSymbol[HoldComplete[symbol]]
+toSyntax[n_Integer] /; AtomQ[Unevaluated[n]] := syntaxInteger[n]
 toSyntax[Rational[numerator_, denominator_]] := syntaxHead[Times, {syntaxInteger[numerator], syntaxHead[Power, {syntaxInteger[denominator], syntaxInteger[-1]}]}]
-toSyntax[text_String] := syntaxString[text]
+toSyntax[text_String] /; AtomQ[Unevaluated[text]] := syntaxString[text]
 (* a symbol of a paclet as documentation copies it, PacletSymbol[paclet, name], is the symbol it names, in the paclet's
    primary context unless the name has a context of its own; nothing is loaded or evaluated to find it *)
 toSyntax[reference : HoldPattern[PacletSymbol[paclet_, name_String]]] := Replace[pacletSymbol[paclet, name], {

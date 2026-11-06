@@ -100,7 +100,13 @@ $displayColors::usage = "$displayColors is the Association of the colors a displ
 
 
 (* Naturals, written for the natural numbers, shows as they do, unless the term binds a variable of that name *)
-typeTheoryBoxes[syntax_, form_] := Block[
+typeTheoryBoxes[syntax_, form_] := displayed[syntax, form,
+	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
+]
+
+(* the state a display of the syntax of a term reads while it is built, in a notebook and in text alike *)
+SetAttributes[displayed, HoldRest]
+displayed[syntax_, form_, body_] := Block[
 	{
 		$displayedNaturalNumbers = displayedNaturalNumbers[],
 		$naturalsBound = ! FreeQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {syntaxSymbol[HoldComplete[Naturals]], __}]],
@@ -108,19 +114,22 @@ typeTheoryBoxes[syntax_, form_] := Block[
 		$boundTypes = Join[$goalTypes, boundTypes[syntax]],
 		$symbolConstants = <||>,
 		$constantTypes = <||>,
-		$tooltipsShown = TrueQ[$displayTooltips] && LeafCount[syntax] <= $tooltipLeafLimit,
+		$tooltipsShown = TrueQ[$displayTooltips] && form =!= OutputForm && LeafCount[syntax] <= $tooltipLeafLimit,
 		$displayForm = form,
 		$notationHeads = notationHeads[]
 	},
-	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
+	body
 ]
 
 (* in text, as a front end that shows OutputForm prints it, a term shows as it shows in a notebook; a Format rule with a
    condition never applies, so the test is inside *)
 TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], OutputForm] := If[ MatchQ[{environment}, {} | {_?environmentQ}],
-	withDisplayEnvironment[termEnvironment[term], Replace[heldFromSyntax[displaySyntax[toSyntax[expression]]], HoldComplete[shown_] :> HoldForm[shown]]],
+	withDisplayEnvironment[termEnvironment[term], textDisplay[toSyntax[expression]]],
 	OutputForm[ToString[Unevaluated[term], InputForm]]
 ]
+
+textDisplay[syntax_] := displayed[syntax, OutputForm, shownForm[heldFromSyntax[displaySyntax[syntax]]]]
+shownForm[HoldComplete[shown_]] := HoldForm[shown]
 
 TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ}] := With[
 	{boxes = withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]},
@@ -329,6 +338,10 @@ displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {eleme
 displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
 displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[pieceDisplay /@ constructedPieces[sequence], displaySyntax[head]]]
 displaySyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
+(* a natural number or a string where an expression is expected shows as itself, as it is an expression in the Wolfram
+   Language *)
+displaySyntax[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {value_}]] := displaySyntax[value]
+displaySyntax[syntaxApplication[syntaxString["StringExpressionCoercion"], {value_}]] := displaySyntax[value]
 displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
 (* a quotation shows as the expression it quotes, as the Wolfram Language shows HoldForm[e]; a string in it is a string,
    no name of a constant *)

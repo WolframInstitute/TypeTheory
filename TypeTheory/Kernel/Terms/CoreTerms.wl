@@ -532,7 +532,8 @@ constructionPlace[kind_, head_, parts___] := {
 	With[{functions = Select[Stack[], kernelFunctionQ]}, Take[functions, -Min[3, Length[functions]]]]
 }
 
-kernelFunctionQ[function_Symbol] := StringStartsQ[Context[Unevaluated[function]], "WolframInstitute`TypeTheory`"] &&
+(* a symbol, not an expression with the head Symbol, as Symbol[] on the stack of a display *)
+kernelFunctionQ[function_Symbol] /; AtomQ[Unevaluated[function]] := StringStartsQ[Context[Unevaluated[function]], "WolframInstitute`TypeTheory`"] &&
 	! MemberQ[Join[$compositeHeads, {checkedConstruction, constructionPlace, recordConstruction, uncomputedPart, describeUncomputed, kernelFunctionQ}], Unevaluated[function]]
 kernelFunctionQ[_] := False
 

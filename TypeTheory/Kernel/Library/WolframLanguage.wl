@@ -16,7 +16,7 @@ Language and the monad of pattern matching, built and checked the first time it 
 	Expressions                     an expression: "atom"[a], or Construct[h, a, ...], h applied to the sequence of
 	                                its arguments, of the type Expressions...
 	Head, Arguments, AtomQ          the head of an expression, the sequence of its arguments, [] for an atom, so that
-	                                Construct[Head[e], Arguments[e]] is e, and whether it is an atom
+	                                Construct[Head[e], Arguments[e]] is e where e is no atom, and whether it is an atom
 	Sequence[A, B, ...]             where a type is expected, the type of the sequences Sequence[a, b, ...] of an element
 	                                of A, then of B, ...: a list of elements of different types, its length and their
 	                                types given by its type, as Lean's HList, indexed by the list {A, B, ...};
@@ -84,7 +84,7 @@ PackageScoped[wolframLanguageEnvironment]
 
 Atoms::usage = "Atoms is the type of the expressions of the Wolfram Language with no parts, as data: a symbol by its full name, an integer, a string, or another atom by its head and InputForm. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
 Expressions::usage = "Expressions is the type of the expressions of the Wolfram Language, each \"atom\"[a] or Construct[h, a, ...], h applied to the sequence of its arguments, of the type Expressions.... It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."
-Arguments::usage = "Arguments[e] is the sequence of the arguments of the expression e, of the type Expressions..., the empty one for an atom: Construct[Head[e], Arguments[e]] is e, and {Arguments[e]} is the list of the arguments."
+Arguments::usage = "Arguments[e] is the sequence of the arguments of the expression e, of the type Expressions..., the empty one for an atom: Construct[Head[e], Arguments[e]] is e where e is no atom, and {Arguments[e]} is the list of the arguments."
 Strings::usage = "Strings is the type of the strings of the Wolfram Language, each the list of its character codes: a string literal \"abc\" is one where a string is expected, and an expression where one is expected."
 ExpressionEvaluate::usage = "ExpressionEvaluate[e] is the expression the Wolfram Language evaluates the expression e to: an axiom, which the kernel never computes."
 Match::usage = "Match[A] is the type of the matches with results in A: the list of their results, none, one, or several in the order they are tried. It is a constant of TypeTheoryEnvironment[\"WolframLanguage\"]."

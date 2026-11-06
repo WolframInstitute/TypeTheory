@@ -388,6 +388,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxSymbol[held : HoldComplete[_Symbol]] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :>
 		constructed[quotationSyntax[syntaxSymbol[held]], arguments, expected],
+	syntaxApplication[head : syntaxApplication[_, _List], arguments_List] /; unnamedHeadQ[head] && expressionExpectedQ[expected] :>
+		constructed[syntaxElaborated[elaborateSyntax[head, expected], head], arguments, expected],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
@@ -552,6 +554,10 @@ elaborateHead[syntax_] := elaborateSyntax[syntax, None]
    first. An argument whose type is still an unknown applied to arguments, as the proof of P[x] for an
    implicit predicate P, waits: the type of the whole application is unified with the expected type first,
    which is what usually determines P. *)
+(* f[], where the first binder of f is the last explicit one and of a type A..., gives f the empty sequence, as the
+   Wolfram Language gives a function no arguments *)
+applyArguments[{function_, functionType_}, {}, headSyntax_, expected_] /; emptySequenceTakenQ[functionType] :=
+	applyArguments[{function, functionType}, {syntaxHead[Unevaluated, {}]}, headSyntax, expected]
 applyArguments[{function_, functionType_}, arguments_List, headSyntax_, expected_] :=
 	finishApplication[collectArguments[function, functionType, arguments, {}, headSyntax, expected], expected]
 
@@ -714,10 +720,24 @@ expressionHeadSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {_
 expressionHeadSyntaxQ[syntaxApplication[syntaxString["atom"], {_}]] := True
 expressionHeadSyntaxQ[_] := False
 
+(* an application whose innermost head is a symbol that names nothing, as f[1] in f[1][2], and no head that elaboration
+   reads itself, as InductiveRecursor[T][...] or Function[...][...] *)
+unnamedHeadQ[syntaxApplication[head_, _List]] := unnamedHeadQ[head]
+unnamedHeadQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] :=
+	unnamedSymbolQ[held] && ! MemberQ[$elaborationHeads, held] && Context[Unevaluated[symbol]] =!= "WolframInstitute`TypeTheory`"
+unnamedHeadQ[_] := False
+
+$elaborationHeads = HoldComplete /@ Unevaluated[{Function, Typed, TypedImplicit, Subscript, Construct, Apply, Annotation, Condition, Part, Application}]
+
 expressionsTypeQ[type_] := MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]], constantReference[HoldComplete[Expressions], _]]
 
 (* the sequences of any number of elements of one type *)
 variadicSequencesDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["sequenceOfPrepend"]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete["emptySequenceOf"]]
+
+emptySequenceTakenQ[type_] := variadicSequencesDeclaredQ[] && MatchQ[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
+	dependentFunctionType[_, domain_, codomain_, binder_] /; explicitBinderQ[binder] && ! explicitBinderAfterQ[codomain] && variadicTypeQ[domain]
+]
 
 explicitBinderAfterQ[dependentFunctionType[_, _, codomain_, binder_]] := explicitBinderQ[binder] || explicitBinderAfterQ[codomain]
 explicitBinderAfterQ[_] := False
@@ -745,6 +765,7 @@ variadicPiece[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]]
 variadicPiece[syntax : syntaxString["emptySequenceOf"]] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxApplication[syntaxString["sequenceOfList"], {_}]] := splicedPiece[syntax]
+variadicPiece[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Prepend]], {sequence_, _}]] /; splicedPieceQ[sequence] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxSymbol[held_]] /; KeyExistsQ[$elaborationScope, held] && variadicTypeQ[Last[$elaborationScope[held]]] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxElaborated[elaborated_, _]] /; variadicTypeQ[Last[elaborated]] := splicedPiece[syntax]
