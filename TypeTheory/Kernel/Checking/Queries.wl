@@ -150,6 +150,7 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Constants"] := cat
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKernelFailure[termHoles[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
 TypeTheoryProofTree[term : TypeTheoryTerm[_, ___]] := catchKernelFailure[proofTree[termEnvironment[term], term]]
+TypeTheoryProof /: Information[proof : TypeTheoryProof[_Association], "ProofTree"] := TypeTheoryProofTree[proof]
 (* a finished proof, by its term *)
 TypeTheoryProofTree[TypeTheoryProof[data_Association]] := catchKernelFailure @ If[ data["Goals"] =!= {},
 	kernelFailure["ProofIncomplete", "The proof has `1` goals left: its term is not finished.", {Length[data["Goals"]]}],

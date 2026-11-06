@@ -1148,10 +1148,16 @@ arithmeticReduced[environment_, context_, term_] := Replace[term, {
    over, which the kernel's caches check once *)
 solvedByCheckedProof[data_, goal_, current_, proof_] := (
 	Replace[catchKernelFailure[withKernelCaches[checkHasType[data["Environment"], current["Context"], proof, current["Type"]]]],
-		failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failure["Message"]}]
+		failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failureText[failure]}]
 	];
 	solveGoal[data, goal, proof, {}]
 )
+
+(* a Failure's message as plain text, its parameters as text too, for a message that quotes it *)
+failureText[failure_Failure] := Replace[failure["MessageTemplate"], {
+	template_String :> TemplateApply[StringTemplate[template], Function[parameter, ToString[parameter, OutputForm]] /@ Replace[failure["MessageParameters"], Except[_List] -> {}]],
+	_ :> ToString[failure["Tag"]]
+}]
 
 $ringConstants = HoldComplete /@ Unevaluated[{
 	NonNegativeIntegers, Plus, Times, Power, Equal, "equalityReflexivity", "equalitySymmetry", "equalityTransitivity", "equalityCongruence",
@@ -1584,7 +1590,7 @@ certifiedInequality[state_, target_, data_, goal_, {smaller_, larger_, d_Integer
 			solveGoal[state, target, makeApplication[lemma, {metavariable[equationGoal], Last[sum]}], {equationGoal -> <|"Context" -> context, "Type" -> equation, "Case" -> None|>}]
 		)],
 		{
-			failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failure["Message"]}],
+			failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failureText[failure]}],
 			solved_ :> Replace[catchKernelFailure[ring[solved, equationGoal]], _Failure :> tacticFailure[
 				"NotRingEquation",
 				"\"Ring\" does not prove the equation of the sum of squares that Wolfram finds for the goal `1`, as when an atom of its sides is not a variable.",
