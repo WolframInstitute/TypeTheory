@@ -39,7 +39,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	IntervalMeet, IntervalJoin, IntervalReverse   r ∧ s, r ∨ s, ~r
 	Path[Function[{i}, A], a, b]        a ≡ b                Congruent, where the line is constant
 	CartesianProductType[A, B]          A × B                Cross, which takes ×; A × B × C for A × (B × C)
-	DisjointUnionType[A, B]             A ⊕ B                CirclePlus; A ⊕ B ⊕ C for A ⊕ (B ⊕ C)
+	DisjointUnionType[A, B]             A | B                Alternatives, as the pattern _A | _B; A | B | C for A | (B | C)
 	"pair"[a, "pair"[b, c]]                 (a, b, c)
 	DependentSum[A, Function[{b}, B]]   Σ_b B                NotExists, which takes Σ, one binder
 	"dependentPair"[a, b]                 〈a, b〉              LeftAngleBracket, as AngleBracket shows
@@ -279,7 +279,7 @@ displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[he
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[CartesianProductType]], {_, _}]] :=
 	syntaxHead[Cross, displaySyntax /@ rightNested[CartesianProductType, syntax]]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DisjointUnionType]], {_, _}]] :=
-	syntaxHead[CirclePlus, displaySyntax /@ rightNested[DisjointUnionType, syntax]]
+	syntaxHead[Alternatives, displaySyntax /@ rightNested[DisjointUnionType, syntax]]
 displaySyntax[syntax : syntaxApplication[syntaxString["pair"], {_, _}]] := tupleDisplay["(", displaySyntax /@ rightNested["pair", syntax], ")"]
 displaySyntax[syntax : syntaxApplication[syntaxString["dependentPair"], {_, _}]] :=
 	tupleDisplay["\[LeftAngleBracket]", displaySyntax /@ rightNested["dependentPair", syntax], "\[RightAngleBracket]"]

@@ -236,3 +236,15 @@ VerificationTest[
 	{TypeTheoryTerm[3, prelude], True, True},
 	TestID -> "The-operations-on-lists-compute-and-their-laws-apply"
 ]
+
+(* A | B is the sum of A and B, as the pattern _A | _B; a value of either side where the sum is expected is injected *)
+VerificationTest[
+	{
+		MatchQ[TypeTheoryType[NonNegativeIntegers | Booleans], HoldPattern[TypeTheoryTerm[TypeUniverse[1], _]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[3, NonNegativeIntegers | Booleans]], TypeTheoryTerm[Typed["left"[3], DisjointUnionType[NonNegativeIntegers, Booleans]]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed["true", NonNegativeIntegers | Strings | Booleans]], TypeTheoryTerm[Typed["right"["right"["true"]], DisjointUnionType[NonNegativeIntegers, DisjointUnionType[Strings, Booleans]]]]],
+		First[TypeTheoryType[Typed[Typed["x", Strings], NonNegativeIntegers | Booleans]]]
+	},
+	{True, True, True, "TypeMismatch"},
+	TestID -> "A-sum-is-written-as-alternatives-and-takes-either-side"
+]

@@ -335,6 +335,9 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[rightFold[head, arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
+	(* A | B, the type of the values of A or of B, as the pattern _A | _B matches them: the sum DisjointUnionType[A, B],
+	   A | B | C the sum of A and B | C *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Alternatives]], types : {_, __}] :> elaborateSyntax[rightNestedSum[types], expected],
 	(* Construct[h, a, ...] is the expression h[a, ...] where h is an expression, and h applied to a, ... otherwise *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] /; expressionsDeclaredQ[] :> constructed[head, {arguments}, expected],
 	syntaxSymbol[HoldComplete[Construct]] /; expressionsDeclaredQ[] :> elaborateSyntax[syntaxString["Construct"], expected],
@@ -725,6 +728,9 @@ expressionHeadSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {_
 expressionHeadSyntaxQ[syntaxApplication[syntaxString["atom"], {_}]] := True
 expressionHeadSyntaxQ[_] := False
 
+rightNestedSum[{type_}] := type
+rightNestedSum[{type_, rest__}] := syntaxHead[DisjointUnionType, {type, rightNestedSum[{rest}]}]
+
 (* an application whose innermost head is a symbol that names nothing, as f[1] in f[1][2], and no head that elaboration
    reads itself, as InductiveRecursor[T][...] or Function[...][...] *)
 unnamedHeadQ[syntaxApplication[head_, _List]] := unnamedHeadQ[head]
@@ -863,7 +869,7 @@ checkAgainst[syntax_, expected_] := With[{result = elaborateSyntax[syntax, expec
 	]
 ]
 
-coercedOrFail[{term_, type_}, expected_, syntax_] := Replace[If[$coercions, coercedTerm[term, type, expected], None], None :> (
+coercedOrFail[{term_, type_}, expected_, syntax_] := Replace[If[$coercions, Replace[injected[term, type, expected], None :> coercedTerm[term, type, expected]], None], None :> (
 	unifyOrFail[type, expected, syntax];
 	term
 )]
@@ -1363,6 +1369,21 @@ subgoalSolvedQ[id_, depth_] := Or[
 
 (* the term coerced from its type to the one expected, or None; both types must be known, with no
    metavariable left, as Lean waits for them *)
+(* a value of A or of B where A | B is expected is that sum's "left" or "right" of it, as the pattern _A | _B matches either
+   with no tag; in A | (B | C), a value of C is right[right[c]]. Both types are known, so nothing is guessed. *)
+injected[term_, actual_, expected_] /; knownTypeQ[actual] && knownTypeQ[expected] := Replace[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]],
+	{
+		application[application[constantReference[HoldComplete[DisjointUnionType], levels_], left_], right_] :> Which[
+			attemptOrRestore[unify[actual, left]], makeApplication[constantReference[HoldComplete["left"], levels], {left, right, term}],
+			attemptOrRestore[unify[actual, right]], makeApplication[constantReference[HoldComplete["right"], levels], {left, right, term}],
+			True, Replace[injected[term, actual, right], inner : Except[None] :> makeApplication[constantReference[HoldComplete["right"], levels], {left, right, inner}]]
+		],
+		_ -> None
+	}
+]
+injected[_, _, _] := None
+
 coercedTerm[term_, actual_, expected_] := If[knownTypeQ[actual] && knownTypeQ[expected],
 	coercionChain[term, actual, expected, 0],
 	None

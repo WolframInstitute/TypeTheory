@@ -210,12 +210,12 @@ VerificationTest[
 	{
 		Cases[ToBoxes[TypeTheoryTerm[CartesianProductType[NonNegativeIntegers, CartesianProductType[Booleans, Integers]]]], RowBox[{_, "\[Times]", _, "\[Times]", _}], Infinity] =!= {},
 		Cases[ToBoxes[TypeTheoryTerm[CartesianProductType[CartesianProductType[NonNegativeIntegers, Booleans], Integers]]], RowBox[{RowBox[{"(", _, ")"}], "\[Times]", _}], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[DisjointUnionType[CartesianProductType[NonNegativeIntegers, Booleans], Booleans]]], RowBox[{RowBox[{_, "\[Times]", _}], "\[CirclePlus]", _}], Infinity] =!= {},
+		Cases[ToBoxes[TypeTheoryTerm[DisjointUnionType[CartesianProductType[NonNegativeIntegers, Booleans], Booleans]]], RowBox[{RowBox[{_, "\[Times]", _}], "|", _}], Infinity] =!= {},
 		FreeQ[ToBoxes[TypeTheoryTerm[DisjointUnionType[NonNegativeIntegers, CartesianProductType[NonNegativeIntegers, Booleans]]]], "CartesianProductType" | "DisjointUnionType" | "\[Cross]"],
 		Cases[ToBoxes[TypeTheoryTerm[CircleTimes[A, B]]], RowBox[{"A", "\[CircleTimes]", "B"}], Infinity] =!= {}
 	},
 	{True, True, True, True, True},
-	TestID -> "Products-and-sums-of-types-show-as-times-and-circle-plus"
+	TestID -> "Products-and-sums-of-types-show-as-times-and-alternatives"
 ]
 
 VerificationTest[
