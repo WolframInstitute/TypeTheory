@@ -165,10 +165,10 @@ TypeTheoryType[TypeTheoryTerm[{}, "WolframLanguage"]]
 
 <!-- => Failure["UnsolvedImplicitArgument", ...] -->
 
-[Typed]() gives it, and the type shows as the type of lists that `Match[Expressions]` is:
+[Typed]() gives it, and the type is the one it is given, `Match[Expressions]`, the type of lists of expressions:
 
 ```wl
 TypeTheoryType[Typed[{}, Match[Expressions]], "WolframLanguage"]
 ```
 
-<!-- => {Expressions} -->
+<!-- => Match[Expressions] -->

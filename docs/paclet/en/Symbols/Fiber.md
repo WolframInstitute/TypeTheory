@@ -4,8 +4,8 @@ Name: Fiber
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Fiber
-Keywords: [fiber, equivalence, cubical type theory]
-SeeAlso: [IsContractible, IsEquivalence, Equivalence]
+Keywords: [fiber, homotopy fiber, preimage, equivalence, contractible fibers, cubical type theory, path, dependent pair]
+SeeAlso: [IsContractible, IsEquivalence, Equivalence, DependentSum]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [CubicalTypeTheory]
 ---
@@ -16,103 +16,125 @@ RelatedTutorials: [CubicalTypeTheory]
 
 ## Details & Options
 
-- An equivalence is a function whose fibers are contractible, [IsContractible]().
+- An element of a fiber is a pair `"dependentPair"[x, p]` of an element *x* and a path *p* from *f*[*x*] to *y*; <code>*w*[[1]]</code> and <code>*w*[[2]]</code> are the two fields of an element *w*.
+- It is the preimage of *y* up to paths. An equivalence is a function whose fibers are all contractible, [IsContractible](): over each point there is one element, up to paths.
+- *A* and *B*, the types of *f*, are implicit, and in the same universe.
 - It is a definition of <code>[TypeTheoryEnvironment]()["Cubical"]</code>; terms that use it name that environment.
 
 ## Basic Examples
 
-The cubical environment:
+Its definition, in the cubical environment:
 
 ```wl
-cubical = TypeTheoryEnvironment["Cubical"]
+TypeTheoryEnvironment["Cubical"][Fiber]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+<!-- => definition Fiber : ∀_{A ∶ Type u} ∀_{B ∶ Type u} (A → B) → B → Type u := {A ∶ Type u} {B ∶ Type u} (f ∶ A → B) (y ∶ B) ↦ Σ_x∶A f[x] ≡ y -->
 
-Its definition:
+---
 
-```wl
-cubical[Fiber]
-```
-
-<!-- => definition Fiber : ∀_{A∶Type u} ∀_{B∶Type u} (A→B)→B→Type u := {A∶Type u} {B∶Type u} (f∶A→B) (y∶B)↦Σ_x∶A f[x]≡y -->
-
-## Scope
-
-The fiber of negation over `"true"` is a dependent sum: an element `x` of the Booleans with a path from `"not"[x]` to `"true"`.
-
-The cubical environment:
+The fiber of negation over `"true"`: a Boolean `x` with a path from `"not"[x]` to `"true"`:
 
 ```wl
-cubical = TypeTheoryEnvironment["Cubical"]
-```
-
-<!-- => TypeTheoryEnvironment summary box: 34 constants -->
-
-The fiber, unfolded:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Fiber["not", "true"], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[Fiber["not", "true"], "Cubical"]]
 ```
 
 <!-- => Σ_x∶𝔹 !x ≡ true -->
 
-## Applications
+---
 
-`"false"` is in the fiber of negation over `"true"`: `"not"["false"]` computes to `"true"`, so the constant path at `"true"` goes from one to the other.
-
-The cubical environment:
+`"false"` is in it: `"not"["false"]` computes to `"true"`, so the constant path at `"true"` goes from one to the other:
 
 ```wl
-cubical = TypeTheoryEnvironment["Cubical"]
-```
-
-<!-- => TypeTheoryEnvironment summary box: 34 constants -->
-
-A proof that gives the pair, a `"dependentPair"`:
-
-```wl
-TypeTheoryProof[Fiber["not", "true"], cubical, {"Exact"["dependentPair"["false", Typed[i, Interval] |-> "true"]]}]
+TypeTheoryProof[Fiber["not", "true"], "Cubical", {"Exact"["dependentPair"["false", Typed[i, Interval] |-> "true"]]}]
 ```
 
 <!-- => Proof complete -->
 
+## Scope
+
+The second field of an element is its path:
+
+```wl
+TypeTheoryType[Typed[w, Fiber["not", "true"]] |-> w[[2]], "Cubical"]
+```
+
+<!-- => ∀_w∶Fiber[not, true] !w〚1〛 ≡ true -->
+
+---
+
+A constant function has every element in its fiber over its value. Both Booleans are in the fiber of the constant function at `"true"` over `"true"`, here `"false"`, so that function is no equivalence:
+
+```wl
+TypeTheoryType[Typed["dependentPair"["false", Function[{i}, "true"]], Fiber[Typed[b, Booleans] |-> "true", "true"]], "Cubical"]
+```
+
+<!-- => Fiber[(b ∶ 𝔹) ↦ true, true] -->
+
+---
+
+The equivalence of negation has contractible fibers, and the center of the fiber over `"true"` pairs `"not"["true"]` with the path `"negationInvolution"["true"]` from its negation to `"true"`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], "Cubical"]]
+```
+
+<!-- => 〈!true, negationInvolution[true]〉 -->
+
+Its element computes to `"false"`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]][[1]], "Cubical"]]
+```
+
+<!-- => false -->
+
 ## Properties and Relations
 
-The fibers of an equivalence are contractible, [IsContractible](), so each has a center. For `"negationEquivalence"` over `"true"`, it is `"not"["true"]`, with the path <code>"negationInvolution"["true"]</code> from its negation to `"true"`.
-
-The cubical environment:
+The fiber of the identity over a point is contractible, with the point and its constant path as center:
 
 ```wl
-cubical = TypeTheoryEnvironment["Cubical"]
+TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], "Cubical", {"Exact"["identityEquivalence"[Booleans][[2]]["true"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 34 constants -->
+<!-- => Proof complete -->
 
-The center of the fiber of `"negationEquivalence"` over `"true"`:
+---
+
+Being an equivalence, in the cubical environment, is the contractibility of every fiber:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], cubical]]
+WeakHeadNormalForm[TypeTheoryTerm[IsEquivalence["not"], "Cubical"]]
 ```
 
-<!-- => 〈!true, negationInvolution[true]〉 -->
+<!-- => ∀_y∶𝔹 IsContractible[Fiber[not, y]] -->
 
 ## Possible Issues
 
-[Fiber]() is a definition of the cubical environment only. In the HoTT environment an equivalence is a function with a left and a right inverse, and there are no fibers.
-
-The homotopy type theory environment:
+The path must end at the point. `"not"["true"]` is `"false"`, so the constant path at `"true"` does not put `"true"` in the fiber of negation over `"true"`:
 
 ```wl
-hott = TypeTheoryEnvironment["HomotopyTypeTheory"]
+TypeTheoryType[Typed["dependentPair"["true", Function[{i}, "true"]], Fiber["not", "true"]], "Cubical"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 41 constants -->
+<!-- => Failure["TypeMismatch", ...] -->
 
-[Fiber]() is not one of its constants:
+---
+
+The two types of the function are in the same universe, so a function from the Booleans to types, which are in the universe above, has no fiber here:
 
 ```wl
-TypeTheoryType[Fiber, hott]
+TypeTheoryType[Fiber[Typed[b, Booleans] |-> Booleans, Booleans], "Cubical"]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
+
+---
+
+[Fiber]() is a definition of the cubical environment only. In the HoTT environment an equivalence is a function with a left and a right inverse, and there are no fibers:
+
+```wl
+TypeTheoryType[Fiber, "HomotopyTypeTheory"]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

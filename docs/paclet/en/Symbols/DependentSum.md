@@ -51,7 +51,7 @@ A Boolean whose negation is `"false"`, with the path that shows it, an element o
 TypeTheoryType[Typed["dependentPair"["true", Function[{i}, "false"]], Fiber["not", "false"]], "Cubical"]
 ```
 
-<!-- => Σ_x∶𝔹 !x ≡ false -->
+<!-- => Fiber[not, false] -->
 
 ## Scope
 

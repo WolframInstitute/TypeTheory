@@ -34,10 +34,10 @@ DefinitionallyEqualQ[
 
 <!-- => True -->
 
-[Arguments]() gives the list of an expression's arguments:
+[Arguments]() gives the sequence of an expression's arguments, so that [Construct]()`[Head[e], Arguments[e]]` is *e*, and `{Arguments[e]}` is their list:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Arguments[Construct[7, 1, 2]], wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
+DefinitionallyEqualQ[TypeTheoryTerm[{Arguments[Construct[7, 1, 2]]}, wolfram], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], wolfram]]
 ```
 
 <!-- => True -->
