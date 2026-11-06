@@ -127,7 +127,7 @@ givenEnvironment[TypeTheoryTerm[_, name_String]] := environmentNamed[name]
 givenEnvironment[TypeTheoryTerm[_]] := None
 
 (* a term on its own has no universe parameters, so a level nothing decided in it is the level of Type *)
-elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] := Block[{$levelGeneralization = "Type"},
+elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] := Block[{$levelGeneralization = "Type", $queryTermNext = expected === None},
 	elaborateClosedTerm[environment, heldTerm[term], expected, universeParameters]
 ]
 

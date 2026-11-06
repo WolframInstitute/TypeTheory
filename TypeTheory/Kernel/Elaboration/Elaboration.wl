@@ -54,6 +54,7 @@ it close, or when the term is finished, is ambiguous, and Typed must say which i
 (*PackageScoped*)
 
 
+PackageScoped[$queryTermNext]
 PackageScoped[withElaborationState]
 PackageScoped[elaborateSyntax]
 PackageScoped[elaborateClosedTerm]
@@ -94,6 +95,7 @@ PackageScoped[unfoldedApplication]
 
 withElaborationState::usage = "withElaborationState[{environment, context, scope, universeParameters}, body] evaluates body with fresh elaboration state."
 elaborateSyntax::usage = "elaborateSyntax[syntax, expected] gives {term, type} for a syntax tree, with expected the expected type or None; metavariables may remain."
+$queryTermNext::usage = "$queryTermNext is True while the next syntax elaborated is the whole term of a query, which may be an expression of a name that names nothing, as f[1, 2], where nothing is expected."
 elaborateClosedTerm::usage = "elaborateClosedTerm[environment, HoldComplete[term], expected, universeParameters] gives {coreTerm, coreType} for a \
 closed surface term, checked by the kernel; expected is a core type or None."
 elaborateClosedType::usage = "elaborateClosedType[environment, HoldComplete[type], universeParameters] gives the core term of a closed surface type, checked to be a type."
@@ -283,7 +285,12 @@ canonicalIdentifiers[expression_] := With[{identified = DeleteDuplicates[Cases[e
 (*Syntax*)
 
 
-elaborateSyntax[syntax_, expected_] := Replace[syntax, {
+(* the whole term of a query, where nothing is expected, may be an expression as the Wolfram Language writes one, as in
+   TypeTheoryType[f[1, 2]]; inside a term, as in the value of a declaration, a name that names nothing is no term, as it
+   is most often a name misspelled or the one being declared, which a definition may not use *)
+elaborateSyntax[syntax_, expected_] := Block[{$wholeQueryTerm = TrueQ[$queryTermNext], $queryTermNext = False}, elaborateSyntaxCases[syntax, expected]]
+
+elaborateSyntaxCases[syntax_, expected_] := Replace[syntax, {
 	syntaxElaborated[elaborated_List, _] :> elaborated,
 	syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] :> elaborateFunction[listElements[binders], body, expected],
 	(* body &, a pure function of its slots, #1, #2, ...: as many arguments as the type expected takes, and at least as many
@@ -494,7 +501,7 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* and a symbol of the Wolfram Language that names constants none of which is an expression, as Plus or True, is the
 	   symbol, as it evaluates to itself *)
 	syntaxSymbol[held : HoldComplete[_Symbol]] /; expressionExpectedQ[expected] && languageSymbolQ[held] :> elaborateSyntax[quotationSyntax[syntax], expected],
-	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionHeadExpectedQ[held, expected] :>
+	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionHeadExpectedQ[held, arguments, expected] :>
 		constructed[quotationSyntax[syntaxSymbol[held]], arguments, expected],
 	syntaxApplication[head : syntaxApplication[_, _List], arguments_List] /; unnamedHeadQ[head] && expressionOrNothingExpectedQ[expected] :>
 		constructed[syntaxElaborated[elaborateSyntax[head, expected], head], arguments, expected],
@@ -906,8 +913,15 @@ rightNestedSum[{type_, rest__}] := syntaxHead[DisjointUnionType, {type, rightNes
 expressionOrNothingExpectedQ[expected_] := expressionsDeclaredQ[] && (expected === None || expressionExpectedQ[expected])
 
 (* where nothing is expected, the head of an expression is a symbol without a value, as increment = n |-> n + 1 makes
-   increment[2] three in the Wolfram Language, not an expression *)
-expressionHeadExpectedQ[HoldComplete[symbol_Symbol], expected_] := expressionOrNothingExpectedQ[expected] && (expected =!= None || OwnValues[symbol] === {})
+   increment[2] three in the Wolfram Language, not an expression; and, inside the whole term of a query, a head applied
+   to an expression, as f[x] of a variable x of expressions, a template, where to numbers alone it is most often a name
+   misspelled, or the one being defined *)
+expressionHeadExpectedQ[HoldComplete[symbol_Symbol], arguments_List, expected_] := expressionOrNothingExpectedQ[expected] && (
+	expected =!= None || OwnValues[symbol] === {} && (TrueQ[$wholeQueryTerm] || Block[{$namelessSymbolic = False}, AnyTrue[arguments, symbolicSyntaxQ]])
+)
+
+$queryTermNext = False
+$wholeQueryTerm = False
 
 (* a declared function applied to arguments that make it an expression of the Wolfram Language: an expression where
    it takes a number, or, where an expression is expected, any arguments of a function whose value is a proposition
@@ -919,7 +933,7 @@ expressionApplicationQ[head : syntaxSymbol[held_], arguments_List, expected_] :=
 	With[{meanings = declaredHeadMeanings[head]}, And[
 		meanings =!= {},
 		If[ expected === None,
-			symbolicMisfitQ[meanings, arguments] && ! AllTrue[meanings, sortValuedQ],
+			Block[{$namelessSymbolic = TrueQ[$wholeQueryTerm]}, symbolicMisfitQ[meanings, arguments]] && ! AllTrue[meanings, sortValuedQ],
 			symbolicMisfitQ[meanings, arguments] || AllTrue[meanings, sortValuedQ]
 		]
 	]]
@@ -950,10 +964,13 @@ symbolicMisfitQ[meanings_List, arguments_List] := AnyTrue[
    expressions, an atom that is no integer, a quotation, or an application of a head that names nothing or of a
    function to such an expression where it takes a number; a negative integer is not, as a - b is read a + -1 b *)
 symbolicSyntaxQ[syntaxSymbol[held : HoldComplete[_Symbol]]] /; KeyExistsQ[$elaborationScope, held] := expressionsTypeQ[Last[$elaborationScope[held]]]
-symbolicSyntaxQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] := unnamedSymbolQ[held] && OwnValues[symbol] === {}
+symbolicSyntaxQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] := $namelessSymbolic && unnamedSymbolQ[held] && OwnValues[symbol] === {}
 symbolicSyntaxQ[_syntaxOther] := True
 symbolicSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {_}]] := True
-symbolicSyntaxQ[syntax : syntaxApplication[_, _List]] /; unnamedHeadQ[syntax] := True
+symbolicSyntaxQ[syntax : syntaxApplication[_, _List]] /; unnamedHeadQ[syntax] := $namelessSymbolic
+
+(* inside a term where nothing is expected, a name that names nothing makes no expression *)
+$namelessSymbolic = True
 symbolicSyntaxQ[syntaxApplication[head : syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List]] := And[
 	! MemberQ[$expressionReadHeads, held],
 	With[{meanings = declaredHeadMeanings[head]}, meanings =!= {} && symbolicMisfitQ[meanings, arguments]]

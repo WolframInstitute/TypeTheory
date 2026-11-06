@@ -277,3 +277,22 @@ VerificationTest[
 	{True, True, {}},
 	TestID -> "A-quotation-at-the-top-of-a-query-is-kept"
 ]
+
+(* where nothing is expected, the whole term of a query may be an expression of a name that names nothing, f[1, 2] or
+   a + b c; inside a term, as in the value of a declaration, such a name applied to numbers alone is no term: it is most
+   often misspelled, or the name being defined, which a definition may not use; applied to a variable of expressions it
+   makes a template *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryType[f[1, 2]], TypeTheoryTerm[Expressions]],
+		DefinitionallyEqualQ[TypeTheoryType[a + b c], TypeTheoryTerm[Expressions]],
+		First[TypeTheoryType[Typed[n, NonNegativeIntegers] |-> Loop[n] + 1]],
+		First[TypeTheoryEnvironment[{TypeTheoryDefinition[Loop, Typed[n, NonNegativeIntegers] |-> Loop[n] + 1]}]],
+		First[TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Typed[n, NonNegativeIntegers] |-> twice[n]]}]],
+		DefinitionallyEqualQ[TypeTheoryType[Typed[x, Expressions] |-> x^2 + x], TypeTheoryTerm[Expressions -> Expressions]],
+		DefinitionallyEqualQ[TypeTheoryType[Typed[n, NonNegativeIntegers] |-> Typed[g[n], Expressions]], TypeTheoryTerm[NonNegativeIntegers -> Expressions]],
+		DefinitionallyEqualQ[TypeTheoryType[Typed[x, Expressions] |-> g[x, 2]], TypeTheoryTerm[Expressions -> Expressions]]
+	},
+	{True, True, "ElaborationFailed", "ElaborationFailed", "ElaborationFailed", True, True, True},
+	TestID -> "A-name-that-names-nothing-makes-an-expression-only-as-the-whole-term-of-a-query"
+]
