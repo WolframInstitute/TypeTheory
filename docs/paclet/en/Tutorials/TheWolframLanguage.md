@@ -68,7 +68,7 @@ pairs = TypeTheoryEnvironment[wolfram, {
 
 <!-- => {True, True, ℕ → ℕ} -->
 
-A sequence of any number of elements of one type `A` is of the type `A...`, as the pattern `p...` takes any number of expressions. It is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, and [Prepend]() puts an element in front of one, as it does in the Wolfram Language; a sequence among the elements is spliced in, as are `Sequence @@ l` and `Unevaluated @@ l` of a list `l`:
+A sequence of any number of elements of one type `A` is of the type `A...`, as the pattern `p...` takes any number of expressions. It is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, shows in brackets, `[a, b, ...]`, as every sequence does, and [Prepend]() puts an element in front of one, as it does in the Wolfram Language; a sequence among the elements is spliced in, as are `Sequence @@ l` and `Unevaluated @@ l` of a list `l`:
 
 ```wl
 {
@@ -77,7 +77,7 @@ A sequence of any number of elements of one type `A` is of the type `A...`, as t
 }
 ```
 
-<!-- => {Unevaluated[0, 1, 2, 3], Unevaluated[1, 2, 3, 4, 5]} -->
+<!-- => {[0, 1, 2, 3], [1, 2, 3, 4, 5]} -->
 
 The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, so [Construct](), of the type `Expressions -> Expressions... -> Expressions`, is applied to a head and its arguments, as in the Wolfram Language:
 
@@ -142,7 +142,7 @@ TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram]
 
 ## The Rules of a Symbol
 
-The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is translated from its pattern, every pattern the Wolfram Language has but [KeyValuePattern](), as the tutorial *Patterns and Rewriting* shows construct by construct. The right side is quoted as it is, its pattern variables the parts they match, a sequence variable the sequence of its expressions, `Unevaluated @@ l`, of the type `Expressions...`, spliced where it stands: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
+The rules of a symbol, its [DownValues](), are a definition of type `Expressions -> Option[Expressions]`, which [TypeTheoryFormalize]() reads with `"Meaning" -> "Rules"`: the expression that an expression rewrites to by the first rule that matches it, and none where no rule does. The left side of each rule is translated from its pattern, every pattern the Wolfram Language has but [KeyValuePattern](), as the tutorial *Patterns and Rewriting* shows construct by construct. The right side is quoted as it is, its pattern variables the parts they match, a sequence variable the sequence of its expressions, `Unevaluated @@ l`, shown `[Sequence @@ l]`, of the type `Expressions...`, spliced where it stands: the rules give one step of evaluation, and the Wolfram Language evaluates the result further. A function whose third argument is a sequence:
 
 ```wl
 listed[x_, y_, z___] := {x, y, z};

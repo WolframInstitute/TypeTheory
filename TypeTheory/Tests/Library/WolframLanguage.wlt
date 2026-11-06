@@ -101,8 +101,9 @@ VerificationTest[
 
 (* Construct[h, a, b] is the expression h[a, b], h applied to the sequence of its arguments, Expressions...:
    a sequence among them spliced in, Unevaluated[a, b] as the Wolfram Language holds one, a list one argument; Prepend[s, x]
-   puts x in front of a sequence; Construct of a function applies it; a term reads back as it is written. Unevaluated[...]
-   is kept inside a term: the Wolfram Language strips it from an argument of a function with rules, even a HoldAll one *)
+   puts x in front of a sequence, which shows in brackets, [a, b]; Construct of a function applies it; a term reads back
+   as it is written. Unevaluated[...] is kept inside a term: the Wolfram Language strips it from an argument of a function
+   with rules, even a HoldAll one *)
 VerificationTest[
 	{
 		equalQ[Construct[f, 1, 2], HoldForm[f[1, 2]]],
@@ -117,8 +118,10 @@ VerificationTest[
 		MatchQ[NormalForm[TypeTheoryTerm[Prepend[Unevaluated[1, 2], 0], wolfram]], HoldPattern[TypeTheoryTerm[Unevaluated[0, 1, 2], _]]],
 		MatchQ[NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]], HoldPattern[TypeTheoryTerm[HoldForm[{2, 1}], _]]],
 		MatchQ[NormalForm[TypeTheoryTerm[StringJoin["ab", "c"] /. _ -> "abc", wolfram]], _TypeTheoryTerm | _Failure],
-		ToString[NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a"], f[x__, y___] :> {{x}, {y}}], wolfram]], OutputForm]
+		ToString[NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a"], f[x__, y___] :> {{x}, {y}}], wolfram]], OutputForm],
+		ToString[NormalForm[TypeTheoryTerm[Prepend[Unevaluated[Unevaluated[1], 2], 0], wolfram]], OutputForm],
+		ToString[TypeTheoryTerm[Unevaluated[1, Unevaluated[2, 3], Unevaluated @@ {4}], wolfram], OutputForm]
 	},
-	{True, True, True, True, True, True, True, True, True, True, True, True, "{{{1}, {\"a\"}}, {{1, \"a\"}, {}}}"},
+	{True, True, True, True, True, True, True, True, True, True, True, True, "{{{1}, {\"a\"}}, {{1, \"a\"}, {}}}", "[0, 1, 2]", "[1, 2, 3, Sequence @@ {4}]"},
 	TestID -> "Construct-takes-a-sequence-of-arguments-and-terms-read-back-as-written"
 ]

@@ -105,7 +105,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequen
 
 <!-- => True -->
 
-A sequence of any number of elements of one type is of the type `A...`, as the pattern `p...` takes any number of expressions, and is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on. The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, each an `A` or a sequence spliced in, a variable of that type, `Unevaluated[...]`, or `Sequence @@ l` of a list; a binder of that type before others takes one argument, as any binder does, so a recursor's case of type `A...` is no sequence of the arguments after it. The Wolfram Language's own [Construct]() is applied so, `Construct[h, a, b]` building the expression `h[a, b]`:
+A sequence of any number of elements of one type is of the type `A...`, as the pattern `p...` takes any number of expressions, and is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, and shown in brackets, `[a, b, ...]`. The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, each an `A` or a sequence spliced in, a variable of that type, `Unevaluated[...]`, or `Sequence @@ l` of a list; a binder of that type before others takes one argument, as any binder does, so a recursor's case of type `A...` is no sequence of the arguments after it. The Wolfram Language's own [Construct]() is applied so, `Construct[h, a, b]` building the expression `h[a, b]`:
 
 ```wl
 {TypeTheoryType[Construct, wolfram], NormalForm[TypeTheoryTerm[Construct[f, 1, Unevaluated[2, 3]], wolfram]]}

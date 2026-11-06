@@ -17,7 +17,7 @@ RelatedTutorials: [TheWolframLanguage]
 ## Details & Options
 
 - [Expressions]() is an inductive type of [TypeTheoryEnvironment]()["WolframLanguage"], nested: [Construct]() takes the arguments of an expression as one sequence, of the type `Expressions...`, so `Construct : Expressions -> Expressions... -> Expressions`.
-- `A...` is the type of the sequences of any number of elements of `A`, as the pattern `p...` takes any number of expressions. A sequence is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on; a sequence among its elements is spliced in, as are `Sequence @@ l` and `Unevaluated @@ l` of a list `l`, and [Prepend]()`[s, x]` puts `x` in front of a sequence `s`.
+- `A...` is the type of the sequences of any number of elements of `A`, as the pattern `p...` takes any number of expressions. A sequence is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, and shows in brackets, `[a, b, ...]`, as every sequence does; a sequence among its elements is spliced in, as are `Sequence @@ l` and `Unevaluated @@ l` of a list `l`, and [Prepend]()`[s, x]` puts `x` in front of a sequence `s`.
 - The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, each an `A` or a sequence spliced in, as the Wolfram Language gives a function its arguments: `Construct[h, a, b]` gives `h` the sequence of `a` and `b`, and `Construct[h]` the empty one, `h[]`.
 - [Construct]() of a term that is no expression applies it, as [Construct]() does in the Wolfram Language.
 - The Wolfram Language strips [Unevaluated]() from an argument of a function with rules, even one that holds its arguments, so a sequence on its own is written inside a term: `TypeTheoryTerm[Unevaluated[1, 2], wolfram]`, or `Typed[Unevaluated[1, 2], NonNegativeIntegers...]`.
@@ -45,14 +45,14 @@ TypeTheoryType[Construct, wolfram]
 
 ## Scope
 
-A sequence is written held, `Unevaluated[a, b, ...]`, and [Prepend]() puts an element in front of one, as in the Wolfram Language:
+A sequence is written held, `Unevaluated[a, b, ...]`, and shows in brackets; [Prepend]() puts an element in front of one, as in the Wolfram Language:
 
 ```wl
 wolfram = TypeTheoryEnvironment["WolframLanguage"];
 NormalForm[TypeTheoryTerm[Prepend[Unevaluated[1, 2, 3], 0], wolfram]]
 ```
 
-<!-- => Unevaluated[0, 1, 2, 3] -->
+<!-- => [0, 1, 2, 3] -->
 
 Its type is `A...`, the type of the sequences of any number of elements of `A`:
 

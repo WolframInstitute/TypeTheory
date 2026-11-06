@@ -214,7 +214,10 @@ readableSyntax[syntaxString["{}"]] := syntaxHead[List, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringOfSyntax[syntax]] := syntaxString[stringOfSyntax[syntax]]
 readableSyntax[syntax : syntaxApplication[syntaxString["Construct"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
 readableSyntax[syntax : syntaxApplication[syntaxString["atom"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
-readableSyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, readableSyntax /@ Prepend[constructedPieces[sequence], head]]
+readableSyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[readablePiece /@ constructedPieces[sequence], readableSyntax[head]]]
+(* an argument of Construct, or a sequence of them spliced in: the elements of a list as Sequence @@ l *)
+readablePiece[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], readableSyntax[list]}]
+readablePiece[piece_] := readableSyntax[piece]
 readableSyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
 (* a sequence as it is written, Unevaluated[a, b, ...], and its type, A... *)
 readableSyntax[syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]

@@ -296,14 +296,28 @@ displaySyntax[syntaxString["Prepend"]] := syntaxSymbol[HoldComplete[Prepend]]
 displaySyntax[syntax : syntaxApplication[syntaxString["sequencePrepend"], {_, _}]] /; sequenceLiteralQ[syntax] :=
 	tupleDisplay["[", displaySyntax /@ Most[rightNested["sequencePrepend", syntax]], "]"]
 displaySyntax[syntaxString["emptySequence"]] := syntaxString["[]"]
-(* a sequence of any number of elements shows held, as the Wolfram Language holds one it passes on, Unevaluated[a, b, ...],
-   a sequence joined in that is no literal among the elements, and its type as A... *)
-displaySyntax[syntax : syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
-displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, displaySyntax /@ sequencePieces[syntax]]
-displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := syntaxHead[Unevaluated, displaySyntax /@ sequencePieces[syntax]]
-displaySyntax[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Unevaluated]], displaySyntax[list]}]
-(* A... in one piece, as a sequence's type shows in brackets: an arrow, which binds tighter than ..., would put it in
-   parentheses, A → (B...) → C *)
+(* a sequence of any number of elements shows in brackets, as every sequence does, [a, b, ...], however it is written,
+   Unevaluated[a, b, ...]: a sequence among its elements spliced in, one that is no literal by itself, and the sequence
+   of the elements of a list as Sequence @@ l; its type shows as A... *)
+displaySyntax[syntaxString["emptySequenceOf"]] := sequenceDisplay[{}]
+displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := sequenceDisplay[sequencePieces[syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := sequenceDisplay[sequencePieces[syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxString["sequenceOfList"], {_}]] := sequenceDisplay[{syntax}]
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], elements_List]] := sequenceDisplay[elements]
+displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {syntaxSymbol[HoldComplete[Unevaluated]], _}]] := sequenceDisplay[{syntax}]
+
+sequenceDisplay[pieces_List] := tupleDisplay["[", pieceDisplay /@ Catenate[splicedPieces /@ pieces], "]"]
+
+splicedPieces[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], elements_List]] := Catenate[splicedPieces /@ elements]
+splicedPieces[syntax : syntaxString["emptySequenceOf"]] := sequencePieces[syntax]
+splicedPieces[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := Catenate[splicedPieces /@ sequencePieces[syntax]]
+splicedPieces[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}]] := Catenate[splicedPieces /@ sequencePieces[syntax]]
+splicedPieces[piece_] := {piece}
+
+pieceDisplay[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], displaySyntax[list]}]
+pieceDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {syntaxSymbol[HoldComplete[Unevaluated]], list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], displaySyntax[list]}]
+pieceDisplay[piece_] := displaySyntax[piece]
+(* A... in one piece, so that an arrow, which binds tighter than ..., does not put it in parentheses, A → (B...) → C *)
 displaySyntax[syntaxApplication[syntaxString["sequenceOf"], {element_}]] := displaySyntax[syntaxHead[RepeatedNull, {element}]]
 displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {element_}]] := delimited["", displaySyntax[element], "..."]
 (* an expression of the Wolfram Language shows as the Wolfram Language shows it: its atoms as symbols, numbers and
@@ -311,7 +325,7 @@ displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {eleme
    these, it shows as Construct[h, a, ...], the head and the arguments it is built from. The display holds the term, so
    what it shows copies as the term. *)
 displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
-displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, displaySyntax /@ Prepend[constructedPieces[sequence], head]]
+displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[pieceDisplay /@ constructedPieces[sequence], displaySyntax[head]]]
 displaySyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
 displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
 (* a quotation shows as the expression it quotes, as the Wolfram Language shows HoldForm[e]; a string in it is a string,
@@ -335,7 +349,7 @@ quotablePieceQ[syntaxApplication[syntaxString["sequenceOfList"], {syntaxSymbol[_
 quotablePieceQ[piece_] := quotableQ[piece]
 
 (* the elements of a sequence, in order, and each sequence joined in that is no literal: a variable, or the sequence of
-   the elements of a list; the arguments of Construct, Unevaluated[] where there are none *)
+   the elements of a list; the arguments of Construct, the empty sequence where there are none *)
 sequencePieces[syntaxString["emptySequenceOf"]] := {}
 sequencePieces[syntaxApplication[syntaxString["sequenceOfPrepend"], {element_, rest_}]] := Prepend[sequencePieces[rest], element]
 sequencePieces[syntaxApplication[syntaxString["sequenceOfJoin"], {first_, rest_}]] := Join[sequencePieces[first], sequencePieces[rest]]
