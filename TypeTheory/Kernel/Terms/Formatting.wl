@@ -785,9 +785,10 @@ displayApplication[
 
 (* several binders are each parenthesized, unless their brackets already delimit them *)
 binderRow[{binder_}] := binder
+(* a space the front end and a page drawn from it keep, which a plain one between two names is not *)
 binderRow[binders_List] := syntaxHead[Row, {
 	syntaxHead[List, Replace[binders, colon : syntaxApplication[syntaxSymbol[HoldComplete[Colon]], _] :> delimited["(", colon, ")"], {1}]],
-	syntaxString[" "]
+	syntaxString["\[NonBreakingSpace]"]
 }]
 
 (* a chain of arrows nested to the right is shown flat: A ⇒ B ⇒ C *)

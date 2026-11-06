@@ -254,6 +254,9 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxElaborated[elaborated_List, _] :> elaborated,
 	syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] :> elaborateFunction[listElements[binders], body, expected],
+	(* body &, a pure function of its slots, #1, #2, ...: as many arguments as the type expected takes, and at least as many
+	   as the highest slot it uses, each named by its slot *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Function]], {body_}] :> elaborateFunction[slotBinders[body, expected], slotted[body], expected],
 	(* cubical type theory: 0 and 1 where an element of the interval is expected, Min, Max and 1 - r for its
 	   operations, a type or a path of types where a line is expected, and the sides of a composition *)
 	syntaxInteger[n : 0 | 1] /; intervalExpectedQ[expected] :> {intervalEndpoint[n], intervalConstantTerm["Interval"]},
@@ -1070,7 +1073,9 @@ expectedQuantityBinder[parsed_, expected_] := If[ parsed["Quantity"] === Automat
 expectedDomain[expected_, binder_] := Replace[
 	If[expected === None, None, asIntervalFunction[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]]],
 	{
-		dependentFunctionType[_, domain_, _, _] :> domain,
+		(* with its redexes reduced, as the motive of a recursor applied to a constructor's arguments, so that the binder
+		   reads as the type it is *)
+		dependentFunctionType[_, domain_, _, _] :> betaNormalize[domain],
 		_ :> binderTypeMetavariable[binder]
 	}
 ]
@@ -1102,6 +1107,31 @@ elaborateFunction[binders_List, body_, expected_] := With[{start = Length[$pendi
 		]
 	]
 ]
+
+(* the binders "#1", ..., "#n" of a pure function: n the arguments the type expected takes, or the highest slot of its
+   body, outside the pure functions inside it, whichever is more, and at least one *)
+slotBinders[body_, expected_] := Function[k, syntaxString["#" <> IntegerString[k]]] /@ Range[Max[1, explicitArity[expected], highestSlot[body]]]
+
+highestSlot[syntaxApplication[syntaxSymbol[HoldComplete[Slot]], {syntaxInteger[k_Integer]}]] := k
+highestSlot[syntaxSymbol[HoldComplete[Slot]]] := 1
+highestSlot[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_}]] := 0
+highestSlot[syntaxApplication[head_, arguments_List]] := Max[0, highestSlot[head], highestSlot /@ arguments]
+highestSlot[_] := 0
+
+(* the body with each slot #k its binder "#k" *)
+slotted[syntaxApplication[syntaxSymbol[HoldComplete[Slot]], {syntaxInteger[k_Integer]}]] := syntaxString["#" <> IntegerString[k]]
+slotted[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_}]] := syntax
+slotted[syntaxApplication[head_, arguments_List]] := syntaxApplication[slotted[head], slotted /@ arguments]
+slotted[syntax_] := syntax
+
+(* the explicit arguments a function type takes, 0 for None or any other type *)
+explicitArity[None] := 0
+explicitArity[type_] := Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]], {
+	dependentFunctionType[_, _, codomain_, binder_] :> If[explicitBinderQ[binder], 1, 0] + codomainArity[codomain],
+	_ -> 0
+}]
+codomainArity[dependentFunctionType[_, _, codomain_, binder_]] := If[explicitBinderQ[binder], 1, 0] + codomainArity[codomain]
+codomainArity[_] := 0
 
 (* {function, type}: in cubical type theory a function of the interval is a path between its values at the
    endpoints, as the kernel types it *)

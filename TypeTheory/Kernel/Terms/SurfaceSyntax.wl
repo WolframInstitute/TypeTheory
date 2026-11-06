@@ -367,7 +367,9 @@ displayedName[HoldComplete[name_String]] := name
 displayedName[HoldComplete[symbol_Symbol]] := SymbolName[Unevaluated[symbol]]
 displayedName[_] := None
 
-(* a variant of a symbol lives in the symbol's own context *)
+(* a variant of a symbol lives in the symbol's own context; a name that ends in a digit, as the slot "#1" of a pure
+   function, takes primes, #1′, as a number after it would make another name *)
+numberedName[HoldComplete[name_String], index_Integer] /; StringEndsQ[name, DigitCharacter] := HoldComplete @@ {name <> StringRepeat["\[Prime]", index]}
 numberedName[HoldComplete[name_String], index_Integer] := HoldComplete @@ {name <> ToString[index]}
 numberedName[HoldComplete[symbol_Symbol], index_Integer] :=
 	ToExpression[Context[Unevaluated[symbol]] <> SymbolName[Unevaluated[symbol]] <> ToString[index], InputForm, HoldComplete]

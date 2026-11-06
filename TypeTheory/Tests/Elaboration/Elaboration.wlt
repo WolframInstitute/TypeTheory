@@ -447,3 +447,25 @@ VerificationTest[
 	{"ElaborationFailed", "ElaborationFailed", "ElaborationFailed", True, True},
 	TestID -> "A-term-read-in-another-environment-keeps-its-constants"
 ]
+
+(* body & is a pure function of its slots, with as many arguments as the type expected takes and at least as many as its
+   highest slot; a binder whose type comes from the type expected has it with its redexes reduced, as a recursor's case
+   of the motive applied *)
+VerificationTest[
+	With[
+		{
+			counted = TypeTheoryEnvironment[{
+				TypeTheoryInductiveType[BinaryTree, TypeUniverse[1], {BinaryLeaf -> BinaryTree, BinaryNode -> ForAll[{Typed[left, BinaryTree], Typed[right, BinaryTree]}, BinaryTree]}],
+				TypeTheoryDefinition[NodeCount, tree |-> InductiveRecursor[BinaryTree][Naturals &, 1, #3 + #4 + 1 &, tree]]
+			}]
+		},
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm[NodeCount[BinaryNode[BinaryLeaf, BinaryNode[BinaryLeaf, BinaryLeaf]]], counted], TypeTheoryTerm[5, counted]],
+			DefinitionallyEqualQ[TypeTheoryType[Typed[n, NonNegativeIntegers] |-> (# + n &)[1]], TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers]],
+			DefinitionallyEqualQ[TypeTheoryType[Typed[#1 + (#1 &)[2] &, NonNegativeIntegers -> NonNegativeIntegers]], TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers]],
+			FreeQ[counted[NodeCount], HoldPattern[Function[{_}, NonNegativeIntegers][_]]]
+		}
+	],
+	{True, True, True, True},
+	TestID -> "A-pure-function-of-slots-and-binder-types-without-redexes"
+]
