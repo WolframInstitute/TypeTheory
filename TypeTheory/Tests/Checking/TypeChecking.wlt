@@ -281,3 +281,203 @@ VerificationTest[
 	{TypeTheoryProof, "RecursionLimit"},
 	TestID -> "A-recursion-too-deep-for-the-stack-is-a-failure"
 ]
+
+
+(* ::Section:: *)
+(*Judgments of Nederpelt and Geuvers*)
+
+
+(* Judgments from R. Nederpelt and H. Geuvers, Type Theory and Formal Proof (Cambridge, 2014), as José Martín-García
+   worked them in his notebook Calculus of Inductive Constructions (WRI, 2015-2017). Each positive judgment is checked
+   against the type the book gives, by definitional equality; the propositions are the impredicative encodings of
+   chapter 7 in Prop, ⊥ = ∀γ:Prop. γ. The terms of the encodings are TypeTheoryTerm values held by Module variables,
+   which a term stands for by its value. *)
+
+(* the sorts of products, Prop impredicative: ∀x:Prop. x is a proposition, ∀x:Type. x is in Type 1; an arrow into a
+   proposition is one, whatever its domain; and a variable sort of an arrow is the maximum, imax v v = v *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryType[ForAll[{Typed[x, TypeUniverse[0]]}, x]], TypeTheoryTerm[TypeUniverse[0]]],
+		DefinitionallyEqualQ[TypeTheoryType[ForAll[{Typed[x, TypeUniverse[1]]}, x]], TypeTheoryTerm[TypeUniverse[2]]],
+		DefinitionallyEqualQ[TypeTheoryType[Typed[a, TypeUniverse[0]] |-> (TypeUniverse[2] -> a)], TypeTheoryTerm[TypeUniverse[0] -> TypeUniverse[0]]],
+		DefinitionallyEqualQ[TypeTheoryType[Typed[a, TypeUniverse[0]] |-> (a -> TypeUniverse[2])], TypeTheoryTerm[TypeUniverse[0] -> TypeUniverse[3]]],
+		DefinitionallyEqualQ[
+			TypeTheoryType[{Typed[d, TypeUniverse[v]], Typed[e, TypeUniverse[v]]} |-> (d -> e)],
+			TypeTheoryTerm[TypeUniverse[v] -> TypeUniverse[v] -> TypeUniverse[v]]
+		]
+	},
+	{True, True, True, True, True},
+	TestID -> "The-sort-of-a-product-is-impredicative-in-Prop"
+]
+
+(* Exercise 3.14: the Church booleans in Prop. Negation instantiates the quantifier of its argument at the type of
+   booleans itself, which impredicativity allows, and computes; over Type the same term is refused, as the type of
+   booleans is in Type 1 *)
+VerificationTest[
+	Module[{booleans, true, false, negation, typeBooleans, typeTrue, typeFalse},
+		booleans = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[0]]}, A -> A -> A]];
+		true = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[x, A], Typed[y, A]} |-> x];
+		false = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[x, A], Typed[y, A]} |-> y];
+		negation = TypeTheoryTerm[Typed[z, booleans] |-> z[booleans, false, true]];
+		typeBooleans = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, A -> A -> A]];
+		typeTrue = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[x, A], Typed[y, A]} |-> x];
+		typeFalse = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[x, A], Typed[y, A]} |-> y];
+		{
+			DefinitionallyEqualQ[TypeTheoryType[negation], TypeTheoryTerm[booleans -> booleans]],
+			DefinitionallyEqualQ[TypeTheoryTerm[negation[true]], false],
+			DefinitionallyEqualQ[TypeTheoryTerm[negation[negation[true]]], true],
+			First[TypeTheoryType[Typed[z, typeBooleans] |-> z[typeBooleans, typeFalse, typeTrue]]]
+		}
+	],
+	{True, True, True, "TypeMismatch"},
+	TestID -> "Church-booleans-in-Prop-negate-by-impredicativity-and-not-in-Type"
+]
+
+(* excluded middle, Church-encoded, gives double negation elimination: from iET, which turns β → γ and ¬β → γ into γ,
+   λβ x. iET β β (λy. y) (λw. x w β) proves ((β → ⊥) → ⊥) → β *)
+VerificationTest[
+	Module[{bottom, excludedMiddle},
+		bottom = TypeTheoryTerm[ForAll[{Typed[G, TypeUniverse[0]]}, G]];
+		excludedMiddle = TypeTheoryTerm[ForAll[{Typed[B, TypeUniverse[0]], Typed[G, TypeUniverse[0]]}, (B -> G) -> ((B -> bottom) -> G) -> G]];
+		DefinitionallyEqualQ[
+			TypeTheoryType[Typed[iET, excludedMiddle] |-> ({Typed[B, TypeUniverse[0]], Typed[x, (B -> bottom) -> bottom]} |->
+				iET[B, B, Typed[y, B] |-> y, Typed[w, B -> bottom] |-> x[w, B]])
+			],
+			TypeTheoryTerm[excludedMiddle -> ForAll[{Typed[B, TypeUniverse[0]]}, ((B -> bottom) -> bottom) -> B]]
+		]
+	],
+	True,
+	TestID -> "Excluded-middle-gives-double-negation-elimination-in-Church-encoding"
+]
+
+(* the quantifiers of chapter 7, Church-encoded over a type S and predicates P, Q: ∃x:S. P x is
+   ∀α:Prop. (∀x:S. P x → α) → α. Exercise 6.8, ∃ ⇒ ¬∀¬; the example of page 156, ¬∃ ⇒ ∀¬; Exercise 7.14,
+   ∃(P ∧ Q) ⇒ ∃P, with P ∧ Q as ∀γ:Prop. (P → Q → γ) → γ *)
+VerificationTest[
+	Module[{bottom, exists, existsBoth, both},
+		bottom = TypeTheoryTerm[ForAll[{Typed[G, TypeUniverse[0]]}, G]];
+		{
+			DefinitionallyEqualQ[
+				TypeTheoryType[{Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[0]]} |-> (
+					{Typed[u, ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, P[x] -> A] -> A]], Typed[v, ForAll[{Typed[x, S]}, P[x] -> bottom]]} |-> u[bottom, v]
+				)],
+				TypeTheoryTerm[ForAll[{Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[0]]},
+					ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, P[x] -> A] -> A] -> ForAll[{Typed[x, S]}, P[x] -> bottom] -> bottom
+				]]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[{Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[0]]} |-> (
+					{Typed[u, ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, P[x] -> A] -> A] -> bottom], Typed[y, S], Typed[v, P[y]]} |->
+						u[{Typed[A, TypeUniverse[0]], Typed[w, ForAll[{Typed[x, S]}, P[x] -> A]]} |-> w[y, v]]
+				)],
+				TypeTheoryTerm[ForAll[{Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[0]]},
+					(ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, P[x] -> A] -> A] -> bottom) -> ForAll[{Typed[y, S]}, P[y] -> bottom]
+				]]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[{Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[0]], Typed[Q, S -> TypeUniverse[0]]} |-> (
+					{
+						Typed[u, ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, ForAll[{Typed[G, TypeUniverse[0]]}, (P[x] -> Q[x] -> G) -> G] -> A] -> A]],
+						Typed[A, TypeUniverse[0]],
+						Typed[v, ForAll[{Typed[x, S]}, P[x] -> A]]
+					} |-> u[A, {Typed[y, S], Typed[w, ForAll[{Typed[G, TypeUniverse[0]]}, (P[y] -> Q[y] -> G) -> G]]} |-> v[y, w[P[y], {Typed[s, P[y]], Typed[t, Q[y]]} |-> s]]]
+				)],
+				TypeTheoryTerm[ForAll[{Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[0]], Typed[Q, S -> TypeUniverse[0]]},
+					ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, ForAll[{Typed[G, TypeUniverse[0]]}, (P[x] -> Q[x] -> G) -> G] -> A] -> A] ->
+						ForAll[{Typed[A, TypeUniverse[0]]}, ForAll[{Typed[x, S]}, P[x] -> A] -> A]
+				]]
+			]
+		}
+	],
+	{True, True, True},
+	TestID -> "Church-encoded-quantifiers-of-chapter-7-prove-as-the-book-says"
+]
+
+(* Exercises 5.10 and 5.11: dependent spines, each codomain instantiated by the arguments before it *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryType[{
+				Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[1]], Typed[f, S -> S], Typed[g, S -> S],
+				Typed[u, ForAll[{Typed[x, S]}, P[f[x]] -> P[g[x]]]],
+				Typed[v, ForAll[{Typed[x, S], Typed[y, S]}, (P[x] -> P[y]) -> P[f[x]]]]
+			} |-> (Typed[x, S] |-> v[f[x], g[x], u[x]])],
+			TypeTheoryTerm[ForAll[
+				{
+					Typed[S, TypeUniverse[1]], Typed[P, S -> TypeUniverse[1]], Typed[f, S -> S], Typed[g, S -> S],
+					Typed[u, ForAll[{Typed[x, S]}, P[f[x]] -> P[g[x]]]],
+					Typed[v, ForAll[{Typed[x, S], Typed[y, S]}, (P[x] -> P[y]) -> P[f[x]]]]
+				},
+				ForAll[{Typed[x, S]}, P[f[f[x]]]]
+			]]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryType[{
+				Typed[S, TypeUniverse[1]], Typed[Q, S -> S -> TypeUniverse[1]], Typed[R, S -> S -> TypeUniverse[1]], Typed[f, S -> S], Typed[g, S -> S],
+				Typed[u, ForAll[{Typed[x, S], Typed[y, S]}, Q[x, f[y]] -> Q[g[x], y]]],
+				Typed[v, ForAll[{Typed[x, S], Typed[y, S]}, Q[x, f[y]] -> R[x, y]]],
+				Typed[w, ForAll[{Typed[x, S]}, Q[x, f[f[x]]]]]
+			} |-> (Typed[x, S] |-> v[g[g[x]], g[x], u[g[x], f[g[x]], w[g[x]]]])],
+			TypeTheoryTerm[ForAll[
+				{
+					Typed[S, TypeUniverse[1]], Typed[Q, S -> S -> TypeUniverse[1]], Typed[R, S -> S -> TypeUniverse[1]], Typed[f, S -> S], Typed[g, S -> S],
+					Typed[u, ForAll[{Typed[x, S], Typed[y, S]}, Q[x, f[y]] -> Q[g[x], y]]],
+					Typed[v, ForAll[{Typed[x, S], Typed[y, S]}, Q[x, f[y]] -> R[x, y]]],
+					Typed[w, ForAll[{Typed[x, S]}, Q[x, f[f[x]]]]]
+				},
+				ForAll[{Typed[x, S]}, R[g[g[x]], g[x]]]
+			]]
+		]
+	},
+	{True, True},
+	TestID -> "Dependent-spines-of-exercises-5-10-and-5-11-instantiate-each-codomain"
+]
+
+(* f y, where the type of f binds a y of its own: the argument is not captured *)
+VerificationTest[
+	DefinitionallyEqualQ[
+		TypeTheoryType[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[T, A -> B -> TypeUniverse[0]], Typed[f, ForAll[{Typed[x, A], Typed[y, B]}, T[x, y]]], Typed[y, A]} |-> f[y]],
+		TypeTheoryTerm[ForAll[
+			{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[T, A -> B -> TypeUniverse[0]], Typed[f, ForAll[{Typed[x, A], Typed[y, B]}, T[x, y]]], Typed[y, A]},
+			ForAll[{Typed[z, B]}, T[y, z]]
+		]]
+	],
+	True,
+	TestID -> "An-argument-is-not-captured-by-a-binder-of-the-same-name"
+]
+
+(* simple types, chapter 2: Exercise 2.5 b uses x at two types and has none; Exercise 2.6 has a type once y has one;
+   Exercise 2.8, λx y. y (λz. y x), has the type the book derives; and self-application x x has none, as x is applied
+   to more arguments than its type takes *)
+VerificationTest[
+	{
+		First[TypeTheoryType[{
+			Typed[Z, TypeUniverse[1]], Typed[A, TypeUniverse[1]], Typed[T, TypeUniverse[1]], Typed[G, TypeUniverse[1]],
+			Typed[x, (Z -> A) -> (T -> G)], Typed[y, T]
+		} |-> x[Typed[z, Z] |-> x, y]]],
+		DefinitionallyEqualQ[
+			TypeTheoryType[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[y, B]} |-> (Typed[x, (A -> B) -> A] |-> x[Typed[z, A] |-> y])],
+			TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[y, B]}, ((A -> B) -> A) -> A]]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryType[{Typed[B, TypeUniverse[1]], Typed[G, TypeUniverse[1]]} |-> ({Typed[x, G -> B], Typed[y, (G -> B) -> B]} |-> y[Typed[z, G] |-> y[x]])],
+			TypeTheoryTerm[ForAll[{Typed[B, TypeUniverse[1]], Typed[G, TypeUniverse[1]]}, (G -> B) -> ((G -> B) -> B) -> B]]
+		],
+		First[TypeTheoryType[{Typed[A, TypeUniverse[1]], Typed[x, A]} |-> x[x]]]
+	},
+	{"TypeMismatch", True, True, "ElaborationFailed"},
+	TestID -> "Simple-types-of-chapter-2-and-self-application"
+]
+
+(* vectors of the Lean tutorial's chapter 2: a literal in an index, 1 + 1 against 2, is equal by computation *)
+VerificationTest[
+	Head[TypeTheoryType[{
+		Typed[Vector, TypeUniverse[1] -> NonNegativeIntegers -> TypeUniverse[1]],
+		Typed[empty, ForAll[{Typed[A, TypeUniverse[1]]}, Vector[A, 0]]],
+		Typed[cons, ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers]}, A -> Vector[A, n] -> Vector[A, n + 1]]],
+		Typed[append, ForAll[{Typed[A, TypeUniverse[1]], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Vector[A, n] -> Vector[A, m] -> Vector[A, n + m]]],
+		Typed[B, TypeUniverse[1]], Typed[a, B], Typed[b, B]
+	} |-> Typed[append[B, 1, 1, cons[B, 0, a, empty[B]], cons[B, 0, b, empty[B]]], Vector[B, 2]]]],
+	TypeTheoryTerm,
+	TestID -> "A-vector-index-computes-in-a-dependent-type"
+]

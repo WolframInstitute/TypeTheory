@@ -204,6 +204,25 @@ VerificationTest[
 	TestID -> "A-forged-argument-is-caught-against-the-domain-its-earlier-arguments-give"
 ]
 
+(* a binder whose domain is no type, as zero, which elaboration refuses before the kernel sees it, is refused by the
+   kernel itself in a forged record: in the value, a function of an argument in zero, and in the type, a product over
+   zero *)
+VerificationTest[
+	With[{zero = constantReference[HoldComplete["zero"], {}]},
+		{
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {
+				"Value" -> lambdaAbstraction[HoldComplete[m], natural, lambdaAbstraction[HoldComplete[n], natural, application[lambdaAbstraction[HoldComplete[x], zero, zero, "Explicit"], zero], "Explicit"], "Explicit"],
+				"Height" -> 1
+			}]]]],
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {
+				"Type" -> dependentFunctionType[HoldComplete[m], zero, dependentFunctionType[HoldComplete[n], natural, natural, "Explicit"], "Explicit"]
+			}]]]]
+		}
+	],
+	{"TypeExpected", "TypeExpected"},
+	TestID -> "A-forged-binder-whose-domain-is-no-type-is-caught"
+]
+
 (* Inside a check, proof irrelevance compares two proofs by propositions inferred without checking the proofs, as
    in Lean's kernel. h of ForAll[{Typed[m, NonNegativeIntegers]}, True] applied to a proof is ill typed, yet
    inferred so it is a proof of True, which irrelevance finds equal to h[0]. Each forged proof of "additionZeroLeft"
