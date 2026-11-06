@@ -57,18 +57,10 @@ TypeTheoryType[InductiveRecursor[BinaryTree], trees]
 
 <!-- => ∀_m∶BinaryTree → Sort u m[BinaryLeaf] → (∀_left∶BinaryTree ∀_right∶BinaryTree m[left] → m[right] → m[BinaryNode[left, right]]) → ∀_t∶BinaryTree m[t] -->
 
-Counting the nodes of a tree with it: a leaf has one, and a node one more than its two subtrees together:
+Counting the nodes of a tree with it: a leaf has one, and a node one more than its two subtrees together; the recursor gives every type, of the motive `Naturals &`, of the variables and of the definition:
 
 ```wl
-counted = Append[trees, TypeTheoryDefinition[NodeCount, Typed[
-    Function[{Typed[tree, BinaryTree]}, InductiveRecursor[BinaryTree][
-        Function[{Typed[t, BinaryTree]}, Naturals],
-        1,
-        Function[{Typed[left, BinaryTree], Typed[right, BinaryTree], Typed[l, Naturals], Typed[r, Naturals]}, l + r + 1],
-        tree
-    ]],
-    TypeSpecifier[{BinaryTree} -> Naturals]
-]]]
+counted = Append[trees, TypeTheoryDefinition[NodeCount, tree |-> InductiveRecursor[BinaryTree][Naturals &, 1, {left, right, l, r} |-> l + r + 1, tree]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 262 constants -->

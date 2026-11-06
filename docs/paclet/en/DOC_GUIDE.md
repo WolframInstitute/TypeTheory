@@ -48,6 +48,11 @@ section gave a value.
 - **Show the types first.** A type theory's page shows types: the type of the symbol, then the types of the terms its
   examples build. Evaluation with [NormalForm]() is shown only where computing in the kernel is itself the point, never to
   show that a term evaluates to the obvious value.
+- **Let elaboration infer the types.** Write a type only where nothing else gives it, or where the type is what the
+  example shows. A binder needs no type where the type expected gives it: the cases and the motive of a recursor,
+  `InductiveRecursor[BinaryTree][Naturals &, 1, {left, right, l, r} |-> l + r + 1, tree]`, a function given a type as a
+  whole, `Typed[x |-> x + 1, NonNegativeIntegers -> NonNegativeIntegers]`, a definition whose recursor fixes its
+  argument's type. Use a pure function, `Naturals &` or `#3 + #4 + 1 &`, where its slots read as clearly as names.
 - **Examples show what a symbol is for.** Each example is one thing a reader would do with the symbol, or one fact
   they need to use it right, on an input that means something: a rewrite of a real expression, a match with several
   results, a proof that needs the tactic. No filler: no variations that differ only in a number, no example that only
