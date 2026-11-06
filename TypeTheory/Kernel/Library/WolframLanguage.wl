@@ -38,6 +38,13 @@ environment of their own.
 	                                rule matches and the expression stays as it is
 	Replace, ReplaceList, ReplaceAll, ReplaceRepeated   rewriting by rules, lhs -> rhs and lhs :> rhs written as a term
 	                                where a function from an expression to its matches is expected
+	If                              If[condition, a, b] by the decision of the condition, an instance of Decidable
+	Failure                         a failure, Failure[tag, details]: a computation that may fail has a value of
+	                                A | Failure, which "confirmBind" continues, and Enclose and Confirm are written with
+	Missing                         a value that is not there, Missing[reason, details...], as a lookup of a key gives
+	"Quotable"[K]                   the class of types whose values are expressions, by "quote": ℕ, Strings, Expressions
+	Association[K, V]               associations, <|k -> v, ...|>, each key once, in the order put in; Lookup gives
+	                                V | Missing, and Keys, Values, KeyExistsQ and Length are their meanings for them
 Match, MatchValue, MatchSum and MatchPart follow the match objects of the prototype paclet Wolfram/Patterns and the
 Match IR the WolframKernel project's compiler built from them: Values is MatchValue, one result of one value, Sum is
 MatchSum, which holds every multiplicity, Product is MatchBind, the parts in turn, and a Guard is Condition.
@@ -181,7 +188,7 @@ $wolframLanguageDeclarations = {
 	   "confirmBind" continues one with the value it has or passes its failure on, which Enclose and Confirm are written
 	   with *)
 	$ifDeclaration,
-	TypeTheoryInductiveType[Failure, TypeUniverse[1], {"Failure" -> (Strings -> Expressions -> Failure)}],
+	TypeTheoryInductiveType[Failure, TypeUniverse[1], {"failure" -> (Strings -> Expressions -> Failure)}],
 	TypeTheoryDefinition["confirmBind", Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[e, A | Failure], Typed[k, A -> B | Failure]},
 			InductiveRecursor[DisjointUnionType][Typed[s, A | Failure] |-> B | Failure, Typed[a, A] |-> k[a], Typed[f, Failure] |-> Typed["right"[f], B | Failure], e]
@@ -548,5 +555,103 @@ $wolframLanguageDeclarations = {
 			]
 		],
 		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, Expressions -> NonNegativeIntegers -> (Expressions -> Match[A]) -> Match[A]]
+	]],
+
+	(* a value that is not there, as the Wolfram Language writes one, Missing[reason, details...]: a lookup of a key an
+	   association does not have gives Missing["KeyAbsent", key] *)
+	TypeTheoryInductiveType[Missing, TypeUniverse[1], {"missing" -> (Strings -> Expressions... -> Missing)}],
+
+	(* a type whose values are expressions, as Lean's ToExpr: its values quote to expressions, which SameQ compares, as
+	   the Wolfram Language compares the keys of an association *)
+	TypeTheoryInductiveType[
+		"Quotable",
+		ForAll[{Typed[K, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+		{"quotable" -> ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], Typed[quote, K -> Expressions]}, "Quotable"[K]]}
+	],
+	TypeTheoryDefinition["quote", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"], Typed[k, K]},
+			InductiveRecursor["Quotable"][Typed[t, "Quotable"[K]] |-> Expressions, Typed[f, K -> Expressions] |-> f[k], q]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"]}, K -> Expressions]
+	]],
+	TypeTheoryDefinition["naturalQuotable", Typed["quotable"[Typed[n, NonNegativeIntegers] |-> "atom"["naturalAtom"[n]]], "Quotable"[NonNegativeIntegers]], "Instance" -> True],
+	TypeTheoryDefinition["stringQuotable", Typed["quotable"[Typed[s, Strings] |-> "atom"["stringAtom"[s]]], "Quotable"[Strings]], "Instance" -> True],
+	TypeTheoryDefinition["expressionQuotable", Typed["quotable"[Typed[e, Expressions] |-> e], "Quotable"[Expressions]], "Instance" -> True],
+
+	(* an association, a list of the pairs of its keys and values, each key once, in the order they were put in *)
+	TypeTheoryInductiveType[
+		Association,
+		ForAll[{Typed[K, TypeUniverse[u + 1]], Typed[V, TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
+		{"association" -> ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Typed[pairs, {CartesianProductType[K, V]}]}, Association[K, V]]}
+	],
+	(* the pairs with the value of the key k set to v: in its place, where the key is, or at the end *)
+	TypeTheoryDefinition["pairsInsert", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"], Typed[l, {CartesianProductType[K, V]}], Typed[k, K], Typed[x, V]},
+			InductiveRecursor[List][
+				Typed[t, {CartesianProductType[K, V]}] |-> {CartesianProductType[K, V]},
+				{"pair"[k, x]},
+				Function[{Typed[p, CartesianProductType[K, V]], Typed[rest, {CartesianProductType[K, V]}], Typed[r, {CartesianProductType[K, V]}]},
+					InductiveRecursor[CartesianProductType][
+						Typed[s, CartesianProductType[K, V]] |-> {CartesianProductType[K, V]},
+						Function[{Typed[key, K], Typed[value, V]}, InductiveRecursor[Booleans][Typed[b, Booleans] |-> {CartesianProductType[K, V]}, Prepend[p][r], Prepend["pair"[k, x]][rest], SameQ["quote"[key], "quote"[k]]]],
+						p
+					]
+				],
+				l
+			]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"]}, {CartesianProductType[K, V]} -> K -> V -> {CartesianProductType[K, V]}]
+	]],
+	(* the association with the value of the key k set to v, which <|k -> v, ...|> is made of, one key after another *)
+	TypeTheoryDefinition["associationInsert", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"], Typed[a, Association[K, V]], Typed[k, K], Typed[x, V]},
+			InductiveRecursor[Association][Typed[t, Association[K, V]] |-> Association[K, V], Typed[l, {CartesianProductType[K, V]}] |-> "association"["pairsInsert"[l, k, x]], a]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"]}, Association[K, V] -> K -> V -> Association[K, V]]
+	]],
+	(* the value of the key k, or Missing["KeyAbsent", k] where the association has no such key *)
+	TypeTheoryDefinition["associationLookup", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"], Typed[a, Association[K, V]], Typed[k, K]},
+			InductiveRecursor[Association][
+				Typed[t, Association[K, V]] |-> V | Missing,
+				Typed[l, {CartesianProductType[K, V]}] |-> InductiveRecursor[List][
+					Typed[t, {CartesianProductType[K, V]}] |-> V | Missing,
+					Typed["right"["missing"["KeyAbsent", "quote"[k]]], V | Missing],
+					Function[{Typed[p, CartesianProductType[K, V]], Typed[rest, {CartesianProductType[K, V]}], Typed[r, V | Missing]},
+						InductiveRecursor[CartesianProductType][
+							Typed[s, CartesianProductType[K, V]] |-> V | Missing,
+							Function[{Typed[key, K], Typed[value, V]}, InductiveRecursor[Booleans][Typed[b, Booleans] |-> V | Missing, r, Typed["left"[value], V | Missing], SameQ["quote"[key], "quote"[k]]]],
+							p
+						]
+					],
+					l
+				],
+				a
+			]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"]}, Association[K, V] -> K -> V | Missing]
+	]],
+	TypeTheoryDefinition["associationKeys", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Typed[a, Association[K, V]]},
+			InductiveRecursor[Association][Typed[t, Association[K, V]] |-> {K}, Typed[l, {CartesianProductType[K, V]}] |-> Map[Typed[p, CartesianProductType[K, V]] |-> InductiveRecursor[CartesianProductType][Typed[s, CartesianProductType[K, V]] |-> K, Function[{Typed[key, K], Typed[value, V]}, key], p], l], a]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]]}, Association[K, V] -> {K}]
+	]],
+	TypeTheoryDefinition["associationValues", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Typed[a, Association[K, V]]},
+			InductiveRecursor[Association][Typed[t, Association[K, V]] |-> {V}, Typed[l, {CartesianProductType[K, V]}] |-> Map[Typed[p, CartesianProductType[K, V]] |-> InductiveRecursor[CartesianProductType][Typed[s, CartesianProductType[K, V]] |-> V, Function[{Typed[key, K], Typed[value, V]}, value], p], l], a]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]]}, Association[K, V] -> {V}]
+	]],
+	(* whether the association has the key k *)
+	TypeTheoryDefinition["associationKeyExistsQ", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"], Typed[a, Association[K, V]], Typed[k, K]},
+			InductiveRecursor[DisjointUnionType][Typed[t, V | Missing] |-> Booleans, Typed[x, V] |-> "true", Typed[m, Missing] |-> "false", "associationLookup"[a, k]]
+		],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Annotation[Typed[q, "Quotable"[K]], "InstanceImplicit"]}, Association[K, V] -> K -> Booleans]
+	]],
+	TypeTheoryDefinition["associationLength", Typed[
+		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Typed[a, Association[K, V]]}, Length["associationKeys"[a]]],
+		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]]}, Association[K, V] -> NonNegativeIntegers]
 	]]
 }

@@ -225,7 +225,11 @@ readableSyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]]
 readablePiece[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], readableSyntax[list]}]
 readablePiece[piece_] := readableSyntax[piece]
 readableSyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
-readableSyntax[syntaxApplication[syntaxString["Failure"], arguments_List]] := syntaxApplication[syntaxSymbol[HoldComplete[Failure]], readableSyntax /@ arguments]
+readableSyntax[syntaxApplication[syntaxString["failure"], arguments_List]] := syntaxApplication[syntaxSymbol[HoldComplete[Failure]], readableSyntax /@ arguments]
+readableSyntax[syntaxApplication[syntaxString["missing"], {reason_, details_}]] := syntaxHead[Missing, Prepend[readablePiece /@ sequencePieces[details], readableSyntax[reason]]]
+(* an association of a list of pairs written out as <|k -> v, ...|>, which reads back as the same association *)
+readableSyntax[syntaxApplication[syntaxString["association"], {pairs_}]] /; associationPairsQ[pairs] :=
+	syntaxHead[Association, Function[pair, syntaxHead[Rule, readableSyntax /@ Last[pair]]] /@ prependedElements[pairs]]
 (* a sequence as it is written, Unevaluated[a, b, ...], and its type, A... *)
 readableSyntax[syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]

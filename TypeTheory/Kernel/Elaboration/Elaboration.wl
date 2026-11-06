@@ -285,6 +285,9 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	   association <|"Value" -> 3|>, not a function type *)
 	syntaxApplication[head : syntaxSymbol[HoldComplete[Rule | RuleDelayed]], arguments : {_, _}] /; expressionExpectedQ[expected] :>
 		constructed[quotationSyntax[head], arguments, expected],
+	(* and an association, a failure and a missing value are the expressions they write, as in the details of a failure *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Association | Failure | Missing]], arguments_List] /; expressionExpectedQ[expected] :>
+		constructed[quotationSyntax[head], arguments, expected],
 	(* a bare arrow has one domain: {A} -> B is a function of lists of A, and a function of several arguments is curried,
 	   A -> B -> C, of a sequence, Sequence[A, B] -> C, or the compiler's TypeSpecifier[{A, B} -> C] *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], domains_List], _}] /; Length[domains] != 1 :>
@@ -341,8 +344,15 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
 	(* Failure[tag, details] is a failure, the constructor of the type Failure; Enclose[body] the computation of body that
 	   stops at the first Confirm[e] whose e is a failure, which it gives, of the type A | Failure for body of the type A *)
-	syntaxApplication[syntaxSymbol[HoldComplete[Failure]], {tag_, details_}] /; failuresDeclaredQ[] :>
-		elaborateSyntax[syntaxApplication[syntaxString["Failure"], {tag, details}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Failure]], {tag_, details_}] /; failuresDeclaredQ[] && ! expressionExpectedQ[expected] :>
+		elaborateSyntax[syntaxApplication[syntaxString["failure"], {tag, details}], expected],
+	(* Missing[reason, details...] is a value that is not there, the constructor of the type Missing; <|k -> v, ...|> the
+	   association of each key k with its value v, put in one after another, a later value of a key replacing an earlier;
+	   where an expression is expected, each is the expression it writes *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Missing]], {reason_, details___}] /; constantDeclaredQ[$elaborationEnvironment, HoldComplete["missing"]] && ! expressionExpectedQ[expected] :>
+		elaborateSyntax[syntaxApplication[syntaxString["missing"], {reason, details}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Association]], rules_List] /; associationsDeclaredQ[] && ! expressionExpectedQ[expected] && AllTrue[rules, ruleSyntaxQ] :>
+		elaborateSyntax[associationLiteralSyntax[rules], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Enclose]], {body_}] /; failuresDeclaredQ[] :> elaborateSyntax[enclosedSyntax[body], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Confirm]], {_}] /; failuresDeclaredQ[] :>
 		elaborationFailure["`1` is outside an Enclose, which gives the failure it confirms where there is one.", syntax],
@@ -586,6 +596,10 @@ applyArguments[{function_, functionType_}, {}, headSyntax_, expected_] /; emptyS
 applyArguments[{function_, functionType_}, arguments_List, headSyntax_, expected_] :=
 	finishApplication[collectArguments[function, functionType, arguments, {}, headSyntax, expected], expected]
 
+(* the arguments used up where the next binder is the last explicit one, of a type A..., which takes the empty
+   sequence, as Missing["NotAvailable"] gives the details of a Missing none, and f[x_, rest___] matches f[a] *)
+collectArguments[term_, type_, {}, postponed_List, headSyntax_, expected_] /; emptySequenceTakenQ[type] :=
+	collectArguments[term, type, {syntaxHead[Unevaluated, {}]}, postponed, headSyntax, expected]
 collectArguments[term_, type_, {}, postponed_List, _, _] := Append[insertImplicitArguments[{term, type}], postponed]
 collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expected_] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
@@ -746,6 +760,16 @@ expressionHeadSyntaxQ[syntaxApplication[syntaxString["atom"], {_}]] := True
 expressionHeadSyntaxQ[_] := False
 
 failuresDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["confirmBind"]]
+associationsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["associationInsert"]]
+
+ruleSyntaxQ[syntax_] := MatchQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]
+
+(* <|k1 -> v1, k2 -> v2|> as "associationInsert"["associationInsert"["association"[{}], k1, v1], k2, v2] *)
+associationLiteralSyntax[rules_List] := Fold[
+	Function[{inner, rule}, syntaxApplication[syntaxString["associationInsert"], Prepend[Last[rule], inner]]],
+	syntaxApplication[syntaxString["association"], {syntaxHead[List, {}]}],
+	rules
+]
 
 (* Enclose[body]: each Confirm[e] in body that no binder or inner Enclose holds, in the order the Wolfram Language
    evaluates them, the head first, then the arguments from the left, each Confirm's own argument before it, is bound by
@@ -1121,6 +1145,13 @@ $overloadedNames = <|
 	HoldComplete[Not] -> {HoldComplete[Not], HoldComplete["not"]},
 	HoldComplete[And] -> {HoldComplete[And], HoldComplete["and"]},
 	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete["or"]},
+	(* the operations on associations, where the prelude declares them, and the name's own meaning where one is declared,
+	   as Length of lists, or the axiom TypeTheoryFormalize gives Lookup over expressions *)
+	HoldComplete[Length] -> {HoldComplete[Length], HoldComplete["associationLength"]},
+	HoldComplete[Lookup] -> {HoldComplete[Lookup], HoldComplete["associationLookup"]},
+	HoldComplete[Keys] -> {HoldComplete[Keys], HoldComplete["associationKeys"]},
+	HoldComplete[Values] -> {HoldComplete[Values], HoldComplete["associationValues"]},
+	HoldComplete[KeyExistsQ] -> {HoldComplete[KeyExistsQ], HoldComplete["associationKeyExistsQ"]},
 	HoldComplete[Plus] -> {HoldComplete[Plus], HoldComplete["integerAddition"], HoldComplete["rationalAddition"]},
 	HoldComplete[Times] -> {HoldComplete[Times], HoldComplete["integerMultiplication"], HoldComplete["rationalMultiplication"]},
 	HoldComplete[Subtract] -> {HoldComplete[Subtract], HoldComplete["integerSubtraction"], HoldComplete["rationalSubtraction"]},
@@ -1137,6 +1168,9 @@ $builtInMeanings = DeleteDuplicates[Catenate[Values[$overloadedNames]]]
 
 (* the operations of the natural numbers, which an environment with the integers overloads *)
 $arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, LessEqual, Less, GreaterEqual, Greater}]
+
+(* the names that take their first meaning where nothing decides between them *)
+$defaultedNames = Join[$arithmeticNames, HoldComplete /@ Unevaluated[{Length, Lookup, Keys, Values, KeyExistsQ}]]
 
 (* a name with several meanings declared, or with one where the name itself is no constant, as -x where
    only the integers are declared *)
@@ -1272,8 +1306,9 @@ resolvePendingOverloads[start_Integer, final_] := With[
 			$pendingOverloads = DeleteCases[$pendingOverloads, First[decided], {1}, 1];
 			decideOverload @@ decided;
 			resolvePendingOverloads[start, final],
-		(* an arithmetic operation nothing decides is that of the natural numbers, as a numeral is in Lean *)
-		final && Length[$pendingOverloads] > start && MemberQ[$arithmeticNames, $pendingOverloads[[start + 1]]["Name"]],
+		(* an arithmetic operation nothing decides is that of the natural numbers, as a numeral is in Lean, and an operation
+		   on associations its first meaning, of lists or of expressions *)
+		final && Length[$pendingOverloads] > start && MemberQ[$defaultedNames, $pendingOverloads[[start + 1]]["Name"]],
 			With[{entry = $pendingOverloads[[start + 1]]},
 				$pendingOverloads = Delete[$pendingOverloads, start + 1];
 				decideOverload[entry, First[declaredMeanings[$elaborationEnvironment, entry["Name"]]]];

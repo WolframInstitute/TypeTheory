@@ -77,6 +77,8 @@ a rewrite rule shows its two sides as lhs ⟶ rhs, apart from the arrow of funct
 PackageScoped[typeTheoryBoxes]
 PackageScoped[expressionOfSyntax]
 PackageScoped[sequencePieces]
+PackageScoped[prependedElements]
+PackageScoped[associationPairsQ]
 PackageScoped[constructedPieces]
 PackageScoped[stringOfSyntax]
 PackageScoped[rememberDisplayEnvironment]
@@ -92,6 +94,8 @@ PackageScoped[$displayTooltips]
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
 $displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_NOTEBOOK_BOXES is \"True\"."
+prependedElements::usage = "prependedElements[syntax] gives the elements of the list literal syntax, {} where it is none."
+associationPairsQ::usage = "associationPairsQ[syntax] gives True if syntax is a list literal of pairs, the pairs of an association written out."
 $displayColors::usage = "$displayColors is the Association of the colors a display gives a bound variable, a universe level and an unsolved metavariable."
 
 
@@ -352,7 +356,17 @@ displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; 
 displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[pieceDisplay /@ constructedPieces[sequence], displaySyntax[head]]]
 displaySyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
 (* the constructor of failures shows as the Wolfram Language writes a failure, Failure[tag, details] *)
-displaySyntax[syntaxApplication[syntaxString["Failure"], arguments_List]] := syntaxApplication[syntaxSymbol[HoldComplete[Failure]], displaySyntax /@ arguments]
+displaySyntax[syntaxApplication[syntaxString["failure"], arguments_List]] := syntaxApplication[syntaxSymbol[HoldComplete[Failure]], displaySyntax /@ arguments]
+(* a value that is not there shows as Missing[reason, details...], and an association as <|k -> v, ...|>: of a list of
+   pairs written out, and as it is put together, key after key *)
+displaySyntax[syntaxApplication[syntaxString["missing"], {reason_, details_}]] := syntaxHead[Missing, Prepend[pieceDisplay /@ sequencePieces[details], displaySyntax[reason]]]
+displaySyntax[syntaxApplication[syntaxString["association"], {pairs_}]] /; associationPairsQ[pairs] := syntaxHead[Association, ruleDisplay /@ prependedElements[pairs]]
+displaySyntax[syntaxApplication[syntaxString["associationInsert"], {association_, key_, value_}]] := Replace[displaySyntax[association], {
+	syntaxApplication[syntaxSymbol[HoldComplete[Association]], rules_List] :> syntaxHead[Association, Append[rules, syntaxHead[Rule, {displaySyntax[key], displaySyntax[value]}]]],
+	other_ :> displayApplication[syntaxString["associationInsert"], {other, displaySyntax[key], displaySyntax[value]}]
+}]
+associationPairsQ[pairs_] := listLiteralQ[pairs] && AllTrue[prependedElements[pairs], MatchQ[syntaxApplication[syntaxString["pair"], {_, _}]]]
+ruleDisplay[syntaxApplication[syntaxString["pair"], {key_, value_}]] := syntaxHead[Rule, {displaySyntax[key], displaySyntax[value]}]
 (* a natural number or a string where an expression is expected shows as itself, as it is an expression in the Wolfram
    Language *)
 displaySyntax[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {value_}]] := displaySyntax[value]

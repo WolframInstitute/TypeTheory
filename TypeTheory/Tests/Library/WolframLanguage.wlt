@@ -175,3 +175,39 @@ VerificationTest[
 	{True, True, True},
 	TestID -> "If-is-declared-and-a-branch-may-fail"
 ]
+
+(* <|k -> v, ...|> is an association, each key once, a later value of a key replacing an earlier in its place; Lookup
+   gives V | Missing, and Keys, Values, KeyExistsQ and Length are their meanings for associations, beside lists *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryType[<|"a" -> 1, "b" -> 2|>], TypeTheoryTerm[Association[Strings, NonNegativeIntegers]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[<|"a" -> 1, "b" -> 2, "a" -> 3|>], TypeTheoryTerm[<|"a" -> 3, "b" -> 2|>]],
+		DefinitionallyEqualQ[TypeTheoryType[Typed[a, Association[Strings, NonNegativeIntegers]] |-> Lookup[a, "count"]], TypeTheoryTerm[Association[Strings, NonNegativeIntegers] -> (NonNegativeIntegers | Missing)]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Lookup[<|"a" -> 1, "b" -> 2|>, "b"]], TypeTheoryTerm[Typed["left"[2], NonNegativeIntegers | Missing]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Lookup[<|"a" -> 1|>, "c"]], TypeTheoryTerm[Typed["right"[Missing["KeyAbsent", "c"]], NonNegativeIntegers | Missing]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Lookup[<|1 -> "one", 2 -> "two"|>, 2]], TypeTheoryTerm[Typed["left"["two"], Strings | Missing]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Keys[<|"a" -> 1, "b" -> 2|>]], TypeTheoryTerm[{"a", "b"}]] && DefinitionallyEqualQ[TypeTheoryTerm[Values[<|"a" -> 1, "b" -> 2|>]], TypeTheoryTerm[{1, 2}]],
+		DefinitionallyEqualQ[TypeTheoryTerm[KeyExistsQ[<|"a" -> 1|>, "a"]], TypeTheoryTerm["true"]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Length[<|"a" -> 1, "b" -> 2|>] + Length[{1, 2, 3}]], TypeTheoryTerm[5]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[<||>, Association[Strings, NonNegativeIntegers]]], TypeTheoryTerm[Typed["association"[{}], Association[Strings, NonNegativeIntegers]]]]
+	},
+	{True, True, True, True, True, True, True, True, True, True},
+	TestID -> "An-association-looks-up-its-keys-and-a-missing-key-is-Missing"
+]
+
+(* Missing[reason, details...] is a value that is not there, its details a sequence of expressions, none for one
+   reason alone; where an expression is expected, as in a failure's details, an association and a Missing are the
+   expressions they write, and TypeTheoryFormalize still reads Keys of an expression as the built-in's *)
+VerificationTest[
+	Block[{settingOf},
+		settingOf[options_] := Keys[options];
+		{
+			MatchQ[TypeTheoryType[Missing["NotAvailable"]], HoldPattern[TypeTheoryTerm[Missing, _]]],
+			MatchQ[TypeTheoryType[Missing["KeyAbsent", "x", 2]], HoldPattern[TypeTheoryTerm[Missing, _]]],
+			MatchQ[TypeTheoryType[Failure["Tag", <|"Value" -> 3, "Missing" -> Missing["NotFound"]|>]], HoldPattern[TypeTheoryTerm[Failure, _]]],
+			MatchQ[Last[TypeTheoryFormalize[settingOf]], _TypeTheoryDefinition]
+		}
+	],
+	{True, True, True, True},
+	TestID -> "Missing-is-a-value-that-is-not-there-and-an-expression-where-one-is-expected"
+]
