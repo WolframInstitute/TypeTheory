@@ -344,7 +344,7 @@ textMessagesQ[] := With[{saved = Environment["TYPETHEORY_NOTEBOOK_BOXES"]},
 				TypeTheoryType[Typed[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x], NonNegativeIntegers]]
 			},
 			Function[failure, FailureQ[failure] && StringFreeQ[ToString[failure, OutputForm], "Box"]]
-		]],
+		] && StringFreeQ[ToString[TypeTheoryTerm[Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> p[[1]] + 1], OutputForm], "Private"]],
 		SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> Replace[saved, $Failed -> None]]
 	]
 ]

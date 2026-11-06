@@ -669,6 +669,9 @@ displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structure_, i
 	If[decoratedQ[shown], syntaxHead[partDisplay, Prepend[displaySyntax /@ {indices}, shown]], syntaxApplication[syntaxSymbol[HoldComplete[Part]], Prepend[displaySyntax /@ {indices}, shown]]]
 ]
 
+(* in text, x〚1〛 as well *)
+partDisplay /: Format[partDisplay[structure_, indices___], OutputForm] :=
+	Row[{HoldForm[structure], "\[LeftDoubleBracket]", Row[Map[HoldForm, Unevaluated[{indices}]], ","], "\[RightDoubleBracket]"}]
 partDisplay /: MakeBoxes[partDisplay[structure_, indices___], form_] := RowBox[{
 	MakeBoxes[structure, form],
 	"\[LeftDoubleBracket]",
