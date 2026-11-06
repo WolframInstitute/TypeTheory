@@ -56,7 +56,7 @@ rulesDeclarations::usage = "rulesDeclarations[environment, HoldComplete[symbol]]
 
 rulesDeclarations[environment_, held : HoldComplete[symbol_Symbol]] := Which[
 	! constantDeclaredQ[environment, HoldComplete[MatchFirst]],
-		kernelFailure["RulesEnvironment", "The rules of `1` are terms of TypeTheoryEnvironment[\"WolframLanguage\"], which has Expressions and MatchFirst.", {HoldForm[symbol]}],
+		kernelFailure["RulesEnvironment", "The rules of `1` are terms of an environment that declares Expressions and MatchFirst, as the prelude does.", {HoldForm[symbol]}],
 	True,
 		Replace[Reap[translatedRules[held], atomDeclaration], {
 			{value_HoldComplete, atoms_} :> With[{declarations = Append[missingDeclarations[environment, DeleteDuplicates[Catenate[Catenate[atoms]]]], rulesDefinition[held, value]]},
