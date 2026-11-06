@@ -38,7 +38,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 Start a proof; its one goal is the statement:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n]]
+proof = TypeTheoryProof[ForAll[{n}, 0 + n == n]]
 ```
 
 <!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ 0 + n == n -->
@@ -80,7 +80,7 @@ proof = TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]][proof]
 The same proof as a list of tactics, each its name applied to its arguments:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
+TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[n],
     "Induction"[n],
     "Reflexivity",
@@ -106,7 +106,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y) (x + y)
 A finished proof:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
+proof = TypeTheoryProof[ForAll[{n}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -172,7 +172,7 @@ TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, {"Reflexivity"}]
 The rule takes `g[e]` to `e` for every expression `e`, a statement with a quantifier:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[e, Expressions]}, Replace[g[e], g[x_] :> x] == e], {"Introduce"[e], "Reflexivity"}]
+TypeTheoryProof[ForAll[{e}, Replace[g[e], g[x_] :> x] == e], {"Introduce"[e], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -202,7 +202,7 @@ TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {"Introduce"[l
 Applying `"andIntroduction"` leaves a goal for each side of the conjunction, each under the hypotheses:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
+proof = TypeTheoryProof[ForAll[{a, b}, Implies[a, Implies[b, And[a, b]]]], {
     "Introduce"[a, b, ha, hb],
     "Apply"["andIntroduction"]
 }]
@@ -223,7 +223,7 @@ proof["Goals"]
 A goal is a statement in its own right. The goals of a proof by induction:
 
 ```wl
-goals = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]["Goals"]
+goals = TypeTheoryProof[ForAll[{n}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]["Goals"]
 ```
 
 <!-- => {⊢ 0 + 0 == 0, ⊢ ∀_n∶ℕ 0 + n == n ⇒ 0 + (n + 1) == n + 1} -->
@@ -250,7 +250,7 @@ A list of tactics kept in a symbol evaluates, so one list serves several proofs.
 
 ```wl
 steps = {"Introduce", "Reflexivity"};
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n - 0 == n], steps]
+TypeTheoryProof[ForAll[{n}, n - 0 == n], steps]
 ```
 
 <!-- => Proof complete -->
@@ -271,7 +271,7 @@ TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[{}, l] == l], steps]
 A finished proof by induction:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
+proof = TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[n], "Induction"[n], "Reflexivity", "Introduce"[k, ih], "Exact"["equalityCongruence"["successor", ih]]
 }]
 ```
@@ -349,7 +349,7 @@ programs = TypeTheoryEnvironment[TypeTheoryFormalize[triangular]]
 Twice the n-th triangular number is n (n + 1). By induction, the case of zero computes, and in the case of `k + 1` the definition unfolds once, leaving algebra with the induction hypothesis:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 2 triangular[n] == n (n + 1)], programs, {
+proof = TypeTheoryProof[ForAll[{n}, 2 triangular[n] == n (n + 1)], programs, {
     "Introduce"[n], "Induction"[n], "Simplify"[{triangular}],
     "Introduce"[k, ih], "Simplify"[{triangular}]
 }]
@@ -380,7 +380,7 @@ programs = TypeTheoryEnvironment[TypeTheoryFormalize[total]]
 The sum of two lists joined is the sum of their sums. After induction on the first list, the case of a list with a first element `x`:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, total[Join[a, b]] == total[a] + total[b]], programs, {
+proof = TypeTheoryProof[ForAll[{a, b}, total[Join[a, b]] == total[a] + total[b]], programs, {
     "Introduce"[a, b], "Induction"[a], "Simplify"[{total, Join}], "Ring",
     "Introduce"[x, rest, ih]
 }]
@@ -409,7 +409,7 @@ TypeTheoryTactic["Ring"][proof]
 [TypeTheoryProofTree]() gives the natural-deduction derivation of a finished proof of propositional logic:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a, Implies[b, And[a, b]]]], {
+proof = TypeTheoryProof[ForAll[{a, b}, Implies[a, Implies[b, And[a, b]]]], {
     "Introduce"[a, b, ha, hb], "Apply"["andIntroduction"], "Assumption", "Assumption"
 }]
 ```
@@ -429,8 +429,8 @@ TypeTheoryProofTree[proof]
 A list of tactics does what the tactics do applied one at a time: the two proofs have the same term:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]["Term"] ===
-    TypeTheoryTactic["Reflexivity"][TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n]]]]["Term"]
+TypeTheoryProof[ForAll[{n}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]["Term"] ===
+    TypeTheoryTactic["Reflexivity"][TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{n}, n + 0 == n]]]]["Term"]
 ```
 
 <!-- => True -->
@@ -440,7 +440,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Refl
 A finished proof:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
+proof = TypeTheoryProof[ForAll[{n}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -484,7 +484,7 @@ TypeTheoryEnvironment[TypeTheoryTheorem[Absurd, TypeTheoryProof[False]]]
 A tactic that does not apply ends the proof with its [Failure](), which says why; `0 + n` is not `n` by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Reflexivity", "Induction"[n]}]
+TypeTheoryProof[ForAll[{n}, 0 + n == n], {"Introduce"[n], "Reflexivity", "Induction"[n]}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
@@ -524,7 +524,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, x - x == 0], {"Introduce"[x], "Ring
 The statement is held, so a symbol whose value is a plain expression stands for itself, not for the expression:
 
 ```wl
-plain = ForAll[{Typed[n, Naturals]}, n + 0 == n];
+plain = ForAll[{n}, n + 0 == n];
 TypeTheoryProof[plain, {"Introduce"[n], "Reflexivity"}]
 ```
 
@@ -545,7 +545,7 @@ TypeTheoryProof[_Association]
 [TypeTheoryProofTree]() knows the rules of natural deduction, not the recursor of [And]() that `"Cases"` uses to take a conjunction apart:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a && b, b && a]], {
+TypeTheoryProofTree[TypeTheoryProof[ForAll[{a, b}, Implies[a && b, b && a]], {
     "Introduce"[a, b, h], "Cases"[h], "Introduce"[x, y], "Constructor", "Exact"[y], "Exact"[x]
 }]]
 ```

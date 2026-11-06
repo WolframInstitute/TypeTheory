@@ -42,15 +42,10 @@ TypeTheoryType[InductiveRecursor[Naturals]]
 Recursion: double a natural number, adding 2 for each successor:
 
 ```wl
-double = TypeTheoryTerm[Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][
-    Function[{Typed[t, Naturals]}, Naturals],
-    0,
-    Function[{Typed[k, Naturals], Typed[r, Naturals]}, r + 2],
-    n
-]]]
+double = TypeTheoryTerm[n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> r + 2, n]]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 2, n] -->
+<!-- => n ↦ ℕ_rec[ℕ &, 0, k r ↦ r + 2, n] -->
 
 Applied to 5, it computes:
 
@@ -65,7 +60,7 @@ WeakHeadNormalForm[TypeTheoryTerm[double[5]]]
 The recursor of the Booleans is a conditional, with the case of `"false"` first; `3 <= 2` decides to `"false"`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Typed[t, Booleans] |-> Naturals, 10, 20, Decide[3 <= 2]]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Naturals &, 10, 20, Decide[3 <= 2]]]]
 ```
 
 <!-- => 10 -->
@@ -77,7 +72,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Typed[t, Booleans]
 The factorial of 5, multiplying by `k + 1` at each successor `k + 1`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[t, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> r * (k + 1), 5]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Naturals &, 1, {k, r} |-> r * (k + 1), 5]]]
 ```
 
 <!-- => 120 -->
@@ -87,7 +82,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[t, Naturals]
 The sum of a list, with the recursor of [List](), whose minor premise for a list with a first element takes the element, the rest and the sum of the rest:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[List][Typed[t, {Naturals}] |-> Naturals, 0, {Typed[x, Naturals], Typed[rest, {Naturals}], Typed[r, Naturals]} |-> x + r, Typed[{1, 2, 3}, {Naturals}]]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[List][Naturals &, 0, {x, rest, r} |-> x + r, {1, 2, 3}]]]
 ```
 
 <!-- => 6 -->
@@ -97,7 +92,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[List][Typed[t, {Naturals}] |
 The recursor of [CartesianProductType]() applies a function of two arguments to the fields of a pair:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[CartesianProductType][Typed[t, CartesianProductType[Naturals, Naturals]] |-> Naturals, {Typed[x, Naturals], Typed[y, Naturals]} |-> x * y, "pair"[6, 7]]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[CartesianProductType][Naturals &, {x, y} |-> x * y, "pair"[6, 7]]]]
 ```
 
 <!-- => 42 -->
@@ -107,7 +102,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[CartesianProductType][Typed[
 A motive into a universe makes a type by cases, here the natural numbers for `"true"`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], Booleans, Naturals, "true"]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][TypeUniverse[1] &, Booleans, Naturals, "true"]]]
 ```
 
 <!-- => ℕ -->
@@ -117,12 +112,12 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Typed[t, Booleans]
 A proof by induction, written with the recursor: the motive is the statement, the minor premise for 0 proves it at 0, and the one for successors takes the induction hypothesis `ih`:
 
 ```wl
-TypeTheoryType[Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][
-    Typed[k, Naturals] |-> 0 + k == k,
+TypeTheoryType[n |-> InductiveRecursor[Naturals][
+    k |-> 0 + k == k,
     "equalityReflexivity"[0],
-    {Typed[k, Naturals], Typed[ih, 0 + k == k]} |-> "equalityCongruence"["successor", ih],
+    {k, ih} |-> "equalityCongruence"["successor", ih],
     n
-]]]
+]]
 ```
 
 <!-- => ∀_n∶ℕ 0 + n == n -->
@@ -132,14 +127,7 @@ TypeTheoryType[Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][
 Case analysis on a disjunction, with one minor premise for each side:
 
 ```wl
-TypeTheoryType[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p || q]},
-    InductiveRecursor[Or][
-        Function[{Typed[t, p || q]}, q || p],
-        Function[{Typed[x, p]}, "orIntroductionRight"[x]],
-        Function[{Typed[y, q]}, "orIntroductionLeft"[y]],
-        h
-    ]
-]]
+TypeTheoryType[{p, q, Typed[h, p || q]} |-> InductiveRecursor[Or][q || p &, "orIntroductionRight"[#] &, "orIntroductionLeft"[#] &, h]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∨ q) ⇒ (q ∨ p) -->
@@ -149,13 +137,11 @@ TypeTheoryType[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], T
 Induction on a proof of an inequality, whose recursor takes a motive of the index `j` as well: from `m <= n`, `m <= n + 1`:
 
 ```wl
-TypeTheoryType[Function[{Typed[m, Naturals], Typed[n, Naturals], Typed[h, m <= n]},
-    InductiveRecursor[LessEqual][
-        {Typed[j, Naturals], Typed[t, m <= j]} |-> m <= j + 1,
-        "lessEqualStep"["lessEqualReflexivity"],
-        {Typed[j, Naturals], Typed[t, m <= j], Typed[ih, m <= j + 1]} |-> "lessEqualStep"[ih],
-        h
-    ]
+TypeTheoryType[{m, n, Typed[h, m <= n]} |-> InductiveRecursor[LessEqual][
+    {j, t} |-> m <= j + 1,
+    "lessEqualStep"["lessEqualReflexivity"],
+    {j, t, ih} |-> "lessEqualStep"[ih],
+    h
 ]]
 ```
 
@@ -166,7 +152,7 @@ TypeTheoryType[Function[{Typed[m, Naturals], Typed[n, Naturals], Typed[h, m <= n
 The recursor of [Equal]() substitutes equals: a bound on `m` holds for `n` too:
 
 ```wl
-TypeTheoryType[{Typed[m, Naturals], Typed[n, Naturals], Typed[e, m == n], Typed[h, m <= 5]} |-> InductiveRecursor[Equal][{Typed[x, Naturals], Typed[t, m == x]} |-> x <= 5, h, e]]
+TypeTheoryType[{m, n, Typed[e, m == n], Typed[h, m <= 5]} |-> InductiveRecursor[Equal][{x, t} |-> x <= 5, h, e]]
 ```
 
 <!-- => ∀_m∶ℕ ∀_n∶ℕ m == n ⇒ m <= 5 ⇒ n <= 5 -->
@@ -176,7 +162,7 @@ TypeTheoryType[{Typed[m, Naturals], Typed[n, Naturals], Typed[e, m == n], Typed[
 [False]() has no constructor, so its recursor has no minor premise, and proves anything:
 
 ```wl
-TypeTheoryType[Typed[h, False] |-> InductiveRecursor[False][Typed[t, False] |-> 2 + 2 == 5, h]]
+TypeTheoryType[h |-> InductiveRecursor[False][2 + 2 == 5 &, h]]
 ```
 
 <!-- => False ⇒ 2 + 2 == 5 -->
@@ -206,10 +192,7 @@ TypeTheoryType[InductiveRecursor[Rose, 1], roses]
 The sum 1 + 2 + ... + *n*, by recursion:
 
 ```wl
-sums = TypeTheoryEnvironment[{TypeTheoryDefinition[SumTo, Typed[
-    Typed[n, Naturals] |-> InductiveRecursor[Naturals][Typed[t, Naturals] |-> Naturals, 0, {Typed[k, Naturals], Typed[r, Naturals]} |-> r + (k + 1), n],
-    TypeSpecifier[{Naturals} -> Naturals]
-]]}]
+sums = TypeTheoryEnvironment[{TypeTheoryDefinition[SumTo, n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> r + (k + 1), n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -225,7 +208,7 @@ WeakHeadNormalForm[TypeTheoryTerm[SumTo[100], sums]]
 Gauss's formula, by induction: `"Simplify"` unfolds `SumTo` at the successor `k + 1`, the recursor's step:
 
 ```wl
-gauss = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 2 * SumTo[n] == n * (n + 1)], sums, {
+gauss = TypeTheoryProof[ForAll[{n}, 2 * SumTo[n] == n * (n + 1)], sums, {
     "Introduce"[n],
     "Induction"[n],
     "Reflexivity",
@@ -249,7 +232,7 @@ TypeTheoryTactic["PolynomialReduce"][gauss]
 `"Induction"` builds the recursor: the proof term of a proof by induction applies it:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
+proof = TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[n],
     "Induction"[n],
     "Reflexivity",
@@ -273,15 +256,15 @@ proof["Term"]
 Doubling, by recursion:
 
 ```wl
-double = TypeTheoryTerm[Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][Typed[t, Naturals] |-> Naturals, 0, {Typed[k, Naturals], Typed[r, Naturals]} |-> r + 2, n]]]
+double = TypeTheoryTerm[n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> r + 2, n]]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 2, n] -->
+<!-- => n ↦ ℕ_rec[ℕ &, 0, k r ↦ r + 2, n] -->
 
 At a successor of a variable the recursor takes a step, so the equation of the step holds by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, double[n + 1] == double[n] + 2], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, double[n + 1] == double[n] + 2], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -311,15 +294,15 @@ TypeTheoryType[InductiveRecursor[And]]
 Doubling, by recursion:
 
 ```wl
-double = TypeTheoryTerm[Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][Typed[t, Naturals] |-> Naturals, 0, {Typed[k, Naturals], Typed[r, Naturals]} |-> r + 2, n]]]
+double = TypeTheoryTerm[n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> r + 2, n]]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 2, n] -->
+<!-- => n ↦ ℕ_rec[ℕ &, 0, k r ↦ r + 2, n] -->
 
 At a variable the recursor does not reduce, so `double[n] == n + n` needs a proof by induction, not by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, double[n] == n + n], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, double[n] == n + n], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
@@ -345,7 +328,7 @@ WeakHeadNormalForm[TypeTheoryTerm[1000 + 1000]]
 A disjunction eliminates only into Prop, so a function cannot compute a number from a proof of one:
 
 ```wl
-TypeTheoryType[Function[{Typed[h, True || False]}, InductiveRecursor[Or][Typed[t, True || False] |-> Naturals, Typed[a, True] |-> 1, Typed[b, False] |-> 2, h]]]
+TypeTheoryType[Typed[h, True || False] |-> InductiveRecursor[Or][Naturals &, 1 &, 2 &, h]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

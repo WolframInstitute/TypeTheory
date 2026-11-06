@@ -80,10 +80,7 @@ An enumeration, the lights of a traffic light, and the light that follows each:
 ```wl
 lights = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[TrafficLight, TypeUniverse[1], {LightRed -> TrafficLight, LightAmber -> TrafficLight, LightGreen -> TrafficLight}],
-    TypeTheoryDefinition[NextLight, Typed[
-        Typed[l, TrafficLight] |-> InductiveRecursor[TrafficLight][Typed[t, TrafficLight] |-> TrafficLight, LightGreen, LightRed, LightAmber, l],
-        TypeSpecifier[{TrafficLight} -> TrafficLight]
-    ]]
+    TypeTheoryDefinition[NextLight, l |-> InductiveRecursor[TrafficLight][TrafficLight &, LightGreen, LightRed, LightAmber, l]]
 }]
 ```
 
@@ -100,7 +97,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NextLight[NextLight[LightRed]], lights]]
 Three steps come back to every light, by cases on the light:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, TrafficLight]}, NextLight[NextLight[NextLight[l]]] == l], lights, {"Introduce"[l], "Cases"[l], "Reflexivity", "Reflexivity", "Reflexivity"}]
+TypeTheoryProof[ForAll[{l}, NextLight[NextLight[NextLight[l]]] == l], lights, {"Introduce"[l], "Cases"[l], "Reflexivity", "Reflexivity", "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -274,17 +271,7 @@ TypeTheoryType[InductiveRecursor[Rose], roses]
 The sum of the labels of a tree, by that recursor:
 
 ```wl
-labelSums = Append[roses, TypeTheoryDefinition[LabelSum, Typed[
-    Typed[r, Rose] |-> InductiveRecursor[Rose][
-        Typed[t, Rose] |-> Naturals,
-        Typed[l, {Rose}] |-> Naturals,
-        {Typed[label, Naturals], Typed[children, {Rose}], Typed[s, Naturals]} |-> label + s,
-        0,
-        {Typed[x, Rose], Typed[l, {Rose}], Typed[a, Naturals], Typed[b, Naturals]} |-> a + b,
-        r
-    ],
-    TypeSpecifier[{Rose} -> Naturals]
-]]]
+labelSums = Append[roses, TypeTheoryDefinition[LabelSum, r |-> InductiveRecursor[Rose][Naturals &, Naturals &, {label, children, s} |-> label + s, 0, {x, l, a, b} |-> a + b, r]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 262 constants -->
@@ -362,15 +349,7 @@ mirrored = TypeTheoryEnvironment[{
         BinaryLeaf -> BinaryTree,
         BinaryNode -> ForAll[{Typed[left, BinaryTree], Typed[right, BinaryTree]}, BinaryTree]
     }],
-    TypeTheoryDefinition[Mirror, Typed[
-        Function[{Typed[tree, BinaryTree]}, InductiveRecursor[BinaryTree][
-            Function[{Typed[t, BinaryTree]}, BinaryTree],
-            BinaryLeaf,
-            Function[{Typed[left, BinaryTree], Typed[right, BinaryTree], Typed[l, BinaryTree], Typed[r, BinaryTree]}, BinaryNode[r, l]],
-            tree
-        ]],
-        TypeSpecifier[{BinaryTree} -> BinaryTree]
-    ]]
+    TypeTheoryDefinition[Mirror, tree |-> InductiveRecursor[BinaryTree][BinaryTree &, BinaryLeaf, {left, right, l, r} |-> BinaryNode[r, l], tree]]
 }]
 ```
 
@@ -387,7 +366,7 @@ NormalForm[TypeTheoryTerm[Mirror[BinaryNode[BinaryLeaf, BinaryNode[BinaryLeaf, B
 `"Induction"` gives a case for each constructor; in the case of a node, the goal computes to an equation of nodes, which the induction hypotheses rewrite:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[t, BinaryTree]}, Mirror[Mirror[t]] == t], mirrored, {
+TypeTheoryProof[ForAll[{t}, Mirror[Mirror[t]] == t], mirrored, {
     "Introduce"[t],
     "Induction"[t],
     "Reflexivity",
@@ -505,7 +484,7 @@ A proposition with two constructors eliminates only into propositions, so no fun
 ```wl
 TypeTheoryEnvironment[{
     TypeTheoryInductiveType[Hidden, TypeUniverse[0], {HiddenA -> Hidden, HiddenB -> Hidden}],
-    TypeTheoryDefinition[Reveal, Typed[Typed[h, Hidden] |-> InductiveRecursor[Hidden][Typed[t, Hidden] |-> Naturals, 0, 1, h], TypeSpecifier[{Hidden} -> Naturals]]]
+    TypeTheoryDefinition[Reveal, h |-> InductiveRecursor[Hidden][Naturals &, 0, 1, h]]
 }]
 ```
 

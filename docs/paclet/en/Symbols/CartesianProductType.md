@@ -105,7 +105,7 @@ NormalForm[TypeTheoryTerm[(Typed[p, CartesianProductType[Naturals, Booleans]] |-
 Each number of a list with its square:
 
 ```wl
-NormalForm[TypeTheoryTerm[Map[Typed[n, Naturals] |-> "pair"[n, n * n], {1, 2, 3}]]]
+NormalForm[TypeTheoryTerm[Map[n |-> "pair"[n, n * n], {1, 2, 3}]]]
 ```
 
 <!-- => {(1, 1), (2, 4), (3, 9)} -->
@@ -115,7 +115,7 @@ NormalForm[TypeTheoryTerm[Map[Typed[n, Naturals] |-> "pair"[n, n * n], {1, 2, 3}
 The recursor applies a function of two arguments to the fields:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[CartesianProductType][Typed[t, CartesianProductType[Naturals, Naturals]] |-> Naturals, {Typed[x, Naturals], Typed[y, Naturals]} |-> x * y, "pair"[6, 7]]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[CartesianProductType][Naturals &, {x, y} |-> x * y, "pair"[6, 7]]]]
 ```
 
 <!-- => 42 -->
@@ -135,15 +135,9 @@ TypeTheoryType[CartesianProductType[Naturals, TypeUniverse[1]]]
 The Fibonacci numbers, by a recursion that carries two consecutive numbers in a pair:
 
 ```wl
-fibonacci = TypeTheoryEnvironment[{TypeTheoryDefinition[Fibonacci, Typed[
-    Typed[n, Naturals] |-> InductiveRecursor[Naturals][
-        Typed[t, Naturals] |-> CartesianProductType[Naturals, Naturals],
-        "pair"[0, 1],
-        {Typed[k, Naturals], Typed[r, CartesianProductType[Naturals, Naturals]]} |-> "pair"[r[[2]], r[[1]] + r[[2]]],
-        n
-    ][[1]],
-    TypeSpecifier[{Naturals} -> Naturals]
-]]}]
+fibonacci = TypeTheoryEnvironment[{TypeTheoryDefinition[Fibonacci,
+    n |-> InductiveRecursor[Naturals][CartesianProductType[Naturals, Naturals] &, "pair"[0, 1], {k, r} |-> "pair"[r[[2]], r[[1]] + r[[2]]], n][[1]]
+]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->

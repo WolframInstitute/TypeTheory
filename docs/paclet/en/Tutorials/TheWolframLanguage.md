@@ -91,7 +91,7 @@ The last explicit binder of a function, if its type is `A...`, takes the argumen
 `A | B` is the type of a value of `A` or of `B`, as the pattern `_A | _B` matches either: the sum [DisjointUnionType]()`[A, B]`. Where a sum is expected, a value of either side is one, injected with no tag, as a Wolfram Language function returns a number or a string; a string, or a symbol that names nothing, is a value of the first side that takes it:
 
 ```wl
-TypeTheoryType[Typed[n, NonNegativeIntegers] |-> Typed[If[n == 0, "zero", n], NonNegativeIntegers | Strings]]
+TypeTheoryType[n |-> Typed[If[n == 0, "zero", n], NonNegativeIntegers | Strings]]
 ```
 
 <!-- => ℕ → (ℕ | Strings) -->
@@ -107,7 +107,7 @@ TypeTheoryType[Failure["DivideByZero", <|"Numerator" -> 7|>]]
 So a computation that may fail has a value of `A | Failure`, and [If]() picks the branch by the decision of its condition:
 
 ```wl
-TypeTheoryType[Typed[n, NonNegativeIntegers] |-> Typed[If[n == 0, Failure["Zero", <|"Value" -> n|>], n - 1], NonNegativeIntegers | Failure]]
+TypeTheoryType[n |-> Typed[If[n == 0, Failure["Zero", <|"Value" -> n|>], n - 1], NonNegativeIntegers | Failure]]
 ```
 
 <!-- => ℕ → (ℕ | Failure) -->
@@ -181,7 +181,7 @@ NormalForm[TypeTheoryTerm[Lookup[<|"apples" -> 3, "pears" -> 5|>, "plums"]]]
 The lookup of a key that is there gives its value, whatever the value is, which the kernel proves by computing:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Lookup[<|"apples" -> n, "pears" -> 5|>, "apples"] == Typed["left"[n], NonNegativeIntegers | Missing]], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, Lookup[<|"apples" -> n, "pears" -> 5|>, "apples"] == "left"[n]], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

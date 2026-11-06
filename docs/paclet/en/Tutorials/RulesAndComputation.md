@@ -45,7 +45,7 @@ TypeTheoryRules["MartinLofTypeTheory"]["Prop"]
 Under any rules, a definition unfolds to its value. Here is the prelude with a definition:
 
 ```wl
-double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]}]
+double = TypeTheoryEnvironment[{TypeTheoryDefinition[Double, n |-> n + n]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -61,7 +61,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Double[4], double]]
 A recursor applied to a constructor takes the case for that constructor, here the second case, for `true`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Typed[b, Booleans] |-> Naturals, 0, 1, True]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Naturals &, 0, 1, True]]]
 ```
 
 <!-- => 1 -->
@@ -78,9 +78,9 @@ The quotient types of Lean's kernel compute too: lifting a function to the class
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
-    Function[{Typed[k, Naturals]}, 7],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, True]}, "equalityReflexivity"[7]],
-    QuotientIntroduction[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> True, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]], 5]
+    7 &,
+    {a, b, e} |-> "equalityReflexivity"[7],
+    QuotientIntroduction[True &, 5]
 ]]]
 ```
 
@@ -110,7 +110,7 @@ With Prop, any two proofs of a proposition are equal by computation, so reflexiv
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]} |-> "equalityReflexivity"[p]],
+    TypeTheoryTerm[{p, q} |-> "equalityReflexivity"[p]],
     TypeTheoryTerm[ForAll[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]}, p == q]]
 ]
 ```
@@ -129,7 +129,7 @@ There, two paths from the base point of the circle to itself are not equal by co
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[{Typed[p, "circleBase" == "circleBase"], Typed[q, "circleBase" == "circleBase"]} |-> "equalityReflexivity"[p], hott],
+    TypeTheoryTerm[{p, q} |-> "equalityReflexivity"[p], hott],
     TypeTheoryTerm[ForAll[{Typed[p, "circleBase" == "circleBase"], Typed[q, "circleBase" == "circleBase"]}, p == q], hott]
 ]
 ```
@@ -166,7 +166,7 @@ quotientDeclarations = {
     TypeTheoryAxiom[ClassOf, ForAll[{TypedImplicit[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[a, A]}, Classes[r]]],
     TypeTheoryAxiom[ClassLift, ForAll[
         {TypedImplicit[A, TypeUniverse[u]], TypedImplicit[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], TypedImplicit[B, TypeUniverse[v]],
-            Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], f[a] == f[b]]]], Typed[q, Classes[r]]},
+            Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{a, b}, Implies[r[a, b], f[a] == f[b]]]], Typed[q, Classes[r]]},
         B
     ]],
     TypeTheoryAxiom[ClassSoundness, ForAll[
@@ -181,7 +181,7 @@ The computation rule:
 ```wl
 liftClass = TypeTheoryRewriteRule[ClassLiftComputes, ForAll[
     {Typed[A, TypeUniverse[u]], Typed[r, TypeSpecifier[{A, A} -> TypeUniverse[0]]], Typed[B, TypeUniverse[v]],
-        Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{Typed[a, A], Typed[b, A]}, Implies[r[a, b], f[a] == f[b]]]], Typed[a, A]},
+        Typed[f, TypeSpecifier[{A} -> B]], Typed[h, ForAll[{a, b}, Implies[r[a, b], f[a] == f[b]]]], Typed[a, A]},
     ClassLift[f, h, ClassOf[r, a]] -> f[a]
 ]];
 ```
@@ -287,7 +287,7 @@ flips = TypeTheoryEnvironment[rewriting, {
     TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
-    TypeTheoryRewriteRule[FlipAny, ForAll[{Typed[b, Bit]}, Flip[b] -> b]]
+    TypeTheoryRewriteRule[FlipAny, ForAll[{b}, Flip[b] -> b]]
 }]
 ```
 
@@ -304,7 +304,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Flip[BitZero], flips]]
 By the second, `Flip` is the identity:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[b, Bit] |-> Flip[b], flips], TypeTheoryTerm[Typed[b, Bit] |-> b, flips]]
+DefinitionallyEqualQ[TypeTheoryTerm[b |-> Flip[b], flips], TypeTheoryTerm[Typed[b, Bit] |-> b, flips]]
 ```
 
 <!-- => True -->
@@ -317,7 +317,7 @@ confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
     BitOne == BitZero,
     "equalityCongruence"[
         Function[{Typed[g, TypeSpecifier[{Bit} -> Bit]]}, g[BitZero]],
-        Typed["equalityReflexivity"[Typed[b, Bit] |-> b], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
+        Typed["equalityReflexivity"[b |-> b], (b |-> Flip[b]) == (b |-> b)]
     ]
 ]}]
 ```

@@ -51,7 +51,7 @@ TypeTheoryType["falseElimination"]
 [And]() is proved by `"andIntroduction"` and used by `"andEliminationLeft"` and `"andEliminationRight"`; a proof of a conjunction is a structure, so `h[[1]]` and `h[[2]]` are its two parts. Conjunction is commutative:
 
 ```wl
-TypeTheoryType[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p && q]} |-> "andIntroduction"[h[[2]], h[[1]]]]
+TypeTheoryType[{p, q, Typed[h, p && q]} |-> "andIntroduction"[h[[2]], h[[1]]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∧ q) ⇒ (q ∧ p) -->
@@ -67,14 +67,7 @@ TypeTheoryCheck[TypeTheoryTerm["andIntroduction"["trueIntroduction", "andIntrodu
 [Or]() is proved by `"orIntroductionLeft"` or `"orIntroductionRight"`, and used by its recursor, one case for each side. Disjunction is commutative too:
 
 ```wl
-TypeTheoryType[Function[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]], Typed[h, p || q]},
-    InductiveRecursor[Or][
-        Function[{Typed[t, p || q]}, q || p],
-        Function[{Typed[x, p]}, "orIntroductionRight"[x]],
-        Function[{Typed[y, q]}, "orIntroductionLeft"[y]],
-        h
-    ]
-]]
+TypeTheoryType[{p, q, Typed[h, p || q]} |-> InductiveRecursor[Or][q || p &, "orIntroductionRight"[#] &, "orIntroductionLeft"[#] &, h]]
 ```
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∨ q) ⇒ (q ∨ p) -->
@@ -90,7 +83,7 @@ TypeTheoryType["equivalentTransitivity"]
 [Exists]() is proved by `"existsIntroduction"` from a witness and a proof about it:
 
 ```wl
-TypeTheoryCheck[TypeTheoryTerm["existsIntroduction"[3, "equalityReflexivity"[6]]], TypeTheoryTerm[Exists[{Typed[n, Naturals]}, n + n == 6]]]
+TypeTheoryCheck[TypeTheoryTerm["existsIntroduction"[3, "equalityReflexivity"[6]]], TypeTheoryTerm[Exists[{n}, n + n == 6]]]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
@@ -136,17 +129,17 @@ DefinitionallyEqualQ[TypeTheoryTerm[Composition["successor", Identity][3]], Type
 The prelude has the quotient types of Lean's kernel, which [TypeTheoryQuotients]() declares: <code>[QuotientType]()[r]</code> is the type of the classes of a relation `r`, <code>[QuotientIntroduction]()[r, a]</code> is the class of `a`, [QuotientLift]() applies a function that respects `r` to a class, and [QuotientInduction]() proves a property of every class. Here is equality of natural numbers, as a relation:
 
 ```wl
-equalNaturals = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
+equalNaturals = TypeTheoryTerm[Typed[{m, n} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
 ```
 
-<!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
+<!-- => m n ↦ m == n ∶ ℕ → ℕ → Prop -->
 
 The successor respects it, so it lifts to the classes, and the lift computes on a class, as in Lean's kernel:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
-    Function[{Typed[k, Naturals]}, k + 1],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, "equalityCongruence"[Typed[k, Naturals] |-> k + 1, e]],
+    k |-> k + 1,
+    {a, b, Typed[e, a == b]} |-> "equalityCongruence"[k |-> k + 1, e],
     QuotientIntroduction[equalNaturals, 5]
 ]]]
 ```
@@ -222,9 +215,9 @@ The others are `"additionZeroRight"`, `"additionZeroLeft"`, `"additionSuccessorR
 A theorem applies like a function. Here `n * 2` computes to `0 + n + n`, and `"additionZeroLeft"` under `"equalityCongruence"` finishes a proof that doubling is adding:
 
 ```wl
-doubling = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n * 2 == n + n], {
+doubling = TypeTheoryProof[ForAll[{n}, n * 2 == n + n], {
     "Introduce"[n],
-    "Exact"["equalityCongruence"[Typed[x, Naturals] |-> x + n, "additionZeroLeft"[n]]]
+    "Exact"["equalityCongruence"[x |-> x + n, "additionZeroLeft"[n]]]
 }]
 ```
 
@@ -295,9 +288,7 @@ TypeTheoryType[Typed[True, Booleans] == False]
 A statement about every Boolean is proved by cases, with the recursor of [Booleans]():
 
 ```wl
-TypeTheoryType[Function[{Typed[b, Booleans]},
-    InductiveRecursor[Booleans][Typed[t, Booleans] |-> Not[Not[t]] == t, "equalityReflexivity"[False], "equalityReflexivity"[True], b]
-]]
+TypeTheoryType[b |-> InductiveRecursor[Booleans][t |-> Not[Not[t]] == t, "equalityReflexivity"[False], "equalityReflexivity"[True], b]]
 ```
 
 <!-- => ∀_b∶𝔹 !!b == b -->
@@ -369,7 +360,7 @@ lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}
 The prelude's three axioms are those of Lean's library. `"propositionalExtensionality"` makes equivalent propositions equal:
 
 ```wl
-TypeTheoryType["propositionalExtensionality"["equivalentIntroduction"[Typed[h, True] |-> "andIntroduction"[h, h], Typed[h, True && True] |-> "andEliminationLeft"[h]]]]
+TypeTheoryType["propositionalExtensionality"["equivalentIntroduction"[Typed[h, True] |-> "andIntroduction"[h, h], h |-> "andEliminationLeft"[h]]]]
 ```
 
 <!-- => True == (True ∧ True) -->
@@ -393,7 +384,7 @@ WeakHeadNormalForm[TypeTheoryTerm["choice"["nonempty"[3]]]]
 A proof of an existential statement cannot be taken apart to give its witness as data. [ChosenWitness]() chooses one instead, an element of a [Subtype]() that holds a witness and its proof, and `"chosenWitnessProperty"` proves that the witness has the property:
 
 ```wl
-TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> "chosenWitnessProperty"[h]]
+TypeTheoryType[Typed[h, Exists[n |-> n + n == 6]] |-> "chosenWitnessProperty"[h]]
 ```
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->
@@ -409,13 +400,11 @@ TypeTheoryType["excludedMiddle"]
 So every proposition is [True]() or [False](), by cases on the excluded middle and propositional extensionality:
 
 ```wl
-TypeTheoryType[Function[{Typed[p, TypeUniverse[0]]},
-    InductiveRecursor[Or][
-        Function[{Typed[t, p || Not[p]]}, p == True || p == False],
-        Function[{Typed[h, p]}, "orIntroductionLeft"["propositionalExtensionality"["equivalentIntroduction"[Typed[k, p] |-> "trueIntroduction", Typed[k, True] |-> h]]]],
-        Function[{Typed[h, Not[p]]}, "orIntroductionRight"["propositionalExtensionality"["equivalentIntroduction"[h, Typed[k, False] |-> "falseElimination"[k]]]]],
-        "excludedMiddle"[p]
-    ]
+TypeTheoryType[Typed[p, TypeUniverse[0]] |-> InductiveRecursor[Or][
+    p == True || p == False &,
+    h |-> "orIntroductionLeft"["propositionalExtensionality"["equivalentIntroduction"[k |-> "trueIntroduction", k |-> h]]],
+    h |-> "orIntroductionRight"["propositionalExtensionality"["equivalentIntroduction"[h, k |-> "falseElimination"[k]]]],
+    "excludedMiddle"[p]
 ]]
 ```
 
@@ -452,7 +441,7 @@ KeyExistsQ[constructive, "excludedMiddle"]
 Whatever is proved in it uses no axiom. Other axioms can be assumed there with [TypeTheoryAxiom](), such as the excluded middle without choice:
 
 ```wl
-excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
+excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom["excludedMiddle", ForAll[{p}, Or[p, Not[p]]]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 156 constants -->

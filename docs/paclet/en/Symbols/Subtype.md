@@ -39,7 +39,7 @@ TypeTheoryType[Subtype]
 The number 4 with a proof that it is at least 2, by computing the decision of `2 <= 4`:
 
 ```wl
-TypeTheoryType[Typed["subtype"[4, "decideSoundness"["equalityReflexivity"["true"]]], Subtype[Typed[n, Naturals] |-> 2 <= n]]]
+TypeTheoryType[Typed["subtype"[4, "decideSoundness"["equalityReflexivity"["true"]]], Subtype[n |-> 2 <= n]]]
 ```
 
 <!-- => {n ∶ ℕ // 2 <= n} -->
@@ -49,7 +49,7 @@ TypeTheoryType[Typed["subtype"[4, "decideSoundness"["equalityReflexivity"["true"
 The second field of an element proves the property of the first:
 
 ```wl
-TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[2]]]
+TypeTheoryType[Typed[s, Subtype[n |-> 2 <= n]] |-> s[[2]]]
 ```
 
 <!-- => ∀_s∶{n∶ℕ // 2 <= n} 2 <= s[[1]] -->
@@ -59,7 +59,7 @@ TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[2]]]
 The first field of an element computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed["subtype"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Subtype[Typed[n, Naturals] |-> 2 <= n]][[1]]]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed["subtype"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Subtype[n |-> 2 <= n]][[1]]]]
 ```
 
 <!-- => 4 -->
@@ -69,7 +69,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["subtype"[4, "lessEqualStep"["lessEqualS
 The first field is a number, so arithmetic applies to it:
 
 ```wl
-TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[1]] + 1]
+TypeTheoryType[Typed[s, Subtype[n |-> 2 <= n]] |-> s[[1]] + 1]
 ```
 
 <!-- => {n ∶ ℕ // 2 <= n} → ℕ -->
@@ -79,7 +79,7 @@ TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s[[1]] + 1]
 The property of an element proves others, here that it is at least 1, with `"lessEqualTransitivity"`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]]}, 1 <= s[[1]]], {
+TypeTheoryProof[ForAll[{Typed[s, Subtype[n |-> 2 <= n]]}, 1 <= s[[1]]], {
     "Introduce"[s],
     "Exact"["lessEqualTransitivity"["lessEqualStep"["lessEqualReflexivity"], s[[2]]]]
 }]
@@ -112,7 +112,7 @@ TypeTheoryType[Subtype[Typed[h, True] |-> True]]
 An option of an element of a subtype, here the number 3 with the proof that its double is 6:
 
 ```wl
-TypeTheoryType[Typed["some"["subtype"[3, "equalityReflexivity"[6]]], Option[Subtype[Typed[n, Naturals] |-> n + n == 6]]]]
+TypeTheoryType[Typed["some"["subtype"[3, "equalityReflexivity"[6]]], Option[Subtype[n |-> n + n == 6]]]]
 ```
 
 <!-- => Option[{n ∶ ℕ // n + n == 6}] -->
@@ -123,8 +123,8 @@ The even numbers, each made with its half as the witness of its property:
 
 ```wl
 evens = TypeTheoryEnvironment[{TypeTheoryDefinition[EvenNumber, Typed[
-    Typed[j, Naturals] |-> "subtype"[j + j, "existsIntroduction"[j, "equalityReflexivity"[j + j]]],
-    TypeSpecifier[{Naturals} -> Subtype[Typed[n, Naturals] |-> Exists[{Typed[k, Naturals]}, k + k == n]]]
+    j |-> "subtype"[j + j, "existsIntroduction"[j, "equalityReflexivity"[j + j]]],
+    TypeSpecifier[{Naturals} -> Subtype[n |-> Exists[{k}, k + k == n]]]
 ]]}]
 ```
 
@@ -152,8 +152,8 @@ Two elements with the same number are equal, whatever their proofs, here one by 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed["subtype"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Subtype[Typed[n, Naturals] |-> 2 <= n]]],
-    TypeTheoryTerm[Typed["subtype"[4, "decideSoundness"["equalityReflexivity"["true"]]], Subtype[Typed[n, Naturals] |-> 2 <= n]]]
+    TypeTheoryTerm[Typed["subtype"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Subtype[n |-> 2 <= n]]],
+    TypeTheoryTerm[Typed["subtype"[4, "decideSoundness"["equalityReflexivity"["true"]]], Subtype[n |-> 2 <= n]]]
 ]
 ```
 
@@ -164,7 +164,7 @@ DefinitionallyEqualQ[
 An element is its two fields, by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]]}, s == "subtype"[s[[1]], s[[2]]]], {"Introduce"[s], "Reflexivity"}]
+TypeTheoryProof[ForAll[{Typed[s, Subtype[n |-> 2 <= n]]}, s == "subtype"[s[[1]], s[[2]]]], {"Introduce"[s], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -174,7 +174,7 @@ TypeTheoryProof[ForAll[{Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]]}, s == 
 A subtype is data, in `Type`:
 
 ```wl
-TypeTheoryType[Subtype[Typed[n, Naturals] |-> 2 <= n]]
+TypeTheoryType[Subtype[n |-> 2 <= n]]
 ```
 
 <!-- => Type -->
@@ -182,7 +182,7 @@ TypeTheoryType[Subtype[Typed[n, Naturals] |-> 2 <= n]]
 The existence of such a number is a proposition, in Prop:
 
 ```wl
-TypeTheoryType[Exists[Typed[n, Naturals] |-> 2 <= n]]
+TypeTheoryType[Exists[n |-> 2 <= n]]
 ```
 
 <!-- => Prop -->
@@ -202,7 +202,7 @@ TypeTheoryEnvironment["Prelude"][ChosenWitness]
 An element is not its number: [Plus]() takes the first field, `s[[1]]`, not `s`:
 
 ```wl
-TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s + 1]
+TypeTheoryType[Typed[s, Subtype[n |-> 2 <= n]] |-> s + 1]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -212,7 +212,7 @@ TypeTheoryType[Typed[s, Subtype[Typed[n, Naturals] |-> 2 <= n]] |-> s + 1]
 A proof of the property of another number is rejected: the decision of `2 <= 1` computes to `"false"`:
 
 ```wl
-TypeTheoryType[Typed["subtype"[1, "decideSoundness"["equalityReflexivity"["true"]]], Subtype[Typed[n, Naturals] |-> 2 <= n]]]
+TypeTheoryType[Typed["subtype"[1, "decideSoundness"["equalityReflexivity"["true"]]], Subtype[n |-> 2 <= n]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -222,11 +222,7 @@ TypeTheoryType[Typed["subtype"[1, "decideSoundness"["equalityReflexivity"["true"
 A proof of an existential statement eliminates only into propositions, so it does not give an element of a [Subtype](); [ChosenWitness]() chooses one instead:
 
 ```wl
-TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> InductiveRecursor[Exists][
-    Typed[t, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> Subtype[Typed[n, Naturals] |-> n + n == 6],
-    {Typed[w, Naturals], Typed[k, w + w == 6]} |-> "subtype"[w, k],
-    h
-]]
+TypeTheoryType[Typed[h, Exists[n |-> n + n == 6]] |-> InductiveRecursor[Exists][Subtype[n |-> n + n == 6] &, {w, k} |-> "subtype"[w, k], h]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

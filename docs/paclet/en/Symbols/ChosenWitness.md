@@ -37,7 +37,7 @@ TypeTheoryType[ChosenWitness]
 A number whose double is 6, from a proof that there is one:
 
 ```wl
-TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWitness[h]]
+TypeTheoryType[Typed[h, Exists[n |-> n + n == 6]] |-> ChosenWitness[h]]
 ```
 
 <!-- => (∃_n∶ℕ n + n == 6) → ℕ -->
@@ -47,7 +47,7 @@ TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> ChosenWit
 `"chosenWitnessProperty"` proves that the number chosen has the property:
 
 ```wl
-TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> "chosenWitnessProperty"[h]]
+TypeTheoryType[Typed[h, Exists[n |-> n + n == 6]] |-> "chosenWitnessProperty"[h]]
 ```
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->
@@ -57,7 +57,7 @@ TypeTheoryType[Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]] |-> "chosenWi
 A witness chosen from a proof made with 3; [Typed]() gives the property, which the proof alone does not determine:
 
 ```wl
-TypeTheoryType[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]
+TypeTheoryType[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[n |-> n + n == 6]]]]
 ```
 
 <!-- => ℕ -->
@@ -77,7 +77,7 @@ TypeTheoryType["chosenWitnessProperty"]
 A proof that uses the property of the chosen witness:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]]}, ChosenWitness[h] + ChosenWitness[h] == 6], {
+TypeTheoryProof[ForAll[{Typed[h, Exists[n |-> n + n == 6]]}, ChosenWitness[h] + ChosenWitness[h] == 6], {
     "Introduce"[h],
     "Exact"["chosenWitnessProperty"[h]]
 }]
@@ -90,7 +90,7 @@ TypeTheoryProof[ForAll[{Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]]}, Ch
 A function defined by choice: half of a number, given a proof that it has a half:
 
 ```wl
-halves = TypeTheoryEnvironment[{TypeTheoryDefinition[Half, {Typed[n, Naturals], Typed[h, Exists[Typed[k, Naturals] |-> k + k == n]]} |-> ChosenWitness[h]]}]
+halves = TypeTheoryEnvironment[{TypeTheoryDefinition[Half, {n, Typed[h, Exists[k |-> k + k == n]]} |-> ChosenWitness[h]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -106,7 +106,7 @@ halves[Half]
 Twice the half is the number, by the property of the witness, since `Half` unfolds to it:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals], Typed[h, Exists[Typed[k, Naturals] |-> k + k == n]]}, Half[n, h] + Half[n, h] == n], halves, {
+TypeTheoryProof[ForAll[{n, Typed[h, Exists[k |-> k + k == n]]}, Half[n, h] + Half[n, h] == n], halves, {
     "Introduce"[n, h],
     "Exact"["chosenWitnessProperty"[h]]
 }]
@@ -120,8 +120,8 @@ The witness does not depend on the proof: proofs made with 2 and with 4 give the
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[2, "lessEqualReflexivity"], Exists[Typed[n, Naturals] |-> 2 <= n]]]],
-    TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Exists[Typed[n, Naturals] |-> 2 <= n]]]]
+    TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[2, "lessEqualReflexivity"], Exists[n |-> 2 <= n]]]],
+    TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[4, "lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], Exists[n |-> 2 <= n]]]]
 ]
 ```
 
@@ -152,7 +152,7 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[ChosenWitness]]
 It does not compute, so even from a proof made with 3 the chosen number is not 3 by computation:
 
 ```wl
-TypeTheoryProof[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]] == 3, {"Reflexivity"}]
+TypeTheoryProof[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[n |-> n + n == 6]]] == 3, {"Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
@@ -162,7 +162,7 @@ TypeTheoryProof[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity
 Computation stops at `"choice"`, an axiom:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[Typed[n, Naturals] |-> n + n == 6]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[n |-> n + n == 6]]]]]
 ```
 
 <!-- => choice[Exists_rec[(t ∶ ∃_n∶ℕ n + n == 6) ↦ Nonempty[{n ∶ ℕ // n + n == 6}], (w ∶ ℕ) (k ∶ ((n ∶ ℕ) ↦ n + n == 6)[w]) ↦ nonempty[subtype[w, k]], existsIntroduction[3, equalityReflexivity[6]]]][[1]] -->

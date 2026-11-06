@@ -37,10 +37,10 @@ TypeTheoryType[statement]
 
 <!-- => Prop -->
 
-The type of a function from natural numbers to natural numbers:
+A variable needs no type where something else gives it, here the arithmetic, which is on the natural numbers unless something says otherwise. The type of a function from natural numbers to natural numbers:
 
 ```wl
-TypeTheoryType[Typed[n, Naturals] |-> n + n]
+TypeTheoryType[n |-> n + n]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -50,7 +50,7 @@ TypeTheoryType[Typed[n, Naturals] |-> n + n]
 Terms compute. [WeakHeadNormalForm]() applies the function to its argument and adds the literals:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, Naturals]}, n + n][21]]]
+WeakHeadNormalForm[TypeTheoryTerm[(n |-> n + n)[21]]]
 ```
 
 <!-- => 42 -->
@@ -59,7 +59,7 @@ Addition is defined by recursion on its second argument, so `n + 0` computes to 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed[n, Naturals] |-> n + 0],
+    TypeTheoryTerm[n |-> n + 0],
     TypeTheoryTerm[Typed[n, Naturals] |-> n]
 ]
 ```
@@ -70,7 +70,7 @@ But `0 + n` is stuck: the recursion has nothing to work on until `n` is known. E
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed[n, Naturals] |-> 0 + n],
+    TypeTheoryTerm[n |-> 0 + n],
     TypeTheoryTerm[Typed[n, Naturals] |-> n]
 ]
 ```
@@ -106,7 +106,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity
 [Append]() adds a declaration to an environment:
 
 ```wl
-doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]]
+doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->
@@ -165,10 +165,10 @@ To show a term, TypeTheory builds that expression, with its parts already shown,
 
 ```wl
 MakeBoxes[Doubled[n_], form_] := MakeBoxes[CenterDot[2, n], form];
-TypeTheoryTerm[Typed[n, Naturals] |-> Doubled[n + 1] == n + n + 2, doubled]
+TypeTheoryTerm[n |-> Doubled[n + 1] == n + n + 2, doubled]
 ```
 
-<!-- => (n ∶ ℕ) ↦ 2·(n + 1) == n + n + 2 -->
+<!-- => n ↦ 2·(n + 1) == n + n + 2 -->
 
 [Format]() gives the constant on its own a display, as here in its declaration:
 
@@ -208,18 +208,10 @@ TypeTheoryType[InductiveRecursor[BinaryTree], trees]
 
 <!-- => ∀_m∶BinaryTree → Sort u m[BinaryLeaf] → (∀_left∶BinaryTree ∀_right∶BinaryTree m[left] → m[right] → m[BinaryNode[left, right]]) → ∀_t∶BinaryTree m[t] -->
 
-Counting the nodes of a tree: a leaf has one, and a node one more than its two subtrees together:
+Counting the nodes of a tree: a leaf has one, and a node one more than its two subtrees together. The recursor gives every type: the motive `Naturals &` says the count is a natural number, and the cases take their variables, the subtrees `left` and `right` and their counts `l` and `r`, from it:
 
 ```wl
-trees = Append[trees, TypeTheoryDefinition[NodeCount, Typed[
-    Function[{Typed[tree, BinaryTree]}, InductiveRecursor[BinaryTree][
-        Function[{Typed[t, BinaryTree]}, Naturals],
-        1,
-        Function[{Typed[left, BinaryTree], Typed[right, BinaryTree], Typed[l, Naturals], Typed[r, Naturals]}, l + r + 1],
-        tree
-    ]],
-    TypeSpecifier[{BinaryTree} -> Naturals]
-]]]
+trees = Append[trees, TypeTheoryDefinition[NodeCount, tree |-> InductiveRecursor[BinaryTree][Naturals &, 1, {left, right, l, r} |-> l + r + 1, tree]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 262 constants -->
@@ -237,7 +229,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NodeCount[BinaryNode[BinaryLeaf, BinaryNode[Bi
 Now for `0 + n == n`. [TypeTheoryProof]() starts a proof with the statement as its one goal:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n]]
+proof = TypeTheoryProof[ForAll[{n}, 0 + n == n]]
 ```
 
 <!-- => Proof, 1 goal: ⊢ ∀_n∶ℕ 0 + n == n -->

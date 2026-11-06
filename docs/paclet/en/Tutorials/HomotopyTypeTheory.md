@@ -141,7 +141,7 @@ hott["circleInductionBase"]
 So induction on the base point computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Typed[x, Circle] |-> Booleans, True, "transportConstant"["circleLoop", True], "circleBase"], hott]]
+WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Booleans &, True, "transportConstant"["circleLoop", True], "circleBase"], hott]]
 ```
 
 <!-- => true -->

@@ -34,7 +34,7 @@ RelatedTutorials: [InstancesAndCoercions, TypeTheoryIntroduction]
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -68,9 +68,7 @@ doubled[Double]
 A definition by recursion, through the recursor of the natural numbers: the factorial is 1 at 0, and `(k + 1) r` at `k + 1` where `r` is its value at `k`:
 
 ```wl
-factorial = TypeTheoryEnvironment[{TypeTheoryDefinition[NaturalFactorial, Typed[n, Naturals] |->
-    InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> (k + 1) r, n]
-]}]
+factorial = TypeTheoryEnvironment[{TypeTheoryDefinition[NaturalFactorial, n |-> InductiveRecursor[Naturals][Naturals &, 1, {k, r} |-> (k + 1) r, n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -88,9 +86,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalFactorial[20], factorial]]
 A recursive definition and a theorem about it. The factorial:
 
 ```wl
-factorial = TypeTheoryEnvironment[{TypeTheoryDefinition[NaturalFactorial, Typed[n, Naturals] |->
-    InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> (k + 1) r, n]
-]}]
+factorial = TypeTheoryEnvironment[{TypeTheoryDefinition[NaturalFactorial, n |-> InductiveRecursor[Naturals][Naturals &, 1, {k, r} |-> (k + 1) r, n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -99,7 +95,7 @@ Its recursion equation holds by computation, so reflexivity proves it for every 
 
 ```wl
 recursion = TypeTheoryEnvironment[factorial, {TypeTheoryTheorem[FactorialSuccessor, TypeTheoryProof[
-    ForAll[{Typed[n, Naturals]}, NaturalFactorial[n + 1] == (n + 1) NaturalFactorial[n]],
+    ForAll[{n}, NaturalFactorial[n + 1] == (n + 1) NaturalFactorial[n]],
     factorial,
     {"Introduce"[n], "Reflexivity"}
 ]]}]
@@ -120,7 +116,7 @@ recursion[FactorialSuccessor]
 A predicate, the even numbers, defined by an existential statement:
 
 ```wl
-even = TypeTheoryEnvironment[{TypeTheoryDefinition[EvenNumber, Typed[n, Naturals] |-> Exists[{Typed[k, Naturals]}, n == k + k]]}]
+even = TypeTheoryEnvironment[{TypeTheoryDefinition[EvenNumber, n |-> Exists[{k}, n == k + k]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -147,8 +143,8 @@ A definition may use those before it:
 
 ```wl
 quadrupled = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n],
-    TypeTheoryDefinition[Quadruple, Typed[n, Naturals] |-> Double[Double[n]]]
+    TypeTheoryDefinition[Double, n |-> n + n],
+    TypeTheoryDefinition[Quadruple, n |-> Double[Double[n]]]
 }]
 ```
 
@@ -231,7 +227,7 @@ composite = TypeTheoryEnvironment[TypeTheoryDefinition[Composite,
 Doubling after adding one, at 4:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Composite[Typed[n, Naturals] |-> n + n, Typed[n, Naturals] |-> n + 1, 4], composite]]
+WeakHeadNormalForm[TypeTheoryTerm[Composite[# + # &, # + 1 &, 4], composite]]
 ```
 
 <!-- => 10 -->
@@ -240,10 +236,10 @@ WeakHeadNormalForm[TypeTheoryTerm[Composite[Typed[n, Naturals] |-> n + n, Typed[
 
 ```wl
 MakeBoxes[Composite[g_, f_, x_], form_] := MakeBoxes[SmallCircle[g, f][x], form];
-TypeTheoryTerm[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[n, Naturals]} |-> Composite[f, f, n], composite]
+TypeTheoryTerm[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], n} |-> Composite[f, f, n], composite]
 ```
 
-<!-- => (f ∶ ℕ → ℕ) (n ∶ ℕ) ↦ (f∘f)[n] -->
+<!-- => (f ∶ ℕ → ℕ) n ↦ (f∘f)[n] -->
 
 ## Options
 
@@ -256,7 +252,7 @@ monoids = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[Monoid, ForAll[{Typed[A, TypeUniverse[1]]}, TypeUniverse[1]], {
         MonoidIntroduction -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[unit, A], Typed[op, TypeSpecifier[{A, A} -> A]]}, Monoid[A]]
     }],
-    TypeTheoryDefinition[MonoidOperation, {TypedImplicit[A, TypeUniverse[1]], Annotation[Typed[m, Monoid[A]], "InstanceImplicit"], Typed[x, A], Typed[y, A]} |-> m[[2]][x, y]],
+    TypeTheoryDefinition[MonoidOperation, {TypedImplicit[A, TypeUniverse[1]], Annotation[Typed[m, Monoid[A]], "InstanceImplicit"], x, y} |-> m[[2]][x, y]],
     TypeTheoryDefinition[AdditiveNaturals, Typed[MonoidIntroduction[0, Plus], Monoid[Naturals]], "Instance" -> True]
 }]
 ```
@@ -285,7 +281,7 @@ A coercion from the Booleans to the natural numbers, true as 1:
 
 ```wl
 coerced = TypeTheoryEnvironment[
-    TypeTheoryDefinition[NaturalOfBoolean, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> Naturals, 0, 1, b], "Coercion" -> True]
+    TypeTheoryDefinition[NaturalOfBoolean, b |-> InductiveRecursor[Booleans][Naturals &, 0, 1, b], "Coercion" -> True]
 ]
 ```
 
@@ -313,14 +309,14 @@ The declaration shows as a coercion:
 coerced[NaturalOfBoolean]
 ```
 
-<!-- => coercion NaturalOfBoolean : 𝔹 → ℕ := (b ∶ 𝔹) ↦ 𝔹_rec[(t ∶ 𝔹) ↦ ℕ, 0, 1, b] -->
+<!-- => coercion NaturalOfBoolean : 𝔹 → ℕ := (b ∶ 𝔹) ↦ 𝔹_rec[(#1 ∶ 𝔹) ↦ ℕ, 0, 1, b] -->
 
 ### Opaque
 
 An opaque definition, whose value the kernel checks:
 
 ```wl
-secret = TypeTheoryEnvironment[TypeTheoryDefinition[Secret, Typed[42, Naturals], "Opaque" -> True]]
+secret = TypeTheoryEnvironment[TypeTheoryDefinition[Secret, 42, "Opaque" -> True]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -387,7 +383,7 @@ TypeTheoryEnvironment[
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -395,7 +391,7 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] 
 A definition unfolds, so it is equal by computation to its value:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> Double[n], doubled], TypeTheoryTerm[Typed[n, Naturals] |-> n + n, doubled]]
+DefinitionallyEqualQ[TypeTheoryTerm[n |-> Double[n], doubled], TypeTheoryTerm[n |-> n + n, doubled]]
 ```
 
 <!-- => True -->
@@ -405,7 +401,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> Double[n], doubled], 
 A definition rests on no axiom:
 
 ```wl
-TypeTheoryAxiomClosure[TypeTheoryTerm[Answer, TypeTheoryEnvironment[TypeTheoryDefinition[Answer, Typed[42, Naturals]]]]]
+TypeTheoryAxiomClosure[TypeTheoryTerm[Answer, TypeTheoryEnvironment[TypeTheoryDefinition[Answer, 42]]]]
 ```
 
 <!-- => <||> -->
@@ -426,7 +422,7 @@ A definition cannot refer to itself; recursion goes through a recursor:
 
 ```wl
 TypeTheoryEnvironment[
-    TypeTheoryDefinition[Loop, Typed[Typed[n, Naturals] |-> Loop[n], TypeSpecifier[{Naturals} -> Naturals]]]
+    TypeTheoryDefinition[Loop, Typed[n |-> Loop[n], TypeSpecifier[{Naturals} -> Naturals]]]
 ]
 ```
 
@@ -448,7 +444,7 @@ An opaque definition equals only itself, so a proof that needs its value does no
 
 ```wl
 Append[
-    TypeTheoryEnvironment[TypeTheoryDefinition[Secret, Typed[42, Naturals], "Opaque" -> True]],
+    TypeTheoryEnvironment[TypeTheoryDefinition[Secret, 42, "Opaque" -> True]],
     TypeTheoryTheorem[SecretValue, Secret == 42, "equalityReflexivity"[42]]
 ]
 ```
@@ -460,7 +456,7 @@ Append[
 A coercion must be a function:
 
 ```wl
-TypeTheoryEnvironment[TypeTheoryDefinition[NotACoercion, Typed[0, Naturals], "Coercion" -> True]]
+TypeTheoryEnvironment[TypeTheoryDefinition[NotACoercion, 0, "Coercion" -> True]]
 ```
 
 <!-- => Failure["CoercionTypeExpected", ...] -->
@@ -474,7 +470,7 @@ monoids = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[Monoid, ForAll[{Typed[A, TypeUniverse[1]]}, TypeUniverse[1]], {
         MonoidIntroduction -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[unit, A], Typed[op, TypeSpecifier[{A, A} -> A]]}, Monoid[A]]
     }],
-    TypeTheoryDefinition[MonoidOperation, {TypedImplicit[A, TypeUniverse[1]], Annotation[Typed[m, Monoid[A]], "InstanceImplicit"], Typed[x, A], Typed[y, A]} |-> m[[2]][x, y]],
+    TypeTheoryDefinition[MonoidOperation, {TypedImplicit[A, TypeUniverse[1]], Annotation[Typed[m, Monoid[A]], "InstanceImplicit"], x, y} |-> m[[2]][x, y]],
     TypeTheoryDefinition[AdditiveNaturals, Typed[MonoidIntroduction[0, Plus], Monoid[Naturals]], "Instance" -> True]
 }]
 ```

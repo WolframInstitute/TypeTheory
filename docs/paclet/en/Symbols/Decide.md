@@ -101,7 +101,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide["true" == "not"["false"]]]]
 A definition of an environment's own unfolds to a proposition with a decision:
 
 ```wl
-zeros = TypeTheoryEnvironment[TypeTheoryDefinition[IsZero, Typed[n, Naturals] |-> n == 0]]
+zeros = TypeTheoryEnvironment[TypeTheoryDefinition[IsZero, n |-> n == 0]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -119,7 +119,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[IsZero[0]], zeros]]
 Under a binder, the decision computes where it does not depend on the variable; a successor is never 0:
 
 ```wl
-NormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> Decide[n + 1 == 0]]]
+NormalForm[TypeTheoryTerm[n |-> Decide[n + 1 == 0]]]
 ```
 
 <!-- => (n ∶ ℕ) ↦ false -->
@@ -139,7 +139,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Construct[Decide, 3 <= 2, "lessEqualDecidable"
 A function of a proposition that has a decision takes the decision as an instance-implicit argument:
 
 ```wl
-TypeTheoryType[{Typed[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]} |-> Decide[Not[p]]]
+TypeTheoryType[{p, Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]} |-> Decide[Not[p]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_[d∶Decidable[p]] 𝔹 -->
@@ -150,7 +150,7 @@ The larger of two numbers, chosen by the decision of `m <= n`:
 
 ```wl
 larger = TypeTheoryEnvironment[TypeTheoryDefinition[Larger,
-    {Typed[m, Naturals], Typed[n, Naturals]} |-> InductiveRecursor[Booleans][Typed[b, Booleans] |-> Naturals, m, n, Decide[m <= n]]
+    {m, n} |-> InductiveRecursor[Booleans][Naturals &, m, n, Decide[m <= n]]
 ]]
 ```
 
@@ -175,7 +175,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Larger[9, 4], larger]]
 `0 <= n` is decided true for every `n`, so the larger of 0 and `n` is `n` by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Larger[0, n] == n], larger, {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, Larger[0, n] == n], larger, {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -253,7 +253,7 @@ TypeTheoryType[Decide[ForAll[{Typed[n, Naturals]}, n == n]]]
 A proposition variable has no decision unless an instance-implicit argument gives one:
 
 ```wl
-TypeTheoryType[Typed[p, TypeUniverse[0]] |-> Decide[p]]
+TypeTheoryType[p |-> Decide[p]]
 ```
 
 <!-- => Failure["UnsolvedImplicitArgument", ...] -->
@@ -263,7 +263,7 @@ TypeTheoryType[Typed[p, TypeUniverse[0]] |-> Decide[p]]
 The decision of `n <= n + 1` depends on `n`, so it does not compute:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Decide[n <= n + 1] == "true"], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, Decide[n <= n + 1] == "true"], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
@@ -274,7 +274,7 @@ A definition by [Decide]() computes only where the decision does:
 
 ```wl
 larger = TypeTheoryEnvironment[TypeTheoryDefinition[Larger,
-    {Typed[m, Naturals], Typed[n, Naturals]} |-> InductiveRecursor[Booleans][Typed[b, Booleans] |-> Naturals, m, n, Decide[m <= n]]
+    {m, n} |-> InductiveRecursor[Booleans][Naturals &, m, n, Decide[m <= n]]
 ]]
 ```
 
@@ -283,7 +283,7 @@ larger = TypeTheoryEnvironment[TypeTheoryDefinition[Larger,
 The larger of `n` and `n + 1` is `n + 1`, but not by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Larger[n, n + 1] == n + 1], larger, {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, Larger[n, n + 1] == n + 1], larger, {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

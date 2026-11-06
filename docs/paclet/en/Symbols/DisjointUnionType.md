@@ -121,15 +121,9 @@ TypeTheoryTerm[CartesianProductType[Naturals, DisjointUnionType[Naturals, Boolea
 A function defined by cases on the side, with the recursor of [DisjointUnionType](): a number stays as it is, and a Boolean counts as 0 or 1:
 
 ```wl
-counts = TypeTheoryEnvironment[{TypeTheoryDefinition[AsNumber, Typed[
-    Typed[s, DisjointUnionType[Naturals, Booleans]] |-> InductiveRecursor[DisjointUnionType][
-        Typed[t, DisjointUnionType[Naturals, Booleans]] |-> Naturals,
-        Typed[n, Naturals] |-> n,
-        Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[c, Booleans] |-> Naturals, 0, 1, b],
-        s
-    ],
-    TypeSpecifier[{DisjointUnionType[Naturals, Booleans]} -> Naturals]
-]]}]
+counts = TypeTheoryEnvironment[{TypeTheoryDefinition[AsNumber,
+    s |-> InductiveRecursor[DisjointUnionType][Naturals &, n |-> n, b |-> InductiveRecursor[Booleans][Naturals &, 0, 1, b], s]
+]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -163,7 +157,7 @@ NormalForm[TypeTheoryTerm[Map[AsNumber, {"left"[3], "right"["true"], "left"[4]}]
 Every element is on one side: `"Cases"` gives a goal for each, which `"orIntroductionLeft"` and `"orIntroductionRight"` prove:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exists[{Typed[n, Naturals]}, s == "left"[n]], Exists[{Typed[b, Booleans]}, s == "right"[b]]]], {
+TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exists[{n}, s == "left"[n]], Exists[{b}, s == "right"[b]]]], {
     "Introduce"[s],
     "Cases"[s],
     "Introduce"[n],
@@ -180,12 +174,10 @@ TypeTheoryProof[ForAll[{Typed[s, DisjointUnionType[Naturals, Booleans]]}, Or[Exi
 No element is on both sides: the recursor of [Equal]() carries a proof of [True]() along the equation to the proposition that is [True]() on the left and [False]() on the right:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals], Typed[b, Booleans]}, Not[Typed["left"[n], DisjointUnionType[Naturals, Booleans]] == "right"[b]]], {
+TypeTheoryProof[ForAll[{n, b}, Not[Typed["left"[n], DisjointUnionType[Naturals, Booleans]] == "right"[b]]], {
     "Introduce"[n, b, h],
     "Exact"[InductiveRecursor[Equal][
-        {Typed[y, DisjointUnionType[Naturals, Booleans]], Typed[t, "left"[n] == y]} |-> InductiveRecursor[DisjointUnionType][
-            Typed[q, DisjointUnionType[Naturals, Booleans]] |-> TypeUniverse[0], Typed[k, Naturals] |-> True, Typed[c, Booleans] |-> False, y
-        ],
+        {y, Typed[t, "left"[n] == y]} |-> InductiveRecursor[DisjointUnionType][TypeUniverse[0] &, True &, False &, y],
         "trueIntroduction",
         h
     ]]
@@ -219,7 +211,7 @@ TypeTheoryType["left"[2]]
 `"Decide"` does not decide an equation of disjoint unions, which the prelude has no decision for:
 
 ```wl
-TypeTheoryProof[Not[Typed["left"[1], DisjointUnionType[Naturals, Booleans]] == "right"["true"]], {"Decide"}]
+TypeTheoryProof[Not["left"[1] == "right"["true"]], {"Decide"}]
 ```
 
 <!-- => Failure["NotDecidable", ...] -->

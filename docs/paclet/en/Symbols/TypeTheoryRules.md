@@ -163,7 +163,7 @@ With Prop, any two proofs of a proposition are equal by computation, so reflexiv
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]} |-> "equalityReflexivity"[p]],
+    TypeTheoryTerm[{p, q} |-> "equalityReflexivity"[p]],
     TypeTheoryTerm[ForAll[{Typed[p, 2 + 2 == 4], Typed[q, 2 + 2 == 4]}, p == q]]
 ]
 ```
@@ -174,7 +174,7 @@ Without Prop, two paths from the base point of the circle to itself are not equa
 
 ```wl
 TypeTheoryCheck[
-    TypeTheoryTerm[{Typed[p, "circleBase" == "circleBase"], Typed[q, "circleBase" == "circleBase"]} |-> "equalityReflexivity"[p], "HomotopyTypeTheory"],
+    TypeTheoryTerm[{p, q} |-> "equalityReflexivity"[p], "HomotopyTypeTheory"],
     TypeTheoryTerm[ForAll[{Typed[p, "circleBase" == "circleBase"], Typed[q, "circleBase" == "circleBase"]}, p == q], "HomotopyTypeTheory"]
 ]
 ```

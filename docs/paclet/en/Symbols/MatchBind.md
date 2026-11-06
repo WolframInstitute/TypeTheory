@@ -36,7 +36,7 @@ TypeTheoryType[MatchBind]
 The two arguments of `f[1, 2]` matched in turn, the two parts kept as one result, a sequence of two expressions:
 
 ```wl
-TypeTheoryType[MatchBind[MatchPart[f[1, 2], 1, MatchValue], Typed[x, Expressions] |-> MatchPart[f[1, 2], 2, Typed[y, Expressions] |-> MatchValue[Sequence[x, y]]]]]
+TypeTheoryType[MatchBind[MatchPart[f[1, 2], 1, MatchValue], x |-> MatchPart[f[1, 2], 2, y |-> MatchValue[Sequence[x, y]]]]]
 ```
 
 <!-- => Match[[Expressions, Expressions]] -->
@@ -48,7 +48,7 @@ Of the two ways to split `f[1, 2, 3]`, a condition after the match keeps the one
 ```wl
 NormalForm[TypeTheoryTerm[MatchBind[
     Typed[f[x__, y__] :> {x}, Expressions -> Match[Expressions]][f[1, 2, 3]],
-    Typed[e, Expressions] |-> (MatchValue[e] /; Decide[Length[{Arguments[e]}] == 2])
+    e |-> (MatchValue[e] /; Decide[Length[{Arguments[e]}] == 2])
 ]]]
 ```
 
@@ -59,7 +59,7 @@ NormalForm[TypeTheoryTerm[MatchBind[
 The continuation can change the type of the results, here from natural numbers to expressions:
 
 ```wl
-TypeTheoryType[MatchBind[Typed[{1, 2}, Match[NonNegativeIntegers]], Typed[n, NonNegativeIntegers] |-> MatchValue[Construct[f, n]]]]
+TypeTheoryType[MatchBind[Typed[{1, 2}, Match[NonNegativeIntegers]], n |-> MatchValue[Construct[f, n]]]]
 ```
 
 <!-- => Match[Expressions] -->
@@ -71,7 +71,7 @@ Every result of one match with every result of another, in order:
 ```wl
 NormalForm[TypeTheoryTerm[MatchBind[
     Typed[f[___, x_, ___] :> x, Expressions -> Match[Expressions]][f[a, b]],
-    Typed[x, Expressions] |-> MatchBind[Typed[g[___, y_, ___] :> y, Expressions -> Match[Expressions]][g[1, 2]], Typed[y, Expressions] |-> MatchValue[HoldForm[{x, y}]]]
+    x |-> MatchBind[Typed[g[___, y_, ___] :> y, Expressions -> Match[Expressions]][g[1, 2]], y |-> MatchValue[HoldForm[{x, y}]]]
 ]]]
 ```
 
@@ -93,13 +93,13 @@ Last[TypeTheoryFormalize[restOf, "Meaning" -> "Rules"]]
 A match program for `f[x_Integer, y_] :> {y, x}`, which tests the head of the first argument before it matches the second:
 
 ```wl
-program = TypeTheoryTerm[Typed[e, Expressions] |-> MatchBind[
-    MatchPart[e, 1, Typed[x, Expressions] |-> (MatchValue[x] /; SameQ[Head[x], HoldForm[Integer]])],
-    Typed[x, Expressions] |-> MatchPart[e, 2, Typed[y, Expressions] |-> MatchValue[HoldForm[{y, x}]]]
+program = TypeTheoryTerm[e |-> MatchBind[
+    MatchPart[e, 1, x |-> (MatchValue[x] /; SameQ[Head[x], HoldForm[Integer]])],
+    x |-> MatchPart[e, 2, y |-> MatchValue[HoldForm[{y, x}]]]
 ]]
 ```
 
-<!-- => (e ∶ Expressions) ↦ MatchBind[MatchPart[e, 1, (x ∶ Expressions) ↦ (MatchValue[x] /; Head[x] === Integer)], (x ∶ Expressions) ↦ MatchPart[e, 2, (y ∶ Expressions) ↦ MatchValue[{y, x}]]] -->
+<!-- => e ↦ MatchBind[MatchPart[e, 1, x ↦ (MatchValue[x] /; Head[x] === Integer)], x ↦ MatchPart[e, 2, y ↦ MatchValue[{y, x}]]] -->
 
 It is a function from an expression to its matches, as the rule is:
 
@@ -141,8 +141,8 @@ Binds associate, as the binds of a monad do:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[MatchBind[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> {x, x + 10}], Typed[y, NonNegativeIntegers] |-> MatchValue[2 y]]],
-    TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> MatchBind[{x, x + 10}, Typed[y, NonNegativeIntegers] |-> MatchValue[2 y]]]]
+    TypeTheoryTerm[MatchBind[MatchBind[{1, 2}, x |-> {x, x + 10}], y |-> MatchValue[2 y]]],
+    TypeTheoryTerm[MatchBind[{1, 2}, x |-> MatchBind[{x, x + 10}, y |-> MatchValue[2 y]]]]
 ]
 ```
 
@@ -153,7 +153,7 @@ DefinitionallyEqualQ[
 The continuation gives a match, not a value:
 
 ```wl
-TypeTheoryType[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> x + 1]]
+TypeTheoryType[MatchBind[{1, 2}, x |-> x + 1]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -161,7 +161,7 @@ TypeTheoryType[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> x + 1]]
 [MatchValue]() makes the value a match:
 
 ```wl
-TypeTheoryType[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> MatchValue[x + 1]]]
+TypeTheoryType[MatchBind[{1, 2}, x |-> MatchValue[x + 1]]]
 ```
 
 <!-- => Match[ℕ] -->

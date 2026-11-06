@@ -194,7 +194,7 @@ The sum of the first n cubes is the square of the n-th triangular number. Multip
 
 ```wl
 nicomachus = TypeTheoryProof[
-    ForAll[{Typed[n, NonNegativeIntegers]}, 4 cubes[n] == (n (n + 1))^2],
+    ForAll[{n}, 4 cubes[n] == (n (n + 1))^2],
     programs,
     {"Introduce"[n], "Induction"[n], "Simplify"[{cubes}], "Introduce"[k, ih], "Simplify"[{cubes}], "PolynomialReduce"}
 ]

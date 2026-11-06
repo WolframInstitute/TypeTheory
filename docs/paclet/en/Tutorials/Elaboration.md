@@ -144,6 +144,22 @@ TypeTheoryType[ForAll[{a}, a == a]]
 
 <!-- => Failure["ElaborationFailed", ...]: The type of the variable a is needed: write Typed[x, type]. -->
 
+A variable of a function takes its type from the type expected, where there is one: a function checked against a function type, a function applied to an argument, the motive and the cases of a recursor, whose type gives theirs. The term a recursor eliminates fixes the type of the variable it is, so doubling by recursion writes no type at all:
+
+```wl
+TypeTheoryType[n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> r + 2, n]]
+```
+
+<!-- => ℕ → ℕ -->
+
+A pure function of slots, `body &`, takes as many arguments as the type expected takes, and at least as many as the highest slot it uses: `Naturals &` above is the motive that takes a natural number to ℕ, and the case of a successor, of the number and the value before it, can be written `#2 + 2 &`:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Naturals &, 0, #2 + 2 &, 5]]]
+```
+
+<!-- => 10 -->
+
 ## Universe Levels
 
 A variable whose type is a sort, but whose level nothing decides, gets the level that the declaration allows. A theorem's statement is a proposition where it can be, as Lean elaborates a theorem's type against Prop, so `p` here is a proposition:
@@ -157,7 +173,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 A level still undecided becomes a universe parameter of the declaration, `"u_1"`, as Lean binds one:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, Typed[y, A]} |-> "equalityReflexivity"[y]]}][SelfEquality]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, y} |-> "equalityReflexivity"[y]]}][SelfEquality]
 ```
 
 <!-- => theorem SelfEquality : ∀_A∶Sort u_1 ∀_y∶A y == y -->
@@ -214,7 +230,7 @@ NormalForm[TypeTheoryTerm[Typed[{2, "two"}, {NonNegativeIntegers | Strings}]]]
 DefinitionallyEqualQ[
     TypeTheoryTerm[Function[{Typed[a, NonNegativeIntegers | Failure], Typed[b, NonNegativeIntegers | Failure]}, Enclose[Confirm[a] + Confirm[b]]]],
     TypeTheoryTerm[Function[{Typed[a, NonNegativeIntegers | Failure], Typed[b, NonNegativeIntegers | Failure]},
-        "confirmBind"[a, Function[{Typed[x, NonNegativeIntegers]}, "confirmBind"[b, Function[{Typed[y, NonNegativeIntegers]}, Typed["left"[x + y], NonNegativeIntegers | Failure]]]]]
+        "confirmBind"[a, x |-> "confirmBind"[b, y |-> "left"[x + y]]]
     ]]
 ]
 ```
@@ -234,7 +250,7 @@ TypeTheoryType[Failure["NotFound", <|"Key" -> "plums", "Reason" -> Missing["KeyA
 A proof can leave a part for later with [TypeTheoryHole](), as Lean's `sorry`. The kernel checks the rest, and the hole is recorded, never taken for a proof:
 
 ```wl
-later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k], TypeTheoryHole["by induction"]]}];
+later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{k}, k + 0 == k], TypeTheoryHole["by induction"]]}];
 Information[TypeTheoryTerm[Later, later], "Holes"]
 ```
 

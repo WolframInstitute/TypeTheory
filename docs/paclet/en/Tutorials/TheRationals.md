@@ -181,7 +181,7 @@ KeyDrop[Information[TypeTheoryEnvironment["Rationals"], "Theorems"], Keys[Inform
 Distributivity with a factor 1/2 halves a sum:
 
 ```wl
-TypeTheoryType[{Typed[x, Rationals], Typed[y, Rationals]} |-> "rationalDistributivity"[1/2, x, y], TypeTheoryEnvironment["Rationals"]]
+TypeTheoryType[{x, y} |-> "rationalDistributivity"[1/2, x, y], TypeTheoryEnvironment["Rationals"]]
 ```
 
 <!-- => ∀_x∶ℚ ∀_y∶ℚ 1/2 (x + y) == 1/2 x + 1/2 y -->

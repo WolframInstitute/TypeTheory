@@ -52,8 +52,8 @@ Its type is a path type, `Path[A, x, y]`, between its values at the endpoints. A
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[0], cubical],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> x, cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> p[0], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> x, cubical]
 ]
 ```
 
@@ -63,8 +63,8 @@ The interval is a De Morgan algebra: [Min](), [Max]() and `1 - i` are its meet, 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Min[i, Max[i, j]]], cubical],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], cubical]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Min[i, Max[i, j]]], cubical],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], cubical]
 ]
 ```
 
@@ -90,8 +90,8 @@ At 0 it is the first function, by computation. The path from `"not"["not"[b]]` t
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]][0], cubical],
-    TypeTheoryTerm[Typed[b, Booleans] |-> "not"["not"[b]], cubical]
+    TypeTheoryTerm["pathFunctionExtensionality"[b |-> "negationInvolution"[b]][0], cubical],
+    TypeTheoryTerm[b |-> "not"["not"[b]], cubical]
 ]
 ```
 
@@ -176,7 +176,7 @@ WeakHeadNormalForm[transported]
 In the HoTT environment univalence is an axiom, so the same transport stops at it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], TypeTheoryEnvironment["HomotopyTypeTheory"]]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[X |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], TypeTheoryEnvironment["HomotopyTypeTheory"]]]
 ```
 
 <!-- => Equal_rec[(z∶Type) (q∶𝔹 == z)↦((X∶Type)↦X)[z],true,equivalenceToEquality[negationEquivalence]] -->

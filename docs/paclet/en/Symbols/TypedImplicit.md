@@ -70,7 +70,7 @@ A theorem whose propositions are implicit:
 swap = TypeTheoryEnvironment[{TypeTheoryTheorem[
     ConjunctionSwap,
     ForAll[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]]}, Implies[a && b, b && a]],
-    Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[h, a && b]}, "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]
+    Function[{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], h}, "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]
 ]}]
 ```
 
@@ -203,7 +203,7 @@ TypeTheoryType[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], Typed[x
 An instance implicit binder is found among the instances of a class, here the decision of a proposition, which [Decide]() turns into a Boolean:
 
 ```wl
-TypeTheoryType[{Typed[p, TypeUniverse[0]], Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]} |-> Decide[Not[p]]]
+TypeTheoryType[{p, Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]} |-> Decide[Not[p]]]
 ```
 
 <!-- => ∀_p∶Prop ∀_[d∶Decidable[p]] 𝔹 -->

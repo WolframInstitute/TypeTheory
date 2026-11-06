@@ -68,15 +68,15 @@ TypeTheoryType[Typed["some"["none"], Option[Option[Naturals]]]]
 A value with a default, by the recursor: the default for `"none"`, the value itself for `"some"`:
 
 ```wl
-withDefault = TypeTheoryTerm[{Typed[d, Naturals], Typed[o, Option[Naturals]]} |-> InductiveRecursor[Option][Typed[t, Option[Naturals]] |-> Naturals, d, Typed[x, Naturals] |-> x, o]]
+withDefault = TypeTheoryTerm[{d, o} |-> InductiveRecursor[Option][Naturals &, d, x |-> x, o]]
 ```
 
-<!-- => (d ∶ ℕ) (o ∶ Option[ℕ]) ↦ (Option_rec)[(t ∶ Option[ℕ]) ↦ ℕ, d, (x ∶ ℕ) ↦ x, o] -->
+<!-- => d o ↦ (Option_rec)[ℕ &, d, x ↦ x, o] -->
 
 The default 0 for no value:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[withDefault[0, Typed["none", Option[Naturals]]]]]
+WeakHeadNormalForm[TypeTheoryTerm[withDefault[0, "none"]]]
 ```
 
 <!-- => 0 -->
@@ -94,7 +94,7 @@ WeakHeadNormalForm[TypeTheoryTerm[withDefault[0, "some"[7]]]]
 A function applied to the value, if there is one, here adding 1 to 4:
 
 ```wl
-NormalForm[TypeTheoryTerm[InductiveRecursor[Option][Typed[t, Option[Naturals]] |-> Option[Naturals], "none", Typed[x, Naturals] |-> "some"[x + 1], "some"[4]]]]
+NormalForm[TypeTheoryTerm[InductiveRecursor[Option][Option[Naturals] &, "none", x |-> "some"[x + 1], "some"[4]]]]
 ```
 
 <!-- => some[5] -->
@@ -114,9 +114,7 @@ TypeTheoryType[Option[TypeUniverse[1]]]
 The first element of a list, if it has one, defined with the recursor of [List]():
 
 ```wl
-heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed[l, {Naturals}]},
-    InductiveRecursor[List][Typed[t, {Naturals}] |-> Option[Naturals], "none", {Typed[x, Naturals], Typed[rest, {Naturals}], Typed[r, Option[Naturals]]} |-> "some"[x], l]
-]]}]
+heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, l |-> InductiveRecursor[List][Option[Naturals] &, "none", {x, rest, r} |-> "some"[x], l]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -142,10 +140,7 @@ WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[{}], heads]]
 Subtraction that gives none instead of stopping at 0, by cases on the Boolean that decides `n <= m`:
 
 ```wl
-checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, Typed[
-    {Typed[m, Naturals], Typed[n, Naturals]} |-> InductiveRecursor[Booleans][Typed[b, Booleans] |-> Option[Naturals], "none", "some"[m - n], Decide[n <= m]],
-    TypeSpecifier[{Naturals, Naturals} -> Option[Naturals]]
-]]}]
+checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, {m, n} |-> InductiveRecursor[Booleans][Option[Naturals] &, "none", "some"[m - n], Decide[n <= m]]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -171,15 +166,11 @@ NormalForm[TypeTheoryTerm[CheckedSubtract[3, 7], checked]]
 The value of a key in a list of pairs, if the key is there:
 
 ```wl
-lookups = TypeTheoryEnvironment[{TypeTheoryDefinition[LookupNumber, Typed[
-    {Typed[key, Naturals], Typed[l, {CartesianProductType[Naturals, Naturals]}]} |-> InductiveRecursor[List][
-        Typed[t, {CartesianProductType[Naturals, Naturals]}] |-> Option[Naturals],
-        "none",
-        {Typed[x, CartesianProductType[Naturals, Naturals]], Typed[rest, {CartesianProductType[Naturals, Naturals]}], Typed[r, Option[Naturals]]} |->
-            InductiveRecursor[Booleans][Typed[b, Booleans] |-> Option[Naturals], r, "some"[x[[2]]], Decide[x[[1]] == key]],
-        l
-    ],
-    TypeSpecifier[{Naturals, {CartesianProductType[Naturals, Naturals]}} -> Option[Naturals]]
+lookups = TypeTheoryEnvironment[{TypeTheoryDefinition[LookupNumber, {key, l} |-> InductiveRecursor[List][
+    Option[Naturals] &,
+    "none",
+    {Typed[x, CartesianProductType[Naturals, Naturals]], rest, r} |-> InductiveRecursor[Booleans][Option[Naturals] &, r, "some"[x[[2]]], Decide[x[[1]] == key]],
+    l
 ]]}]
 ```
 
@@ -206,7 +197,7 @@ NormalForm[TypeTheoryTerm[LookupNumber[3, {"pair"[1, 10], "pair"[2, 20]}], looku
 Every option is `"none"` or a value: `"Cases"` gives a goal for each constructor:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == "none", Exists[{Typed[x, Naturals]}, o == "some"[x]]]], {
+TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == "none", Exists[{x}, o == "some"[x]]]], {
     "Introduce"[o],
     "Cases"[o],
     "Exact"["orIntroductionLeft"["equalityReflexivity"["none"]]],
@@ -224,7 +215,7 @@ TypeTheoryProof[ForAll[{Typed[o, Option[Naturals]]}, Or[o == "none", Exists[{Typ
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, "some"[x] == "some"[y]]}, x == y], {
     "Introduce"[x, y, h],
-    "Exact"["equalityCongruence"[Typed[o, Option[Naturals]] |-> InductiveRecursor[Option][Typed[t, Option[Naturals]] |-> Naturals, 0, Typed[z, Naturals] |-> z, o], h]]
+    "Exact"["equalityCongruence"[o |-> InductiveRecursor[Option][Naturals &, 0, # &, o], h]]
 }]
 ```
 
@@ -235,10 +226,10 @@ TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals], Typed[h, "some"[
 `"none"` is no value: the recursor of [Equal]() carries a proof of [True]() along the equation to the proposition that is [True]() at `"none"` and [False]() at a value:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Naturals]}, Not[Typed["none", Option[Naturals]] == "some"[x]]], {
+TypeTheoryProof[ForAll[{x}, Not[Typed["none", Option[Naturals]] == "some"[x]]], {
     "Introduce"[x, h],
     "Exact"[InductiveRecursor[Equal][
-        {Typed[y, Option[Naturals]], Typed[t, "none" == y]} |-> InductiveRecursor[Option][Typed[q, Option[Naturals]] |-> TypeUniverse[0], True, Typed[z, Naturals] |-> False, y],
+        {y, Typed[t, "none" == y]} |-> InductiveRecursor[Option][TypeUniverse[0] &, True, False &, y],
         "trueIntroduction",
         h
     ]]
@@ -272,10 +263,7 @@ TypeTheoryType["none" == "none"]
 Subtraction that gives none instead of stopping at 0:
 
 ```wl
-checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, Typed[
-    {Typed[m, Naturals], Typed[n, Naturals]} |-> InductiveRecursor[Booleans][Typed[b, Booleans] |-> Option[Naturals], "none", "some"[m - n], Decide[n <= m]],
-    TypeSpecifier[{Naturals, Naturals} -> Option[Naturals]]
-]]}]
+checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, {m, n} |-> InductiveRecursor[Booleans][Option[Naturals] &, "none", "some"[m - n], Decide[n <= m]]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -293,7 +281,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CheckedSubtract[7, 3], checked]]
 `"Decide"` does not decide an equation of options, which the prelude has no decision for; the recursor of [Equal]() proves it, as above:
 
 ```wl
-TypeTheoryProof[Not[Typed["none", Option[Naturals]] == "some"[3]], {"Decide"}]
+TypeTheoryProof[Not["none" == "some"[3]], {"Decide"}]
 ```
 
 <!-- => Failure["NotDecidable", ...] -->

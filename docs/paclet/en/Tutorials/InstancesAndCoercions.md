@@ -151,7 +151,7 @@ A coercion is a function of one explicit argument declared with `"Coercion" -> T
 
 ```wl
 coercions = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[NaturalOfBoolean, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> Naturals, 0, 1, b], "Coercion" -> True],
+    TypeTheoryDefinition[NaturalOfBoolean, b |-> InductiveRecursor[Booleans][Naturals &, 0, 1, b], "Coercion" -> True],
     TypeTheoryDefinition[OptionOf, {TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]} |-> "some"[x], "Coercion" -> True]
 }]
 ```

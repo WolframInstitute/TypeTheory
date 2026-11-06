@@ -47,7 +47,7 @@ DefinitionallyEqualQ[TypeTheoryTerm["not"["true"]], TypeTheoryTerm["false"]]
 Beta: a function applied to an argument computes:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[(Typed[n, Naturals] |-> n + 1)[2]], TypeTheoryTerm[3]]
+DefinitionallyEqualQ[TypeTheoryTerm[(n |-> n + 1)[2]], TypeTheoryTerm[3]]
 ```
 
 <!-- => True -->
@@ -68,7 +68,7 @@ Eta: a function equals the function that applies it:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed[n, Naturals] |-> "successor"[n]],
+    TypeTheoryTerm[n |-> "successor"[n]],
     TypeTheoryTerm["successor"]
 ]
 ```
@@ -113,7 +113,7 @@ DefinitionallyEqualQ[TypeTheoryTerm["equalityReflexivity"[4]], TypeTheoryTerm["e
 A local definition computes:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[With[{square = Typed[n, Naturals] |-> n n}, square[3] + square[4]]], TypeTheoryTerm[25]]
+DefinitionallyEqualQ[TypeTheoryTerm[With[{square = n |-> n n}, square[3] + square[4]]], TypeTheoryTerm[25]]
 ```
 
 <!-- => True -->
@@ -133,7 +133,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[{1, 2}], TypeTheoryTerm[Prepend[{2}, 1]]]
 `n + 0` computes to `n` for a variable `n`, because addition recurses on its second argument:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
+DefinitionallyEqualQ[TypeTheoryTerm[n |-> n + 0], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
 ```
 
 <!-- => True -->
@@ -143,7 +143,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0], TypeTheoryTer
 A definition of doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -151,7 +151,7 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] 
 The constant unfolds to its value:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Double, doubled], TypeTheoryTerm[Typed[n, Naturals] |-> n + n]]
+DefinitionallyEqualQ[TypeTheoryTerm[Double, doubled], TypeTheoryTerm[n |-> n + n]]
 ```
 
 <!-- => True -->
@@ -163,7 +163,7 @@ A type of bits, and flipping a bit by its recursor:
 ```wl
 bits = TypeTheoryEnvironment[{
     TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
-    TypeTheoryDefinition[Flip, Typed[b, Bit] |-> InductiveRecursor[Bit][Typed[t, Bit] |-> Bit, BitOne, BitZero, b]]
+    TypeTheoryDefinition[Flip, b |-> InductiveRecursor[Bit][Bit &, BitOne, BitZero, b]]
 }]
 ```
 
@@ -201,10 +201,8 @@ The parity of a natural number by recursion, and a definition by it:
 
 ```wl
 parity = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[Parity, Function[{Typed[n, Naturals]},
-        InductiveRecursor[Naturals][Typed[t, Naturals] |-> Booleans, "true", {Typed[k, Naturals], Typed[r, Booleans]} |-> "not"[r], n]
-    ]],
-    TypeTheoryDefinition[ParityAgain, Typed[n, Naturals] |-> Parity[n]]
+    TypeTheoryDefinition[Parity, n |-> InductiveRecursor[Naturals][Booleans &, "true", {k, r} |-> "not"[r], n]],
+    TypeTheoryDefinition[ParityAgain, n |-> Parity[n]]
 }]
 ```
 
@@ -231,7 +229,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[ParityAgain[100000], parity], TypeTheoryTerm
 Two terms are definitionally equal when their normal forms are the same; [NormalForm]() computes one:
 
 ```wl
-NormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
+NormalForm[TypeTheoryTerm[n |-> n + 0]]
 ```
 
 <!-- => (n ∶ ℕ) ↦ n -->
@@ -261,7 +259,7 @@ TypeTheoryProof[2 * 3 == 3 + 3, {"Decide"}]
 `0 + n == n` holds for every natural number, by induction, but `0 + n` does not compute: the recursion of addition is on its second argument, a variable here:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> 0 + n], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
+DefinitionallyEqualQ[TypeTheoryTerm[n |-> 0 + n], TypeTheoryTerm[Typed[n, Naturals] |-> n]]
 ```
 
 <!-- => False -->
@@ -271,7 +269,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> 0 + n], TypeTheoryTer
 A definition of doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -279,7 +277,7 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] 
 `k + k` and `2 k` are equal for every `k`, but neither computes for a variable:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[k, Naturals] |-> Double[k], doubled], TypeTheoryTerm[Typed[k, Naturals] |-> 2 k]]
+DefinitionallyEqualQ[TypeTheoryTerm[k |-> Double[k], doubled], TypeTheoryTerm[k |-> 2 k]]
 ```
 
 <!-- => False -->

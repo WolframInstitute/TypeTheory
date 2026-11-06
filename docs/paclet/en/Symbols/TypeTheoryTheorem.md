@@ -48,7 +48,7 @@ arithmetic[TwoPlusTwo]
 A proof by induction that 0 is a left identity of addition, by tactics:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
+proof = TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[n],
     "Induction"[n],
     "Reflexivity",
@@ -77,10 +77,10 @@ proved[ZeroLeftIdentity]
 
 ## Scope
 
-A theorem with a proof term, a function from a proof of `p` to a proof of `p`:
+A theorem with a proof term, a function from a proof of `p` to a proof of `p`, whose variables take their types from the statement:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], {Typed[p, TypeUniverse[0]], Typed[h, p]} |-> h]}][SelfImplication]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], {p, h} |-> h]}][SelfImplication]
 ```
 
 <!-- => theorem SelfImplication : ∀_p∶Prop p ⇒ p -->
@@ -91,7 +91,7 @@ A proof written out in the theorem, here that conjunction commutes:
 
 ```wl
 TypeTheoryEnvironment[{TypeTheoryTheorem[AndCommutes, TypeTheoryProof[
-    ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[p && q, q && p]],
+    ForAll[{p, q}, Implies[p && q, q && p]],
     {"Introduce"[p, q, h], "Cases"[h], "Introduce"[a, b], "Constructor", "Exact"[b], "Exact"[a]}
 ]]}][AndCommutes]
 ```
@@ -125,7 +125,7 @@ squares[SquareOfSum]
 A theorem applies like a function, to the variables its statement quantifies over:
 
 ```wl
-proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroLeftIdentity, TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
+proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroLeftIdentity, TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[n], "Induction"[n], "Reflexivity", "Introduce"[k, ih], "Exact"["equalityCongruence"["successor", ih]]
 }]]]
 ```
@@ -143,7 +143,7 @@ TypeTheoryType[ZeroLeftIdentity[7], proved]
 Later proofs use it, here to rewrite `0 + m`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, (0 + m) + n == m + n], proved, {"Introduce"[m, n], "Rewrite"[ZeroLeftIdentity]}]
+TypeTheoryProof[ForAll[{m, n}, (0 + m) + n == m + n], proved, {"Introduce"[m, n], "Rewrite"[ZeroLeftIdentity]}]
 ```
 
 <!-- => Proof complete -->
@@ -163,7 +163,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 A variable of any type gets its universe as a parameter of the theorem, `"u_1"`, which the statement names:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], {A, Typed[x, A]} |-> "equalityReflexivity"[x]]}][SelfEquality]
+TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[x, A]}, x == x], {A, x} |-> "equalityReflexivity"[x]]}][SelfEquality]
 ```
 
 <!-- => theorem SelfEquality : ∀_A∶Sort u_1 ∀_x∶A x == x -->
@@ -184,7 +184,7 @@ A proof with a hole, the commutativity of addition left to give:
 
 ```wl
 later = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, TypeTheoryProof[
-    ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m],
+    ForAll[{m, n}, m + n == n + m],
     {"Introduce"[m, n], "Hole"}
 ]]]
 ```
@@ -235,7 +235,7 @@ The universe parameters named explicitly:
 TypeTheoryEnvironment[{TypeTheoryTheorem[
     SelfEquality,
     ForAll[{TypedImplicit[A, TypeUniverse[v]], Typed[x, A]}, x == x],
-    {TypedImplicit[A, TypeUniverse[v]], Typed[x, A]} |-> "equalityReflexivity"[x],
+    {TypedImplicit[A, TypeUniverse[v]], x} |-> "equalityReflexivity"[x],
     "UniverseParameters" -> {v}
 ]}][SelfEquality]
 ```
@@ -334,7 +334,7 @@ A proof with goals left open is no proof:
 
 ```wl
 TypeTheoryEnvironment[TypeTheoryTheorem[Unfinished, TypeTheoryProof[
-    ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m],
+    ForAll[{m, n}, m + n == n + m],
     {"Introduce"[m, n]}
 ]]]
 ```
@@ -356,7 +356,7 @@ TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, "equalityReflexivity"[4]]]
 The prelude proves `n + 0 == n` already, as `"additionZeroRight"`, so that name is taken:
 
 ```wl
-TypeTheoryEnvironment[TypeTheoryTheorem["additionZeroRight", ForAll[{Typed[n, Naturals]}, n + 0 == n], Typed[n, Naturals] |-> "equalityReflexivity"[n]]]
+TypeTheoryEnvironment[TypeTheoryTheorem["additionZeroRight", ForAll[{n}, n + 0 == n], n |-> "equalityReflexivity"[n]]]
 ```
 
 <!-- => Failure["AlreadyDeclared", ...] -->

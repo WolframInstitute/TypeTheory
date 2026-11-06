@@ -80,7 +80,7 @@ twice = TypeTheoryEnvironment["HomotopyTypeTheory", {
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
     TypeTheoryRewriteRule[FlipOne, Flip[BitOne] -> BitZero],
     TypeTheoryAxiom[Twice, TypeSpecifier[{TypeSpecifier[{Bit} -> Bit], Bit} -> Bit]],
-    TypeTheoryRewriteRule[TwiceRule, ForAll[{Typed[h, TypeSpecifier[{Bit} -> Bit]], Typed[x, Bit]}, Twice[h, x] -> h[h[x]]]]
+    TypeTheoryRewriteRule[TwiceRule, ForAll[{h, x}, Twice[h, x] -> h[h[x]]]]
 }]
 ```
 
@@ -97,7 +97,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Twice[Flip, BitOne], twice]]
 Even a variable, so the two functions are equal by computation:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[b, Bit] |-> Twice[Flip, b], twice], TypeTheoryTerm[Typed[b, Bit] |-> Flip[Flip[b]], twice]]
+DefinitionallyEqualQ[TypeTheoryTerm[b |-> Twice[Flip, b], twice], TypeTheoryTerm[b |-> Flip[Flip[b]], twice]]
 ```
 
 <!-- => True -->
@@ -128,7 +128,7 @@ bits = TypeTheoryEnvironment["HomotopyTypeTheory", {
 An equation that the rules make hold by computation is proved by reflexivity, here for each bit:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[b, Bit]}, Flip[Flip[b]] == b], bits, {"Introduce"[b], "Induction"[b], "Reflexivity", "Reflexivity"}]
+TypeTheoryProof[ForAll[{b}, Flip[Flip[b]] == b], bits, {"Introduce"[b], "Induction"[b], "Reflexivity", "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -167,7 +167,7 @@ TypeTheoryEnvironment["HomotopyTypeTheory"]["circleInductionBase"]
 So induction on the base point computes:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Typed[x, Circle] |-> Booleans, True, "transportConstant"["circleLoop", True], "circleBase"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Booleans &, True, "transportConstant"["circleLoop", True], "circleBase"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => true -->
@@ -201,8 +201,8 @@ Addition as an axiom that computes by rewrite rules, on the second argument, as 
 adding = TypeTheoryEnvironment["HomotopyTypeTheory", {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
     TypeTheoryAxiom[UnaryAddition, TypeSpecifier[{Unary, Unary} -> Unary]],
-    TypeTheoryRewriteRule[AdditionZero, ForAll[{Typed[m, Unary]}, UnaryAddition[m, UnaryZero] -> m]],
-    TypeTheoryRewriteRule[AdditionSuccessor, ForAll[{Typed[m, Unary], Typed[n, Unary]}, UnaryAddition[m, UnarySuccessor[n]] -> UnarySuccessor[UnaryAddition[m, n]]]]
+    TypeTheoryRewriteRule[AdditionZero, ForAll[{m}, UnaryAddition[m, UnaryZero] -> m]],
+    TypeTheoryRewriteRule[AdditionSuccessor, ForAll[{m, n}, UnaryAddition[m, UnarySuccessor[n]] -> UnarySuccessor[UnaryAddition[m, n]]]]
 }]
 ```
 
@@ -219,7 +219,7 @@ NormalForm[TypeTheoryTerm[UnaryAddition[UnarySuccessor[UnaryZero], UnarySuccesso
 On a variable second argument nothing matches, so `0 + n == n` does not hold by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Unary]}, UnaryAddition[UnaryZero, n] == n], adding, {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, UnaryAddition[UnaryZero, n] == n], adding, {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
@@ -227,7 +227,7 @@ TypeTheoryProof[ForAll[{Typed[n, Unary]}, UnaryAddition[UnaryZero, n] == n], add
 A third rule, which a recursor cannot give, makes it compute:
 
 ```wl
-zeroLeft = Append[adding, TypeTheoryRewriteRule[ZeroAddition, ForAll[{Typed[n, Unary]}, UnaryAddition[UnaryZero, n] -> n]]]
+zeroLeft = Append[adding, TypeTheoryRewriteRule[ZeroAddition, ForAll[{n}, UnaryAddition[UnaryZero, n] -> n]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 49 constants -->
@@ -235,7 +235,7 @@ zeroLeft = Append[adding, TypeTheoryRewriteRule[ZeroAddition, ForAll[{Typed[n, U
 Now reflexivity proves it:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Unary]}, UnaryAddition[UnaryZero, n] == n], zeroLeft, {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, UnaryAddition[UnaryZero, n] == n], zeroLeft, {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -288,7 +288,7 @@ first = TypeTheoryEnvironment["HomotopyTypeTheory", {
     TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
-    TypeTheoryRewriteRule[FlipAny, ForAll[{Typed[b, Bit]}, Flip[b] -> b]]
+    TypeTheoryRewriteRule[FlipAny, ForAll[{b}, Flip[b] -> b]]
 }]
 ```
 
@@ -333,7 +333,7 @@ Every variable of a rule must occur in its left side:
 TypeTheoryEnvironment["HomotopyTypeTheory", {
     TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
-    TypeTheoryRewriteRule[FlipAll, ForAll[{Typed[b, Bit], Typed[c, Bit]}, Flip[b] -> c]]
+    TypeTheoryRewriteRule[FlipAll, ForAll[{b, Typed[c, Bit]}, Flip[b] -> c]]
 }]
 ```
 
@@ -384,7 +384,7 @@ flips = TypeTheoryEnvironment["HomotopyTypeTheory", {
     TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}],
     TypeTheoryAxiom[Flip, TypeSpecifier[{Bit} -> Bit]],
     TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne],
-    TypeTheoryRewriteRule[FlipAny, ForAll[{Typed[b, Bit]}, Flip[b] -> b]]
+    TypeTheoryRewriteRule[FlipAny, ForAll[{b}, Flip[b] -> b]]
 }]
 ```
 
@@ -398,7 +398,7 @@ confused = TypeTheoryEnvironment[flips, {TypeTheoryTheorem[
     BitOne == BitZero,
     "equalityCongruence"[
         Function[{Typed[g, TypeSpecifier[{Bit} -> Bit]]}, g[BitZero]],
-        Typed["equalityReflexivity"[Typed[b, Bit] |-> b], Function[{Typed[b, Bit]}, Flip[b]] == Function[{Typed[b, Bit]}, b]]
+        Typed["equalityReflexivity"[b |-> b], (b |-> Flip[b]) == (b |-> b)]
     ]
 ]}]
 ```

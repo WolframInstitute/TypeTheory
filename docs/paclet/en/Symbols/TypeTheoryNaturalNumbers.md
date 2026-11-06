@@ -109,9 +109,7 @@ Unary numbers with an addition by their recursor, not yet registered:
 ```wl
 adding = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
-    TypeTheoryDefinition[UnaryAddition, {Typed[m, Unary], Typed[n, Unary]} |->
-        InductiveRecursor[Unary][Typed[t, Unary] |-> Unary, m, {Typed[k, Unary], Typed[r, Unary]} |-> UnarySuccessor[r], n]
-    ],
+    TypeTheoryDefinition[UnaryAddition, {m, n} |-> InductiveRecursor[Unary][Unary &, m, {k, r} |-> UnarySuccessor[r], n]],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor]
 }]
 ```
@@ -149,12 +147,8 @@ Several operations at once, by their roles, here addition and multiplication:
 ```wl
 arithmetic = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
-    TypeTheoryDefinition[UnaryAddition, {Typed[m, Unary], Typed[n, Unary]} |->
-        InductiveRecursor[Unary][Typed[t, Unary] |-> Unary, m, {Typed[k, Unary], Typed[r, Unary]} |-> UnarySuccessor[r], n]
-    ],
-    TypeTheoryDefinition[UnaryMultiplication, {Typed[m, Unary], Typed[n, Unary]} |->
-        InductiveRecursor[Unary][Typed[t, Unary] |-> Unary, UnaryZero, {Typed[k, Unary], Typed[r, Unary]} |-> UnaryAddition[r, m], n]
-    ],
+    TypeTheoryDefinition[UnaryAddition, {m, n} |-> InductiveRecursor[Unary][Unary &, m, {k, r} |-> UnarySuccessor[r], n]],
+    TypeTheoryDefinition[UnaryMultiplication, {m, n} |-> InductiveRecursor[Unary][Unary &, UnaryZero, {k, r} |-> UnaryAddition[r, m], n]],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor, <|"Addition" -> UnaryAddition, "Multiplication" -> UnaryMultiplication|>]
 }]
 ```
@@ -175,7 +169,7 @@ An operation added to the prelude's: the left shift, *m* 2^*n*, registered by th
 
 ```wl
 shifted = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[NaturalNumberShiftLeft, {Typed[m, Naturals], Typed[n, Naturals]} |-> m * 2^n],
+    TypeTheoryDefinition[NaturalNumberShiftLeft, {m, n} |-> m * 2^n],
     TypeTheoryNaturalNumbers[Naturals, "zero", "successor", <|"ShiftLeft" -> NaturalNumberShiftLeft|>]
 }]
 ```

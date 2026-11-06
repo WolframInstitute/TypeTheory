@@ -26,6 +26,7 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 | Surface term | Meaning |
 |---|---|
 | <code>[Function]()[{[Typed]()[x, A], ...}, b]</code> | a function |
+| <code>[Function]()[b]</code>, `b &` | a function of its slots `#1`, `#2`, ..., taking as many arguments as the type expected takes, and at least the highest slot |
 | <code>[ForAll]()[{[Typed]()[x, A], ...}, B]</code> | a dependent function type, or a universal statement |
 | <code>[Implies]()[A, B]</code>, <code>[TypeSpecifier]()[{A, ...} -> B]</code>, `A -> B` | a function type whose result does not depend on the argument |
 | <code>[TypedImplicit]()[x, A]</code> | an implicit binder, filled in by elaboration; <code>[Annotation]()[[Typed]()[x, A], *kind*]</code> with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds |
@@ -83,10 +84,10 @@ TypeTheoryType[TypeTheoryTerm[2 + 3]]
 A universal statement:
 
 ```wl
-statement = TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]
+statement = TypeTheoryTerm[ForAll[{n}, n + 0 == n]]
 ```
 
-<!-- => ∀_n∶ℕ n + 0 == n -->
+<!-- => ∀_n n + 0 == n -->
 
 It is a proposition. [TypeTheoryType]() gives the type of a term, here one held in a variable:
 
@@ -101,10 +102,10 @@ TypeTheoryType[statement]
 A function of two arguments:
 
 ```wl
-TypeTheoryTerm[Function[{Typed[m, Naturals], Typed[n, Naturals]}, m + n]]
+TypeTheoryTerm[{m, n} |-> m + n]
 ```
 
-<!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m + n -->
+<!-- => m n ↦ m + n -->
 
 ---
 
@@ -171,20 +172,20 @@ TypeTheoryTerm[ForAll[{Annotation[Typed[A, TypeUniverse[1]], "StrictImplicit"], 
 An existential statement, that 3 has a predecessor:
 
 ```wl
-TypeTheoryTerm[Exists[{Typed[n, Naturals]}, n + 1 == 3]]
+TypeTheoryTerm[Exists[{n}, n + 1 == 3]]
 ```
 
-<!-- => ∃_n∶ℕ n + 1 == 3 -->
+<!-- => ∃_n n + 1 == 3 -->
 
 ---
 
 A quantifier with a condition, as the Wolfram Language writes one:
 
 ```wl
-TypeTheoryTerm[ForAll[Typed[n, Naturals], n > 0, n >= 1]]
+TypeTheoryTerm[ForAll[n, n > 0, n >= 1]]
 ```
 
-<!-- => ∀_n∶ℕ,n > 0 n >= 1 -->
+<!-- => ∀_n,n > 0 n >= 1 -->
 
 ---
 
@@ -201,10 +202,10 @@ TypeTheoryTerm[Typed["equalityReflexivity"[4], 2 + 2 == 4]]
 A local definition of squaring, used twice:
 
 ```wl
-local = TypeTheoryTerm[With[{square = Typed[n, Naturals] |-> n n}, square[3] + square[4]]]
+local = TypeTheoryTerm[With[{square = n |-> n n}, square[3] + square[4]]]
 ```
 
-<!-- => With[{square = (n ∶ ℕ) ↦ n n}, square[3] + square[4]] -->
+<!-- => With[{square = n ↦ n n}, square[3] + square[4]] -->
 
 It computes:
 
@@ -445,7 +446,7 @@ Information[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[x, a]} |-> x], "Pro
 A theorem left as a hole:
 
 ```wl
-later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k], TypeTheoryHole["by induction"]]}]
+later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{k}, k + 0 == k], TypeTheoryHole["by induction"]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->
@@ -491,7 +492,7 @@ TypeTheoryType[ForAll[{x}, x == x]]
 A symbol whose value is a bare [Function](), not a [TypeTheoryTerm](), is a name, which no environment declares:
 
 ```wl
-increment = Typed[n, Naturals] |-> n + 1;
+increment = n |-> n + 1;
 TypeTheoryType[increment[2]]
 ```
 
@@ -512,7 +513,7 @@ TypeTheoryTerm[2 + 3, "Prelud"]
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -522,17 +523,17 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] 
 ```wl
 Format[Double[a_]] := CenterDot[2, a];
 k = 7;
-TypeTheoryTerm[Typed[k, Naturals] |-> Double[k], doubled]
+TypeTheoryTerm[k |-> Double[k], doubled]
 ```
 
-<!-- => (k ∶ ℕ) ↦ 2·7 -->
+<!-- => k ↦ 2·7 -->
 
 ---
 
 Define doubling:
 
 ```wl
-doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
+doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -542,7 +543,7 @@ doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] 
 ```wl
 MakeBoxes[Double[a_], form_] := MakeBoxes[CenterDot[2, a], form];
 k = 7;
-TypeTheoryTerm[Typed[k, Naturals] |-> Double[k], doubled]
+TypeTheoryTerm[k |-> Double[k], doubled]
 ```
 
-<!-- => (k ∶ ℕ) ↦ 2·k -->
+<!-- => k ↦ 2·k -->

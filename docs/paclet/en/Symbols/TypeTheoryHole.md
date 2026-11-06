@@ -31,7 +31,7 @@ RelatedGuides: [TypeTheory]
 A theorem left open, with a citation:
 
 ```wl
-open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]]}]
+open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{n}, n == 0], TypeTheoryHole["a claim left open"]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->
@@ -57,7 +57,7 @@ Information[TypeTheoryTerm[AllZero, open], "Holes"]
 The tactic `"Hole"` closes a goal of a proof with a hole:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m], {"Introduce"[m, n], "Hole"["addition commutes"]}]
+TypeTheoryProof[ForAll[{m, n}, m + n == n + m], {"Introduce"[m, n], "Hole"["addition commutes"]}]
 ```
 
 <!-- => Proof complete with 1 hole -->
@@ -69,8 +69,8 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m]
 A part of a proof left to give, under a binder:
 
 ```wl
-partial = TypeTheoryEnvironment[{TypeTheoryTheorem[BothZero, ForAll[{Typed[n, Naturals]}, n + 0 == n && 0 + n == n],
-    Function[{Typed[n, Naturals]}, "andIntroduction"["equalityReflexivity"[n], TypeTheoryHole["zero plus n, by induction"]]]]}]
+partial = TypeTheoryEnvironment[{TypeTheoryTheorem[BothZero, ForAll[{n}, n + 0 == n && 0 + n == n],
+    n |-> "andIntroduction"["equalityReflexivity"[n], TypeTheoryHole["zero plus n, by induction"]]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->
@@ -88,7 +88,7 @@ TypeTheoryType[TypeTheoryHole[BothZero, 1], partial]
 A hole with no annotation:
 
 ```wl
-later = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m], TypeTheoryHole[]]]
+later = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, ForAll[{m, n}, m + n == n + m], TypeTheoryHole[]]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->
@@ -106,7 +106,7 @@ Information[TypeTheoryTerm[AdditionCommutes, later], "Holes"]
 A proof with two holes, one for each part of a conjunction:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m && m n == n m], {
+proof = TypeTheoryProof[ForAll[{m, n}, m + n == n + m && m n == n m], {
     "Introduce"[m, n],
     "Constructor",
     "Hole"["addition commutes"],
@@ -145,7 +145,7 @@ TypeTheoryType[TypeTheoryHole[BothCommute, 2], both]
 A hole that cites the theorem of Mathlib that would fill it:
 
 ```wl
-cited = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m],
+cited = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, ForAll[{m, n}, m + n == n + m],
     TypeTheoryHole[<|"Citation" -> "Mathlib", "Mathlib" -> "Nat.add_comm"|>]]]
 ```
 
@@ -164,7 +164,7 @@ Information[TypeTheoryTerm[TypeTheoryHole[AdditionCommutes, 1], cited], "Annotat
 A hole that records the evaluation that found a solution of Pell's equation `x^2 - 61 y^2 == 1`:
 
 ```wl
-pell = TypeTheoryEnvironment[TypeTheoryTheorem[PellSolution, Exists[{Typed[x, Naturals], Typed[y, Naturals]}, x^2 == 61 y^2 + 1 && 0 < y],
+pell = TypeTheoryEnvironment[TypeTheoryTheorem[PellSolution, Exists[{x, y}, x^2 == 61 y^2 + 1 && 0 < y],
     TypeTheoryHole[<|"Evaluation" -> HoldForm[FindInstance[x^2 - 61 y^2 == 1 && y > 0, {x, y}, PositiveIntegers]], "Value" -> {{x -> 1766319049, y -> 226153980}}|>]]]
 ```
 
@@ -184,7 +184,7 @@ A theorem with a hole, and a theorem proved from it:
 
 ```wl
 uses = TypeTheoryEnvironment[{
-	TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]],
+	TypeTheoryTheorem[AllZero, ForAll[{n}, n == 0], TypeTheoryHole["a claim left open"]],
 	TypeTheoryTheorem[ThreeIsZero, 3 == 0, AllZero[3]]
 }]
 ```
@@ -213,7 +213,7 @@ The same statement assumed with [TypeTheoryAxiom]() is an axiom the theorem rest
 
 ```wl
 assumed = TypeTheoryEnvironment[{
-	TypeTheoryAxiom[AllZeroAxiom, ForAll[{Typed[n, Naturals]}, n == 0]],
+	TypeTheoryAxiom[AllZeroAxiom, ForAll[{n}, n == 0]],
 	TypeTheoryTheorem[ThreeIsZero, 3 == 0, AllZeroAxiom[3]]
 }]
 ```
@@ -233,7 +233,7 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[ThreeIsZero, assumed]]
 A theorem left open:
 
 ```wl
-open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]]}]
+open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{n}, n == 0], TypeTheoryHole["a claim left open"]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->
@@ -241,7 +241,7 @@ open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Natura
 A proof by tactics uses it as any other theorem, so a false claim left open proves false consequences:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals]}, m + 1 == 0], open, {"Introduce"[m], "Exact"[AllZero[m + 1]]}]
+TypeTheoryProof[ForAll[{m}, m + 1 == 0], open, {"Introduce"[m], "Exact"[AllZero[m + 1]]}]
 ```
 
 <!-- => Proof complete -->
@@ -267,7 +267,7 @@ TypeTheoryCheck[open]
 A saved environment keeps the holes and their annotations:
 
 ```wl
-open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]]}]
+open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{n}, n == 0], TypeTheoryHole["a claim left open"]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->

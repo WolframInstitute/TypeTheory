@@ -101,7 +101,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[AffineSuccessor, Type
 An erased variable may appear where it is dead. The parameters of `"equalityReflexivity"` are erased, so the proof that an erased `n` equals itself checks:
 
 ```wl
-TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], Typed[n, NonNegativeIntegers, 0] |-> "equalityReflexivity"[n]]}]
+TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], n |-> "equalityReflexivity"[n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -140,7 +140,7 @@ affine = TypeTheoryEnvironment[affinePrelude, {
         Tensor -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[a, A, 1], Typed[b, B, 1]}, CircleTimes[A, B]]
     }],
     TypeTheoryDefinition[Swap, Function[{TypedImplicit[A, TypeUniverse[1], 0], TypedImplicit[B, TypeUniverse[1], 0], Typed[p, CircleTimes[A, B], 1]},
-        InductiveRecursor[CircleTimes][Typed[q, CircleTimes[A, B]] |-> CircleTimes[B, A], {Typed[a, A], Typed[b, B]} |-> Tensor[b, a], p]
+        InductiveRecursor[CircleTimes][CircleTimes[B, A] &, {a, b} |-> Tensor[b, a], p]
     ]]
 }]
 ```
@@ -167,7 +167,7 @@ A field of an affine pair is affine in the match too, so the match may not copy 
 
 ```wl
 TypeTheoryEnvironment[affine, {TypeTheoryDefinition[CopyFirst, Function[{TypedImplicit[A, TypeUniverse[1], 0], TypedImplicit[B, TypeUniverse[1], 0], Typed[p, CircleTimes[A, B], 1]},
-    InductiveRecursor[CircleTimes][Typed[q, CircleTimes[A, B]] |-> CircleTimes[A, A], {Typed[a, A], Typed[b, B]} |-> Tensor[a, a], p]
+    InductiveRecursor[CircleTimes][CircleTimes[A, A] &, {a, b} |-> Tensor[a, a], p]
 ]]}]
 ```
 
@@ -177,7 +177,7 @@ The uses in the branches of a match add up, since each branch is part of the ter
 
 ```wl
 TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[Choose, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[b, Booleans, 1], Typed[x, A, 1]},
-    InductiveRecursor[Booleans][Typed[t, Booleans] |-> A, x, x, b]
+    InductiveRecursor[Booleans][A &, x, x, b]
 ]]}]
 ```
 
@@ -187,7 +187,7 @@ Instead, each branch is a function that takes it, and the match is applied to it
 
 ```wl
 TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[Choose, Function[{TypedImplicit[A, TypeUniverse[1], 0], Typed[b, Booleans, 1], Typed[x, A, 1]},
-    InductiveRecursor[Booleans][Typed[t, Booleans] |-> ForAll[{Typed[y, A, 1]}, A], Typed[y, A] |-> y, Typed[y, A] |-> y, b][x]
+    InductiveRecursor[Booleans][ForAll[{Typed[y, A, 1]}, A] &, y |-> y, y |-> y, b][x]
 ]]}]
 ```
 

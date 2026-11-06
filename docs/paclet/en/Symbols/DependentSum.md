@@ -38,7 +38,7 @@ TypeTheoryType[DependentSum, "Cubical"]
 A type with an element of it, a pointed type, here the Booleans with `"true"`:
 
 ```wl
-TypeTheoryType[Typed["dependentPair"[Booleans, "true"], DependentSum[TypeUniverse[1], Typed[A, TypeUniverse[1]] |-> A]], "Cubical"]
+TypeTheoryType[Typed["dependentPair"[Booleans, "true"], DependentSum[TypeUniverse[1], A |-> A]], "Cubical"]
 ```
 
 <!-- => Σ_A∶Type A -->
@@ -58,7 +58,7 @@ TypeTheoryType[Typed["dependentPair"["true", Function[{i}, "false"]], Fiber["not
 With a family that does not depend on the first element, the pairs are plain pairs:
 
 ```wl
-TypeTheoryType[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]], "Cubical"]
+TypeTheoryType[Typed["dependentPair"["true", "false"], DependentSum[Booleans, b |-> Booleans]], "Cubical"]
 ```
 
 <!-- => Σ_b∶𝔹 𝔹 -->
@@ -68,7 +68,7 @@ TypeTheoryType[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Ty
 Its second field:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"["true", "false"], DependentSum[Booleans, Typed[b, Booleans] |-> Booleans]][[2]], "Cubical"]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"["true", "false"], DependentSum[Booleans, b |-> Booleans]][[2]], "Cubical"]]
 ```
 
 <!-- => false -->
@@ -78,7 +78,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"["true", "false"], Depend
 The first field of a pointed type is the type:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"[Booleans, "true"], DependentSum[TypeUniverse[1], Typed[A, TypeUniverse[1]] |-> A]][[1]], "Cubical"]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"[Booleans, "true"], DependentSum[TypeUniverse[1], A |-> A]][[1]], "Cubical"]]
 ```
 
 <!-- => 𝔹 -->
@@ -88,7 +88,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"[Booleans, "true"], Depen
 The second field of a pointed type is in the first:
 
 ```wl
-TypeTheoryType[Typed[s, DependentSum[TypeUniverse[1], Typed[A, TypeUniverse[1]] |-> A]] |-> s[[2]], "Cubical"]
+TypeTheoryType[Typed[s, DependentSum[TypeUniverse[1], A |-> A]] |-> s[[2]], "Cubical"]
 ```
 
 <!-- => ∀_s∶Σ_A∶Type A s[[1]] -->
@@ -98,17 +98,17 @@ TypeTheoryType[Typed[s, DependentSum[TypeUniverse[1], Typed[A, TypeUniverse[1]] 
 A family by cases: a Boolean with, for `"false"`, a Boolean, and for `"true"`, a function on Booleans; `"true"` goes with `"not"`:
 
 ```wl
-TypeTheoryType[Typed["dependentPair"["true", "not"], DependentSum[Booleans, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]], "Cubical"]
+TypeTheoryType[Typed["dependentPair"["true", "not"], DependentSum[Booleans, b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]], "Cubical"]
 ```
 
-<!-- => Σ_b∶𝔹 𝔹_rec[(t ∶ 𝔹) ↦ Type, 𝔹, 𝔹 → 𝔹, b] -->
+<!-- => Σ_b∶𝔹 𝔹_rec[(#1 ∶ 𝔹) ↦ Type, 𝔹, 𝔹 → 𝔹, b] -->
 
 ---
 
 The second field of that pair is a function, applied here to `"false"`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"["true", "not"], DependentSum[Booleans, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]][[2]]["false"], "Cubical"]]
+WeakHeadNormalForm[TypeTheoryTerm[Typed["dependentPair"["true", "not"], DependentSum[Booleans, b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]][[2]]["false"], "Cubical"]]
 ```
 
 <!-- => true -->
@@ -128,7 +128,7 @@ TypeTheoryTerm[Typed["dependentPair"["true", "dependentPair"["false", "true"]], 
 Pointed types are in Type 1, the universe above the types they pair:
 
 ```wl
-TypeTheoryType[DependentSum[TypeUniverse[1], Typed[A, TypeUniverse[1]] |-> A], "Cubical"]
+TypeTheoryType[DependentSum[TypeUniverse[1], A |-> A], "Cubical"]
 ```
 
 <!-- => Type 1 -->
@@ -186,7 +186,7 @@ TypeTheoryType[InductiveRecursor[DependentSum], "Cubical"]
 In the prelude, [Subtype]() is the dependent sum of a number and a proof of a proposition about it:
 
 ```wl
-TypeTheoryType[Typed["subtype"[3, "equalityReflexivity"[6]], Subtype[Typed[n, Naturals] |-> n + n == 6]]]
+TypeTheoryType[Typed["subtype"[3, "equalityReflexivity"[6]], Subtype[n |-> n + n == 6]]]
 ```
 
 <!-- => {n ∶ ℕ // n + n == 6} -->
@@ -216,7 +216,7 @@ TypeTheoryType[DependentSum[Booleans, Booleans], "Cubical"]
 The second field has the type the family gives at the first: for `"true"`, a function, not a Boolean:
 
 ```wl
-TypeTheoryType[Typed["dependentPair"["true", "true"], DependentSum[Booleans, Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]], "Cubical"]
+TypeTheoryType[Typed["dependentPair"["true", "true"], DependentSum[Booleans, b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]], "Cubical"]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -236,7 +236,7 @@ TypeTheoryType[Typed["dependentPair"["false", Function[{i}, "false"]], Fiber["no
 The cubical environment has no Prop, so a family cannot take its values there:
 
 ```wl
-TypeTheoryType[DependentSum[Booleans, Typed[b, Booleans] |-> TypeUniverse[0]], "Cubical"]
+TypeTheoryType[DependentSum[Booleans, TypeUniverse[0] &], "Cubical"]
 ```
 
 <!-- => Failure["NoProp", ...] -->
