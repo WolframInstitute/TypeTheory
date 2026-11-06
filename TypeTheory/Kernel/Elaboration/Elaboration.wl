@@ -306,6 +306,11 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		{universeSort[elaborated], universeSort[normalizeLevel[levelSuccessor[elaborated, 1]]]}
 	],
 	syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] :> elaborateAscription[term, type],
+	(* FromString["text"] is the value written by the string "text" even where "text" names a constant, as "true" or
+	   "none": the literal it is applied to is the string *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[FromString]], {syntaxString[text_String]}] /;
+		constantDeclaredQ[$elaborationEnvironment, HoldComplete[FromString]] && ! KeyExistsQ[$elaborationScope, HoldComplete[text]] :>
+		applyArguments[elaborateHead[head], {stringLiteralSyntax[text]}, head, expected],
 	(* TypeHint[e, type], which the compiler reads as e of that type and which evaluates to e, is e ascribed the type where
 	   it is a type of the type theory, and e alone where it is only the compiler's, as "MachineInteger" *)
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeHint]], {term_, type_}] /; compilerTypeSyntaxQ[type] :> elaborateSyntax[term, expected],
@@ -1084,12 +1089,14 @@ expectedBody[expected_, id_] := Replace[
 (* The body's type is unified with its expected type inside the binders, before the function is closed:
    an implicit argument of the body solved by the expected type is then solved in terms of the bound
    variables, and abstracted with them, instead of naming a variable outside its binder. *)
-elaborateFunction[binders_List, body_, expected_] := With[{start = Length[$pendingOverloads], opened = openBinders[binders, expected]},
+elaborateFunction[binders_List, body_, expected_] := With[{start = Length[$pendingOverloads], instancesStart = Length[$pendingInstances], opened = openBinders[binders, expected]},
 	Block[{$elaborationContext = opened["Context"], $elaborationScope = opened["Scope"]},
 		With[{result = elaborateSyntax[body, opened["Expected"]]},
 			If[opened["Expected"] =!= None, attemptOrRestore[unify[Last[result], opened["Expected"]]]];
-			(* an overloaded name inside may mention the bound variables, so it is decided before they go out of scope *)
+			(* an overloaded name inside may mention the bound variables, so it is decided before they go out of scope, and
+			   so is an instance of a class with a default, as FromString's *)
 			resolvePendingOverloads[start, True];
+			defaultPendingInstances[instancesStart];
 			liftMetavariables[opened["Ids"], {result, boundVariableTypes[opened["Ids"]]}];
 			lambdaWithType[instantiateContext[$elaborationContext], opened["Ids"], instantiateMetavariables[First[result]], instantiateMetavariables[Last[result]]]
 		]
@@ -1415,6 +1422,20 @@ synthesizePendingInstances[final_] := Scan[
 		]
 	]],
 	$pendingInstances
+]
+
+(* the classes whose instance, where nothing decides it, is the latest declared that fits, as "OfString" of FromString is
+   that of the strings *)
+$defaultedClasses = {HoldComplete["OfString"]}
+
+(* the instances waiting from position start + 1 on of a class with a default, found as the final pass finds them *)
+defaultPendingInstances[start_Integer] := Scan[
+	Function[id, With[{type = instantiateMetavariables[$metavariableTypes[id]]},
+		If[ unassignedMetavariableQ[metavariable[id]] && MemberQ[$defaultedClasses, instanceClass[type]],
+			Replace[synthesizedInstance[type, 0], found : Except[None] :> unify[metavariable[id], found]]
+		]
+	]],
+	Drop[$pendingInstances, start]
 ]
 
 instanceTypeKnownQ[id_] := FreeQ[instantiateMetavariables[$metavariableTypes[id]], metavariable[other_] /; unassignedMetavariableQ[metavariable[other]]]

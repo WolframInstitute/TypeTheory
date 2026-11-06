@@ -214,7 +214,7 @@ VerificationTest[
 
 (* a string on its own names a constant, and one that names none is refused, as a misspelled name; FromString[s] is the
    value of the type expected whose string is s, by the instance of "OfString" of that type, and the string where
-   nothing decides; TypeHint[e, type] is e ascribed the type, or e alone where the type is the compiler's *)
+   nothing decides, inside a function too, its literal the string even where it names a constant, as "true"; TypeHint[e, type] is e ascribed the type, or e alone where the type is the compiler's *)
 VerificationTest[
 	Block[{increment},
 		increment[x_] := TypeHint[x + 1, "MachineInteger"];
@@ -227,9 +227,12 @@ VerificationTest[
 			DefinitionallyEqualQ[TypeTheoryType[TypeHint[3, NonNegativeIntegers | Strings]], TypeTheoryTerm[NonNegativeIntegers | Strings]],
 			DefinitionallyEqualQ[TypeTheoryType[Typed[x, NonNegativeIntegers] |-> TypeHint[x + 1, "MachineInteger"]], TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers]],
 			First[TypeTheoryType[TypeHint[3, Strings]]],
-			MatchQ[TypeTheoryFormalize[increment], {HoldPattern[TypeTheoryDefinition[_, Function[{x_}, x_ + 1]]]}]
+			MatchQ[TypeTheoryFormalize[increment], {HoldPattern[TypeTheoryDefinition[_, Function[{x_}, x_ + 1]]]}],
+			DefinitionallyEqualQ[TypeTheoryTerm[FromString["true"]], TypeTheoryTerm["string"[{116, 114, 117, 101}]]],
+			DefinitionallyEqualQ[TypeTheoryType[Typed[n, NonNegativeIntegers] |-> If[n == 0, FromString["none"], FromString["some"]]], TypeTheoryTerm[NonNegativeIntegers -> Strings]],
+			DefinitionallyEqualQ[TypeTheoryType[Typed[Typed[n, NonNegativeIntegers] |-> FromString["a"], NonNegativeIntegers -> Expressions]], TypeTheoryTerm[NonNegativeIntegers -> Expressions]]
 		}
 	],
-	{"ElaborationFailed", True, True, True, "NoInstance", True, True, "TypeMismatch", True},
+	{"ElaborationFailed", True, True, True, "NoInstance", True, True, "TypeMismatch", True, True, True, True},
 	TestID -> "A-lone-string-names-a-constant-FromString-and-TypeHint"
 ]
