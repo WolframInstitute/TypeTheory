@@ -4,7 +4,7 @@ Name: MatchPart
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/MatchPart
-Keywords: [Wolfram Language, pattern matching, Match, part, position, head, arguments, Part, match program]
+Keywords: [Wolfram Language, pattern matching, Match, part, position, head, arguments, Part, match program, nested patterns]
 SeeAlso: [Match, MatchValue, MatchBind, Expressions, Arguments, Part]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -23,7 +23,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 ## Basic Examples
 
-The type of [MatchPart]():
+[MatchPart]() matches at a position of an expression:
 
 ```wl
 TypeTheoryType[MatchPart, "WolframLanguage"]
@@ -33,157 +33,55 @@ TypeTheoryType[MatchPart, "WolframLanguage"]
 
 ---
 
-The second argument of an expression, as one result:
+The second argument of a quoted sum, as one result:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 2, MatchValue], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, MatchValue], "WolframLanguage"]]
 ```
 
-<!-- => {2} -->
+<!-- => {b c} -->
 
 ---
 
 Position 0 is the head:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 0, MatchValue], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 0, MatchValue], "WolframLanguage"]]
 ```
 
-<!-- => {f} -->
+<!-- => {Plus} -->
 
 ## Scope
 
-The first argument:
+A part of a part, as `e[[2, 1]]`:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 1, MatchValue], "WolframLanguage"]]
-```
-
-<!-- => {1} -->
-
----
-
-The match of the part can compute with it:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 2, Typed[x, Expressions] |-> MatchValue[Head[x]]], "WolframLanguage"]]
-```
-
-<!-- => {Integer} -->
-
----
-
-It can have several results:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 2, Typed[x, Expressions] |-> {x, x}], "WolframLanguage"]]
-```
-
-<!-- => {2, 2} -->
-
----
-
-A part that passes a test:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 1, Typed[x, Expressions] |-> (MatchValue[x] /; SameQ[x, 1])], "WolframLanguage"]]
-```
-
-<!-- => {1} -->
-
----
-
-A part that fails it gives no result:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 1, Typed[x, Expressions] |-> (MatchValue[x] /; SameQ[x, 2])], "WolframLanguage"]]
-```
-
-<!-- => {} -->
-
----
-
-A part of a part:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[g[1]], 1, Typed[x, Expressions] |-> MatchPart[x, 1, MatchValue]], "WolframLanguage"]]
-```
-
-<!-- => {1} -->
-
----
-
-The head of a list:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[{a, b}, 0, MatchValue], "WolframLanguage"]]
-```
-
-<!-- => {List} -->
-
----
-
-A part of a quoted expression:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b], 2, MatchValue], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, Typed[y, Expressions] |-> MatchPart[y, 1, MatchValue]], "WolframLanguage"]]
 ```
 
 <!-- => {b} -->
 
 ---
 
-An atom has a head:
+A part that passes a test, here an integer, as `_Integer` tests it:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[HoldForm[f], 0, MatchValue], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchPart[f["a", 1], 2, Typed[x, Expressions] |-> (MatchValue[x] /; SameQ[Head[x], HoldForm[Integer]])], "WolframLanguage"]]
 ```
 
-<!-- => {Symbol} -->
+<!-- => {1} -->
+
+A part that fails it gives no result:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchPart[f["a", 1], 1, Typed[x, Expressions] |-> (MatchValue[x] /; SameQ[Head[x], HoldForm[Integer]])], "WolframLanguage"]]
+```
+
+<!-- => {} -->
 
 ---
 
-A part of an expression built from a sequence:
-
-```wl
-NormalForm[TypeTheoryTerm[Function[{Typed[s, Expressions...]}, MatchPart[Construct[f, s], 3, MatchValue]][1, 2, 3], "WolframLanguage"]]
-```
-
-<!-- => {3} -->
-
-## Properties and Relations
-
-The part at 0 is the head, for every expression:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[e, Expressions] |-> MatchPart[e, 0, MatchValue], "WolframLanguage"], TypeTheoryTerm[Typed[e, Expressions] |-> MatchValue[Head[e]], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-Two parts matched in turn with [MatchBind]():
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[MatchPart[f[1, 2], 1, MatchValue], Typed[x, Expressions] |-> MatchPart[f[1, 2], 2, Typed[y, Expressions] |-> MatchValue[Sequence[x, y]]]], "WolframLanguage"]]
-```
-
-<!-- => {[1, 2]} -->
-
----
-
-The first result is the part:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchFirst[MatchPart[f[1, 2], 2, MatchValue]], "WolframLanguage"]]
-```
-
-<!-- => some[2] -->
-
-## Possible Issues
-
-A position out of range gives no result:
+A position past the last argument gives no result, where [Part]() fails:
 
 ```wl
 NormalForm[TypeTheoryTerm[MatchPart[f[1], 5, MatchValue], "WolframLanguage"]]
@@ -193,10 +91,41 @@ NormalForm[TypeTheoryTerm[MatchPart[f[1], 5, MatchValue], "WolframLanguage"]]
 
 ---
 
+The first part of an expression built from a variable and a sequence computes to the variable:
+
+```wl
+NormalForm[TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[s, Expressions...]}, MatchPart[Construct[f, x, s], 1, MatchValue]], "WolframLanguage"]]
+```
+
+<!-- => (x ∶ Expressions) (s ∶ Expressions...) ↦ {x} -->
+
+## Properties and Relations
+
+A nested pattern is a [MatchPart]() inside another, with a test of the inner head:
+
+```wl
+innerOf[g[x_]] := x;
+Last[TypeTheoryFormalize[innerOf, "WolframLanguage", "Meaning" -> "Rules"]]
+```
+
+<!-- => definition DownValues[innerOf] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (part1 ∶ Expressions) ↦ (MatchPart[part1, 1, (x ∶ Expressions) ↦ MatchValue[x]] /; (¬AtomQ[part1] ∧ Decide[Length[{Arguments[part1]}] == 1]) ∧ Head[part1] === g)] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]] -->
+
+---
+
+The part at 0 is the head, for every expression:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[e, Expressions] |-> MatchPart[e, 0, MatchValue], "WolframLanguage"], TypeTheoryTerm[Typed[e, Expressions] |-> MatchValue[Head[e]], "WolframLanguage"]]
+```
+
+<!-- => True -->
+
+## Possible Issues
+
 An atom has no part past its head:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[HoldForm[f], 1, MatchValue], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchPart[HoldForm[x], 1, MatchValue], "WolframLanguage"]]
 ```
 
 <!-- => {} -->
@@ -213,7 +142,7 @@ NormalForm[TypeTheoryTerm[MatchPart[1 + 2, 1, MatchValue], "WolframLanguage"]]
 
 ---
 
-A position is a natural number:
+A position is a natural number, so a part from the end is no position:
 
 ```wl
 TypeTheoryType[MatchPart[f[1, 2], -1, MatchValue], "WolframLanguage"]

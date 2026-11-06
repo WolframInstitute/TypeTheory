@@ -18,30 +18,10 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 - [ExpressionEvaluate]() is an axiom of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, of the type `Expressions -> Expressions`. The kernel never computes it, so a term reduces up to it and no further, and nothing in the type theory says what it gives.
 - It stands for the evaluation of the Wolfram Language, which the type theory takes as given. It is the one axiom the Wolfram Language environment adds to those of the prelude, and [TypeTheoryAxiomClosure]() lists it, as a `"Signature"`, for every term that rests on it.
-- The rules of a symbol, from [TypeTheoryFormalize]() with `"Meaning" -> "Rules"`, test a condition `x_ /; test` or a pattern test `x_?test` as [SameQ]() of the [ExpressionEvaluate]() of the test and [True](), which is what the Wolfram Language tests. So do rules given to [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() as terms: a rewriting by a rule with a condition computes in the kernel up to its test.
+- The rules of a symbol, from [TypeTheoryFormalize]() with `"Meaning" -> "Rules"`, test a condition `x_ /; test` or a pattern test `x_?test` as [SameQ]() of the [ExpressionEvaluate]() of the test and [True](), which is what the Wolfram Language tests. So do rules given to [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() as terms: a rewriting by a rule with a condition computes in the kernel up to its test, so the kernel still decides every expression whose head or arguments the rule does not match.
 - Its argument is an expression where one is expected: a declared constant in it computes, so `ExpressionEvaluate[1 + 2]` is `ExpressionEvaluate[3]`, and [HoldForm]() quotes it as it is written.
 
 ## Basic Examples
-
-The type of [ExpressionEvaluate]():
-
-```wl
-TypeTheoryType[ExpressionEvaluate, "WolframLanguage"]
-```
-
-<!-- => Expressions → Expressions -->
-
----
-
-The value of an expression is an expression:
-
-```wl
-TypeTheoryType[ExpressionEvaluate[Construct[7, 1, 2]], "WolframLanguage"]
-```
-
-<!-- => Expressions -->
-
----
 
 [ExpressionEvaluate]() is an axiom:
 
@@ -53,7 +33,7 @@ TypeTheoryEnvironment["WolframLanguage"][ExpressionEvaluate]
 
 ---
 
-The kernel does not compute it:
+The kernel does not evaluate an expression, so the value of `1 + 2` stays as it is:
 
 ```wl
 NormalForm[TypeTheoryTerm[ExpressionEvaluate[HoldForm[1 + 2]], "WolframLanguage"]]
@@ -61,47 +41,72 @@ NormalForm[TypeTheoryTerm[ExpressionEvaluate[HoldForm[1 + 2]], "WolframLanguage"
 
 <!-- => ExpressionEvaluate[1 + 2] -->
 
-## Scope
-
-The value of an expression with a symbol that names nothing:
-
-```wl
-NormalForm[TypeTheoryTerm[ExpressionEvaluate[f[x]], "WolframLanguage"]]
-```
-
-<!-- => ExpressionEvaluate[f[x]] -->
-
 ---
 
-A natural number is an expression where one is expected:
-
-```wl
-TypeTheoryType[ExpressionEvaluate[3], "WolframLanguage"]
-```
-
-<!-- => Expressions -->
-
----
-
-A condition tests the value of its test:
+A condition in a rule tests the value of its test:
 
 ```wl
 positive[x_ /; x > 0] := x;
-Last[TypeTheoryFormalize[positive, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]
+Last[TypeTheoryFormalize[positive, "WolframLanguage", "Meaning" -> "Rules"]]
 ```
 
 <!-- => definition DownValues[positive] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ (MatchValue[x] /; ExpressionEvaluate[x > 0] === True)] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]] -->
 
----
+## Scope
 
-So does a pattern test:
+A pattern test tests the value of the function applied:
 
 ```wl
-positiveQ[x_?Positive] := x;
-Last[TypeTheoryFormalize[positiveQ, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]
+halved[n_?EvenQ] := n/2;
+Last[TypeTheoryFormalize[halved, "WolframLanguage", "Meaning" -> "Rules"]]
 ```
 
-<!-- => definition DownValues[positiveQ] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ (MatchValue[x] /; ExpressionEvaluate[Positive[x]] === True)] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]] -->
+<!-- => definition DownValues[halved] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (n ∶ Expressions) ↦ (MatchValue[n/2] /; ExpressionEvaluate[EvenQ[n]] === True)] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]] -->
+
+---
+
+The rules of `positive` in an environment:
+
+```wl
+positive[x_ /; x > 0] := x;
+positives = TypeTheoryEnvironment["WolframLanguage", TypeTheoryFormalize[positive, "WolframLanguage", "Meaning" -> "Rules"]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 226 constants -->
+
+An expression with two arguments does not match the pattern, so the kernel computes that no rule applies without the test:
+
+```wl
+NormalForm[TypeTheoryTerm["DownValues[positive]"[positive[1, 2]], positives]]
+```
+
+<!-- => none -->
+
+---
+
+A rule with a condition rewrites in the kernel an expression whose head it does not match:
+
+```wl
+NormalForm[TypeTheoryTerm[Replace[g[5], f[x_ /; x > 0] :> x], "WolframLanguage"]]
+```
+
+<!-- => g[5] -->
+
+Where the head matches, the rewriting stops at the test, which the kernel cannot evaluate, so it is not 5 by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Replace[f[5], f[x_ /; x > 0] :> x], "WolframLanguage"], TypeTheoryTerm[Typed[5, Expressions], "WolframLanguage"]]
+```
+
+<!-- => False -->
+
+The same rule without the condition rewrites `f[5]` to 5:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[Replace[f[5], f[x_] :> x], "WolframLanguage"], TypeTheoryTerm[Typed[5, Expressions], "WolframLanguage"]]
+```
+
+<!-- => True -->
 
 ## Properties and Relations
 
@@ -115,44 +120,25 @@ Information[TypeTheoryEnvironment["WolframLanguage"], "Axioms"]
 
 ---
 
-A term that uses it rests on it:
+A rewriting by a rule with a condition rests on [ExpressionEvaluate]():
 
 ```wl
-TypeTheoryAxiomClosure[TypeTheoryTerm[ExpressionEvaluate[HoldForm[x]], "WolframLanguage"]]
+TypeTheoryAxiomClosure[TypeTheoryTerm[Replace[f[5], f[x_ /; x > 0] :> x], "WolframLanguage"]]
 ```
 
 <!-- => <|ExpressionEvaluate -> "Signature"|> -->
 
----
-
-The rules of a function with a condition:
+One without a condition rests on no axiom:
 
 ```wl
-positive[x_ /; x > 0] := x;
-positives = TypeTheoryEnvironment["WolframLanguage", TypeTheoryFormalize[positive, "WolframLanguage", "Meaning" -> "Rules"]]
+TypeTheoryAxiomClosure[TypeTheoryTerm[Replace[f[5], f[x_] :> x], "WolframLanguage"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 226 constants -->
-
-They rest on [ExpressionEvaluate]():
-
-```wl
-TypeTheoryAxiomClosure[TypeTheoryTerm["DownValues[positive]", positives]]
-```
-
-<!-- => <|ExpressionEvaluate -> "Signature"|> -->
-
-An expression the pattern does not match, with two arguments, computes to none before the condition is tested:
-
-```wl
-NormalForm[TypeTheoryTerm["DownValues[positive]"[positive[1, 2]], positives]]
-```
-
-<!-- => none -->
+<!-- => <||> -->
 
 ---
 
-The value of `1 + 2` is not 3 by computation, since the kernel does not evaluate:
+The value of `1 + 2` is not 3 by computation, since nothing in the type theory says what the Wolfram Language evaluates it to:
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[ExpressionEvaluate[HoldForm[1 + 2]], "WolframLanguage"], TypeTheoryTerm[HoldForm[3], "WolframLanguage"]]
@@ -169,24 +155,6 @@ NormalForm[TypeTheoryTerm[ExpressionEvaluate[1 + 2], "WolframLanguage"]]
 ```
 
 <!-- => ExpressionEvaluate[3] -->
-
----
-
-A rule with a condition does not rewrite in the kernel, which cannot evaluate the test:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Replace[f[1], f[x_ /; x > 0] :> x], "WolframLanguage"], TypeTheoryTerm[Typed[1, Expressions], "WolframLanguage"]]
-```
-
-<!-- => False -->
-
-The same rule without the condition does:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Replace[f[1], f[x_] :> x], "WolframLanguage"], TypeTheoryTerm[Typed[1, Expressions], "WolframLanguage"]]
-```
-
-<!-- => True -->
 
 ---
 

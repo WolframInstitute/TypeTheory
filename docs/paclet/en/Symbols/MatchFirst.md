@@ -4,7 +4,7 @@ Name: MatchFirst
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/MatchFirst
-Keywords: [Wolfram Language, expressions, pattern matching, Match, first result, Option, rules, Replace, DownValues]
+Keywords: [Wolfram Language, expressions, pattern matching, Match, first result, Option, rules, Replace, DownValues, Longest]
 SeeAlso: [Match, MatchValue, MatchSum, MatchBind, Option, TypeTheoryFormalize, Replace]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -23,7 +23,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 ## Basic Examples
 
-The type of [MatchFirst]():
+The first result of a match is an option:
 
 ```wl
 TypeTheoryType[MatchFirst, "WolframLanguage"]
@@ -33,67 +33,7 @@ TypeTheoryType[MatchFirst, "WolframLanguage"]
 
 ---
 
-The left alternative first:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchSum[MatchValue[1], MatchValue[2]]], "WolframLanguage"]]
-```
-
-<!-- => some[1] -->
-
----
-
-A match with no result has none:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[Typed[{}, Match[NonNegativeIntegers]]], "WolframLanguage"]]
-```
-
-<!-- => none -->
-
-## Scope
-
-The first of one result:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchValue[3]], "WolframLanguage"]]
-```
-
-<!-- => some[3] -->
-
----
-
-Its type is an option:
-
-```wl
-TypeTheoryType[MatchFirst[MatchValue[3]], "WolframLanguage"]
-```
-
-<!-- => Option[ℕ] -->
-
----
-
-The first result of a sequence of values:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchValue[Sequence[1, 2]]], "WolframLanguage"]]
-```
-
-<!-- => some[[1, 2]] -->
-
----
-
-The first result of a match at a part:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchFirst[MatchPart[f[1, 2], 2, MatchValue]], "WolframLanguage"]]
-```
-
-<!-- => some[2] -->
-
----
-
-The first rule that matches:
+Both rules match `f[1, 2]`, and the first result is the first rule's:
 
 ```wl
 NormalForm[TypeTheoryTerm[MatchFirst[Typed[{f[x_, y_] :> {y, x}, f[x__] :> {x}}, Expressions -> Match[Expressions]][f[1, 2]]], "WolframLanguage"]]
@@ -103,23 +43,43 @@ NormalForm[TypeTheoryTerm[MatchFirst[Typed[{f[x_, y_] :> {y, x}, f[x__] :> {x}},
 
 ---
 
-None where no rule matches:
+Where no rule matches there is none:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchFirst[Typed[{f[x_, y_] :> {y, x}}, Expressions -> Match[Expressions]][f[1]]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchFirst[Typed[f[x_, y_] :> {y, x}, Expressions -> Match[Expressions]][f[1]]], "WolframLanguage"]]
 ```
 
 <!-- => none -->
 
----
+## Scope
 
-[Replace]() rewrites by the first rule that matches:
+Of the ways a sequence pattern matches, the first is the one with the shortest first sequence:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchFirst[Typed[f[x__, y__] :> {{x}, {y}}, Expressions -> Match[Expressions]][f[1, 2, 3]]], "WolframLanguage"]]
 ```
 
-<!-- => {2, 1} -->
+<!-- => some[{{1}, {2, 3}}] -->
+
+---
+
+[Longest]() puts the longest first, so [Replace]() takes it:
+
+```wl
+NormalForm[TypeTheoryTerm[Replace[f[1, 2, 3], f[Longest[x__], y__] :> {{x}, {y}}], "WolframLanguage"]]
+```
+
+<!-- => {{1, 2}, {3}} -->
+
+---
+
+[Replace]() applies the first rule that matches, even where a later one matches too:
+
+```wl
+NormalForm[TypeTheoryTerm[Replace[f[1, 2], {f[x__] :> {x}, f[x_, y_] :> {y, x}}], "WolframLanguage"]]
+```
+
+<!-- => {1, 2} -->
 
 ---
 
@@ -187,30 +147,38 @@ TypeTheoryEnvironment["WolframLanguage"][MatchFirst]
 
 ---
 
-Where the left alternative has no result, the first is the right one's:
+[Replace]() takes the first result of its rules, or the expression where there is none, by the recursor of [Option]():
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchSum[Typed[{}, Match[NonNegativeIntegers]], MatchValue[2]]], "WolframLanguage"]]
+TypeTheoryEnvironment["WolframLanguage"][Replace]
 ```
 
-<!-- => some[2] -->
+<!-- => definition Replace : Expressions → (Expressions → Match[Expressions]) → Expressions := (e ∶ Expressions) (rules ∶ Expressions → Match[Expressions]) ↦ (Option_rec)[(o ∶ Option[Expressions]) ↦ Expressions, e, (r ∶ Expressions) ↦ r, MatchFirst[rules[e]]] -->
 
 ---
 
-The recursor of [Option]() takes the result, or a default where there is none:
+Whatever the right alternative, the first result of a sum is the left one's where it has one:
 
 ```wl
-NormalForm[TypeTheoryTerm[InductiveRecursor[Option][Typed[o, Option[NonNegativeIntegers]] |-> NonNegativeIntegers, 0, Typed[r, NonNegativeIntegers] |-> r, MatchFirst[MatchValue[5]]], "WolframLanguage"]]
+TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[m, Match[NonNegativeIntegers]]}, MatchFirst[MatchSum[MatchValue[a], m]] == "some"[a]], "WolframLanguage", {"Introduce"[a, m], "Reflexivity"}]
 ```
 
-<!-- => 5 -->
+<!-- => Proof complete -->
 
 ## Possible Issues
 
-The first result is an option, not the value itself:
+The first result is an option, not the expression itself, so a function of expressions does not take it:
 
 ```wl
-TypeTheoryType[MatchFirst[MatchValue[3]] + 1, "WolframLanguage"]
+TypeTheoryType[Head[MatchFirst[ReplaceList[f[1, 2], f[x_, y_] :> {y, x}]]], "WolframLanguage"]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
+
+[Replace]() gives the expression:
+
+```wl
+NormalForm[TypeTheoryTerm[Head[Replace[f[1, 2], f[x_, y_] :> {y, x}]], "WolframLanguage"]]
+```
+
+<!-- => List -->

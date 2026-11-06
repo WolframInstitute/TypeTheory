@@ -4,7 +4,7 @@ Name: WeakHeadNormalForm
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/WeakHeadNormalForm
-Keywords: [reduction, weak head normal form, computation, beta reduction, unfolding, recursor, head]
+Keywords: [reduction, weak head normal form, computation, beta reduction, unfolding, recursor, head, constructor, lazy evaluation]
 SeeAlso: [NormalForm, DefinitionallyEqualQ, TypeTheoryCheck, TypeTheoryTerm, TypeTheoryDefinition]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [RulesAndComputation]
@@ -17,21 +17,11 @@ RelatedTutorials: [RulesAndComputation]
 ## Details & Options
 
 - Reduction applies functions to their arguments, unfolds definitions and local definitions, applies a recursor to a constructor, takes a field of a constructed structure, and computes the operations on natural number literals. Theorems never unfold.
-- Only the head is reduced: the arguments of a constructor, and the body of a function, stay as they are. [NormalForm]() reduces every part.
-- A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
+- Only the head is reduced: the arguments of a constructor, and the body of a function, stay as they are. So the result says which constructor a term is, or that it is a function, without computing the rest. [NormalForm]() reduces every part.
+- A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another. While it is the prelude, a term that names what only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares is read in that environment.
 - The kernel reduces a term to its weak head normal form to compare it with another, as [DefinitionallyEqualQ]() and [TypeTheoryCheck]() do.
 
 ## Basic Examples
-
-Addition of literals:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[2 + 3]]
-```
-
-<!-- => 5 -->
-
----
 
 A function applied to an argument:
 
@@ -43,7 +33,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, Naturals]}, x + 1][41]]]
 
 ---
 
-Only the head reduces, here the list's first constructor, and its elements stay:
+Only the head reduces, here the list's first constructor, and its elements stay as they are:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
@@ -51,9 +41,45 @@ WeakHeadNormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
 
 <!-- => {1 + 1, 2 3} -->
 
+[NormalForm]() computes them:
+
+```wl
+NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
+```
+
+<!-- => {2, 6} -->
+
+---
+
+The second of two rules applies to `f[1, 2, 3]`: the weak head normal form says that a rule applied, and leaves its result to compute:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[ReplaceList[f[1, 2, 3], {f[x_, y_] :> {y, x}, f[x__] :> {x}}]], "WolframLanguage"]]
+```
+
+<!-- => some[Construct[List, Sequence @@ {Arguments[f[1, 2, 3]]}]] -->
+
+[NormalForm]() computes the result:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchFirst[ReplaceList[f[1, 2, 3], {f[x_, y_] :> {y, x}, f[x__] :> {x}}]], "WolframLanguage"]]
+```
+
+<!-- => some[{1, 2, 3}] -->
+
 ## Scope
 
-A definition unfolds:
+A Boolean decided:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[Decide[2^10 == 1024]]]
+```
+
+<!-- => true -->
+
+---
+
+A definition unfolds, here [Not]():
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
@@ -63,75 +89,13 @@ WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
 
 ---
 
-A recursor applied to a constructor:
+A recursor applied to a literal computes, here the factorial of 5:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[And][
-    Function[{Typed[t, And[True, True]]}, Naturals],
-    Function[{Typed[p, True], Typed[q, True]}, 7],
-    "andIntroduction"["trueIntroduction", "trueIntroduction"]
-]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> (k + 1) r, 5]]]
 ```
 
-<!-- => 7 -->
-
----
-
-A recursor applied to a literal:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> 2 r, 5]]]
-```
-
-<!-- => 32 -->
-
----
-
-A local definition unfolds:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[With[{x = 2}, x + 1]]]
-```
-
-<!-- => 3 -->
-
----
-
-A field of a constructed pair:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm["pair"[1, 2][[2]]]]
-```
-
-<!-- => 2 -->
-
----
-
-A Boolean decided:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Decide[2 == 2]]]
-```
-
-<!-- => true -->
-
----
-
-A definition of your own:
-
-```wl
-doubled = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]}]
-```
-
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
-
-It unfolds, and the sum computes:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Doubled[21], doubled]]
-```
-
-<!-- => 42 -->
+<!-- => 120 -->
 
 ---
 
@@ -145,53 +109,15 @@ WeakHeadNormalForm[TypeTheoryTerm[(Typed[l, {Naturals}] |-> Prepend[l, 1 + 1])[{
 
 ---
 
-An expression of the Wolfram Language environment compared by computation:
+A [Join]() of lists reduces to its first element in front of the rest, which is left to compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[f], HoldForm[f]], "WolframLanguage"]]
+WeakHeadNormalForm[TypeTheoryTerm[Join[{1 + 1}, {2, 3}]]]
 ```
 
-<!-- => true -->
-
----
-
-The first result of a match:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchSum[MatchValue[1], MatchValue[2]]], "WolframLanguage"]]
-```
-
-<!-- => some[1] -->
-
----
-
-A type that is a definition unfolds:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Match[NonNegativeIntegers], "WolframLanguage"]]
-```
-
-<!-- => {ℕ} -->
+<!-- => Prepend[List_rec[(t ∶ {ℕ}) ↦ {ℕ}, {2, 3}, (x ∶ ℕ) (rest ∶ {ℕ}) (r ∶ {ℕ}) ↦ Prepend[r, x], {}], 1 + 1] -->
 
 ## Properties and Relations
-
-The arguments of a constructor stay as they are:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm["some"[1 + 1]]]
-```
-
-<!-- => some[1 + 1] -->
-
-[NormalForm]() reduces them:
-
-```wl
-NormalForm[TypeTheoryTerm["some"[1 + 1]]]
-```
-
-<!-- => some[2] -->
-
----
 
 A function is in weak head normal form, its body as it is:
 
@@ -208,16 +134,6 @@ NormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
 ```
 
 <!-- => (n ∶ ℕ) ↦ n -->
-
----
-
-So is a quantifier:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]]
-```
-
-<!-- => ∀_n∶ℕ n + 0 == n -->
 
 ---
 

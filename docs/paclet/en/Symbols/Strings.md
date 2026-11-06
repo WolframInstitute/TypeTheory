@@ -4,8 +4,8 @@ Name: Strings
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Strings
-Keywords: [strings, string literals, character codes, StringReverse, StringJoin, StringLength, ToString, Characters, formalization, Wolfram Language]
-SeeAlso: [TypeTheoryFormalize, Expressions, Atoms, SameQ]
+Keywords: [strings, string literals, character codes, string comparison, string concatenation, StringJoin, ToUpperCase, StringLength, Characters, ToString, formalization, Wolfram Language]
+SeeAlso: [TypeTheoryFormalize, Expressions, Atoms, SameQ, InductiveRecursor]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, TheWolframLanguage]
 ---
@@ -18,208 +18,13 @@ RelatedTutorials: [Elaboration, TheWolframLanguage]
 
 - In <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, [Strings]() is an inductive type with one constructor, `"string"`, of the type `{ℕ} -> Strings`: a string is `"string"` of the list of its character codes, so two strings compare by computation.
 - A string literal `"abc"` is that string where a string is expected, or where nothing decides the type, and no constant is named `"abc"`. Where an expression is expected it is the expression, the atom `"stringAtom"` of the string.
+- [SameQ]() of two strings computes, and so does every match of a pattern against a string, such as a string literal on the left of a rule or `_String`.
 - [TypeTheoryFormalize]() declares a string function that a definition calls by its signature over [Strings](): [StringReverse]() and [ToUpperCase]() `Strings -> Strings`, [StringJoin]() `Strings -> Strings -> Strings`, [StringLength]() `Strings -> ℕ`, [Characters]() `Strings -> {Strings}` and [ToString]() `Expressions -> Strings`. They are axioms, which the Wolfram Language computes.
 - Where an environment has no [Strings](), [TypeTheoryFormalize]() declares it as an axiom, opaque, with each literal a definition uses a constant of it named by its [InputForm]().
 
 ## Basic Examples
 
-The type of [Strings]():
-
-```wl
-TypeTheoryType[Strings, "WolframLanguage"]
-```
-
-<!-- => Type -->
-
----
-
 A string is made of the list of its character codes:
-
-```wl
-TypeTheoryType["string", "WolframLanguage"]
-```
-
-<!-- => {ℕ} → Strings -->
-
----
-
-A string literal is a string:
-
-```wl
-TypeTheoryType["abc", "WolframLanguage"]
-```
-
-<!-- => Strings -->
-
----
-
-The literal is the list of its character codes:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm["abc", "WolframLanguage"], TypeTheoryTerm["string"[{97, 98, 99}], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-A function of strings is a definition over [Strings]():
-
-```wl
-reversed[s_] := StringReverse[s];
-TypeTheoryFormalize[reversed, TypeTheoryEnvironment["WolframLanguage"]]
-```
-
-<!-- => {axiom StringReverse : Strings → Strings, definition reversed := s ↦ StringReverse[s]} -->
-
-## Scope
-
-The empty string is the empty list of codes:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm["", "WolframLanguage"], TypeTheoryTerm["string"[Typed[{}, {NonNegativeIntegers}]], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-A string made of its codes shows as the string:
-
-```wl
-NormalForm[TypeTheoryTerm["string"[{97, 98}], "WolframLanguage"]]
-```
-
-<!-- => ab -->
-
----
-
-The recursor of [Strings]() gives the codes back:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Strings][Typed[s, Strings] |-> {NonNegativeIntegers}, Typed[c, {NonNegativeIntegers}] |-> c, "ab"], "WolframLanguage"]]
-```
-
-<!-- => {97, 98} -->
-
----
-
-Where an expression is expected, a string literal is an expression:
-
-```wl
-TypeTheoryType[Typed["abc", Expressions], "WolframLanguage"]
-```
-
-<!-- => Expressions -->
-
----
-
-Its head is [String]():
-
-```wl
-NormalForm[TypeTheoryTerm[Head["abc"], "WolframLanguage"]]
-```
-
-<!-- => String -->
-
----
-
-A quoted string is the atom of the string:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm["ab"], "WolframLanguage"], TypeTheoryTerm["atom"["stringAtom"["ab"]], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-Two strings with the same characters are the same:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[SameQ["ab", "ab"], "WolframLanguage"]]
-```
-
-<!-- => true -->
-
----
-
-Two strings with other characters are not:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[SameQ["ab", "ac"], "WolframLanguage"]]
-```
-
-<!-- => false -->
-
----
-
-A pattern with the head [String]() matches a string:
-
-```wl
-NormalForm[TypeTheoryTerm[Replace[f["a", 1], f[x_String, y_] :> {y, x}], "WolframLanguage"]]
-```
-
-<!-- => {1, "a"} -->
-
----
-
-[StringJoin]() takes two strings:
-
-```wl
-joined[s_, t_] := StringJoin[s, t];
-TypeTheoryFormalize[joined, TypeTheoryEnvironment["WolframLanguage"]]
-```
-
-<!-- => {axiom StringJoin : Strings → Strings → Strings, definition joined := s t ↦ s <> t} -->
-
----
-
-A string literal in a definition is a string:
-
-```wl
-greeting[s_] := StringJoin["Hello, ", s];
-TypeTheoryFormalize[greeting, TypeTheoryEnvironment["WolframLanguage"]]
-```
-
-<!-- => {axiom StringJoin : Strings → Strings → Strings, definition greeting := s ↦ "Hello, " <> s} -->
-
----
-
-[StringLength]() gives a natural number:
-
-```wl
-lengthOf[s_] := StringLength[s];
-TypeTheoryFormalize[lengthOf, TypeTheoryEnvironment["WolframLanguage"]]
-```
-
-<!-- => {axiom StringLength : Strings → ℕ, definition lengthOf := s ↦ StringLength[s]} -->
-
----
-
-[Characters]() gives a list of strings:
-
-```wl
-characters[s_] := Characters[s];
-TypeTheoryFormalize[characters, TypeTheoryEnvironment["WolframLanguage"]]
-```
-
-<!-- => {axiom Characters : Strings → {Strings}, definition characters := s ↦ Characters[s]} -->
-
----
-
-[ToString]() takes any expression:
-
-```wl
-shown[x_] := ToString[x];
-TypeTheoryFormalize[shown, TypeTheoryEnvironment["WolframLanguage"]]
-```
-
-<!-- => {axiom ToString : Expressions → Strings, definition shown := x ↦ ToString[x]} -->
-
-## Properties and Relations
-
-The declaration of [Strings]():
 
 ```wl
 TypeTheoryEnvironment["WolframLanguage"][Strings]
@@ -229,25 +34,122 @@ TypeTheoryEnvironment["WolframLanguage"][Strings]
 
 ---
 
-Where the environment has no strings, [TypeTheoryFormalize]() declares [Strings]() as an axiom:
+The literal `"Hi"` is the string of the codes 72 and 105:
 
 ```wl
-reversed[s_] := StringReverse[s];
-TypeTheoryFormalize[reversed, TypeTheoryEnvironment["Integers"]]
+DefinitionallyEqualQ[TypeTheoryTerm["Hi", "WolframLanguage"], TypeTheoryTerm["string"[{72, 105}], "WolframLanguage"]]
 ```
 
-<!-- => {axiom Strings : Type, axiom StringReverse : Strings → Strings, definition reversed := s ↦ StringReverse[s]} -->
+<!-- => True -->
 
 ---
 
-There, a literal is a constant of its own:
+A table of rules looks a string up, the kernel comparing it with each left side:
 
 ```wl
-greeting[s_] := StringJoin["Hello, ", s];
-TypeTheoryFormalize[greeting, TypeTheoryEnvironment["Integers"]]
+NormalForm[TypeTheoryTerm[Replace["green", {"red" -> 1, "green" -> 2, "blue" -> 3}], "WolframLanguage"]]
 ```
 
-<!-- => {axiom Strings : Type, axiom StringJoin : Strings → Strings → Strings, axiom "Hello, " : Strings, definition greeting := s ↦ "Hello, " <> s} -->
+<!-- => 2 -->
+
+## Scope
+
+`_String` matches the strings among the parts of an expression:
+
+```wl
+NormalForm[TypeTheoryTerm[ReplaceAll[f[1, "a", x, "b"], s_String :> g[s]], "WolframLanguage"]]
+```
+
+<!-- => f[1, g["a"], x, g["b"]] -->
+
+---
+
+The recursor of [Strings]() gives the codes of a string, whose [Length]() is the length of the string:
+
+```wl
+NormalForm[TypeTheoryTerm[Length[InductiveRecursor[Strings][Typed[s, Strings] |-> {NonNegativeIntegers}, Typed[c, {NonNegativeIntegers}] |-> c, "hello"]], "WolframLanguage"]]
+```
+
+<!-- => 5 -->
+
+---
+
+A code put in front of the codes of a string makes a longer string:
+
+```wl
+NormalForm[TypeTheoryTerm[InductiveRecursor[Strings][Typed[s, Strings] |-> Strings, Typed[c, {NonNegativeIntegers}] |-> "string"[Prepend[c, 72]], "ello"], "WolframLanguage"]]
+```
+
+<!-- => Hello -->
+
+---
+
+Where an expression is expected, a string literal is the atom of the string, whose head is [String]():
+
+```wl
+NormalForm[TypeTheoryTerm[Head["abc"], "WolframLanguage"]]
+```
+
+<!-- => String -->
+
+## Applications
+
+Joining two strings is joining their lists of codes, a definition the kernel computes:
+
+```wl
+joining = TypeTheoryEnvironment["WolframLanguage", {TypeTheoryDefinition[JoinStrings, Function[{Typed[s, Strings], Typed[t, Strings]},
+    InductiveRecursor[Strings][Typed[u, Strings] |-> Strings, Typed[c, {NonNegativeIntegers}] |->
+        InductiveRecursor[Strings][Typed[v, Strings] |-> Strings, Typed[d, {NonNegativeIntegers}] |-> "string"[Join[c, d]], t], s]
+]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 226 constants -->
+
+It joins two literals:
+
+```wl
+NormalForm[TypeTheoryTerm[JoinStrings["Hello, ", "world"], joining]]
+```
+
+<!-- => Hello, world -->
+
+So the equation of the joined string and the literal is proved by computation:
+
+```wl
+TypeTheoryProof[JoinStrings["Hello, ", "world"] == "Hello, world", joining, {"Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+The empty string joined to any string is that string, by cases on the string:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[s, Strings]}, JoinStrings["", s] == s], joining, {"Introduce"[s], "Cases"[s], "Introduce"[c], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+A function of strings is formalized over [Strings](), the string functions it calls declared by their signatures:
+
+```wl
+shout[s_] := StringJoin[ToUpperCase[s], "!"];
+TypeTheoryFormalize[shout, "WolframLanguage"]
+```
+
+<!-- => {axiom StringJoin : Strings → Strings → Strings, axiom ToUpperCase : Strings → Strings, definition shout := s ↦ ToUpperCase[s] <> "!"} -->
+
+## Properties and Relations
+
+Where the environment has no strings, [TypeTheoryFormalize]() declares [Strings]() as an axiom, and each literal as a constant of its own:
+
+```wl
+shout[s_] := StringJoin[ToUpperCase[s], "!"];
+TypeTheoryFormalize[shout, "Integers"]
+```
+
+<!-- => {axiom Strings : Type, axiom StringJoin : Strings → Strings → Strings, axiom ToUpperCase : Strings → Strings, axiom "!" : Strings, definition shout := s ↦ ToUpperCase[s] <> "!"} -->
 
 ## Possible Issues
 
@@ -268,3 +170,21 @@ TypeTheoryType[StringReverse["ab"], "WolframLanguage"]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
+
+---
+
+No instance of [Decidable]() decides an equation of strings, so `"Decide"` does not prove one:
+
+```wl
+TypeTheoryProof[Not["ab" == "ba"], "WolframLanguage", {"Decide"}]
+```
+
+<!-- => Failure["NotDecidable", ...] -->
+
+[SameQ]() of the two strings computes, so that they differ is proved by computation:
+
+```wl
+TypeTheoryProof[SameQ["ab", "ba"] == "false", "WolframLanguage", {"Reflexivity"}]
+```
+
+<!-- => Proof complete -->

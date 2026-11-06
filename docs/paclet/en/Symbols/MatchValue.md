@@ -4,7 +4,7 @@ Name: MatchValue
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/MatchValue
-Keywords: [Wolfram Language, pattern matching, Match, one result, value, unit, monad, Sequence]
+Keywords: [Wolfram Language, pattern matching, Match, one result, value, unit, monad, monad laws, Sequence, right side of a rule]
 SeeAlso: [Match, MatchSum, MatchBind, MatchFirst, Sequence]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -19,11 +19,11 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 - <code>[MatchValue]()[*a*]</code> has the type <code>[Match]()[*A*]</code> when *a* has the type *A*. It is a definition of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, the list `{a}`.
 - A match holds a single value. A sequence of values is one value, written <code>[MatchValue]()[[Sequence]()[*a*, *b*, ...]]</code>, of the type <code>[Match]()[[Sequence]()[*A*, *B*, ...]]</code>, and a list is one value too. Several results are a [MatchSum]() of matches.
 - [MatchValue]() is the unit of the monad of matches: <code>[MatchBind]()[[MatchValue]()[*a*], *f*]</code> gives the results of <code>*f*[*a*]</code>, and <code>[MatchBind]()[*m*, [MatchValue]()]</code> those of *m*.
-- The rules of a symbol give the right side of the rule that matches as <code>[MatchValue]()[[HoldForm]()[*rhs*]]</code>, the expression it rewrites to.
+- The rules of a symbol give the right side of the rule that matches as <code>[MatchValue]()[*rhs*]</code>, the expression it rewrites to, quoted.
 
 ## Basic Examples
 
-The type of [MatchValue]():
+[MatchValue]() makes a match of any value:
 
 ```wl
 TypeTheoryType[MatchValue, "WolframLanguage"]
@@ -33,67 +33,41 @@ TypeTheoryType[MatchValue, "WolframLanguage"]
 
 ---
 
-One result:
+The right side of a rule is the one result of a match:
 
 ```wl
-TypeTheoryType[MatchValue[3], "WolframLanguage"]
+square[x_] := x^2;
+Last[TypeTheoryFormalize[square, "WolframLanguage", "Meaning" -> "Rules"]]
 ```
 
-<!-- => Match[ℕ] -->
+<!-- => definition DownValues[square] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ MatchValue[x^2]] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]] -->
 
 ---
 
-It is the list of the one result:
+A rule that matches once gives [MatchValue]() of the expression it rewrites to:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchValue[3], "WolframLanguage"]]
+DefinitionallyEqualQ[
+    TypeTheoryTerm[Typed[f[x_] :> {x, x}, Expressions -> Match[Expressions]][f[1]], "WolframLanguage"],
+    TypeTheoryTerm[MatchValue[HoldForm[{1, 1}]], "WolframLanguage"]
+]
 ```
 
-<!-- => {3} -->
-
----
-
-The first result of one result is it:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchValue[3]], "WolframLanguage"]]
-```
-
-<!-- => some[3] -->
+<!-- => True -->
 
 ## Scope
 
-One expression:
+The two parts that a pattern binds are one result, a sequence of two expressions:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchValue[Typed[f[1], Expressions]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchBind[MatchPart[f[1, 2], 1, MatchValue], Typed[x, Expressions] |-> MatchPart[f[1, 2], 2, Typed[y, Expressions] |-> MatchValue[Sequence[x, y]]]], "WolframLanguage"]]
 ```
 
-<!-- => {f[1]} -->
+<!-- => {[1, 2]} -->
 
 ---
 
-One quoted expression, as the rules of a symbol give it:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchValue[HoldForm[1 + 2]], "WolframLanguage"]]
-```
-
-<!-- => {1 + 2} -->
-
----
-
-One string:
-
-```wl
-TypeTheoryType[MatchValue["ab"], "WolframLanguage"]
-```
-
-<!-- => Match[Strings] -->
-
----
-
-A sequence of values is one result:
+The values of a sequence can have different types:
 
 ```wl
 TypeTheoryType[MatchValue[Sequence[1, "true"]], "WolframLanguage"]
@@ -101,39 +75,9 @@ TypeTheoryType[MatchValue[Sequence[1, "true"]], "WolframLanguage"]
 
 <!-- => Match[[ℕ, 𝔹]] -->
 
----
-
-It shows in brackets:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchValue[Sequence[1, 2]], "WolframLanguage"]]
-```
-
-<!-- => {[1, 2]} -->
-
----
-
-The values of a sequence can have three different types:
-
-```wl
-TypeTheoryType[MatchValue[Sequence[1, Typed[f[1], Expressions], "a"]], "WolframLanguage"]
-```
-
-<!-- => Match[[ℕ, Expressions, Strings]] -->
-
----
-
-A sequence of any number of expressions is one result too, as a sequence pattern binds it:
-
-```wl
-TypeTheoryType[MatchValue[Typed[Unevaluated[1, 2], Expressions...]], "WolframLanguage"]
-```
-
-<!-- => Match[Expressions...] -->
-
 ## Properties and Relations
 
-The definition of [MatchValue]():
+[MatchValue]() of a value is the list of it:
 
 ```wl
 TypeTheoryEnvironment["WolframLanguage"][MatchValue]
@@ -143,53 +87,39 @@ TypeTheoryEnvironment["WolframLanguage"][MatchValue]
 
 ---
 
-[MatchValue]() of a value is the list of it, by computation:
+[MatchBind]() of one result gives the results of the continuation applied to it:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchValue[3], "WolframLanguage"], TypeTheoryTerm[{3}, "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[MatchBind[MatchValue[2], Typed[x, NonNegativeIntegers] |-> {x, x + 1}], "WolframLanguage"]]
 ```
 
-<!-- => True -->
+<!-- => {2, 3} -->
 
 ---
 
-[MatchBind]() of one result applies the function to it:
+[MatchValue]() is a unit on the right of [MatchBind]() for every match, by induction on the list of its results:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchBind[MatchValue[2], Typed[x, NonNegativeIntegers] |-> MatchValue[x + 1]], "WolframLanguage"], TypeTheoryTerm[MatchValue[3], "WolframLanguage"]]
+TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchBind[m, MatchValue] == m], "WolframLanguage", {
+    "Introduce"[m],
+    "Induction"[m],
+    "Reflexivity",
+    "Introduce"[x, l, h],
+    "Simplify"[{MatchBind, h}]
+}]
 ```
 
-<!-- => True -->
+<!-- => Proof complete -->
 
 ---
 
-[MatchBind]() of a match with [MatchValue]() gives its results back:
+One result is a match, whatever the value:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchBind[Typed[{1, 2}, Match[NonNegativeIntegers]], MatchValue], "WolframLanguage"]]
+TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers]}, MatchQ[MatchValue[a]] == "true"], "WolframLanguage", {"Introduce"[a], "Reflexivity"}]
 ```
 
-<!-- => {1, 2} -->
-
----
-
-Several results are a sum:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchSum[MatchValue[1], MatchValue[2]], "WolframLanguage"], TypeTheoryTerm[{1, 2}, "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-One result is a match:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchQ[MatchValue[1]], "WolframLanguage"]]
-```
-
-<!-- => true -->
+<!-- => Proof complete -->
 
 ## Possible Issues
 
@@ -200,6 +130,14 @@ TypeTheoryType[MatchValue[1, 2], "WolframLanguage"]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
+
+Two values are one sequence:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchValue[Sequence[1, 2]], "WolframLanguage"]]
+```
+
+<!-- => {[1, 2]} -->
 
 ---
 

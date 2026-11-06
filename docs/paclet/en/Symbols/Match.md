@@ -4,7 +4,7 @@ Name: Match
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Match
-Keywords: [Wolfram Language, pattern matching, Match, monad, list monad, nondeterminism, list of results, Condition, MatchQ, ReplaceList, rules]
+Keywords: [Wolfram Language, pattern matching, Match, monad, list monad, nondeterminism, list of results, Condition, MatchQ, ReplaceList, rules, Orderless, sequence patterns]
 SeeAlso: [MatchValue, MatchSum, MatchBind, MatchPart, MatchFirst, Expressions, Condition, MatchQ, ReplaceList]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -21,188 +21,48 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 - [MatchValue]() makes one result and `{}` none; [MatchSum]() puts alternatives in order, where every match with several results comes from; [MatchBind]() matches parts in turn; [MatchPart]() matches at a part of an expression; [MatchFirst]() takes the first result, the one the Wolfram Language applies.
 - <code>[Condition]()[*m*, *b*]</code>, written <code>*m* /; *b*</code>, keeps the results of *m* where the Boolean *b* is `"true"`, and <code>[MatchQ]()[*m*]</code> is whether *m* has a result. Both are definitions of the environment too.
 - These are the operations of the monad of lists, the monad of nondeterminism, with its alternatives in order. They follow the match objects of the prototype paclet Wolfram/Patterns and of the Match IR of the WolframKernel project's compiler.
-- Rules written as a term where a function of the type `Expressions -> Match[Expressions]` is expected, `lhs -> rhs`, `lhs :> rhs` or a list of them, are that function: the match of every way each rule matches, in order. [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() are definitions over such functions, which the kernel computes.
+- Rules written as a term where a function of the type `Expressions -> Match[Expressions]` is expected, `lhs -> rhs`, `lhs :> rhs` or a list of them, are that function: the match of every way each rule matches, in order. [ReplaceList]() gives that match, [Replace]() its first result, and [ReplaceAll]() and [ReplaceRepeated]() are definitions over such functions too, all of which the kernel computes.
 - The rules of a symbol, <code>[TypeTheoryFormalize]()[*f*, *env*, "Meaning" -> "Rules"]</code>, are a function from [Expressions]() to `Option[Expressions]` written with these constants.
 
 ## Basic Examples
 
-The type of [Match]():
-
-```wl
-TypeTheoryType[Match, "WolframLanguage"]
-```
-
-<!-- => Type u → Type u -->
-
----
-
-The type of the matches of natural numbers:
-
-```wl
-TypeTheoryType[Match[NonNegativeIntegers], "WolframLanguage"]
-```
-
-<!-- => Type -->
-
----
-
-It is the type of the lists of natural numbers:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[Match[NonNegativeIntegers], "WolframLanguage"]]
-```
-
-<!-- => {ℕ} -->
-
----
-
 A match is the list of its results:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchSum[MatchValue[1], MatchValue[2]], "WolframLanguage"]]
+TypeTheoryEnvironment["WolframLanguage"][Match]
 ```
 
-<!-- => {1, 2} -->
-
-## Scope
-
-The match with no result is the empty list:
-
-```wl
-NormalForm[TypeTheoryTerm[Typed[{}, Match[NonNegativeIntegers]], "WolframLanguage"]]
-```
-
-<!-- => {} -->
+<!-- => definition Match : Type u → Type u := (A ∶ Type u) ↦ {A} -->
 
 ---
 
-A match of expressions:
+Both rules match `f[1, 2]`, so the match has two results, in the order of the rules:
 
 ```wl
-TypeTheoryType[MatchValue[Typed[f[1], Expressions]], "WolframLanguage"]
+NormalForm[TypeTheoryTerm[Typed[{f[x_, y_] :> {y, x}, f[x__] :> {x}}, Expressions -> Match[Expressions]][f[1, 2]], "WolframLanguage"]]
 ```
 
-<!-- => Match[Expressions] -->
+<!-- => {{2, 1}, {1, 2}} -->
 
 ---
 
-A match whose results are each a sequence of values:
-
-```wl
-TypeTheoryType[MatchValue[Sequence[1, "true"]], "WolframLanguage"]
-```
-
-<!-- => Match[[ℕ, 𝔹]] -->
-
----
-
-A match of matches:
-
-```wl
-TypeTheoryType[MatchValue[MatchValue[1]], "WolframLanguage"]
-```
-
-<!-- => Match[Match[ℕ]] -->
-
----
-
-[Condition]() keeps the results of a match where a Boolean holds:
-
-```wl
-TypeTheoryType[Condition, "WolframLanguage"]
-```
-
-<!-- => ∀_{A ∶ Type u} Match[A] → 𝔹 → Match[A] -->
-
----
-
-A condition that holds keeps the result:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchValue[1] /; "true", "WolframLanguage"]]
-```
-
-<!-- => {1} -->
-
----
-
-A condition that fails leaves no result:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchValue[1] /; Decide[1 == 2], "WolframLanguage"]]
-```
-
-<!-- => {} -->
-
----
-
-[MatchQ]() is whether a match has a result:
-
-```wl
-TypeTheoryType[MatchQ, "WolframLanguage"]
-```
-
-<!-- => ∀_{A ∶ Type u} Match[A] → 𝔹 -->
-
----
-
-A match with a result matches:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchQ[MatchValue[1]], "WolframLanguage"]]
-```
-
-<!-- => true -->
-
----
-
-A match with none does not:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchQ[Typed[{}, Match[NonNegativeIntegers]]], "WolframLanguage"]]
-```
-
-<!-- => false -->
-
----
-
-Rules are a function from an expression to its matches:
-
-```wl
-TypeTheoryType[Typed[{f[x_, y_] :> {y, x}, f[x_] :> x}, Expressions -> Match[Expressions]], "WolframLanguage"]
-```
-
-<!-- => Expressions → Match[Expressions] -->
-
----
-
-Applied to an expression, the rules give the results of each rule that matches, in order:
-
-```wl
-NormalForm[TypeTheoryTerm[Typed[{f[x_] :> x, f[y_] :> {y}}, Expressions -> Match[Expressions]][f[1]], "WolframLanguage"]]
-```
-
-<!-- => {1, {1}} -->
-
----
-
-[ReplaceList]() gives the list of every result:
-
-```wl
-TypeTheoryType[ReplaceList, "WolframLanguage"]
-```
-
-<!-- => Expressions → (Expressions → Match[Expressions]) → {Expressions} -->
-
----
-
-A sequence pattern matches in several ways, the shortest first:
+A pattern of two sequences matches `f[1, 2, 3]` in two ways, the shorter first sequence first:
 
 ```wl
 NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], "WolframLanguage"]]
 ```
 
 <!-- => {{{1}, {2, 3}}, {{1, 2}, {3}}} -->
+
+## Scope
+
+The pairs of neighbours in a list of arguments, one result for each place the pattern matches:
+
+```wl
+NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3, 4], f[___, x_, y_, ___] :> {x, y}], "WolframLanguage"]]
+```
+
+<!-- => {{1, 2}, {2, 3}, {3, 4}} -->
 
 ---
 
@@ -214,82 +74,101 @@ NormalForm[TypeTheoryTerm[ReplaceList[HoldForm[a + b], x_ + y_ :> {x, y}], "Wolf
 
 <!-- => {{a, b}, {b, a}} -->
 
-## Properties and Relations
+---
 
-The definition of [Match]():
+A rule that does not match gives the match with no result:
 
 ```wl
-TypeTheoryEnvironment["WolframLanguage"][Match]
+NormalForm[TypeTheoryTerm[Typed[f[x_, y_] :> {y, x}, Expressions -> Match[Expressions]][g[1, 2]], "WolframLanguage"]]
 ```
 
-<!-- => definition Match : Type u → Type u := (A ∶ Type u) ↦ {A} -->
+<!-- => {} -->
 
 ---
 
-[Match]() of a type is the type of lists of it, by computation:
+[MatchQ]() of the match of a rule is whether its pattern matches, here whether the first argument is an integer:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Match[NonNegativeIntegers], "WolframLanguage"], TypeTheoryTerm[{NonNegativeIntegers}, "WolframLanguage"]]
+WeakHeadNormalForm[TypeTheoryTerm[MatchQ[Typed[f[_Integer, ___] :> 0, Expressions -> Match[Expressions]][f[1, "a"]]], "WolframLanguage"]]
+```
+
+<!-- => true -->
+
+Here it is a string:
+
+```wl
+WeakHeadNormalForm[TypeTheoryTerm[MatchQ[Typed[f[_Integer, ___] :> 0, Expressions -> Match[Expressions]][f["a", 1]]], "WolframLanguage"]]
+```
+
+<!-- => false -->
+
+---
+
+[Condition]() keeps the results that a Boolean holds of:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchBind[{1, 2, 3, 4}, Typed[n, NonNegativeIntegers] |-> (MatchValue[n] /; Decide[3 <= n])], "WolframLanguage"]]
+```
+
+<!-- => {3, 4} -->
+
+## Properties and Relations
+
+[ReplaceList]() gives the match of the rules, the same by computation:
+
+```wl
+DefinitionallyEqualQ[
+    TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], "WolframLanguage"],
+    TypeTheoryTerm[Typed[f[x__, y__] :> {{x}, {y}}, Expressions -> Match[Expressions]][f[1, 2, 3]], "WolframLanguage"]
+]
 ```
 
 <!-- => True -->
 
 ---
 
-[MatchBind]() continues each result by a match, as the bind of the monad of lists:
+[Replace]() rewrites by the first result:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> {x, x}], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Replace[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], "WolframLanguage"]]
 ```
 
-<!-- => {1, 1, 2, 2} -->
+<!-- => {{1}, {2, 3}} -->
 
 ---
 
-[MatchFirst]() takes the first result:
+A match is a list, so its [Length]() is the number of ways a pattern matches, here the four ways to split five arguments in two:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchSum[MatchValue[1], MatchValue[2]]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Length[ReplaceList[f[1, 2, 3, 4, 5], f[x__, y__] :> 0]], "WolframLanguage"]]
 ```
 
-<!-- => some[1] -->
-
----
-
-A match with no result has no first result:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[Typed[{}, Match[NonNegativeIntegers]]], "WolframLanguage"]]
-```
-
-<!-- => none -->
+<!-- => 4 -->
 
 ## Possible Issues
 
 [Match]() is a constant of the Wolfram Language environment, not of the prelude:
 
 ```wl
-TypeTheoryType[Match[NonNegativeIntegers], TypeTheoryEnvironment["Prelude"]]
+TypeTheoryType[Match[NonNegativeIntegers], "Prelude"]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
 
 ---
 
-[Match]() takes a type:
-
-```wl
-TypeTheoryType[Match[3], "WolframLanguage"]
-```
-
-<!-- => Failure["TypeMismatch", ...] -->
-
----
-
-The match with no result does not say the type of its results, so [Typed]() gives it:
+The match with no result does not say the type of its results:
 
 ```wl
 TypeTheoryType[TypeTheoryTerm[{}, "WolframLanguage"]]
 ```
 
 <!-- => Failure["UnsolvedImplicitArgument", ...] -->
+
+[Typed]() gives it, and the type shows as the type of lists that `Match[Expressions]` is:
+
+```wl
+TypeTheoryType[Typed[{}, Match[Expressions]], "WolframLanguage"]
+```
+
+<!-- => {Expressions} -->

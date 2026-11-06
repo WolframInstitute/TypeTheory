@@ -4,7 +4,7 @@ Name: Arguments
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Arguments
-Keywords: [Wolfram Language, expressions, arguments, sequence, Head, Construct, Length, pattern matching, Match]
+Keywords: [Wolfram Language, expressions, arguments, sequence, Head, Construct, Apply, Length, Reverse, Map, pattern matching, Match]
 SeeAlso: [Expressions, Atoms, MatchPart, MatchBind, NormalForm]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -17,13 +17,13 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 ## Details & Options
 
 - [Arguments]() is a definition of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, by the recursor of [Expressions](), which the kernel computes. Its type is `Expressions -> Expressions...`.
-- A sequence is spliced where it stands among the arguments of a function or the elements of a list, so <code>[Construct]()[[Head]()[*e*], [Arguments]()[*e*]]</code> is *e* for an expression that is not an atom, and <code>{[Arguments]()[*e*]}</code> is the list of the arguments, as `List @@ e` is in the Wolfram Language. <code>[Length]()[{[Arguments]()[*e*]}]</code> is the number of the arguments.
+- A sequence is spliced where it stands among the arguments of a function or the elements of a list, so <code>[Construct]()[[Head]()[*e*], [Arguments]()[*e*]]</code> is *e* for an expression that is not an atom, and <code>{[Arguments]()[*e*]}</code> is the list of the arguments, as `List @@ e` is in the Wolfram Language. <code>[Length]()[{[Arguments]()[*e*]}]</code> is the number of the arguments, and `Sequence @@ l` makes a list `l` a sequence again.
 - [Head](), of the type `Expressions -> Expressions`, gives the head of an expression: the head it was built with, or for an atom [Symbol](), [Integer](), [String]() or the head of another atom.
 - A term given without an environment, while the default environment is the prelude, is read in the Wolfram Language environment when it names what only that environment declares, as [Arguments]() and [Head]() are.
 
 ## Basic Examples
 
-The type of [Arguments]():
+The arguments of an expression are a sequence of expressions:
 
 ```wl
 TypeTheoryType[Arguments, "WolframLanguage"]
@@ -33,206 +33,124 @@ TypeTheoryType[Arguments, "WolframLanguage"]
 
 ---
 
-The arguments of an expression, a sequence:
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[f[1, 2]], "WolframLanguage"]]
-```
-
-<!-- => [1, 2] -->
-
----
-
-The sequence in a list is the list of the arguments:
-
-```wl
-NormalForm[TypeTheoryTerm[{Arguments[f[1, 2]]}, "WolframLanguage"]]
-```
-
-<!-- => {1, 2} -->
-
----
-
-The arguments are a sequence of expressions:
-
-```wl
-TypeTheoryType[Arguments[f[1, 2]], "WolframLanguage"]
-```
-
-<!-- => Expressions... -->
-
-## Scope
-
-An atom has no arguments:
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[HoldForm[f]], "WolframLanguage"]]
-```
-
-<!-- => [] -->
-
----
-
-Nor has a number, an atom by a coercion:
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[3], "WolframLanguage"]]
-```
-
-<!-- => [] -->
-
----
-
-An expression with a head and no arguments:
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[f[]], "WolframLanguage"]]
-```
-
-<!-- => [] -->
-
----
-
-The arguments are expressions themselves:
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[f[g[1], 2]], "WolframLanguage"]]
-```
-
-<!-- => [g[1], 2] -->
-
----
-
-The arguments of an expression built with [Construct]():
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[Construct[7, 1, 2]], "WolframLanguage"]]
-```
-
-<!-- => [1, 2] -->
-
----
-
-The arguments of a list are its elements:
-
-```wl
-NormalForm[TypeTheoryTerm[Arguments[{a, b}], "WolframLanguage"]]
-```
-
-<!-- => [a, b] -->
-
----
-
 The arguments of a quoted sum:
 
 ```wl
-NormalForm[TypeTheoryTerm[Arguments[HoldForm[1 + 2]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Arguments[HoldForm[a + b + c]], "WolframLanguage"]]
 ```
 
-<!-- => [1, 2] -->
+<!-- => [a, b, c] -->
 
 ---
 
-Quoted arguments stay as they are written:
+In a list, the sequence is the list of the arguments, as `List @@ e`:
 
 ```wl
-NormalForm[TypeTheoryTerm[Arguments[HoldForm[{1 + 1, 2}]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[{Arguments[HoldForm[a + b + c]]}, "WolframLanguage"]]
 ```
 
-<!-- => [1 + 1, 2] -->
+<!-- => {a, b, c} -->
 
----
+## Scope
 
-The arguments spliced among the arguments of another expression:
-
-```wl
-NormalForm[TypeTheoryTerm[Construct[g, Arguments[f[1, 2]], 3], "WolframLanguage"]]
-```
-
-<!-- => g[1, 2, 3] -->
-
----
-
-The number of the arguments:
+The number of the arguments, as `Length[e]`:
 
 ```wl
-NormalForm[TypeTheoryTerm[Length[{Arguments[f[a, b, c]]}], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Length[{Arguments[HoldForm[a + b + c]]}], "WolframLanguage"]]
 ```
 
 <!-- => 3 -->
 
 ---
 
-The arguments of an expression built from a sequence are that sequence:
+The head of each argument, as `Head /@ List @@ e`:
 
 ```wl
-NormalForm[TypeTheoryTerm[Function[{Typed[s, Expressions...]}, Arguments[Construct[f, s]]][1, 2], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Map[Typed[e, Expressions] |-> Head[e], {Arguments[HoldForm[f[x, 1, "s"]]]}], "WolframLanguage"]]
 ```
 
-<!-- => [1, 2] -->
+<!-- => {Symbol, Integer, String} -->
+
+---
+
+An expression with its arguments reversed:
+
+```wl
+NormalForm[TypeTheoryTerm[Construct[Head[f[1, 2, 3]], Sequence @@ Reverse[{Arguments[f[1, 2, 3]]}]], "WolframLanguage"]]
+```
+
+<!-- => f[3, 2, 1] -->
+
+---
+
+An expression without its first argument, as `Rest[e]`:
+
+```wl
+NormalForm[TypeTheoryTerm[Construct[Head[f[1, 2, 3]], Sequence @@ Drop[{Arguments[f[1, 2, 3]]}, 1]], "WolframLanguage"]]
+```
+
+<!-- => f[2, 3] -->
+
+---
+
+The arguments spliced among the arguments of another expression:
+
+```wl
+NormalForm[TypeTheoryTerm[Construct[g, 0, Arguments[f[1, 2]]], "WolframLanguage"]]
+```
+
+<!-- => g[0, 1, 2] -->
+
+---
+
+The arguments of `f[1][2]` are those of the last application:
+
+```wl
+NormalForm[TypeTheoryTerm[Arguments[f[1][2]], "WolframLanguage"]]
+```
+
+<!-- => [2] -->
+
+---
+
+An atom has no arguments:
+
+```wl
+NormalForm[TypeTheoryTerm[Arguments[HoldForm[x]], "WolframLanguage"]]
+```
+
+<!-- => [] -->
 
 ## Properties and Relations
 
-Without an environment, a term that names [Arguments]() is read in the Wolfram Language environment:
+The arguments of [Construct]() of a head and a sequence are that sequence, for every head and every sequence:
 
 ```wl
-TypeTheoryType[Arguments]
+TypeTheoryProof[ForAll[{Typed[h, Expressions], Typed[s, Expressions...]}, Arguments[Construct[h, s]] == s], "WolframLanguage", {"Introduce"[h, s], "Reflexivity"}]
 ```
 
-<!-- => Expressions → Expressions... -->
+<!-- => Proof complete -->
 
 ---
 
-[Head]() gives the head of an expression:
+An expression that is not an atom is [Construct]() of its head and its arguments:
 
 ```wl
-TypeTheoryType[Head, "WolframLanguage"]
+NormalForm[TypeTheoryTerm[Construct[Head[HoldForm[a + b c]], Arguments[HoldForm[a + b c]]], "WolframLanguage"]]
 ```
 
-<!-- => Expressions → Expressions -->
+<!-- => a + b c -->
 
 ---
 
-An expression is [Construct]() of its head and its arguments:
+The rules of a symbol count the arguments of an expression with [Arguments]():
 
 ```wl
-NormalForm[TypeTheoryTerm[Construct[Head[f[1, 2]], Arguments[f[1, 2]]], "WolframLanguage"]]
+area[w_, h_] := w h;
+Last[TypeTheoryFormalize[area, "WolframLanguage", "Meaning" -> "Rules"]]
 ```
 
-<!-- => f[1, 2] -->
-
----
-
-The arguments of [Construct]() of a head and a sequence are that sequence, for every head and sequence:
-
-```wl
-DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[h, Expressions], Typed[s, Expressions...]}, Arguments[Construct[h, s]]], "WolframLanguage"],
-    TypeTheoryTerm[Function[{Typed[h, Expressions], Typed[s, Expressions...]}, s], "WolframLanguage"]
-]
-```
-
-<!-- => True -->
-
----
-
-The list of the arguments is equal by computation to the list written out:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[{Arguments[Construct[7, 1, 2]]}, "WolframLanguage"], TypeTheoryTerm[Typed[{1, 2}, {Expressions}], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-[MatchPart]() matches at one argument:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchPart[f[1, 2], 2, MatchValue], "WolframLanguage"]]
-```
-
-<!-- => {2} -->
+<!-- => definition DownValues[area] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (w ∶ Expressions) ↦ MatchPart[expression, 2, (h ∶ Expressions) ↦ MatchValue[w h]]] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 2]] -->
 
 ---
 

@@ -4,7 +4,7 @@ Name: MatchBind
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/MatchBind
-Keywords: [Wolfram Language, expressions, pattern matching, Match, bind, monad, parts in turn, several results]
+Keywords: [Wolfram Language, expressions, pattern matching, Match, bind, monad, parts in turn, several results, match program]
 SeeAlso: [Match, MatchValue, MatchSum, MatchPart, MatchFirst, Expressions]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -23,7 +23,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 ## Basic Examples
 
-The type of [MatchBind]():
+[MatchBind]() continues each result of a match by another match:
 
 ```wl
 TypeTheoryType[MatchBind, "WolframLanguage"]
@@ -33,93 +33,87 @@ TypeTheoryType[MatchBind, "WolframLanguage"]
 
 ---
 
-Each result continued by a match of two results:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> {x, x}], "WolframLanguage"]]
-```
-
-<!-- => {1, 1, 2, 2} -->
-
----
-
-One result continued by one result:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[MatchValue[2], Typed[x, NonNegativeIntegers] |-> MatchValue[x + 1]], "WolframLanguage"]]
-```
-
-<!-- => {3} -->
-
-## Scope
-
-A match with no result gives none:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[Typed[{}, Match[NonNegativeIntegers]], Typed[x, NonNegativeIntegers] |-> MatchValue[x + 1]], "WolframLanguage"]]
-```
-
-<!-- => {} -->
-
----
-
-Nor does a continuation with no result:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> Typed[{}, Match[NonNegativeIntegers]]], "WolframLanguage"]]
-```
-
-<!-- => {} -->
-
----
-
-A condition in the continuation keeps the results that pass it:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[{1, 2, 3}, Typed[x, NonNegativeIntegers] |-> (MatchValue[x] /; Decide[x == 2])], "WolframLanguage"]]
-```
-
-<!-- => {2} -->
-
----
-
-The results can be of another type:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> MatchValue[Decide[x == 1]]], "WolframLanguage"]]
-```
-
-<!-- => {true, false} -->
-
----
-
-Two matches combine, each pair of results one value:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> MatchBind[{3, 4}, Typed[y, NonNegativeIntegers] |-> MatchValue[Sequence[x, y]]]], "WolframLanguage"]]
-```
-
-<!-- => {[1, 3], [1, 4], [2, 3], [2, 4]} -->
-
----
-
-Each pair is a sequence of two natural numbers:
-
-```wl
-TypeTheoryType[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> MatchBind[{3, 4}, Typed[y, NonNegativeIntegers] |-> MatchValue[Sequence[x, y]]]], "WolframLanguage"]
-```
-
-<!-- => Match[[ℕ, ℕ]] -->
-
----
-
-The parts of an expression matched in turn:
+The two arguments of `f[1, 2]` matched in turn, the two parts kept as one result:
 
 ```wl
 NormalForm[TypeTheoryTerm[MatchBind[MatchPart[f[1, 2], 1, MatchValue], Typed[x, Expressions] |-> MatchPart[f[1, 2], 2, Typed[y, Expressions] |-> MatchValue[Sequence[x, y]]]], "WolframLanguage"]]
 ```
 
 <!-- => {[1, 2]} -->
+
+---
+
+Of the two ways to split `f[1, 2, 3]`, a condition after the match keeps the one whose first part has two arguments:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchBind[
+    Typed[f[x__, y__] :> {x}, Expressions -> Match[Expressions]][f[1, 2, 3]],
+    Typed[e, Expressions] |-> (MatchValue[e] /; Decide[Length[{Arguments[e]}] == 2])
+], "WolframLanguage"]]
+```
+
+<!-- => {{1, 2}} -->
+
+## Scope
+
+Every result of one match with every result of another, in order:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchBind[
+    Typed[f[___, x_, ___] :> x, Expressions -> Match[Expressions]][f[a, b]],
+    Typed[x, Expressions] |-> MatchBind[Typed[g[___, y_, ___] :> y, Expressions -> Match[Expressions]][g[1, 2]], Typed[y, Expressions] |-> MatchValue[HoldForm[{x, y}]]]
+], "WolframLanguage"]]
+```
+
+<!-- => {{a, 1}, {a, 2}, {b, 1}, {b, 2}} -->
+
+---
+
+A rule whose pattern binds a sequence binds it in turn:
+
+```wl
+restOf[x_, y__] := {y};
+Last[TypeTheoryFormalize[restOf, "WolframLanguage", "Meaning" -> "Rules"]]
+```
+
+<!-- => definition DownValues[restOf] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (x ∶ Expressions) ↦ MatchBind[MatchValue[[Sequence @@ Drop[{Arguments[expression]}, 1]]], (y ∶ Expressions...) ↦ MatchValue[{y}]]] /; ¬AtomQ[expression] ∧ Decide[2 <= Length[{Arguments[expression]}]]] -->
+
+## Applications
+
+A match program for `f[x_Integer, y_] :> {y, x}`, which tests the head of the first argument before it matches the second:
+
+```wl
+program = TypeTheoryTerm[Typed[e, Expressions] |-> MatchBind[
+    MatchPart[e, 1, Typed[x, Expressions] |-> (MatchValue[x] /; SameQ[Head[x], HoldForm[Integer]])],
+    Typed[x, Expressions] |-> MatchPart[e, 2, Typed[y, Expressions] |-> MatchValue[HoldForm[{y, x}]]]
+], "WolframLanguage"]
+```
+
+<!-- => (e ∶ Expressions) ↦ MatchBind[MatchPart[e, 1, (x ∶ Expressions) ↦ (MatchValue[x] /; Head[x] === Integer)], (x ∶ Expressions) ↦ MatchPart[e, 2, (y ∶ Expressions) ↦ MatchValue[{y, x}]]] -->
+
+It matches `f[1, "a"]`:
+
+```wl
+NormalForm[TypeTheoryTerm[program[f[1, "a"]], "WolframLanguage"]]
+```
+
+<!-- => {{"a", 1}} -->
+
+It gives the same match as the rule, by computation:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[program[f[1, "a"]], "WolframLanguage"], TypeTheoryTerm[Typed[f[x_Integer, y_] :> {y, x}, Expressions -> Match[Expressions]][f[1, "a"]], "WolframLanguage"]]
+```
+
+<!-- => True -->
+
+With a string first, the test fails and the second argument is never matched:
+
+```wl
+NormalForm[TypeTheoryTerm[program[f["a", 1]], "WolframLanguage"]]
+```
+
+<!-- => {} -->
 
 ## Properties and Relations
 
@@ -133,27 +127,7 @@ TypeTheoryEnvironment["WolframLanguage"][MatchBind]
 
 ---
 
-[MatchValue]() is a unit on the left:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[MatchBind[MatchValue[2], Typed[x, NonNegativeIntegers] |-> MatchValue[x + 1]], "WolframLanguage"], TypeTheoryTerm[MatchValue[3], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-And on the right:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[Typed[{1, 2}, Match[NonNegativeIntegers]], MatchValue], "WolframLanguage"]]
-```
-
-<!-- => {1, 2} -->
-
----
-
-Binds associate:
+Binds associate, as the binds of a monad do:
 
 ```wl
 DefinitionallyEqualQ[
@@ -164,16 +138,6 @@ DefinitionallyEqualQ[
 
 <!-- => True -->
 
----
-
-A bind of a sum continues each alternative:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchBind[MatchSum[MatchValue[1], MatchValue[2]], Typed[x, NonNegativeIntegers] |-> MatchValue[x + 10]], "WolframLanguage"]]
-```
-
-<!-- => {11, 12} -->
-
 ## Possible Issues
 
 The continuation gives a match, not a value:
@@ -183,3 +147,11 @@ TypeTheoryType[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> x + 1], "Wolf
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
+
+[MatchValue]() makes the value a match:
+
+```wl
+NormalForm[TypeTheoryTerm[MatchBind[{1, 2}, Typed[x, NonNegativeIntegers] |-> MatchValue[x + 1]], "WolframLanguage"]]
+```
+
+<!-- => {2, 3} -->

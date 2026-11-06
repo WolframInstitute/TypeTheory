@@ -4,7 +4,7 @@ Name: Atoms
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Atoms
-Keywords: [Wolfram Language, expressions, atoms, symbols, integers, strings, real numbers, AtomQ, SameQ, Head, HoldForm, pattern matching]
+Keywords: [Wolfram Language, expressions, atoms, symbols, contexts, integers, strings, real numbers, rationals, AtomQ, SameQ, Head, HoldForm, pattern matching]
 SeeAlso: [Expressions, Strings, Arguments, TypeTheoryEnvironment]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -16,45 +16,45 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 ## Details & Options
 
-- [Atoms]() is an inductive type of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, with five constructors: `"symbolAtom"` of a symbol's full name, `"naturalAtom"` of a natural number, `"negativeAtom"` of *n* for the integer -(*n* + 1), `"stringAtom"` of a string, and `"otherAtom"` of the head and the [InputForm]() of any other atom, as a real number.
+- [Atoms]() is an inductive type of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, with five constructors: `"symbolAtom"` of a symbol's full name, `"naturalAtom"` of a natural number, `"negativeAtom"` of *n* for the integer -(*n* + 1), `"stringAtom"` of a string, and `"otherAtom"` of the head and the [InputForm]() of any other atom, as a real or a rational number.
 - `"atom"`, of the type `Atoms -> Expressions`, makes an expression of an atom, and an atom shows as the Wolfram Language atom it stands for.
-- A quotation, <code>[HoldForm]()[*e*]</code>, makes the atoms of *e* itself, and nothing declares them. Where an expression is expected, a natural number or a string is its atom by a coercion, and a symbol that names nothing stands for its own atom.
-- The head of an atom is [Symbol](), [Integer]() or [String](), or the head that `"otherAtom"` was given. [AtomQ]() of an atom is `"true"`, and its [Arguments]() are the empty sequence.
-- [SameQ]() of two atoms is a definition, which the kernel computes: two symbols are the same where their names are, and two other atoms where their values are. Two real numbers are the same where their [InputForm]() is, which [SameQ]() of the Wolfram Language relaxes by a tolerance.
+- A quotation, <code>[HoldForm]()[*e*]</code>, makes the atoms of *e* itself, and nothing declares them. Where an expression is expected, a natural number or a string is its atom by a coercion, a negative integer is its atom, and a symbol that names nothing stands for its own atom.
+- The head of an atom is [Symbol](), [Integer]() or [String](), or the head that `"otherAtom"` was given, so a pattern such as `_Integer` or `_Symbol` matches the atoms of that kind. [AtomQ]() of an atom is `"true"`, and its [Arguments]() are the empty sequence.
+- [SameQ]() of two atoms is a definition, which the kernel computes: two symbols are the same where their full names are, and two other atoms where their values are. Two real numbers are the same where their [InputForm]() is, which [SameQ]() of the Wolfram Language relaxes by a tolerance.
 
 ## Basic Examples
 
-The type of [Atoms]():
+The five kinds of atoms:
 
 ```wl
-TypeTheoryType[Atoms, "WolframLanguage"]
+TypeTheoryEnvironment["WolframLanguage"][Atoms]
 ```
 
-<!-- => Type -->
+<!-- => inductive Atoms : Type | symbolAtom : Strings → Atoms | naturalAtom : ℕ → Atoms | negativeAtom : ℕ → Atoms | stringAtom : Strings → Atoms | otherAtom : Strings → Strings → Atoms -->
 
 ---
 
-An atom is an expression:
+The heads of the atoms of a list, a symbol, two integers, a string and a real number:
 
 ```wl
-TypeTheoryType["atom", "WolframLanguage"]
+NormalForm[TypeTheoryTerm[Map[Typed[e, Expressions] |-> Head[e], {Arguments[HoldForm[{x, 1, -2, "s", 1.5}]]}], "WolframLanguage"]]
 ```
 
-<!-- => Atoms → Expressions -->
+<!-- => {Symbol, Integer, Integer, String, Real} -->
 
 ---
 
-A symbol is the atom of its full name, a string:
+So `_Integer` picks out the integers, positive or negative:
 
 ```wl
-TypeTheoryType["symbolAtom", "WolframLanguage"]
+NormalForm[TypeTheoryTerm[ReplaceList[HoldForm[{x, 1, -2, "s", 1.5}], {___, a_Integer, ___} :> a], "WolframLanguage"]]
 ```
 
-<!-- => Strings → Atoms -->
+<!-- => {1, -2} -->
 
----
+## Scope
 
-The symbol [Plus]() quoted is the atom of its full name:
+A symbol is the atom of its full name:
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[Plus], "WolframLanguage"], TypeTheoryTerm["atom"["symbolAtom"["System`Plus"]], "WolframLanguage"]]
@@ -62,15 +62,15 @@ DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[Plus], "WolframLanguage"], TypeTheo
 
 <!-- => True -->
 
-## Scope
+---
 
-A natural number is `"naturalAtom"` of it:
+Two symbols with one name in two contexts are different atoms:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[3], "WolframLanguage"], TypeTheoryTerm["atom"["naturalAtom"[3]], "WolframLanguage"]]
+WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[x], HoldForm[Other`x]], "WolframLanguage"]]
 ```
 
-<!-- => True -->
+<!-- => false -->
 
 ---
 
@@ -84,27 +84,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[-3], "WolframLanguage"], TypeTheory
 
 ---
 
-An atom shows as the Wolfram Language atom it stands for:
-
-```wl
-NormalForm[TypeTheoryTerm["atom"["negativeAtom"[0]], "WolframLanguage"]]
-```
-
-<!-- => -1 -->
-
----
-
-A string is `"stringAtom"` of it:
-
-```wl
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm["ab"], "WolframLanguage"], TypeTheoryTerm["atom"["stringAtom"["ab"]], "WolframLanguage"]]
-```
-
-<!-- => True -->
-
----
-
-Any other atom, as a real number, is `"otherAtom"` of its head and its [InputForm]():
+A real number is `"otherAtom"` of its head and its [InputForm]():
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[1.5], "WolframLanguage"], TypeTheoryTerm["atom"["otherAtom"["System`Real", "1.5"]], "WolframLanguage"]]
@@ -114,117 +94,55 @@ DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[1.5], "WolframLanguage"], TypeTheor
 
 ---
 
-The head of a symbol computes to [Symbol]():
+So is a rational number, whose head is [Rational]():
 
 ```wl
-NormalForm[TypeTheoryTerm[Head[HoldForm[f]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Head["atom"["otherAtom"["System`Rational", "1/2"]]], "WolframLanguage"]]
 ```
 
-<!-- => Symbol -->
+<!-- => Rational -->
 
 ---
 
-The head of a natural number is [Integer]():
+A name met twice in a pattern matches the same atom twice, which [SameQ]() decides:
 
 ```wl
-NormalForm[TypeTheoryTerm[Head[HoldForm[1]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[ReplaceList[f[x, y, x, z], f[___, a_, ___, a_, ___] :> a], "WolframLanguage"]]
 ```
 
-<!-- => Integer -->
+<!-- => {x} -->
 
----
-
-The head of a negative integer is [Integer]() too:
+A negative integer where an expression is expected is its atom, `"negativeAtom"` of n - 1 for -n:
 
 ```wl
-NormalForm[TypeTheoryTerm[Head[HoldForm[-2]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Head[Construct[f, -2]], "WolframLanguage"]]
 ```
 
-<!-- => Integer -->
-
----
-
-The head of a string is [String]():
-
-```wl
-NormalForm[TypeTheoryTerm[Head[HoldForm["text"]], "WolframLanguage"]]
-```
-
-<!-- => String -->
-
----
-
-The head of another atom is the head it was given:
-
-```wl
-NormalForm[TypeTheoryTerm[Head[HoldForm[2.5]], "WolframLanguage"]]
-```
-
-<!-- => Real -->
-
----
-
-Two symbols are the same where their names are:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[f], HoldForm[f]], "WolframLanguage"]]
-```
-
-<!-- => true -->
-
----
-
-Two symbols with other names are not:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[f], HoldForm[g]], "WolframLanguage"]]
-```
-
-<!-- => false -->
-
----
-
-A number and a string are other atoms:
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[SameQ[1, "1"], "WolframLanguage"]]
-```
-
-<!-- => false -->
+<!-- => f -->
 
 ## Properties and Relations
 
-The declaration of [Atoms]():
+[AtomQ]() tells the atoms of a list from the expressions with parts:
 
 ```wl
-TypeTheoryEnvironment["WolframLanguage"][Atoms]
+NormalForm[TypeTheoryTerm[Map[Typed[e, Expressions] |-> AtomQ[e], {Arguments[HoldForm[{x, f[x], 1, "s"}]]}], "WolframLanguage"]]
 ```
 
-<!-- => inductive Atoms : Type | symbolAtom : Strings → Atoms | naturalAtom : ℕ → Atoms | negativeAtom : ℕ → Atoms | stringAtom : Strings → Atoms | otherAtom : Strings → Strings → Atoms -->
-
----
-
-An atom is an atom by [AtomQ]():
-
-```wl
-WeakHeadNormalForm[TypeTheoryTerm[AtomQ[HoldForm[f]], "WolframLanguage"]]
-```
-
-<!-- => true -->
+<!-- => {true, false, true, true} -->
 
 ---
 
 An atom has no arguments:
 
 ```wl
-NormalForm[TypeTheoryTerm[Arguments[HoldForm[f]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[Arguments[HoldForm[x]], "WolframLanguage"]]
 ```
 
 <!-- => [] -->
 
 ---
 
-Two real numbers with the same [InputForm]() are the same:
+Two real numbers with the same [InputForm]() are the same atom, however they are written:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[SameQ[HoldForm[1.5], HoldForm[1.50]], "WolframLanguage"]]
@@ -252,7 +170,7 @@ SameQ[0.3, 0.30000000000000004]
 
 ---
 
-A quoted fraction is no atom: [HoldForm]() keeps the product it is written as:
+A quoted fraction is no atom: [HoldForm]() keeps the product it is written as, where the Wolfram Language evaluates it to a [Rational]():
 
 ```wl
 NormalForm[TypeTheoryTerm[Head[HoldForm[1/2]], "WolframLanguage"]]
