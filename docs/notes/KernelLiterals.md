@@ -1,6 +1,6 @@
 # Large literals in elaboration and definitional equality: design note
 
-Status: (1) and the shape of (2) approved by Stephen, 2026-11-06; the rule of (2) revised as he asked. Items (1) and (2) of the TypeTheory kernel findings.
+Status: (1) built (4c9cdc8). The rule of (2) approved by Stephen, 2026-11-06, then extended to read offsets through Plus, with the registration check that justifies it: for review. Items (1) and (2) of the TypeTheory kernel findings.
 
 ## What the measurements show
 
@@ -46,8 +46,19 @@ once the identifiers and Module symbols are numbered by first appearance.
 - **Offset form:** a term written as a base and an offset, `offset[t] = {base, k}`, read off by:
   - a literal n is `{zero, n}`;
   - `successor[t]` is `offset[t]` with k + 1;
-  - the registered `Plus[t, n]`, with n a literal, is `offset[t]` with k + n;
+  - the registered `Plus[t, s]` with `offset[s] = {b, k}`, k > 0, is `{Plus[t, b], k}`, and `{t, k}` where b is `zero`;
+    `Plus[t, s]` with `offset[s] = {zero, 0}` is `offset[t]`;
   - anything else is `{t, 0}`.
+
+  Reading offsets through `Plus` is what makes the rule finish on the case measured: `(0 + (m + c)) + 0` is
+  `{0 + m, c}` and `m + c` is `{m, c}`, so one step strips c and compares `0 + m` with `m`, which the normal path refuses
+  at once. Without it, each round exposes one successor of the left side, and the rule takes c rounds.
+- **What justifies reading through `Plus`:** the two defining equations of addition, `Plus[t, zero] ≡ t` and
+  `Plus[t, successor[s]] ≡ successor[Plus[t, s]]`. Registration today trusts the addition only to compute on literals
+  as integer addition does, which does not imply them on open terms; an addition by recursion on its first argument
+  satisfies the literal condition and not the equations. So `registerNaturalNumbers` (trusted) checks both equations by
+  definitional equality, for fresh variables t and s, when an addition is registered, and refuses the registration
+  where they fail. The offset rule then shortcuts k uses of equations the kernel has checked itself.
 - **The rule**, for `a` and `b` with offsets `{x, k}` and `{y, k'}`:
   - both offsets positive: strip m = min(k, k') from both, and compare `x` with offset k − m against `y` with offset k' − m, written back in offset form, by general definitional equality. This is progress: it is m successor steps on each side, removed by constructor injectivity.
   - both bases `zero`, both sides literals or successors of them: decide k == k' directly.
@@ -63,6 +74,8 @@ once the identifiers and Module symbols are numbered by first appearance.
   - Small range: every pair of terms from bases {zero, x, y, successor[x], x + y} with offsets 0..12, built in each of the three offset forms, compared with the rule on and off. The off path is today's unfolding, which terminates in this range. The results must be equal.
   - Random large: offsets up to 2^64, checked by an independent route. Two terms with a common base and offsets k and k' must be equal iff k == k'; with different variable bases, never.
   - Forged-proof tests: an equation that holds only after a nonzero offset difference, `x + 5 == x + 6`, must stay rejected. So must `Typed["equalityReflexivity"[x + 5], x + 5 == y + 5]` for distinct variables x and y.
+  - Registration: an addition by recursion on its first argument, which computes the literals right, is refused, with
+    the equation that fails named; the prelude's and the integers' registrations pass.
   - Termination, for the third case: `t` against `x + 3`, where `t` is a term whose weak head normal form is a successor, a definition unfolding to `successor[successor[successor[x]]]`, which must be found equal; and where `t` is stuck, an application of a variable, which must be found unequal, with no loop. Both run under a time limit.
 
 ## Acceptance
