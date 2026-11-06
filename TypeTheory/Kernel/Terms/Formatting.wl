@@ -338,6 +338,8 @@ displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {eleme
 displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
 displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[pieceDisplay /@ constructedPieces[sequence], displaySyntax[head]]]
 displaySyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
+(* the constructor of failures shows as the Wolfram Language writes a failure, Failure[tag, details] *)
+displaySyntax[syntaxApplication[syntaxString["Failure"], arguments_List]] := syntaxApplication[syntaxSymbol[HoldComplete[Failure]], displaySyntax /@ arguments]
 (* a natural number or a string where an expression is expected shows as itself, as it is an expression in the Wolfram
    Language *)
 displaySyntax[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {value_}]] := displaySyntax[value]

@@ -601,18 +601,10 @@ expressionsDeclarations[environment_] := Join[
 signatures[HoldComplete[symbols__], HoldComplete[signature_]] :=
 	Association[Replace[Unevaluated[Sequence[symbols]], symbol_ :> (HoldComplete[symbol] -> TypeTheoryAxiom[symbol, signature, "Implementation" -> symbol]), 1]]
 
-(* If[condition, a, b] by the decision of the condition, which elaboration finds as an instance of Decidable; a
-   definition, which the kernel checks and computes where the decision does *)
-$ifDeclaration = TypeTheoryDefinition[
-	If,
-	Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[condition, TypeUniverse[0]], Annotation[Typed[decision, Decidable[condition]], "InstanceImplicit"], Typed[a, A], Typed[b, A]},
-		InductiveRecursor[Decidable][Function[{Typed[d, Decidable[condition]]}, A], Function[{Typed[h, Not[condition]]}, b], Function[{Typed[h, condition]}, a], decision]
-	]
-]
-
-(* precise where the built-in allows, over Expressions otherwise; Wolfram computes each, the kernel never does *)
+(* precise where the built-in allows, over Expressions otherwise; Wolfram computes each, the kernel never does, but for If,
+   which the prelude declares, and which an environment without it gets as $ifDeclaration, read when it is needed *)
 $wolframSignatures = Join[
-	<|HoldComplete[If] -> $ifDeclaration|>,
+	<|HoldComplete[If] :> $ifDeclaration|>,
 	signatures[HoldComplete[Simplify, FullSimplify, Expand, ExpandAll, Factor, Together, Apart, Cancel], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> A]]],
 	signatures[HoldComplete[SameQ, UnsameQ], HoldComplete[ForAll[{TypedImplicit[A, TypeUniverse[u + 1]]}, A -> A -> Booleans]]],
 	signatures[

@@ -144,3 +144,34 @@ VerificationTest[
 	{True, True, True, True},
 	TestID -> "Alternatives-without-names-match-once-as-in-the-Wolfram-Language"
 ]
+
+(* Failure[tag, details] is a failure; Enclose[body] binds each Confirm[e] of body with "confirmBind", so it gives the
+   value of body as the left of A | Failure, or the first failure confirmed; Confirm outside an Enclose is refused *)
+VerificationTest[
+	With[{sum = Function[{Typed[a, NonNegativeIntegers | Failure], Typed[b, NonNegativeIntegers | Failure]}, Enclose[Confirm[a] + Confirm[b]]]},
+		{
+			MatchQ[TypeTheoryType[Failure["NotPositive", <|"Value" -> 3|>]], HoldPattern[TypeTheoryTerm[Failure, _]]],
+			DefinitionallyEqualQ[TypeTheoryType[sum], TypeTheoryTerm[(NonNegativeIntegers | Failure) -> (NonNegativeIntegers | Failure) -> (NonNegativeIntegers | Failure)]],
+			DefinitionallyEqualQ[TypeTheoryTerm[sum[2, 3]], TypeTheoryTerm[Typed["left"[5], NonNegativeIntegers | Failure]]],
+			DefinitionallyEqualQ[TypeTheoryTerm[sum[2, Failure["Missing", 0]]], TypeTheoryTerm[Typed["right"[Failure["Missing", 0]], NonNegativeIntegers | Failure]]],
+			DefinitionallyEqualQ[TypeTheoryTerm[sum[Failure["First", 1], Failure["Second", 2]]], TypeTheoryTerm[Typed["right"[Failure["First", 1]], NonNegativeIntegers | Failure]]],
+			First[TypeTheoryType[Typed[x, NonNegativeIntegers | Failure] |-> Confirm[x]]]
+		}
+	],
+	{True, True, True, True, True, "ElaborationFailed"},
+	TestID -> "Enclose-and-Confirm-give-the-first-failure"
+]
+
+(* the prelude declares If, by the decision of its condition: a function that fails on some inputs branches with If,
+   and each branch is injected into A | Failure *)
+VerificationTest[
+	With[{predecessor = Typed[x, NonNegativeIntegers] |-> Typed[If[x == 0, Failure["Zero", <|"Value" -> x|>], x - 1], NonNegativeIntegers | Failure]},
+		{
+			DefinitionallyEqualQ[TypeTheoryType[predecessor], TypeTheoryTerm[NonNegativeIntegers -> (NonNegativeIntegers | Failure)]],
+			DefinitionallyEqualQ[TypeTheoryTerm[predecessor[4]], TypeTheoryTerm[Typed["left"[3], NonNegativeIntegers | Failure]]],
+			DefinitionallyEqualQ[TypeTheoryTerm[predecessor[0]], TypeTheoryTerm[Typed["right"[Failure["Zero", <|"Value" -> 0|>]], NonNegativeIntegers | Failure]]]
+		}
+	],
+	{True, True, True},
+	TestID -> "If-is-declared-and-a-branch-may-fail"
+]

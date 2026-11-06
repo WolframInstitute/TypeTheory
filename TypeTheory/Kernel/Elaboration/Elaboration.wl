@@ -281,6 +281,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}] /; matchFunctionExpectedQ[expected] :> elaborateSyntax[rulesSyntax[{syntax}], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], rules : {syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}] ..}] /; matchFunctionExpectedQ[expected] :>
 		elaborateSyntax[rulesSyntax[rules], expected],
+	(* where an expression is expected, a -> b and a :> b are the expressions Rule[a, b] and RuleDelayed[a, b], as in an
+	   association <|"Value" -> 3|>, not a function type *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[Rule | RuleDelayed]], arguments : {_, _}] /; expressionExpectedQ[expected] :>
+		constructed[quotationSyntax[head], arguments, expected],
 	(* a bare arrow has one domain: {A} -> B is a function of lists of A, and a function of several arguments is curried,
 	   A -> B -> C, of a sequence, Sequence[A, B] -> C, or the compiler's TypeSpecifier[{A, B} -> C] *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], domains_List], _}] /; Length[domains] != 1 :>
@@ -335,6 +339,13 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[rightFold[head, arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
+	(* Failure[tag, details] is a failure, the constructor of the type Failure; Enclose[body] the computation of body that
+	   stops at the first Confirm[e] whose e is a failure, which it gives, of the type A | Failure for body of the type A *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Failure]], {tag_, details_}] /; failuresDeclaredQ[] :>
+		elaborateSyntax[syntaxApplication[syntaxString["Failure"], {tag, details}], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Enclose]], {body_}] /; failuresDeclaredQ[] :> elaborateSyntax[enclosedSyntax[body], expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[Confirm]], {_}] /; failuresDeclaredQ[] :>
+		elaborationFailure["`1` is outside an Enclose, which gives the failure it confirms where there is one.", syntax],
 	(* A | B, the type of the values of A or of B, as the pattern _A | _B matches them: the sum DisjointUnionType[A, B],
 	   A | B | C the sum of A and B | C *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Alternatives]], types : {_, __}] :> elaborateSyntax[rightNestedSum[types], expected],
@@ -727,6 +738,28 @@ expressionHeadSyntaxQ[_syntaxInteger] := True
 expressionHeadSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {_}]] := True
 expressionHeadSyntaxQ[syntaxApplication[syntaxString["atom"], {_}]] := True
 expressionHeadSyntaxQ[_] := False
+
+failuresDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["confirmBind"]]
+
+(* Enclose[body]: each Confirm[e] in body that no binder or inner Enclose holds, in the order the Wolfram Language
+   evaluates them, the head first, then the arguments from the left, each Confirm's own argument before it, is bound by
+   "confirmBind" to a variable in its place, and the value of body is the left of A | Failure *)
+enclosedSyntax[body_] := Replace[Reap[liftedConfirms[body], confirmedTag],
+	{lifted_, confirmed_} :> Fold[
+		Function[{inner, pair}, syntaxApplication[syntaxString["confirmBind"], {Last[pair], syntaxHead[Function, {syntaxHead[List, {First[pair]}], inner}]}]],
+		syntaxApplication[syntaxString["left"], {lifted}],
+		Reverse[Catenate[confirmed]]
+	]
+]
+
+liftedConfirms[syntaxApplication[syntaxSymbol[HoldComplete[Confirm]], {argument_}]] := With[
+	{inner = liftedConfirms[argument], variable = syntaxSymbol[HoldComplete @@ {Unique["confirmed"]}]},
+	Sow[{variable, inner}, confirmedTag];
+	variable
+]
+liftedConfirms[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function | ForAll | Exists | Enclose | With]], _]] := syntax
+liftedConfirms[syntaxApplication[head_, arguments_List]] := syntaxApplication[liftedConfirms[head], liftedConfirms /@ arguments]
+liftedConfirms[syntax_] := syntax
 
 rightNestedSum[{type_}] := type
 rightNestedSum[{type_, rest__}] := syntaxHead[DisjointUnionType, {type, rightNestedSum[{rest}]}]

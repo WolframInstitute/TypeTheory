@@ -78,6 +78,7 @@ PackageExported[MatchFirst]
 
 PackageScoped[wolframLanguageEnvironment]
 PackageScoped[$wolframLanguageDeclarations]
+PackageScoped[$ifDeclaration]
 
 
 (* ::Section:: *)
@@ -96,6 +97,7 @@ MatchPart::usage = "MatchPart[e, k, f] is the match f of the part of the express
 MatchBind::usage = "MatchBind[m, f] is the match whose results are those of f applied to each result of m, in order."
 MatchFirst::usage = "MatchFirst[m] is the first result of the match m, \"some\" of it, or \"none\" where m has none: the rule the Wolfram Language applies."
 wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prelude, which declares the expressions of the Wolfram Language and the monad of pattern matching."
+$ifDeclaration::usage = "$ifDeclaration is the declaration of If[condition, a, b] by the decision of the condition, an instance of Decidable that elaboration finds."
 $wolframLanguageDeclarations::usage = "$wolframLanguageDeclarations is the list of the prelude's declarations of the Wolfram Language's strings, atoms, expressions, sequences and matches."
 
 
@@ -105,6 +107,15 @@ $wolframLanguageDeclarations::usage = "$wolframLanguageDeclarations is the list 
 
 (* the prelude declares them: the Wolfram Language environment is the prelude, by its old name *)
 wolframLanguageEnvironment[] := preludeEnvironment[]
+
+(* If[condition, a, b] by the decision of the condition, which elaboration finds as an instance of Decidable; a
+   definition, which the kernel checks and computes where the decision does *)
+$ifDeclaration = TypeTheoryDefinition[
+	If,
+	Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[condition, TypeUniverse[0]], Annotation[Typed[decision, Decidable[condition]], "InstanceImplicit"], Typed[a, A], Typed[b, A]},
+		InductiveRecursor[Decidable][Function[{Typed[d, Decidable[condition]]}, A], Function[{Typed[h, Not[condition]]}, b], Function[{Typed[h, condition]}, a], decision]
+	]
+]
 
 $wolframLanguageDeclarations = {
 	(* a string is the list of the codes of its characters, so that two strings compare by computation; an atom is a
@@ -165,6 +176,18 @@ $wolframLanguageDeclarations = {
 			]
 		}
 	],
+	(* a failure, as the Wolfram Language writes one, Failure[tag, details]: its tag a string, its details an expression,
+	   as an association of what went wrong; a computation that may fail has a value of A | Failure, and
+	   "confirmBind" continues one with the value it has or passes its failure on, which Enclose and Confirm are written
+	   with *)
+	$ifDeclaration,
+	TypeTheoryInductiveType[Failure, TypeUniverse[1], {"Failure" -> (Strings -> Expressions -> Failure)}],
+	TypeTheoryDefinition["confirmBind", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[e, A | Failure], Typed[k, A -> B | Failure]},
+			InductiveRecursor[DisjointUnionType][Typed[s, A | Failure] |-> B | Failure, Typed[a, A] |-> k[a], Typed[f, Failure] |-> Typed["right"[f], B | Failure], e]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]]}, (A | Failure) -> (A -> B | Failure) -> B | Failure]
+	]],
 	TypeTheoryDefinition["NaturalExpressionCoercion", Typed[n, NonNegativeIntegers] |-> "atom"["naturalAtom"[n]], "Coercion" -> True],
 	TypeTheoryDefinition["StringExpressionCoercion", Typed[s, Strings] |-> "atom"["stringAtom"[s]], "Coercion" -> True],
 

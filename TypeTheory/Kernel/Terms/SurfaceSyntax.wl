@@ -225,6 +225,7 @@ readableSyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]]
 readablePiece[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], readableSyntax[list]}]
 readablePiece[piece_] := readableSyntax[piece]
 readableSyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
+readableSyntax[syntaxApplication[syntaxString["Failure"], arguments_List]] := syntaxApplication[syntaxSymbol[HoldComplete[Failure]], readableSyntax /@ arguments]
 (* a sequence as it is written, Unevaluated[a, b, ...], and its type, A... *)
 readableSyntax[syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]
