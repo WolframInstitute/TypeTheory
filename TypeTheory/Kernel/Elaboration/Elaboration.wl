@@ -1180,17 +1180,13 @@ elaborateForAll[binders_List, body_] := With[{start = Length[$pendingOverloads],
 ]
 
 (* A -> B: the result does not depend on the argument, so B is elaborated outside the binder *)
-(* the domains first, as they are read, so that a variable a domain uses as a proposition, Not[b], is one before the
-   codomain uses it as a type *)
-elaborateArrow[domains_List, codomain_] := With[{elaboratedDomains = elaborateTypeSyntax /@ domains},
-	With[
-		{term = Fold[
-			Function[{accumulated, domain}, dependentFunctionType[HoldComplete[\[FormalX]], domain, accumulated, "Explicit"]],
-			elaborateTypeSyntax[codomain],
-			Reverse[elaboratedDomains]
-		]},
-		{term, inferType[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[term]]}
-	]
+elaborateArrow[domains_List, codomain_] := With[
+	{term = Fold[
+		Function[{accumulated, domain}, dependentFunctionType[HoldComplete[\[FormalX]], domain, accumulated, "Explicit"]],
+		elaborateTypeSyntax[codomain],
+		Reverse[elaborateTypeSyntax /@ domains]
+	]},
+	{term, inferType[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[term]]}
 ]
 
 elaborateTypeSyntax[syntax_] := With[{result = elaborateSyntax[syntax, universeSort[newLevelMetavariable[]]]},

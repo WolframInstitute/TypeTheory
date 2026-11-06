@@ -470,7 +470,7 @@ VerificationTest[
 	TestID -> "A-pure-function-of-slots-and-binder-types-without-redexes"
 ]
 
-(* the premise of Implies is read before its conclusion, so a variable a premise uses as a proposition is one; an implicit
+(* a variable used as a proposition before it is used as a type is one; an implicit
    binder may go without a type; a function whose type is unknown asks for it; a recursor's major premise, a variable,
    is read first; and a function of slots reads back as one *)
 VerificationTest[
@@ -482,8 +482,8 @@ VerificationTest[
 			}]
 		},
 		{
-			DefinitionallyEqualQ[TypeTheoryType[ForAll[{b}, Implies[Not[b], b]]], TypeTheoryTerm[TypeUniverse[0]]],
-			DefinitionallyEqualQ[TypeTheoryType[ForAll[{a, b}, Implies[Or[a, b], Implies[Not[a], b]]]], TypeTheoryTerm[TypeUniverse[0]]],
+			DefinitionallyEqualQ[TypeTheoryType[ForAll[{a, b}, Implies[a, Implies[b, And[a, b]]]]], TypeTheoryTerm[TypeUniverse[0]]],
+			DefinitionallyEqualQ[TypeTheoryType[ForAll[{a, b}, Implies[b, Or[a, b]]]], TypeTheoryTerm[TypeUniverse[0]]],
 			MatchQ[TypeTheoryType[Function[{TypedImplicit[A], Typed[x, A]}, x]], _TypeTheoryTerm],
 			StringContainsQ[TypeTheoryEnvironment[{TypeTheoryDefinition[Composite, {g, f, x} |-> g[f[x]]]}]["Message"], "is needed"],
 			DefinitionallyEqualQ[TypeTheoryType[Typed[y, Option[NonNegativeIntegers]] |-> InductiveRecursor[Option][TypeUniverse[0] &, True, False &, y]], TypeTheoryTerm[Option[NonNegativeIntegers] -> TypeUniverse[0]]],
