@@ -137,6 +137,8 @@ $levelAssignments = <||>
 $elaborationEnvironment = None
 $elaborationContext = <||>
 $elaborationScope = <||>
+(* the environment of a term held in a symbol while its syntax elaborates in another, whose constants keep their meaning *)
+$sourceEnvironment = None
 $universeParameterNames = {}
 $levelGeneralization = None
 $propositionExpected = False
@@ -400,6 +402,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List] /; sequencesDeclaredQ[] :> elaborateSyntax[sequenceLiteralSyntax[elements], expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
+	(* a constant of the environment of a term read in this one, which does not declare it, keeps its meaning: it is no
+	   string or symbol standing for itself here, and the term does not elaborate *)
+	(syntaxString[name_] | syntaxSymbol[HoldComplete[name_]]) /; foreignConstantQ[HoldComplete[name]] :>
+		elaborationFailure["`1` is a constant of the environment of the term it is in, which this environment does not declare.", syntax],
 	(* a string literal, "abc", is the constant named by its InputForm, of the type Strings, where no constant has its text
 	   for a name, as "true" does *)
 	syntaxString[text_] /; ! constantDeclaredQ[$elaborationEnvironment, HoldComplete[text]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete @@ {ToString[text, InputForm]}] :>
@@ -521,10 +527,18 @@ aliasedConstant[environment_, symbol_Symbol] := Replace[OwnValues[symbol], {
 }]
 
 SetAttributes[{storedValueQ, elaborateStoredValue}, HoldFirst]
+foreignConstantQ[held_HoldComplete] := And[
+	$sourceEnvironment =!= None,
+	! KeyExistsQ[$elaborationScope, held],
+	constantDeclaredQ[$sourceEnvironment, held],
+	! constantDeclaredQ[$elaborationEnvironment, held],
+	! overloadedNameQ[$elaborationEnvironment, held]
+]
 storedValueQ[symbol_Symbol] := MatchQ[OwnValues[symbol], {Verbatim[RuleDelayed][_, _TypeTheoryTerm | TypeTheoryProof[_Association]]}]
 
 (* a finished proof is already a core term, which finishElaboration checks again like any other *)
 elaborateStoredValue[symbol_Symbol, expected_] := Replace[First[OwnValues[symbol]], {
+	Verbatim[RuleDelayed][_, term : TypeTheoryTerm[_, _]] :> Block[{$sourceEnvironment = termEnvironment[term]}, elaborateSyntax[termSyntax[term], expected]],
 	Verbatim[RuleDelayed][_, term_TypeTheoryTerm] :> elaborateSyntax[termSyntax[term], expected],
 	Verbatim[RuleDelayed][_, proof : TypeTheoryProof[_Association]] :> {completedProofTerm[proof], proofStatement[proof]}
 }]

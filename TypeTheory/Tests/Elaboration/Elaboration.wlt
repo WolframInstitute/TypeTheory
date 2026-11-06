@@ -428,3 +428,22 @@ VerificationTest[
 	},
 	TestID -> "A-Sequence-binder-takes-the-arguments-that-are-left-as-one-Sequence"
 ]
+
+(* a term held in a symbol and read in another environment keeps the meaning of its own environment's constants: one the
+   other environment does not declare is refused, as a string-named constant would otherwise be read as a string, and the
+   term reads as itself in its own environment or one that extends it *)
+VerificationTest[
+	With[{cited = TypeTheoryEnvironment[{TypeTheoryAxiom["_example", 2 + 2 == 4], TypeTheoryAxiom[Foreign, NonNegativeIntegers]}]},
+		Block[{proof = TypeTheoryTerm["_example", cited], number = TypeTheoryTerm[Foreign + 1, cited]},
+			{
+				First[TypeTheoryType[Typed[proof, 2 + 2 == 4]]],
+				First[TypeTheoryType[number + 1]],
+				First[TypeTheoryType[proof, TypeTheoryEnvironment["Prelude"]]],
+				DefinitionallyEqualQ[TypeTheoryType[Typed[proof, 2 + 2 == 4], cited], TypeTheoryTerm[2 + 2 == 4, cited]],
+				DefinitionallyEqualQ[TypeTheoryType[number + 1, TypeTheoryEnvironment[cited, {TypeTheoryAxiom[Other, NonNegativeIntegers]}]], TypeTheoryTerm[NonNegativeIntegers]]
+			}
+		]
+	],
+	{"ElaborationFailed", "ElaborationFailed", "ElaborationFailed", True, True},
+	TestID -> "A-term-read-in-another-environment-keeps-its-constants"
+]
