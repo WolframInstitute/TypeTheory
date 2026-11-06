@@ -27,8 +27,16 @@ Writing types this way keeps one notation for the patterns a definition is writt
 - `A | Failure` the type of a value or a failure (Lean's `Except`), with `Confirm : A | Failure -> A` read as bind
   inside `Enclose : (A | Failure) -> A | Failure`, as Wolfram Language code writes them; `ConfirmBy`, `ConfirmMatch`
   as bind after a test.
-- v2's Core (spec section 4, exits): Throw/Catch with tags compile; Confirm throws `{Kernel`Private`encloseTag, tag}`
-  and Enclose catches it. `TypeTheoryFormalize` reads those exits as bind and catch.
+- v2's Core reads every call as `Either` (spec section 4.1, the table of exits, kernel 3066b82d): a call gives a value,
+  `Right v`, or an exit, `Left e`; the check after each call is the bind, and the regions `Core`Catch` (which `Catch`
+  and `Enclose` lower to), `Core`Cleanup` and `Core`Quiet` are the handlers. The exits TypeTheory reads:
+  - a confirmation's failure, raised by `Confirm`, `ConfirmBy`, `ConfirmMatch`, `ConfirmQuiet`, `ConfirmAssert`,
+    tagged `{Kernel`Private`encloseTag, tag}` and taken by the `Enclose` of that tag: `A | Failure`, `Enclose` its
+    catch, with a handler `handler[failure]`;
+  - a throw, a value and a tag, taken by the `Catch` whose form matches the tag: `A | Thrown[E]`, read per tag;
+  - a return of a compiled function, taken by the function itself: no type of its own, the function's value.
+  Aborts and quits pass every compiled region and stay outside the types. `WithCleanup` runs its cleanup on both
+  sides and `Quiet` passes every exit through, so both read as the identity on the monad.
 
 ## State: Module, Set, Do, While
 
