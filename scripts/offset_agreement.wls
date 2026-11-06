@@ -14,7 +14,8 @@
    term and of the sum of each pair, which the kernel reads by offsets, must be the one peeling successors after weak head
    normal forms gives, the kernel's way before the offsets: the same integer, or None for both. Past the range, where
    peeling cannot finish, the literal values of 120 terms with random offsets up to 2^64 must be the offsets' sums: the
-   offset over zero, None over a variable. It prints the counts and the times, and the cases that disagree, and exits
+   offset over zero, None over a variable. A term read as stuck, which no literal can be, must have no literal value by
+   peeling either. It prints the counts and the times, and the cases that disagree, and exits
    with status 1 on a disagreement. The run is held under a memory cap. *)
 
 repositoryRoot = ParentDirectory[DirectoryName[$InputFileName]]
@@ -77,6 +78,8 @@ peeledLiteralValue[term_] := With[
 
 valueTerms = Join[terms, Function[pair, plus[First[pair], Last[pair]]] /@ pairs]
 
+stuckQ[term_] := WolframInstitute`TypeTheory`Checking`NaturalNumbers`Private`stuckQ[context, settings, term]
+
 (* random offsets up to 2^64, over zero and over x, written as base plus a literal and as base plus zero plus a literal *)
 largeCases = BlockRandom[SeedRandom[2026]; Flatten[Function[k, {
 	{plus[reference["zero"], literal[k]], k},
@@ -118,6 +121,9 @@ valueDisagreements = Pick[valueTerms, MapThread[UnsameQ, {byOffsets, byPeeling}]
 
 largeDisagreements = Pick[largeCases, MapThread[UnsameQ, {largeValues, Last /@ largeCases}]]
 
+(* a term read as stuck has no literal value *)
+stuckDisagreements = Pick[valueTerms, MapThread[Function[{term, value}, stuckQ[term] && value =!= None], {valueTerms, byPeeling}]]
+
 Print[Length[pairs], " pairs of offsets 0 to ", largestOffset, ", ", Count[withRule, True], " equal; ", Length[disagreements], " disagree"]
 
 Print["offset rule ", Round[ruleTime, 0.01], " s, unfolding alone ", Round[unfoldingTime, 0.01], " s"]
@@ -128,6 +134,8 @@ Print["by offsets ", Round[offsetTime, 0.01], " s, by peeling ", Round[peelingTi
 
 Print[Length[largeCases], " literal values of offsets up to 2^64, ", Length[largeDisagreements], " disagree with the offsets' sums, in ", Round[largeTime, 0.01], " s"]
 
-Scan[Function[pair, Print["disagree: ", InputForm[pair]]], Take[Join[disagreements, valueDisagreements, largeDisagreements], UpTo[10]]]
+Print[Count[valueTerms, _?stuckQ], " terms read as stuck, ", Length[stuckDisagreements], " of them with a literal value by peeling"]
 
-Exit[If[disagreements === {} && valueDisagreements === {} && largeDisagreements === {}, 0, 1]]
+Scan[Function[pair, Print["disagree: ", InputForm[pair]]], Take[Join[disagreements, valueDisagreements, largeDisagreements, stuckDisagreements], UpTo[10]]]
+
+Exit[If[disagreements === {} && valueDisagreements === {} && largeDisagreements === {} && stuckDisagreements === {}, 0, 1]]

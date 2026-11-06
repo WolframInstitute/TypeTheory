@@ -267,3 +267,42 @@ VerificationTest[
 	{},
 	TestID -> "A-lemma-with-an-offset-of-2-to-the-63-proves"
 ]
+
+(* the literal value is read in a loop, not by recursion: a definition by recursion whose step is two successors has its
+   value, however many reductions it takes *)
+VerificationTest[
+	With[
+		{
+			twice = TypeTheoryEnvironment[{TypeTheoryDefinition[OffsetTwice, n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> "successor"["successor"[r]], n]]}],
+			literalValue = Symbol["WolframInstitute`TypeTheory`Checking`NaturalNumbers`Private`literalValue"],
+			elaborated = Symbol[First[Names["WolframInstitute`TypeTheory`*`elaborateQueryTerm"]]]
+		},
+		With[{core = First[elaborated[twice, TypeTheoryTerm[OffsetTwice[2900], twice], None, {}]]},
+			MemoryConstrained[
+				TimeConstrained[Quiet[literalValue[twice, <||>, WolframInstitute`TypeTheory`PackageScope`naturalNumberSettings[twice], core]], 60, "TIMEOUT"],
+				2*^9,
+				"MEMORY"
+			]
+		]
+	],
+	5800,
+	TestID -> "A-literal-value-many-reductions-deep-is-read-in-a-loop"
+]
+
+(* a sum with a variable in it is no literal, which is read without reducing the other side: so a multiplication by a
+   large literal, which unfolds into additions of a variable sum, is not reduced to see it *)
+VerificationTest[
+	With[{c = 9223372036854775808},
+		MemoryConstrained[
+			TimeConstrained[
+				TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[c == m + 1 + k, c + (0 + 0 + 0) == ((m + 1) + k) + 0]], {"Introduce"[m, k, e], "LinearArithmetic"}]["Goals"],
+				60,
+				"TIMEOUT"
+			],
+			2*^9,
+			"MEMORY"
+		]
+	],
+	{},
+	TestID -> "A-lemma-with-a-hypothesis-and-an-offset-of-2-to-the-63-proves"
+]

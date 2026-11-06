@@ -58,6 +58,15 @@ integers and 36660 None; and 120 terms with random offsets up to 2^64, which pee
 sums for values. The suite has the pairs of offsets 0 to 4. Elaboration's `unify` gives two terms with no metavariable
 to the kernel's definitional equality, so a forged `x + 2^63 == x + 2^63 + 1` is a type mismatch, not a recursion limit.
 
+Two corrections followed, approved 2026-11-07. `literalValue` recursed once per reduction, so a value many
+reductions deep, as `Twice[1000]` of a recursion by two successors, reached the recursion limit: it now reads in a loop,
+as the old peeling did. And `literalValues` gives None at once when an argument is stuck, read without reducing: a
+variable without a value, a successor of one, or a sum by the registered addition with one, since a sum is a literal only
+where both sides are, by the checked equations. Without it, `X * N` unfolded into `Plus[ℕ_rec[..., N - 1], X]` was reduced
+N deep before the variable sum `X` was seen, which a certificate of `LinearArithmetic` with a coefficient that grows with
+the constant met. The script also checks that every term read as stuck has no literal value by peeling: all 36660 of
+the None values are read as stuck.
+
 ## Routes
 
 **(1): elaboration only, no trusted code changed.**

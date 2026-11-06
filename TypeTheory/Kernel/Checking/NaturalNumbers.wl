@@ -244,6 +244,7 @@ operationResult[environment_, context_, settings_, name_, role_, arguments_] := 
 ]
 
 (* the integers of the arguments, or None as soon as one does not reduce to a literal *)
+literalValues[environment_, context_, settings_, arguments_List] /; AnyTrue[arguments, Function[argument, stuckQ[context, settings, argument]]] := None
 literalValues[environment_, context_, settings_, arguments_List] := Catch[
 	Function[argument, Replace[literalValue[environment, context, settings, argument], None :> Throw[None, literalValues]]] /@ arguments,
 	literalValues
@@ -259,15 +260,17 @@ resultTerm[environment_, name_, value : True | False] := With[
 booleansOf[dependentFunctionType[_, _, dependentFunctionType[_, _, constantReference[booleans_, {}], _], _]] := booleans
 
 (* the number a term reduces to: its offset read first, k successors of a base, as the offset rule reads it, then the
-   base reduced and read again; None as soon as a base is no literal, zero or successor, and reduces no further *)
-literalValue[environment_, context_, settings_, term_] := offsetValue[environment, context, settings, naturalOffset[settings, term]]
-
-offsetValue[_, _, settings_, {base_, offset_Integer}] /; zeroBaseQ[settings, base] := offset
-offsetValue[environment_, context_, settings_, {base_, offset_Integer}] := With[{reduced = weakHeadNormalForm[environment, context, base]},
-	If[ reduced === base,
-		None,
-		Replace[offsetValue[environment, context, settings, naturalOffset[settings, reduced]], value_Integer :> value + offset]
-	]
+   base reduced and read again, in a loop, as many times as a reduction exposes successors; None as soon as a base is no
+   literal, zero or successor, and reduces no further *)
+literalValue[environment_, context_, settings_, term_] := Block[{literalBase, literalOffset, literalReduced},
+	{literalBase, literalOffset} = naturalOffset[settings, term];
+	While[ ! zeroBaseQ[settings, literalBase] && (literalReduced = weakHeadNormalForm[environment, context, literalBase]) =!= literalBase,
+		With[{read = naturalOffset[settings, literalReduced]},
+			literalBase = First[read];
+			literalOffset += Last[read]
+		]
+	];
+	If[zeroBaseQ[settings, literalBase], literalOffset, None]
 ]
 
 
@@ -312,6 +315,14 @@ naturalOffset[settings_, term : application[application[constantReference[additi
 naturalOffset[_, term_] := {term, 0}
 
 offsetAdded[{base_, offset_Integer}, more_Integer] := {base, offset + more}
+
+(* a term no literal can be, read without reducing: a variable of the context without a value, a successor of one, or a
+   sum by the registered addition with one, as a sum is a literal only where both its sides are *)
+stuckQ[context_, _, freeVariable[id_]] := ! KeyExistsQ[Lookup[context, id, <||>], "Value"]
+stuckQ[context_, settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] := stuckQ[context, settings, argument]
+stuckQ[context_, settings_, application[application[constantReference[addition_, {}], left_], right_]] /; addition === Lookup[settings["Operations"], "Addition"] :=
+	stuckQ[context, settings, left] || stuckQ[context, settings, right]
+stuckQ[_, _, _] := False
 
 zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]
 
