@@ -182,6 +182,16 @@ givenTerm[term_, environment_] := TypeTheoryTerm[term, environment]
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
 typeOfTerm[failure_Failure] := failure
+(* an ascription, Typed[t, T], has the type T it is given, checked, as Lean's #check (t : T) shows T: the kernel's own
+   type of t, as 4 == 4 for "equalityReflexivity"[4], is equal to it but no longer as written *)
+typeOfTerm[term_TypeTheoryTerm] /; MatchQ[heldTerm[term], HoldComplete[Typed[_, _]]] := catchKernelFailure @ With[
+	{environment = termEnvironment[term], universeParameters = universeParameterNames[{termSyntax[term]}]},
+	Replace[heldTerm[term], HoldComplete[Typed[value_, type_]] :> With[
+		{expected = Block[{$levelGeneralization = "Type"}, elaborateClosedType[environment, HoldComplete[type], universeParameters]]},
+		checkedQueryTerm[environment, TypeTheoryTerm[value, environment], expected, universeParameters];
+		coreToTypeTheoryTerm[environment, <||>, expected]
+	]]
+]
 typeOfTerm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
 		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>

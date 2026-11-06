@@ -479,3 +479,13 @@ VerificationTest[
 	{Success, "UnknownMethod", TypeTheoryProofTree, "DifferentEnvironments", True},
 	TestID -> "Checks-coerce-methods-are-known-finished-proofs-have-trees-and-environments-agree"
 ]
+
+(* an ascription has the type it is given, checked, not the kernel's own type of its term *)
+VerificationTest[
+	{
+		MatchQ[TypeTheoryType[Typed["equalityReflexivity"[4], 2 + 2 == 4]], HoldPattern[TypeTheoryTerm[2 + 2 == 4, _]]],
+		First[TypeTheoryType[Typed["equalityReflexivity"[4], 2 + 2 == 5]]]
+	},
+	{True, "TypeMismatch"},
+	TestID -> "An-ascription-has-the-type-it-is-given"
+]
