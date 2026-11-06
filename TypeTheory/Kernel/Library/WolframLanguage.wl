@@ -41,6 +41,7 @@ environment of their own.
 	If                              If[condition, a, b] by the decision of the condition, an instance of Decidable
 	Failure                         a failure, Failure[tag, details]: a computation that may fail has a value of
 	                                A | Failure, which "confirmBind" continues, and Enclose and Confirm are written with
+	FromString, "OfString"[A]       the value of a type written by a string, FromString[s], for atoms, expressions and strings
 	Missing                         a value that is not there, Missing[reason, details...], as a lookup of a key gives
 	"Quotable"[K]                   the class of types whose values are expressions, by "quote": ℕ, Strings, Expressions
 	Association[K, V]               associations, <|k -> v, ...|>, each key once, in the order put in; Lookup gives
@@ -71,6 +72,7 @@ PackageExported[Expressions]
 PackageExported[Arguments]
 PackageExported[ExpressionEvaluate]
 PackageExported[Strings]
+PackageExported[FromString]
 PackageExported[Match]
 PackageExported[MatchValue]
 PackageExported[MatchSum]
@@ -104,6 +106,7 @@ MatchPart::usage = "MatchPart[e, k, f] is the match f of the part of the express
 MatchBind::usage = "MatchBind[m, f] is the match whose results are those of f applied to each result of m, in order."
 MatchFirst::usage = "MatchFirst[m] is the first result of the match m, \"some\" of it, or \"none\" where m has none: the rule the Wolfram Language applies."
 wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prelude, which declares the expressions of the Wolfram Language and the monad of pattern matching."
+FromString::usage = "FromString[s] is the value of the type expected whose string is s, by the instance of the class \"OfString\" of that type: an atom, an expression or a string; where nothing decides the type, the string s."
 $ifDeclaration::usage = "$ifDeclaration is the declaration of If[condition, a, b] by the decision of the condition, an instance of Decidable that elaboration finds."
 $wolframLanguageDeclarations::usage = "$wolframLanguageDeclarations is the list of the prelude's declarations of the Wolfram Language's strings, atoms, expressions, sequences and matches."
 
@@ -197,6 +200,23 @@ $wolframLanguageDeclarations = {
 	]],
 	TypeTheoryDefinition["NaturalExpressionCoercion", Typed[n, NonNegativeIntegers] |-> "atom"["naturalAtom"[n]], "Coercion" -> True],
 	TypeTheoryDefinition["StringExpressionCoercion", Typed[s, Strings] |-> "atom"["stringAtom"[s]], "Coercion" -> True],
+	(* the values written by a string, as Haskell's IsString and Lean's OfNat for numerals: FromString[s] is the value of
+	   the type expected by the instance of "OfString" of that type, an atom, an expression or, where nothing decides, the
+	   string, declared last so that it is found first *)
+	TypeTheoryInductiveType[
+		"OfString",
+		ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
+		{"ofString" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[f, Strings -> A]}, "OfString"[A]]}
+	],
+	TypeTheoryDefinition[FromString, Typed[
+		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[c, "OfString"[A]], "InstanceImplicit"], Typed[s, Strings]},
+			InductiveRecursor["OfString"][Typed[t, "OfString"[A]] |-> A, Typed[f, Strings -> A] |-> f[s], c]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[c, "OfString"[A]], "InstanceImplicit"]}, Strings -> A]
+	]],
+	TypeTheoryDefinition["atomOfString", Typed["ofString"[Typed[s, Strings] |-> "stringAtom"[s]], "OfString"[Atoms]], "Instance" -> True],
+	TypeTheoryDefinition["expressionOfString", Typed["ofString"[Typed[s, Strings] |-> "atom"["stringAtom"[s]]], "OfString"[Expressions]], "Instance" -> True],
+	TypeTheoryDefinition["stringOfString", Typed["ofString"[Typed[s, Strings] |-> s], "OfString"[Strings]], "Instance" -> True],
 
 	(* whether two lists of natural numbers, two strings and two atoms are the same *)
 	TypeTheoryDefinition["naturalListSameQ", Typed[

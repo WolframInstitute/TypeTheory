@@ -208,11 +208,18 @@ elaborateInContext[environment_, context_, scope_, held_HoldComplete, expected_,
 	{environment, context, scope, universeParameters},
 	With[{syntax = toSyntax @@ held},
 		(* a term checked against a type is coerced to it where its own type is another, as an argument is *)
-		With[{result = If[expected === None, elaborateSyntax[syntax, None], {checkAgainst[syntax, expected], expected}]},
+		With[{result = If[expected === None, elaborateSyntax[loneTermSyntax[syntax], None], {checkAgainst[syntax, expected], expected}]},
 			finishElaboration[environment, context, result, expected]
 		]
 	]
 ]
+
+(* a string on its own, where no type is expected, is the name of a constant, as in TypeTheoryType["successor"]: one that
+   names none is refused rather than taken for a string, as a misspelled name would be; among other terms, or where a
+   string is expected, a string is one, and FromString[s] is s where nothing decides *)
+loneTermSyntax[syntax : syntaxString[text_String]] /; stringExpectedQ[None] && unnamedStringQ[text] && ! foreignConstantQ[HoldComplete[text]] :=
+	elaborationFailure["`1` names no constant here. A string on its own is the name of a constant: write Typed[s, Strings] or FromString[s] for the string s.", syntax]
+loneTermSyntax[syntax_] := syntax
 
 finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{finalTerm = generalizedLevels[closeHoles[settleOverloads[term]]]},
 	(* a variable written without a type whose body did not decide one, its type a metavariable still or solved by
@@ -299,6 +306,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		{universeSort[elaborated], universeSort[normalizeLevel[levelSuccessor[elaborated, 1]]]}
 	],
 	syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {term_, type_}] :> elaborateAscription[term, type],
+	(* TypeHint[e, type], which the compiler reads as e of that type and which evaluates to e, is e ascribed the type where
+	   it is a type of the type theory, and e alone where it is only the compiler's, as "MachineInteger" *)
+	syntaxApplication[syntaxSymbol[HoldComplete[TypeHint]], {term_, type_}] /; compilerTypeSyntaxQ[type] :> elaborateSyntax[term, expected],
+	syntaxApplication[syntaxSymbol[HoldComplete[TypeHint]], {term_, type_}] :> elaborateAscription[term, type],
 	syntaxApplication[syntaxSymbol[HoldComplete[With]], {bindings_, body_}] :> elaborateWith[listElements[bindings], body, expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[leftFold[head, arguments], expected],
@@ -774,6 +785,13 @@ expressionHeadSyntaxQ[syntaxApplication[syntaxString["atom"], {_}]] := True
 expressionHeadSyntaxQ[_] := False
 
 failuresDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["confirmBind"]]
+
+(* a type of the compiler only: a string that names no constant, as "MachineInteger", or TypeSpecifier of one, as
+   TypeSpecifier["PackedArray"]["Integer64", 1] *)
+compilerTypeSyntaxQ[syntaxString[text_String]] := unnamedStringQ[text]
+compilerTypeSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxString[_]}]] := True
+compilerTypeSyntaxQ[syntaxApplication[head : syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxString[_]}], _]] := True
+compilerTypeSyntaxQ[_] := False
 associationsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["associationInsert"]]
 
 (* <|k1 -> v1, k2 -> v2|> as "associationInsert"["associationInsert"["association"[{}], k1, v1], k2, v2] *)

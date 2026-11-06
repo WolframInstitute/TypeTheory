@@ -556,6 +556,8 @@ translatedCore[coreForm["Constant"][text_String], _] /; TrueQ[$codedStrings] := 
 }]
 translatedCore[coreForm["Constant"][text_String], _] := With[{literal = ToString[text, InputForm]}, Sow[HoldComplete[literal], untranslatedCall]; HoldComplete[literal]]
 translatedCore[coreForm["Level"][_, core_], locals_] := translatedCore[core, locals]
+(* TypeHint[e, type] is e, as it evaluates: its type is the compiler's, which says how e is stored, not what it is *)
+translatedCore[coreForm["Call"]["System`TypeHint", {expression_, _}], locals_] := translatedCore[expression, locals]
 translatedCore[coreForm["Call"][callee_String, arguments_List], locals_] := With[{head = ToExpression[callee, InputForm, HoldComplete]},
 	If[! MemberQ[$surfaceHeads, callee], Sow[head, untranslatedCall]];
 	Replace[Join[head, Join @@ (Function[argument, translatedCore[argument, locals]] /@ arguments)], HoldComplete[function_, parts___] :> HoldComplete[function[parts]]]

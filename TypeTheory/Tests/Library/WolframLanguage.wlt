@@ -64,7 +64,7 @@ VerificationTest[
 
 (* HoldForm[e] is the expression e quoted: its variables the expressions they stand for, a sequence of them among the
    arguments spliced in, as is Sequence @@ l of a list, and it shows so; a symbol is an atom by its name, which nothing declares; a
-   string literal is a string, the list of its character codes, and an expression where one is expected; where an
+   string literal is a string, the list of its character codes, where a string is expected, and an expression where one is; where an
    expression is expected, a symbol that names nothing stands for itself *)
 VerificationTest[
 	With[{quoting = TypeTheoryEnvironment["WolframLanguage"]},
@@ -76,10 +76,10 @@ VerificationTest[
 				TypeTheoryTerm[HoldForm[f[1, 2, 3]], quoting]
 			],
 			FreeQ[ToBoxes[NormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], "HoldForm" | "\"HoldForm\"", Infinity],
-			First[TypeTheoryType[TypeTheoryTerm["abc", quoting]]],
+			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Strings], quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[HoldForm[g[1]], quoting]]],
-			DefinitionallyEqualQ[TypeTheoryTerm["abc", quoting], TypeTheoryTerm["string"[{97, 98, 99}], quoting]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed["abc", Strings], quoting], TypeTheoryTerm["string"[{97, 98, 99}], quoting]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Typed[g[1 + 1], Expressions], quoting], TypeTheoryTerm[HoldForm[g[2]], quoting]]
 		}
 	],
@@ -210,4 +210,26 @@ VerificationTest[
 	],
 	{True, True, True, True},
 	TestID -> "Missing-is-a-value-that-is-not-there-and-an-expression-where-one-is-expected"
+]
+
+(* a string on its own names a constant, and one that names none is refused, as a misspelled name; FromString[s] is the
+   value of the type expected whose string is s, by the instance of "OfString" of that type, and the string where
+   nothing decides; TypeHint[e, type] is e ascribed the type, or e alone where the type is the compiler's *)
+VerificationTest[
+	Block[{increment},
+		increment[x_] := TypeHint[x + 1, "MachineInteger"];
+		{
+			First[TypeTheoryType["sucessor"]],
+			DefinitionallyEqualQ[TypeTheoryType[FromString["Hi"]], TypeTheoryTerm[Strings]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[FromString["Hi"], Expressions]], TypeTheoryTerm[Typed["Hi", Expressions]]],
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[FromString["Hi"], Atoms]], TypeTheoryTerm["stringAtom"[Typed["Hi", Strings]]]],
+			First[TypeTheoryType[Typed[FromString["12"], NonNegativeIntegers]]],
+			DefinitionallyEqualQ[TypeTheoryType[TypeHint[3, NonNegativeIntegers | Strings]], TypeTheoryTerm[NonNegativeIntegers | Strings]],
+			DefinitionallyEqualQ[TypeTheoryType[Typed[x, NonNegativeIntegers] |-> TypeHint[x + 1, "MachineInteger"]], TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers]],
+			First[TypeTheoryType[TypeHint[3, Strings]]],
+			MatchQ[TypeTheoryFormalize[increment], {HoldPattern[TypeTheoryDefinition[_, Function[{x_}, x_ + 1]]]}]
+		}
+	],
+	{"ElaborationFailed", True, True, True, "NoInstance", True, True, "TypeMismatch", True},
+	TestID -> "A-lone-string-names-a-constant-FromString-and-TypeHint"
 ]
