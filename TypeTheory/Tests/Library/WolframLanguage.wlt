@@ -251,6 +251,21 @@ VerificationTest[
 	TestID -> "Unevaluated-quotes-and-HoldForm-is-a-head-as-any-other"
 ]
 
+(* Unevaluated of one expression is one argument, as the Wolfram Language passes it on: among the arguments of
+   Construct, of the type Expressions..., it is quoted, and where a natural number is expected it is the element itself;
+   Unevaluated of several is a sequence, spliced in *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm[Construct[f, 1 + 2, Unevaluated[1 + 2]]], TypeTheoryTerm[Construct[f, 3, Construct[Unevaluated[Plus], 1, 2]]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[Unevaluated[1 + 2], NonNegativeIntegers]], TypeTheoryTerm[3]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Construct[f, Unevaluated[1, 2], 3]], TypeTheoryTerm[Construct[f, 1, 2, 3]]],
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[{Unevaluated[1 + 2], 4}]], TypeTheoryTerm[{Expressions}]],
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[Prepend[Unevaluated[Unevaluated[1], 2], 0]]], TypeTheoryTerm[NonNegativeIntegers...]]
+	},
+	{True, True, True, True, True},
+	TestID -> "Unevaluated-of-one-expression-is-one-argument-quoted-where-an-expression-is-expected"
+]
+
 (* TypeTheoryType and TypeTheoryProof keep an Unevaluated they are given, as HoldAllComplete functions do in the Wolfram
    Language, so a quotation means the same at the top as inside a term *)
 VerificationTest[

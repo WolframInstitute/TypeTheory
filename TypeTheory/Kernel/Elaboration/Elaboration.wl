@@ -382,6 +382,9 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	   as a term, as the Wolfram Language passes e on unevaluated; Unevaluated[1 + 2] is the expression 1 + 2, not 3 *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {quoted_}] /; expressionsDeclaredQ[] && quotationExpectedQ[expected] :>
 		elaborateSyntax[quotationSyntax[quoted], expected],
+	(* Unevaluated[e] where a term of a type that is no sequence's is expected: e, as the Wolfram Language passes it on *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {element_}] /; expected =!= None && ! variadicTypeQ[expected] && ! splicedPieceQ[element] :>
+		elaborateSyntax[element, expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], elements_List] /; variadicSequencesDeclaredQ[] :> elaborateSyntax[variadicSequenceSyntax[elements], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {syntaxSymbol[HoldComplete[Unevaluated]], list_}] /; variadicSequencesDeclaredQ[] :>
 		elaborateSyntax[syntaxApplication[syntaxString["sequenceOfList"], {list}], expected],
@@ -920,6 +923,9 @@ joinedPiece[rest_, element_] := syntaxApplication[syntaxString["sequenceOfPrepen
    element, elaborated already where it was elaborated to tell *)
 variadicPiece[syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {syntaxSymbol[HoldComplete[Sequence] | HoldComplete[Unevaluated]], list_}]] :=
 	splicedPiece[syntaxApplication[syntaxString["sequenceOfList"], {list}]]
+(* Unevaluated of one expression is that one argument, as the Wolfram Language passes it on: quoted where an expression
+   is expected, an element anywhere else; Unevaluated of none or several, or of a sequence, is a sequence *)
+variadicPiece[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {element_}]] /; ! splicedPieceQ[element] := syntax
 variadicPiece[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], _List]] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxString["emptySequenceOf"]] := splicedPiece[syntax]
 variadicPiece[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := splicedPiece[syntax]
