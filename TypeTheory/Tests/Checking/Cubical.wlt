@@ -228,3 +228,21 @@ VerificationTest[
 	{"DeclarationMismatch", "SumExpected"},
 	TestID -> "Glue-types-need-the-dependent-sum"
 ]
+
+(* a transport stuck on a variable, and a composition in a function type, reduce through partial spines such as
+   CubicalTransport[line, 0], which have no endpoint to reduce: they stay as they are, with no message *)
+VerificationTest[
+	{
+		MatchQ[NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[a, A]} |-> CubicalTransport[A, 0, a], "Cubical"]], _TypeTheoryTerm],
+		MatchQ[
+			NormalForm[TypeTheoryTerm[
+				{Typed[f, Booleans -> Booleans], Typed[g, Booleans -> Booleans], Typed[h, Path[Booleans -> Booleans, f, g]], Typed[i, Interval]} |->
+					CubicalComposition[TypeSpecifier[{Booleans} -> Booleans], j |-> {i == 0 -> h[j]}, f],
+				"Cubical"
+			]],
+			_TypeTheoryTerm | _Failure
+		]
+	},
+	{True, True},
+	TestID -> "A-partial-spine-of-a-cubical-primitive-reduces-with-no-message"
+]

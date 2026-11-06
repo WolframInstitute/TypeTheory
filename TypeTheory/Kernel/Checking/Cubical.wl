@@ -801,8 +801,9 @@ trueBranch[environment_, context_, branches_List] := SelectFirst[branches, Funct
 (* an operation on the interval is its canonical term *)
 canonicalInterval[environment_, context_, term_] := Replace[intervalForm[environment, context, term], {None :> term, form_ :> intervalTerm[form]}]
 
-(* a path that is no function, applied to an endpoint, is that endpoint of its type *)
-reducePathEndpoint[environment_, context_, term_, head_, arguments_List] := With[
+(* a path that is no function, applied to an endpoint, is that endpoint of its type; a spine with no argument past the
+   prefix a primitive takes, as CubicalTransport[line, 0] on its way to its value, has no endpoint to reduce, and stays *)
+reducePathEndpoint[environment_, context_, term_, head_, arguments_List] /; Length[arguments] > saturatedPrefix[environment, head] := With[
 	{
 		position = FirstPosition[
 			Drop[arguments, saturatedPrefix[environment, head]],
@@ -825,6 +826,8 @@ reducePathEndpoint[environment_, context_, term_, head_, arguments_List] := With
 		]
 	]
 ]
+(* a spine no longer than the primitive's prefix stays *)
+reducePathEndpoint[_, _, term_, _, _List] := term
 
 (* the arguments of a primitive that its own rules check, which are no path applied to an endpoint *)
 saturatedPrefix[environment_, constantReference[name_, _]] := Lookup[$saturatedArity, cubicalRole[environment, name], 0]
