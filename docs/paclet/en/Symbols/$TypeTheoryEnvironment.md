@@ -4,9 +4,10 @@ Name: $TypeTheoryEnvironment
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/$TypeTheoryEnvironment
-Keywords: [default environment, environment, prelude, Block, session]
+Keywords: [default environment, environment, prelude, Block, session, library environment]
 SeeAlso: [SetTypeTheoryEnvironment, TypeTheoryEnvironment, TypeTheoryTerm, TypeTheoryProof]
 RelatedGuides: [TypeTheory]
+RelatedTutorials: [TypeTheoryIntroduction]
 ---
 
 ## Usage
@@ -16,8 +17,10 @@ RelatedGuides: [TypeTheory]
 ## Details & Options
 
 - [$TypeTheoryEnvironment]() is the prelude when the paclet loads. [SetTypeTheoryEnvironment]() sets another, and <code>[SetTypeTheoryEnvironment]()["Prelude"]</code> sets the prelude back.
-- A [TypeTheoryTerm]() or a [TypeTheoryProof]() that names no environment is in [$TypeTheoryEnvironment](), and <code>[TypeTheoryEnvironment]()[{*declaration1*, ...}]</code> extends it.
-- <code>[Block]()[{[$TypeTheoryEnvironment]() = *env*}, *expr*]</code> makes the environment *env* the default while *expr* evaluates.
+- A [TypeTheoryTerm]() or a [TypeTheoryProof]() that names no environment is in [$TypeTheoryEnvironment]() when it is used, and <code>[TypeTheoryEnvironment]()[{*declaration1*, ...}]</code> extends it.
+- <code>[Block]()[{[$TypeTheoryEnvironment]() = *env*}, *expr*]</code> makes the environment *env* the default while *expr* evaluates. *env* may be the name of a library environment, such as `"Integers"`, which stands for that environment; any other value that is no environment leaves the prelude.
+- While the default is the prelude, a term that names a constant only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares, such as [MatchFirst]() or [Arguments](), is read in that environment. With another default it is not.
+- <code>[TypeTheoryEnvironment]()[]</code>, the empty environment, does not depend on the default.
 
 ## Basic Examples
 
@@ -29,23 +32,49 @@ $TypeTheoryEnvironment
 
 <!-- => TypeTheoryEnvironment summary box: 169 constants -->
 
-Declarations without an environment extend the default, here the constructive environment for one computation:
+---
+
+Make the integers the default for one computation, by their name, so a proof about integers names no environment:
 
 ```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryEnvironment[{TypeTheoryAxiom[Unprovable, False]}]]
+Block[{$TypeTheoryEnvironment = "Integers"},
+    TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y)^2 == x^2 - 2 x y + y^2], {"Introduce"[x, y], "Ring"}]
+]
+```
+
+<!-- => Proof complete -->
+
+---
+
+Declarations without an environment extend the default, here the constructive environment:
+
+```wl
+Block[{$TypeTheoryEnvironment = "Constructive"}, TypeTheoryEnvironment[{TypeTheoryAxiom[Unprovable, False]}]]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 156 constants -->
 
 ## Scope
 
-[Block]() makes an environment with a definition the default for one computation, so terms use the definition without naming the environment:
+An environment with a definition as the default, so terms use the definition without naming the environment:
 
 ```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]}]}, WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]]
+Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]}]},
+    WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]
+]
 ```
 
 <!-- => 42 -->
+
+---
+
+Homotopy type theory as the default, where univalence is an axiom:
+
+```wl
+Block[{$TypeTheoryEnvironment = "HomotopyTypeTheory"}, TypeTheoryType["univalence"]]
+```
+
+<!-- => ∀_A∶Type u ∀_B∶Type u IsEquivalence[(p ∶ A == B) ↦ equalityToEquivalence[p]] -->
 
 ---
 
@@ -86,25 +115,89 @@ SetTypeTheoryEnvironment["Prelude"]
 A proof that names no environment is in the default environment:
 
 ```wl
-TypeTheoryProof[2 + 2 == 4]["Environment"] === $TypeTheoryEnvironment
+Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryProof[2 + 2 == 4]["Environment"] === TypeTheoryEnvironment["Integers"]]
 ```
 
 <!-- => True -->
 
+---
+
+A term that names its environment is in it whatever the default is:
+
+```wl
+Block[{$TypeTheoryEnvironment = "Constructive"}, TypeTheoryType["excludedMiddle", "Prelude"]]
+```
+
+<!-- => ∀_p∶Prop (p ∨ ¬p) -->
+
+---
+
+The empty environment does not depend on the default:
+
+```wl
+Block[{$TypeTheoryEnvironment = "Integers"}, Length[TypeTheoryEnvironment[]]]
+```
+
+<!-- => 0 -->
+
 ## Possible Issues
 
-A name of a library environment, such as `"Constructive"`, stands for that environment, as in [SetTypeTheoryEnvironment](); any other value that is no environment leaves the prelude, where the excluded middle is declared:
+A term written without an environment is in the default where it is used. A term written in a [Block]() of the integers:
+
+```wl
+negation = Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryTerm[Typed[x, Integers] |-> -x]]
+```
+
+<!-- => (x ∶ ℤ) ↦ -x -->
+
+Outside the [Block](), it is in the prelude, which has no integers:
+
+```wl
+TypeTheoryType[negation]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->
+
+Given its environment, it keeps it:
+
+```wl
+TypeTheoryType[TypeTheoryTerm[Typed[x, Integers] |-> -x, "Integers"]]
+```
+
+<!-- => ℤ → ℤ -->
+
+---
+
+Only while the default is the prelude is a term that names a constant of the Wolfram Language environment read there:
+
+```wl
+TypeTheoryType[MatchFirst[MatchValue[3]]]
+```
+
+<!-- => Option[ℕ] -->
+
+With another default, it is not found:
+
+```wl
+Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryType[MatchFirst[MatchValue[3]]]]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->
+
+Named, the environment is found whatever the default is:
+
+```wl
+Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryType[MatchFirst[MatchValue[3]], "WolframLanguage"]]
+```
+
+<!-- => Option[ℕ] -->
+
+---
+
+A name of a library environment stands for that environment; any other value that is no environment leaves the prelude, where the excluded middle is a theorem:
 
 ```wl
 Block[{$TypeTheoryEnvironment = "Classical"}, TypeTheoryType["excludedMiddle"]]
 ```
 
 <!-- => ∀_p∶Prop (p ∨ ¬p) -->
-
-<code>[TypeTheoryEnvironment]()["Constructive"]</code>, or its name, makes the constructive environment the default, which has no excluded middle:
-
-```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Constructive"]}, TypeTheoryType["excludedMiddle"]]
-```
-
-<!-- => Failure["ElaborationFailed", ...] -->
