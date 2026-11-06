@@ -155,6 +155,10 @@ patternMatch[HoldComplete[Verbatim[Condition][p_, c_]], v_, environment_, k_] :=
 	patternMatch[HoldComplete[p], v, environment, Function[inner, conditioned[k[inner], truthTest[HoldComplete[c], inner]]]]
 patternMatch[HoldComplete[Verbatim[PatternTest][p_, test_]], v_, environment_, k_] :=
 	patternMatch[HoldComplete[p], v, environment, Function[inner, conditioned[k[inner], truthTest[applied[HoldComplete[test], v], inner]]]]
+(* alternatives that bind names are each a way to match; alternatives that bind none are one test, as the Wolfram
+   Language matches _Integer | _ once, not once for each alternative that matches *)
+patternMatch[HoldComplete[Verbatim[Alternatives][alternatives__]], v_, environment_, k_] /; FreeQ[Unevaluated[{alternatives}], _Pattern] :=
+	conditioned[k[environment], matchTest[sumOf[Function[alternative, patternMatch[alternative, v, environment, Function[inner, valuesOf[v]]]] /@ heldList[alternatives]]]]
 patternMatch[HoldComplete[Verbatim[Alternatives][alternatives__]], v_, environment_, k_] :=
 	sumOf[Function[alternative, patternMatch[alternative, v, environment, k]] /@ heldList[alternatives]]
 patternMatch[HoldComplete[Verbatim[Except][c_]], v_, environment_, k_] := conditioned[k[environment], notTest[matchTest[patternMatch[HoldComplete[c], v, environment, Function[inner, valuesOf[v]]]]]]

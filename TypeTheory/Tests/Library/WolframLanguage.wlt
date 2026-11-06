@@ -131,3 +131,16 @@ VerificationTest[
 	{True, True, True, True, True, True, True, True, True, True, True, True, "{{{1}, {\"a\"}}, {{1, \"a\"}, {}}}", "[0, 1, 2]", "[1, 2, 3, Sequence @@ {4}]"},
 	TestID -> "Construct-takes-a-sequence-of-arguments-and-terms-read-back-as-written"
 ]
+
+(* alternatives that bind no names match once, as the Wolfram Language's ReplaceList gives {1} for
+   f[x : (_Integer | _)]; alternatives that bind names are each a way to match, {1, 1} for f[x_Integer | x_] *)
+VerificationTest[
+	{
+		equalQ[ReplaceList[f[1], f[x : (_Integer | _)] :> x], {HoldForm[1]}],
+		equalQ[ReplaceList[f[1], f[_Integer | _] :> 0], {HoldForm[0]}],
+		equalQ[ReplaceList[f[1], f[x_Integer | x_] :> x], {HoldForm[1], HoldForm[1]}],
+		equalQ[ReplaceList[f[g[1]], f[g[x_] | g[y_]] :> 0], {HoldForm[0], HoldForm[0]}]
+	},
+	{True, True, True, True},
+	TestID -> "Alternatives-without-names-match-once-as-in-the-Wolfram-Language"
+]
