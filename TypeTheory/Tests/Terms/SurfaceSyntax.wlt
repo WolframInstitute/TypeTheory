@@ -333,6 +333,22 @@ VerificationTest[
 	TestID -> "A-bound-variable-a-level-and-an-unsolved-metavariable-show-in-their-colors"
 ]
 
+(* the messages of failures as a terminal prints them, with no front end and no notebook boxes asked for: text, with no
+   box left in it *)
+textMessagesQ[] := With[{saved = Environment["TYPETHEORY_NOTEBOOK_BOXES"]},
+	Internal`WithLocalSettings[
+		SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> None],
+		Block[{$FrontEnd = Null}, AllTrue[
+			{
+				TypeTheoryType[Function[{Typed[l, {NonNegativeIntegers}]}, l === {}]],
+				TypeTheoryType[Typed[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]}, x], NonNegativeIntegers]]
+			},
+			Function[failure, FailureQ[failure] && StringFreeQ[ToString[failure, OutputForm], "Box"]]
+		]],
+		SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> Replace[saved, $Failed -> None]]
+	]
+]
+
 (* on mouseover a constant shows its declared type and a bound variable the type its binder gives, drawn without
    tooltips of their own; by default only where a front end draws them, so that a terminal prints a failure's message,
    whose terms it reads from their boxes, as text *)
@@ -342,7 +358,7 @@ VerificationTest[
 			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, DeleteDuplicates[tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]]],
 			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, First[tips[ToBoxes[TypeTheoryTerm["andIntroduction"]]]]],
 			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm["andIntroduction"]], TooltipBox]],
-			Block[{$FrontEnd = Null}, StringFreeQ[ToString[TypeTheoryType[Function[{Typed[l, {NonNegativeIntegers}]}, l === {}]], OutputForm], "TooltipBox"]]
+			textMessagesQ[]
 		}
 	],
 	{{{"n", True}}, {"\"andIntroduction\"", True}, True, True},

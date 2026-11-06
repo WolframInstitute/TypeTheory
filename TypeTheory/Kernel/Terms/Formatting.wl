@@ -91,7 +91,7 @@ PackageScoped[$displayTooltips]
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
-$displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_TOOLTIPS is \"True\"."
+$displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_NOTEBOOK_BOXES is \"True\"."
 $displayColors::usage = "$displayColors is the Association of the colors a display gives a bound variable, a universe level and an unsolved metavariable."
 
 
@@ -133,8 +133,21 @@ shownForm[HoldComplete[shown_]] := HoldForm[shown]
 
 TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ} | {_String}] := With[
 	{boxes = withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]},
+	InterpretationBox[boxes, term] /; notebookBoxesQ[]
+]
+(* with no front end to draw them, as in a terminal, which prints a failure's message from the boxes of its terms, the
+   boxes are those a terminal prints as text: rows of their pieces, without styles, tooltips or tags *)
+TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ} | {_String}] := With[
+	{boxes = textBoxes[withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]]},
 	InterpretationBox[boxes, term]
 ]
+
+textBoxes[boxes_] := boxes //. {
+	TemplateBox[{separator_, _, items___}, "RowWithSeparators", ___] :> RowBox[Riffle[{items}, separator]],
+	TemplateBox[{items___}, "RowDefault", ___] :> RowBox[{items}],
+	SubscriptBox[quantifier : "\[ForAll]" | "\[Exists]", binder_, ___] :> RowBox[{quantifier, binder, " "}],
+	(TooltipBox | StyleBox | TagBox | InterpretationBox)[shown_, ___] :> shown
+}
 
 (* the natural numbers a display shows as 0 and n + 1: those of the environment shown, and outside one, as
    in a declaration, the default environment's *)
@@ -654,12 +667,13 @@ $displayColors = <|"BoundVariable" -> RGBColor[0.2, 0.55, 0.2], "Level" -> Stand
 
 (* Types on mouseover: a constant shows its declared type and a bound variable the type its binder gives, drawn as a
    term is but without tooltips of their own; a term past $tooltipLeafLimit leaves them out, to keep its boxes small.
-   Automatic shows them where a front end draws the boxes, or where the environment variable TYPETHEORY_TOOLTIPS is
-   "True", as for notebooks built without one; a terminal prints a message's terms from their boxes, and a
-   TooltipBox there as the box it is. *)
+   Automatic shows them where a front end draws the boxes, or where the environment variable TYPETHEORY_NOTEBOOK_BOXES
+   is "True", as for notebooks built without one and for the tests of the boxes; a terminal prints a message's terms
+   from their boxes, and a TooltipBox there as the box it is. *)
 $displayTooltips = Automatic
 $tooltipLeafLimit = 5000
-tooltipsWanted[] := TrueQ[Replace[$displayTooltips, Automatic :> ($FrontEnd =!= Null || Environment["TYPETHEORY_TOOLTIPS"] === "True")]]
+tooltipsWanted[] := TrueQ[Replace[$displayTooltips, Automatic :> notebookBoxesQ[]]]
+notebookBoxesQ[] := $FrontEnd =!= Null || Environment["TYPETHEORY_NOTEBOOK_BOXES"] === "True"
 $tooltipsShown = False
 
 (* a TooltipBox alone, where Tooltip would also keep the tooltip's boxes in a TagBox's annotation, twice its size *)

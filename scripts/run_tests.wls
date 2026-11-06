@@ -19,6 +19,9 @@ testsDirectory = FileNameJoin[{pacletDirectory, "Tests"}]
 
 SetDirectory[repositoryRoot]
 
+(* the tests read the boxes a notebook shows, which a kernel with no front end gives only when asked *)
+SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"]
+
 PacletDirectoryLoad[pacletDirectory]
 
 testFiles = If[ Length[$ScriptCommandLine] > 1,

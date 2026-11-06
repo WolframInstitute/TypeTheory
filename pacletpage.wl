@@ -119,9 +119,10 @@ checkBuild[result_] := Module[{unevaluated},
 
 (* The function is named in full: this file is read before PacletPage is loaded. *)
 
-(* the notebooks show the types of constants on mouseover, as a front end does, in this kernel and the ones it starts *)
+(* the notebooks show terms as a front end does, with the types of constants on mouseover, in this kernel and the ones
+   it starts *)
 buildDocumentation[] := (
-	SetEnvironment["TYPETHEORY_TOOLTIPS" -> "True"];
+	SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"];
 	loadLeanLink[];
 	checkBuild[WolframInstitute`PacletPage`BuildPacletDocumentation[
 		$pacletDirectory,
