@@ -35,6 +35,9 @@ PackageScoped[registerNaturalNumbers]
 PackageScoped[literalOperationResult]
 PackageScoped[naturalNumberOperationRoles]
 PackageScoped[naturalOffsetsEqualQ]
+PackageScoped[registeredAdditionQ]
+PackageScoped[additionReduct]
+PackageScoped[$foldedAddition]
 PackageScoped[$naturalOffsetRule]
 
 
@@ -49,6 +52,9 @@ from arguments that reduce to literals, or None."
 naturalNumberOperationRoles::usage = "naturalNumberOperationRoles[] gives the roles an operation on natural numbers can be registered for."
 naturalOffsetsEqualQ::usage = "naturalOffsetsEqualQ[environment, context, a, b] decides whether a and b are definitionally equal by their offsets, the successors \
 read off each without reducing, as Lean's kernel does: True or False, or None where the offsets do not decide it."
+registeredAdditionQ::usage = "registeredAdditionQ[environment, HoldComplete[name]] gives True if name is the registered addition of the natural numbers of environment."
+additionReduct::usage = "additionReduct[environment, context, term, HoldComplete[name], t, s] reduces the registered addition t + s by its defining equations: t where s reduces to zero, the successor of t + s' where s reduces to a successor of s' or a positive literal, and term where s is stuck."
+$foldedAddition::usage = "$foldedAddition is True where the registered addition reduces by its defining equations, its recursion folded; False unfolds its definition, for the agreement test."
 $naturalOffsetRule::usage = "$naturalOffsetRule is True where definitional equality compares natural numbers by their offsets; False compares them by unfolding alone."
 
 
@@ -326,15 +332,42 @@ stuckQ[_, _, _] := False
 
 zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]
 
-offsetsEqualQ[environment_, context_, settings_, {base_, offset_Integer}, {otherBase_, otherOffset_Integer}] := Which[
-	offset > 0 && otherOffset > 0,
-		With[{common = Min[offset, otherOffset]},
-			definitionallyEqualQ[environment, context, offsetTerm[settings, base, offset - common], offsetTerm[settings, otherBase, otherOffset - common]]
-		],
-	zeroBaseQ[settings, base] && zeroBaseQ[settings, otherBase],
-		offset == otherOffset,
-	True,
-		None
+(* the rule in a loop, at one depth however many rounds it takes: both offsets positive, the smaller is stripped; one
+   offset 0 over a base that is not zero against a positive one, that base is reduced and its offset read again; two
+   numerals are decided by their numbers. Once neither side has an offset left to strip, what is left is compared by
+   general definitional equality, once, or, where the round made no progress, the rule decides nothing *)
+offsetsEqualQ[environment_, context_, settings_, first_List, second_List] := Block[
+	{offsetFirst = first, offsetSecond = second, offsetProgress = False, offsetDone = False, offsetDecision = None, offsetReduced},
+	While[ ! offsetDone,
+		Which[
+			zeroBaseQ[settings, First[offsetFirst]] && zeroBaseQ[settings, First[offsetSecond]],
+				offsetDecision = Last[offsetFirst] == Last[offsetSecond];
+				offsetDone = True,
+			Last[offsetFirst] > 0 && Last[offsetSecond] > 0,
+				With[{common = Min[Last[offsetFirst], Last[offsetSecond]]},
+					offsetFirst = {First[offsetFirst], Last[offsetFirst] - common};
+					offsetSecond = {First[offsetSecond], Last[offsetSecond] - common}
+				];
+				offsetProgress = True,
+			Last[offsetFirst] == 0 && Last[offsetSecond] > 0 && (offsetReduced = weakHeadNormalForm[environment, context, First[offsetFirst]]) =!= First[offsetFirst],
+				offsetFirst = naturalOffset[settings, offsetReduced];
+				offsetProgress = True,
+			Last[offsetSecond] == 0 && Last[offsetFirst] > 0 && (offsetReduced = weakHeadNormalForm[environment, context, First[offsetSecond]]) =!= First[offsetSecond],
+				offsetSecond = naturalOffset[settings, offsetReduced];
+				offsetProgress = True,
+			offsetProgress,
+				offsetDecision = definitionallyEqualQ[
+					environment,
+					context,
+					offsetTerm[settings, First[offsetFirst], Last[offsetFirst]],
+					offsetTerm[settings, First[offsetSecond], Last[offsetSecond]]
+				];
+				offsetDone = True,
+			True,
+				offsetDone = True
+		]
+	];
+	offsetDecision
 ]
 
 (* k successors of base written back: the base itself, a literal over zero, base + k by the registered addition, or k
@@ -345,4 +378,24 @@ offsetTerm[settings_, base_, offset_Integer] /; KeyExistsQ[settings["Operations"
 	makeApplication[constantReference[settings["Operations"]["Addition"], {}], {base, naturalLiteral[offset]}]
 offsetTerm[settings_, base_, offset_Integer] := With[{successor = constantReference[settings["Successor"], {}]},
 	Nest[Function[term, application[successor, term]], base, offset]
+]
+
+$foldedAddition = True
+
+registeredAdditionQ[environment_, name_HoldComplete] := Replace[naturalNumberSettings[environment], {
+	settings_Association :> Lookup[settings["Operations"], "Addition"] === name,
+	_ -> False
+}]
+
+additionReduct[environment_, context_, term_, name_, left_, right_] := With[
+	{settings = naturalNumberSettings[environment], reduced = weakHeadNormalForm[environment, context, right]},
+	With[{successor = constantReference[settings["Successor"], {}], addition = constantReference[name, {}]},
+		Replace[reduced, {
+			naturalLiteral[0] :> left,
+			constantReference[zero_, {}] /; zero === settings["Zero"] :> left,
+			naturalLiteral[n_Integer?Positive] :> With[{sum = makeApplication[addition, {left, naturalLiteral[n - 1]}]}, application[successor, sum]],
+			application[constantReference[head_, {}], predecessor_] /; head === settings["Successor"] :> With[{sum = makeApplication[addition, {left, predecessor}]}, application[successor, sum]],
+			_ :> term
+		}]
+	]
 ]

@@ -67,6 +67,32 @@ N deep before the variable sum `X` was seen, which a certificate of `LinearArith
 the constant met. The script also checks that every term read as stuck has no literal value by peeling: all 36660 of
 the None values are read as stuck.
 
+Then the ordering, approved 2026-11-07, which the machine layer's bound needed: a natural number below 2^63 is in the
+range of the machine integers. Its check took `literalValue` of the first component of the pair of `m + 2^63`. Weak head
+reduction projected out `Plus[m, 2^63]` and went on: the literal operation failed, as `m` is a variable, and the
+definition unfolded into its recursor, whose iota on the literal exposed one successor, so the offset was no longer
+readable and 2^63 successors were peeled one by one. Lazy delta unfolded the addition in definitional equality the same
+way, before the rule could read through it.
+
+- **The registered addition reduces by its two checked equations, its recursion folded,** never into its recursor:
+  with the second argument reduced, `t + zero` is `t`, `t + n` for a literal `n > 0` is `successor[t + (n - 1)]`,
+  `t + successor[s]` is `successor[t + s]`, and `t + s` stays as it is where `s` is stuck. Each result is the same sum by
+  one equation; the recursor reaches a constructor exactly where the second argument does, and the same one. So every
+  later reading, `literalValue`, the offset rule and lazy delta, still sees the offset. Lazy delta still unfolds a stuck
+  addition as any definition, so a sum written as its recursor is equal to it. `$foldedAddition` turns it off for the
+  agreement test.
+- **The offset rule is a loop,** at one depth: both offsets positive, the smaller is stripped; one offset 0 over a base
+  that is not zero, against a positive one, that base is reduced and read again; two numerals are decided by their
+  numbers; and what is left once neither side has an offset to strip is compared once by general definitional equality.
+  A rule that recursed once per round overflowed the stack of W15 (w15-bugs §69): `Twice[2900] + 1` against 5801, 1450
+  rounds, crashed the process.
+
+Measured: the three bridge lemmas on the literal 2^63 in 0.41 s together (aborted at 300 s and 2.3 GB before);
+`Twice[2900] + 1` against 5801 and 5802 in 0.94 s, `Twice[20000] + 1` in 6.5 s. The agreement script adds 150 additions
+written as their recursor, applied to a successor, inside a sum and under a successor, which are equal, and with a step of
+two successors, which are not, but where the recursion takes no step: with the rule and the folded addition on and with
+both off, all of them agree with each other and with what is expected, and so does everything else in the script.
+
 ## Routes
 
 **(1): elaboration only, no trusted code changed.**

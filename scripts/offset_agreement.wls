@@ -10,9 +10,10 @@
 
    Every pair of terms from the bases zero, x, y, successor[x] and x + y, with each offset, written as successors, as the
    base plus a literal and as the base plus zero plus a literal, is compared by definitional equality with
-   $naturalOffsetRule on and off. Unfolding terminates in this range, so the two must agree. The literal value of each
+   $naturalOffsetRule and $foldedAddition on and off: the rule and the addition reduced by its equations against
+   unfolding alone. Unfolding terminates in this range, so the two must agree. The literal value of each
    term and of the sum of each pair, which the kernel reads by offsets, must be the one peeling successors after weak head
-   normal forms gives, the kernel's way before the offsets: the same integer, or None for both. Past the range, where
+   normal forms gives, with the addition unfolded, the kernel's way before the offsets: the same integer, or None for both. Past the range, where
    peeling cannot finish, the literal values of 120 terms with random offsets up to 2^64 must be the offsets' sums: the
    offset over zero, None over a variable. A term read as stuck, which no literal can be, must have no literal value by
    peeling either. It prints the counts and the times, and the cases that disagree, and exits
@@ -90,23 +91,68 @@ largeCases = BlockRandom[SeedRandom[2026]; Flatten[Function[k, {
 result = MemoryConstrained[
 	{
 		AbsoluteTiming[compared[]],
-		Block[{WolframInstitute`TypeTheory`PackageScope`$naturalOffsetRule = False}, AbsoluteTiming[compared[]]]
+		Block[{WolframInstitute`TypeTheory`PackageScope`$naturalOffsetRule = False, WolframInstitute`TypeTheory`PackageScope`$foldedAddition = False}, AbsoluteTiming[compared[]]]
 	},
 	4*^9,
 	"MemoryLimit"
 ]
 
+(* the addition written as its recursor, against the folded addition: equal with the step of addition, by delta, and
+   unequal with a step of two successors, except where the recursion takes no step *)
+third = scope["freshFreeVariable"][]
+
+recursorContext = scope["extendContext"][context, third, HoldComplete["v"], reference[NonNegativeIntegers], "Explicit"]
+
+z = scope["freeVariable"][third]
+
+recursor = scope["constantReference"][HoldComplete[InductiveRecursor[NonNegativeIntegers]], {1}]
+
+natural = reference[NonNegativeIntegers]
+
+motive = scope["lambdaAbstraction"] @@ {HoldComplete["t"], natural, natural, "Explicit"}
+
+stepOf[body_] := With[{inner = scope["lambdaAbstraction"] @@ {HoldComplete["r"], natural, body, "Explicit"}}, scope["lambdaAbstraction"] @@ {HoldComplete["k"], natural, inner, "Explicit"}]
+
+additionStep = stepOf[successor[scope["boundVariable"][0]]]
+
+doubleStep = stepOf[successor[successor[scope["boundVariable"][0]]]]
+
+recursion[step_, base_, major_] := applied[recursor, motive, base, step, major]
+
+recursorBases = {reference["zero"], x, y, successor[x], plus[x, y]}
+
+recursorMajors = {z, literal[0], literal[3], successor[z], plus[z, literal[2]], plus[y, z]}
+
+recursorPairs = Join[
+	Catenate[Outer[Function[{base, major}, {recursion[additionStep, base, major], plus[base, major], True}], recursorBases, recursorMajors]],
+	Catenate[Outer[Function[{base, major}, {recursion[additionStep, base, successor[major]], successor[plus[base, major]], True}], recursorBases, recursorMajors]],
+	Catenate[Outer[Function[{base, major}, {plus[recursion[additionStep, base, major], literal[3]], plus[plus[base, major], literal[3]], True}], recursorBases, recursorMajors]],
+	Catenate[Outer[Function[{base, major}, {successor[recursion[additionStep, base, major]], plus[base, successor[major]], True}], recursorBases, recursorMajors]],
+	Catenate[Outer[Function[{base, major}, {recursion[doubleStep, base, major], plus[base, major], major === literal[0]}], recursorBases, recursorMajors]]
+]
+
+recursorCompared[] := Function[triple, scope["definitionallyEqualQ"][prelude, recursorContext, First[triple], triple[[2]]]] /@ recursorPairs
+
 values = MemoryConstrained[
 	{
 		AbsoluteTiming[offsetLiteralValue /@ valueTerms],
-		AbsoluteTiming[peeledLiteralValue /@ valueTerms],
+		Block[{WolframInstitute`TypeTheory`PackageScope`$foldedAddition = False}, AbsoluteTiming[peeledLiteralValue /@ valueTerms]],
 		AbsoluteTiming[Function[case, offsetLiteralValue[First[case]]] /@ largeCases]
 	},
 	4*^9,
 	"MemoryLimit"
 ]
 
-If[ result === "MemoryLimit" || values === "MemoryLimit",
+recursorResults = MemoryConstrained[
+	{
+		recursorCompared[],
+		Block[{WolframInstitute`TypeTheory`PackageScope`$naturalOffsetRule = False, WolframInstitute`TypeTheory`PackageScope`$foldedAddition = False}, recursorCompared[]]
+	},
+	4*^9,
+	"MemoryLimit"
+]
+
+If[ result === "MemoryLimit" || values === "MemoryLimit" || recursorResults === "MemoryLimit",
 	Print["The comparison went past 4 GB."];
 	Exit[1]
 ]
@@ -136,6 +182,12 @@ Print[Length[largeCases], " literal values of offsets up to 2^64, ", Length[larg
 
 Print[Count[valueTerms, _?stuckQ], " terms read as stuck, ", Length[stuckDisagreements], " of them with a literal value by peeling"]
 
-Scan[Function[pair, Print["disagree: ", InputForm[pair]]], Take[Join[disagreements, valueDisagreements, largeDisagreements, stuckDisagreements], UpTo[10]]]
+{recursorWith, recursorWithout} = recursorResults
 
-Exit[If[disagreements === {} && valueDisagreements === {} && largeDisagreements === {} && stuckDisagreements === {}, 0, 1]]
+recursorDisagreements = Pick[recursorPairs, MapThread[Function[{with, without, triple}, with =!= without || with =!= Last[triple]], {recursorWith, recursorWithout, recursorPairs}]]
+
+Print[Length[recursorPairs], " additions written as recursors, ", Count[Last /@ recursorPairs, True], " expected equal; ", Length[recursorDisagreements], " disagree with unfolding alone or with what is expected"]
+
+Scan[Function[pair, Print["disagree: ", InputForm[pair]]], Take[Join[disagreements, valueDisagreements, largeDisagreements, stuckDisagreements, recursorDisagreements], UpTo[10]]]
+
+Exit[If[disagreements === {} && valueDisagreements === {} && largeDisagreements === {} && stuckDisagreements === {} && recursorDisagreements === {}, 0, 1]]

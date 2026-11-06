@@ -306,3 +306,63 @@ VerificationTest[
 	{},
 	TestID -> "A-lemma-with-a-hypothesis-and-an-offset-of-2-to-the-63-proves"
 ]
+
+(* the offset rule is a loop, at one depth however many rounds it takes: a recursion by two successors 2900 deep against
+   a numeral is 1450 rounds, where a definitional equality for each would overflow the stack *)
+VerificationTest[
+	With[{twice = TypeTheoryEnvironment[{TypeTheoryDefinition[OffsetTwice, n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> "successor"["successor"[r]], n]]}]},
+		MemoryConstrained[
+			TimeConstrained[
+				{
+					DefinitionallyEqualQ[TypeTheoryTerm[OffsetTwice[2900] + 1, twice], TypeTheoryTerm[5801, twice]],
+					DefinitionallyEqualQ[TypeTheoryTerm[OffsetTwice[2900] + 1, twice], TypeTheoryTerm[5802, twice]]
+				},
+				60,
+				"TIMEOUT"
+			],
+			2*^9,
+			"MEMORY"
+		]
+	],
+	{True, False},
+	TestID -> "The-offset-rule-compares-a-deep-recursion-in-a-loop"
+]
+
+(* the registered addition reduces by its equations, its recursion folded, so the offset of an integer's component stays
+   readable: a natural number below 2^63 is in the range of the machine integers, which the first component of the
+   pair of m + 2^63 met as 2^63 successors peeled one by one *)
+VerificationTest[
+	With[{c = 9223372036854775808, lower = -9223372036854775808},
+		MemoryConstrained[
+			TimeConstrained[
+				Module[{environment = TypeTheoryEnvironment["Integers", {TypeTheoryDefinition["offsetRange", Typed[Typed[x, Integers] |-> Typed[lower, Integers] <= x && x < Typed[c, Integers], Integers -> TypeUniverse[0]]]}]},
+					environment = TypeTheoryEnvironment[environment, {TypeTheoryTheorem["offsetLowerRelation", TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m + (c + 0) == (0 + (m + c)) + 0], environment, {"Introduce"[m], "LinearArithmetic"}]]}];
+					environment = TypeTheoryEnvironment[environment, {TypeTheoryTheorem["offsetUpperRelation", TypeTheoryProof[
+						ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[c == m + 1 + k, c + (0 + 0 + 0) == ((m + 1) + k) + 0]],
+						environment,
+						{"Introduce"[m, k, e], "LinearArithmetic"}
+					]]}];
+					Head[TypeTheoryEnvironment[environment, {TypeTheoryTheorem["offsetNaturalRange", TypeTheoryProof[
+						ForAll[{Typed[m, NonNegativeIntegers]}, Implies[m < c, "offsetRange"["integerOfNatural"[m]]]],
+						environment,
+						{
+							"Introduce"[m, h], "Constructor",
+							"Exact"["existsIntroduction"[m + c, "quotientSoundness"["offsetLowerRelation"[m]]]],
+							"Exact"[InductiveRecursor[Exists][
+								Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, c == m + 1 + k]] |-> "integerOfNatural"[m] < Typed[c, Integers],
+								{Typed[k, NonNegativeIntegers], Typed[e, c == m + 1 + k]} |-> "existsIntroduction"[k, "quotientSoundness"["offsetUpperRelation"[m, k, e]]],
+								"lessEqualWitness"[m + 1, c, h]
+							]]
+						}
+					]]}]]
+				],
+				120,
+				"TIMEOUT"
+			],
+			2*^9,
+			"MEMORY"
+		]
+	],
+	TypeTheoryEnvironment,
+	TestID -> "A-natural-number-below-2-to-the-63-is-in-the-range-of-the-machine-integers"
+]

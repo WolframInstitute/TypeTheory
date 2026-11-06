@@ -500,6 +500,10 @@ peelFunctions[term_, limit_Integer] := NestWhile[
 (* a registered operation on natural numbers computes on literals before it unfolds *)
 reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := constantReduct[environment, context, term, name, levels, arguments, literalOperationResult[environment, context, name, arguments]]
 
+(* the registered addition reduces by its two defining equations, checked at registration, its recursion folded:
+   t + 0 is t and t + successor[s] is successor[t + s], so its offset stays readable *)
+constantReduct[environment_, context_, term_, name_, {}, {left_, right_}, None] /; $unfoldDefinitions && TrueQ[$foldedAddition] && registeredAdditionQ[environment, name] :=
+	additionReduct[environment, context, term, name, left, right]
 constantReduct[environment_, context_, term_, name_, levels_, arguments_, None] := reduceByKind[environment, context, term, name, levels, arguments, constantRecord[environment, name]]
 constantReduct[_, _, _, _, _, _, result_] := result
 
