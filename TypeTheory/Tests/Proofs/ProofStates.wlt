@@ -701,7 +701,7 @@ VerificationTest[
 	{
 		TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, "WolframLanguage", {"Reflexivity"}]["Goals"],
 		TypeTheoryProof[Head[HoldForm[f[x]]] == HoldForm[f], {"Reflexivity"}]["Goals"],
-		MatchQ[TypeTheoryProof[_Association], HoldPattern[TypeTheoryProof[_Association]]],
+		MatchQ[TypeTheoryProof[_Association], Verbatim[TypeTheoryProof][Verbatim[_Association]]],
 		TypeTheoryProof[Construct[f, -2] == HoldForm[f[-2]], "WolframLanguage", {"Reflexivity"}]["Goals"]
 	},
 	{{}, {}, True, {}},
