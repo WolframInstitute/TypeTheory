@@ -187,10 +187,10 @@ DefinitionallyEqualQ[TypeTheoryTerm[Flip[BitOne], bits], TypeTheoryTerm[BitOne]]
 
 ---
 
-The head of an expression computes, as the prelude declares the Wolfram Language's expressions:
+The head of an expression computes, as the prelude declares the Wolfram Language's expressions, so two expressions with the head `f` have the same head:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Head[f[1]]], TypeTheoryTerm[Unevaluated[f]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Head[f[1]]], TypeTheoryTerm[Head[f[2, 3]]]]
 ```
 
 <!-- => True -->

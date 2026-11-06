@@ -332,6 +332,17 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	(* and an association, a failure and a missing value are the expressions they write, as in the details of a failure *)
 	syntaxApplication[head : syntaxSymbol[HoldComplete[Association | Failure | Missing]], arguments_List] /; expressionExpectedQ[expected] :>
 		constructed[quotationSyntax[head], arguments, expected],
+	(* a fraction of integers is the rational number the Wolfram Language evaluates it to, an atom *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[numerator_Integer], syntaxApplication[syntaxSymbol[HoldComplete[Power]], {syntaxInteger[denominator_Integer], syntaxInteger[-1]}]}] /;
+		denominator != 0 && expressionExpectedQ[expected] :> With[{rational = numerator / denominator},
+			elaborateSyntax[quotationSyntax[If[IntegerQ[rational], syntaxInteger[rational], syntaxOther[HoldComplete[rational]]]], expected]
+		],
+	(* a function applied to an expression where it takes a number, as Plus[a, 2], is that expression, as the Wolfram
+	   Language leaves it, and so is an application whose value is a proposition where an expression is expected, as
+	   1 > 0; its arguments, expressions, compute, and 1 + 2 still is 3. Where no type is expected, a proposition or a
+	   type is no expression: a == b is an equation *)
+	syntaxApplication[head : syntaxSymbol[HoldComplete[_Symbol]], arguments_List] /; expressionApplicationQ[head, arguments, expected] :>
+		constructed[quotationSyntax[head], arguments, expected],
 	(* a bare arrow has one domain: {A} -> B is a function of lists of A, and a function of several arguments is curried,
 	   A -> B -> C, of a sequence, Sequence[A, B] -> C, or the compiler's TypeSpecifier[{A, B} -> C] *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], domains_List], _}] /; Length[domains] != 1 :>
@@ -455,6 +466,9 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 			]
 		],
 	syntaxApplication[syntaxSymbol[HoldComplete[Sequence]], elements_List] /; sequencesDeclaredQ[] :> elaborateSyntax[sequenceLiteralSyntax[elements], expected],
+	(* a variable of a list of expressions is the expression List[...] of them, as a list is in the Wolfram Language *)
+	syntaxSymbol[held : HoldComplete[_Symbol]] /; expressionExpectedQ[expected] && KeyExistsQ[$elaborationScope, held] && typeListOfExpressionsQ[Last[$elaborationScope[held]]] :>
+		elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxSymbol[held_] /; KeyExistsQ[$elaborationScope, held] :> $elaborationScope[held],
 	syntaxString[name_] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] :> $elaborationScope[HoldComplete[name]],
 	(* a constant of the environment of a term read in this one, which does not declare it, keeps its meaning: it is no
@@ -477,9 +491,12 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxString[text_] /; unnamedStringQ[text] && stringExpectedQ[expected] :> elaborateSyntax[stringLiteralSyntax[text], expected],
 	syntaxString[text_] /; unnamedStringQ[text] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxSymbol[held : HoldComplete[_Symbol]] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
-	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionExpectedQ[expected] :>
+	(* and a symbol of the Wolfram Language that names constants none of which is an expression, as Plus or True, is the
+	   symbol, as it evaluates to itself *)
+	syntaxSymbol[held : HoldComplete[_Symbol]] /; expressionExpectedQ[expected] && languageSymbolQ[held] :> elaborateSyntax[quotationSyntax[syntax], expected],
+	syntaxApplication[syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List] /; unnamedSymbolQ[held] && expressionOrNothingExpectedQ[expected] :>
 		constructed[quotationSyntax[syntaxSymbol[held]], arguments, expected],
-	syntaxApplication[head : syntaxApplication[_, _List], arguments_List] /; unnamedHeadQ[head] && expressionExpectedQ[expected] :>
+	syntaxApplication[head : syntaxApplication[_, _List], arguments_List] /; unnamedHeadQ[head] && expressionOrNothingExpectedQ[expected] :>
 		constructed[syntaxElaborated[elaborateSyntax[head, expected], head], arguments, expected],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
@@ -493,7 +510,9 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
 	syntaxInteger[n_Integer?NonNegative] :> {naturalLiteral[n], naturalNumberTypeForElaboration[syntax]},
 	(* a negative integer where an expression is expected is its atom, as a natural number is by a coercion *)
-	syntaxInteger[n_Integer?Negative] /; expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
+	syntaxInteger[n_Integer?Negative] /; expressionOrNothingExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
+	(* and a real, a complex number or any other atom of the Wolfram Language is its atom *)
+	syntaxOther[HoldComplete[atom_]] /; AtomQ[Unevaluated[atom]] && expressionOrNothingExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxSymbol[HoldComplete[symbol_Symbol]] /; storedValueQ[symbol] :> elaborateStoredValue[symbol, expected],
 	_ :> elaborationFailure["`1` is not a term of the type theory: it is neither a variable in scope nor a declared constant.", syntax]
 }]
@@ -881,6 +900,86 @@ liftedConfirms[syntax_] := syntax
 
 rightNestedSum[{type_}] := type
 rightNestedSum[{type_, rest__}] := syntaxHead[DisjointUnionType, {type, rightNestedSum[{rest}]}]
+
+(* an expression is expected, or nothing says what is: an application of a head that names nothing is an expression
+   there, as f[1, 2]; a lone symbol that names nothing is not, as it is most often a name misspelled *)
+expressionOrNothingExpectedQ[expected_] := expressionsDeclaredQ[] && (expected === None || expressionExpectedQ[expected])
+
+(* a declared function applied to arguments that make it an expression of the Wolfram Language: an expression where
+   it takes a number, or, where an expression is expected, any arguments of a function whose value is a proposition
+   or a type; never a head that elaboration reads itself *)
+expressionApplicationQ[head : syntaxSymbol[held_], arguments_List, expected_] := And[
+	expressionOrNothingExpectedQ[expected],
+	! MemberQ[$expressionReadHeads, held],
+	Replace[held, HoldComplete[symbol_] :> Context[Unevaluated[symbol]]] =!= "WolframInstitute`TypeTheory`",
+	With[{meanings = declaredHeadMeanings[head]}, And[
+		meanings =!= {},
+		If[ expected === None,
+			symbolicMisfitQ[meanings, arguments] && ! AllTrue[meanings, sortValuedQ],
+			symbolicMisfitQ[meanings, arguments] || AllTrue[meanings, sortValuedQ]
+		]
+	]]
+]
+
+$expressionReadHeads = HoldComplete /@ Unevaluated[{
+	Function, Typed, TypedImplicit, Subscript, Construct, Apply, Annotation, Condition, Part, Application, List, Rule, RuleDelayed,
+	Association, Failure, Missing, Unevaluated, Sequence, Prepend, Equal, ForAll, Exists, Implies, TypeSpecifier, TypeUniverse, If, TypeHint
+}]
+
+(* the constants a head names, none where it is a variable *)
+declaredHeadMeanings[head_] := With[{name = constantNameOfSyntax[head]}, Which[
+	KeyExistsQ[$elaborationScope, heldFromSyntax[head]], {},
+	overloadedNameQ[$elaborationEnvironment, name], declaredMeanings[$elaborationEnvironment, name],
+	constantDeclaredQ[$elaborationEnvironment, name], {name},
+	True, {}
+]]
+
+(* an argument that is an expression and no value where every meaning takes one of its own type there, as a symbol
+   that names nothing is where Plus takes a natural number *)
+symbolicMisfitQ[meanings_List, arguments_List] := AnyTrue[
+	Transpose[{arguments, Range[Length[arguments]]}],
+	Function[pair, symbolicSyntaxQ[First[pair]] && AllTrue[meanings, Function[meaning, concreteDomainAtQ[explicitDomains[constantRecord[$elaborationEnvironment, meaning]["Type"]], Last[pair]]]]]
+]
+
+(* syntax that is an expression of the Wolfram Language and nothing else: a symbol that names nothing and has no value, as
+   x = 5 would make x + 1 six in the Wolfram Language, a variable of
+   expressions, an atom that is no integer, a quotation, or an application of a head that names nothing or of a
+   function to such an expression where it takes a number; a negative integer is not, as a - b is read a + -1 b *)
+symbolicSyntaxQ[syntaxSymbol[held : HoldComplete[_Symbol]]] /; KeyExistsQ[$elaborationScope, held] := expressionsTypeQ[Last[$elaborationScope[held]]]
+symbolicSyntaxQ[syntaxSymbol[held : HoldComplete[symbol_Symbol]]] := unnamedSymbolQ[held] && OwnValues[symbol] === {}
+symbolicSyntaxQ[_syntaxOther] := True
+symbolicSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {_}]] := True
+symbolicSyntaxQ[syntax : syntaxApplication[_, _List]] /; unnamedHeadQ[syntax] := True
+symbolicSyntaxQ[syntaxApplication[head : syntaxSymbol[held : HoldComplete[_Symbol]], arguments_List]] := And[
+	! MemberQ[$expressionReadHeads, held],
+	With[{meanings = declaredHeadMeanings[head]}, meanings =!= {} && symbolicMisfitQ[meanings, arguments]]
+]
+symbolicSyntaxQ[_] := False
+
+(* a symbol of the System context, no variable, whose every meaning is of a type no coercion makes an expression of *)
+languageSymbolQ[held : HoldComplete[symbol_Symbol]] := And[
+	! KeyExistsQ[$elaborationScope, held],
+	Context[Unevaluated[symbol]] === "System`",
+	With[{meanings = declaredHeadMeanings[syntaxSymbol[held]]},
+		meanings =!= {} && NoneTrue[meanings, Function[meaning, expressionTypeQ[constantRecord[$elaborationEnvironment, meaning]["Type"]]]]
+	]
+]
+
+expressionTypeQ[type_] := MatchQ[type, constantReference[HoldComplete[Expressions | Atoms | Strings | NonNegativeIntegers], _] | application[constantReference[HoldComplete[List], _], _]]
+
+explicitDomains[dependentFunctionType[_, domain_, codomain_, binder_]] := If[explicitBinderQ[binder], Prepend[explicitDomains[codomain], domain], explicitDomains[codomain]]
+explicitDomains[_] := {}
+
+finalCodomain[dependentFunctionType[_, _, codomain_, _]] := finalCodomain[codomain]
+finalCodomain[type_] := type
+
+sortValuedQ[meaning_] := MatchQ[finalCodomain[constantRecord[$elaborationEnvironment, meaning]["Type"]], _universeSort]
+
+(* a domain of a type of its own, which no expression is: no variable, and no expressions in it; past the domains, an
+   argument the function does not take *)
+concreteDomainAtQ[domains_List, position_Integer] := position > Length[domains] || With[{domain = First[Take[domains, {position}]]},
+	FreeQ[domain, _boundVariable | _metavariable | constantReference[HoldComplete[Expressions], _]] && ! MatchQ[domain, _universeSort]
+]
 
 (* an application whose innermost head is a symbol that names nothing, as f[1] in f[1][2], and no head that elaboration
    reads itself, as InductiveRecursor[T][...] or Function[...][...] *)

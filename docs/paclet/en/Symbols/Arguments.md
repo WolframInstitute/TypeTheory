@@ -36,7 +36,7 @@ TypeTheoryType[Arguments]
 The arguments of a quoted sum:
 
 ```wl
-NormalForm[TypeTheoryTerm[Arguments[Unevaluated[a + b + c]]]]
+NormalForm[TypeTheoryTerm[Arguments[a + b + c]]]
 ```
 
 <!-- => [a, b, c] -->
@@ -46,7 +46,7 @@ NormalForm[TypeTheoryTerm[Arguments[Unevaluated[a + b + c]]]]
 In a list, the sequence is the list of the arguments, as `List @@ e`:
 
 ```wl
-TypeTheoryType[{Arguments[Unevaluated[a + b + c]]}]
+TypeTheoryType[{Arguments[a + b + c]}]
 ```
 
 <!-- => {Expressions} -->
@@ -56,7 +56,7 @@ TypeTheoryType[{Arguments[Unevaluated[a + b + c]]}]
 The number of the arguments, as `Length[e]`, is a natural number:
 
 ```wl
-TypeTheoryType[Length[{Arguments[Unevaluated[a + b + c]]}]]
+TypeTheoryType[Length[{Arguments[a + b + c]}]]
 ```
 
 <!-- => ℕ -->
@@ -64,7 +64,7 @@ TypeTheoryType[Length[{Arguments[Unevaluated[a + b + c]]}]]
 It is 3, by computation:
 
 ```wl
-TypeTheoryProof[Length[{Arguments[Unevaluated[a + b + c]]}] == 3, {"Reflexivity"}]
+TypeTheoryProof[Length[{Arguments[a + b + c]}] == 3, {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

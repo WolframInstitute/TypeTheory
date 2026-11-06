@@ -35,8 +35,8 @@ VerificationTest[
 		first[x_, ___] := other;
 		With[{environment = rulesEnvironment[TypeTheoryFormalize[first, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]},
 			{
-				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[Unevaluated[first[a, b]]], environment], TypeTheoryTerm["some"[Unevaluated[a]], environment]],
-				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[Unevaluated[first[a, b, a]]], environment], TypeTheoryTerm["some"[Unevaluated[other]], environment]]
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[Unevaluated[first[a, b]]], environment], TypeTheoryTerm[Typed["some"[a], Option[Expressions]], environment]],
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[Unevaluated[first[a, b, a]]], environment], TypeTheoryTerm[Typed["some"[other], Option[Expressions]], environment]]
 			}
 		]
 	],

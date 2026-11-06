@@ -93,7 +93,7 @@ NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}]]]
 The arguments of an [Orderless]() head match in every order:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[Unevaluated[a + b], x_ + y_ :> {x, y}]]]
+NormalForm[TypeTheoryTerm[ReplaceList[a + b, x_ + y_ :> {x, y}]]]
 ```
 
 <!-- => {{a, b}, {b, a}} -->

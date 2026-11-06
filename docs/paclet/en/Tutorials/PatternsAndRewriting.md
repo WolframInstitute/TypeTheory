@@ -143,7 +143,7 @@ An [Optional]() argument is given or left out for its default:
 The arguments of an [Orderless]() head match in every order, and those of a [Flat]() head in runs wrapped in the head, as [Plus]() has both. [Plus]() is a constant of the environment, the addition of natural numbers, so the expression is quoted with [Unevaluated]() to keep it from computing:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[Unevaluated[a + b + 1], x_ + 1 :> x]]]
+NormalForm[TypeTheoryTerm[Replace[a + b + 1, x_ + 1 :> x]]]
 ```
 
 <!-- => a + b -->
@@ -182,7 +182,7 @@ NormalForm[TypeTheoryTerm[ReplaceRepeated[f[f[f[x]]], f[y_] :> y]]]
 The right side of a rule is quoted: the rules rewrite, and arithmetic in a right side stays as it is written, for the Wolfram Language to evaluate:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceAll[Unevaluated[d[x^3]], d[x^n_] :> n x^(n - 1)]]]
+NormalForm[TypeTheoryTerm[ReplaceAll[d[x^3], d[x^n_] :> n x^(n - 1)]]]
 ```
 
 <!-- => 3 x^(3 - 1) -->

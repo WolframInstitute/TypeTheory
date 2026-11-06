@@ -22,11 +22,11 @@ TypeTheoryType[Construct[7, 1, 2]]
 
 <!-- => Expressions -->
 
-An expression is written as it is where one is expected, and `Unevaluated[e]` keeps one from computing, as the Wolfram Language passes an argument on unevaluated; [HoldForm]() is a head as any other. An expression shows as itself: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a sequence of expressions among its arguments spliced in, as is `Sequence @@ l` of a list. [Construct]() and `"atom"` build what it stands for:
+An expression is written as it is, as in the Wolfram Language: `a + b c` and `f[1, 2]` are expressions, and `1 + 2` computes to 3, as the Wolfram Language computes it. `Unevaluated[e]` keeps one from computing, as the Wolfram Language passes an argument on unevaluated, and [HoldForm]() is a head as any other. An expression shows as itself: its symbols, numbers and strings are their atoms, which nothing declares, and its variables in scope the expressions they stand for, a sequence of expressions among its arguments spliced in, as is `Sequence @@ l` of a list. [Construct]() and `"atom"` build what it stands for:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, Expressions...]}, Unevaluated[{x, rest}]][1, 2, 3]],
+    TypeTheoryTerm[Function[{Typed[x, Expressions], Typed[rest, Expressions...]}, Typed[{x, rest}, Expressions]][1, 2, 3]],
     TypeTheoryTerm[Construct["atom"["symbolAtom"["System`List"]], 1, 2, 3]]
 ]
 ```
@@ -271,7 +271,7 @@ Lengths, parts, sequences, heads and atoms are all definitions, so the kernel co
 ```wl
 listing = TypeTheoryEnvironment[rules];
 {
-    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1, 2, 3]], listing], TypeTheoryTerm["some"[Unevaluated[{1, 2, 3}]], listing]],
+    DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1, 2, 3]], listing], TypeTheoryTerm[Typed["some"[{1, 2, 3}], Option[Expressions]], listing]],
     DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1]], listing], TypeTheoryTerm[Typed["none", Option[Expressions]], listing]]
 }
 ```

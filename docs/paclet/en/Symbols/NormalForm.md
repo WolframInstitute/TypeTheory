@@ -55,7 +55,7 @@ NormalForm[TypeTheoryTerm[FactorialOf[20], factorials]]
 A rewriting of expressions reduces to the expression it gives, shown bare, here the logarithm of a product split into a sum:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceRepeated[Unevaluated[log[a b c]], log[x_ y_] :> log[x] + log[y]]]]
+NormalForm[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]]]
 ```
 
 <!-- => log[a] + (log[b] + log[c]) -->

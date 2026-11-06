@@ -97,7 +97,7 @@ TypeTheoryExpression[TypeTheoryTerm[Lookup[<|"a" -> 1, "b" -> 2|>, "c"]]]
 A rewriting computed in the kernel is the expression it gives, which then evaluates as any expression of the Wolfram Language does:
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[Unevaluated[log[a b c]], log[x_ y_] :> log[x] + log[y]]]]
+TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]]]
 ```
 
 <!-- => log[a] + log[b] + log[c] -->
@@ -107,7 +107,7 @@ TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[Unevaluated[log[a b c]], log
 A sequence is a [Sequence](), spliced into the list around it:
 
 ```wl
-{TypeTheoryExpression[TypeTheoryTerm[Arguments[Unevaluated[f[1, 2, 3]]]]]}
+{TypeTheoryExpression[TypeTheoryTerm[Arguments[f[1, 2, 3]]]]}
 ```
 
 <!-- => {1, 2, 3} -->
@@ -151,7 +151,7 @@ TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]], HoldComplete]
 [HoldForm]() shows how the rewriting grouped the sum, which [Plus]() flattens once it evaluates:
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[Unevaluated[log[a b c]], log[x_ y_] :> log[x] + log[y]]], HoldForm]
+TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]], HoldForm]
 ```
 
 <!-- => log[a] + (log[b] + log[c]) -->

@@ -62,29 +62,29 @@ VerificationTest[
 	TestID -> "A-value-is-one-result-a-sequence-is-one-result-and-several-are-a-sum"
 ]
 
-(* Unevaluated[e] is the expression e quoted, HoldForm an ordinary head: its variables the expressions they stand for, a sequence of them among the
-   arguments spliced in, as is Sequence @@ l of a list, and it shows so; a symbol is an atom by its name, which nothing declares; a
-   string literal is a string, the list of its character codes, where a string is expected, and an expression where one is; where an
-   expression is expected, a symbol that names nothing stands for itself *)
+(* an expression is written as it is: its variables the expressions they stand for, a sequence of them among the
+   arguments spliced in, as is Sequence @@ l of a list, and it shows so, with no HoldForm; a symbol is an atom by its name, which
+   nothing declares; a string literal is a string, the list of its character codes, where a string is expected, and an
+   expression where one is; where an expression is expected, a symbol that names nothing stands for itself *)
 VerificationTest[
 	With[{quoting = TypeTheoryEnvironment["WolframLanguage"]},
 		{
-			DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[f[1, 2]], quoting], TypeTheoryTerm[Construct["atom"["symbolAtom"["Global`f"]], 1, 2], quoting]],
-			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[l, {Expressions}]} |-> Unevaluated[f[x, l, Sequence @@ l]], quoting]]] === TypeTheoryTerm,
+			DefinitionallyEqualQ[TypeTheoryTerm[f[1, 2], quoting], TypeTheoryTerm[Construct["atom"["symbolAtom"["Global`f"]], 1, 2], quoting]],
+			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[l, {Expressions}]} |-> f[x, l, Sequence @@ l], quoting]]] === TypeTheoryTerm,
 			DefinitionallyEqualQ[
-				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, Expressions...]} |-> Unevaluated[f[x, rest]])[1, 2, 3], quoting],
-				TypeTheoryTerm[Unevaluated[f[1, 2, 3]], quoting]
+				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, Expressions...]} |-> f[x, rest])[1, 2, 3], quoting],
+				TypeTheoryTerm[f[1, 2, 3], quoting]
 			],
-			FreeQ[ToBoxes[NormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> Unevaluated[f[x]])[2], quoting]]], "HoldForm" | "\"HoldForm\"", Infinity],
+			FreeQ[ToBoxes[NormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> f[x])[2], quoting]]], "HoldForm" | "\"HoldForm\"", Infinity],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Strings], quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
-			First[TypeTheoryType[TypeTheoryTerm[Unevaluated[g[1]], quoting]]],
+			First[TypeTheoryType[TypeTheoryTerm[g[1], quoting]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Typed["abc", Strings], quoting], TypeTheoryTerm["string"[{97, 98, 99}], quoting]],
-			DefinitionallyEqualQ[TypeTheoryTerm[Typed[g[1 + 1], Expressions], quoting], TypeTheoryTerm[Unevaluated[g[2]], quoting]]
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[g[1 + 1], Expressions], quoting], TypeTheoryTerm[g[2], quoting]]
 		}
 	],
 	{True, True, True, True, Strings, Expressions, Expressions, True, True},
-	TestID -> "HoldForm-quotes-an-expression-and-a-string-literal-is-a-string"
+	TestID -> "An-expression-is-written-as-it-is-and-a-string-literal-is-a-string"
 ]
 
 (* rules written as a term are a function from an expression to its matches, and Replace, ReplaceList, ReplaceAll and
@@ -243,9 +243,9 @@ VerificationTest[
 	{
 		DefinitionallyEqualQ[TypeTheoryTerm[{Arguments[HoldForm[1, 2, 3]]}], TypeTheoryTerm[Typed[{1, 2, 3}, {Expressions}]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Head[HoldForm[1, 2, 3]]], TypeTheoryTerm[Typed[HoldForm, Expressions]]],
-		DefinitionallyEqualQ[TypeTheoryTerm[Typed[Unevaluated[1 + 2], Expressions]], TypeTheoryTerm[Construct[Unevaluated[Plus], 1, 2]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[Unevaluated[1 + 2], Expressions]], TypeTheoryTerm[Construct[Head[a + b], 1, 2]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Typed[1 + 2, Expressions]], TypeTheoryTerm[Typed[3, Expressions]]],
-		MatchQ[NormalForm[TypeTheoryTerm[Unevaluated[f[1, 2]]]], HoldPattern[TypeTheoryTerm[Unevaluated[f[1, 2]], _]]]
+		MatchQ[NormalForm[TypeTheoryTerm[f[1, 2]]], HoldPattern[TypeTheoryTerm[Unevaluated[f[1, 2]], _]]]
 	},
 	{True, True, True, True, True},
 	TestID -> "Unevaluated-quotes-and-HoldForm-is-a-head-as-any-other"
@@ -256,7 +256,7 @@ VerificationTest[
    Unevaluated of several is a sequence, spliced in *)
 VerificationTest[
 	{
-		DefinitionallyEqualQ[TypeTheoryTerm[Construct[f, 1 + 2, Unevaluated[1 + 2]]], TypeTheoryTerm[Construct[f, 3, Construct[Unevaluated[Plus], 1, 2]]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Construct[f, 1 + 2, Unevaluated[1 + 2]]], TypeTheoryTerm[Construct[f, 3, Construct[Head[a + b], 1, 2]]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Typed[Unevaluated[1 + 2], NonNegativeIntegers]], TypeTheoryTerm[3]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Construct[f, Unevaluated[1, 2], 3]], TypeTheoryTerm[Construct[f, 1, 2, 3]]],
 		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[{Unevaluated[1 + 2], 4}]], TypeTheoryTerm[{Expressions}]],
@@ -272,7 +272,7 @@ VerificationTest[
 	{
 		DefinitionallyEqualQ[TypeTheoryType[Unevaluated[1 + 2]], TypeTheoryTerm[Expressions]],
 		DefinitionallyEqualQ[TypeTheoryType[1 + 2], TypeTheoryTerm[NonNegativeIntegers]],
-		TypeTheoryProof[Unevaluated[1 + 2] == Construct[Unevaluated[Plus], 1, 2], {"Reflexivity"}]["Goals"]
+		TypeTheoryProof[Unevaluated[1 + 2] == Construct[Head[a + b], 1, 2], {"Reflexivity"}]["Goals"]
 	},
 	{True, True, {}},
 	TestID -> "A-quotation-at-the-top-of-a-query-is-kept"

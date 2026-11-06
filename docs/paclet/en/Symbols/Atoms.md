@@ -72,10 +72,10 @@ TypeTheoryType["symbolAtom"]
 
 <!-- => Strings → Atoms -->
 
-A quoted symbol is that atom:
+The head of a sum is the atom of the symbol [Plus]():
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[Plus]], TypeTheoryTerm["atom"["symbolAtom"["System`Plus"]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Head[a + b]], TypeTheoryTerm["atom"["symbolAtom"["System`Plus"]]]]
 ```
 
 <!-- => True -->
@@ -103,7 +103,7 @@ TypeTheoryType["negativeAtom"]
 The integer -(*n* + 1) is `"negativeAtom"` of *n*:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[-3]], TypeTheoryTerm["atom"["negativeAtom"[2]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[-3], TypeTheoryTerm["atom"["negativeAtom"[2]]]]
 ```
 
 <!-- => True -->
@@ -128,10 +128,10 @@ TypeTheoryType["otherAtom"]
 
 <!-- => Strings → Strings → Atoms -->
 
-So a quoted real number is `"otherAtom"` of [Real]() and its digits:
+So a real number is `"otherAtom"` of [Real]() and its digits:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[1.5]], TypeTheoryTerm["atom"["otherAtom"["System`Real", "1.5"]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[1.5], TypeTheoryTerm["atom"["otherAtom"["System`Real", "1.5"]]]]
 ```
 
 <!-- => True -->
@@ -189,7 +189,7 @@ TypeTheoryProof[ForAll[{Typed[a, Atoms]}, Length[{Arguments["atom"[a]]}] == 0], 
 Two real numbers with the same [InputForm]() are the same atom, however they are written:
 
 ```wl
-TypeTheoryProof[SameQ[Unevaluated[1.5], Unevaluated[1.50]] == "true", {"Reflexivity"}]
+TypeTheoryProof[SameQ[1.5, 1.50] == "true", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -199,7 +199,7 @@ TypeTheoryProof[SameQ[Unevaluated[1.5], Unevaluated[1.50]] == "true", {"Reflexiv
 Two real numbers whose [InputForm]() differs are not the same atom:
 
 ```wl
-TypeTheoryProof[SameQ[Unevaluated[0.3], Unevaluated[0.30000000000000004]] == "false", {"Reflexivity"}]
+TypeTheoryProof[SameQ[0.3, 0.30000000000000004] == "false", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -214,7 +214,15 @@ SameQ[0.3, 0.30000000000000004]
 
 ---
 
-A quoted fraction is no atom: [Unevaluated]() keeps the product it is written as, where the Wolfram Language evaluates it to a [Rational]():
+A fraction of integers is the rational number the Wolfram Language evaluates it to, an atom:
+
+```wl
+NormalForm[TypeTheoryTerm[Head[1/2]]]
+```
+
+<!-- => Rational -->
+
+[Unevaluated]() keeps the product it is written as, as it does in the Wolfram Language:
 
 ```wl
 NormalForm[TypeTheoryTerm[Head[Unevaluated[1/2]]]]

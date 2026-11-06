@@ -43,13 +43,13 @@ TypeTheoryEnvironment["Prelude"][ExpressionEvaluate]
 
 ---
 
-The kernel does not evaluate an expression, so the value of `1 + 2` stays as it is:
+The kernel does not evaluate an expression, so the value of `Sin[0]` stays as it is:
 
 ```wl
-NormalForm[TypeTheoryTerm[ExpressionEvaluate[Unevaluated[1 + 2]]]]
+NormalForm[TypeTheoryTerm[ExpressionEvaluate[Sin[0]]]]
 ```
 
-<!-- => ExpressionEvaluate[1 + 2] -->
+<!-- => ExpressionEvaluate[Sin[0]] -->
 
 ---
 
@@ -67,7 +67,7 @@ Last[TypeTheoryFormalize[positive, "Meaning" -> "Rules"]]
 The test of a condition is a Boolean, whether the value is [True]():
 
 ```wl
-TypeTheoryType[SameQ[ExpressionEvaluate[Unevaluated[1 > 0]], Unevaluated[True]]]
+TypeTheoryType[SameQ[ExpressionEvaluate[1 > 0], True]]
 ```
 
 <!-- => 𝔹 -->
@@ -115,7 +115,7 @@ NormalForm[TypeTheoryTerm["DownValues[positive]"[positive[1, 2]], positives]]
 A rule with a condition rewrites in the kernel an expression whose head it does not match, leaving it as it is:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Replace[g[5], f[x_ /; x > 0] :> x]], TypeTheoryTerm[Unevaluated[g[5]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Replace[g[5], f[x_ /; x > 0] :> x]], TypeTheoryTerm[g[5]]]
 ```
 
 <!-- => True -->
@@ -166,10 +166,10 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[Replace[f[5], f[x_] :> x]]]
 
 ---
 
-The value of `1 + 2` is not 3 by computation, since nothing in the type theory says what the Wolfram Language evaluates it to:
+The value of `Sin[0]` is not 0 by computation, since nothing in the type theory says what the Wolfram Language evaluates it to:
 
 ```wl
-TypeTheoryProof[ExpressionEvaluate[Unevaluated[1 + 2]] == 3, {"Reflexivity"}]
+TypeTheoryProof[ExpressionEvaluate[Sin[0]] == 0, {"Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
