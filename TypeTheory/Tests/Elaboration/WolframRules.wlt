@@ -18,8 +18,8 @@ VerificationTest[
 		With[{environment = rulesEnvironment[TypeTheoryFormalize[listed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]},
 			{
 				TypeTheoryType["DownValues[listed]", environment],
-				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[HoldForm[listed[a, b]]], environment], TypeTheoryTerm["some"[HoldForm[{a, b}]], environment]],
-				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[HoldForm[listed[a]]], environment], TypeTheoryTerm[Typed["none", Option[Expressions]], environment]]
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[Unevaluated[listed[a, b]]], environment], TypeTheoryTerm["some"[Unevaluated[{a, b}]], environment]],
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[Unevaluated[listed[a]]], environment], TypeTheoryTerm[Typed["none", Option[Expressions]], environment]]
 			}
 		]
 	],
@@ -35,8 +35,8 @@ VerificationTest[
 		first[x_, ___] := other;
 		With[{environment = rulesEnvironment[TypeTheoryFormalize[first, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]]},
 			{
-				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[HoldForm[first[a, b]]], environment], TypeTheoryTerm["some"[HoldForm[a]], environment]],
-				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[HoldForm[first[a, b, a]]], environment], TypeTheoryTerm["some"[HoldForm[other]], environment]]
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[Unevaluated[first[a, b]]], environment], TypeTheoryTerm["some"[Unevaluated[a]], environment]],
+				DefinitionallyEqualQ[TypeTheoryTerm["DownValues[first]"[Unevaluated[first[a, b, a]]], environment], TypeTheoryTerm["some"[Unevaluated[other]], environment]]
 			}
 		]
 	],

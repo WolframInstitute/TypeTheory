@@ -215,13 +215,13 @@ listElements[single_] := {single}
 coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ Append[heldFromSyntax[readableSyntax[delaborate[environment, context, term]]], environment]
 
 (* a term read back as it is written: a list literal {a, b}, any other list Prepend[l, x] in the order of the Wolfram
-   Language, a string as its text, and an expression of the Wolfram Language quoted, HoldForm[e], which keeps its type *)
+   Language, a string as its text, and an expression of the Wolfram Language quoted, Unevaluated[e], which keeps its type *)
 readableSyntax[syntax : syntaxApplication[syntaxString["Prepend"], {_, _}]] /; literalListSyntaxQ[syntax] := syntaxHead[List, readableSyntax /@ literalListElements[syntax]]
 readableSyntax[syntaxApplication[syntaxString["Prepend"], {element_, rest_}]] := syntaxHead[Prepend, {readableSyntax[rest], readableSyntax[element]}]
 readableSyntax[syntaxString["{}"]] := syntaxHead[List, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["string"], {_}]] /; StringQ[stringOfSyntax[syntax]] := syntaxString[stringOfSyntax[syntax]]
-readableSyntax[syntax : syntaxApplication[syntaxString["Construct"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
-readableSyntax[syntax : syntaxApplication[syntaxString["atom"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[HoldForm, {expressionOfSyntax[syntax]}]
+readableSyntax[syntax : syntaxApplication[syntaxString["Construct"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[Unevaluated, {expressionOfSyntax[syntax]}]
+readableSyntax[syntax : syntaxApplication[syntaxString["atom"], _]] /; expressionOfSyntax[syntax] =!= None := syntaxHead[Unevaluated, {expressionOfSyntax[syntax]}]
 readableSyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[readablePiece /@ constructedPieces[sequence], readableSyntax[head]]]
 (* an argument of Construct, or a sequence of them spliced in: the elements of a list as Sequence @@ l *)
 readablePiece[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Sequence]], readableSyntax[list]}]

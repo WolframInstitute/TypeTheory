@@ -343,7 +343,7 @@ flatRunMatch[pattern_, HoldComplete[l_], environment_, k_, head_HoldComplete] :=
 (* the run, the first of the split p, of two or more arguments, wrapped in the head *)
 flatRun[pattern_, HoldComplete[p_], environment_, k_, HoldComplete[head_]] := With[{run = freshVariable["run"]},
 	conditioned[
-		bindTerm[HoldComplete[MatchValue[Construct[HoldForm[head], Sequence @@ p[[1]]]]], run, HoldComplete[Expressions],
+		bindTerm[HoldComplete[MatchValue[Construct[Unevaluated[head], Sequence @@ p[[1]]]]], run, HoldComplete[Expressions],
 			patternMatch[pattern, run, withLocal[environment, run, "Expression"], Function[inner, k[inner, HoldComplete[p[[2]]]]]]],
 		HoldComplete[Decide[2 <= Length[p[[1]]]]]
 	]
@@ -466,13 +466,13 @@ everyHead[HoldComplete[s_], HoldComplete[head_], True] := HoldComplete[Inductive
 (*Quoting*)
 
 
-(* an expression as a term of type Expressions, HoldForm[e], which elaboration quotes: its pattern variables the parts
+(* an expression as a term of type Expressions, Unevaluated[e], which elaboration quotes: its pattern variables the parts
    they match, a sequence variable alone the expression Sequence[...] of its expressions, and every symbol and atom but a
    natural number an axiom, declared with the rules *)
 quoted[HoldComplete[e_Symbol], environment_] /; MatchQ[environment["Names"][fullName[e]], {_, "Sequence"}] :=
 	quoted[HoldComplete[Sequence[e]], environment]
 quoted[held_HoldComplete, environment_] := quotation[renamed[held, environment]]
-quotation[HoldComplete[e_]] := HoldComplete[HoldForm[e]]
+quotation[HoldComplete[e_]] := HoldComplete[Unevaluated[e]]
 
 (* each pattern variable as the variable of the part it matches *)
 renamed[held_HoldComplete, environment_] := ReplaceAll[held, KeyValueMap[
@@ -483,4 +483,4 @@ renamed[held_HoldComplete, environment_] := ReplaceAll[held, KeyValueMap[
 renaming[HoldComplete[source_], HoldComplete[variable_]] := HoldPattern[source] :> variable
 
 (* the atom of a symbol, by its full name, quoted *)
-atomTerm[name_String] := ToExpression[name, InputForm, Function[symbol, HoldComplete[HoldForm[symbol]], HoldAllComplete]]
+atomTerm[name_String] := ToExpression[name, InputForm, Function[symbol, HoldComplete[Unevaluated[symbol]], HoldAllComplete]]

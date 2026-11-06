@@ -50,8 +50,8 @@ VerificationTest[
 	{
 		equalQ[Arguments[Construct[7, 1, 2]], Typed[Unevaluated[1, 2], Expressions...]],
 		equalQ[{Arguments[Construct[7, 1, 2]]}, Typed[{1, 2}, {Expressions}]],
-		equalQ[Construct[Head[HoldForm[f[1, g[2]]]], Arguments[HoldForm[f[1, g[2]]]]], HoldForm[f[1, g[2]]]],
-		equalQ[Typed[{0, Arguments[HoldForm[f[1, 2]]], 3}, {Expressions}], Typed[{0, 1, 2, 3}, {Expressions}]],
+		equalQ[Construct[Head[f[1, g[2]]], Arguments[f[1, g[2]]]], Typed[f[1, g[2]], Expressions]],
+		equalQ[Typed[{0, Arguments[f[1, 2]], 3}, {Expressions}], Typed[{0, 1, 2, 3}, {Expressions}]],
 		TypeTheoryType[Arguments] === TypeTheoryTerm[Expressions -> Expressions..., wolfram],
 		TypeTheoryType[Head] === TypeTheoryTerm[Expressions -> Expressions, wolfram],
 		TypeTheoryType[MatchValue[Sequence[1, "true"]], wolfram] === TypeTheoryTerm[Match[Sequence[NonNegativeIntegers, Booleans]], wolfram],
@@ -62,25 +62,25 @@ VerificationTest[
 	TestID -> "A-value-is-one-result-a-sequence-is-one-result-and-several-are-a-sum"
 ]
 
-(* HoldForm[e] is the expression e quoted: its variables the expressions they stand for, a sequence of them among the
+(* Unevaluated[e] is the expression e quoted, HoldForm an ordinary head: its variables the expressions they stand for, a sequence of them among the
    arguments spliced in, as is Sequence @@ l of a list, and it shows so; a symbol is an atom by its name, which nothing declares; a
    string literal is a string, the list of its character codes, where a string is expected, and an expression where one is; where an
    expression is expected, a symbol that names nothing stands for itself *)
 VerificationTest[
 	With[{quoting = TypeTheoryEnvironment["WolframLanguage"]},
 		{
-			DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[f[1, 2]], quoting], TypeTheoryTerm[Construct["atom"["symbolAtom"["Global`f"]], 1, 2], quoting]],
-			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[l, {Expressions}]} |-> HoldForm[f[x, l, Sequence @@ l]], quoting]]] === TypeTheoryTerm,
+			DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[f[1, 2]], quoting], TypeTheoryTerm[Construct["atom"["symbolAtom"["Global`f"]], 1, 2], quoting]],
+			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[l, {Expressions}]} |-> Unevaluated[f[x, l, Sequence @@ l]], quoting]]] === TypeTheoryTerm,
 			DefinitionallyEqualQ[
-				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, Expressions...]} |-> HoldForm[f[x, rest]])[1, 2, 3], quoting],
-				TypeTheoryTerm[HoldForm[f[1, 2, 3]], quoting]
+				TypeTheoryTerm[({Typed[x, Expressions], Typed[rest, Expressions...]} |-> Unevaluated[f[x, rest]])[1, 2, 3], quoting],
+				TypeTheoryTerm[Unevaluated[f[1, 2, 3]], quoting]
 			],
-			FreeQ[ToBoxes[NormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> HoldForm[f[x]])[2], quoting]]], "HoldForm" | "\"HoldForm\"", Infinity],
+			FreeQ[ToBoxes[NormalForm[TypeTheoryTerm[(Typed[x, Expressions] |-> Unevaluated[f[x]])[2], quoting]]], "HoldForm" | "\"HoldForm\"", Infinity],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Strings], quoting]]],
 			First[TypeTheoryType[TypeTheoryTerm[Typed["abc", Expressions], quoting]]],
-			First[TypeTheoryType[TypeTheoryTerm[HoldForm[g[1]], quoting]]],
+			First[TypeTheoryType[TypeTheoryTerm[Unevaluated[g[1]], quoting]]],
 			DefinitionallyEqualQ[TypeTheoryTerm[Typed["abc", Strings], quoting], TypeTheoryTerm["string"[{97, 98, 99}], quoting]],
-			DefinitionallyEqualQ[TypeTheoryTerm[Typed[g[1 + 1], Expressions], quoting], TypeTheoryTerm[HoldForm[g[2]], quoting]]
+			DefinitionallyEqualQ[TypeTheoryTerm[Typed[g[1 + 1], Expressions], quoting], TypeTheoryTerm[Unevaluated[g[2]], quoting]]
 		}
 	],
 	{True, True, True, True, Strings, Expressions, Expressions, True, True},
@@ -92,14 +92,14 @@ VerificationTest[
    needs no HoldForm, a symbol that names nothing standing for itself *)
 VerificationTest[
 	{
-		equalQ[Replace[f[1, 2], f[x_, y_] :> {y, x}], HoldForm[{2, 1}]],
-		equalQ[Replace[g[1, 2], f[x_, y_] :> {y, x}], HoldForm[g[1, 2]]],
-		equalQ[Replace[h[1, "s"], {h[x_Integer, y_String] :> y, h[x_, y_] :> x}], HoldForm["s"]],
-		equalQ[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], {HoldForm[{{1}, {2, 3}}], HoldForm[{{1, 2}, {3}}]}],
-		equalQ[ReplaceAll[f[a, g[a]], a -> b], HoldForm[f[b, g[b]]]],
-		equalQ[ReplaceRepeated[f[f[f[x]]], f[y_] :> y], HoldForm[x]],
-		equalQ[SameQ[HoldForm[f[1, "a"]], HoldForm[f[1, "a"]]], "true"],
-		equalQ[SameQ[HoldForm[f[1]], HoldForm[f[-1]]], "false"]
+		equalQ[Replace[f[1, 2], f[x_, y_] :> {y, x}], Typed[{2, 1}, Expressions]],
+		equalQ[Replace[g[1, 2], f[x_, y_] :> {y, x}], Typed[g[1, 2], Expressions]],
+		equalQ[Replace[h[1, "s"], {h[x_Integer, y_String] :> y, h[x_, y_] :> x}], Typed["s", Expressions]],
+		equalQ[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], {Typed[{{1}, {2, 3}}, Expressions], Typed[{{1, 2}, {3}}, Expressions]}],
+		equalQ[ReplaceAll[f[a, g[a]], a -> b], Typed[f[b, g[b]], Expressions]],
+		equalQ[ReplaceRepeated[f[f[f[x]]], f[y_] :> y], Typed[x, Expressions]],
+		equalQ[SameQ[f[1, "a"], f[1, "a"]], "true"],
+		equalQ[SameQ[f[1], f[-1]], "false"]
 	},
 	ConstantArray[True, 8],
 	TestID -> "Replace-ReplaceList-ReplaceAll-and-ReplaceRepeated-rewrite-in-the-kernel"
@@ -112,17 +112,17 @@ VerificationTest[
    with rules, even a HoldAll one *)
 VerificationTest[
 	{
-		equalQ[Construct[f, 1, 2], HoldForm[f[1, 2]]],
-		equalQ[Construct[f, Unevaluated[]], HoldForm[f[]]],
-		equalQ[Construct[f, {1, 2}], HoldForm[f[{1, 2}]]],
-		equalQ[Construct[f, Unevaluated[1, 2], 3], HoldForm[f[1, 2, 3]]],
-		equalQ[Function[{Typed[s, Expressions...]}, Construct[f, s]][1, 2], HoldForm[f[1, 2]]],
+		equalQ[Construct[f, 1, 2], Typed[f[1, 2], Expressions]],
+		equalQ[Construct[f, Unevaluated[]], Typed[f[], Expressions]],
+		equalQ[Construct[f, {1, 2}], Typed[f[{1, 2}], Expressions]],
+		equalQ[Construct[f, Unevaluated[1, 2], 3], Typed[f[1, 2, 3], Expressions]],
+		equalQ[Function[{Typed[s, Expressions...]}, Construct[f, s]][1, 2], Typed[f[1, 2], Expressions]],
 		equalQ[Prepend[Unevaluated[1, 2, 3], 0], Typed[Unevaluated[0, 1, 2, 3], NonNegativeIntegers...]],
 		equalQ[Typed[Unevaluated[Unevaluated[1], 2, Unevaluated @@ {3, 4}], NonNegativeIntegers...], Typed[Unevaluated[1, 2, 3, 4], NonNegativeIntegers...]],
 		equalQ[Construct[Function[{Typed[n, NonNegativeIntegers]}, n + 1], 2], 3],
 		TypeTheoryType[Construct, wolfram] === TypeTheoryTerm[Expressions -> Expressions... -> Expressions, wolfram],
 		MatchQ[NormalForm[TypeTheoryTerm[Prepend[Unevaluated[1, 2], 0], wolfram]], HoldPattern[TypeTheoryTerm[Unevaluated[0, 1, 2], _]]],
-		MatchQ[NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]], HoldPattern[TypeTheoryTerm[HoldForm[{2, 1}], _]]],
+		MatchQ[NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]], HoldPattern[TypeTheoryTerm[Unevaluated[{2, 1}], _]]],
 		MatchQ[NormalForm[TypeTheoryTerm[StringJoin["ab", "c"] /. _ -> "abc", wolfram]], _TypeTheoryTerm | _Failure],
 		ToString[NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a"], f[x__, y___] :> {{x}, {y}}], wolfram]], OutputForm],
 		ToString[NormalForm[TypeTheoryTerm[Prepend[Unevaluated[Unevaluated[1], 2], 0], wolfram]], OutputForm],
@@ -136,10 +136,10 @@ VerificationTest[
    f[x : (_Integer | _)]; alternatives that bind names are each a way to match, {1, 1} for f[x_Integer | x_] *)
 VerificationTest[
 	{
-		equalQ[ReplaceList[f[1], f[x : (_Integer | _)] :> x], {HoldForm[1]}],
-		equalQ[ReplaceList[f[1], f[_Integer | _] :> 0], {HoldForm[0]}],
-		equalQ[ReplaceList[f[1], f[x_Integer | x_] :> x], {HoldForm[1], HoldForm[1]}],
-		equalQ[ReplaceList[f[g[1]], f[g[x_] | g[y_]] :> 0], {HoldForm[0], HoldForm[0]}]
+		equalQ[ReplaceList[f[1], f[x : (_Integer | _)] :> x], {Typed[1, Expressions]}],
+		equalQ[ReplaceList[f[1], f[_Integer | _] :> 0], {Typed[0, Expressions]}],
+		equalQ[ReplaceList[f[1], f[x_Integer | x_] :> x], {Typed[1, Expressions], Typed[1, Expressions]}],
+		equalQ[ReplaceList[f[g[1]], f[g[x_] | g[y_]] :> 0], {Typed[0, Expressions], Typed[0, Expressions]}]
 	},
 	{True, True, True, True},
 	TestID -> "Alternatives-without-names-match-once-as-in-the-Wolfram-Language"
@@ -235,4 +235,18 @@ VerificationTest[
 	],
 	{"ElaborationFailed", True, True, True, "NoInstance", True, True, "TypeMismatch", True, True, True, True},
 	TestID -> "A-lone-string-names-a-constant-FromString-and-TypeHint"
+]
+
+(* Unevaluated is the one head that quotes, as the Wolfram Language passes an argument on unevaluated: Unevaluated[1 + 2]
+   is the expression 1 + 2; HoldForm is a head as any other, so HoldForm[1, 2, 3] has three arguments *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm[{Arguments[HoldForm[1, 2, 3]]}], TypeTheoryTerm[Typed[{1, 2, 3}, {Expressions}]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Head[HoldForm[1, 2, 3]]], TypeTheoryTerm[Typed[HoldForm, Expressions]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[Unevaluated[1 + 2], Expressions]], TypeTheoryTerm[Construct[Unevaluated[Plus], 1, 2]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[1 + 2, Expressions]], TypeTheoryTerm[Typed[3, Expressions]]],
+		MatchQ[NormalForm[TypeTheoryTerm[Unevaluated[f[1, 2]]]], HoldPattern[TypeTheoryTerm[Unevaluated[f[1, 2]], _]]]
+	},
+	{True, True, True, True, True},
+	TestID -> "Unevaluated-quotes-and-HoldForm-is-a-head-as-any-other"
 ]

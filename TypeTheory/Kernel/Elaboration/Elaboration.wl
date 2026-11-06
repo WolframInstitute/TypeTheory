@@ -378,6 +378,10 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	   front of a sequence s *)
 	syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {element_}] /; variadicSequencesDeclaredQ[] :>
 		elaborateSyntax[syntaxApplication[syntaxString["sequenceOf"], {element}], expected],
+	(* Unevaluated[e], of one expression, where an expression is expected or no type is: e itself, nothing in it elaborated
+	   as a term, as the Wolfram Language passes e on unevaluated; Unevaluated[1 + 2] is the expression 1 + 2, not 3 *)
+	syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {quoted_}] /; expressionsDeclaredQ[] && quotationExpectedQ[expected] :>
+		elaborateSyntax[quotationSyntax[quoted], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], elements_List] /; variadicSequencesDeclaredQ[] :> elaborateSyntax[variadicSequenceSyntax[elements], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {syntaxSymbol[HoldComplete[Unevaluated]], list_}] /; variadicSequencesDeclaredQ[] :>
 		elaborateSyntax[syntaxApplication[syntaxString["sequenceOfList"], {list}], expected],
@@ -435,9 +439,6 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[head : syntaxSymbol[HoldComplete[List]], elements_List] /; expressionExpectedQ[expected] :>
 		constructed[quotationSyntax[head], elements, expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[List]], elements_List] /; listsDeclaredQ[] :> elaborateSyntax[listLiteralSyntax[elements], expected],
-	(* HoldForm[e] is the expression e, quoted, where the expressions are declared: its variables in scope are the
-	   expressions they stand for, and a list of expressions among the arguments is joined in, as Sequence @@ l is *)
-	syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}] /; expressionsDeclaredQ[] :> elaborateSyntax[quotationSyntax[quoted], expected],
 	(* Sequence @@ As, the sequence of the elements of a list As, is the type at the list of types As *)
 	syntaxApplication[syntaxSymbol[HoldComplete[Apply]], {head : syntaxSymbol[HoldComplete[Sequence]], index_}] /; sequencesDeclaredQ[] :>
 		applyArguments[elaborateHead[head], {index}, head, expected],
@@ -827,10 +828,14 @@ constructedExpression[head_, {}, expected_] := constructedExpression[head, {synt
 constructedExpression[head_, arguments_List, expected_] :=
 	applyArguments[elaborateHead[syntaxString["Construct"]], Prepend[arguments, head], syntaxString["Construct"], expected]
 
+(* a quotation where an expression is expected, or a type still to be decided, as the one a constructor takes implicitly *)
+quotationExpectedQ[expected_] := expected === None || expressionExpectedQ[expected] ||
+	MatchQ[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]], metavariable[id_] /; unassignedMetavariableQ[metavariable[id]]]
+
 expressionHeadSyntaxQ[syntaxSymbol[held : HoldComplete[_Symbol]]] := unnamedSymbolQ[held]
 expressionHeadSyntaxQ[syntaxString[text_]] := unnamedStringQ[text]
 expressionHeadSyntaxQ[_syntaxInteger] := True
-expressionHeadSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {_}]] := True
+expressionHeadSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {_}]] := True
 expressionHeadSyntaxQ[syntaxApplication[syntaxString["atom"], {_}]] := True
 expressionHeadSyntaxQ[_] := False
 

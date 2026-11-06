@@ -14,7 +14,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"]
 (* an expression is ex[e], held; a variable of a sequence is a list, Unevaluated @@ l the list l, spliced where it is
    quoted; each constant of matches
    is renamed to a function of this file, so that the paclet's symbols get no definitions *)
-SetAttributes[{ex, quote, splice}, HoldAllComplete]
+SetAttributes[{ex, quote, splice, marked}, HoldAllComplete]
 
 interpreted[definition_] := Replace[definition, TypeTheoryDefinition[_, Typed[value_, _]] :> interpretedTerm[HoldComplete[value]]]
 
@@ -32,11 +32,12 @@ interpretedTerm[held_HoldComplete] := ReleaseHold[ReplaceRepeated[held, {
 	HoldPattern[Function[{Typed[x_Symbol, _]}, body_]] :> RuleCondition[functionOf[x, HoldComplete[body]]],
 	HoldPattern[Function[binders : {__Typed}, body_]] :> RuleCondition[functionsOf[binders, HoldComplete[body]]],
 	HoldPattern[Typed[e_, _]] :> e
-}] /. HoldForm -> quote /. $renamed]
+}] /. HoldPattern[Unevaluated[q_] | marked[q_]] :> quote[q] /. $renamed]
 
 functionOf[x_Symbol, HoldComplete[body_]] := Function[{x}, body]
 functionsOf[binders_, HoldComplete[body_]] := Replace[binders /. HoldPattern[Typed[x_, _]] :> x, variables_List :> Function[variables, body]]
-markedQuotes[held_HoldComplete, x_Symbol] := held /. HoldPattern[HoldForm[q_]] :> RuleCondition[Replace[HoldComplete[q] /. HoldPattern[x] :> splice[x], HoldComplete[m_] :> HoldForm[m]]]
+(* a quotation marked with a head of this file, as RuleCondition would strip an Unevaluated *)
+markedQuotes[held_HoldComplete, x_Symbol] := held /. HoldPattern[Unevaluated[q_] | marked[q_]] :> RuleCondition[Replace[HoldComplete[q] /. HoldPattern[x] :> splice[x], HoldComplete[m_] :> marked[m]]]
 
 mValue[a_] := {a}
 mSum[a_List, b_List] := Join[a, b]

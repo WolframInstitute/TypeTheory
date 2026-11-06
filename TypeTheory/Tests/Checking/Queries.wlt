@@ -473,7 +473,7 @@ VerificationTest[
 			First[TypeTheoryCheck["Constructive", Method -> "Fast"]],
 			Head[TypeTheoryProofTree[proof]],
 			First[TypeTheoryType[TypeTheoryTerm["checkedBitOne", bits], TypeTheoryEnvironment["Prelude"]]],
-			TypeTheoryType[HoldForm[f[x]]] === TypeTheoryTerm[Expressions, TypeTheoryEnvironment["WolframLanguage"]]
+			TypeTheoryType[Head[f[x]]] === TypeTheoryTerm[Expressions, TypeTheoryEnvironment["WolframLanguage"]]
 		}
 	],
 	{Success, "UnknownMethod", TypeTheoryProofTree, "DifferentEnvironments", True},

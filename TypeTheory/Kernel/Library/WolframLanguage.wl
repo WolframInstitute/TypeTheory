@@ -53,7 +53,8 @@ Match is the monad of lists, the monad of nondeterminism, with its alternatives 
 several ways, as an Orderless or a sequence pattern does, has several results, and the first is the one the Wolfram
 Language takes. A natural number and a string are expressions where one is expected, by coercions, and so is a symbol
 that names nothing, which stands for itself as a Wolfram Language symbol without a value does: Replace[f[1, 2], ...]
-rewrites the expression f[1, 2], and HoldForm keeps a constant that computes, as 1 + 2, from computing.
+rewrites the expression f[1, 2], and Unevaluated keeps a constant that computes, as 1 + 2, from computing, as it does in the Wolfram
+Language; HoldForm is a head as any other.
 
 A Wolfram Language function is applied to a sequence: f[a, b] gives f the sequence of a and b, and the curried f[a][b]
 gives f the sequence of a, then gives its value that of b. A binder of a type Sequence[...] takes the arguments of an

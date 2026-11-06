@@ -383,9 +383,9 @@ ruleSyntaxQ[syntax_] := MatchQ[syntax, syntaxApplication[syntaxSymbol[HoldComple
 displaySyntax[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {value_}]] := displaySyntax[value]
 displaySyntax[syntaxApplication[syntaxString["StringExpressionCoercion"], {value_}]] := displaySyntax[value]
 displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
-(* a quotation shows as the expression it quotes, as the Wolfram Language shows HoldForm[e]; a string in it is a string,
-   no name of a constant *)
-displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[HoldForm]], {quoted_}]] := displaySyntax[quoted /. syntaxString[text_String] :> syntaxOther[HoldComplete[text]]]
+(* a quotation, Unevaluated[e], shows as the expression it quotes, as the Wolfram Language passes e on; a string in it is a
+   string, no name of a constant *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {quoted_}]] := displaySyntax[quoted /. syntaxString[text_String] :> syntaxOther[HoldComplete[text]]]
 (* a string in an expression shows in quotes, apart from the names of constants *)
 displaySyntax[syntaxOther[HoldComplete[text_String]]] := syntaxString[ToString[text, InputForm]]
 
