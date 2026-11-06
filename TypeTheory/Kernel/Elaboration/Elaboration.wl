@@ -2436,9 +2436,13 @@ elaborateFace[syntax_] := checkAgainst[syntax, intervalConstantTerm["Interval"]]
 
 unify[a_, b_] := unifyTerms[instantiateMetavariables[a], instantiateMetavariables[b]]
 
+(* two terms with no metavariable unify where the kernel finds them equal, which it decides as it will check them,
+   with its offset rule for natural numbers: comparing them here as successors would take a step for each *)
 unifyTerms[a_, b_] := Which[
 	a === b,
 		True,
+	FreeQ[{a, b}, _metavariable | _levelMetavariable],
+		withKernelCaches[definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, a, b]],
 	unassignedMetavariableQ[a],
 		assignMetavariable[a, b],
 	unassignedMetavariableQ[b],

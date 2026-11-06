@@ -174,7 +174,7 @@ VerificationTest[
    literals, so a theorem about it catches it *)
 VerificationTest[
 	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {"Value" -> firstProjection, "Height" -> 1}]]]],
-	"TypeMismatch",
+	"InvalidNaturalNumberOperation",
 	TestID -> "A-forged-addition-is-caught"
 ]
 

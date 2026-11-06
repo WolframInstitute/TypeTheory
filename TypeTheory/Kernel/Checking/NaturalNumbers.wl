@@ -34,6 +34,8 @@ replay of TypeTheoryCheck register them again where they were.
 PackageScoped[registerNaturalNumbers]
 PackageScoped[literalOperationResult]
 PackageScoped[naturalNumberOperationRoles]
+PackageScoped[naturalOffsetsEqualQ]
+PackageScoped[$naturalOffsetRule]
 
 
 (* ::Section:: *)
@@ -45,6 +47,9 @@ or operations on its natural numbers, and gives environment with them registered
 literalOperationResult::usage = "literalOperationResult[environment, context, HoldComplete[name], arguments] gives what the registered operation name computes \
 from arguments that reduce to literals, or None."
 naturalNumberOperationRoles::usage = "naturalNumberOperationRoles[] gives the roles an operation on natural numbers can be registered for."
+naturalOffsetsEqualQ::usage = "naturalOffsetsEqualQ[environment, context, a, b] decides whether a and b are definitionally equal by their offsets, the successors \
+read off each without reducing, as Lean's kernel does: True or False, or None where the offsets do not decide it."
+$naturalOffsetRule::usage = "$naturalOffsetRule is True where definitional equality compares natural numbers by their offsets; False compares them by unfolding alone."
 
 
 (* ::Section:: *)
@@ -147,8 +152,53 @@ checkOperation[environment_, settings_, role_, name_] := Which[
 		kernelFailure["InvalidNaturalNumberOperation", "`1` must be a definition or an axiom without universe parameters to be registered as `2`.", {HoldForm @@ name, role}],
 	! operationTypeQ[environment, settings["Type"], role, constantRecord[environment, name]["Type"]],
 		kernelFailure["InvalidNaturalNumberOperation", "`1` does not have the type of `2` on `3`.", {HoldForm @@ name, role, HoldForm @@ settings["Type"]}],
+	role === "Addition",
+		checkAdditionEquations[environment, settings, name],
 	True,
 		Null
+]
+
+(* An addition must satisfy its two defining equations, t + zero == t and t + successor[s] == successor[t + s], by
+   computation, for variables t and s: the offset rule reads a term through the addition by them. Computing on
+   literals as integer addition does implies neither on open terms: an addition by recursion on its first argument
+   computes the literals right and fails the second. The environment checked has no addition registered yet, so the
+   offset rule does not read through it here. *)
+checkAdditionEquations[environment_, settings_, name_] := With[
+	{
+		zero = constantReference[settings["Zero"], {}],
+		successor = constantReference[settings["Successor"], {}],
+		addition = constantReference[name, {}],
+		first = freshFreeVariable[],
+		second = freshFreeVariable[]
+	},
+	With[
+		{
+			context = extendContext[
+				extendContext[<||>, first, HoldComplete["t"], constantReference[settings["Type"], {}], "Explicit"],
+				second, HoldComplete["s"], constantReference[settings["Type"], {}], "Explicit"
+			],
+			t = freeVariable[first],
+			s = freeVariable[second],
+			sum = makeApplication[addition, {freeVariable[first], freeVariable[second]}]
+		},
+		Scan[
+			Function[equation, If[ ! definitionallyEqualQ[environment, context, equation["Left"], equation["Right"]],
+				kernelFailure[
+					"InvalidNaturalNumberOperation",
+					"`1` cannot be registered as the addition: `2` does not hold by computation.",
+					{HoldForm @@ name, equation["Equation"]}
+				]
+			]],
+			{
+				<|"Left" -> makeApplication[addition, {t, zero}], "Right" -> t, "Equation" -> "t + zero == t"|>,
+				<|
+					"Left" -> makeApplication[addition, {t, application[successor, s]}],
+					"Right" -> application[successor, sum],
+					"Equation" -> "t + successor[s] == successor[t + s]"
+				|>
+			}
+		]
+	]
 ]
 
 operationTypeQ[environment_, type_, role_, operationType_] := With[{natural = constantReference[type, {}]},
@@ -208,16 +258,80 @@ resultTerm[environment_, name_, value : True | False] := With[
 
 booleansOf[dependentFunctionType[_, _, dependentFunctionType[_, _, constantReference[booleans_, {}], _], _]] := booleans
 
-(* a literal, the zero, or successors of either *)
-literalValue[environment_, context_, settings_, term_] := Block[
-	{literalSuccessor = constantReference[settings["Successor"], {}], literalCurrent = weakHeadNormalForm[environment, context, term], literalSuccessors = 0},
-	While[MatchQ[literalCurrent, application[successor_, _] /; successor === literalSuccessor],
-		literalSuccessors++;
-		literalCurrent = weakHeadNormalForm[environment, context, Last[literalCurrent]]
-	];
-	Replace[literalCurrent, {
-		naturalLiteral[n_Integer] :> n + literalSuccessors,
-		constantReference[settings["Zero"], {}] :> literalSuccessors,
-		_ :> None
-	}]
+(* the number a term reduces to: its offset read first, k successors of a base, as the offset rule reads it, then the
+   base reduced and read again; None as soon as a base is no literal, zero or successor, and reduces no further *)
+literalValue[environment_, context_, settings_, term_] := offsetValue[environment, context, settings, naturalOffset[settings, term]]
+
+offsetValue[_, _, settings_, {base_, offset_Integer}] /; zeroBaseQ[settings, base] := offset
+offsetValue[environment_, context_, settings_, {base_, offset_Integer}] := With[{reduced = weakHeadNormalForm[environment, context, base]},
+	If[ reduced === base,
+		None,
+		Replace[offsetValue[environment, context, settings, naturalOffset[settings, reduced]], value_Integer :> value + offset]
+	]
+]
+
+
+(* ::Subsection:: *)
+(*Offsets*)
+
+
+(* The offset rule, as Lean's kernel compares x + k with y + k' (is_def_eq_offset_nat), without k steps of unfolding.
+   A term of the natural numbers is read as {base, k}, k successors of base, without reducing: a literal n is
+   {zero, n}; successor[t] is t's offset with one more; the registered addition t + s, where s is k successors of a
+   base b, is {t + b, k} for k > 0, and t's offset with k more where b is zero; anything else is {term, 0}. Each reading
+   is a step the kernel takes itself: a literal n + 1 is successor[n], and the addition's defining equations,
+   t + zero == t and t + successor[s] == successor[t + s], hold by computation, as registration checks.
+
+   Two sides with positive offsets are k successors of each, so they are equal exactly where what is left once the
+   smaller offset is stripped is, by constructor injectivity. Two literals, or successors of zero, are equal where their
+   numbers are. Otherwise the offsets decide nothing, None, and the comparison goes on as it would without the rule: a
+   side with offset 0 over a base that is not zero reduces, and the rule applies again once it is a successor. The
+   arithmetic is on the offsets only, Wolfram Language integers. *)
+$naturalOffsetRule = True
+
+naturalOffsetsEqualQ[environment_, context_, a_, b_] := If[ TrueQ[$naturalOffsetRule],
+	Replace[naturalNumberSettings[environment], {
+		settings_Association :> offsetsEqualQ[environment, context, settings, naturalOffset[settings, a], naturalOffset[settings, b]],
+		_ -> None
+	}],
+	None
+]
+
+naturalOffset[settings_, naturalLiteral[n_Integer]] := {constantReference[settings["Zero"], {}], n}
+naturalOffset[settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] :=
+	offsetAdded[naturalOffset[settings, argument], 1]
+naturalOffset[settings_, term : application[application[constantReference[addition_, {}], left_], right_]] /; addition === Lookup[settings["Operations"], "Addition"] :=
+	With[{offset = naturalOffset[settings, right]}, Which[
+		zeroBaseQ[settings, First[offset]],
+			offsetAdded[naturalOffset[settings, left], Last[offset]],
+		Last[offset] > 0,
+			{makeApplication[constantReference[addition, {}], {left, First[offset]}], Last[offset]},
+		True,
+			{term, 0}
+	]]
+naturalOffset[_, term_] := {term, 0}
+
+offsetAdded[{base_, offset_Integer}, more_Integer] := {base, offset + more}
+
+zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]
+
+offsetsEqualQ[environment_, context_, settings_, {base_, offset_Integer}, {otherBase_, otherOffset_Integer}] := Which[
+	offset > 0 && otherOffset > 0,
+		With[{common = Min[offset, otherOffset]},
+			definitionallyEqualQ[environment, context, offsetTerm[settings, base, offset - common], offsetTerm[settings, otherBase, otherOffset - common]]
+		],
+	zeroBaseQ[settings, base] && zeroBaseQ[settings, otherBase],
+		offset == otherOffset,
+	True,
+		None
+]
+
+(* k successors of base written back: the base itself, a literal over zero, base + k by the registered addition, or k
+   successors, where no addition is registered and so k is no more than the successors read *)
+offsetTerm[_, base_, 0] := base
+offsetTerm[settings_, base_, offset_Integer] /; zeroBaseQ[settings, base] := naturalLiteral[offset]
+offsetTerm[settings_, base_, offset_Integer] /; KeyExistsQ[settings["Operations"], "Addition"] :=
+	makeApplication[constantReference[settings["Operations"]["Addition"], {}], {base, naturalLiteral[offset]}]
+offsetTerm[settings_, base_, offset_Integer] := With[{successor = constantReference[settings["Successor"], {}]},
+	Nest[Function[term, application[successor, term]], base, offset]
 ]

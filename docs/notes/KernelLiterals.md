@@ -1,6 +1,6 @@
 # Large literals in elaboration and definitional equality: design note
 
-Status: (1) built (4c9cdc8). The rule of (2) approved by Stephen, 2026-11-06, then extended to read offsets through Plus, with the registration check that justifies it: for review. Items (1) and (2) of the TypeTheory kernel findings.
+Status: (1) built (4c9cdc8). (2) built and approved by Stephen, 2026-11-07: the offset rule, read through Plus, the registration check that justifies it, and literal values read by offsets (see Result of (2)). Items (1) and (2) of the TypeTheory kernel findings.
 
 ## What the measurements show
 
@@ -31,6 +31,32 @@ in 0.06 s, 2^63 in 0.3 s. Checked: with `TYPETHEORY_CHECK_QUERIES=True` every el
 remembers a term with a metavariable, and the suite passes 456/456 with it on. The suite run with elaboration's caching
 on and forced off (`TYPETHEORY_ELABORATION_CACHES=Off`) logs 2460 checked results, which are byte for byte the same
 once the identifiers and Module symbols are numbered by first appearance.
+
+## Result of (2)
+
+Built as in the routes below, with one more change the lemma showed. The c = 2^63 lemma did not finish with the rule
+alone. Its descent was in the literal extension: to compute `0 + (m + c)`, `literalOperationResult` asks whether `m + c`
+is a literal, and `literalValue` took its weak head normal form and peeled successors one at a time, 2^63 of them,
+before it reached the base `m` and gave None.
+
+`literalValue` now reads a term's offset first, with the reading of the rule, `{base, k}`, and then reduces the base and
+reads it again: the value is k over zero, k more than the base's value, or None once a base reduces no further and is
+no literal, zero or successor. Each step is literal semantics, the constructor, or one of the two equations of addition.
+**So the registration check carries `literalValue` too:** an addition that fails the equations would make the literal
+values wrong, not only the definitional equalities. The `reduced === base` check stops the loop on a stable weak head
+normal form. It is complete because a stuck base made the old loop end in None as well.
+
+Measured, with the values injected by `With`:
+- the measured case, `(0 + (m + c)) + 0` against `m + c`: 0.007 s at c = 2000 and at c = 2^63 (0.84 s at c = 2000 before);
+- (1): 2^12, 2^16 and 2^63 in about 0.01 s each;
+- the c = 2^63 lemma: 0.035 s, under a 2 GB memory limit; with the rule alone it aborted at 60 s. It is a test in
+  `Checking/NaturalNumbers.wlt`.
+
+`scripts/offset_agreement.wls` checks the agreement: the 38025 pairs of the test of agreement below, with the rule on and
+off, agree, 801 of them equal; the literal values of their 195 terms and of the 38025 sums agree with peeling, 1560
+integers and 36660 None; and 120 terms with random offsets up to 2^64, which peeling cannot finish, have the offsets'
+sums for values. The suite has the pairs of offsets 0 to 4. Elaboration's `unify` gives two terms with no metavariable
+to the kernel's definitional equality, so a forged `x + 2^63 == x + 2^63 + 1` is a type mismatch, not a recursion limit.
 
 ## Routes
 

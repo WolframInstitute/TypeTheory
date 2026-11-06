@@ -734,7 +734,7 @@ definitionallyEqualCases[_, _, _, _intervalUniverse] := False
 (* two elements of the interval are equal by their normal forms *)
 definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 	cubicalDeclaredQ[environment] && intervalEqualQ[environment, context, a, b],
-	reducedEqualQ[environment, context, a, b]
+	Replace[naturalOffsetsEqualQ[environment, context, a, b], None :> reducedEqualQ[environment, context, a, b]]
 ]
 
 (* Lean's order: each side reduced as far as it reduces without unfolding a definition, then, where neither
