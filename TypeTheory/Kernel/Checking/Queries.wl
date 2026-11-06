@@ -447,7 +447,7 @@ ruleSyntax[left_, right_, 0] := syntaxHead[Rule, {left, right}]
 ruleSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, leftBody_}], syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_, rightBody_}], _] :=
 	syntaxHead[ForAll, {binders, syntaxHead[Rule, {leftBody, rightBody}]}]
 
-readBack[environment_, term_, "Display"] := delaborate[environment, <||>, term]
+readBack[environment_, term_, "Display"] := slotFunctions[delaborate[environment, <||>, term]]
 readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delaborate[environment, <||>, term]]
 
 

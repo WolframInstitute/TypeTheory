@@ -77,6 +77,7 @@ PackageScoped[listElements]
 PackageScoped[delaborate]
 PackageScoped[displayCoreTerm]
 PackageScoped[coreToTypeTheoryTerm]
+PackageScoped[slotFunctions]
 PackageScoped[$exactReadBack]
 PackageScoped[nameSyntax]
 PackageScoped[displayedName]
@@ -109,6 +110,7 @@ toSyntax::usage = "toSyntax[expr] gives the syntax tree of expr without evaluati
 heldFromSyntax::usage = "heldFromSyntax[syntax] gives HoldComplete[expr] for the expression syntax describes."
 syntaxHead::usage = "syntaxHead[symbol, {argument, ...}] gives the syntax tree of symbol applied to the argument syntax trees."
 listElements::usage = "listElements[syntax] gives the elements of the syntax tree of a list, or {syntax} for any other syntax tree."
+slotFunctions::usage = "slotFunctions[syntax] writes each function of the syntax tree whose binders are the slots #1, ..., #n as the pure function body &."
 delaborate::usage = "delaborate[environment, context, term] gives a syntax tree for the core term in the local context."
 displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the core term as a TypeTheoryTerm, or the core term itself if it cannot be displayed."
 coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm in environment."
@@ -242,7 +244,30 @@ readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfJoin"], {_, _}
 readableSyntax[syntaxApplication[syntaxString["listOfSequence"], {sequence_}]] := syntaxHead[List, readablePiece /@ sequencePieces[sequence]]
 readableSyntax[syntaxApplication[syntaxString["sequenceOfList"], {list_}]] := syntaxHead[Apply, {syntaxSymbol[HoldComplete[Unevaluated]], readableSyntax[list]}]
 readableSyntax[syntaxApplication[syntaxString["sequenceOf"], {element_}]] := syntaxHead[RepeatedNull, {readableSyntax[element]}]
+(* a function whose binders are the slots #1, ..., #n, as a pure function of slots is elaborated, reads as one *)
+readableSyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_syntaxApplication, _}]] /; slotFunction[syntax] =!= syntax :=
+	slotFunction[syntaxHead[Function, {First[Last[syntax]], readableSyntax[Last[Last[syntax]]]}]]
 readableSyntax[syntaxApplication[head_, arguments_List]] := syntaxApplication[readableSyntax[head], readableSyntax /@ arguments]
+
+(* the functions of a syntax tree whose binders are the slots #1, ..., #n written as pure functions, body &, from the inside
+   out, where no function inside binds a slot's name *)
+slotFunctions[syntaxApplication[head_, arguments_List]] := slotFunction[syntaxApplication[slotFunctions[head], slotFunctions /@ arguments]]
+slotFunctions[syntax_] := syntax
+
+slotFunction[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], binders_List], body_}]] /;
+	slotBindersQ[binders] && FreeQ[body, syntaxApplication[syntaxSymbol[HoldComplete[Function]], {inner_, _}] /; ! FreeQ[inner, syntaxString[_String?slotNameQ]]] :=
+	With[{arity = Length[binders]},
+		syntaxHead[Function, {body /. syntaxString[name_String /; slotNameQ[name] && slotIndex[name] <= arity] :> syntaxHead[Slot, {syntaxInteger[slotIndex[name]]}]}]
+	]
+slotFunction[syntax_] := syntax
+
+slotNameQ[name_String] := StringMatchQ[name, "#" ~~ DigitCharacter ..]
+slotNameQ[_] := False
+slotIndex[name_String] := FromDigits[StringDrop[name, 1]]
+slotBindersQ[binders_List] := binders =!= {} && And @@ MapIndexed[
+	Function[{binder, index}, MatchQ[binder, syntaxString[name_] | syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {syntaxString[name_], _}] /; name === "#" <> IntegerString[First[index]]]],
+	binders
+]
 readableSyntax[syntax_] := syntax
 
 displayCoreTerm[environment_, context_, term_] := Replace[

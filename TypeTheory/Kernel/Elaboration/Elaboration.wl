@@ -447,6 +447,13 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 		constructed[syntaxElaborated[elaborateSyntax[head, expected], head], arguments, expected],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
+	(* a recursor applied to all its arguments has its major premise, the last, elaborated first where it is a variable, as
+	   Lean elaborates an eliminator, so that its type's parameters are known to the motive and the cases *)
+	syntaxApplication[head : syntaxApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {_}], arguments : {__, major_}] /;
+		variableSyntaxQ[major] && explicitArity[Last[elaborateHead[head]]] === Length[arguments] :>
+		With[{elaborated = elaborateSyntax[major, None]},
+			applyArguments[elaborateHead[head], Append[Most[arguments], syntaxElaborated[elaborated, major]], head, expected]
+		],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
 	syntaxInteger[n_Integer?NonNegative] :> {naturalLiteral[n], naturalNumberTypeForElaboration[syntax]},
 	(* a negative integer where an expression is expected is its atom, as a natural number is by a coercion *)
@@ -670,6 +677,9 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], Rest[arguments], postponed, headSyntax, None]
 		],
 		pathType_ /; asIntervalFunction[pathType] =!= pathType :> collectArguments[term, asIntervalFunction[pathType], arguments, postponed, headSyntax, expected],
+		(* a function whose type nothing has decided yet, as a variable written without one *)
+		metavariable[id_] /; unassignedMetavariableQ[metavariable[id]] :>
+			elaborationFailure["The type of `1` is needed to apply it to arguments: write Typed[x, type] for a variable x.", headSyntax],
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
@@ -1042,6 +1052,7 @@ parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {name_, type_, 
 	withQuantity[parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {name, type}]], quantity]
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, syntaxString[kind : "Implicit" | "StrictImplicit" | "InstanceImplicit"]}]] :=
 	withKind[parseBinder[binder], kind]
+parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {name_}]] := withKind[parseBinder[name], "Implicit"]
 parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[TypedImplicit]], {arguments__}]] /; Length[{arguments}] <= 3 :=
 	withKind[parseBinder[syntaxApplication[syntaxSymbol[HoldComplete[Typed]], {arguments}]], "Implicit"]
 parseBinder[syntaxSymbol[name_]] := <|"Name" -> name, "Type" -> None, "Binder" -> "Explicit", "Quantity" -> Automatic|>
@@ -1124,6 +1135,10 @@ slotted[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_}]] :
 slotted[syntaxApplication[head_, arguments_List]] := syntaxApplication[slotted[head], slotted /@ arguments]
 slotted[syntax_] := syntax
 
+variableSyntaxQ[syntaxSymbol[held_]] := KeyExistsQ[$elaborationScope, held]
+variableSyntaxQ[syntaxString[name_]] := KeyExistsQ[$elaborationScope, HoldComplete[name]]
+variableSyntaxQ[_] := False
+
 (* the explicit arguments a function type takes, 0 for None or any other type *)
 explicitArity[None] := 0
 explicitArity[type_] := Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]], {
@@ -1165,13 +1180,17 @@ elaborateForAll[binders_List, body_] := With[{start = Length[$pendingOverloads],
 ]
 
 (* A -> B: the result does not depend on the argument, so B is elaborated outside the binder *)
-elaborateArrow[domains_List, codomain_] := With[
-	{term = Fold[
-		Function[{accumulated, domain}, dependentFunctionType[HoldComplete[\[FormalX]], domain, accumulated, "Explicit"]],
-		elaborateTypeSyntax[codomain],
-		Reverse[elaborateTypeSyntax /@ domains]
-	]},
-	{term, inferType[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[term]]}
+(* the domains first, as they are read, so that a variable a domain uses as a proposition, Not[b], is one before the
+   codomain uses it as a type *)
+elaborateArrow[domains_List, codomain_] := With[{elaboratedDomains = elaborateTypeSyntax /@ domains},
+	With[
+		{term = Fold[
+			Function[{accumulated, domain}, dependentFunctionType[HoldComplete[\[FormalX]], domain, accumulated, "Explicit"]],
+			elaborateTypeSyntax[codomain],
+			Reverse[elaboratedDomains]
+		]},
+		{term, inferType[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[term]]}
+	]
 ]
 
 elaborateTypeSyntax[syntax_] := With[{result = elaborateSyntax[syntax, universeSort[newLevelMetavariable[]]]},

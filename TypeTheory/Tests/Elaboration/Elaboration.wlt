@@ -469,3 +469,27 @@ VerificationTest[
 	{True, True, True, True},
 	TestID -> "A-pure-function-of-slots-and-binder-types-without-redexes"
 ]
+
+(* the premise of Implies is read before its conclusion, so a variable a premise uses as a proposition is one; an implicit
+   binder may go without a type; a function whose type is unknown asks for it; a recursor's major premise, a variable,
+   is read first; and a function of slots reads back as one *)
+VerificationTest[
+	With[
+		{
+			trees = TypeTheoryEnvironment[{
+				TypeTheoryInductiveType[BinaryTree, TypeUniverse[1], {BinaryLeaf -> BinaryTree, BinaryNode -> ForAll[{Typed[left, BinaryTree], Typed[right, BinaryTree]}, BinaryTree]}],
+				TypeTheoryDefinition[NodeCount, tree |-> InductiveRecursor[BinaryTree][Naturals &, 1, #3 + #4 + 1 &, tree]]
+			}]
+		},
+		{
+			DefinitionallyEqualQ[TypeTheoryType[ForAll[{b}, Implies[Not[b], b]]], TypeTheoryTerm[TypeUniverse[0]]],
+			DefinitionallyEqualQ[TypeTheoryType[ForAll[{a, b}, Implies[Or[a, b], Implies[Not[a], b]]]], TypeTheoryTerm[TypeUniverse[0]]],
+			MatchQ[TypeTheoryType[Function[{TypedImplicit[A], Typed[x, A]}, x]], _TypeTheoryTerm],
+			StringContainsQ[TypeTheoryEnvironment[{TypeTheoryDefinition[Composite, {g, f, x} |-> g[f[x]]]}]["Message"], "is needed"],
+			DefinitionallyEqualQ[TypeTheoryType[Typed[y, Option[NonNegativeIntegers]] |-> InductiveRecursor[Option][TypeUniverse[0] &, True, False &, y]], TypeTheoryTerm[Option[NonNegativeIntegers] -> TypeUniverse[0]]],
+			MatchQ[trees[NodeCount], HoldPattern[TypeTheoryDefinition[NodeCount, Typed[Function[_, InductiveRecursor[BinaryTree][Function[NonNegativeIntegers], 1, Function[_], tree]], _]]]]
+		}
+	],
+	{True, True, True, True, True, True},
+	TestID -> "Premises-first-implicit-binders-and-recursors-read-their-major-premise-first"
+]
