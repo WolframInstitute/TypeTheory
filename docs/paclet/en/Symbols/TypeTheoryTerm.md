@@ -382,7 +382,7 @@ A type of bits:
 bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 A term in it:
 
@@ -448,7 +448,7 @@ A theorem left as a hole:
 later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k], TypeTheoryHole["by induction"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 The holes it rests on:
 
@@ -515,7 +515,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 [Format]() evaluates the arguments of what it formats, so a bound variable whose symbol has a value shows that value:
 
@@ -535,7 +535,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 [MakeBoxes]() holds them, so a notation for a constant applied to arguments is a definition of [MakeBoxes]():
 

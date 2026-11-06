@@ -43,7 +43,7 @@ Assume a natural number about which nothing is known:
 mystery = TypeTheoryEnvironment[TypeTheoryAxiom[Mystery, Naturals]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Its declaration:
 
@@ -84,7 +84,7 @@ primes = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 The fact proves `PrimeNumber[1 + 1]`, which computes to its statement:
 
@@ -102,7 +102,7 @@ An axiom of a function type, a function on the natural numbers:
 measured = TypeTheoryEnvironment[TypeTheoryAxiom[Measure, TypeSpecifier[{Naturals} -> Naturals]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 [Format]() gives an axiom's symbol a display, which its declaration and every term use:
 
@@ -165,7 +165,7 @@ goldbach = TypeTheoryEnvironment[{TypeTheoryAxiom[
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The annotation, as it was given:
 
@@ -183,7 +183,7 @@ An axiom computed in the Wolfram Language by [PrimePi]():
 counting = TypeTheoryEnvironment[{TypeTheoryAxiom[PrimeCounting, Naturals -> Naturals, "Implementation" -> PrimePi]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The function that computes it:
 
@@ -212,7 +212,7 @@ polynomials = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 `f + g` adds two polynomials, chosen by the types of `f` and `g`:
 
@@ -252,7 +252,7 @@ primes = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 233 constants -->
+<!-- => TypeTheoryEnvironment summary box: 253 constants -->
 
 The axioms the theorem rests on:
 
@@ -313,7 +313,7 @@ absurd = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 The theorem it declares:
 

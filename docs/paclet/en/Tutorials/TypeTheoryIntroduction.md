@@ -85,7 +85,7 @@ Declarations, such as [TypeTheoryTheorem](), are inert until [TypeTheoryEnvironm
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The theorem, as the environment holds it:
 
@@ -109,7 +109,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[Wrong, 2 + 2 == 5, "equalityReflexivity
 doubled = Append[arithmetic, TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 A [TypeTheoryDefinition]() unfolds when terms compute:
 
@@ -125,7 +125,7 @@ Naming the environment in every term gets long. [SetTypeTheoryEnvironment]() mak
 SetTypeTheoryEnvironment[doubled]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 A term that names no environment is now in it:
 
@@ -141,7 +141,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 230 constants -->
+<!-- => TypeTheoryEnvironment summary box: 250 constants -->
 
 Environments never change, so `arithmetic` is as it was:
 
@@ -190,7 +190,7 @@ trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The environment's last four constants are the new ones:
 
@@ -222,7 +222,7 @@ trees = Append[trees, TypeTheoryDefinition[NodeCount, Typed[
 ]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 235 constants -->
+<!-- => TypeTheoryEnvironment summary box: 255 constants -->
 
 A node over a leaf and a node of two leaves has five nodes in all:
 
@@ -280,7 +280,7 @@ Nothing a tactic did is trusted. Declaring the theorem has the kernel check the 
 proved = TypeTheoryEnvironment[{TypeTheoryTheorem[ZeroLeftIdentity, proof]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The theorem, as declared:
 
@@ -314,7 +314,7 @@ TypeTheoryCheck[proved]
 rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[proved]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The rebuilt environment has the theorem:
 

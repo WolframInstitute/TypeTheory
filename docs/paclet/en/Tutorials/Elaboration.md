@@ -112,6 +112,8 @@ A sequence of any number of elements of one type is of the type `A...`, as the p
 
 <!-- => {Expressions → Expressions... → Expressions, f[1, 2, 3]} -->
 
+Where the arguments run out at such a binder, it takes the empty sequence, as `f[x_, rest___]` matches `f[a]`: [Missing]()`["NotAvailable"]` is a missing value with no details.
+
 A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, of any number of arguments, `A... -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`.
 
 ## Binders Without Types
@@ -176,7 +178,46 @@ TypeTheoryType[True && False]
 
 <!-- => Failure["Ambiguous", ...]: say which with Typed[True && False, TypeUniverse[0]] or Typed[True && False, Booleans] -->
 
+[Length](), [Lookup](), [Keys](), [Values]() and [KeyExistsQ]() have a meaning for associations beside their own, and the types of the arguments decide; where nothing decides, a name takes its own meaning, of lists or of expressions, as an arithmetic operation takes that of the natural numbers:
+
+```wl
+TypeTheoryType[Typed[stock, Association[Strings, NonNegativeIntegers]] |-> Length[stock] + Length[Keys[stock]]]
+```
+
+<!-- => Association[Strings, ℕ] → ℕ -->
+
 Instance arguments, found among the instances of a class, and coercions, inserted where a term has another type than the one expected, are [Instances and Coercions](paclet:WolframInstitute/TypeTheory/tutorial/InstancesAndCoercions).
+
+## Sums, Failures and Associations
+
+The Wolfram Language writes a type of values of either kind as the pattern of either, `A | B`, and elaboration reads it as the sum [DisjointUnionType]()`[A, B]`. Where a sum is expected, a term of one side is injected, with `"left"` or `"right"` by its type, as a coercion is put in; a literal whose meaning depends on the type expected, a string or a symbol that names nothing, is a value of the first side that takes it:
+
+```wl
+NormalForm[TypeTheoryTerm[Typed[{2, "two"}, {NonNegativeIntegers | Strings}]]]
+```
+
+<!-- => {left[2], right["two"]} -->
+
+[Enclose]() and [Confirm]() are written with `"confirmBind"`, the bind of `A | Failure`. Each `Confirm[e]` of the body that no binder or inner `Enclose` holds is taken out, in the order the Wolfram Language evaluates them, the head first, then the arguments from the left, and the rest of the body continues with its value:
+
+```wl
+DefinitionallyEqualQ[
+    TypeTheoryTerm[Function[{Typed[a, NonNegativeIntegers | Failure], Typed[b, NonNegativeIntegers | Failure]}, Enclose[Confirm[a] + Confirm[b]]]],
+    TypeTheoryTerm[Function[{Typed[a, NonNegativeIntegers | Failure], Typed[b, NonNegativeIntegers | Failure]},
+        "confirmBind"[a, Function[{Typed[x, NonNegativeIntegers]}, "confirmBind"[b, Function[{Typed[y, NonNegativeIntegers]}, Typed["left"[x + y], NonNegativeIntegers | Failure]]]]]
+    ]]
+]
+```
+
+<!-- => True -->
+
+An association `<|k -> v, ...|>` is its keys put in one after another with `"associationInsert"`, from the empty association, so its types are those of its keys and values. Where an expression is expected, as in the details of a failure, an association, a [Failure]() and a [Missing]() are the expressions they write:
+
+```wl
+TypeTheoryType[Failure["NotFound", <|"Key" -> "plums", "Reason" -> Missing["KeyAbsent", "plums"]|>]]
+```
+
+<!-- => Failure -->
 
 ## Holes
 
@@ -226,7 +267,7 @@ reversed[s_] := StringReverse[s];
 Last[TypeTheoryFormalize[reversed, "Meaning" -> "Rules"]]
 ```
 
-<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValue[StringReverse[s]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->
+<!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValue[StringReverse[s]]] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]] -->
 
 ## Typing in the Compiler and in Mathematics
 

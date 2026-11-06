@@ -63,7 +63,7 @@ Add a theorem to the prelude, proved by computation:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The declaration of the new constant:
 
@@ -81,7 +81,7 @@ A library environment by its name, here the integers:
 TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 305 constants -->
+<!-- => TypeTheoryEnvironment summary box: 325 constants -->
 
 ---
 
@@ -97,7 +97,7 @@ squares = TypeTheoryEnvironment["Integers", {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 306 constants -->
+<!-- => TypeTheoryEnvironment summary box: 326 constants -->
 
 The theorem it declares:
 
@@ -141,7 +141,7 @@ trees = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 235 constants -->
+<!-- => TypeTheoryEnvironment summary box: 255 constants -->
 
 A node over a leaf and a node of two leaves has five nodes:
 
@@ -159,7 +159,7 @@ A single declaration needs no list. Assume a natural number about which nothing 
 mystery = TypeTheoryEnvironment[TypeTheoryAxiom[Mystery, Naturals]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 [Append]() adds one declaration, here a theorem about the axiom that holds by computation:
 
@@ -167,7 +167,7 @@ mystery = TypeTheoryEnvironment[TypeTheoryAxiom[Mystery, Naturals]]
 Append[mystery, TypeTheoryTheorem[MysteryPlusZero, Mystery + 0 == Mystery, "equalityReflexivity"[Mystery]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 ---
 
@@ -266,7 +266,7 @@ The rationals, which extend the integers:
 TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 384 constants -->
+<!-- => TypeTheoryEnvironment summary box: 404 constants -->
 
 ---
 
@@ -306,7 +306,7 @@ How many constants of each kind the prelude has:
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 23, "Constructor" -> 37, "Recursor" -> 24, "Definition" -> 66, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|> -->
+<!-- => <|"InductiveType" -> 26, "Constructor" -> 40, "Recursor" -> 27, "Definition" -> 77, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|> -->
 
 ---
 
@@ -356,7 +356,7 @@ An environment with a theorem:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Save it in a file:
 
@@ -372,7 +372,7 @@ Read it back:
 saved = TypeTheoryEnvironment[file]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 It has the same declarations:
 
@@ -400,7 +400,7 @@ Rebuild the prelude from its declarations on the empty environment, checked at o
 TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[TypeTheoryEnvironment["Prelude"]], Method -> "Compiled"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 230 constants -->
+<!-- => TypeTheoryEnvironment summary box: 250 constants -->
 
 ---
 
@@ -438,7 +438,7 @@ Add a theorem to the prelude:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Add an axiom to that environment:
 
@@ -446,7 +446,7 @@ Add an axiom to that environment:
 extended = Append[arithmetic, TypeTheoryAxiom[Origin, Naturals]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 The new environment has the axiom:
 
@@ -492,7 +492,7 @@ Declarations without an environment extend the default one, here the integers fo
 Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryEnvironment[{TypeTheoryDefinition[IntegerSquare, Typed[x, Integers] |-> x x]}]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 306 constants -->
+<!-- => TypeTheoryEnvironment summary box: 326 constants -->
 
 ---
 
@@ -502,7 +502,7 @@ Add a theorem to the prelude:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 [Normal]() gives the declarations, which rebuild the environment on the empty one:
 

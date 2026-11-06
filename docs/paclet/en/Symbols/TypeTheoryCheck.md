@@ -106,7 +106,7 @@ A type of bits:
 bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The type has no environment, so it takes the term's:
 
@@ -148,7 +148,7 @@ The number of constants that checked:
 checked["Constants"]
 ```
 
-<!-- => 230 -->
+<!-- => 250 -->
 
 ---
 
@@ -190,7 +190,7 @@ An environment with a theorem:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Save it in a file:
 
@@ -206,7 +206,7 @@ Read it back, which does not check its declarations:
 saved = TypeTheoryEnvironment[file]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Check them afterwards:
 

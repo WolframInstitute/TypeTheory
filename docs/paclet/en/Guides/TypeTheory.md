@@ -146,6 +146,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [CartesianProductType]() pairs, made with `"pair"`
 - [DisjointUnionType]() sums, written `A | B`, made with `"left"` and `"right"`, or injected where the sum is expected
 - [Failure]() failures, `Failure[tag, details]`: a computation that may fail has a value of `A | Failure`, written with [Enclose]() and [Confirm](), and [If]() branches by a [Decidable]() condition
+- [Association]() associations, `<|k -> v, ...|>`, with [Lookup]() giving `V | Missing`, [Keys](), [Values](), [KeyExistsQ]() and [Length](); [Missing]() missing values, `Missing[reason, details...]`
 - [Option]() optional values, `"none"` and `"some"`
 - [List]() lists, built from `{}` by [Prepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
 - `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`, `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"`, `"lengthReverse"` the laws of lists

@@ -20,7 +20,7 @@ The prelude has inductive types, with their constructors and recursors, definiti
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 23, "Constructor" -> 37, "Recursor" -> 24, "Definition" -> 66, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|> -->
+<!-- => <|"InductiveType" -> 26, "Constructor" -> 40, "Recursor" -> 27, "Definition" -> 77, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|> -->
 
 It is read when the paclet loads from a file saved with the paclet, whose declarations the kernel checked when it was saved, under the rules of the calculus of inductive constructions, [TypeTheoryRules](). Three of its constants are axioms, assumed and not proved:
 

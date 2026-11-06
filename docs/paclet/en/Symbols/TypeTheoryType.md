@@ -160,7 +160,7 @@ A type of bits:
 bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The type of one of its constructors, in that environment, given as the second argument:
 

@@ -5,7 +5,7 @@ Title: The Wolfram Language
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheWolframLanguage
-Keywords: [Wolfram Language, expressions, sums, Alternatives, Failure, Enclose, Confirm, errors, Sequence, List, heterogeneous list, currying, pattern matching, Match, MatchValue, MatchSum, MatchPart, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
+Keywords: [Wolfram Language, expressions, sums, Alternatives, Failure, Enclose, Confirm, errors, Association, Lookup, Missing, Keys, Values, Sequence, List, heterogeneous list, currying, pattern matching, Match, MatchValue, MatchSum, MatchPart, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [PatternsAndRewriting, Elaboration, ThePrelude, TypeTheoryIntroduction]
 ---
@@ -143,6 +143,64 @@ TypeTheoryType[Typed[x, NonNegativeIntegers | Failure] |-> Confirm[x] + 1]
 ```
 
 <!-- => Failure["ElaborationFailed", ...]: Confirm[x] is outside an Enclose -->
+
+## Associations
+
+`<|k -> v, ...|>` is an association, of the type [Association]()`[K, V]` for keys of the type `K` and values of the type `V`. Each key is in it once, in the order it was put in:
+
+```wl
+TypeTheoryType[<|"apples" -> 3, "pears" -> 5|>]
+```
+
+<!-- => Association[Strings, ℕ] -->
+
+A later value of a key replaces the earlier one in its place, as in the Wolfram Language:
+
+```wl
+NormalForm[TypeTheoryTerm[<|"apples" -> 3, "pears" -> 5, "apples" -> 4|>]]
+```
+
+<!-- => <|"apples" -> 4, "pears" -> 5|> -->
+
+[Lookup]() of a key may find nothing, so its value is of the type `V | Missing`:
+
+```wl
+TypeTheoryType[Typed[stock, Association[Strings, NonNegativeIntegers]] |-> Lookup[stock, "apples"]]
+```
+
+<!-- => Association[Strings, ℕ] → (ℕ | Missing) -->
+
+A key that is not there gives [Missing]()`["KeyAbsent", key]`, as in the Wolfram Language; `Missing[reason, details...]` is a value that is not there, its details any number of expressions:
+
+```wl
+NormalForm[TypeTheoryTerm[Lookup[<|"apples" -> 3, "pears" -> 5|>, "plums"]]]
+```
+
+<!-- => right[Missing["KeyAbsent", "plums"]] -->
+
+The lookup of a key that is there gives its value, whatever the value is, which the kernel proves by computing:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Lookup[<|"apples" -> n, "pears" -> 5|>, "apples"] == Typed["left"[n], NonNegativeIntegers | Missing]], {"Introduce"[n], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+Keys are compared as the Wolfram Language compares them, by [SameQ]() of the expressions they are, so the type of the keys has an instance of the class `"Quotable"`, which gives the expression of each value; the prelude has one for the natural numbers, the strings and the expressions:
+
+```wl
+TypeTheoryType["quote"]
+```
+
+<!-- => ∀_{K ∶ Type u} ∀_[q ∶ Quotable[K]] K → Expressions -->
+
+[Keys](), [Values](), [KeyExistsQ]() and [Length]() are what they are in the Wolfram Language, beside their meanings for lists:
+
+```wl
+TypeTheoryType[Typed[stock, Association[Strings, NonNegativeIntegers]] |-> Sequence[Keys[stock], Values[stock]]]
+```
+
+<!-- => Association[Strings, ℕ] → [{Strings}, {ℕ}] -->
 
 ## The Monad of Matches
 

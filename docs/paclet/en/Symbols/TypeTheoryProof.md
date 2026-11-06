@@ -117,7 +117,7 @@ proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n
 proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The theorem states what the proof proved:
 
@@ -344,7 +344,7 @@ triangular[n_Integer] := n + triangular[n - 1];
 programs = TypeTheoryEnvironment[TypeTheoryFormalize[triangular]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Twice the n-th triangular number is n (n + 1). By induction, the case of zero computes, and in the case of `k + 1` the definition unfolds once, leaving algebra with the induction hypothesis:
 
@@ -375,7 +375,7 @@ total[{x_, rest___}] := x + total[{rest}];
 programs = TypeTheoryEnvironment[TypeTheoryFormalize[total]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The sum of two lists joined is the sum of their sums. After induction on the first list, the case of a list with a first element `x`:
 

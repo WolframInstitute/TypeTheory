@@ -39,7 +39,7 @@ trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The declaration adds the type, its constructors and its recursor:
 
@@ -71,7 +71,7 @@ counted = Append[trees, TypeTheoryDefinition[NodeCount, Typed[
 ]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 235 constants -->
+<!-- => TypeTheoryEnvironment summary box: 255 constants -->
 
 A node over a leaf and a node of two leaves has five nodes:
 
@@ -95,7 +95,7 @@ lights = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 236 constants -->
+<!-- => TypeTheoryEnvironment summary box: 256 constants -->
 
 Two steps after red:
 
@@ -124,7 +124,7 @@ labelled = TypeTheoryEnvironment[{TypeTheoryInductiveType[LabelledTree, ForAll[{
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The parameter is found from the labels:
 
@@ -157,7 +157,7 @@ vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The length in a vector's type is checked by computation:
 
@@ -186,7 +186,7 @@ evens = TypeTheoryEnvironment[TypeTheoryInductiveType[EvenNumber, TypeSpecifier[
 }]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 6 is even, by the constructors applied in turn:
 
@@ -208,7 +208,7 @@ pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 233 constants -->
+<!-- => TypeTheoryEnvironment summary box: 253 constants -->
 
 Its fields are projections:
 
@@ -233,7 +233,7 @@ parity = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 237 constants -->
+<!-- => TypeTheoryEnvironment summary box: 257 constants -->
 
 Three is odd:
 
@@ -261,7 +261,7 @@ roses = TypeTheoryEnvironment[{TypeTheoryInductiveType[Rose, TypeUniverse[1], {
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 The declaration adds a recursor on the trees and one on their lists:
 
@@ -295,7 +295,7 @@ labelSums = Append[roses, TypeTheoryDefinition[LabelSum, Typed[
 ]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 235 constants -->
+<!-- => TypeTheoryEnvironment summary box: 255 constants -->
 
 The labels of a tree of four nodes add up to 10:
 
@@ -317,7 +317,7 @@ indexed = TypeTheoryEnvironment[{TypeTheoryInductiveType[Labelled, ForAll[{Typed
 }, "Parameters" -> 0]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 233 constants -->
+<!-- => TypeTheoryEnvironment summary box: 253 constants -->
 
 Its declaration:
 
@@ -382,7 +382,7 @@ mirrored = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 235 constants -->
+<!-- => TypeTheoryEnvironment summary box: 255 constants -->
 
 The mirror image of a tree:
 
@@ -419,7 +419,7 @@ trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 A constructor is a function into its type:
 
@@ -449,7 +449,7 @@ pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[NaturalPair, TypeUniverse[
 }]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 233 constants -->
+<!-- => TypeTheoryEnvironment summary box: 253 constants -->
 
 A pair is equal by computation to the pair of its fields:
 

@@ -191,7 +191,7 @@ roses = TypeTheoryEnvironment[{TypeTheoryInductiveType[Rose, TypeUniverse[1], {
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 234 constants -->
+<!-- => TypeTheoryEnvironment summary box: 254 constants -->
 
 A tree nested in a list of trees has a recursor on the list as well, with the same motives and minor premises:
 
@@ -212,7 +212,7 @@ sums = TypeTheoryEnvironment[{TypeTheoryDefinition[SumTo, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 It computes in the kernel:
 

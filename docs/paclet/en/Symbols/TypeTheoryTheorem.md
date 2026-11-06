@@ -33,7 +33,7 @@ A theorem proved by computation:
 arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Its declaration:
 
@@ -65,7 +65,7 @@ The theorem it proves, which the kernel checks again:
 proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroLeftIdentity, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Its statement is what the proof proved:
 
@@ -110,7 +110,7 @@ squares = TypeTheoryEnvironment["Integers", {TypeTheoryTheorem[SquareOfSum, Type
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 306 constants -->
+<!-- => TypeTheoryEnvironment summary box: 326 constants -->
 
 The theorem it declares:
 
@@ -130,7 +130,7 @@ proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroLeftIdentity, TypeTheoryPro
 }]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 Applied to 7, it states `0 + 7 == 7`:
 
@@ -189,7 +189,7 @@ later = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, TypeTheoryProo
 ]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 232 constants -->
+<!-- => TypeTheoryEnvironment summary box: 252 constants -->
 
 The environment holds a constant for the hole before the theorem:
 
@@ -217,7 +217,7 @@ A theorem with a citation:
 cited = TypeTheoryEnvironment[TypeTheoryTheorem[OnePlusOne, 1 + 1 == 2, "equalityReflexivity"[2], "Annotation" -> "Principia Mathematica, *54.43"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 The annotation, as it was given:
 
@@ -250,7 +250,7 @@ A theorem never unfolds. Proved by computation:
 arithmetic = TypeTheoryEnvironment[TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 It computes to itself, not to its proof:
 
@@ -288,7 +288,7 @@ squares = TypeTheoryEnvironment["Integers", {TypeTheoryTheorem[SquareOfSum, Type
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 306 constants -->
+<!-- => TypeTheoryEnvironment summary box: 326 constants -->
 
 The axiom it rests on:
 

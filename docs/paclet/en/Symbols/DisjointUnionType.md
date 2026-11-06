@@ -132,7 +132,7 @@ counts = TypeTheoryEnvironment[{TypeTheoryDefinition[AsNumber, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 231 constants -->
+<!-- => TypeTheoryEnvironment summary box: 251 constants -->
 
 On the left side:
 
