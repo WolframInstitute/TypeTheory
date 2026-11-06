@@ -155,8 +155,7 @@ TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomCl
 (* TypeTheoryType holds its argument, an expression of the type theory as a statement of TypeTheoryProof is, or a
    TypeTheoryTerm: written out, with PacletSymbol as its head as code copied from a documentation page has it, or kept
    in a symbol; a term computed by an expression is given with Evaluate *)
-SetAttributes[TypeTheoryType, HoldAll]
-SetAttributes[TypeTheoryType, SequenceHold]
+SetAttributes[TypeTheoryType, HoldAllComplete]
 TypeTheoryType[term_] := typeOfTerm[givenTerm[term, None]]
 TypeTheoryType[term_, environment_] := With[{evaluated = environmentNamed[environment]}, typeOfTerm[givenTerm[term, evaluated]] /; environmentQ[evaluated]]
 TypeTheoryType[_, environment_] := With[{evaluated = environmentNamed[environment]}, evaluated /; FailureQ[evaluated]]

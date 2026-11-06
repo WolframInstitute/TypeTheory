@@ -155,8 +155,7 @@ instantiateProofTerm::usage = "instantiateProofTerm[data, term] replaces the sol
 
 Options[TypeTheoryProof] = {"UniverseParameters" -> Automatic}
 
-SetAttributes[TypeTheoryProof, HoldAll]
-SetAttributes[TypeTheoryProof, SequenceHold]
+SetAttributes[TypeTheoryProof, HoldAllComplete]
 SetAttributes[TypeTheoryTactic, HoldAll]
 SetAttributes[TypeTheoryTactic, SequenceHold]
 

@@ -250,3 +250,15 @@ VerificationTest[
 	{True, True, True, True, True},
 	TestID -> "Unevaluated-quotes-and-HoldForm-is-a-head-as-any-other"
 ]
+
+(* TypeTheoryType and TypeTheoryProof keep an Unevaluated they are given, as HoldAllComplete functions do in the Wolfram
+   Language, so a quotation means the same at the top as inside a term *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryType[Unevaluated[1 + 2]], TypeTheoryTerm[Expressions]],
+		DefinitionallyEqualQ[TypeTheoryType[1 + 2], TypeTheoryTerm[NonNegativeIntegers]],
+		TypeTheoryProof[Unevaluated[1 + 2] == Construct[Unevaluated[Plus], 1, 2], {"Reflexivity"}]["Goals"]
+	},
+	{True, True, {}},
+	TestID -> "A-quotation-at-the-top-of-a-query-is-kept"
+]
