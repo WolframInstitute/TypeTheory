@@ -55,6 +55,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - [DefinitionallyEqualQ]() whether two terms are equal by computation
 - [WeakHeadNormalForm]() a term reduced until its head can no longer reduce
 - [NormalForm]() a term reduced in every part, under its binders too: its value, as Lean's `#reduce`
+- [TypeTheoryExpression]() the expression of the Wolfram Language a term's value stands for: a number, a list, a [Function]()
 
 ### Proofs
 

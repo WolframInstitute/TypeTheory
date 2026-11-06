@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/NormalForm
 Keywords: [normal form, reduction, computation, evaluation, reduce, beta reduction, unfolding, under binders, proof by computation, #reduce]
-SeeAlso: [WeakHeadNormalForm, DefinitionallyEqualQ, TypeTheoryTerm, TypeTheoryType, TypeTheoryDefinition]
+SeeAlso: [WeakHeadNormalForm, DefinitionallyEqualQ, TypeTheoryExpression, TypeTheoryTerm, TypeTheoryType, TypeTheoryDefinition]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 ---

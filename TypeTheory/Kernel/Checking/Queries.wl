@@ -166,7 +166,7 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Expression"] := Ty
 termReading[term_TypeTheoryTerm] := catchKernelFailure[Replace[NormalForm[term], {
 	normal : TypeTheoryTerm[_, ___] :> With[{quotients = quotientReadings[termEnvironment[normal]]},
 		Replace[wolframReading[heldExpression[normal], quotients], None :> Replace[writtenReading[termEnvironment[term], heldExpression[term], quotients], {
-			None :> kernelFailure["NoExpression", "`1` has no reading as an expression of the Wolfram Language.", {normal}]
+			None :> kernelFailure["NoExpression", "`1` has no reading as an expression of the Wolfram Language.", {term}]
 		}]]
 	],
 	failure_Failure :> failure

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTerm
 Keywords: [term, type, surface syntax, Function, Typed, ForAll, Implies, Exists, dependent type, held, Booleans, overloading, ambiguous, implicit argument, PacletSymbol, notation]
-SeeAlso: [TypeTheoryType, TypeTheoryEnvironment, TypeTheoryCheck, TypeUniverse, TypedImplicit, WeakHeadNormalForm, NormalForm, DefinitionallyEqualQ, TypeTheoryAxiomClosure]
+SeeAlso: [TypeTheoryType, TypeTheoryEnvironment, TypeTheoryCheck, TypeUniverse, TypedImplicit, WeakHeadNormalForm, NormalForm, DefinitionallyEqualQ, TypeTheoryAxiomClosure, TypeTheoryExpression]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 ---
@@ -49,7 +49,7 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 - A term copied from a documentation page writes each symbol of the paclet as `PacletSymbol[paclet, name]`; the term stores the symbol it names.
 - In a notebook a term shows in mathematical notation, with the term itself behind the display.
 - A constant shows as its symbol or string, applied to its arguments that are not implicit. TypeTheory builds that expression, with its parts already shown, and gives it to [MakeBoxes](), so [MakeBoxes]() definitions give a constant a notation and [Format]() definitions give its symbol a display, in terms, declarations and proofs alike.
-- <code>[Information]()[*term*, "AxiomClosure"]</code> gives the axioms *term* rests on, as [TypeTheoryAxiomClosure]() does, <code>[Information]()[*term*, "Holes"]</code> the holes it rests on, <code>[Information]()[*term*, "Constants"]</code> the constants its type and value mention, <code>[Information]()[*term*, "Annotation"]</code> the annotation of a hole, <code>[Information]()[*term*, "ProofTree"]</code> its derivation, as [TypeTheoryProofTree]() gives it, and <code>[Information]()[*term*, "Implementation"]</code> the function that computes an axiom.
+- <code>[Information]()[*term*, "AxiomClosure"]</code> gives the axioms *term* rests on, as [TypeTheoryAxiomClosure]() does, <code>[Information]()[*term*, "Holes"]</code> the holes it rests on, <code>[Information]()[*term*, "Constants"]</code> the constants its type and value mention, <code>[Information]()[*term*, "Annotation"]</code> the annotation of a hole, <code>[Information]()[*term*, "ProofTree"]</code> its derivation, as [TypeTheoryProofTree]() gives it, <code>[Information]()[*term*, "Implementation"]</code> the function that computes an axiom, and <code>[Information]()[*term*, "Expression"]</code> the expression of the Wolfram Language its value stands for, as [TypeTheoryExpression]() gives it.
 
 ## Basic Examples
 
@@ -409,7 +409,7 @@ The properties [Information]() gives of a term:
 Information[TypeTheoryTerm[2 + 3], "Properties"]
 ```
 
-<!-- => {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"} -->
+<!-- => {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation", "Expression"} -->
 
 ---
 
