@@ -23,7 +23,7 @@ VerificationTest[
 			"integerLessEqualOfDifference", "integerLessEqualOfMultiple", "integerOfNaturalLessEqual"
 		}
 	},
-	{True, {"propositionalExtensionality", "quotientSoundness", "choice"}, ConstantArray[True, 19]},
+	{True, {"propositionalExtensionality", "quotientSoundness", "choice", ExpressionEvaluate}, ConstantArray[True, 19]},
 	TestID -> "The-integers-and-their-laws-check"
 ]
 

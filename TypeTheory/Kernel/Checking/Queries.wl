@@ -88,7 +88,7 @@ NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every 
 TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of the TypeTheoryTerm proof, a proof of propositional logic. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\" or \"FalseElim\"."
 
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
-unnamedEnvironment::usage = "unnamedEnvironment[HoldComplete[term]] gives the environment a term given without one is in: the default environment, or TypeTheoryEnvironment[\"WolframLanguage\"] where the default is the prelude and the term names what only that environment declares."
+unnamedEnvironment::usage = "unnamedEnvironment[HoldComplete[term]] gives the environment a term given without one is in, the default environment."
 heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
 termSyntax::usage = "termSyntax[term] gives the syntax tree of the TypeTheoryTerm term."
 declarationOf::usage = "declarationOf[environment, HoldComplete[name], mode] gives the declaration that introduced the constant name, \
@@ -99,21 +99,12 @@ its terms read back for display (mode \"Display\") or exactly (mode \"Exact\")."
 (*Function Definitions*)
 
 
-(* a term without an environment is in the default environment; where that is the prelude, a term that names what only
-   TypeTheoryEnvironment["WolframLanguage"] declares, as Arguments, Head or Expressions, is in that environment *)
+(* a term without an environment is in the default environment *)
 termEnvironment[TypeTheoryTerm[_, environment_?environmentQ]] := environment
 termEnvironment[TypeTheoryTerm[_, name_String]] := environmentNamed[name]
 termEnvironment[TypeTheoryTerm[term_]] := unnamedEnvironment[HoldComplete[term]]
 
-unnamedEnvironment[held_HoldComplete] := With[{default = defaultEnvironment[]},
-	If[default === preludeEnvironment[] && ! FreeQ[held, $wolframLanguageNames], wolframLanguageEnvironment[], default]
-]
-
-(* the names that only the Wolfram Language environment declares, and the forms of its sequences *)
-$wolframLanguageNames = Alternatives[
-	Atoms, Expressions, Strings, Arguments, ExpressionEvaluate, Match, MatchValue, MatchSum, MatchPart, MatchBind, MatchFirst,
-	Head, AtomQ, SameQ, MatchQ, Replace, ReplaceList, ReplaceAll, ReplaceRepeated, HoldForm, Unevaluated, RepeatedNull
-]
+unnamedEnvironment[_HoldComplete] := defaultEnvironment[]
 
 heldTerm[TypeTheoryTerm[term_, ___]] := HoldComplete[term]
 

@@ -546,6 +546,9 @@ elaborateHead[syntax : syntaxString[name_]] /; ! KeyExistsQ[$elaborationScope, H
 	constantWithFreshLevels[HoldComplete[name]]
 elaborateHead[syntax_syntaxApplication] /; declaredConstantSyntaxQ[syntax] := constantWithFreshLevels[constantNameOfSyntax[syntax]]
 elaborateHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}]] := constantWithLevels[constant, {levels}]
+(* a string that names nothing applied to arguments is no string, which is no function, but a constant misspelled *)
+elaborateHead[syntax : syntaxString[name_String]] /; unnamedStringQ[name] :=
+	elaborationFailure["`1` is not a term of the type theory: it is neither a variable in scope nor a declared constant.", syntax]
 elaborateHead[syntax_] := elaborateSyntax[syntax, None]
 
 (* Implicit binders get metavariables, and each explicit binder takes the next argument, elaborated at

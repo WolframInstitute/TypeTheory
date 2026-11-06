@@ -24,7 +24,7 @@ VerificationTest[
 		},
 		MatchQ[rationals["rationalEqualityDecidable"], TypeTheoryDefinition[__, "Instance" -> True]]
 	},
-	{True, {"propositionalExtensionality", "quotientSoundness", "choice"}, ConstantArray[True, 15], True},
+	{True, {"propositionalExtensionality", "quotientSoundness", "choice", ExpressionEvaluate}, ConstantArray[True, 15], True},
 	TestID -> "The-rationals-and-their-laws-check"
 ]
 

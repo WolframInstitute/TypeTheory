@@ -28,7 +28,7 @@ VerificationTest[
 		Information[prelude, "Axioms"],
 		MatchQ[prelude["functionExtensionality"], TypeTheoryTheorem[__]]
 	},
-	{4, 1, {"propositionalExtensionality", "quotientSoundness", "choice"}, True},
+	{4, 1, {"propositionalExtensionality", "quotientSoundness", "choice", ExpressionEvaluate}, True},
 	TestID -> "The-prelude-has-Lean's-quotients-and-axioms"
 ]
 

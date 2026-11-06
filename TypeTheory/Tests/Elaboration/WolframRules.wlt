@@ -72,7 +72,8 @@ VerificationTest[
 	TestID -> "Heads-literals-repeated-names-alternatives-and-conditions-translate"
 ]
 
-(* a pattern inside an association, an atom, another environment and another meaning are Failures; a search translates *)
+(* a pattern inside an association, an atom, an environment without matches, as the constructive one, and another meaning
+   are Failures; a search translates *)
 VerificationTest[
 	Block[{searched, keyed},
 		searched[x__, y__] := {x};
@@ -80,7 +81,7 @@ VerificationTest[
 		{
 			MatchQ[TypeTheoryFormalize[searched, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"], {___, _TypeTheoryDefinition}],
 			First[TypeTheoryFormalize[keyed, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Rules"]],
-			First[TypeTheoryFormalize[searched, TypeTheoryEnvironment["Prelude"], "Meaning" -> "Rules"]],
+			First[TypeTheoryFormalize[searched, TypeTheoryEnvironment["Constructive"], "Meaning" -> "Rules"]],
 			First[TypeTheoryFormalize[searched, TypeTheoryEnvironment["WolframLanguage"], "Meaning" -> "Everything"]]
 		}
 	],

@@ -23,8 +23,8 @@ VerificationTest[
 ]
 
 (* with the compiler: a definition that translates is typed by elaboration, the symbols it calls formalized first and
-   the built-ins it calls declared by their signatures, the string functions over Strings and each string literal a
-   constant of it; one that does not, as one of Style, is an axiom Wolfram computes, of the type
+   the built-ins it calls declared by their signatures, the string functions over Strings and each string literal the
+   string of its character codes; one that does not, as one of Style, is an axiom Wolfram computes, of the type
    "Type" gives or over Expressions. Without it, an axiom of the type "Type" gives. *)
 VerificationTest[
 	Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Rationals"], square, next, simplified, styled, reversed, greeting},
@@ -43,7 +43,7 @@ VerificationTest[
 				Last[TypeTheoryFormalize[styled]] === TypeTheoryAxiom[styled, Expressions -> Expressions, "Implementation" -> styled],
 				Last[TypeTheoryFormalize[reversed]] === TypeTheoryDefinition[reversed, Function[{s}, StringReverse[s]]],
 				TypeTheoryFormalize[styled, "Type" -> Integers -> Integers] === {TypeTheoryAxiom[styled, Integers -> Integers, "Implementation" -> styled]},
-				MemberQ[TypeTheoryFormalize[greeting], TypeTheoryAxiom["\"Hello, \"", Strings]],
+				MatchQ[Last[TypeTheoryFormalize[greeting]], HoldPattern[TypeTheoryDefinition[greeting, Function[{s}, StringJoin["string"[{72, 101, 108, 108, 111, 44, 32}], s]]]]],
 				First[TypeTheoryType[TypeTheoryTerm[greeting, TypeTheoryEnvironment[$TypeTheoryEnvironment, TypeTheoryFormalize[greeting]]]]] === (Strings -> Strings)
 			} === {True, True, True, True, True, True, True, True}
 		]

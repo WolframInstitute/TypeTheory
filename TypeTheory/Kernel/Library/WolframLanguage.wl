@@ -1,8 +1,9 @@
 (* ::Package::"Tags"-><|"BadSymbol" -> <|"Match" -> <|Enabled -> False|>|>|>:: *)
 
 (*
-The Wolfram Language: TypeTheoryEnvironment["WolframLanguage"] is the prelude with the expressions of the Wolfram
-Language and the monad of pattern matching, built and checked the first time it is asked for.
+The Wolfram Language: the prelude declares the expressions of the Wolfram Language, its strings and atoms as data, and the
+monad of pattern matching; TypeTheoryEnvironment["WolframLanguage"] is the prelude, by the name it had when these were an
+environment of their own.
 
 	Strings                         the strings, each the list of its character codes, "string"[{97, 98}], which a
 	                                string literal "ab" is where a string is expected
@@ -76,6 +77,7 @@ PackageExported[MatchFirst]
 
 
 PackageScoped[wolframLanguageEnvironment]
+PackageScoped[$wolframLanguageDeclarations]
 
 
 (* ::Section:: *)
@@ -93,18 +95,16 @@ MatchSum::usage = "MatchSum[m1, m2] is the match whose results are those of m1, 
 MatchPart::usage = "MatchPart[e, k, f] is the match f of the part of the expression e at the position k, 0 its head and k its k-th argument, with no result where e has no such part."
 MatchBind::usage = "MatchBind[m, f] is the match whose results are those of f applied to each result of m, in order."
 MatchFirst::usage = "MatchFirst[m] is the first result of the match m, \"some\" of it, or \"none\" where m has none: the rule the Wolfram Language applies."
-wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prelude with the expressions of the Wolfram Language and the monad of pattern matching, built and checked the first time it is asked for."
+wolframLanguageEnvironment::usage = "wolframLanguageEnvironment[] gives the prelude, which declares the expressions of the Wolfram Language and the monad of pattern matching."
+$wolframLanguageDeclarations::usage = "$wolframLanguageDeclarations is the list of the prelude's declarations of the Wolfram Language's strings, atoms, expressions, sequences and matches."
 
 
 (* ::Section:: *)
 (*Function Definitions*)
 
 
-wolframLanguageEnvironment[] := builtWolframLanguageEnvironment[]
-
-builtWolframLanguageEnvironment[] := builtWolframLanguageEnvironment[] = withoutStoreTracking[
-	libraryEnvironment["WolframLanguage", preludeEnvironment[], withStoreCleanup[TypeTheoryEnvironment[preludeEnvironment[], $wolframLanguageDeclarations]]]
-]
+(* the prelude declares them: the Wolfram Language environment is the prelude, by its old name *)
+wolframLanguageEnvironment[] := preludeEnvironment[]
 
 $wolframLanguageDeclarations = {
 	(* a string is the list of the codes of its characters, so that two strings compare by computation; an atom is a

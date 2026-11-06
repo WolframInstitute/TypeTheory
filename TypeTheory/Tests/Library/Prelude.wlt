@@ -126,7 +126,7 @@ VerificationTest[
 			Information[prelude, "Axioms"]
 		}
 	],
-	{155, {}, True, False, {"propositionalExtensionality", "quotientSoundness", "choice"}},
+	{155, {}, True, False, {"propositionalExtensionality", "quotientSoundness", "choice", ExpressionEvaluate}},
 	TestID -> "The-constructive-environment-is-the-prelude-without-its-classical-part"
 ]
 
