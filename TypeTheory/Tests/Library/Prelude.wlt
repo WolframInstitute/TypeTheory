@@ -237,14 +237,18 @@ VerificationTest[
 	TestID -> "The-operations-on-lists-compute-and-their-laws-apply"
 ]
 
-(* A | B is the sum of A and B, as the pattern _A | _B; a value of either side where the sum is expected is injected *)
+(* A | B is the sum of A and B, as the pattern _A | _B; a value of either side where the sum is expected is injected, and
+   a string or a symbol that names nothing is a value of the first side that takes it *)
 VerificationTest[
 	{
 		MatchQ[TypeTheoryType[NonNegativeIntegers | Booleans], HoldPattern[TypeTheoryTerm[TypeUniverse[1], _]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Typed[3, NonNegativeIntegers | Booleans]], TypeTheoryTerm[Typed["left"[3], DisjointUnionType[NonNegativeIntegers, Booleans]]]],
 		DefinitionallyEqualQ[TypeTheoryTerm[Typed["true", NonNegativeIntegers | Strings | Booleans]], TypeTheoryTerm[Typed["right"["right"["true"]], DisjointUnionType[NonNegativeIntegers, DisjointUnionType[Strings, Booleans]]]]],
-		First[TypeTheoryType[Typed[Typed["x", Strings], NonNegativeIntegers | Booleans]]]
+		First[TypeTheoryType[Typed[Typed["x", Strings], NonNegativeIntegers | Booleans]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed["text", NonNegativeIntegers | Strings]], TypeTheoryTerm[Typed["right"[Typed["text", Strings]], NonNegativeIntegers | Strings]]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[unnamed, Failure | Expressions]], TypeTheoryTerm[Typed["right"[Typed[unnamed, Expressions]], Failure | Expressions]]],
+		First[TypeTheoryType[Typed["text", NonNegativeIntegers | Booleans]]]
 	},
-	{True, True, True, "TypeMismatch"},
+	{True, True, True, "TypeMismatch", True, True, "ElaborationFailed"},
 	TestID -> "A-sum-is-written-as-alternatives-and-takes-either-side"
 ]

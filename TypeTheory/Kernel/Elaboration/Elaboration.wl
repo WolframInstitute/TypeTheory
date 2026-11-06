@@ -394,6 +394,12 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	   for a name, as "true" does *)
 	syntaxString[text_] /; ! constantDeclaredQ[$elaborationEnvironment, HoldComplete[text]] && constantDeclaredQ[$elaborationEnvironment, HoldComplete @@ {ToString[text, InputForm]}] :>
 		elaborateSyntax[syntaxString[ToString[text, InputForm]], expected],
+	(* a string, and a symbol that names nothing, where a sum is expected is a value of the first side that takes it,
+	   injected: "text" where ℕ | Strings is expected is "right"["text"] *)
+	syntaxString[text_] /; unnamedStringQ[text] && ! stringExpectedQ[expected] && ! expressionExpectedQ[expected] && literalSummand[expected, stringOrExpressionQ] =!= None :>
+		injectedLiteral[syntax, literalSummand[expected, stringOrExpressionQ], expected],
+	syntaxSymbol[held : HoldComplete[_Symbol]] /; unnamedSymbolQ[held] && ! expressionExpectedQ[expected] && literalSummand[expected, expressionExpectedQ] =!= None :>
+		injectedLiteral[syntax, literalSummand[expected, expressionExpectedQ], expected],
 	(* a string literal where a string is expected is the list of its character codes; where an expression is expected,
 	   a string, a symbol that names nothing and a head that names nothing applied to its arguments stand for themselves,
 	   as a symbol without a value does in the Wolfram Language, and the arguments, expressions, compute *)
@@ -1416,6 +1422,20 @@ injected[term_, actual_, expected_] /; knownTypeQ[actual] && knownTypeQ[expected
 	}
 ]
 injected[_, _, _] := None
+
+(* the first side of the sum expected, A | (B | ...), for which the test holds, or None where none does or no sum is
+   expected *)
+literalSummand[expected_, test_] := If[expected === None || ! knownTypeQ[expected], None,
+	Replace[summands[expected], {{_} -> None, sides_ :> SelectFirst[sides, test, None]}]
+]
+summands[type_] := Replace[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]], {
+	application[application[constantReference[HoldComplete[DisjointUnionType], _], left_], right_] :> Prepend[summands[right], left],
+	other_ :> {other}
+}]
+stringOrExpressionQ[type_] := stringExpectedQ[type] || expressionExpectedQ[type]
+
+(* a literal checked against the side of the sum that takes it, and injected into the sum *)
+injectedLiteral[syntax_, summand_, expected_] := {injected[checkAgainst[syntax, summand], summand, expected], expected}
 
 coercedTerm[term_, actual_, expected_] := If[knownTypeQ[actual] && knownTypeQ[expected],
 	coercionChain[term, actual, expected, 0],
