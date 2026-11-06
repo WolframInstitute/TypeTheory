@@ -126,14 +126,13 @@ with the auxiliary types, and then `J ps` takes each one's place again. An auxil
 ## Natural numbers
 
 `registerNaturalNumbers` checks the shape of the type and its two constructors, and the type of each operation
-registered for a role: addition, subtraction, multiplication, comparisons, and so on. The kernel trusts that an
-operation computes on literals what its role's function computes on integers, as Lean's kernel trusts GMP. A constant
-registered for a role it does not compute makes the environment inconsistent, as a test shows with a projection
-registered as multiplication.
-
-An addition is checked further: its two defining equations, `t + zero == t` and `t + successor[s] == successor[t + s]`,
-must hold by computation for variables `t` and `s`. An addition by recursion on its first argument computes the
-literals right and fails the second. The equations are what the kernel reads terms through:
+registered for a role. An operation with defining equations, addition, multiplication, power, subtraction, equality
+and order, must satisfy them by computation for variables `t` and `s`, as the prelude's definitions do; an addition by
+recursion on its first argument computes the literals right and fails the second of its equations. An operation without
+them, as the greatest common divisor, is trusted to compute on literals what its role's function computes on integers,
+as Lean's kernel trusts GMP, and `TypeTheoryAxiomClosure` names its registration as a trusted assumption wherever a proof
+rests on it: a projection registered as the greatest common divisor proves `False`, as the tutorial *Paradoxes* shows.
+The addition's equations are what the kernel reads terms through:
 - definitional equality compares `x + k` with `y + k'` by their offsets, as Lean's kernel does, in a loop;
 - literal values are read by offsets, and a sum with a variable in it is no literal;
 - the registered addition reduces by its equations, its recursion folded, so its offset stays readable.

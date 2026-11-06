@@ -67,7 +67,9 @@ PackageScoped[declarationOf]
 
 TypeTheoryAxiomClosure::usage = "TypeTheoryAxiomClosure[term] gives the axioms the TypeTheoryTerm term rests on, through the types and values of the constants \
 it mentions and of the constants those mention, as <|axiom -> kind, ...|>: \"Proposition\" for an axiom that is a proposition, \"Signature\" for one whose \
-type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with.\n\
+type is a type, a parameter as a variable is, \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with, and \"Registration\" \
+for an operation on natural numbers registered without defining equations to check, which the kernel computes on literals as it trusts it to: \
+every trusted assumption, so that an empty closure means the term rests on the kernel alone.\n\
 TypeTheoryAxiomClosure[proof] gives the axioms the finished TypeTheoryProof proof rests on."
 TypeTheoryExpression::usage = "TypeTheoryExpression[term] gives the expression of the Wolfram Language that the TypeTheoryTerm term is, as it is written: its constants the symbols that name them, a constructor of the type theory as the data the Wolfram Language writes, as True, Missing[\"NotAvailable\"] or a list of two for a pair, a class of the integers or the rationals as its number, and ascriptions and the types of binders left out; or a Failure where something in it is the type theory's only, as a proof or a recursor is. Nothing reduces it: TypeTheoryExpression[NormalForm[term]] reads the value the kernel computes, which the reading evaluates to where the definitions in term are the Wolfram Language's.\n\
 TypeTheoryExpression[term, h] wraps the expression in h before it evaluates, as ToExpression does."
@@ -542,7 +544,8 @@ readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delabor
 (* Lean's #print axioms: the constants a term mentions, then those in the type and value of each, until an axiom,
    which is collected and its type followed, so that a signature's own parameters show; a constructor or recursor
    leads to its inductive type, and an inductive type to its constructors. A rewrite rule of a constant reached is
-   trusted as an axiom is. An axiom is a proposition when its type is a proposition, and a signature otherwise:
+   trusted as an axiom is, and so is the registration of an operation on natural numbers without defining equations,
+   which the kernel computes on literals unchecked: an empty closure means the term rests on the kernel alone. An axiom is a proposition when its type is a proposition, and a signature otherwise:
    a type, or a function into types, which a theorem holds for in every model, as for a variable. *)
 TypeTheoryAxiomClosure[term_TypeTheoryTerm] := catchKernelFailure @ Block[{closureEnvironment = termEnvironment[term]},
 	First[closureOf[closureEnvironment, queryCoreTerm[closureEnvironment, term]]]
@@ -600,6 +603,7 @@ holeGroups[environment_, holes_Association] := GroupBy[
 visitConstant[environment_, name_] := If[ ! KeyExistsQ[$closureVisited, name],
 	$closureVisited[name] = True;
 	visitRecord[environment, name, constantRecord[environment, name]];
+	If[uncheckedRegistrationQ[environment, name], $closureAxioms[name] = "Registration"];
 	Scan[Function[rule, $closureAxioms[rule] = "RewriteRule"], rewriteRuleNames[environment, name]]
 ]
 

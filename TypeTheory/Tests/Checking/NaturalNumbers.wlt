@@ -67,12 +67,20 @@ VerificationTest[
 	TestID -> "The-prelude-compares-literals-on-Booleans-in-one-step"
 ]
 
-(* a comparison of its own, registered by the alias Naturals on the prelude without its comparisons *)
+(* a comparison of its own, registered by the alias Naturals on the prelude without its comparisons: by recursion on
+   both arguments, as its defining equations hold by computation; (m - n) + (n - m) == 0 is equal to it only by proof,
+   and is refused *)
 withEquality = TypeTheoryEnvironment[beforeComparisons, {
 	TypeTheoryDefinition[
 		NaturalNumberEqual,
-		Function[{Typed[m, Naturals], Typed[n, Naturals]},
-			InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "false"], (m - n) + (n - m)]
+		Typed[
+			Function[{Typed[m, Naturals]}, InductiveRecursor[Naturals][
+				Function[{Typed[a, Naturals]}, Naturals -> Booleans],
+				Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][Function[{Typed[c, Naturals]}, Booleans], "true", Function[{Typed[c, Naturals], Typed[r, Booleans]}, "false"], n]],
+				Function[{Typed[a, Naturals], Typed[ih, Naturals -> Booleans]}, Function[{Typed[n, Naturals]}, InductiveRecursor[Naturals][Function[{Typed[c, Naturals]}, Booleans], "false", Function[{Typed[c, Naturals], Typed[r, Booleans]}, ih[c]], n]]],
+				m
+			]],
+			Naturals -> Naturals -> Booleans
 		]
 	],
 	TypeTheoryNaturalNumbers[Naturals, "zero", "successor", <|"Equal" -> NaturalNumberEqual|>]
@@ -89,18 +97,43 @@ VerificationTest[
 	TestID -> "A-later-registration-adds-an-operation-with-Boolean-values"
 ]
 
-(* the kernel trusts a registration to compute on literals: here a projection registered as multiplication computes as
-   multiplication *)
+(* the kernel trusts the registration of an operation without defining equations to compute on literals: here a
+   projection registered as the greatest common divisor computes as the greatest common divisor *)
 VerificationTest[
 	First @ WeakHeadNormalForm[TypeTheoryTerm[FirstNumber[2, 3], TypeTheoryEnvironment[beforeNaturalNumbers, {
 		TypeTheoryDefinition[
 			FirstNumber,
 			Typed[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]
 		],
-		TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Multiplication" -> FirstNumber|>]
+		TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"GCD" -> FirstNumber|>]
 	}]]],
-	6,
+	1,
 	TestID -> "A-registered-operation-is-trusted"
+]
+
+(* an operation with defining equations is checked against them, as addition is: a projection is no multiplication, a
+   constant true is no equality, and a multiplication needs an addition registered, which its equations use *)
+VerificationTest[
+	With[
+		{
+			first = TypeTheoryDefinition[FirstNumber, Typed[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]],
+			beforeComparisons = TypeTheoryEnvironment[TypeTheoryEnvironment[], TakeWhile[Normal[prelude], Function[declaration, ! MatchQ[declaration, TypeTheoryNaturalNumbers[_, _, _, operations_Association /; KeyExistsQ[operations, "Equal"]]]]]]
+		},
+		{
+			Lookup[Last @ TypeTheoryEnvironment[beforeNaturalNumbers, {TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", Plus], first, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Multiplication" -> FirstNumber|>]}], "MessageParameters"],
+			Lookup[Last @ TypeTheoryEnvironment[beforeComparisons, {
+				TypeTheoryDefinition[AlwaysTrue, Typed[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]} |-> "true", NonNegativeIntegers -> NonNegativeIntegers -> Booleans]],
+				TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Equal" -> AlwaysTrue|>]
+			}], "MessageParameters"],
+			Lookup[Last @ TypeTheoryEnvironment[beforeNaturalNumbers, {first, TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Multiplication" -> FirstNumber|>]}], "MessageParameters"]
+		}
+	],
+	{
+		{HoldForm[FirstNumber], "Multiplication", "t * zero == zero"},
+		{HoldForm[AlwaysTrue], "Equal", "equal[zero, successor[s]] == false"},
+		{HoldForm[FirstNumber], "Multiplication", "Addition"}
+	},
+	TestID -> "An-operation-with-defining-equations-is-refused-unless-they-hold"
 ]
 
 (* an addition must satisfy its defining equations by computation, which the offset rule reads terms by: a
@@ -127,7 +160,7 @@ VerificationTest[
 			TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", AdditionOnTheFirst]
 		}], "MessageParameters"]
 	},
-	{{HoldForm[FirstNumber], "t + successor[s] == successor[t + s]"}, {HoldForm[AdditionOnTheFirst], "t + zero == t"}},
+	{{HoldForm[FirstNumber], "Addition", "t + successor[s] == successor[t + s]"}, {HoldForm[AdditionOnTheFirst], "Addition", "t + zero == t"}},
 	TestID -> "An-addition-is-refused-unless-its-defining-equations-hold"
 ]
 
@@ -365,4 +398,20 @@ VerificationTest[
 	],
 	TypeTheoryEnvironment,
 	TestID -> "A-natural-number-below-2-to-the-63-is-in-the-range-of-the-machine-integers"
+]
+
+(* an equality equal to the reference only by proof, isZero[(m - n) + (n - m)], does not satisfy its defining equations
+   by computation, and is refused *)
+VerificationTest[
+	Last[Lookup[Last @ TypeTheoryEnvironment[beforeComparisons, {
+		TypeTheoryDefinition[
+			DifferenceEqual,
+			Function[{Typed[m, Naturals], Typed[n, Naturals]},
+				InductiveRecursor[Naturals][Function[{Typed[t, Naturals]}, Booleans], "true", Function[{Typed[k, Naturals], Typed[r, Booleans]}, "false"], (m - n) + (n - m)]
+			]
+		],
+		TypeTheoryNaturalNumbers[Naturals, "zero", "successor", <|"Equal" -> DifferenceEqual|>]
+	}], "MessageParameters"]],
+	"equal[successor[t], zero] == false",
+	TestID -> "An-equality-equal-to-the-reference-only-by-proof-is-refused"
 ]

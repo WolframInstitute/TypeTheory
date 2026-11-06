@@ -93,6 +93,29 @@ written as their recursor, applied to a successor, inside a sum and under a succ
 two successors, which are not, but where the recursion takes no step: with the rule and the folded addition on and with
 both off, all of them agree with each other and with what is expected, and so does everything else in the script.
 
+## Registrations and the trusted base
+
+Approved by Stephen, 2026-11-07, after a registration proved `False` with an empty axiom closure: a projection
+registered as the greatest common divisor computes `FirstNumber[2, 3]` as 1 on literals, and unfolds to 2, so
+`1 == 2`. The rule since:
+
+- **Checked:** an operation with defining equations is checked against them by computation, for variables, when it is
+  registered, and refused where one fails. The equations are those the prelude's definitions satisfy:
+  - addition: `t + zero == t`, `t + successor[s] == successor[t + s]`;
+  - multiplication: `t * zero == zero`, `t * successor[s] == t * s + t`, with an addition registered;
+  - power: `t ^ zero == successor[zero]`, `t ^ successor[s] == t ^ s * t`, with a multiplication registered;
+  - subtraction: `t - zero == t`, `t - successor[s] == predecessor[t - s]`, the predecessor by the recursor;
+  - equality and order: `equal` and `lessEqual` on `zero` and successors, in four and three equations.
+
+  An operation equal to the prelude's only by a proof, as `isZero[(m - n) + (n - m)]` for equality, is refused: the
+  kernel computes the role on literals, which must agree with what the definition computes.
+- **Trusted:** an operation without simple equations, the quotient, the remainder, the greatest common divisor, the
+  logarithm, the bitwise operations and the shifts, is accepted and trusted, as Lean's kernel trusts GMP, but its
+  registration stays a trusted assumption: `TypeTheoryAxiomClosure` names it, as `"Registration"`, wherever a proof
+  rests on it. The prelude registers none of these.
+- **The closure** names every trusted assumption a proof rests on: axioms, rewrite rules and unchecked registrations.
+  An empty closure means the proof rests on the kernel alone.
+
 ## Routes
 
 **(1): elaboration only, no trusted code changed.**

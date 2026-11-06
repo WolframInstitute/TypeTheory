@@ -36,6 +36,7 @@ PackageScoped[literalOperationResult]
 PackageScoped[naturalNumberOperationRoles]
 PackageScoped[naturalOffsetsEqualQ]
 PackageScoped[registeredAdditionQ]
+PackageScoped[uncheckedRegistrationQ]
 PackageScoped[additionReduct]
 PackageScoped[$foldedAddition]
 PackageScoped[$naturalOffsetRule]
@@ -52,6 +53,7 @@ from arguments that reduce to literals, or None."
 naturalNumberOperationRoles::usage = "naturalNumberOperationRoles[] gives the roles an operation on natural numbers can be registered for."
 naturalOffsetsEqualQ::usage = "naturalOffsetsEqualQ[environment, context, a, b] decides whether a and b are definitionally equal by their offsets, the successors \
 read off each without reducing, as Lean's kernel does: True or False, or None where the offsets do not decide it."
+uncheckedRegistrationQ::usage = "uncheckedRegistrationQ[environment, HoldComplete[name]] gives True if name is registered for an operation on natural numbers that has no defining equations to check, which the kernel trusts as it trusts an axiom."
 registeredAdditionQ::usage = "registeredAdditionQ[environment, HoldComplete[name]] gives True if name is the registered addition of the natural numbers of environment."
 additionReduct::usage = "additionReduct[environment, context, term, HoldComplete[name], t, s] reduces the registered addition t + s by its defining equations: t where s reduces to zero, the successor of t + s' where s reduces to a successor of s' or a positive literal, and term where s is stuck."
 $foldedAddition::usage = "$foldedAddition is True where the registered addition reduces by its defining equations, its recursion folded; False unfolds its definition, for the agreement test."
@@ -133,7 +135,7 @@ naturalNumbersValidQ[environment_, type_, zero_, successor_] := With[{natural = 
 ]
 
 withOperations[environment_, settings_, operations_] := (
-	KeyValueMap[Function[{role, name}, checkOperation[environment, settings, role, name]], operations];
+	KeyValueMap[Function[{role, name}, checkOperation[environment, settings, operations, role, name]], operations];
 	If[ ! DuplicateFreeQ[Values[operations]],
 		kernelFailure["InvalidNaturalNumberOperation", "A constant can be registered for one operation on natural numbers only.", {}]
 	];
@@ -145,7 +147,7 @@ withOperations[environment_, settings_, operations_] := (
 	|>
 )
 
-checkOperation[environment_, settings_, role_, name_] := Which[
+checkOperation[environment_, settings_, operations_, role_, name_] := Which[
 	! KeyExistsQ[$naturalNumberOperations, role],
 		kernelFailure[
 			"InvalidNaturalNumberOperation",
@@ -158,54 +160,127 @@ checkOperation[environment_, settings_, role_, name_] := Which[
 		kernelFailure["InvalidNaturalNumberOperation", "`1` must be a definition or an axiom without universe parameters to be registered as `2`.", {HoldForm @@ name, role}],
 	! operationTypeQ[environment, settings["Type"], role, constantRecord[environment, name]["Type"]],
 		kernelFailure["InvalidNaturalNumberOperation", "`1` does not have the type of `2` on `3`.", {HoldForm @@ name, role, HoldForm @@ settings["Type"]}],
-	role === "Addition",
-		checkAdditionEquations[environment, settings, name],
+	KeyExistsQ[$roleEquations, role],
+		checkRoleEquations[environment, settings, Join[settings["Operations"], operations], role, name],
 	True,
 		Null
 ]
 
-(* An addition must satisfy its two defining equations, t + zero == t and t + successor[s] == successor[t + s], by
-   computation, for variables t and s: the offset rule reads a term through the addition by them. Computing on
-   literals as integer addition does implies neither on open terms: an addition by recursion on its first argument
-   computes the literals right and fails the second. The environment checked has no addition registered yet, so the
-   offset rule does not read through it here. *)
-checkAdditionEquations[environment_, settings_, name_] := With[
+(* An operation with defining equations must satisfy them by computation, for variables t and s, as its definition in
+   the prelude does: the kernel computes it on literals by the Wolfram Language, and the offset rule and literal values
+   read terms through the addition. Computing on literals right implies none of them on open terms: an addition by
+   recursion on its first argument computes the literals right and fails the second of its equations. The equations
+   are stated with the constructors alone, as the first registration has no literals yet, and an operation another's
+   equations use, as the addition is in the multiplication's, must be registered too. The environment checked has none
+   of the operations of the registration, so the offset rule does not read through them here. An operation without
+   defining equations, as the greatest common divisor, is trusted, as an axiom is, and the axiom closure names its
+   registration wherever a proof rests on it. *)
+$roleEquations = <|
+	"Addition" -> Function[terms, {
+		{terms["Operation"][terms["t"], terms["Zero"]], terms["t"], "t + zero == t"},
+		{terms["Operation"][terms["t"], terms["Successor"][terms["s"]]], terms["Successor"][terms["Operation"][terms["t"], terms["s"]]], "t + successor[s] == successor[t + s]"}
+	}],
+	"Multiplication" -> Function[terms, {
+		{terms["Operation"][terms["t"], terms["Zero"]], terms["Zero"], "t * zero == zero"},
+		{terms["Operation"][terms["t"], terms["Successor"][terms["s"]]], terms["Addition"][terms["Operation"][terms["t"], terms["s"]], terms["t"]], "t * successor[s] == t * s + t"}
+	}],
+	"Power" -> Function[terms, {
+		{terms["Operation"][terms["t"], terms["Zero"]], terms["Successor"][terms["Zero"]], "t ^ zero == successor[zero]"},
+		{terms["Operation"][terms["t"], terms["Successor"][terms["s"]]], terms["Multiplication"][terms["Operation"][terms["t"], terms["s"]], terms["t"]], "t ^ successor[s] == t ^ s * t"}
+	}],
+	"Subtraction" -> Function[terms, {
+		{terms["Operation"][terms["t"], terms["Zero"]], terms["t"], "t - zero == t"},
+		{terms["Operation"][terms["t"], terms["Successor"][terms["s"]]], terms["Predecessor"][terms["Operation"][terms["t"], terms["s"]]], "t - successor[s] == predecessor[t - s]"}
+	}],
+	"Equal" -> Function[terms, {
+		{terms["Operation"][terms["Zero"], terms["Zero"]], terms["True"], "equal[zero, zero] == true"},
+		{terms["Operation"][terms["Zero"], terms["Successor"][terms["s"]]], terms["False"], "equal[zero, successor[s]] == false"},
+		{terms["Operation"][terms["Successor"][terms["t"]], terms["Zero"]], terms["False"], "equal[successor[t], zero] == false"},
+		{terms["Operation"][terms["Successor"][terms["t"]], terms["Successor"][terms["s"]]], terms["Operation"][terms["t"], terms["s"]], "equal[successor[t], successor[s]] == equal[t, s]"}
+	}],
+	"LessEqual" -> Function[terms, {
+		{terms["Operation"][terms["Zero"], terms["s"]], terms["True"], "lessEqual[zero, s] == true"},
+		{terms["Operation"][terms["Successor"][terms["t"]], terms["Zero"]], terms["False"], "lessEqual[successor[t], zero] == false"},
+		{terms["Operation"][terms["Successor"][terms["t"]], terms["Successor"][terms["s"]]], terms["Operation"][terms["t"], terms["s"]], "lessEqual[successor[t], successor[s]] == lessEqual[t, s]"}
+	}]
+|>
+
+(* the operations another's equations use *)
+$roleRequirements = <|"Multiplication" -> {"Addition"}, "Power" -> {"Multiplication"}|>
+
+checkRoleEquations[environment_, settings_, operations_, role_, name_] := (
+	Scan[
+		Function[required, If[ ! KeyExistsQ[operations, required],
+			kernelFailure["InvalidNaturalNumberOperation", "`1` cannot be registered as `2` without an operation registered as `3`, which its equations use.", {HoldForm @@ name, role, required}]
+		]],
+		Lookup[$roleRequirements, role, {}]
+	];
+	With[
+		{
+			natural = constantReference[settings["Type"], {}],
+			first = freshFreeVariable[],
+			second = freshFreeVariable[]
+		},
+		With[{context = extendContext[extendContext[<||>, first, HoldComplete["t"], natural, "Explicit"], second, HoldComplete["s"], natural, "Explicit"]},
+			Scan[
+				Apply[Function[{left, right, statement}, If[ ! definitionallyEqualQ[environment, context, left, right],
+					kernelFailure[
+						"InvalidNaturalNumberOperation",
+						"`1` cannot be registered as `2`: `3` does not hold by computation.",
+						{HoldForm @@ name, role, statement}
+					]
+				]]],
+				$roleEquations[role][equationTerms[environment, settings, operations, name, freeVariable[first], freeVariable[second]]]
+			]
+		]
+	]
+)
+
+(* the terms the equations are written in: the constructors, the operation and those its equations use as functions of
+   their arguments, the predecessor as the recursor that gives it, and the Booleans of a comparison; each composite
+   term is built from parts computed first *)
+equationTerms[environment_, settings_, operations_, name_, t_, s_] := With[
 	{
 		zero = constantReference[settings["Zero"], {}],
 		successor = constantReference[settings["Successor"], {}],
-		addition = constantReference[name, {}],
-		first = freshFreeVariable[],
-		second = freshFreeVariable[]
+		natural = constantReference[settings["Type"], {}],
+		applier = Function[constant, With[{head = constantReference[constant, {}]}, Function[arguments, makeApplication[head, arguments]]]]
 	},
-	With[
-		{
-			context = extendContext[
-				extendContext[<||>, first, HoldComplete["t"], constantReference[settings["Type"], {}], "Explicit"],
-				second, HoldComplete["s"], constantReference[settings["Type"], {}], "Explicit"
-			],
-			t = freeVariable[first],
-			s = freeVariable[second],
-			sum = makeApplication[addition, {freeVariable[first], freeVariable[second]}]
-		},
-		Scan[
-			Function[equation, If[ ! definitionallyEqualQ[environment, context, equation["Left"], equation["Right"]],
-				kernelFailure[
-					"InvalidNaturalNumberOperation",
-					"`1` cannot be registered as the addition: `2` does not hold by computation.",
-					{HoldForm @@ name, equation["Equation"]}
-				]
-			]],
-			{
-				<|"Left" -> makeApplication[addition, {t, zero}], "Right" -> t, "Equation" -> "t + zero == t"|>,
-				<|
-					"Left" -> makeApplication[addition, {t, application[successor, s]}],
-					"Right" -> application[successor, sum],
-					"Equation" -> "t + successor[s] == successor[t + s]"
-				|>
-			}
-		]
+	With[{booleans = Replace[constantRecord[environment, name]["Type"], {
+		type : dependentFunctionType[_, _, dependentFunctionType[_, _, constantReference[_, {}], _], _] /; booleansQ[environment, booleansOf[type]] :>
+			constantRecord[environment, booleansOf[type]]["Constructors"],
+		_ -> {}
+	}]},
+		<|
+			"t" -> t,
+			"s" -> s,
+			"Zero" -> zero,
+			"Successor" -> Function[argument, application[successor, argument]],
+			"Operation" -> Function[{left, right}, applier[name][{left, right}]],
+			"Addition" -> Function[{left, right}, applier[Lookup[operations, "Addition"]][{left, right}]],
+			"Multiplication" -> Function[{left, right}, applier[Lookup[operations, "Multiplication"]][{left, right}]],
+			"Predecessor" -> Function[argument, predecessorTerm[settings, zero, natural, argument]],
+			"True" -> If[booleans === {}, None, constantReference[Last[booleans], {}]],
+			"False" -> If[booleans === {}, None, constantReference[First[booleans], {}]]
+		|>
 	]
 ]
+
+(* the predecessor of a term, by the recursor of the natural numbers: zero for zero, and k for successor[k] *)
+predecessorTerm[settings_, zero_, natural_, argument_] := With[
+	{
+		recursor = constantReference[Replace[settings["Type"], HoldComplete[type_] :> HoldComplete[InductiveRecursor[type]]], {1}],
+		motive = lambdaAbstraction[HoldComplete["t"], natural, natural, "Explicit"],
+		step = With[{inner = lambdaAbstraction[HoldComplete["r"], natural, boundVariable[1], "Explicit"]}, lambdaAbstraction[HoldComplete["k"], natural, inner, "Explicit"]]
+	},
+	makeApplication[recursor, {motive, zero, step, argument}]
+]
+
+(* a registration the kernel trusts without a check: of an operation that has no defining equations *)
+uncheckedRegistrationQ[environment_, name_HoldComplete] := Replace[naturalNumberSettings[environment], {
+	settings_Association :> KeyExistsQ[settings["Roles"], name] && ! KeyExistsQ[$roleEquations, settings["Roles"][name]],
+	_ -> False
+}]
 
 operationTypeQ[environment_, type_, role_, operationType_] := With[{natural = constantReference[type, {}]},
 	Which[

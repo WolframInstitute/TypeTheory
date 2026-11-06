@@ -567,3 +567,21 @@ VerificationTest[
 	{True, True, True, True, True, True, True, True, True, True, True, False, ReadingDoubled[21], 11, "NoExpression", "NoExpression"},
 	TestID -> "The-reading-evaluates-to-the-reading-of-the-value-where-the-definitions-are-the-Wolfram-Language-s"
 ]
+
+(* the closure names every trusted assumption a proof rests on: here a projection registered as the greatest common
+   divisor, which has no defining equations to check, makes the kernel compute FirstNumber[2, 3] as 1 and unfold it as 2,
+   and the proof of False rests on no axiom but on the registration; a theorem of the prelude rests on the kernel alone *)
+VerificationTest[
+	Module[{lying},
+		lying = TypeTheoryEnvironment[{
+			TypeTheoryDefinition[FirstNumber, {Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]} |-> m],
+			TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"GCD" -> FirstNumber|>],
+			TypeTheoryTheorem[FirstIsIdentity, ForAll[{Typed[x, NonNegativeIntegers]}, FirstNumber[x, 3] == x], Typed[x, NonNegativeIntegers] |-> "equalityReflexivity"[x]],
+			TypeTheoryTheorem[FirstIsOne, FirstNumber[2, 3] == 1, "equalityReflexivity"[1]],
+			TypeTheoryTheorem[RegistrationParadox, False, "successorNotZero"[0]["equalitySymmetry"["successorInjectivity"["equalityTransitivity"["equalitySymmetry"[FirstIsOne], FirstIsIdentity[2]]]]]]
+		}];
+		{TypeTheoryAxiomClosure[TypeTheoryTerm[RegistrationParadox, lying]], TypeTheoryAxiomClosure[TypeTheoryTerm["additionCommutativity", prelude]]}
+	],
+	{<|FirstNumber -> "Registration"|>, <||>},
+	TestID -> "The-axiom-closure-names-a-registration-the-kernel-trusts"
+]
