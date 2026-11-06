@@ -18,18 +18,18 @@ RelatedTutorials: [RulesAndComputation]
 
 - Reduction applies functions to their arguments, unfolds definitions and local definitions, applies a recursor to a constructor, takes a field of a constructed structure, and computes the operations on natural number literals. Theorems never unfold.
 - Only the head is reduced: the arguments of a constructor, and the body of a function, stay as they are. So the result says which constructor a term is, or that it is a function, without computing the rest. [NormalForm]() reduces every part.
-- A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another. While it is the prelude, a term that names what only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares is read in that environment.
+- A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
 - The kernel reduces a term to its weak head normal form to compare it with another, as [DefinitionallyEqualQ]() and [TypeTheoryCheck]() do.
 
 ## Basic Examples
 
-A function applied to an argument:
+A function applied to an argument reduces to its body, and the list it gives keeps its element as it is:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[x, Naturals]}, x + 1][41]]]
+WeakHeadNormalForm[TypeTheoryTerm[(Typed[x, Naturals] |-> {x + 1})[41]]]
 ```
 
-<!-- => 42 -->
+<!-- => {41 + 1} -->
 
 ---
 
@@ -54,22 +54,14 @@ NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
 The second of two rules applies to `f[1, 2, 3]`: the weak head normal form says that a rule applied, and leaves its result to compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[ReplaceList[f[1, 2, 3], {f[x_, y_] :> {y, x}, f[x__] :> {x}}]], "WolframLanguage"]]
+WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[ReplaceList[f[1, 2, 3], {f[x_, y_] :> {y, x}, f[x__] :> {x}}]]]]
 ```
 
 <!-- => some[Construct[List, Sequence @@ {Arguments[f[1, 2, 3]]}]] -->
 
-[NormalForm]() computes the result:
-
-```wl
-NormalForm[TypeTheoryTerm[MatchFirst[ReplaceList[f[1, 2, 3], {f[x_, y_] :> {y, x}, f[x__] :> {x}}]], "WolframLanguage"]]
-```
-
-<!-- => some[{1, 2, 3}] -->
-
 ## Scope
 
-A Boolean decided:
+A Boolean that decides a proposition reduces to its value:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Decide[2^10 == 1024]]]
@@ -89,7 +81,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
 
 ---
 
-A recursor applied to a literal computes, here the factorial of 5:
+A recursor applied to a literal computes, and so do the operations on literals, so the factorial of 5 reduces all the way to the number:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> (k + 1) r, 5]]]
@@ -119,21 +111,13 @@ WeakHeadNormalForm[TypeTheoryTerm[Join[{1 + 1}, {2, 3}]]]
 
 ## Properties and Relations
 
-A function is in weak head normal form, its body as it is:
+A function is in weak head normal form, its body as it is; [NormalForm]() would reduce `n + 0` to `n`:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
 ```
 
 <!-- => (n ∶ ℕ) ↦ n + 0 -->
-
-[NormalForm]() reduces the body:
-
-```wl
-NormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
-```
-
-<!-- => (n ∶ ℕ) ↦ n -->
 
 ---
 
@@ -143,7 +127,7 @@ A theorem, which does not unfold:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 Its proof stays a name:
 

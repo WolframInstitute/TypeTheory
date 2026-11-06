@@ -139,7 +139,7 @@ An identity function for the elements of a type of any universe, with the parame
 identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {Typed[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 Its declaration:
 

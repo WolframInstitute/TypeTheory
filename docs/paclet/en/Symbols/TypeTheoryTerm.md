@@ -19,7 +19,7 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 ## Details & Options
 
 - [TypeTheoryTerm]() has the attributes [HoldFirst]() and [SequenceHold](). It has to: on its own, <code>[ForAll]()[[Typed]()[x, A], B]</code> evaluates to `B`, and `1 + 1 == 2` to [True](). The environment is evaluated: an environment, or the name of a library environment, such as `"Integers"`. A name of none gives a [Failure]() tagged `"UnknownEnvironment"`, and so does an environment that is that [Failure]().
-- A term without an environment is in the default environment, except beside a term that has one, as in <code>[TypeTheoryCheck]()[*term*, *type*]</code>, where it takes that term's. While the default is the prelude, a term that names what only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares, such as [Arguments]() or [Head](), is read in that environment.
+- A term without an environment is in the default environment, except beside a term that has one, as in <code>[TypeTheoryCheck]()[*term*, *type*]</code>, where it takes that term's. The prelude has the expressions, strings and matches of the Wolfram Language, such as [Arguments]() and [Head]().
 - <code>[TypeTheoryType]()[[TypeTheoryTerm]()[*term*, *env*]]</code> gives the type of *term*, and <code>[TypeTheoryType]()[[TypeTheoryTerm]()[*term*], *env*]</code> gives its type in *env*.
 - The surface language:
 
@@ -382,7 +382,7 @@ A type of bits:
 bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 173 constants -->
+<!-- => TypeTheoryEnvironment summary box: 234 constants -->
 
 A term in it:
 
@@ -448,7 +448,7 @@ A theorem left as a hole:
 later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k], TypeTheoryHole["by induction"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The holes it rests on:
 
@@ -515,7 +515,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 [Format]() evaluates the arguments of what it formats, so a bound variable whose symbol has a value shows that value:
 
@@ -535,7 +535,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 [MakeBoxes]() holds them, so a notation for a constant applied to arguments is a definition of [MakeBoxes]():
 

@@ -253,9 +253,12 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-169 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
-three constants are axioms, Lean's three, propositional extensionality, the soundness of quotients and
-choice, and function extensionality and the excluded middle are proved from them. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
+230 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+Lean's three axioms, propositional extensionality, the soundness of quotients and choice, are axioms,
+and function extensionality and the excluded middle are proved from them. It also declares the Wolfram
+Language's expressions, strings, sequences and matches, sums written `A | B`, and failures, `A | Failure`
+with `Enclose` and `Confirm`; its fourth axiom is `ExpressionEvaluate`, the expression an expression
+evaluates to, which the Wolfram Language computes. `TypeTheoryEnvironment["Constructive"]` is the prelude without the
 axioms and what is proved from them, to prove theorems without axioms or to assume others. The tutorial
 *The TypeTheory Prelude* on the documentation site goes through all of it. Its types and the functions
 written in terms are symbols; its constructors, theorems and axioms are constants named by strings, as

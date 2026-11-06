@@ -17,7 +17,7 @@ RelatedGuides: [TypeTheory]
 
 - Two terms are definitionally equal when they reduce to the same term: a function applied to an argument computes (beta), a recursor applied to a constructor computes, a definition unfolds to its value, and literals compute with the operations of the natural numbers. They are equal up to the names of bound variables, up to eta for functions and for structures, and when they are proofs of the same proposition (proof irrelevance).
 - Definitions unfold as in Lean's kernel, one at a time: of two applications of different definitions, the higher definition unfolds first, the one defined in terms of the other, whose height is greater, and the two are compared again, so two applications of the same definition are compared by their arguments before either computes. A definition's height is one more than the greatest height of the definitions its value mentions.
-- A term without an environment takes the other's, and two without one are in the default environment, read in <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> where they name what only it declares.
+- A term without an environment takes the other's, and two without one are in the default environment, the prelude.
 - The kernel checks each term before they are compared. A term that does not type-check is not equal to anything, and neither are two terms that carry different environments: [DefinitionallyEqualQ]() gives [False]().
 - Equality by computation is decidable but not every equation that holds is one: `0 + n == n` holds for every natural number `n`, by induction, and `0 + n` does not compute to `n`.
 - [DefinitionallyEqualQ]() does not hold its arguments; each is a [TypeTheoryTerm]().
@@ -146,7 +146,7 @@ A definition of doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The constant unfolds to its value:
 
@@ -167,7 +167,7 @@ bits = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 174 constants -->
+<!-- => TypeTheoryEnvironment summary box: 235 constants -->
 
 Flipping twice gives the bit back; the term without an environment takes the other's:
 
@@ -187,7 +187,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Flip[BitOne], bits], TypeTheoryTerm[BitOne]]
 
 ---
 
-Terms of the Wolfram Language environment, found from the names they use: the head of an expression computes:
+The head of an expression computes, as the prelude declares the Wolfram Language's expressions:
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[Head[f[1]]], TypeTheoryTerm[HoldForm[f]]]
@@ -208,7 +208,7 @@ parity = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The recursion computes, seven steps to `"false"`:
 
@@ -274,7 +274,7 @@ A definition of doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 `k + k` and `2 k` are equal for every `k`, but neither computes for a variable:
 

@@ -120,7 +120,7 @@ decided = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 [Decide]() finds it:
 

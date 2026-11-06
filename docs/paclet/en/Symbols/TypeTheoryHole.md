@@ -34,7 +34,7 @@ A theorem left open, with a citation:
 open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The environment has the hole, a constant before the theorem:
 
@@ -73,7 +73,7 @@ partial = TypeTheoryEnvironment[{TypeTheoryTheorem[BothZero, ForAll[{Typed[n, Na
     Function[{Typed[n, Naturals]}, "andIntroduction"["equalityReflexivity"[n], TypeTheoryHole["zero plus n, by induction"]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The hole states the part left, for every *n* in scope where it stands:
 
@@ -91,7 +91,7 @@ A hole with no annotation:
 later = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m + n == n + m], TypeTheoryHole[]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 Its annotation is [None]():
 
@@ -122,7 +122,7 @@ The theorem declared with it:
 both = TypeTheoryEnvironment[TypeTheoryTheorem[BothCommute, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 172 constants -->
+<!-- => TypeTheoryEnvironment summary box: 233 constants -->
 
 A constant for each hole, in the order of the proof:
 
@@ -149,7 +149,7 @@ cited = TypeTheoryEnvironment[TypeTheoryTheorem[AdditionCommutes, ForAll[{Typed[
     TypeTheoryHole[<|"Citation" -> "Mathlib", "Mathlib" -> "Nat.add_comm"|>]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The annotation, as it was given:
 
@@ -168,7 +168,7 @@ pell = TypeTheoryEnvironment[TypeTheoryTheorem[PellSolution, Exists[{Typed[x, Na
     TypeTheoryHole[<|"Evaluation" -> HoldForm[FindInstance[x^2 - 61 y^2 == 1 && y > 0, {x, y}, PositiveIntegers]], "Value" -> {{x -> 1766319049, y -> 226153980}}|>]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The evaluation and its value, kept held:
 
@@ -189,7 +189,7 @@ uses = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 172 constants -->
+<!-- => TypeTheoryEnvironment summary box: 233 constants -->
 
 The theorem proved from it inherits its hole:
 
@@ -218,7 +218,7 @@ assumed = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The theorem rests on the axiom:
 
@@ -236,7 +236,7 @@ A theorem left open:
 open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 A proof by tactics uses it as any other theorem, so a false claim left open proves false consequences:
 
@@ -252,7 +252,7 @@ The kinds of the constants count the hole:
 Information[open, "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Quotient" -> 4, "Theorem" -> 73, "Axiom" -> 3, "Hole" -> 1|> -->
+<!-- => <|"InductiveType" -> 23, "Constructor" -> 37, "Recursor" -> 24, "Definition" -> 66, "Quotient" -> 4, "Theorem" -> 73, "Axiom" -> 4, "Hole" -> 1|> -->
 
 [TypeTheoryCheck]() checks the environment again, the hole as it would an axiom:
 
@@ -270,7 +270,7 @@ A saved environment keeps the holes and their annotations:
 open = TypeTheoryEnvironment[{TypeTheoryTheorem[AllZero, ForAll[{Typed[n, Naturals]}, n == 0], TypeTheoryHole["a claim left open"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 Save it and read it back:
 
@@ -279,7 +279,7 @@ file = Export[FileNameJoin[{$TemporaryDirectory, "open.wxf"}], open];
 saved = TypeTheoryEnvironment[file]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The annotation read back:
 

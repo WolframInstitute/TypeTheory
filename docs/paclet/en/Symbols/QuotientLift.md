@@ -147,7 +147,7 @@ doubling = TypeTheoryEnvironment["Integers", {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 246 constants -->
+<!-- => TypeTheoryEnvironment summary box: 307 constants -->
 
 The double of -3, the class of (2, 5), computes to the class of (4, 10):
 

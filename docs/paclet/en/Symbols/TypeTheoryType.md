@@ -4,7 +4,7 @@ Name: TypeTheoryType
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryType
-Keywords: [type, type inference, elaboration, term, type of a term, proposition, universe, held, PacletSymbol, Wolfram Language environment]
+Keywords: [type, type inference, elaboration, term, type of a term, proposition, universe, held, PacletSymbol, Wolfram Language expressions]
 SeeAlso: [TypeTheoryTerm, TypeTheoryCheck, TypeTheoryEnvironment, WeakHeadNormalForm, DefinitionallyEqualQ, TypeTheoryAxiomClosure]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
@@ -20,7 +20,7 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 
 - *term* is an expression of the type theory, kept unevaluated as the statement of a [TypeTheoryProof]() is, a [TypeTheoryTerm](), or a symbol whose value is a [TypeTheoryTerm]() or a finished [TypeTheoryProof]().
 - [TypeTheoryType]() has the [HoldAll]() attribute, so `1 + 1 == 2` stays an equation and does not evaluate to [True](). A term computed by an expression is given with [Evaluate]().
-- An expression on its own is in the default environment, [$TypeTheoryEnvironment](), the prelude unless [SetTypeTheoryEnvironment]() set another. While the default is the prelude, a term that names what only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares, such as [Arguments](), [Head](), [Expressions]() or [ExpressionEvaluate](), is read in that environment.
+- An expression on its own is in the default environment, [$TypeTheoryEnvironment](), the prelude unless [SetTypeTheoryEnvironment]() set another. The prelude has the expressions, strings and matches of the Wolfram Language, such as [Arguments](), [Head](), [Expressions]() and [ExpressionEvaluate]().
 - In <code>[TypeTheoryType]()[*term*, *env*]</code> the term is read in *env*, also a [TypeTheoryTerm]() that carries an environment of its own. *env* is an environment or the name of a library environment, as [TypeTheoryEnvironment]() takes it; a name of none gives a [Failure]() tagged `"UnknownEnvironment"`, and an *env* that is a [Failure]() is the result.
 - The type is a [TypeTheoryTerm]() in the same environment, read back into surface syntax, so it can be used as a term again.
 - Elaboration fills in the implicit arguments, types and universe levels nobody wrote, and the kernel checks the term before its type is given.
@@ -160,7 +160,7 @@ A type of bits:
 bits = TypeTheoryEnvironment[{TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 173 constants -->
+<!-- => TypeTheoryEnvironment summary box: 234 constants -->
 
 The type of one of its constructors, in that environment, given as the second argument:
 
@@ -182,7 +182,7 @@ TypeTheoryType[Typed[2, Integers] - 3, "Integers"]
 
 ---
 
-A term without an environment that names what only the Wolfram Language environment declares is read there:
+The prelude has the expressions of the Wolfram Language: the arguments of an expression are a sequence of expressions:
 
 ```wl
 TypeTheoryType[Arguments]
@@ -351,21 +351,3 @@ TypeTheoryType[2 + 3, "Integer"]
 ```
 
 <!-- => Failure["UnknownEnvironment", ...] -->
-
----
-
-Only a default environment that is the prelude gives way to the Wolfram Language environment:
-
-```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment["Integers"]}, TypeTheoryType[Arguments]]
-```
-
-<!-- => Failure["ElaborationFailed", ...] -->
-
-The Wolfram Language environment given by its name:
-
-```wl
-TypeTheoryType[Arguments, "WolframLanguage"]
-```
-
-<!-- => Expressions → Expressions... -->

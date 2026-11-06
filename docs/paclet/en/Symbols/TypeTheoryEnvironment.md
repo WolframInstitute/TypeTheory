@@ -20,9 +20,9 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 <code>[TypeTheoryEnvironment]()[]</code> gives the environment with no constants.
 
-<code>[TypeTheoryEnvironment]()["Prelude"]</code> gives the prelude: classical logic, equality, the natural numbers and the Booleans.
+<code>[TypeTheoryEnvironment]()["Prelude"]</code> gives the prelude: classical logic, equality, the natural numbers, the Booleans, and the expressions, strings and pattern matching of the Wolfram Language.
 
-<code>[TypeTheoryEnvironment]()["Constructive"]</code> gives the prelude without its axioms and the theorems proved from them.
+<code>[TypeTheoryEnvironment]()["Constructive"]</code> gives the prelude without its axioms, the theorems proved from them and the Wolfram Language's expressions.
 
 <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code> gives homotopy type theory: paths, univalence and the circle, under rules without Prop.
 
@@ -32,8 +32,6 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 <code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
 
-<code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> gives the prelude with the expressions of the Wolfram Language and the monad of pattern matching.
-
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
 <code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> reads the environment that <code>[Export]()["*file*.wxf", *env*]</code> saved, without checking its declarations again.
@@ -42,10 +40,10 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 - A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers](), [TypeTheoryRewriteRule](), [TypeTheoryQuotients]() and [TypeTheoryCubical](). Each is checked by the kernel in the environment the declarations before it made, and the result is a new environment, or a [Failure]() for the first declaration that does not check, with none of them added.
 - A single declaration needs no list: <code>[TypeTheoryEnvironment]()[*declaration*]</code> and <code>[TypeTheoryEnvironment]()[*env*, *declaration*]</code> add one, and so does <code>[Append]()[*env*, *declaration*]</code>.
-- The library environments are named by strings: `"Prelude"`, `"Constructive"`, `"HomotopyTypeTheory"`, `"Integers"`, `"Rationals"`, `"Cubical"` and `"WolframLanguage"`. Every function that takes an environment takes its name too, as in <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code> and <code>[TypeTheoryType]()[*term*, "HomotopyTypeTheory"]</code>. Any other name gives a [Failure]() tagged `"UnknownEnvironment"` that lists the names.
+- The library environments are named by strings: `"Prelude"`, `"Constructive"`, `"HomotopyTypeTheory"`, `"Integers"`, `"Rationals"` and `"Cubical"`, and `"WolframLanguage"` is an old name of the prelude, from when the Wolfram Language's expressions were an environment of their own. Every function that takes an environment takes its name too, as in <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code> and <code>[TypeTheoryType]()[*term*, "HomotopyTypeTheory"]</code>. Any other name gives a [Failure]() tagged `"UnknownEnvironment"` that lists the names.
 - The default environment, [$TypeTheoryEnvironment](), is the environment wherever none is given: declarations without one extend it, and a [TypeTheoryTerm]() or [TypeTheoryProof]() without one is in it. It is the prelude unless [SetTypeTheoryEnvironment]() set another. <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[], {*declaration1*, ...}]</code> starts from no constants instead.
 - Every environment carries the rules it was started with, which say what the kernel allows and computes: the prelude follows the calculus of inductive constructions, the HoTT environment Martin-Löf type theory with rewrite rules, and the cubical environment cubical type theory. Environments made from one follow its rules, and <code>[Information]()[*env*, "Rules"]</code> gives them.
-- The prelude is classical: it assumes `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and proves `"functionExtensionality"` and `"excludedMiddle"` from them. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
+- The prelude is classical: it assumes `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and proves `"functionExtensionality"` and `"excludedMiddle"` from them. Its fourth axiom, [ExpressionEvaluate](), is the evaluation of the Wolfram Language. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
 - An environment never changes: adding declarations gives a new one and leaves the old one as it was.
 - An environment behaves like an [Association]() of its constants. <code>*env*[*name*]</code> gives the declaration that introduced the constant *name*, and [Keys](), [Length](), [KeyExistsQ]() and [Normal]() work as for an [Association](). [Normal]() gives all the declarations, the prelude's included, written out exactly, so <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[[Information]()[*env*, "Rules"]], [Normal]()[*env*]]</code> rebuilds *env* on the empty environment of its rules.
 - <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Theorems"`, `"Axioms"`, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"` and `"Provenance"`, which says whether *env* was read from a file without checking it.
@@ -55,7 +53,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 - <code>[Export]()["*file*.wxf", *env*]</code> saves *env* in a file that holds each of its terms once, and only the constants beyond the library environment it extends, such as the prelude, which it names. A file reads back in a fraction of the time its declarations take to check.
 - Reading a file takes its declarations as checked, as Lean takes an `.olean` file it imports. The option `"Check" -> True` checks every declaration again with [TypeTheoryCheck]() as it reads the file. A file saved by another version of TypeTheory reads only with `"Check" -> True`.
 - A file is read without evaluating anything in it, and a file that holds anything but terms and plain data, or whose terms were changed out of order, is refused.
-- The library environments, but the Wolfram Language's, are read from files saved with the paclet, so loading the paclet does not check the prelude again.
+- The library environments are read from files saved with the paclet, so loading the paclet does not check the prelude again.
 
 ## Basic Examples
 
@@ -65,7 +63,7 @@ Add a theorem to the prelude, proved by computation:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The declaration of the new constant:
 
@@ -83,7 +81,7 @@ A library environment by its name, here the integers:
 TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 244 constants -->
+<!-- => TypeTheoryEnvironment summary box: 305 constants -->
 
 ---
 
@@ -99,7 +97,7 @@ squares = TypeTheoryEnvironment["Integers", {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 245 constants -->
+<!-- => TypeTheoryEnvironment summary box: 306 constants -->
 
 The theorem it declares:
 
@@ -143,7 +141,7 @@ trees = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 174 constants -->
+<!-- => TypeTheoryEnvironment summary box: 235 constants -->
 
 A node over a leaf and a node of two leaves has five nodes:
 
@@ -161,7 +159,7 @@ A single declaration needs no list. Assume a natural number about which nothing 
 mystery = TypeTheoryEnvironment[TypeTheoryAxiom[Mystery, Naturals]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 [Append]() adds one declaration, here a theorem about the axiom that holds by computation:
 
@@ -169,7 +167,7 @@ mystery = TypeTheoryEnvironment[TypeTheoryAxiom[Mystery, Naturals]]
 Append[mystery, TypeTheoryTheorem[MysteryPlusZero, Mystery + 0 == Mystery, "equalityReflexivity"[Mystery]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 ---
 
@@ -214,7 +212,7 @@ units[UnitInhabited]
 
 ### Library environments
 
-The constructive environment, the prelude without its axioms:
+The constructive environment, the prelude without its axioms and the Wolfram Language's expressions:
 
 ```wl
 constructive = TypeTheoryEnvironment["Constructive"]
@@ -268,7 +266,7 @@ The rationals, which extend the integers:
 TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 323 constants -->
+<!-- => TypeTheoryEnvironment summary box: 384 constants -->
 
 ---
 
@@ -282,13 +280,13 @@ TypeTheoryEnvironment["Cubical"]
 
 ---
 
-The prelude with the expressions of the Wolfram Language:
+The old name `"WolframLanguage"` names the prelude, which has the expressions of the Wolfram Language:
 
 ```wl
-TypeTheoryEnvironment["WolframLanguage"]
+TypeTheoryEnvironment["WolframLanguage"] === TypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 225 constants -->
+<!-- => True -->
 
 ### Information
 
@@ -308,7 +306,7 @@ How many constants of each kind the prelude has:
 Information[TypeTheoryEnvironment["Prelude"], "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 17, "Constructor" -> 24, "Recursor" -> 17, "Definition" -> 32, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 3|> -->
+<!-- => <|"InductiveType" -> 23, "Constructor" -> 37, "Recursor" -> 24, "Definition" -> 66, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|> -->
 
 ---
 
@@ -358,7 +356,7 @@ An environment with a theorem:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 Save it in a file:
 
@@ -374,7 +372,7 @@ Read it back:
 saved = TypeTheoryEnvironment[file]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 It has the same declarations:
 
@@ -402,7 +400,7 @@ Rebuild the prelude from its declarations on the empty environment, checked at o
 TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[TypeTheoryEnvironment["Prelude"]], Method -> "Compiled"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 169 constants -->
+<!-- => TypeTheoryEnvironment summary box: 230 constants -->
 
 ---
 
@@ -440,7 +438,7 @@ Add a theorem to the prelude:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 Add an axiom to that environment:
 
@@ -448,7 +446,7 @@ Add an axiom to that environment:
 extended = Append[arithmetic, TypeTheoryAxiom[Origin, Naturals]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 171 constants -->
+<!-- => TypeTheoryEnvironment summary box: 232 constants -->
 
 The new environment has the axiom:
 
@@ -494,7 +492,7 @@ Declarations without an environment extend the default one, here the integers fo
 Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryEnvironment[{TypeTheoryDefinition[IntegerSquare, Typed[x, Integers] |-> x x]}]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 245 constants -->
+<!-- => TypeTheoryEnvironment summary box: 306 constants -->
 
 ---
 
@@ -504,7 +502,7 @@ Add a theorem to the prelude:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 [Normal]() gives the declarations, which rebuild the environment on the empty one:
 

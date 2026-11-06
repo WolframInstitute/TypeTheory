@@ -104,7 +104,7 @@ A definition of an environment's own unfolds to a proposition with a decision:
 zeros = TypeTheoryEnvironment[TypeTheoryDefinition[IsZero, Typed[n, Naturals] |-> n == 0]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 `IsZero[0]` is decided true:
 
@@ -154,7 +154,7 @@ larger = TypeTheoryEnvironment[TypeTheoryDefinition[Larger,
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The larger of 3 and 7:
 
@@ -278,7 +278,7 @@ larger = TypeTheoryEnvironment[TypeTheoryDefinition[Larger,
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The larger of `n` and `n + 1` is `n + 1`, but not by computation:
 

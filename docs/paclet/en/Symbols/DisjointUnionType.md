@@ -4,15 +4,17 @@ Name: DisjointUnionType
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/DisjointUnionType
-Keywords: [disjoint union, sum, sum type, coproduct, tagged union, either, case analysis, prelude, inductive type, Sum]
-SeeAlso: [CartesianProductType, Option, InductiveRecursor, Or]
+Keywords: [disjoint union, sum, sum type, Alternatives, |, coproduct, tagged union, either, case analysis, prelude, inductive type, Sum]
+SeeAlso: [CartesianProductType, Option, InductiveRecursor, Or, Alternatives]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [ThePrelude]
+RelatedTutorials: [ThePrelude, TheWolframLanguage]
 ---
 
 ## Usage
 
 <code>[DisjointUnionType]()[*α*, *β*]</code> is the type of the elements of *α* and of *β*, each tagged with its side.
+
+<code>*α* | *β*</code> is <code>[DisjointUnionType]()[*α*, *β*]</code>, as the pattern `_α | _β` matches either.
 
 ## Details & Options
 
@@ -21,7 +23,8 @@ RelatedTutorials: [ThePrelude]
 - Its recursor, <code>[InductiveRecursor]()[[DisjointUnionType]()]</code>, takes a function for each side: a function on a disjoint union is defined by cases on the side, and `"Cases"` splits a proof the same way.
 - The sides are told apart: `"left"[x]` is never `"right"[y]`, which the recursor into Prop proves. `"Decide"` does not decide such equations, since the prelude has no instance of [Decidable]() for them.
 - For *α* in `Type u` and *β* in `Type v`, <code>[DisjointUnionType]()[*α*, *β*]</code> is in `Type (max u v)`. For propositions, [Or]() is the disjunction.
-- <code>[DisjointUnionType]()[*α*, *β*]</code> displays as *α* ⊕ *β*, as Lean writes `Sum`; × binds tighter than ⊕, so *α* × *β* ⊕ *γ* is a sum of a product.
+- <code>[DisjointUnionType]()[*α*, *β*]</code> is written and displays as <code>*α* | *β*</code>, as [Alternatives]() writes the pattern of either; <code>*α* | *β* | *γ*</code> is <code>*α* | (*β* | *γ*)</code>. × binds tighter than |, so <code>*α* × *β* | *γ*</code> is a sum of a product.
+- Where a sum is expected, a value of either side is a value of the sum, injected with `"left"` or `"right"` by its type; a string, or a symbol that names nothing, is a value of the first side that takes it.
 
 ## Basic Examples
 
@@ -41,7 +44,7 @@ A natural number on the left of a disjoint union with the Booleans:
 TypeTheoryType[Typed["left"[2], DisjointUnionType[Naturals, Booleans]]]
 ```
 
-<!-- => ℕ ⊕ 𝔹 -->
+<!-- => ℕ | 𝔹 -->
 
 ---
 
@@ -51,7 +54,17 @@ A list of numbers and Booleans, each on its side:
 TypeTheoryType[Typed[{"left"[1], "right"["true"]}, {DisjointUnionType[Naturals, Booleans]}]]
 ```
 
-<!-- => {ℕ ⊕ 𝔹} -->
+<!-- => {ℕ | 𝔹} -->
+
+---
+
+Written as alternatives, where the sum is expected, each element is injected on the side its type gives:
+
+```wl
+TypeTheoryType[Typed[{1, "true", 7}, {Naturals | Booleans}]]
+```
+
+<!-- => {ℕ | 𝔹} -->
 
 ## Scope
 
@@ -71,7 +84,7 @@ TypeTheoryType[DisjointUnionType[Naturals, Booleans]]
 TypeTheoryType["left"]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → α ⊕ β -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} α → (α | β) -->
 
 ---
 
@@ -81,7 +94,7 @@ The recursor, with a case for each side:
 TypeTheoryType[InductiveRecursor[DisjointUnionType]]
 ```
 
-<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} ∀_m∶α ⊕ β → Sort w (∀_x∶α m[left[x]]) → (∀_y∶β m[right[y]]) → ∀_t∶α ⊕ β m[t] -->
+<!-- => ∀_{α ∶ Type u} ∀_{β ∶ Type v} ∀_m∶(α | β) → Sort w (∀_x∶α m[left[x]]) → (∀_y∶β m[right[y]]) → ∀_t∶α | β m[t] -->
 
 ---
 
@@ -91,7 +104,7 @@ A sum of a product shows no parentheses, since × binds tighter:
 TypeTheoryTerm[DisjointUnionType[CartesianProductType[Naturals, Naturals], Booleans]]
 ```
 
-<!-- => ℕ × ℕ ⊕ 𝔹 -->
+<!-- => ℕ × ℕ | 𝔹 -->
 
 ---
 
@@ -101,7 +114,7 @@ A product of a sum does:
 TypeTheoryTerm[CartesianProductType[Naturals, DisjointUnionType[Naturals, Booleans]]]
 ```
 
-<!-- => ℕ × (ℕ ⊕ 𝔹) -->
+<!-- => ℕ × (ℕ | 𝔹) -->
 
 ## Applications
 
@@ -119,7 +132,7 @@ counts = TypeTheoryEnvironment[{TypeTheoryDefinition[AsNumber, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 On the left side:
 

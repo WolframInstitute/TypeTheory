@@ -132,7 +132,7 @@ parity = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 172 constants -->
+<!-- => TypeTheoryEnvironment summary box: 233 constants -->
 
 The class of 7 is odd:
 

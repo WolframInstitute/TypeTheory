@@ -24,7 +24,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 
 - A proof holds a partial proof term with holes, its goals. A [TypeTheoryTactic]() works on the first goal and fills it with a term that may have new holes, the goals it leaves. A proof with no goals left is finished.
 - The arguments come in the order statement, environment, list of tactics, options. Any other order gives a [Failure]() tagged `"ProofArguments"`.
-- A statement without an environment is in the default environment, unless it names a constant that only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares, such as [HoldForm]() or [Replace]() with a rule; it is then in that environment. A statement about the integers or the rationals names their environment.
+- A statement without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another. The prelude has the expressions of the Wolfram Language, so a statement about [HoldForm]() or [Replace]() with a rule names no environment. A statement about the integers or the rationals names their environment.
 - The statement is held. It may hold the patterns of a rule, as `Replace[f[5], f[x_] :> x] == 5` does, but a statement that is a pattern or an [Association]() starts no proof: <code>[TypeTheoryProof]()[_[Association]()]</code> stays as it is.
 - A list of tactics written out is held as well: <code>{"Introduce"[n], "Reflexivity"}</code> stands for <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, whose arguments are not evaluated. An environment, options and a list of tactics kept in a symbol evaluate. A statement kept in a symbol is used only when its value is a [TypeTheoryTerm]().
 - The tactics run in turn. The first that does not apply gives its [Failure](), which says why, and the proof stops there.
@@ -117,7 +117,7 @@ proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n
 proved = TypeTheoryEnvironment[TypeTheoryTheorem[ZeroRightIdentity, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The theorem states what the proof proved:
 
@@ -159,10 +159,10 @@ TypeTheoryProof[statement, {"Introduce"[x, y], "Ring"}]
 
 ---
 
-A statement about rewriting holds the patterns of a rule. In the Wolfram Language's environment, [Replace]() with `f[x_] :> x` takes `f[5]` to 5 by computation:
+A statement about rewriting holds the patterns of a rule. [Replace]() with `f[x_] :> x` takes `f[5]` to 5 by computation:
 
 ```wl
-TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, "WolframLanguage", {"Reflexivity"}]
+TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -172,28 +172,20 @@ TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, "WolframLanguage", {"Reflexivity
 The rule takes `g[e]` to `e` for every expression `e`, a statement with a quantifier:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[e, Expressions]}, Replace[g[e], g[x_] :> x] == e], "WolframLanguage", {"Introduce"[e], "Reflexivity"}]
+TypeTheoryProof[ForAll[{Typed[e, Expressions]}, Replace[g[e], g[x_] :> x] == e], {"Introduce"[e], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
 
 ---
 
-A statement that names what only the Wolfram Language's environment declares, here [HoldForm](), is in that environment without naming it:
+A statement about a quoted expression, by computation: the head of `f[x]` is `f`:
 
 ```wl
-proof = TypeTheoryProof[Head[HoldForm[f[x]]] == HoldForm[f], {"Reflexivity"}]
+TypeTheoryProof[Head[HoldForm[f[x]]] == HoldForm[f], {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
-
-Its environment is the Wolfram Language's:
-
-```wl
-proof["Environment"]
-```
-
-<!-- => TypeTheoryEnvironment summary box: 225 constants -->
 
 ### Goals and Cases
 
@@ -352,7 +344,7 @@ triangular[n_Integer] := n + triangular[n - 1];
 programs = TypeTheoryEnvironment[TypeTheoryFormalize[triangular]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 Twice the n-th triangular number is n (n + 1). By induction, the case of zero computes, and in the case of `k + 1` the definition unfolds once, leaving algebra with the induction hypothesis:
 
@@ -383,7 +375,7 @@ total[{x_, rest___}] := x + total[{rest}];
 programs = TypeTheoryEnvironment[TypeTheoryFormalize[total]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The sum of two lists joined is the sum of their sums. After induction on the first list, the case of a list with a first element `x`:
 

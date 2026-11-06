@@ -17,22 +17,12 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 ## Details & Options
 
 - [NormalForm]() is [WeakHeadNormalForm]() applied to the term, then to each of its parts, as Lean's `#reduce`: a function's body is reduced with its variable free, and the arguments of an application that is stuck are reduced.
-- It applies functions to their arguments, unfolds definitions and local definitions, computes recursors on constructors and natural numbers as literals, and takes the fields of a structure, so a closed term of data reduces to its value. Theorems never unfold.
-- A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another. While it is the prelude, a term that names what only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares is read in that environment.
-- An expression of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> shows bare, without the [HoldForm]() that quotes it.
+- It applies functions to their arguments, unfolds definitions and local definitions, computes recursors on constructors and natural numbers as literals, and takes the fields of a structure, so a closed term of data reduces to its value. Theorems and axioms never unfold.
+- A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
+- An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [HoldForm]() that quotes it.
 - Two terms are equal by computation when their normal forms are the same, which [DefinitionallyEqualQ]() decides without computing them in full, and `"Reflexivity"` proves an equation whose two sides are.
 
 ## Basic Examples
-
-The elements of a list compute:
-
-```wl
-NormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
-```
-
-<!-- => {2, 6} -->
-
----
 
 The body of a function reduces with its variable free:
 
@@ -52,9 +42,9 @@ factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, Typed[n, N
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
-The factorial of 20 computes:
+The definition unfolds and the recursor computes on the literal, here the factorial of 20:
 
 ```wl
 NormalForm[TypeTheoryTerm[FactorialOf[20], factorials]]
@@ -62,15 +52,25 @@ NormalForm[TypeTheoryTerm[FactorialOf[20], factorials]]
 
 <!-- => 2432902008176640000 -->
 
-## Scope
+---
 
-A local definition unfolds, here of a function used twice:
+A rewriting of expressions reduces to the expression it gives, shown bare, here the logarithm of a product split into a sum:
 
 ```wl
-NormalForm[TypeTheoryTerm[With[{square = Typed[n, Naturals] |-> n n}, square[square[3]]]]]
+NormalForm[TypeTheoryTerm[ReplaceRepeated[HoldForm[log[a b c]], log[x_ y_] :> log[x] + log[y]]]]
 ```
 
-<!-- => 81 -->
+<!-- => log[a] + (log[b] + log[c]) -->
+
+## Scope
+
+A local definition unfolds under the binder, and the body keeps its variable:
+
+```wl
+NormalForm[TypeTheoryTerm[Typed[m, Naturals] |-> With[{pair = Typed[x, Naturals] |-> {x, x}}, pair[m]]]]
+```
+
+<!-- => (m ∶ ℕ) ↦ {m, m} -->
 
 ---
 
@@ -84,33 +84,15 @@ NormalForm[TypeTheoryTerm[Not[1 == 2]]]
 
 ---
 
-A rewriting of expressions reduces to the expression it gives, shown bare, here the logarithm of a product split into a sum:
+An axiom does not unfold, but its argument reduces, here to 3:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceRepeated[HoldForm[log[a b c]], log[x_ y_] :> log[x] + log[y]], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[ExpressionEvaluate[1 + 2]]]
 ```
 
-<!-- => log[a] + (log[b] + log[c]) -->
+<!-- => ExpressionEvaluate[3] -->
 
 ## Applications
-
-An equation whose two sides compute to the same number:
-
-```wl
-NormalForm[TypeTheoryTerm[2^10 == 1024]]
-```
-
-<!-- => 1024 == 1024 -->
-
-So `"Reflexivity"` proves it:
-
-```wl
-TypeTheoryProof[2^10 == 1024, {"Reflexivity"}]
-```
-
-<!-- => Proof complete -->
-
----
 
 Under the quantifier, `n + 0` computes to `n`, since addition recurs on its second argument:
 
@@ -130,7 +112,7 @@ TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Refl
 
 ## Properties and Relations
 
-[WeakHeadNormalForm]() reduces only the head, here the list's first constructor:
+[WeakHeadNormalForm]() reduces only the head, here the list's first constructor, and leaves its elements:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[{1 + 1, 2 * 3}]]
@@ -156,7 +138,7 @@ A theorem, which does not unfold:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 Its proof stays a name:
 

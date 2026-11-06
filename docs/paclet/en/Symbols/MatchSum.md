@@ -4,7 +4,7 @@ Name: MatchSum
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/MatchSum
-Keywords: [Wolfram Language, pattern matching, Match, alternatives, order, several results, rules in turn, Join, monad]
+Keywords: [Wolfram Language, pattern matching, Match, alternatives, order, several results, rules in turn, Join, monad, prelude]
 SeeAlso: [Match, MatchValue, MatchBind, MatchFirst, Alternatives, Join, ReplaceList]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -16,7 +16,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 ## Details & Options
 
-- <code>[MatchSum]()[*m1*, *m2*]</code> has the type <code>[Match]()[*A*]</code> when *m1* and *m2* have it. It is a definition of <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code>, the [Join]() of the two lists of results.
+- <code>[MatchSum]()[*m1*, *m2*]</code> has the type <code>[Match]()[*A*]</code> when *m1* and *m2* have it. It is a definition of the prelude, the [Join]() of the two lists of results.
 - [MatchSum]() is where a match gets several results: the alternatives of a pattern, the rules tried in turn, and the ways a sequence or an [Orderless]() head matches. [MatchValue]() holds one value, and `{}` is the match with no result, the unit of [MatchSum]().
 - The alternatives keep their order, and a result that both give is there twice. [MatchFirst]() takes a result of *m1* before any of *m2*, as the Wolfram Language applies the first rule that matches.
 - [MatchSum]() takes two matches; more alternatives are sums of sums.
@@ -26,7 +26,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 [MatchSum]() puts two matches of one type together:
 
 ```wl
-TypeTheoryType[MatchSum, "WolframLanguage"]
+TypeTheoryType[MatchSum]
 ```
 
 <!-- => ∀_{A ∶ Type u} Match[A] → Match[A] → Match[A] -->
@@ -37,11 +37,11 @@ A list of rules is the sum of the matches of each rule, the same by computation:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[Typed[{f[x_, y_] :> {y, x}, f[x__] :> {x}}, Expressions -> Match[Expressions]][f[1, 2]], "WolframLanguage"],
+    TypeTheoryTerm[Typed[{f[x_, y_] :> {y, x}, f[x__] :> {x}}, Expressions -> Match[Expressions]][f[1, 2]]],
     TypeTheoryTerm[MatchSum[
         Typed[f[x_, y_] :> {y, x}, Expressions -> Match[Expressions]][f[1, 2]],
         Typed[f[x__] :> {x}, Expressions -> Match[Expressions]][f[1, 2]]
-    ], "WolframLanguage"]
+    ]]
 ]
 ```
 
@@ -52,7 +52,7 @@ DefinitionallyEqualQ[
 So [ReplaceList]() gives the results of the first rule, then those of the second:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2], {f[x_, y_] :> {y, x}, f[x__] :> {x}}], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2], {f[x_, y_] :> {y, x}, f[x__] :> {x}}]]]
 ```
 
 <!-- => {{2, 1}, {1, 2}} -->
@@ -62,7 +62,7 @@ NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2], {f[x_, y_] :> {y, x}, f[x__] :> {
 The [Alternatives]() of a pattern are a sum, tried at each argument in turn:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : (_Integer | _String), ___] :> x], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : (_Integer | _String), ___] :> x]]]
 ```
 
 <!-- => {1, "a"} -->
@@ -72,20 +72,10 @@ NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : (_Integer | _Stri
 A result that two rules give is there twice, as in the Wolfram Language:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[f[a, a], {f[x_, _] :> x, f[_, y_] :> y}], "WolframLanguage"]]
+NormalForm[TypeTheoryTerm[ReplaceList[f[a, a], {f[x_, _] :> x, f[_, y_] :> y}]]]
 ```
 
 <!-- => {a, a} -->
-
----
-
-[Replace]() takes the left alternative's result, so the first rule that matches applies:
-
-```wl
-NormalForm[TypeTheoryTerm[Replace[f[1, 2], {f[x__] :> {x}, f[x_, y_] :> {y, x}}], "WolframLanguage"]]
-```
-
-<!-- => {1, 2} -->
 
 ---
 
@@ -94,10 +84,10 @@ The rules of a function with two definitions:
 ```wl
 swapped[x_, y_] := {y, x};
 swapped[x_, y__] := {{y}, x};
-swapping = TypeTheoryEnvironment["WolframLanguage", TypeTheoryFormalize[swapped, "WolframLanguage", "Meaning" -> "Rules"]]
+swapping = TypeTheoryEnvironment[TypeTheoryFormalize[swapped, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 226 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 They are the first result of the sum of the matches of the two rules:
 
@@ -112,7 +102,7 @@ swapping["DownValues[swapped]"]
 The definition of [MatchSum]():
 
 ```wl
-TypeTheoryEnvironment["WolframLanguage"][MatchSum]
+TypeTheoryEnvironment["Prelude"][MatchSum]
 ```
 
 <!-- => definition MatchSum : ∀_{A ∶ Type u} Match[A] → Match[A] → Match[A] := {A ∶ Type u} (m ∶ Match[A]) (n ∶ Match[A]) ↦ Join[m, n] -->
@@ -122,7 +112,7 @@ TypeTheoryEnvironment["WolframLanguage"][MatchSum]
 The match with no result is a unit on the left for every match, by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[{}, m] == m], "WolframLanguage", {"Introduce"[m], "Reflexivity"}]
+TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[{}, m] == m], {"Introduce"[m], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -130,7 +120,7 @@ TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[{}, m] =
 On the right it is one by induction on the list of results:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[m, {}] == m], "WolframLanguage", {
+TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[m, {}] == m], {
     "Introduce"[m],
     "Induction"[m],
     "Reflexivity",
@@ -142,12 +132,22 @@ TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[m, {}] =
 
 <!-- => Proof complete -->
 
+---
+
+The first result of a sum is the left alternative's where it has one, whatever the right one:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[m, Match[NonNegativeIntegers]]}, MatchFirst[MatchSum[MatchValue[a], m]] == "some"[a]], {"Introduce"[a, m], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
 ## Possible Issues
 
 [MatchSum]() takes two matches:
 
 ```wl
-TypeTheoryType[MatchSum[MatchValue[1], MatchValue[2], MatchValue[3]], "WolframLanguage"]
+TypeTheoryType[MatchSum[MatchValue[1], MatchValue[2], MatchValue[3]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
@@ -155,17 +155,17 @@ TypeTheoryType[MatchSum[MatchValue[1], MatchValue[2], MatchValue[3]], "WolframLa
 Three alternatives are a sum of sums:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchSum[MatchValue[1], MatchSum[MatchValue[2], MatchValue[3]]], "WolframLanguage"]]
+TypeTheoryType[MatchSum[MatchValue[1], MatchSum[MatchValue[2], MatchValue[3]]]]
 ```
 
-<!-- => {1, 2, 3} -->
+<!-- => Match[ℕ] -->
 
 ---
 
 The two alternatives have results of one type:
 
 ```wl
-TypeTheoryType[MatchSum[MatchValue[1], MatchValue["true"]], "WolframLanguage"]
+TypeTheoryType[MatchSum[MatchValue[1], MatchValue["true"]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

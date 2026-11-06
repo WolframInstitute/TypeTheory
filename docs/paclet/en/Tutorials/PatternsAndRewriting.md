@@ -10,22 +10,38 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, Elaboration, TypeTheoryIntroduction]
 ---
 
-In [TypeTheoryEnvironment]()["WolframLanguage"], a pattern is a function from an expression to its matches, the [Match]() of every way it matches, in the order the Wolfram Language tries them. Rules are such functions, and [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() are definitions over them. An atom is data, a symbol by its name, so heads, literals and [SameQ]() compute, and the kernel rewrites as the Wolfram Language does. Every pattern translates but [KeyValuePattern](), and a condition or a pattern test is the one part that only the Wolfram Language evaluates.
+In the prelude, a pattern is a function from an expression to its matches, the [Match]() of every way it matches, in the order the Wolfram Language tries them. Rules are such functions, and [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() are definitions over them. An atom is data, a symbol by its name, so heads, literals and [SameQ]() compute, and the kernel rewrites as the Wolfram Language does. Every pattern translates but [KeyValuePattern](), and a condition or a pattern test is the one part that only the Wolfram Language evaluates.
 
 ## Rules and Replace
 
-The environment of expressions:
+[Replace]() is a definition of the prelude: it takes an expression and rules, a function from an expression to its matches, and gives an expression:
 
 ```wl
-wolfram = TypeTheoryEnvironment["WolframLanguage"]
+TypeTheoryType[Replace]
 ```
 
-<!-- => TypeTheoryEnvironment summary box -->
+<!-- => Expressions → (Expressions → Match[Expressions]) → Expressions -->
+
+[ReplaceList]() gives the list of every result instead:
+
+```wl
+TypeTheoryType[ReplaceList]
+```
+
+<!-- => Expressions → (Expressions → Match[Expressions]) → {Expressions} -->
+
+A rewrite is a term like any other, of the type of its result:
+
+```wl
+TypeTheoryType[Replace[f[1, 2], f[x_, y_] :> {y, x}]]
+```
+
+<!-- => Expressions -->
 
 [Replace]() rewrites an expression by the first rule that matches it, and [NormalForm]() computes the result. `f` names nothing in the environment, so where an expression is expected `f[1, 2]` stands for itself, as a symbol without a value does in the Wolfram Language:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]]
+NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}]]]
 ```
 
 <!-- => {2, 1} -->
@@ -33,7 +49,7 @@ NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_] :> {y, x}], wolfram]]
 An expression that no rule matches stays as it is:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[g[1, 2], f[x_, y_] :> {y, x}], wolfram]]
+NormalForm[TypeTheoryTerm[Replace[g[1, 2], f[x_, y_] :> {y, x}]]]
 ```
 
 <!-- => g[1, 2] -->
@@ -41,7 +57,7 @@ NormalForm[TypeTheoryTerm[Replace[g[1, 2], f[x_, y_] :> {y, x}], wolfram]]
 The rules are a function from an expression to its matches:
 
 ```wl
-TypeTheoryType[Typed[{f[x_, y_] :> {y, x}, f[x_] :> x}, Expressions -> Match[Expressions]], wolfram]
+TypeTheoryType[Typed[{f[x_, y_] :> {y, x}, f[x_] :> x}, Expressions -> Match[Expressions]]]
 ```
 
 <!-- => Expressions → Match[Expressions] -->
@@ -49,7 +65,7 @@ TypeTheoryType[Typed[{f[x_, y_] :> {y, x}, f[x_] :> x}, Expressions -> Match[Exp
 [ReplaceList]() gives every result, in order: here every split of the arguments into two sequences, the shortest first:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], wolfram]]
+NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}]]]
 ```
 
 <!-- => {{{1}, {2, 3}}, {{1, 2}, {3}}} -->
@@ -59,7 +75,7 @@ NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y__] :> {{x}, {y}}], wo
 Each pattern is translated to matches: a blank by a test of a head, a sequence by every split, alternatives by a [MatchSum](), an [Orderless]() head by every order. A blank with a head, and a literal:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[f[1, "a"], f[x_Integer, y_String] :> {y, x}], wolfram]]
+NormalForm[TypeTheoryTerm[Replace[f[1, "a"], f[x_Integer, y_String] :> {y, x}]]]
 ```
 
 <!-- => {"a", 1} -->
@@ -67,7 +83,7 @@ NormalForm[TypeTheoryTerm[Replace[f[1, "a"], f[x_Integer, y_String] :> {y, x}], 
 A name met twice matches the same expression twice:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[f[1, 1, 2], f[x_, x_, y_] :> y], wolfram]]
+NormalForm[TypeTheoryTerm[ReplaceList[f[1, 1, 2], f[x_, x_, y_] :> y]]]
 ```
 
 <!-- => {2} -->
@@ -76,8 +92,8 @@ A sequence takes a run of arguments, each split tried, the shortest first, and [
 
 ```wl
 {
-    NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y___] :> {{x}, {y}}], wolfram]],
-    NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[Longest[x__], y___] :> {{x}, {y}}], wolfram]]
+    NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[x__, y___] :> {{x}, {y}}]]],
+    NormalForm[TypeTheoryTerm[ReplaceList[f[1, 2, 3], f[Longest[x__], y___] :> {{x}, {y}}]]]
 }
 ```
 
@@ -86,7 +102,7 @@ A sequence takes a run of arguments, each split tried, the shortest first, and [
 [Repeated]() takes a run whose every element matches:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[f[1, 2, a], f[x : Repeated[_Integer], y___] :> {{x}, {y}}], wolfram]]
+NormalForm[TypeTheoryTerm[Replace[f[1, 2, a], f[x : Repeated[_Integer], y___] :> {{x}, {y}}]]]
 ```
 
 <!-- => {{1}, {2, a}} -->
@@ -95,8 +111,8 @@ NormalForm[TypeTheoryTerm[Replace[f[1, 2, a], f[x : Repeated[_Integer], y___] :>
 
 ```wl
 {
-    NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : (_Integer | _String), ___] :> x], wolfram]],
-    NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : Except[_Integer], ___] :> x], wolfram]]
+    NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : (_Integer | _String), ___] :> x]]],
+    NormalForm[TypeTheoryTerm[ReplaceList[f[1, "a", b], f[___, x : Except[_Integer], ___] :> x]]]
 }
 ```
 
@@ -106,8 +122,8 @@ An [Optional]() argument is given or left out for its default:
 
 ```wl
 {
-    NormalForm[TypeTheoryTerm[Replace[f[1], f[x_, y_ : 0] :> {x, y}], wolfram]],
-    NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_ : 0] :> {x, y}], wolfram]]
+    NormalForm[TypeTheoryTerm[Replace[f[1], f[x_, y_ : 0] :> {x, y}]]],
+    NormalForm[TypeTheoryTerm[Replace[f[1, 2], f[x_, y_ : 0] :> {x, y}]]]
 }
 ```
 
@@ -117,8 +133,8 @@ An [Optional]() argument is given or left out for its default:
 
 ```wl
 {
-    NormalForm[TypeTheoryTerm[Replace[f[1, 2, 3], f[PatternSequence[a_, b_], c___] :> {{a, b}, {c}}], wolfram]],
-    NormalForm[TypeTheoryTerm[Replace[f["a", 1], f[OrderlessPatternSequence[x_Integer, y_String]] :> {x, y}], wolfram]]
+    NormalForm[TypeTheoryTerm[Replace[f[1, 2, 3], f[PatternSequence[a_, b_], c___] :> {{a, b}, {c}}]]],
+    NormalForm[TypeTheoryTerm[Replace[f["a", 1], f[OrderlessPatternSequence[x_Integer, y_String]] :> {x, y}]]]
 }
 ```
 
@@ -127,7 +143,7 @@ An [Optional]() argument is given or left out for its default:
 The arguments of an [Orderless]() head match in every order, and those of a [Flat]() head in runs wrapped in the head, as [Plus]() has both. [Plus]() is a constant of the environment, the addition of natural numbers, so the expression is quoted with [HoldForm]() to keep it from computing:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x], wolfram]]
+NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x]]]
 ```
 
 <!-- => a + b -->
@@ -136,8 +152,8 @@ NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x], wolfram]]
 
 ```wl
 {
-    NormalForm[TypeTheoryTerm[Replace[f[_], f[Verbatim[_]] :> "blank"], wolfram]],
-    NormalForm[TypeTheoryTerm[Replace[f[1], f[Verbatim[_]] :> "blank"], wolfram]]
+    NormalForm[TypeTheoryTerm[Replace[f[_], f[Verbatim[_]] :> "blank"]]],
+    NormalForm[TypeTheoryTerm[Replace[f[1], f[Verbatim[_]] :> "blank"]]]
 }
 ```
 
@@ -150,7 +166,7 @@ A condition, `x_ /; test`, and a pattern test, `x_?test`, are [SameQ]() of the [
 [ReplaceAll]() rewrites each part by the first rule that matches it, from the whole expression down, the parts of a part rewritten no further:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceAll[f[a, g[a]], a -> b], wolfram]]
+NormalForm[TypeTheoryTerm[ReplaceAll[f[a, g[a]], a -> b]]]
 ```
 
 <!-- => f[b, g[b]] -->
@@ -158,7 +174,7 @@ NormalForm[TypeTheoryTerm[ReplaceAll[f[a, g[a]], a -> b], wolfram]]
 [ReplaceRepeated]() rewrites again until the expression no longer changes, at most 65536 times, the default of [MaxIterations](), so it is a total function:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceRepeated[f[f[f[x]]], f[y_] :> y], wolfram]]
+NormalForm[TypeTheoryTerm[ReplaceRepeated[f[f[f[x]]], f[y_] :> y]]]
 ```
 
 <!-- => x -->
@@ -166,7 +182,7 @@ NormalForm[TypeTheoryTerm[ReplaceRepeated[f[f[f[x]]], f[y_] :> y], wolfram]]
 The right side of a rule is quoted: the rules rewrite, and arithmetic in a right side stays as it is written, for the Wolfram Language to evaluate:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceAll[HoldForm[d[x^3]], d[x^n_] :> n x^(n - 1)], wolfram]]
+NormalForm[TypeTheoryTerm[ReplaceAll[HoldForm[d[x^3]], d[x^n_] :> n x^(n - 1)]]]
 ```
 
 <!-- => 3 x^(3 - 1) -->
@@ -177,8 +193,8 @@ Where an expression is expected, a term is evaluated as the Wolfram Language eva
 
 ```wl
 {
-    NormalForm[TypeTheoryTerm[Replace[1 + 2, 3 -> "three"], wolfram]],
-    NormalForm[TypeTheoryTerm[Replace[HoldForm[1 + 2], 3 -> "three"], wolfram]]
+    NormalForm[TypeTheoryTerm[Replace[1 + 2, 3 -> "three"]]],
+    NormalForm[TypeTheoryTerm[Replace[HoldForm[1 + 2], 3 -> "three"]]]
 }
 ```
 
@@ -191,7 +207,7 @@ The rules of a function, its [DownValues](), are its own match function, read by
 ```wl
 swapped[x_, y_] := {y, x};
 swapped[x_, y__] := {{y}, x};
-swapping = TypeTheoryEnvironment[wolfram, TypeTheoryFormalize[swapped, wolfram, "Meaning" -> "Rules"]];
+swapping = TypeTheoryEnvironment[TypeTheoryFormalize[swapped, "Meaning" -> "Rules"]];
 swapping["DownValues[swapped]"]
 ```
 
@@ -214,7 +230,7 @@ The kernel computes which rule applies:
 An [Association]() is an atom, so [KeyValuePattern]() does not translate:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[f[1], KeyValuePattern["a" -> x_] :> x], wolfram]]
+NormalForm[TypeTheoryTerm[Replace[f[1], KeyValuePattern["a" -> x_] :> x]]]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

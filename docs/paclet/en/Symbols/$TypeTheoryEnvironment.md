@@ -19,7 +19,6 @@ RelatedTutorials: [TypeTheoryIntroduction]
 - [$TypeTheoryEnvironment]() is the prelude when the paclet loads. [SetTypeTheoryEnvironment]() sets another, and <code>[SetTypeTheoryEnvironment]()["Prelude"]</code> sets the prelude back.
 - A [TypeTheoryTerm]() or a [TypeTheoryProof]() that names no environment is in [$TypeTheoryEnvironment]() when it is used, and <code>[TypeTheoryEnvironment]()[{*declaration1*, ...}]</code> extends it.
 - <code>[Block]()[{[$TypeTheoryEnvironment]() = *env*}, *expr*]</code> makes the environment *env* the default while *expr* evaluates. *env* may be the name of a library environment, such as `"Integers"`, which stands for that environment; any other value that is no environment leaves the prelude.
-- While the default is the prelude, a term that names a constant only <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> declares, such as [MatchFirst]() or [Arguments](), is read in that environment. With another default it is not.
 - <code>[TypeTheoryEnvironment]()[]</code>, the empty environment, does not depend on the default.
 
 ## Basic Examples
@@ -30,7 +29,7 @@ The default environment is the prelude:
 $TypeTheoryEnvironment
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 169 constants -->
+<!-- => TypeTheoryEnvironment summary box: 230 constants -->
 
 ---
 
@@ -108,7 +107,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 169 constants -->
+<!-- => TypeTheoryEnvironment summary box: 230 constants -->
 
 ## Properties and Relations
 
@@ -165,32 +164,6 @@ TypeTheoryType[TypeTheoryTerm[Typed[x, Integers] |-> -x, "Integers"]]
 ```
 
 <!-- => ℤ → ℤ -->
-
----
-
-Only while the default is the prelude is a term that names a constant of the Wolfram Language environment read there:
-
-```wl
-TypeTheoryType[MatchFirst[MatchValue[3]]]
-```
-
-<!-- => Option[ℕ] -->
-
-With another default, it is not found:
-
-```wl
-Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryType[MatchFirst[MatchValue[3]]]]
-```
-
-<!-- => Failure["ElaborationFailed", ...] -->
-
-Named, the environment is found whatever the default is:
-
-```wl
-Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryType[MatchFirst[MatchValue[3]], "WolframLanguage"]]
-```
-
-<!-- => Option[ℕ] -->
 
 ---
 

@@ -137,7 +137,7 @@ The classical prelude loses its axioms, and every declaration that mentions them
 Keys[TypeTheoryTranslate["Prelude", TypeTheoryRules["MartinLofTypeTheory"]]["Failures"]]
 ```
 
-<!-- => {QuotientType, "propositionalExtensionality", "quotientSoundness", "functionExtensionality", "choice", ChosenWitness, "chosenWitnessProperty", "excludedMiddle", "doubleNegationElimination"} -->
+<!-- => {QuotientType, "propositionalExtensionality", "quotientSoundness", "functionExtensionality", "choice", ChosenWitness, "chosenWitnessProperty", "excludedMiddle", "doubleNegationElimination", ExpressionEvaluate} -->
 
 ---
 
@@ -245,7 +245,7 @@ A proposition about all propositions is a proposition only by impredicativity, w
 impredicative = TypeTheoryEnvironment[{TypeTheoryDefinition[Everything, Typed[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], TypeUniverse[0]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 ```wl
 TypeTheoryTranslate[impredicative, TypeTheoryRules["MartinLofTypeTheory"]]["Failures"][Everything]

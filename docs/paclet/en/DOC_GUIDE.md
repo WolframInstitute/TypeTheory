@@ -41,9 +41,13 @@ section gave a value.
   `TypeTheoryEnvironment["Prelude"]` where it could be left out: <code>[TypeTheoryTerm]()[2 + 3]</code>,
   <code>[TypeTheoryProof]()[*statement*, {...}]</code>, <code>[TypeTheoryEnvironment]()[{*declaration*}]</code>.
   Name an environment only when it is not the prelude, and then by its name, in the call itself:
-  <code>[TypeTheoryTerm]()[*term*, "WolframLanguage"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code>,
-  never a variable set to <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> first. Build on
-  <code>[TypeTheoryEnvironment]()[]</code> when the prelude must be left out, as for natural numbers of your own.
+  <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code>,
+  never a variable set to <code>[TypeTheoryEnvironment]()["Integers"]</code> first. The Wolfram Language's expressions,
+  strings and matches are the prelude's, so they need no name. Build on <code>[TypeTheoryEnvironment]()[]</code> when
+  the prelude must be left out, as for natural numbers of your own.
+- **Show the types first.** A type theory's page shows types: the type of the symbol, then the types of the terms its
+  examples build. Evaluation with [NormalForm]() is shown only where computing in the kernel is itself the point, never to
+  show that a term evaluates to the obvious value.
 - **Examples show what a symbol is for.** Each example is one thing a reader would do with the symbol, or one fact
   they need to use it right, on an input that means something: a rewrite of a real expression, a match with several
   results, a proof that needs the tactic. No filler: no variations that differ only in a number, no example that only

@@ -90,8 +90,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]
 `List` and `Sequence` are each a type and its elements, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{A}` is the type of the lists of `A`, and `Sequence[A, B]` the type of the sequences of an `A` and a `B`; elsewhere `{a, b}` is a list and `Sequence[a, b]` a sequence. In a term on its own, where nothing decides, the elements do, elaborated once: types make the type, so a type that [TypeTheoryType]() gives reads back as itself:
 
 ```wl
-wolfram = TypeTheoryEnvironment["WolframLanguage"];
-{TypeTheoryType[{1, 2}, wolfram], TypeTheoryType[{NonNegativeIntegers}, wolfram]}
+{TypeTheoryType[{1, 2}], TypeTheoryType[{NonNegativeIntegers}]}
 ```
 
 <!-- => {{ℕ}, Type} -->
@@ -99,7 +98,7 @@ wolfram = TypeTheoryEnvironment["WolframLanguage"];
 A function of the type theory is curried: `f[a, b]` is `f[a][b]`, each argument filling the next binder. A Wolfram Language function is applied to a sequence instead, `f[a, b]` giving `f` the sequence of `a` and `b`, so a binder of a type `Sequence[...]` takes the arguments that are left as one `Sequence`. One argument that is a sequence already, as the tail of `"sequencePrepend"`, is the sequence itself; it is elaborated once, and its type tells which:
 
 ```wl
-pairs = TypeTheoryEnvironment[wolfram, {TypeTheoryAxiom[sum, Sequence[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers]}];
+pairs = TypeTheoryEnvironment[{TypeTheoryAxiom[sum, Sequence[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers]}];
 DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequence[1, 2]], pairs]]
 ```
 
@@ -108,7 +107,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[sum[1, 2], pairs], TypeTheoryTerm[sum[Sequen
 A sequence of any number of elements of one type is of the type `A...`, as the pattern `p...` takes any number of expressions, and is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, and shown in brackets, `[a, b, ...]`. The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, each an `A` or a sequence spliced in, a variable of that type, `Unevaluated[...]`, or `Sequence @@ l` of a list; a binder of that type before others takes one argument, as any binder does, so a recursor's case of type `A...` is no sequence of the arguments after it. The Wolfram Language's own [Construct]() is applied so, `Construct[h, a, b]` building the expression `h[a, b]`:
 
 ```wl
-{TypeTheoryType[Construct, wolfram], NormalForm[TypeTheoryTerm[Construct[f, 1, Unevaluated[2, 3]], wolfram]]}
+{TypeTheoryType[Construct], NormalForm[TypeTheoryTerm[Construct[f, 1, Unevaluated[2, 3]]]]}
 ```
 
 <!-- => {Expressions → Expressions... → Expressions, f[1, 2, 3]} -->
@@ -220,12 +219,11 @@ Last[TypeTheoryFormalize[styled, integers]]
 
 <!-- => axiom styled : Expressions → Expressions -->
 
-A function has a second meaning, its rules, which every definition with a deterministic pattern has, whatever its body: with `"Meaning" -> "Rules"`, [TypeTheoryFormalize]() reads the match program of each rule as a match of [TypeTheoryEnvironment]()["WolframLanguage"], and the rules as a definition of type `Expressions -> Option[Expressions]`, the expression that an expression rewrites to. Nothing is elaborated but the term, and the types are those of expressions, so it is faithful to the Wolfram Language where the first meaning is mathematical. [The Wolfram Language](paclet:WolframInstitute/TypeTheory/tutorial/TheWolframLanguage) tutorial reads the rules of a function:
+A function has a second meaning, its rules, which every definition with a deterministic pattern has, whatever its body: with `"Meaning" -> "Rules"`, [TypeTheoryFormalize]() reads the match program of each rule as a match of the prelude, and the rules as a definition of type `Expressions -> Option[Expressions]`, the expression that an expression rewrites to. Nothing is elaborated but the term, and the types are those of expressions, so it is faithful to the Wolfram Language where the first meaning is mathematical. [The Wolfram Language](paclet:WolframInstitute/TypeTheory/tutorial/TheWolframLanguage) tutorial reads the rules of a function:
 
 ```wl
 reversed[s_] := StringReverse[s];
-wolfram = TypeTheoryEnvironment["WolframLanguage"];
-Last[TypeTheoryFormalize[reversed, wolfram, "Meaning" -> "Rules"]]
+Last[TypeTheoryFormalize[reversed, "Meaning" -> "Rules"]]
 ```
 
 <!-- => definition DownValues[reversed] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (s ∶ Expressions) ↦ MatchValue[StringReverse[s]]] /; ¬AtomQ[expression] ∧ Decide[Length[Arguments[expression]] == 1]] -->

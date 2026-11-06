@@ -119,7 +119,7 @@ heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, Function[{Typed
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The list of 5 and 7 has the first element 5:
 
@@ -148,7 +148,7 @@ checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 7 less 3:
 
@@ -183,7 +183,7 @@ lookups = TypeTheoryEnvironment[{TypeTheoryDefinition[LookupNumber, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 The key 2 has the value 20:
 
@@ -278,7 +278,7 @@ checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 170 constants -->
+<!-- => TypeTheoryEnvironment summary box: 231 constants -->
 
 [WeakHeadNormalForm]() computes only as far as the constructor, and leaves the value inside as it is; [NormalForm]() computes it too:
 
