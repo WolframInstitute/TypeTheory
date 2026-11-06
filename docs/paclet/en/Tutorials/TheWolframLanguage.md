@@ -280,12 +280,20 @@ listing = TypeTheoryEnvironment[rules];
 
 A condition or a pattern test is [SameQ]() of the [ExpressionEvaluate]() of an expression and `True`, which only the Wolfram Language evaluates, so a rule with one computes in the kernel up to its test.
 
-## Reading Values Back
+## Reading Terms Back
 
-[TypeTheoryExpression]() goes the other way from elaboration: it reads the value of a term, computed in the kernel, as the expression of the Wolfram Language it stands for. The step of evaluation by the rules of `listed` is a value of [Option](), and reads as the list the Wolfram Language gives:
+[TypeTheoryExpression]() goes the other way from elaboration: it reads a term as the expression of the Wolfram Language it is written as, and the normal form of a term as the value the kernel computes. The step of evaluation by the rules of `listed`, computed in the kernel, is a value of [Option](), and reads as a list:
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm["DownValues[listed]"[listed[1, 2, 3]], listing]]
+TypeTheoryExpression[NormalForm[TypeTheoryTerm["DownValues[listed]"[listed[1, 2, 3]], listing]]]
+```
+
+<!-- => {1, 2, 3} -->
+
+It is the list the Wolfram Language evaluates `listed[1, 2, 3]` to, by the rules the kernel computed with:
+
+```wl
+listed[1, 2, 3]
 ```
 
 <!-- => {1, 2, 3} -->

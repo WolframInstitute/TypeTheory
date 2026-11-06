@@ -420,7 +420,7 @@ VerificationTest[
 
 (* a sequence and its type show in brackets, and the type at a list of types that is no literal as Sequence @@ As *)
 VerificationTest[
-	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]},
+	With[{wolfram = TypeTheoryEnvironment["Prelude"]},
 		{
 			Cases[ToBoxes[TypeTheoryType[TypeTheoryTerm[Sequence[1, 2], wolfram]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, TemplateBox[{"\"[\"", _, "\"]\""}, "RowDefault"], Infinity] =!= {},
 			Cases[ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[Sequence[1, 2], wolfram]]], TemplateBox[{"\"[\"", _, "\"]\""}, "RowDefault"], Infinity] =!= {},

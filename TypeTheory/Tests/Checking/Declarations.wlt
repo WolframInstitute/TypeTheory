@@ -297,7 +297,7 @@ VerificationTest[
 (* a declaration holds a sequence, Sequence[a, b], as one term, not as the arguments a and b: one of the type its elements
    give is declared, and one of another type, a forged one, is still rejected *)
 VerificationTest[
-	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]},
+	With[{wolfram = TypeTheoryEnvironment["Prelude"]},
 		{
 			Head[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[numbers, Typed[Sequence[1, 2], Sequence[NonNegativeIntegers, NonNegativeIntegers]]]}]],
 			First[TypeTheoryEnvironment[wolfram, {TypeTheoryDefinition[forged, Typed[Sequence[1, 2], Sequence[NonNegativeIntegers]]]}]],

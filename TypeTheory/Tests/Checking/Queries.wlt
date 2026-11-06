@@ -86,7 +86,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{wolfram = TypeTheoryEnvironment["WolframLanguage"]}, TypeTheoryType[Sequence[1, Typed[2, Expressions]], wolfram] === TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], wolfram]],
+	With[{wolfram = TypeTheoryEnvironment["Prelude"]}, TypeTheoryType[Sequence[1, Typed[2, Expressions]], wolfram] === TypeTheoryTerm[Sequence[NonNegativeIntegers, Expressions], wolfram]],
 	True,
 	TestID -> "TypeTheoryType-holds-a-sequence-whole"
 ]
@@ -450,8 +450,8 @@ VerificationTest[
 (* a library environment by its name, wherever an environment is given, and a name that names none is a Failure *)
 VerificationTest[
 	{
-		WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchValue[3]], "WolframLanguage"]] === TypeTheoryTerm["some"[3], TypeTheoryEnvironment["WolframLanguage"]],
-		TypeTheoryType[Arguments, "WolframLanguage"] === TypeTheoryTerm[Expressions -> Expressions..., TypeTheoryEnvironment["WolframLanguage"]],
+		WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchValue[3]]]] === TypeTheoryTerm["some"[3], TypeTheoryEnvironment["Prelude"]],
+		TypeTheoryType[Arguments] === TypeTheoryTerm[Expressions -> Expressions..., TypeTheoryEnvironment["Prelude"]],
 		TypeTheoryProof[2 + 2 == 4, "Integers", {"Reflexivity"}]["Goals"],
 		Head[TypeTheoryEnvironment["Integers", {TypeTheoryAxiom[namedEnvironmentAxiom, Integers]}]],
 		FailureQ[TypeTheoryTerm[1, "NoSuchEnvironment"]],
@@ -473,7 +473,7 @@ VerificationTest[
 			First[TypeTheoryCheck["Constructive", Method -> "Fast"]],
 			Head[TypeTheoryProofTree[proof]],
 			First[TypeTheoryType[TypeTheoryTerm["checkedBitOne", bits], TypeTheoryEnvironment["Prelude"]]],
-			TypeTheoryType[Head[f[x]]] === TypeTheoryTerm[Expressions, TypeTheoryEnvironment["WolframLanguage"]]
+			TypeTheoryType[Head[f[x]]] === TypeTheoryTerm[Expressions, TypeTheoryEnvironment["Prelude"]]
 		}
 	],
 	{Success, "UnknownMethod", TypeTheoryProofTree, "DifferentEnvironments", True},
@@ -490,48 +490,61 @@ VerificationTest[
 	TestID -> "An-ascription-has-the-type-it-is-given"
 ]
 
-(* the Wolfram Language reading of a term: the data of its normal form as the Wolfram Language writes them *)
+(* the Wolfram Language reading of a term is the expression it is, as it is written, with the type theory's notation
+   read as the Wolfram Language's: ascriptions and binder types dropped, constructors as data *)
 VerificationTest[
 	{
-		TypeTheoryExpression[TypeTheoryTerm[2 + 3]],
-		TypeTheoryExpression[TypeTheoryTerm[Map[Typed[n, NonNegativeIntegers] |-> n^2, {1, 2, 3}]]],
-		TypeTheoryExpression[TypeTheoryTerm[FromString["Hi"]]],
-		TypeTheoryExpression[TypeTheoryTerm[Decide[2 <= 3]]],
-		TypeTheoryExpression[TypeTheoryTerm[Replace[readingHead[1, 2], readingHead[x_, y_] :> readingOther[y, x]]]],
+		TypeTheoryExpression[TypeTheoryTerm[Map[n |-> n^2, {1, 2, 3}]], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[Decide[2 <= 3]], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[{Arguments[readingHead[1, 2, 3]]}], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[Typed["none", Option[NonNegativeIntegers]]], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[Typed["none", Strings]], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[FromString["Hi"]], HoldComplete],
 		TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]], HoldComplete],
-		TypeTheoryExpression[TypeTheoryTerm[Typed["text", NonNegativeIntegers | Strings]]],
-		TypeTheoryExpression[TypeTheoryTerm[Lookup[<|"a" -> 1|>, "b"]]],
-		TypeTheoryExpression[TypeTheoryTerm[<|"a" -> 1, "b" -> 2|>]],
-		TypeTheoryExpression[TypeTheoryTerm[Typed["none", Option[NonNegativeIntegers]]]],
-		TypeTheoryExpression[TypeTheoryTerm[Typed[{}, {NonNegativeIntegers}]]],
-		{TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1, 2]]]},
+		TypeTheoryExpression[TypeTheoryTerm[Construct[readingHead, 1 + 2, Unevaluated[1 + 2]]], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x], HoldComplete],
 		TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1, 2]], HoldComplete],
-		Information[TypeTheoryTerm[{1, 2}], "Expression"],
+		Information[TypeTheoryTerm[Join[{1, 2}, {3}]], "Expression"],
 		MemberQ[Information[TypeTheoryTerm[2], "Properties"], "Expression"]
 	},
 	{
-		5, {1, 4, 9}, "Hi", True, readingOther[2, 1], HoldComplete[1 + 2], "text", Missing["KeyAbsent", "b"], <|"a" -> 1, "b" -> 2|>,
-		Missing["NotAvailable"], {}, {1, 2}, HoldComplete[Sequence[1, 2]], {1, 2}, True
+		HoldComplete[Function[n, n^2] /@ {1, 2, 3}], HoldComplete[-3 + 1], HoldComplete[2 <= 3], HoldComplete[{Sequence @@ readingHead[1, 2, 3]}],
+		HoldComplete[Missing["NotAvailable"]], HoldComplete["none"], HoldComplete["Hi"], HoldComplete[1 + 2],
+		HoldComplete[Construct[readingHead, 1 + 2, Unevaluated[1 + 2]]], HoldComplete[Function[{x}, x]], HoldComplete[Sequence[1, 2]], {1, 2, 3}, True
 	},
-	TestID -> "The-reading-of-a-term-is-the-data-of-its-normal-form"
+	TestID -> "The-reading-of-a-term-is-the-term-as-it-is-written"
 ]
 
-(* the classes of the integers and the rationals are numbers; a function is a Function of its explicit arguments, from
-   its normal form or, where that unfolds arithmetic into recursors, as it is written; a proof, or a constant the Wolfram
-   Language does not have, has no reading *)
+(* the reading evaluated in the Wolfram Language is the reading of the value the kernel computes, where the term's
+   constants are the Wolfram Language's or defined as it defines them, as a definition TypeTheoryFormalize reads is; a
+   constant of your own reads as its symbol, which the Wolfram Language does not evaluate; a proof, or a recursor, has no
+   reading *)
+readingSquare[x_Integer] := x^2 + 1
+
 VerificationTest[
-	{
-		TypeTheoryExpression[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"]],
-		TypeTheoryExpression[TypeTheoryTerm[{Typed[-3, Integers], Typed[4, Integers] - 9}, "Integers"]],
-		TypeTheoryExpression[TypeTheoryTerm[Typed[1/2, Rationals] + Typed[1/3, Rationals], "Rationals"]],
-		TypeTheoryExpression[TypeTheoryTerm[Typed[-3/4, Rationals], "Rationals"]],
-		TypeTheoryExpression[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n + 1]][4],
-		TypeTheoryExpression[TypeTheoryTerm[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]} |-> a + 2 b]][3, 4],
-		TypeTheoryExpression[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]][7],
-		TypeTheoryExpression[TypeTheoryTerm[readingDouble[3], TypeTheoryEnvironment[{TypeTheoryDefinition[readingDouble, Typed[n, NonNegativeIntegers] |-> 2 n]}]]],
-		First[TypeTheoryExpression[TypeTheoryTerm[Typed[m, NonNegativeIntegers] |-> readingDouble[m] + 1, TypeTheoryEnvironment[{TypeTheoryDefinition[readingDouble, Typed[n, NonNegativeIntegers] |-> 2 n]}]]]],
-		First[TypeTheoryExpression[TypeTheoryTerm["equalityReflexivity"[2]]]]
-	},
-	{-2, {-3, -5}, 5/6, -3/4, 5, 11, 7, 6, "NoExpression", "NoExpression"},
-	TestID -> "Quotient-classes-are-numbers-functions-are-Functions-and-proofs-have-no-reading"
+	Module[{agreeQ, squares = TypeTheoryEnvironment[TypeTheoryFormalize[readingSquare]], doubling = TypeTheoryEnvironment[{TypeTheoryDefinition[ReadingDoubled, n |-> 2 n]}]},
+		SetAttributes[agreeQ, HoldFirst];
+		agreeQ[term_] := With[{written = term}, TypeTheoryExpression[written] === TypeTheoryExpression[NormalForm[written]]];
+		{
+			agreeQ[TypeTheoryTerm[Map[n |-> n^2, {1, 2, 3}]]],
+			agreeQ[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"]],
+			agreeQ[TypeTheoryTerm[1/2 + 1/3, "Rationals"]],
+			agreeQ[TypeTheoryTerm[Lookup[<|"a" -> 1, "b" -> 2|>, "c"]]],
+			agreeQ[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]]],
+			agreeQ[TypeTheoryTerm[{Arguments[readingHead[1, 2, 3]]}]],
+			agreeQ[TypeTheoryTerm[Typed["text", NonNegativeIntegers | Strings]]],
+			agreeQ[TypeTheoryTerm[If[2 == 3, 1, 5]]],
+			agreeQ[TypeTheoryTerm[Construct[readingHead, 1 + 2, Unevaluated[1 + 2]]]],
+			agreeQ[TypeTheoryTerm[Failure["Tag", <|"x" -> 1|>]]],
+			agreeQ[TypeTheoryTerm[readingSquare[5], squares]],
+			agreeQ[TypeTheoryTerm[ReadingDoubled[21], doubling]],
+			TypeTheoryExpression[TypeTheoryTerm[ReadingDoubled[21], doubling]],
+			TypeTheoryExpression[TypeTheoryTerm[{a, b} |-> a + 2 b]][3, 4],
+			First[TypeTheoryExpression[TypeTheoryTerm["equalityReflexivity"[2]]]],
+			First[TypeTheoryExpression[TypeTheoryTerm[InductiveRecursor[Naturals][Naturals &, 1, #1 + #2 &, 3]]]]
+		}
+	],
+	{True, True, True, True, True, True, True, True, True, True, True, False, ReadingDoubled[21], 11, "NoExpression", "NoExpression"},
+	TestID -> "The-reading-evaluates-to-the-reading-of-the-value-where-the-definitions-are-the-Wolfram-Language-s"
 ]

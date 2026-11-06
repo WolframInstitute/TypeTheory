@@ -4,7 +4,7 @@ Name: TypeTheoryExpression
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryExpression
-Keywords: [Wolfram Language, expression, reading, value, read back, normal form, data, integers, rationals, function, ToExpression, Expression property]
+Keywords: [Wolfram Language, expression, reading, as written, normal form, value, agreement, typed definition, integers, rationals, function, ToExpression, Expression property]
 SeeAlso: [NormalForm, TypeTheoryTerm, TypeTheoryFormalize, Expressions, ExpressionEvaluate, TypeTheoryType]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, Elaboration]
@@ -12,23 +12,33 @@ RelatedTutorials: [TheWolframLanguage, Elaboration]
 
 ## Usage
 
-<code>[TypeTheoryExpression]()[*term*]</code> gives the expression of the Wolfram Language that the value of the [TypeTheoryTerm]() *term* stands for.
+<code>[TypeTheoryExpression]()[*term*]</code> gives the expression of the Wolfram Language that the [TypeTheoryTerm]() *term* is, as it is written.
 
 <code>[TypeTheoryExpression]()[*term*, *h*]</code> wraps the expression in *h* before it evaluates.
 
 ## Details & Options
 
-- [TypeTheoryExpression]() reads the normal form of *term*, as [NormalForm]() computes it in the kernel, and gives its data as the Wolfram Language writes them, so a value computed in the type theory can be used in the Wolfram Language.
-- A natural number is an integer, a class of the integers an integer and a class of the rationals a rational. A string, a list and an association are themselves, a Boolean is [True]() or [False](), and a quoted expression, of the type [Expressions](), is the expression.
-- A value of `A | B` is the value in it, a value of <code>[Option]()[*A*]</code> is the value or `Missing["NotAvailable"]`, a pair is a list of two, and a sequence is a [Sequence](), spliced into what is around it.
-- A function is a [Function]() of its explicit arguments: its implicit binders are left out, and so are the types of the others. The normal form of a function unfolds its arithmetic into recursors, so a function is read from its term as written, where its normal form has no reading and every constant in it is a System symbol, which the prelude defines as the Wolfram Language does.
-- Where something in the value is the type theory's only, a proof, a recursor, a constant named by a string or a constant of your own, [TypeTheoryExpression]() gives `Failure["NoExpression", ...]`.
-- <code>[TypeTheoryExpression]()[*term*, *h*]</code> wraps the expression in *h* before it evaluates, as <code>[ToExpression]()[*s*, *form*, *h*]</code> does: [HoldComplete]() keeps it unevaluated.
+- [TypeTheoryExpression]() reads *term* as it is written, without reducing it: its constants are the symbols that name them, and the type theory's own notation is read as the Wolfram Language writes it. The expression evaluates in the Wolfram Language.
+- An ascription, <code>[Typed]()[*e*, *T*]</code> or <code>[TypeHint]()[*e*, *T*]</code>, is *e*. A function is a [Function]() of its explicit arguments: its implicit binders are left out, and so are the types of the others.
+- A constructor is the data the Wolfram Language writes: `"true"` and `"false"` are [True]() and [False](), `"none"` is `Missing["NotAvailable"]`, a value of `A | B` or of <code>[Option]()[*A*]</code> is the value in it, and a pair is a list of two. <code>[Decide]()[*p*]</code> is *p*, <code>[Arguments]()[*e*]</code> is `Sequence @@ e`, and <code>[FromString]()[*s*]</code> of the strings is *s*.
+- [Unevaluated]() around the whole of *term* is the expression itself. Inside, it stays, as the Wolfram Language passes the argument on unevaluated.
+- <code>[TypeTheoryExpression]()[[NormalForm]()[*term*]]</code> reads the value the kernel computes, in which a class of the integers or the rationals is its number. Where every constant in *term* is defined as the Wolfram Language defines it, as the prelude defines [Plus](), [Map]() and [Lookup](), and as [TypeTheoryFormalize]() reads a definition of the Wolfram Language, the reading evaluates to the reading of the value.
+- A constant of your own reads as the symbol that names it, which the Wolfram Language evaluates by its own definitions, if it has any.
+- Where something in *term* is the type theory's only, a proof, a recursor or a constant named by a string, [TypeTheoryExpression]() gives `Failure["NoExpression", ...]`. It does not check *term*: [TypeTheoryType]() does.
+- <code>[TypeTheoryExpression]()[*term*, *h*]</code> wraps the expression in *h* before it evaluates, as <code>[ToExpression]()[*s*, *form*, *h*]</code> does: [HoldForm]() shows it as it is written.
 - <code>[Information]()[*term*, "Expression"]</code> is <code>[TypeTheoryExpression]()[*term*]</code>.
 
 ## Basic Examples
 
-A list computed in the kernel is a list of the Wolfram Language:
+A term is the expression it is written as, here a map of a pure function over a list:
+
+```wl
+TypeTheoryExpression[TypeTheoryTerm[Map[n |-> n^2, {1, 2, 3}]], HoldForm]
+```
+
+<!-- => Function[n, n^2] /@ {1, 2, 3} -->
+
+Without a wrapper, it evaluates in the Wolfram Language:
 
 ```wl
 TypeTheoryExpression[TypeTheoryTerm[Map[n |-> n^2, {1, 2, 3}]]]
@@ -38,7 +48,7 @@ TypeTheoryExpression[TypeTheoryTerm[Map[n |-> n^2, {1, 2, 3}]]]
 
 ---
 
-A function is a [Function]() of the Wolfram Language, which takes its arguments as the type theory's did:
+A function is a [Function]() of the Wolfram Language, without the types of its arguments:
 
 ```wl
 weighted = TypeTheoryExpression[TypeTheoryTerm[{a, b} |-> a + 2 b]]
@@ -54,83 +64,73 @@ weighted[3, 4]
 
 ---
 
-An integer is a class of pairs of natural numbers, and reads as the integer it stands for:
+The value the kernel computes is read from the normal form, here the factorial of 20:
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"]]
-```
-
-<!-- => -2 -->
-
-## Scope
-
-A class of the rationals is a rational:
-
-```wl
-TypeTheoryExpression[TypeTheoryTerm[1/2 + 1/3, "Rationals"]]
-```
-
-<!-- => 5/6 -->
-
----
-
-A decision is a Boolean:
-
-```wl
-TypeTheoryExpression[TypeTheoryTerm[Decide[2 <= 3]]]
-```
-
-<!-- => True -->
-
----
-
-A lookup of a key that an association does not have is the [Missing]() the Wolfram Language gives:
-
-```wl
-TypeTheoryExpression[TypeTheoryTerm[Lookup[<|"a" -> 1, "b" -> 2|>, "c"]]]
-```
-
-<!-- => Missing["KeyAbsent", "c"] -->
-
----
-
-A rewriting computed in the kernel is the expression it gives, which then evaluates as any expression of the Wolfram Language does:
-
-```wl
-TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]]]
-```
-
-<!-- => log[a] + log[b] + log[c] -->
-
----
-
-A sequence is a [Sequence](), spliced into the list around it:
-
-```wl
-{TypeTheoryExpression[TypeTheoryTerm[Arguments[f[1, 2, 3]]]]}
-```
-
-<!-- => {1, 2, 3} -->
-
----
-
-A constant of your own reads where its value is data:
-
-```wl
-doubling = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> 2 n]}]
+factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, n |-> InductiveRecursor[Naturals][Naturals &, 1, (#1 + 1) #2 &, n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm[Doubled[21], doubling]]
+TypeTheoryExpression[NormalForm[TypeTheoryTerm[FactorialOf[20], factorials]]]
 ```
 
-<!-- => 42 -->
+<!-- => 2432902008176640000 -->
+
+## Scope
+
+An ascription is left out, so an integer of the type theory is the integer the Wolfram Language computes with:
+
+```wl
+TypeTheoryExpression[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"], HoldForm]
+```
+
+<!-- => -3 + 1 -->
+
+---
+
+A decision is the proposition it decides, which the Wolfram Language evaluates to a Boolean:
+
+```wl
+TypeTheoryExpression[TypeTheoryTerm[Decide[2 <= 3]], HoldForm]
+```
+
+<!-- => 2 <= 3 -->
+
+---
+
+No value of an [Option]() is the [Missing]() the Wolfram Language gives:
+
+```wl
+TypeTheoryExpression[TypeTheoryTerm[Typed["none", Option[Naturals]]]]
+```
+
+<!-- => Missing["NotAvailable"] -->
+
+---
+
+A rewriting is the Wolfram Language's own, with its rules as they are written:
+
+```wl
+TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]], HoldForm]
+```
+
+<!-- => log[a b c] //. log[x_ y_] :> log[x] + log[y] -->
+
+---
+
+The arguments of an expression are a [Sequence](), spliced into the list around them:
+
+```wl
+TypeTheoryExpression[TypeTheoryTerm[{Arguments[f[1, 2, 3]]}]]
+```
+
+<!-- => {1, 2, 3} -->
 
 ## Options
 
-A wrapper is put around the expression before it evaluates. Without one, a quoted sum evaluates:
+A wrapper is put around the expression before it evaluates. A quoted sum is the sum, which evaluates without one:
 
 ```wl
 TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]]]
@@ -138,7 +138,7 @@ TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]]]
 
 <!-- => 3 -->
 
-[HoldComplete]() keeps it as the kernel built it:
+[HoldComplete]() keeps it as it is written:
 
 ```wl
 TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]], HoldComplete]
@@ -146,17 +146,37 @@ TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]], HoldComplete]
 
 <!-- => HoldComplete[1 + 2] -->
 
----
+## Properties and Relations
 
-[HoldForm]() shows how the rewriting grouped the sum, which [Plus]() flattens once it evaluates:
+A definition of the Wolfram Language that [TypeTheoryFormalize]() reads computes in the kernel what it computes in the Wolfram Language:
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm[ReplaceRepeated[log[a b c], log[x_ y_] :> log[x] + log[y]]], HoldForm]
+square[x_Integer] := x^2 + 1;
+squares = TypeTheoryEnvironment[TypeTheoryFormalize[square]]
 ```
 
-<!-- => log[a] + (log[b] + log[c]) -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
-## Properties and Relations
+So the reading of a term, which the Wolfram Language evaluates, is the reading of its value, which the kernel computes:
+
+```wl
+fifth = TypeTheoryTerm[square[5], squares];
+{TypeTheoryExpression[fifth], TypeTheoryExpression[NormalForm[fifth]]}
+```
+
+<!-- => {26, 26} -->
+
+---
+
+The class of pairs the kernel computes for an integer reads as the integer:
+
+```wl
+TypeTheoryExpression[NormalForm[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"]]]
+```
+
+<!-- => -2 -->
+
+---
 
 The property `"Expression"` of a term is its reading:
 
@@ -166,25 +186,24 @@ Information[TypeTheoryTerm[Join[{1, 2}, {3}]], "Expression"]
 
 <!-- => {1, 2, 3} -->
 
----
-
-A term of squares:
-
-```wl
-squares = TypeTheoryTerm[Map[n |-> n^2, {1, 2, 3}]]
-```
-
-<!-- => (n ↦ n^2) /@ {1, 2, 3} -->
-
-[NormalForm]() gives its value as a term of the type theory, which is no list of the Wolfram Language, and [TypeTheoryExpression]() gives the list:
-
-```wl
-{NormalForm[squares] === {1, 4, 9}, TypeTheoryExpression[squares] === {1, 4, 9}}
-```
-
-<!-- => {False, True} -->
-
 ## Possible Issues
+
+A constant of your own is a symbol the Wolfram Language has no definition of, so the reading and the value differ:
+
+```wl
+doubling = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> 2 n]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+
+```wl
+doubled = TypeTheoryTerm[Doubled[21], doubling];
+{TypeTheoryExpression[doubled], TypeTheoryExpression[NormalForm[doubled]]}
+```
+
+<!-- => {Doubled[21], 42} -->
+
+---
 
 A proof has no reading as an expression:
 
@@ -196,26 +215,18 @@ TypeTheoryExpression[TypeTheoryTerm["equalityReflexivity"[2]]]
 
 ---
 
-A function that calls a constant of your own has no reading: its normal form unfolds the arithmetic into recursors, and the Wolfram Language has no such constant:
+The reading does not check the term. `Length[3]` is no term, as 3 is no list, but the Wolfram Language evaluates it:
 
 ```wl
-doubling = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> 2 n]}]
+TypeTheoryExpression[TypeTheoryTerm[Length[3]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => 0 -->
+
+[TypeTheoryType]() checks it:
 
 ```wl
-TypeTheoryExpression[TypeTheoryTerm[m |-> Doubled[m] + 1, doubling]]
+TypeTheoryType[Length[3]]
 ```
 
-<!-- => Failure["NoExpression", ...] -->
-
----
-
-The reading is of the value, so [HoldComplete]() holds what the kernel computed, not the term as it is written:
-
-```wl
-TypeTheoryExpression[TypeTheoryTerm[{1 + 1, 2}], HoldComplete]
-```
-
-<!-- => HoldComplete[{2, 2}] -->
+<!-- => Failure["TypeMismatch", ...] -->

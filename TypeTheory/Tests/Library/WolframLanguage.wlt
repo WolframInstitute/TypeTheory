@@ -7,7 +7,7 @@ PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
-wolfram = TypeTheoryEnvironment["WolframLanguage"]
+wolfram = TypeTheoryEnvironment["Prelude"]
 
 SetAttributes[equalQ, HoldAll]
 equalQ[a_, b_] := DefinitionallyEqualQ[TypeTheoryTerm[a, wolfram], TypeTheoryTerm[b, wolfram]]
@@ -67,7 +67,7 @@ VerificationTest[
    nothing declares; a string literal is a string, the list of its character codes, where a string is expected, and an
    expression where one is; where an expression is expected, a symbol that names nothing stands for itself *)
 VerificationTest[
-	With[{quoting = TypeTheoryEnvironment["WolframLanguage"]},
+	With[{quoting = TypeTheoryEnvironment["Prelude"]},
 		{
 			DefinitionallyEqualQ[TypeTheoryTerm[f[1, 2], quoting], TypeTheoryTerm[Construct["atom"["symbolAtom"["Global`f"]], 1, 2], quoting]],
 			Head[TypeTheoryType[TypeTheoryTerm[{Typed[x, Expressions], Typed[l, {Expressions}]} |-> f[x, l, Sequence @@ l], quoting]]] === TypeTheoryTerm,

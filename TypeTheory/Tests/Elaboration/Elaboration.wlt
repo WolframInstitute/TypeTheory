@@ -403,7 +403,7 @@ VerificationTest[
 VerificationTest[
 	With[
 		{
-			pairs = TypeTheoryEnvironment[TypeTheoryEnvironment["WolframLanguage"], {
+			pairs = TypeTheoryEnvironment[TypeTheoryEnvironment["Prelude"], {
 				TypeTheoryAxiom[sum, Sequence[NonNegativeIntegers, NonNegativeIntegers] -> NonNegativeIntegers],
 				TypeTheoryAxiom[curried, Sequence[NonNegativeIntegers] -> Sequence[NonNegativeIntegers] -> NonNegativeIntegers]
 			}]

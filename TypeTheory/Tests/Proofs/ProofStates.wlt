@@ -699,10 +699,10 @@ VerificationTest[
    where an expression is expected is its atom *)
 VerificationTest[
 	{
-		TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, "WolframLanguage", {"Reflexivity"}]["Goals"],
+		TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, {"Reflexivity"}]["Goals"],
 		TypeTheoryProof[Head[f[x]] == f, {"Reflexivity"}]["Goals"],
 		MatchQ[TypeTheoryProof[_Association], Verbatim[TypeTheoryProof][Verbatim[_Association]]],
-		TypeTheoryProof[Construct[f, -2] == f[-2], "WolframLanguage", {"Reflexivity"}]["Goals"]
+		TypeTheoryProof[Construct[f, -2] == f[-2], {"Reflexivity"}]["Goals"]
 	},
 	{{}, {}, True, {}},
 	TestID -> "A-statement-about-rules-proves-and-negative-integers-are-expressions"

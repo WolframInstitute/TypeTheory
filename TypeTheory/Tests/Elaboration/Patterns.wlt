@@ -9,7 +9,7 @@ PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
-wolfram = TypeTheoryEnvironment["WolframLanguage"]
+wolfram = TypeTheoryEnvironment["Prelude"]
 
 (* an expression is ex[e], held; a variable of a sequence is a list, Unevaluated @@ l the list l, spliced where it is
    quoted; each constant of matches
