@@ -4,7 +4,7 @@ Name: FromString
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/FromString
-Keywords: [string literal, from string, IsString, OfString, OfNat, instance, class, default instance, strings, expressions, atoms, prelude]
+Keywords: [string literal, from string, IsString, fromString, OfNat, instance, class, default instance, strings, expressions, atoms, prelude]
 SeeAlso: [Strings, Expressions, Atoms, Typed, TypeTheoryType]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, Elaboration, InstancesAndCoercions]
@@ -16,8 +16,8 @@ RelatedTutorials: [TheWolframLanguage, Elaboration, InstancesAndCoercions]
 
 ## Details & Options
 
-- [FromString]() is a definition of the prelude, of the type `∀ {A} [OfString[A]] Strings → A`. Its instance argument, of the class `"OfString"`, is found by the type *A* expected, as Haskell's `fromString` of the class `IsString` and Lean's `OfNat` for numerals.
-- The prelude has instances for [Strings](), the string itself, [Expressions](), the string as an expression, and [Atoms](), its atom `"stringAtom"[s]`. Another type gets its own by an instance of `"OfString"` declared with `"Instance" -> True`.
+- [FromString]() is a definition of the prelude, of the type `∀ {A} [IsString[A]] Strings → A`. Its instance argument, of the class `"IsString"`, is found by the type *A* expected: Haskell's class `IsString` with its `fromString`, as Lean's `OfNat` is for numerals.
+- The prelude has instances for [Strings](), the string itself, [Expressions](), the string as an expression, and [Atoms](), its atom `"stringAtom"[s]`. Another type gets its own by an instance of `"IsString"` declared with `"Instance" -> True`.
 - Where nothing decides the type, <code>[FromString]()[*s*]</code> is the string *s*: the instance for [Strings]() is declared last, and the latest instance that fits is the one found. Inside a function, it is found before the function's variables go out of scope.
 - A string literal applied to [FromString]() is the string, even where it names a constant: <code>[FromString]()["true"]</code> is the string `"true"`, though `"true"` alone is the Boolean.
 - A string on its own, where no type is expected, is the name of a constant, as in <code>[TypeTheoryType]()["successor"]</code>; one that names none is refused, as a misspelled name would be. Write <code>[FromString]()[*s*]</code> or <code>[Typed]()[*s*, [Strings]()]</code> for the string.
@@ -30,7 +30,7 @@ The type of [FromString]():
 TypeTheoryType[FromString]
 ```
 
-<!-- => ∀_{A∶Type u} ∀_[c∶OfString[A]] Strings → A -->
+<!-- => ∀_{A∶Type u} ∀_[c∶IsString[A]] Strings → A -->
 
 ---
 
@@ -57,7 +57,7 @@ TypeTheoryType[Typed[FromString["Hi"], Expressions]]
 The class whose instances it finds:
 
 ```wl
-TypeTheoryType["OfString"]
+TypeTheoryType["IsString"]
 ```
 
 <!-- => Type u → Type u -->
@@ -134,7 +134,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[FromString["Hi"], Expressions]], TypeT
 
 ## Possible Issues
 
-A type with no instance of `"OfString"` has no values written by strings:
+A type with no instance of `"IsString"` has no values written by strings:
 
 ```wl
 TypeTheoryType[Typed[FromString["12"], NonNegativeIntegers]]

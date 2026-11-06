@@ -1424,9 +1424,9 @@ synthesizePendingInstances[final_] := Scan[
 	$pendingInstances
 ]
 
-(* the classes whose instance, where nothing decides it, is the latest declared that fits, as "OfString" of FromString is
+(* the classes whose instance, where nothing decides it, is the latest declared that fits, as "IsString" of FromString is
    that of the strings *)
-$defaultedClasses = {HoldComplete["OfString"]}
+$defaultedClasses = {HoldComplete["IsString"]}
 
 (* the instances waiting from position start + 1 on of a class with a default, found as the final pass finds them *)
 defaultPendingInstances[start_Integer] := Scan[

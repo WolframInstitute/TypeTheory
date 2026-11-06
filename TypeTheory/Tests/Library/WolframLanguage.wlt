@@ -213,7 +213,7 @@ VerificationTest[
 ]
 
 (* a string on its own names a constant, and one that names none is refused, as a misspelled name; FromString[s] is the
-   value of the type expected whose string is s, by the instance of "OfString" of that type, and the string where
+   value of the type expected whose string is s, by the instance of "IsString" of that type, and the string where
    nothing decides, inside a function too, its literal the string even where it names a constant, as "true"; TypeHint[e, type] is e ascribed the type, or e alone where the type is the compiler's *)
 VerificationTest[
 	Block[{increment},
