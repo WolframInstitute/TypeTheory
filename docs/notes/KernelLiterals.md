@@ -1,6 +1,6 @@
 # Large literals in elaboration and definitional equality: design note
 
-Status: proposal for review (Stephen), 2026-11-06. Items (1) and (2) of the TypeTheory kernel findings.
+Status: (1) and the shape of (2) approved by Stephen, 2026-11-06; the rule of (2) revised as he asked. Items (1) and (2) of the TypeTheory kernel findings.
 
 ## What the measurements show
 
@@ -37,7 +37,11 @@ The two items have different causes, and only (2) is in the trusted kernel.
   - `successor[t]` is `offset[t]` with k + 1;
   - the registered `Plus[t, n]`, with n a literal, is `offset[t]` with k + n;
   - anything else is `{t, 0}`.
-- **The rule:** for `a` and `b` with offsets `{x, k}` and `{y, k'}`, at least one offset nonzero, and k ≤ k' (symmetric otherwise), `a ≡ b` iff `x ≡ y + (k' − k)` written back in offset form. With both bases `zero`, that is `k == k'`. An offset smaller than both sides compares the bases at once. The literal arithmetic is on k and k' only, Wolfram Language integers, as the registered operations already compute on literals.
+- **The rule**, for `a` and `b` with offsets `{x, k}` and `{y, k'}`:
+  - both offsets positive: strip m = min(k, k') from both, and compare `x` with offset k − m against `y` with offset k' − m, written back in offset form, by general definitional equality. This is progress: it is m successor steps on each side, removed by constructor injectivity.
+  - both bases `zero`, both sides literals or successors of them: decide k == k' directly.
+  - one offset 0 over a base that is not `zero`: the rule does not apply. The normal path reduces that side to weak head normal form. If it becomes a successor or a literal, the rule applies on the next round with a positive offset; if it is stuck, the comparison goes on as today.
+  The literal arithmetic is on k and k' only, Wolfram Language integers, as the registered operations already compute on literals.
 - **Agreement with unfolding:** each step of the rule is a step the kernel takes itself:
   - `Plus[t, n + 1]` unfolds by the definition of `Plus`, recursion on its second argument, to `successor[Plus[t, n]]`;
   - `successor[s] ≡ successor[s']` iff `s ≡ s'`, by constructor injectivity in defeq: same constructor, compare arguments;
@@ -48,6 +52,7 @@ The two items have different causes, and only (2) is in the trusted kernel.
   - Small range: every pair of terms from bases {zero, x, y, successor[x], x + y} with offsets 0..12, built in each of the three offset forms, compared with the rule on and off. The off path is today's unfolding, which terminates in this range. The results must be equal.
   - Random large: offsets up to 2^64, checked by an independent route. Two terms with a common base and offsets k and k' must be equal iff k == k'; with different variable bases, never.
   - Forged-proof tests: an equation that holds only after a nonzero offset difference, `x + 5 == x + 6`, must stay rejected. So must `Typed["equalityReflexivity"[x + 5], x + 5 == y + 5]` for distinct variables x and y.
+  - Termination, for the third case: `t` against `x + 3`, where `t` is a term whose weak head normal form is a successor, a definition unfolding to `successor[successor[successor[x]]]`, which must be found equal; and where `t` is stuck, an application of a variable, which must be found unequal, with no loop. Both run under a time limit.
 
 ## Acceptance
 
