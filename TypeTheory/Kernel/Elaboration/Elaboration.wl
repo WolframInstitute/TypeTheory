@@ -79,6 +79,8 @@ PackageScoped[$levelGeneralization]
 PackageScoped[$generalizedLevels]
 PackageScoped[$propositionExpected]
 PackageScoped[overloadedNameQ]
+PackageScoped[$checkQueryAssignments]
+PackageScoped[$queryAssignmentChanges]
 PackageScoped[aliasResolvedName]
 PackageScoped[settleOverloads]
 PackageScoped[explicitTerm]
@@ -116,6 +118,8 @@ $universeParameterNames::usage = "$universeParameterNames is the list of univers
 $levelGeneralization::usage = "$levelGeneralization is what a universe level left unsolved by elaboration becomes: None, a failure; \"Parameters\", a new universe parameter, collected in $generalizedLevels; \"Type\", the level of Type."
 $propositionExpected::usage = "$propositionExpected is True while the statement of a theorem or a proof elaborates, which makes it a proposition where the rules have Prop and nothing else decides its sort."
 $generalizedLevels::usage = "$generalizedLevels is the list of universe parameters {HoldComplete[name], ...} elaboration made of unsolved levels."
+$checkQueryAssignments::usage = "$checkQueryAssignments is True where each elaboration checks that the kernel's caches it kept remember no term with a metavariable, as a test of them; False by default."
+$queryAssignmentChanges::usage = "$queryAssignmentChanges counts the elaborations whose kernel caches remembered a term with a metavariable while $checkQueryAssignments was True."
 overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
 explicitTerm::usage = "explicitTerm[environment, HoldComplete[term], {HoldComplete[u], ...}] gives the core term of a term that gives every argument and every \
@@ -176,10 +180,25 @@ withElaborationState[{environment_, context_, scope_, universeParameters_}, body
 		$elaborationEnvironment = environment,
 		$elaborationContext = context,
 		$elaborationScope = scope,
-		$universeParameterNames = universeParameters
+		$universeParameterNames = universeParameters,
+		$cacheClosedTermsOnly = True
 	},
-	body
+	(* the kernel's caches for the whole elaboration, of the terms with no metavariable only, which no assignment changes;
+	   the caches of loose bound ranges and universe instantiations stay off, as before; with
+	   TYPETHEORY_ELABORATION_CACHES set to "Off", none is on, to compare the two *)
+	If[ $elaborationCachesOff,
+		body,
+		withFreshKernelCaches[Block[{$looseBoundRangeCache = None, $universeInstantiationCache = None}, If[ TrueQ[$checkQueryAssignments],
+			With[{result = body},
+				If[! kernelCachesClosedQ[], $queryAssignmentChanges++; kernelFailure["OpenTermCached", "The kernel's caches of an elaboration remember a term with a metavariable.", {}]];
+				result
+			],
+			body
+		]]]
+	]
 ]
+
+$elaborationCachesOff = Environment["TYPETHEORY_ELABORATION_CACHES"] === "Off"
 
 
 elaborateClosedTerm[environment_, held_HoldComplete, expected_, universeParameters_List] := elaborateInContext[environment, <||>, <||>, held, expected, universeParameters]
@@ -235,15 +254,28 @@ finishElaboration[environment_, context_, {term_, type_}, expected_] := With[{fi
 	];
 	(* the kernel checks the elaborated term on its own, with no metavariables but the open goals of a proof and its
 	   holes, and with type queries that check, as the term is not checked yet *)
-	Block[{$metavariableTypes = Join[$goalMetavariableTypes, closedHoleTypes[finalTerm]], $metavariableAssignments = <||>, $termsChecked = False},
-		withKernelCaches[
+	Block[{$metavariableTypes = Join[$goalMetavariableTypes, closedHoleTypes[finalTerm]], $metavariableAssignments = <||>, $termsChecked = False, $cacheClosedTermsOnly = False},
+		loggedResult[withFreshKernelCaches[
 			If[ expected === None,
 				{finalTerm, inferType[environment, context, finalTerm]},
 				checkHasType[environment, context, finalTerm, expected];
 				{finalTerm, expected}
 			]
-		]
+		]]
 	]
+]
+
+(* with TYPETHEORY_ELABORATION_LOG a file, each checked result is appended to it, its identifiers of free variables,
+   metavariables and levels numbered by first appearance, so that two runs compare byte for byte *)
+loggedResult[result_] := (
+	If[ StringQ[$elaborationLog],
+		PutAppend[canonicalIdentifiers[result], $elaborationLog]
+	];
+	result
+)
+$elaborationLog = Replace[Environment["TYPETHEORY_ELABORATION_LOG"], $Failed -> None]
+canonicalIdentifiers[expression_] := With[{identified = DeleteDuplicates[Cases[expression, (freeVariable | metavariable | levelMetavariable)[_Integer], Infinity, Heads -> True]]},
+	expression /. Thread[identified -> MapIndexed[Function[{identifier, index}, Head[identifier][First[index]]], identified]]
 ]
 
 
@@ -1138,6 +1170,11 @@ slotted[syntax_] := syntax
 variableSyntaxQ[syntaxSymbol[held_]] := KeyExistsQ[$elaborationScope, held]
 variableSyntaxQ[syntaxString[name_]] := KeyExistsQ[$elaborationScope, HoldComplete[name]]
 variableSyntaxQ[_] := False
+
+(* on in a test run that sets the environment variable TYPETHEORY_CHECK_QUERIES to "True": each elaboration ends by
+   checking that the kernel's caches it kept remember no term with a metavariable *)
+$checkQueryAssignments = Environment["TYPETHEORY_CHECK_QUERIES"] === "True"
+$queryAssignmentChanges = 0
 
 (* the explicit arguments a function type takes, 0 for None or any other type *)
 explicitArity[None] := 0

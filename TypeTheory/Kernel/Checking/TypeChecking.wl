@@ -41,6 +41,9 @@ $metavariableTypes and $metavariableAssignments, which the elaborator binds.
 
 PackageScoped[inferType]
 PackageScoped[withKernelCaches]
+PackageScoped[withFreshKernelCaches]
+PackageScoped[$cacheClosedTermsOnly]
+PackageScoped[kernelCachesClosedQ]
 PackageScoped[withCheckedTerms]
 PackageScoped[$termsChecked]
 PackageScoped[projectionFunctionQ]
@@ -72,6 +75,9 @@ definitionallyEqualQ::usage = "definitionallyEqualQ[environment, context, a, b] 
 sortLevel::usage = "sortLevel[environment, context, type] gives the level of the sort type belongs to, or throws a kernel failure if type is not a type."
 checkHasType::usage = "checkHasType[environment, context, term, type] throws a kernel failure unless term has a type definitionally equal to type."
 freshFreeVariable::usage = "freshFreeVariable[] gives an identifier no free variable has used."
+kernelCachesClosedQ::usage = "kernelCachesClosedQ[] gives True if the kernel's caches remember no term with a metavariable, as they must while $cacheClosedTermsOnly is True."
+$cacheClosedTermsOnly::usage = "$cacheClosedTermsOnly is True where the kernel's caches remember only terms with no metavariable, whose reduction no assignment changes, as while elaborating; False by default."
+withFreshKernelCaches::usage = "withFreshKernelCaches[body] evaluates body with the kernel's caches empty, whatever an enclosing evaluation remembers."
 withKernelCaches::usage = "withKernelCaches[body] evaluates body remembering the kernel's inferred types, weak head normal forms and definitional equalities, unless an enclosing check already does."
 withCheckedTerms::usage = "withCheckedTerms[body] evaluates body with the kernel's caches, where every term compared is checked or a reduct of a checked term, \
 so that definitional equality and reduction infer the types they ask without checking them."
@@ -101,10 +107,26 @@ $freeVariableCounter = 0
 
 (* While it checks a declaration, the kernel remembers the types it has inferred, the weak head normal
    forms it has computed and the definitional equalities it has decided, for a proof meets the same
-   subterms again and again. The free variables of a term are fresh for each binder opened, so a term
-   means the same wherever it occurs in one check of one environment; outside a check, while elaborating,
-   metavariables get solved, and nothing is remembered. A type inferred without checking is remembered
-   apart, so that a check never takes it for a checked one. *)
+   subterms again and again. The keys hold the environment and the term, not the context. That is sound
+   because a free variable's identifier is globally fresh, freshFreeVariable counting up from one counter
+   that nothing resets, so two contexts that share an identifier share its binding; and a let-bound
+   variable gets its value when its identifier is made, so one identifier has one value everywhere. A type
+   inferred without checking is remembered apart, so that a check never takes it for a checked one.
+
+   While elaborating, metavariables are assigned between queries and assignments are undone, and reduction
+   reads them (reduceSpine of an assigned metavariable), so a result about a term with a metavariable can go
+   stale. With $cacheClosedTermsOnly, as elaboration sets it, only terms with no metavariable are remembered,
+   whose results no assignment changes. Universe level metavariables need no such care: no function of the
+   kernel reads $levelAssignments, which only elaboration keeps, so a result about a term with an unsolved
+   level is the same whatever the level is assigned later. kernelCachesClosedQ checks the invariant over
+   all six caches, as a test of the elaboration that sets it. *)
+$cacheClosedTermsOnly = False
+cacheableQ[terms___] := ! TrueQ[$cacheClosedTermsOnly] || FreeQ[{terms}, _metavariable]
+kernelCachesClosedQ[] := FreeQ[
+	Keys /@ Select[{$inferTypeCache, $uncheckedTypeCache, $weakHeadNormalFormCache, $definitionalEqualityCache, $looseBoundRangeCache, $universeInstantiationCache}, AssociationQ],
+	_metavariable
+]
+
 $inferTypeCache = None
 $uncheckedTypeCache = None
 $weakHeadNormalFormCache = None
@@ -128,6 +150,14 @@ withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
    such a place; elsewhere, as while elaborating, the queries check. *)
 $termsChecked = False
 $inferOnly = False
+
+(* caches of their own, for a query whose results must not outlive it, as elaboration's, whose metavariables are assigned
+   between its queries, and the check of what elaboration made, which reads nothing elaboration remembered *)
+SetAttributes[withFreshKernelCaches, HoldFirst]
+withFreshKernelCaches[body_] := Block[
+	{$inferTypeCache = <||>, $uncheckedTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>, $universeInstantiationCache = <||>},
+	body
+]
 
 SetAttributes[withCheckedTerms, HoldFirst]
 withCheckedTerms[body_] := withKernelCaches[Block[{$termsChecked = True}, body]]
@@ -171,7 +201,7 @@ $binderAbstractions = None
 
 (* a checked type answers a query that does not check, never the other way *)
 inferType[environment_, context_, term_] := Which[
-	! AssociationQ[$inferTypeCache],
+	! AssociationQ[$inferTypeCache] || ! cacheableQ[term],
 		inferTypeOf[environment, context, term],
 	$inferOnly,
 		Lookup[
@@ -415,7 +445,7 @@ instantiateLeadingBinder[environment_, context_, type_, value_] := Replace[weakH
 (*Reduction*)
 
 
-weakHeadNormalForm[environment_, context_, term_] := If[ AssociationQ[$weakHeadNormalFormCache],
+weakHeadNormalForm[environment_, context_, term_] := If[ AssociationQ[$weakHeadNormalFormCache] && cacheableQ[term],
 	Lookup[$weakHeadNormalFormCache, Key[{environment, term}], $weakHeadNormalFormCache[{environment, term}] = reducedHead[environment, context, term]],
 	reducedHead[environment, context, term]
 ]
@@ -673,7 +703,7 @@ reduceKLikeAt[environment_, context_, term_, record_, levels_, parameters_, moti
 (* Every comparison below is of the two terms first compared, their arguments, their binders' domains and bodies
    opened with a fresh variable, their reducts, or the types of these: checked terms or reducts of checked terms
    when the first two are, so the type queries may infer only (typeQuery). *)
-definitionallyEqualQ[environment_, context_, a_, b_] := a === b || If[ AssociationQ[$definitionalEqualityCache],
+definitionallyEqualQ[environment_, context_, a_, b_] := a === b || If[ AssociationQ[$definitionalEqualityCache] && cacheableQ[a, b],
 	Lookup[$definitionalEqualityCache, Key[{environment, a, b}], $definitionalEqualityCache[{environment, a, b}] = definitionallyEqualCases[environment, context, a, b]],
 	definitionallyEqualCases[environment, context, a, b]
 ]

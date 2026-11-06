@@ -21,6 +21,17 @@ The two items have different causes, and only (2) is in the trusted kernel.
 - Caching does not help: each step's term is new.
 - Lean's kernel meets the same shape and avoids it with an offset rule (`is_def_eq_offset_nat`): it compares `x + k` with `y + k'` by their offsets, without unfolding k times.
 
+## Result of (1)
+
+A fresh cache per query was not enough: 2^12 still took 2.0 s and 2^16 31 s. The repeated work spans queries, as
+unify asks about the same closed subterms again and again. The condition that is safe is narrower: cache only terms
+with no metavariable, whose reduction and type no assignment changes, for the whole elaboration
+(`$cacheClosedTermsOnly`). The trusted check after elaboration starts from fresh caches. Measured: 2^12 in 0.05 s, 2^16
+in 0.06 s, 2^63 in 0.3 s. Checked: with `TYPETHEORY_CHECK_QUERIES=True` every elaboration asserts that no cache
+remembers a term with a metavariable, and the suite passes 456/456 with it on. The suite run with elaboration's caching
+on and forced off (`TYPETHEORY_ELABORATION_CACHES=Off`) logs 2460 checked results, which are byte for byte the same
+once the identifiers and Module symbols are numbered by first appearance.
+
 ## Routes
 
 **(1): elaboration only, no trusted code changed.**
