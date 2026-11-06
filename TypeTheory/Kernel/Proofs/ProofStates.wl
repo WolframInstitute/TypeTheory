@@ -65,6 +65,8 @@ The tactics:
 	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
 	                        from the inequalities and equations among the hypotheses, with multipliers Wolfram
 	                        finds
+	"NonlinearArithmetic"   the same from the hypotheses and their products: each inequality a <= b times each side
+	                        of each, a k <= b k, so a product of inequalities follows linearly, as Lean's nlinarith
 	"FindEquationalProof"   proves an equation from the hypotheses that are equations for all values, by replaying
 	                        a proof that Wolfram's FindEquationalProof finds (Equational.wl)
 	"SumOfSquares"          proves an inequality of the integers of TypeTheoryEnvironment["Integers"], or of natural
@@ -133,6 +135,8 @@ and an equation of integers that holds in every commutative ring.\n\
 TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds.\n\
 TypeTheoryTactic[\"LinearArithmetic\"] proves an inequality, an equation or False, of natural numbers, from the inequalities and equations among the hypotheses, \
 by a linear combination of them that Wolfram finds.\n\
+TypeTheoryTactic[\"NonlinearArithmetic\"] does the same from the inequalities among the hypotheses and their products, each inequality a <= b times each side k of each, a k <= b k, \
+so that n <= m gives n n <= m m.\n\
 TypeTheoryTactic[\"FindEquationalProof\"] proves an equation from the hypotheses that are equations of its type for all values of their variables, \
 by replaying a proof that Wolfram's FindEquationalProof finds.\n\
 TypeTheoryTactic[\"SumOfSquares\"] proves an inequality of integers, or of natural numbers, in TypeTheoryEnvironment[\"Integers\"], such as 2 x y <= x x + y y, \
@@ -365,6 +369,7 @@ runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
 runTactic["LinearArithmetic", Hold[], data_, goal_] := linearArithmetic[data, goal]
+runTactic["NonlinearArithmetic", Hold[], data_, goal_] := Block[{$productInequalities = True}, linearArithmetic[data, goal]]
 runTactic["FindEquationalProof", Hold[], data_, goal_] := findEquationalProof[data, goal]
 runTactic["SumOfSquares", Hold[], data_, goal_] := sumOfSquares[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
@@ -1143,7 +1148,7 @@ arithmeticReduced[environment_, context_, term_] := Replace[term, {
    over, which the kernel's caches check once *)
 solvedByCheckedProof[data_, goal_, current_, proof_] := (
 	Replace[catchKernelFailure[withKernelCaches[checkHasType[data["Environment"], current["Context"], proof, current["Type"]]]],
-		_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal]
+		failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failure["Message"]}]
 	];
 	solveGoal[data, goal, proof, {}]
 )
@@ -1358,7 +1363,7 @@ linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], envir
 	If[ ! AllTrue[Join[$ringConstants, $linearConstants], Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
 	];
-	With[{inequalities = inequalityHypotheses[environment, current["Context"]]},
+	With[{inequalities = withProducts[inequalityHypotheses[environment, current["Context"]]]},
 		Replace[
 			Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
 				application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :>
@@ -1381,6 +1386,24 @@ linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], envir
 		]
 	]
 ]
+
+(* with "NonlinearArithmetic", each inequality a <= b also times each side k of each inequality, a k <= b k by
+   "multiplicationMonotonicity", so that a product of inequalities follows linearly: n <= m gives n n <= m n <= m m; a
+   literal side multiplies nothing, as a literal multiple is linear already *)
+$productInequalities = False
+
+withProducts[inequalities_List] := If[ TrueQ[$productInequalities],
+	Join[inequalities, Catenate[Outer[productInequality, inequalities, multipliers[inequalities], 1]]],
+	inequalities
+]
+
+multipliers[inequalities_List] := DeleteDuplicates[Select[Catenate[Most /@ inequalities], Function[side, ! MatchQ[side, naturalLiteral[_]]]]]
+
+productInequality[{a_, b_, proof_}, k_] := {
+	makeApplication[constantReference[HoldComplete[Times], {}], {a, k}],
+	makeApplication[constantReference[HoldComplete[Times], {}], {b, k}],
+	makeApplication[constantReference[HoldComplete["multiplicationMonotonicity"], {}], {a, b, k, proof}]
+}
 
 $linearConstants = HoldComplete /@ Unevaluated[{
 	LessEqual, Less, Or, "falseElimination", "equalitySubstitution", "lessEqualReflexivity", "lessEqualZero", "lessEqualTotality", "additionMonotonicity", "multiplicationMonotonicity",
@@ -1561,7 +1584,7 @@ certifiedInequality[state_, target_, data_, goal_, {smaller_, larger_, d_Integer
 			solveGoal[state, target, makeApplication[lemma, {metavariable[equationGoal], Last[sum]}], {equationGoal -> <|"Context" -> context, "Type" -> equation, "Case" -> None|>}]
 		)],
 		{
-			_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`.", data, goal],
+			failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failure["Message"]}],
 			solved_ :> Replace[catchKernelFailure[ring[solved, equationGoal]], _Failure :> tacticFailure[
 				"NotRingEquation",
 				"\"Ring\" does not prove the equation of the sum of squares that Wolfram finds for the goal `1`, as when an atom of its sides is not a variable.",

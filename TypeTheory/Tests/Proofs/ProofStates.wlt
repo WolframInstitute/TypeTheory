@@ -707,3 +707,18 @@ VerificationTest[
 	{{}, {}, True, {}},
 	TestID -> "A-statement-about-rules-proves-and-negative-integers-are-expressions"
 ]
+
+(* "NonlinearArithmetic" multiplies each inequality among the hypotheses by each side of each, so a product of
+   inequalities follows linearly, where "LinearArithmetic" finds no combination *)
+VerificationTest[
+	{
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n <= m, n n <= m m]], {"Introduce"[n, m, h], "NonlinearArithmetic"}]["Goals"],
+		TypeTheoryProof[
+			ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, Implies[a <= b, Implies[c <= d, a c <= b d]]],
+			{"Introduce"[a, b, c, d, h1, h2], "NonlinearArithmetic"}
+		]["Goals"],
+		First[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n <= m, n n <= m m]], {"Introduce"[n, m, h], "LinearArithmetic"}]]
+	},
+	{{}, {}, "NoLinearCombination"},
+	TestID -> "NonlinearArithmetic-proves-products-of-inequalities"
+]
