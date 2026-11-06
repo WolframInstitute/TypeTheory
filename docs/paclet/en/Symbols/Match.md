@@ -157,7 +157,7 @@ TypeTheoryEnvironment["Prelude"][Condition]
 A condition on each result of a match, the numbers that are at least 3, decided by [Decide]():
 
 ```wl
-TypeTheoryType[MatchBind[{1, 2, 3, 4}, Typed[n, NonNegativeIntegers] |-> (MatchValue[n] /; Decide[3 <= n])]]
+TypeTheoryType[MatchBind[{1, 2, 3, 4}, n |-> (MatchValue[n] /; Decide[3 <= n])]]
 ```
 
 <!-- => Match[ℕ] -->
@@ -201,7 +201,7 @@ TypeTheoryType["DownValues[area]", TypeTheoryEnvironment[TypeTheoryFormalize[are
 A condition is a Boolean, so a proposition does not go after `/;`; <code>[Decide]()[3 <= n]</code> is the Boolean that decides it:
 
 ```wl
-TypeTheoryType[MatchBind[{1, 2, 3, 4}, Typed[n, NonNegativeIntegers] |-> (MatchValue[n] /; 3 <= n)]]
+TypeTheoryType[MatchBind[{1, 2, 3, 4}, n |-> (MatchValue[n] /; 3 <= n)]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

@@ -37,7 +37,7 @@ TypeTheoryType[IntervalReverse, "Cubical"]
 A path reversed, the function of `i` that is `p[1 - i]`, goes from `y` to `x`:
 
 ```wl
-TypeTheoryType[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> (Typed[i, Interval] |-> p[1 - i]), "Cubical"]
+TypeTheoryType[{x, y, Typed[p, Path[Booleans, x, y]]} |-> (Typed[i, Interval] |-> p[1 - i]), "Cubical"]
 ```
 
 <!-- => ∀_x∶𝔹 ∀_y∶𝔹 x ≡ y → y ≡ x -->
@@ -67,7 +67,7 @@ NormalForm[TypeTheoryTerm[Typed[i, Interval] |-> 1 - i, "Cubical"]]
 The path between functions that `"pathFunctionExtensionality"` makes from `"negationInvolution"` goes from double negation to the identity; reversed, it starts at the identity:
 
 ```wl
-NormalForm[TypeTheoryTerm["pathSymmetry"["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]]][0], "Cubical"]]
+NormalForm[TypeTheoryTerm["pathSymmetry"["pathFunctionExtensionality"[b |-> "negationInvolution"[b]]][0], "Cubical"]]
 ```
 
 <!-- => (x ∶ 𝔹) ↦ x -->
@@ -87,7 +87,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["pathSymmetry"["equivalenceTo
 Read as a face, `1 - i` holds where `i` is 0. There the line `k ↦ P[Min[i, k]]` is constant, so transport over `1 - i` is allowed, and is a path over the path of types `P` from `"true"` to its transport:
 
 ```wl
-TypeTheoryType[Typed[P, Path[TypeUniverse[1], Booleans, Booleans]] |-> Function[{Typed[i, Interval]}, CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], 1 - i, "true"]], "Cubical"]
+TypeTheoryType[Typed[P, Path[TypeUniverse[1], Booleans, Booleans]] |-> Function[{Typed[i, Interval]}, CubicalTransport[k |-> P[Min[i, k]], 1 - i, "true"]], "Cubical"]
 ```
 
 <!-- => ∀_P∶𝔹 ≡ 𝔹 Path[(i ∶ Interval) ↦ P[i ∧ 1], true, CubicalTransport[P, 0, true]] -->
@@ -98,8 +98,8 @@ In a system, the face `i == 0` is `1 - i`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, Interval]} |-> CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], i == 0, "true"], "Cubical"],
-    TypeTheoryTerm[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, Interval]} |-> CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], 1 - i, "true"], "Cubical"]
+    TypeTheoryTerm[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, Interval]} |-> CubicalTransport[k |-> P[Min[i, k]], i == 0, "true"], "Cubical"],
+    TypeTheoryTerm[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, Interval]} |-> CubicalTransport[k |-> P[Min[i, k]], 1 - i, "true"], "Cubical"]
 ]
 ```
 
@@ -111,8 +111,8 @@ Reversal is an involution, so a path at `1 - (1 - i)` is the path at `i`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[1 - (1 - i)], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[i], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[1 - (1 - i)], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[i], "Cubical"]
 ]
 ```
 
@@ -124,8 +124,8 @@ So a path reversed twice is the path itself:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> "pathSymmetry"["pathSymmetry"[p]], "Cubical"],
-    TypeTheoryTerm[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> p, "Cubical"]
+    TypeTheoryTerm[{x, y, Typed[p, Path[Booleans, x, y]]} |-> "pathSymmetry"["pathSymmetry"[p]], "Cubical"],
+    TypeTheoryTerm[{x, y, Typed[p, Path[Booleans, x, y]]} |-> p, "Cubical"]
 ]
 ```
 
@@ -157,8 +157,8 @@ An element and its reversal meet in no endpoint, but the interval is no Boolean 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Min[i, 1 - i]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[0], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Min[i, 1 - i]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[0], "Cubical"]
 ]
 ```
 
@@ -169,7 +169,7 @@ DefinitionallyEqualQ[
 `1 - 0` is not read as the reversal of 0 but as a subtraction of numbers, which the cubical environment does not have; <code>[IntervalReverse]()[0]</code> is the reversal:
 
 ```wl
-TypeTheoryType[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> p[1 - 0], "Cubical"]
+TypeTheoryType[{x, y, Typed[p, Path[Booleans, x, y]]} |-> p[1 - 0], "Cubical"]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->
@@ -179,7 +179,7 @@ TypeTheoryType[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, 
 Read as a face, `i` holds where `i` is 1, and there the line `k ↦ P[Min[i, k]]` is `P` itself, not constant:
 
 ```wl
-TypeTheoryType[Typed[P, Path[TypeUniverse[1], Booleans, Booleans]] |-> Function[{Typed[i, Interval]}, CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], i, "true"]], "Cubical"]
+TypeTheoryType[Typed[P, Path[TypeUniverse[1], Booleans, Booleans]] |-> Function[{Typed[i, Interval]}, CubicalTransport[k |-> P[Min[i, k]], i, "true"]], "Cubical"]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

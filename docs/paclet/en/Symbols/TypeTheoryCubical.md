@@ -79,8 +79,8 @@ A path applied to an endpoint computes to the endpoint of its type:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> p[1], "Cubical"],
-    TypeTheoryTerm[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> y, "Cubical"]
+    TypeTheoryTerm[{x, y, Typed[p, Path[Booleans, x, y]]} |-> p[1], "Cubical"],
+    TypeTheoryTerm[{x, y, Typed[p, Path[Booleans, x, y]]} |-> y, "Cubical"]
 ]
 ```
 
@@ -91,7 +91,7 @@ DefinitionallyEqualQ[
 A path reversed, by the reversal `1 - i` of the interval, goes the other way:
 
 ```wl
-TypeTheoryType[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> (Typed[i, Interval] |-> p[1 - i]), "Cubical"]
+TypeTheoryType[{x, y, Typed[p, Path[Booleans, x, y]]} |-> (Typed[i, Interval] |-> p[1 - i]), "Cubical"]
 ```
 
 <!-- => ∀_x∶𝔹 ∀_y∶𝔹 x ≡ y → y ≡ x -->
@@ -121,7 +121,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalComposition[Booleans, j |-> {1 -> "true
 Function extensionality is a term: a path between functions from a path at each argument, here between double negation and the identity:
 
 ```wl
-TypeTheoryType["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]], "Cubical"]
+TypeTheoryType["pathFunctionExtensionality"[b |-> "negationInvolution"[b]], "Cubical"]
 ```
 
 <!-- => ((b ∶ 𝔹) ↦ !!b) ≡ ((b ∶ 𝔹) ↦ b) -->

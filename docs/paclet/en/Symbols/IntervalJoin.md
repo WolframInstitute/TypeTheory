@@ -48,7 +48,7 @@ NormalForm[TypeTheoryTerm[{Typed[i, Interval], Typed[j, Interval]} |-> Max[i, j]
 The join gives a connection: the function of `i` and `j` that is `p[Max[i, j]]` is a path, as `i` goes from 0 to 1, from `p` to the constant path at `y`, through the paths from `p[i]` to `y`:
 
 ```wl
-TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Max[i, j]]], "Cubical"]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Max[i, j]]], "Cubical"]
 ```
 
 <!-- => ∀_{A ∶ Type} ∀_x∶A ∀_y∶A ∀_p∶x ≡ y Path[(i ∶ Interval) ↦ p[i] ≡ y, p, (j ∶ Interval) ↦ y] -->
@@ -59,8 +59,8 @@ The join absorbs a meet, `Max[i, Min[i, j]]` is `i`, so a path at one is the pat
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Max[i, Min[i, j]]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Max[i, Min[i, j]]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], "Cubical"]
 ]
 ```
 
@@ -82,8 +82,8 @@ Read as a face, a join holds where either part holds: in a system, [Or]() of two
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]], Typed[i, Interval]} |-> CubicalComposition[A, j |-> {i == 0 || i == 1 -> q[j]}, p[i]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]], Typed[i, Interval]} |-> CubicalComposition[A, j |-> {Max[1 - i, i] -> q[j]}, p[i]], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]], Typed[i, Interval]} |-> CubicalComposition[A, j |-> {i == 0 || i == 1 -> q[j]}, p[i]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]], Typed[i, Interval]} |-> CubicalComposition[A, j |-> {Max[1 - i, i] -> q[j]}, p[i]], "Cubical"]
 ]
 ```
 
@@ -94,7 +94,7 @@ DefinitionallyEqualQ[
 The face `Max[1 - i, i]` holds where `i` is 0 or 1, so a composition with one side over it is the end of that side at both ends of `i`. With the side a path `q` from `x` to `z`, the composition moves a loop `p` at `x` to a loop at `z`:
 
 ```wl
-TypeTheoryType[Function[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]]},
+TypeTheoryType[Function[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]]},
     Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {Max[1 - i, i] -> q[j]}, p[i]]]
 ], "Cubical"]
 ```
@@ -117,8 +117,8 @@ The interval is a De Morgan algebra, not a Boolean algebra: the join of an eleme
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Max[i, 1 - i]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[1], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Max[i, 1 - i]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[1], "Cubical"]
 ]
 ```
 

@@ -54,7 +54,7 @@ NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, MatchValue]]]
 The match of the part can have results of any type, here whether the part is an atom:
 
 ```wl
-TypeTheoryType[MatchPart[HoldForm[a + b c], 2, Typed[x, Expressions] |-> MatchValue[AtomQ[x]]]]
+TypeTheoryType[MatchPart[HoldForm[a + b c], 2, x |-> MatchValue[AtomQ[x]]]]
 ```
 
 <!-- => Match[𝔹] -->
@@ -64,7 +64,7 @@ TypeTheoryType[MatchPart[HoldForm[a + b c], 2, Typed[x, Expressions] |-> MatchVa
 A part of a part, as `e[[2, 1]]`:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, Typed[y, Expressions] |-> MatchPart[y, 1, MatchValue]]]]
+NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, y |-> MatchPart[y, 1, MatchValue]]]]
 ```
 
 <!-- => {b} -->
@@ -74,7 +74,7 @@ NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, Typed[y, Expressions] 
 A position past the last argument gives no result, where [Part]() fails, for every argument:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Expressions]}, MatchPart[Construct[f, x], 2, MatchValue] == Typed[{}, Match[Expressions]]], {"Introduce"[x], "Reflexivity"}]
+TypeTheoryProof[ForAll[{x}, MatchPart[Construct[f, x], 2, MatchValue] == Typed[{}, Match[Expressions]]], {"Introduce"[x], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -84,7 +84,7 @@ TypeTheoryProof[ForAll[{Typed[x, Expressions]}, MatchPart[Construct[f, x], 2, Ma
 The first part of an expression built from a variable and a sequence is the variable, by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[x, Expressions], Typed[s, Expressions...]}, MatchPart[Construct[f, x, s], 1, MatchValue] == MatchValue[x]], {"Introduce"[x, s], "Reflexivity"}]
+TypeTheoryProof[ForAll[{x, Typed[s, Expressions...]}, MatchPart[Construct[f, x, s], 1, MatchValue] == MatchValue[x]], {"Introduce"[x, s], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -104,7 +104,7 @@ TypeTheoryEnvironment["Prelude"][MatchPart]
 The part at 0 is the head, for every expression:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[e, Expressions] |-> MatchPart[e, 0, MatchValue]], TypeTheoryTerm[Typed[e, Expressions] |-> MatchValue[Head[e]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[e |-> MatchPart[e, 0, MatchValue]], TypeTheoryTerm[e |-> MatchValue[Head[e]]]]
 ```
 
 <!-- => True -->
@@ -125,7 +125,7 @@ Last[TypeTheoryFormalize[innerOf, "Meaning" -> "Rules"]]
 An atom has no part past its head, whatever atom it is:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, Atoms]}, MatchPart["atom"[a], 1, MatchValue] == Typed[{}, Match[Expressions]]], {"Introduce"[a], "Reflexivity"}]
+TypeTheoryProof[ForAll[{a}, MatchPart["atom"[a], 1, MatchValue] == Typed[{}, Match[Expressions]]], {"Introduce"[a], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

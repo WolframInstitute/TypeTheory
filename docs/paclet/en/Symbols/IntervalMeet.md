@@ -48,7 +48,7 @@ NormalForm[TypeTheoryTerm[{Typed[i, Interval], Typed[j, Interval]} |-> Min[i, j]
 The meet gives a connection: the function of `i` and `j` that is `p[Min[i, j]]` is a path, as `i` goes from 0 to 1, from the constant path at `x` to `p`, through the paths from `x` to `p[i]`:
 
 ```wl
-TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Min[i, j]]], "Cubical"]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]], Typed[i, Interval]} |-> Function[{Typed[j, Interval]}, p[Min[i, j]]], "Cubical"]
 ```
 
 <!-- => ∀_{A ∶ Type} ∀_x∶A ∀_y∶A ∀_p∶x ≡ y Path[(i ∶ Interval) ↦ x ≡ p[i], (j ∶ Interval) ↦ x, p] -->
@@ -59,8 +59,8 @@ The meet absorbs a join, `Min[i, Max[i, j]]` is `i`, so a path at one is the pat
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Min[i, Max[i, j]]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Min[i, Max[i, j]]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[i], "Cubical"]
 ]
 ```
 
@@ -112,8 +112,8 @@ Read as a face, a meet holds where both its parts hold: in a system, [And]() of 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]], Typed[i, Interval], Typed[k, Interval]} |-> CubicalComposition[A, j |-> {i == 1 && k == 1 -> q[j]}, x], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]], Typed[i, Interval], Typed[k, Interval]} |-> CubicalComposition[A, j |-> {Min[i, k] -> q[j]}, x], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]], Typed[i, Interval], Typed[k, Interval]} |-> CubicalComposition[A, j |-> {i == 1 && k == 1 -> q[j]}, x], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]], Typed[i, Interval], Typed[k, Interval]} |-> CubicalComposition[A, j |-> {Min[i, k] -> q[j]}, x], "Cubical"]
 ]
 ```
 
@@ -136,7 +136,7 @@ The transport filler: the line `k ↦ P[Min[i, k]]` runs along a path of types `
 ```wl
 TypeTheoryType[
     {TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[P, Path[TypeUniverse[1], A, B]], Typed[a, A]} |->
-        Function[{Typed[i, Interval]}, CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], 1 - i, a]],
+        Function[{Typed[i, Interval]}, CubicalTransport[k |-> P[Min[i, k]], 1 - i, a]],
     "Cubical"
 ]
 ```
@@ -149,8 +149,8 @@ Reversal turns a meet into a join, [IntervalJoin](): `1 - Min[i, j]` is `Max[1 -
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[1 - Min[i, j]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Max[1 - i, 1 - j]], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[1 - Min[i, j]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval], Typed[j, Interval]} |-> p[Max[1 - i, 1 - j]], "Cubical"]
 ]
 ```
 
@@ -162,8 +162,8 @@ The interval is a De Morgan algebra, not a Boolean algebra: the meet of an eleme
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Min[i, 1 - i]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[0], "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[Min[i, 1 - i]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, Typed[p, Path[A, x, x]], Typed[i, Interval]} |-> p[0], "Cubical"]
 ]
 ```
 
@@ -184,7 +184,7 @@ TypeTheoryType[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, In
 The face `Min[i, j]` holds where `i` and `j` are 1, and there the line `k ↦ P[Min[i, k]]` is `P` itself, not constant:
 
 ```wl
-TypeTheoryType[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, Interval], Typed[j, Interval]} |-> CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], Min[i, j], "true"], "Cubical"]
+TypeTheoryType[{Typed[P, Path[TypeUniverse[1], Booleans, Booleans]], Typed[i, Interval], Typed[j, Interval]} |-> CubicalTransport[k |-> P[Min[i, k]], Min[i, j], "true"], "Cubical"]
 ```
 
 <!-- => Failure["TransportNotConstant", ...] -->

@@ -47,17 +47,17 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[10]]]
 The predecessor shows as `n - 1`:
 
 ```wl
-TypeTheoryTerm[Typed[n, Naturals] |-> NaturalNumberPredecessor[n]]
+TypeTheoryTerm[n |-> NaturalNumberPredecessor[n]]
 ```
 
-<!-- => (n ∶ ℕ) ↦ n - 1 -->
+<!-- => n ↦ n - 1 -->
 
 ## Scope
 
 At a successor of a variable it computes, so the number before `n + 1` is *n* by `"Reflexivity"`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, NaturalNumberPredecessor[n + 1] == n], {
+TypeTheoryProof[ForAll[{n}, NaturalNumberPredecessor[n + 1] == n], {
     "Introduce"[n],
     "Reflexivity"
 }]
@@ -90,7 +90,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[NaturalNumberPredeces
 The successor is injective: the predecessor, applied to both sides of `m + 1 == n + 1` by congruence, gives `m == n`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals], Typed[h, m + 1 == n + 1]}, m == n], {
+TypeTheoryProof[ForAll[{m, n, Typed[h, m + 1 == n + 1]}, m == n], {
     "Introduce"[m, n, h],
     "Exact"["equalityCongruence"[NaturalNumberPredecessor, h]]
 }]
@@ -103,7 +103,7 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals], Typed[h, m + 1 =
 For a number that is at least 1, the successor of its predecessor is the number: by cases, where 0 contradicts the hypothesis and a successor computes:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Implies[1 <= n, NaturalNumberPredecessor[n] + 1 == n]], {
+TypeTheoryProof[ForAll[{n}, Implies[1 <= n, NaturalNumberPredecessor[n] + 1 == n]], {
     "Introduce"[n],
     "Cases"[n],
     "Introduce"[h],
@@ -130,7 +130,7 @@ TypeTheoryEnvironment["Prelude"][NaturalNumberPredecessor]
 Subtracting 1 is the predecessor by computation, which is why the predecessor of *n* shows as `n - 1`:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n - 1], TypeTheoryTerm[NaturalNumberPredecessor]]
+DefinitionallyEqualQ[TypeTheoryTerm[n |-> n - 1], TypeTheoryTerm[NaturalNumberPredecessor]]
 ```
 
 <!-- => True -->
@@ -140,7 +140,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, Naturals] |-> n - 1], TypeTheoryTer
 Subtracting a successor takes the predecessor of the difference, by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, m - (n + 1) == NaturalNumberPredecessor[m - n]], {"Introduce"[m, n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{m, n}, m - (n + 1) == NaturalNumberPredecessor[m - n]], {"Introduce"[m, n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -170,7 +170,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[0] + 1]]
 At a variable the predecessor does not compute, and `(n - 1) + 1 == n` fails at 0, so it is no equation by computation; it needs `1 <= n` and cases, as above:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, NaturalNumberPredecessor[n] + 1 == n], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, NaturalNumberPredecessor[n] + 1 == n], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

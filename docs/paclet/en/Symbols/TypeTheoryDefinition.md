@@ -309,7 +309,7 @@ The declaration shows as a coercion:
 coerced[NaturalOfBoolean]
 ```
 
-<!-- => coercion NaturalOfBoolean : 𝔹 → ℕ := (b ∶ 𝔹) ↦ 𝔹_rec[(#1 ∶ 𝔹) ↦ ℕ, 0, 1, b] -->
+<!-- => coercion NaturalOfBoolean : 𝔹 → ℕ := (b ∶ 𝔹) ↦ 𝔹_rec[ℕ &, 0, 1, b] -->
 
 ### Opaque
 

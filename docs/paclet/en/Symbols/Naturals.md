@@ -96,7 +96,7 @@ TypeTheoryType[InductiveRecursor[Naturals]]
 A proof by induction over the natural numbers:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {
+TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[n],
     "Induction"[n],
     "Reflexivity",
@@ -122,7 +122,7 @@ TypeTheoryProof[And[3 * 4 == 12, 5 <= 7], {"Decide"}]
 The square of a sum, by `"Ring"`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, (m + n)^2 == m^2 + 2 m n + n^2], {"Introduce"[m, n], "Ring"}]
+TypeTheoryProof[ForAll[{m, n}, (m + n)^2 == m^2 + 2 m n + n^2], {"Introduce"[m, n], "Ring"}]
 ```
 
 <!-- => Proof complete -->
@@ -132,7 +132,7 @@ TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals]}, (m + n)^2 == m^
 An inequality from a hypothesis, by `"LinearArithmetic"`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, Naturals], Typed[n, Naturals], Typed[h, m <= n]}, m < n + 1], {"Introduce"[m, n, h], "LinearArithmetic"}]
+TypeTheoryProof[ForAll[{m, n, Typed[h, m <= n]}, m < n + 1], {"Introduce"[m, n, h], "LinearArithmetic"}]
 ```
 
 <!-- => Proof complete -->

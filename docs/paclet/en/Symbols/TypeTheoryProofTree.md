@@ -52,7 +52,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 The two eliminations of a conjunction and its introduction swap the conjuncts:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, And[a, b]]} |-> "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]]
+TypeTheoryProofTree[TypeTheoryTerm[{a, b, Typed[h, And[a, b]]} |-> "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]]
 ```
 
 <!-- => (((a ∧ b) / b ∧E   (a ∧ b) / a ∧E) / (b ∧ a) ∧I) / ((a ∧ b) ⇒ (b ∧ a)) →I -->
@@ -62,7 +62,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 Modus ponens, an implication eliminated:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[f, Implies[a, b]], Typed[x, a]} |-> f[x]]]
+TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[f, Implies[a, b]], x} |-> f[x]]]
 ```
 
 <!-- => (((a ⇒ b   a) / b →E) / (a ⇒ b) →I) / ((a ⇒ b) ⇒ a ⇒ b) →I -->
@@ -72,7 +72,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 A disjunction introduced, its type given by [Typed]():
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a]} |-> Typed["orIntroductionLeft"[x], a || b]]]
+TypeTheoryProofTree[TypeTheoryTerm[{a, b, x} |-> Typed["orIntroductionLeft"[x], a || b]]]
 ```
 
 <!-- => (a / (a ∨ b) ∨I) / (a ⇒ (a ∨ b)) →I -->
@@ -82,8 +82,8 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 A disjunction eliminated by the recursor of [Or](), one case for each disjunct:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, Or[a, b]]} |->
-    InductiveRecursor[Or][Function[{Typed[t, Or[a, b]]}, Or[b, a]], Function[{Typed[x, a]}, "orIntroductionRight"[x]], Function[{Typed[y, b]}, "orIntroductionLeft"[y]], h]
+TypeTheoryProofTree[TypeTheoryTerm[{a, b, Typed[h, Or[a, b]]} |->
+    InductiveRecursor[Or][Or[b, a] &, x |-> "orIntroductionRight"[x], y |-> "orIntroductionLeft"[y], h]
 ]]
 ```
 
@@ -94,7 +94,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 Falsity eliminated:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[h, False]} |-> Typed["falseElimination"[h], a]]]
+TypeTheoryProofTree[TypeTheoryTerm[{a, h} |-> Typed["falseElimination"[h], a]]]
 ```
 
 <!-- => (False / a ⊥E) / (False ⇒ a) →I -->
@@ -104,7 +104,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[h, False]} 
 A negation applied to a proof eliminates an implication, to falsity:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[x, a], Typed[n, Not[a]]} |-> n[x]]]
+TypeTheoryProofTree[TypeTheoryTerm[{a, Typed[x, a], Typed[n, Not[a]]} |-> n[x]]]
 ```
 
 <!-- => (((¬a   a) / False →E) / ((¬a) ⇒ False) →I) / (a ⇒ (¬a) ⇒ False) →I -->
@@ -114,7 +114,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[x, a], Type
 From a contradiction, anything:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[x, a], Typed[n, Not[a]]} |-> Typed["falseElimination"[n[x]], b]]]
+TypeTheoryProofTree[TypeTheoryTerm[{a, b, Typed[x, a], Typed[n, Not[a]]} |-> Typed["falseElimination"[n[x]], b]]]
 ```
 
 <!-- => ((((¬a   a) / False →E) / b ⊥E) / ((¬a) ⇒ b) →I) / (a ⇒ (¬a) ⇒ b) →I -->
@@ -124,7 +124,7 @@ TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniv
 A theorem applied to an atom is an open assumption:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryTerm[{Typed[a, TypeUniverse[0]]} |-> "excludedMiddle"[a]]]
+TypeTheoryProofTree[TypeTheoryTerm[a |-> "excludedMiddle"[a]]]
 ```
 
 <!-- => a ∨ ¬a -->
@@ -138,8 +138,8 @@ TypeTheoryProofTree[TypeTheoryTerm[
     Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[f, Implies[Implies[a, b], a]]},
         InductiveRecursor[Or][
             Function[{Typed[t, Or[a, Not[a]]]}, a],
-            Function[{Typed[x, a]}, x],
-            Function[{Typed[n, Not[a]]}, f[Typed[y, a] |-> "falseElimination"[n[y]]]],
+            Function[{x}, x],
+            Function[{n}, f[y |-> "falseElimination"[n[y]]]],
             "excludedMiddle"[a]
         ]
     ]
@@ -154,7 +154,7 @@ A proof made with tactics:
 
 ```wl
 swapped = TypeTheoryProof[
-    ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[a && b, b && a]],
+    ForAll[{a, b}, Implies[a && b, b && a]],
     {"Introduce"[a, b, h], TypeTheoryTactic["Exact", "andIntroduction"["andEliminationRight"[h], "andEliminationLeft"[h]]]}
 ]
 ```
@@ -182,7 +182,7 @@ TypeTheoryProofTree["ImpliesIntro", TypeTheoryTerm[Implies[a, a]], {TypeTheoryPr
 A finished [TypeTheoryProof]() gives the tree of its term, as the tactics built it:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]]}, Implies[a, a]], {"Introduce"[a, h], "Assumption"}]]
+TypeTheoryProofTree[TypeTheoryProof[ForAll[{a}, Implies[a, a]], {"Introduce"[a, h], "Assumption"}]]
 ```
 
 <!-- => a / (a ⇒ a) →I -->
@@ -272,7 +272,7 @@ TypeTheoryProofTree[TypeTheoryTerm[1 + True]]
 A proof with goals left has no tree yet:
 
 ```wl
-TypeTheoryProofTree[TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]]}, Implies[a, a]], {"Introduce"[a, h]}]]
+TypeTheoryProofTree[TypeTheoryProof[ForAll[{a}, Implies[a, a]], {"Introduce"[a, h]}]]
 ```
 
 <!-- => Failure["ProofIncomplete", ...] -->

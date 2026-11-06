@@ -26,7 +26,7 @@ RelatedTutorials: [RulesAndComputation]
 A function applied to an argument reduces to its body, and the list it gives keeps its element as it is:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[(Typed[x, Naturals] |-> {x + 1})[41]]]
+WeakHeadNormalForm[TypeTheoryTerm[(x |-> {x + 1})[41]]]
 ```
 
 <!-- => {41 + 1} -->
@@ -84,7 +84,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Not[1 == 2]]]
 A recursor applied to a literal computes, and so do the operations on literals, so the factorial of 5 reduces all the way to the number:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> (k + 1) r, 5]]]
+WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Naturals &, 1, {k, r} |-> (k + 1) r, 5]]]
 ```
 
 <!-- => 120 -->
@@ -94,7 +94,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Typed[k, Naturals]
 The argument of a function is not reduced before the function is applied:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[(Typed[l, {Naturals}] |-> Prepend[l, 1 + 1])[{2 + 2}]]]
+WeakHeadNormalForm[TypeTheoryTerm[(l |-> Prepend[l, 1 + 1])[{2 + 2}]]]
 ```
 
 <!-- => {1 + 1, 2 + 2} -->
@@ -114,7 +114,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Join[{1 + 1}, {2, 3}]]]
 A function is in weak head normal form, its body as it is; [NormalForm]() would reduce `n + 0` to `n`:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
+WeakHeadNormalForm[TypeTheoryTerm[n |-> n + 0]]
 ```
 
 <!-- => (n ∶ ℕ) ↦ n + 0 -->

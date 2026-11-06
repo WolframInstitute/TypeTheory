@@ -40,9 +40,9 @@ A proof that negation is an equivalence, with negation as its inverse on both si
 ```wl
 TypeTheoryType[Typed[EquivalenceProof[
     "not",
-    Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b],
+    b |-> InductiveRecursor[Booleans][t |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b],
     "not",
-    Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b]
+    b |-> InductiveRecursor[Booleans][t |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b]
 ], IsEquivalence["not"]], "HomotopyTypeTheory"]
 ```
 

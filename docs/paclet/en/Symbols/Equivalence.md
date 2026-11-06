@@ -120,12 +120,12 @@ A path from `"true"` to `"false"` is as good as an element of the empty type [Fa
 ```wl
 noPaths = TypeTheoryEnvironment["HomotopyTypeTheory", TypeTheoryDefinition[TrueFalsePathsEmpty, Typed[
     "equivalenceIntroduction"[
-        Typed[p, "true" == "false"] |-> Transport[Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], False, True, b], p, "trueIntroduction"],
+        p |-> Transport[b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, False, True, b], p, "trueIntroduction"],
         EquivalenceProof[
-            Typed[y, False] |-> "falseElimination"[y],
-            Typed[p, "true" == "false"] |-> "falseElimination"[Transport[Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], False, True, b], p, "trueIntroduction"]],
-            Typed[y, False] |-> "falseElimination"[y],
-            Typed[y, False] |-> "falseElimination"[y]
+            y |-> "falseElimination"[y],
+            p |-> "falseElimination"[Transport[b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, False, True, b], p, "trueIntroduction"]],
+            y |-> "falseElimination"[y],
+            y |-> "falseElimination"[y]
         ]
     ],
     Equivalence["true" == "false", False]
@@ -177,7 +177,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negation
 In the HoTT environment univalence is an axiom, so transport along the path of an equivalence stops at it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[X |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => Equal_rec[(z ∶ Type) (q ∶ 𝔹 == z) ↦ ((X ∶ Type) ↦ X)[z], true, equivalenceToEquality[negationEquivalence]] -->

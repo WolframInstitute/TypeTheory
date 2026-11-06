@@ -137,7 +137,7 @@ TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchSum[m, {}] =
 The first result of a sum is the left alternative's where it has one, whatever the right one:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[m, Match[NonNegativeIntegers]]}, MatchFirst[MatchSum[MatchValue[a], m]] == "some"[a]], {"Introduce"[a, m], "Reflexivity"}]
+TypeTheoryProof[ForAll[{a, Typed[m, Match[NonNegativeIntegers]]}, MatchFirst[MatchSum[MatchValue[a], m]] == "some"[a]], {"Introduce"[a, m], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

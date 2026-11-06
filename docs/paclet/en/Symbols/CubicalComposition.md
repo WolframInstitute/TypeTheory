@@ -29,7 +29,7 @@ The concatenation of a path `p` from `x` to `y` and a path `q` from `y` to `z`: 
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[z, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]} |->
+    {TypedImplicit[A, TypeUniverse[1]], x, y, z, Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]} |->
         Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {i == 0 -> x, i == 1 -> q[j]}, p[i]]],
     "Cubical"
 ]
@@ -42,7 +42,7 @@ TypeTheoryType[
 Where a face holds, the composition is its side at 1: composing `x` along a path `q` from `x` to `z`, over the face 1, gives `z`:
 
 ```wl
-NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {1 -> q[j]}, x], "Cubical"]]
+NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {1 -> q[j]}, x], "Cubical"]]
 ```
 
 <!-- => {A ∶ Type} (x ∶ A) (z ∶ A) (q ∶ x ≡ z) ↦ z -->
@@ -63,7 +63,7 @@ With the side `p[j]` where `i == 0` and the constant side `x` where `i == 1`, ov
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |->
+    {TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |->
         Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {i == 0 -> p[j], i == 1 -> x}, x]],
     "Cubical"
 ]
@@ -77,7 +77,7 @@ A side may lie over a face that holds at both ends of `i`, `i == 0 || i == 1`: a
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]]} |->
+    {TypedImplicit[A, TypeUniverse[1]], x, z, Typed[p, Path[A, x, x]], Typed[q, Path[A, x, z]]} |->
         Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {i == 0 || i == 1 -> q[j]}, p[i]]],
     "Cubical"
 ]
@@ -92,12 +92,12 @@ In a function type, a composition composes the values: applied to `b`, it is the
 ```wl
 DefinitionallyEqualQ[
     TypeTheoryTerm[
-        {Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[g, TypeSpecifier[{Booleans} -> Booleans]], Typed[h, Path[TypeSpecifier[{Booleans} -> Booleans], f, g]], Typed[i, Interval], Typed[b, Booleans]} |->
+        {f, g, Typed[h, Path[TypeSpecifier[{Booleans} -> Booleans], f, g]], Typed[i, Interval], b} |->
             CubicalComposition[TypeSpecifier[{Booleans} -> Booleans], j |-> {i == 0 -> h[j]}, f][b],
         "Cubical"
     ],
     TypeTheoryTerm[
-        {Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[g, TypeSpecifier[{Booleans} -> Booleans]], Typed[h, Path[TypeSpecifier[{Booleans} -> Booleans], f, g]], Typed[i, Interval], Typed[b, Booleans]} |->
+        {f, g, Typed[h, Path[TypeSpecifier[{Booleans} -> Booleans], f, g]], Typed[i, Interval], b} |->
             CubicalComposition[Booleans, j |-> {i == 0 -> h[j][b]}, f[b]],
         "Cubical"
     ]
@@ -113,12 +113,12 @@ In a path type, it composes the points, with the endpoints of the paths as two m
 ```wl
 DefinitionallyEqualQ[
     TypeTheoryTerm[
-        {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, x, y]], Typed[r, Path[Path[A, x, y], p, q]], Typed[i, Interval], Typed[j, Interval]} |->
+        {TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]], q, Typed[r, Path[Path[A, x, y], p, q]], Typed[i, Interval], Typed[j, Interval]} |->
             CubicalComposition[Path[A, x, y], k |-> {i == 0 -> r[k]}, p][j],
         "Cubical"
     ],
     TypeTheoryTerm[
-        {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, x, y]], Typed[r, Path[Path[A, x, y], p, q]], Typed[i, Interval], Typed[j, Interval]} |->
+        {TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]], q, Typed[r, Path[Path[A, x, y], p, q]], Typed[i, Interval], Typed[j, Interval]} |->
             CubicalComposition[A, k |-> {i == 0 -> r[k][j], j == 0 -> x, j == 1 -> y}, p[j]],
         "Cubical"
     ]
@@ -133,7 +133,7 @@ Composition fills squares: with the sides `x` where `i == 0`, `q[Min[j, k]]` whe
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[z, A], Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]} |->
+    {TypedImplicit[A, TypeUniverse[1]], x, y, z, Typed[p, Path[A, x, y]], Typed[q, Path[A, y, z]]} |->
         Function[{Typed[j, Interval], Typed[i, Interval]}, CubicalComposition[A, k |-> {i == 0 -> x, i == 1 -> q[Min[j, k]], j == 0 -> p[i]}, p[i]]],
     "Cubical"
 ]
@@ -146,7 +146,7 @@ TypeTheoryType[
 A path concatenated with its reversal is a loop at its start, here at double negation:
 
 ```wl
-TypeTheoryType["pathTransitivity"["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]], "pathSymmetry"["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]]]], "Cubical"]
+TypeTheoryType["pathTransitivity"["pathFunctionExtensionality"[b |-> "negationInvolution"[b]], "pathSymmetry"["pathFunctionExtensionality"[b |-> "negationInvolution"[b]]]], "Cubical"]
 ```
 
 <!-- => ((b ∶ 𝔹) ↦ !!b) ≡ ((b ∶ 𝔹) ↦ !!b) -->
@@ -157,7 +157,7 @@ A side must be the base at 0, where its face holds; the side `y` where `i == 0` 
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {i == 0 -> y}, p[i]]],
+    {TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> Function[{Typed[i, Interval]}, CubicalComposition[A, j |-> {i == 0 -> y}, p[i]]],
     "Cubical"
 ]
 ```
@@ -170,7 +170,7 @@ Two sides must agree where both their faces hold; two paths `q` and `r` from `x`
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]], Typed[r, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {1 -> q[j], 1 -> r[j]}, x],
+    {TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]], Typed[r, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {1 -> q[j], 1 -> r[j]}, x],
     "Cubical"
 ]
 ```
@@ -182,7 +182,7 @@ TypeTheoryType[
 A face may not mention the variable of the sides:
 
 ```wl
-TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {j == 1 -> q[j]}, x], "Cubical"]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {j == 1 -> q[j]}, x], "Cubical"]
 ```
 
 <!-- => Failure["FaceOfTube", ...] -->
@@ -192,7 +192,7 @@ TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typ
 The sides are a function of the interval whose body is the system, not the system alone:
 
 ```wl
-TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, {1 -> x}, x], "Cubical"]
+TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, {1 -> x}, x], "Cubical"]
 ```
 
 <!-- => Failure["ElaborationFailed", ...] -->

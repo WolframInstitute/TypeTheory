@@ -119,10 +119,10 @@ TypeTheoryType[Arguments[HoldForm[a + b + c]]]
 
 ---
 
-A quotation with a variable in it is a function of expressions, a template:
+A quotation with a variable in it is a function of expressions, a template; in the quotation the variable is an expression:
 
 ```wl
-TypeTheoryType[Typed[x, Expressions] |-> HoldForm[x^2 + x]]
+TypeTheoryType[x |-> HoldForm[x^2 + x]]
 ```
 
 <!-- => Expressions → Expressions -->
@@ -130,7 +130,7 @@ TypeTheoryType[Typed[x, Expressions] |-> HoldForm[x^2 + x]]
 The variable is the expression it is given, so the template filled in with `a + b` is `(a + b)^2 + (a + b)`, by computation:
 
 ```wl
-TypeTheoryProof[(Typed[x, Expressions] |-> HoldForm[x^2 + x])[HoldForm[a + b]] == HoldForm[(a + b)^2 + (a + b)], {"Reflexivity"}]
+TypeTheoryProof[(x |-> HoldForm[x^2 + x])[HoldForm[a + b]] == HoldForm[(a + b)^2 + (a + b)], {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -158,7 +158,7 @@ TypeTheoryType[(Typed[s, Expressions...] |-> Construct[g, 0, s])[1, 2]]
 [Construct]() of a function that is no expression applies it, so the result is a natural number:
 
 ```wl
-TypeTheoryType[Construct[Typed[n, NonNegativeIntegers] |-> n + 1, 2]]
+TypeTheoryType[Construct[n |-> n + 1, 2]]
 ```
 
 <!-- => ℕ -->

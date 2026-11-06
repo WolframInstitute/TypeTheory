@@ -132,7 +132,7 @@ TypeTheoryEnvironment["Prelude"][Replace]
 Whatever the right alternative, the first result of a sum is the left one's where it has one:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[m, Match[NonNegativeIntegers]]}, MatchFirst[MatchSum[MatchValue[a], m]] == "some"[a]], {"Introduce"[a, m], "Reflexivity"}]
+TypeTheoryProof[ForAll[{a, Typed[m, Match[NonNegativeIntegers]]}, MatchFirst[MatchSum[MatchValue[a], m]] == "some"[a]], {"Introduce"[a, m], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

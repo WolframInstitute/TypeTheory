@@ -58,7 +58,7 @@ Block[{$TypeTheoryEnvironment = "Constructive"}, TypeTheoryEnvironment[{TypeTheo
 An environment with a definition as the default, so terms use the definition without naming the environment:
 
 ```wl
-Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]}]},
+Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> n + n]}]},
     WeakHeadNormalForm[TypeTheoryTerm[Doubled[21]]]
 ]
 ```

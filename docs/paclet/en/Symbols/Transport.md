@@ -49,7 +49,7 @@ Transport in a family of statements is substitution: a path from `x` to `y` carr
 
 ```wl
 TypeTheoryType[
-    {Typed[x, Booleans], Typed[y, Booleans], Typed[p, x == y], Typed[h, "not"[x] == "true"]} |-> Transport[Typed[b, Booleans] |-> "not"[b] == "true", p, h],
+    {x, y, Typed[p, x == y], Typed[h, "not"[x] == "true"]} |-> Transport[b |-> "not"[b] == "true", p, h],
     "HomotopyTypeTheory"
 ]
 ```
@@ -62,7 +62,7 @@ In the universe, along a path of types, transport is a function from one type to
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[p, A == B], Typed[a, A]} |-> Transport[Typed[X, TypeUniverse[1]] |-> X, p, a],
+    {TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[p, A == B], a} |-> Transport[X |-> X, p, a],
     "HomotopyTypeTheory"
 ]
 ```
@@ -74,7 +74,7 @@ TypeTheoryType[
 Along reflexivity of a type, that function is the identity:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equalityReflexivity"[Booleans], "true"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[X |-> X, "equalityReflexivity"[Booleans], "true"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => true -->
@@ -106,7 +106,7 @@ There is no path from `"true"` to `"false"`: carrying `"trueIntroduction"` along
 ```wl
 TypeTheoryProof[Not["true" == "false"], "HomotopyTypeTheory", {
     "Introduce"[p],
-    "Exact"[Transport[Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], False, True, b], p, "trueIntroduction"]]
+    "Exact"[Transport[b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, False, True, b], p, "trueIntroduction"]]
 }]
 ```
 
@@ -125,7 +125,7 @@ TypeTheoryType["circleInduction", "HomotopyTypeTheory"]
 In a constant family, `"transportConstant"` gives the path over the loop, and induction computes on the base point:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Typed[x, Circle] |-> Booleans, "true", "transportConstant"["circleLoop", "true"], "circleBase"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm["circleInduction"[Booleans &, "true", "transportConstant"["circleLoop", "true"], "circleBase"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => true -->
@@ -165,7 +165,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negation
 Along a path that is not reflexivity, transport does not compute. Univalence is an axiom here, so transport along the path that negation gives stops at it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[X |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => Equal_rec[(z ∶ Type) (q ∶ 𝔹 == z) ↦ ((X ∶ Type) ↦ X)[z], true, equivalenceToEquality[negationEquivalence]] -->
@@ -175,7 +175,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "eq
 The loop of the circle is an axiom too, so transport along it stops even in a constant family:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[x, Circle] |-> Booleans, "circleLoop", "true"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[x |-> Booleans, "circleLoop", "true"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => Equal_rec[(z ∶ 𝕊¹) (q ∶ circleBase == z) ↦ ((x ∶ 𝕊¹) ↦ 𝔹)[z], true, circleLoop] -->

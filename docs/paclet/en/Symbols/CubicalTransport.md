@@ -58,7 +58,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[i |-> TypeSpecifier[{Booleans
 Where its face holds, a transport is its element, even in a type `A` that has no rule of transport of its own:
 
 ```wl
-NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[a, A]} |-> CubicalTransport[A, 1, a], "Cubical"]]
+NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], a} |-> CubicalTransport[A, 1, a], "Cubical"]]
 ```
 
 <!-- => {A ∶ Type} (a ∶ A) ↦ a -->
@@ -88,7 +88,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[TypeUniverse[1], 0, Booleans]
 In a function type, the argument goes back along the domain: transport of the identity of the Booleans, along the line of functions from the path of negation into the Booleans, applies the inverse of negation:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[Typed[i, Interval] |-> TypeSpecifier[{"equivalenceToPath"["negationEquivalence"][i]} -> Booleans], 0, Typed[b, Booleans] |-> b]["true"], "Cubical"]]
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[i |-> TypeSpecifier[{"equivalenceToPath"["negationEquivalence"][i]} -> Booleans], 0, b |-> b]["true"], "Cubical"]]
 ```
 
 <!-- => false -->
@@ -98,7 +98,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[Typed[i, Interval] |-> TypeSp
 The value goes forward along the codomain: along the line of functions from the Booleans into the path of negation, the identity becomes negation:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[Typed[i, Interval] |-> TypeSpecifier[{Booleans} -> "equivalenceToPath"["negationEquivalence"][i]], 0, Typed[b, Booleans] |-> b]["true"], "Cubical"]]
+WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport[i |-> TypeSpecifier[{Booleans} -> "equivalenceToPath"["negationEquivalence"][i]], 0, b |-> b]["true"], "Cubical"]]
 ```
 
 <!-- => false -->
@@ -138,7 +138,7 @@ TypeTheoryEnvironment["Cubical"]["pathInduction"]
 In a family of Booleans, path induction on the constant path at `"true"` computes to its value:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["pathInduction"[{Typed[y, Booleans], Typed[q, Path[Booleans, "true", y]]} |-> Booleans, "false", Typed[i, Interval] |-> "true"], "Cubical"]]
+WeakHeadNormalForm[TypeTheoryTerm["pathInduction"[Booleans &, "false", i |-> "true"], "Cubical"]]
 ```
 
 <!-- => false -->
@@ -150,7 +150,7 @@ The transport filler: over the face where `i` is 0, along the line `k ↦ P[Min[
 ```wl
 TypeTheoryType[
     {TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[P, Path[TypeUniverse[1], A, B]], Typed[a, A]} |->
-        Function[{Typed[i, Interval]}, CubicalTransport[Typed[k, Interval] |-> P[Min[i, k]], 1 - i, a]],
+        Function[{Typed[i, Interval]}, CubicalTransport[k |-> P[Min[i, k]], 1 - i, a]],
     "Cubical"
 ]
 ```
@@ -175,7 +175,7 @@ DefinitionallyEqualQ[
 In the HoTT environment univalence is an axiom, so transport along the path of negation stops at it:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm[Transport[Typed[X, TypeUniverse[1]] |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], "HomotopyTypeTheory"]]
+WeakHeadNormalForm[TypeTheoryTerm[Transport[X |-> X, "equivalenceToEquality"["negationEquivalence"], "true"], "HomotopyTypeTheory"]]
 ```
 
 <!-- => Equal_rec[(z ∶ Type) (q ∶ 𝔹 == z) ↦ ((X ∶ Type) ↦ X)[z], true, equivalenceToEquality[negationEquivalence]] -->
@@ -206,8 +206,8 @@ In a family `P` that is a variable, transport has no rule, so path induction on 
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{Typed[P, ForAll[{Typed[y, Booleans]}, Path[Booleans, "true", y] -> TypeUniverse[1]]], Typed[d, P["true", Typed[i, Interval] |-> "true"]]} |-> "pathInduction"[P, d, Typed[i, Interval] |-> "true"], "Cubical"],
-    TypeTheoryTerm[{Typed[P, ForAll[{Typed[y, Booleans]}, Path[Booleans, "true", y] -> TypeUniverse[1]]], Typed[d, P["true", Typed[i, Interval] |-> "true"]]} |-> d, "Cubical"]
+    TypeTheoryTerm[{Typed[P, ForAll[{y}, Path[Booleans, "true", y] -> TypeUniverse[1]]], Typed[d, P["true", i |-> "true"]]} |-> "pathInduction"[P, d, i |-> "true"], "Cubical"],
+    TypeTheoryTerm[{Typed[P, ForAll[{y}, Path[Booleans, "true", y] -> TypeUniverse[1]]], Typed[d, P["true", i |-> "true"]]} |-> d, "Cubical"]
 ]
 ```
 

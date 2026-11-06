@@ -87,7 +87,7 @@ WeakHeadNormalForm[TypeTheoryTerm["naturalNumberEqualityDecidable"[2, 3]]]
 A decision written out from a proof:
 
 ```wl
-TypeTheoryType[Typed["decidableTrue"["equalityReflexivity"[2]], Decidable[2 == 2]]]
+TypeTheoryType["decidableTrue"["equalityReflexivity"[2]]]
 ```
 
 <!-- => Decidable[2 == 2] -->
@@ -143,7 +143,7 @@ TypeTheoryProof[Nonempty[Naturals], decided, {"Decide"}]
 A decidable proposition is true or false without the excluded middle. `"Cases"` on its decision, in the environment without classical axioms:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, Or[p, Not[p]]], "Constructive", {
+TypeTheoryProof[ForAll[{p, Typed[d, Decidable[p]]}, Or[p, Not[p]]], "Constructive", {
     "Introduce"[p, d],
     "Cases"[d]
 }]
@@ -154,7 +154,7 @@ TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, Or[p
 Each case gives a side of the disjunction:
 
 ```wl
-proof = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[d, Decidable[p]]}, Or[p, Not[p]]], "Constructive", {
+proof = TypeTheoryProof[ForAll[{p, Typed[d, Decidable[p]]}, Or[p, Not[p]]], "Constructive", {
     "Introduce"[p, d],
     "Cases"[d],
     "Introduce"[h], "Exact"["orIntroductionRight"[h]],

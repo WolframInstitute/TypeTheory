@@ -57,7 +57,7 @@ The same proof as a term, where the statement it is [Typed]() with gives *P*:
 
 ```wl
 TypeTheoryType[Typed[
-    QuotientInduction[Typed[p, CartesianProductType[Naturals, Naturals]] |-> "equalityReflexivity"[QuotientIntroduction["integerRelation", p]]],
+    QuotientInduction[p |-> "equalityReflexivity"[QuotientIntroduction["integerRelation", p]]],
     ForAll[{Typed[q, Integers]}, -(-q) == q]
 ], "Integers"]
 ```
@@ -72,8 +72,8 @@ TypeTheoryType[Typed[
 TypeTheoryType[Construct[QuotientInduction,
     CartesianProductType[Naturals, Naturals],
     "integerRelation",
-    Typed[x, Integers] |-> x + 0 == x,
-    Typed[p, CartesianProductType[Naturals, Naturals]] |-> "quotientSoundness"["equalityReflexivity"[p[[1]] + p[[2]]]]
+    x |-> x + 0 == x,
+    p |-> "quotientSoundness"["equalityReflexivity"[p[[1]] + p[[2]]]]
 ], "Integers"]
 ```
 
@@ -131,8 +131,8 @@ On a class, [QuotientInduction]() computes to the premise at its element:
 WeakHeadNormalForm[TypeTheoryTerm[Construct[QuotientInduction,
     CartesianProductType[Naturals, Naturals],
     "integerRelation",
-    Typed[x, Integers] |-> -(-x) == x,
-    Typed[p, CartesianProductType[Naturals, Naturals]] |-> "equalityReflexivity"[QuotientIntroduction["integerRelation", p]],
+    x |-> -(-x) == x,
+    p |-> "equalityReflexivity"[QuotientIntroduction["integerRelation", p]],
     QuotientIntroduction["integerRelation", "pair"[2, 5]]
 ], "Integers"]]
 ```
@@ -144,7 +144,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Construct[QuotientInduction,
 The premise alone does not say what *P* is, since a class of a variable is no variable to abstract; [Typed]() or [Construct]() gives it:
 
 ```wl
-TypeTheoryType[QuotientInduction[Typed[p, CartesianProductType[Naturals, Naturals]] |-> "equalityReflexivity"[QuotientIntroduction["integerRelation", p]], Typed[2 - 5, Integers]], "Integers"]
+TypeTheoryType[QuotientInduction[p |-> "equalityReflexivity"[QuotientIntroduction["integerRelation", p]], Typed[2 - 5, Integers]], "Integers"]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
@@ -157,8 +157,8 @@ TypeTheoryType[QuotientInduction[Typed[p, CartesianProductType[Naturals, Natural
 TypeTheoryType[Construct[QuotientInduction,
     CartesianProductType[Naturals, Naturals],
     "integerRelation",
-    Typed[x, Integers] |-> Naturals,
-    Typed[p, CartesianProductType[Naturals, Naturals]] |-> p[[1]]
+    x |-> Naturals,
+    p |-> p[[1]]
 ], "Integers"]
 ```
 

@@ -39,11 +39,8 @@ The natural numbers up to parity: a number's parity, true for an odd number, and
 
 ```wl
 parity = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[Parity, Typed[
-        Typed[n, Naturals] |-> InductiveRecursor[Naturals][Typed[k, Naturals] |-> Booleans, "false", {Typed[k, Naturals], Typed[r, Booleans]} |-> "not"[r], n],
-        TypeSpecifier[{Naturals} -> Booleans]
-    ]],
-    TypeTheoryDefinition[SameParity, Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> Parity[m] == Parity[n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+    TypeTheoryDefinition[Parity, n |-> InductiveRecursor[Naturals][Booleans &, "false", {k, r} |-> "not"[r], n]],
+    TypeTheoryDefinition[SameParity, {m, n} |-> Parity[m] == Parity[n]]
 }]
 ```
 
@@ -98,7 +95,7 @@ TypeTheoryEnvironment["Rationals"][Rationals]
 Functions up to being equal at every point, the quotient with which the prelude proves function extensionality:
 
 ```wl
-TypeTheoryType[QuotientType[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[g, TypeSpecifier[{Naturals} -> Naturals]]} |-> ForAll[{Typed[n, Naturals]}, f[n] == g[n]]]]
+TypeTheoryType[QuotientType[{Typed[f, TypeSpecifier[{Naturals} -> Naturals]], Typed[g, TypeSpecifier[{Naturals} -> Naturals]]} |-> ForAll[{n}, f[n] == g[n]]]]
 ```
 
 <!-- => Type -->
@@ -109,7 +106,7 @@ Any relation will do. Relating each number to the next makes 2 and 3 one class, 
 
 ```wl
 TypeTheoryProof[
-    QuotientIntroduction[{Typed[m, Naturals], Typed[n, Naturals]} |-> m + 1 == n, 2] == QuotientIntroduction[{Typed[m, Naturals], Typed[n, Naturals]} |-> m + 1 == n, 3],
+    QuotientIntroduction[{m, n} |-> m + 1 == n, 2] == QuotientIntroduction[{m, n} |-> m + 1 == n, 3],
     {"Apply"["quotientSoundness"], "Reflexivity"}
 ]
 ```

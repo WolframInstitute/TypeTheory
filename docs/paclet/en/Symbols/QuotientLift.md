@@ -56,17 +56,17 @@ WeakHeadNormalForm[TypeTheoryTerm[-QuotientIntroduction["integerRelation", "pair
 The quotient of the natural numbers by equality:
 
 ```wl
-equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
+equal = TypeTheoryTerm[Typed[{m, n} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
 ```
 
-<!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
+<!-- => m n ↦ m == n ∶ ℕ → ℕ → Prop -->
 
 The successor respects equality, by congruence, so it lifts to the classes, and computes on one:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
-    Function[{Typed[k, Naturals]}, k + 1],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]}, "equalityCongruence"[Typed[k, Naturals] |-> k + 1, e]],
+    k |-> k + 1,
+    {a, b, Typed[e, a == b]} |-> "equalityCongruence"[k |-> k + 1, e],
     QuotientIntroduction[equal, 5]
 ]]]
 ```
@@ -80,7 +80,7 @@ When the relation is the equation of the function's values, the proof of the rel
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
     Typed[p, CartesianProductType[Naturals, Naturals]] |-> p[[1]] + p[[2]],
-    {Typed[p, CartesianProductType[Naturals, Naturals]], Typed[q, CartesianProductType[Naturals, Naturals]], Typed[e, p[[1]] + p[[2]] == q[[1]] + q[[2]]]} |-> e,
+    {p, q, e} |-> e,
     QuotientIntroduction[{Typed[p, CartesianProductType[Naturals, Naturals]], Typed[q, CartesianProductType[Naturals, Naturals]]} |-> p[[1]] + p[[2]] == q[[1]] + q[[2]], "pair"[2, 3]]
 ]]]
 ```
@@ -136,13 +136,10 @@ doubling = TypeTheoryEnvironment["Integers", {
         "Integers",
         {"Introduce"[p, q, h], "LinearArithmetic"}
     ]],
-    TypeTheoryDefinition[IntegerDouble, Typed[
-        Typed[x, Integers] |-> QuotientLift[
-            Typed[p, CartesianProductType[Naturals, Naturals]] |-> "integerOfPair"["pair"[2 p[[1]], 2 p[[2]]]],
-            {Typed[p, CartesianProductType[Naturals, Naturals]], Typed[q, CartesianProductType[Naturals, Naturals]], Typed[e, "integerRelation"[p, q]]} |-> "quotientSoundness"[DoublingRespects[p, q, e]],
-            x
-        ],
-        TypeSpecifier[{Integers} -> Integers]
+    TypeTheoryDefinition[IntegerDouble, Typed[x, Integers] |-> QuotientLift[
+        Typed[p, CartesianProductType[Naturals, Naturals]] |-> "integerOfPair"["pair"[2 p[[1]], 2 p[[2]]]],
+        {p, q, e} |-> "quotientSoundness"[DoublingRespects[p, q, e]],
+        x
     ]]
 }]
 ```
@@ -198,15 +195,15 @@ TypeTheoryProof[ForAll[{Typed[x, Integers]}, -(-x) == x], "Integers", {"Introduc
 A function lifts only with a proof that it respects the relation:
 
 ```wl
-equal = TypeTheoryTerm[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
+equal = TypeTheoryTerm[Typed[{m, n} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
 ```
 
-<!-- => (m ∶ ℕ) (n ∶ ℕ) ↦ m == n ∶ ℕ → ℕ → Prop -->
+<!-- => m n ↦ m == n ∶ ℕ → ℕ → Prop -->
 
 A proof of something else is refused:
 
 ```wl
-TypeTheoryType[QuotientLift[Typed[k, Naturals] |-> 7, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, a == b]} |-> "equalityReflexivity"[a], QuotientIntroduction[equal, 5]]]
+TypeTheoryType[QuotientLift[Typed[k, Naturals] |-> 7, {a, b, Typed[e, a == b]} |-> "equalityReflexivity"[a], QuotientIntroduction[equal, 5]]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

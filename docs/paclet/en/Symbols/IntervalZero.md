@@ -39,8 +39,8 @@ The start of a path is its value at 0: the path between functions that `"pathFun
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]][0], "Cubical"],
-    TypeTheoryTerm[Typed[b, Booleans] |-> "not"["not"[b]], "Cubical"]
+    TypeTheoryTerm["pathFunctionExtensionality"[b |-> "negationInvolution"[b]][0], "Cubical"],
+    TypeTheoryTerm[b |-> "not"["not"[b]], "Cubical"]
 ]
 ```
 
@@ -51,7 +51,7 @@ DefinitionallyEqualQ[
 A path that is not a function, a variable `p` from `x` to `y`, is `x` at 0:
 
 ```wl
-NormalForm[TypeTheoryTerm[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> p[0], "Cubical"]]
+NormalForm[TypeTheoryTerm[{x, y, Typed[p, Path[Booleans, x, y]]} |-> p[0], "Cubical"]]
 ```
 
 <!-- => (x ∶ 𝔹) (y ∶ 𝔹) (p ∶ x ≡ y) ↦ x -->
@@ -62,8 +62,8 @@ The same holds in any type: a path `p` from `x` to `y`, at 0, is `x`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[0], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> x, "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> p[0], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> x, "Cubical"]
 ]
 ```
 
@@ -115,8 +115,8 @@ Reversal takes 0 to 1, [IntervalOne](), so a path `p` from `x` to `y`, at <code>
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[IntervalReverse[0]], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> y, "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> p[IntervalReverse[0]], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> y, "Cubical"]
 ]
 ```
 
@@ -137,7 +137,7 @@ TypeTheoryType[0, "Cubical"]
 A function of the interval is a path from its value at 0, so the constant function at `"true"` is no path from `"false"`:
 
 ```wl
-TypeTheoryType[Typed[Typed[i, Interval] |-> "true", Path[Booleans, "false", "true"]], "Cubical"]
+TypeTheoryType[Typed[i |-> "true", Path[Booleans, "false", "true"]], "Cubical"]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

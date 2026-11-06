@@ -129,15 +129,7 @@ trees = TypeTheoryEnvironment[{
         BinaryLeaf -> BinaryTree,
         BinaryNode -> ForAll[{Typed[left, BinaryTree], Typed[right, BinaryTree]}, BinaryTree]
     }],
-    TypeTheoryDefinition[NodeCount, Typed[
-        Function[{Typed[tree, BinaryTree]}, InductiveRecursor[BinaryTree][
-            Function[{Typed[t, BinaryTree]}, Naturals],
-            1,
-            Function[{Typed[left, BinaryTree], Typed[right, BinaryTree], Typed[l, Naturals], Typed[r, Naturals]}, l + r + 1],
-            tree
-        ]],
-        TypeSpecifier[{BinaryTree} -> Naturals]
-    ]]
+    TypeTheoryDefinition[NodeCount, tree |-> InductiveRecursor[BinaryTree][Naturals &, 1, {left, right, l, r} |-> l + r + 1, tree]]
 }]
 ```
 
@@ -234,7 +226,7 @@ Assume the excluded middle in the constructive environment, extended by its name
 
 ```wl
 TypeTheoryEnvironment["Constructive", {
-    TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]
+    TypeTheoryAxiom["excludedMiddle", ForAll[{p}, Or[p, Not[p]]]]
 }]
 ```
 
@@ -535,7 +527,7 @@ TypeTheoryEnvironment["Integer"]
 A constant cannot be declared twice. The prelude proves the excluded middle, so the name is taken there:
 
 ```wl
-TypeTheoryEnvironment[{TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]}]
+TypeTheoryEnvironment[{TypeTheoryAxiom["excludedMiddle", ForAll[{p}, Or[p, Not[p]]]]}]
 ```
 
 <!-- => Failure["AlreadyDeclared", ...] -->

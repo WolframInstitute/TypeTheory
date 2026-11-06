@@ -67,7 +67,7 @@ TypeTheoryProof[IsSet[False], "HomotopyTypeTheory", {"Introduce"[x, y, p, q], "E
 The negation of [IsSet]() is a function into [False](): from a proof that the universe is a set, `"universeNotSet"` makes an element of the empty type:
 
 ```wl
-TypeTheoryType[Typed[s, IsSet[TypeUniverse[1]]] |-> "universeNotSet"[s], "HomotopyTypeTheory"]
+TypeTheoryType[s |-> "universeNotSet"[s], "HomotopyTypeTheory"]
 ```
 
 <!-- => IsSet[Type] → False -->

@@ -56,7 +56,7 @@ The short form takes its Glue type from the type expected, here the paths over t
 
 ```wl
 TypeTheoryType[
-    Typed[Typed[i, Interval] |-> GlueIntroduction[{i == 0 -> "true", i == 1 -> "false"}, "false"], Path["equivalenceToPath"["negationEquivalence"], "true", "false"]],
+    Typed[i |-> GlueIntroduction[{i == 0 -> "true", i == 1 -> "false"}, "false"], Path["equivalenceToPath"["negationEquivalence"], "true", "false"]],
     "Cubical"
 ]
 ```

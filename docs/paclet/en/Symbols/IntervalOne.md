@@ -38,7 +38,7 @@ TypeTheoryType[IntervalOne, "Cubical"]
 The end of a path is its value at 1: the path between functions that `"pathFunctionExtensionality"` makes from the paths <code>"negationInvolution"[*b*]</code>, from `"not"["not"[b]]` to `b`, ends at the identity:
 
 ```wl
-NormalForm[TypeTheoryTerm["pathFunctionExtensionality"[Typed[b, Booleans] |-> "negationInvolution"[b]][1], "Cubical"]]
+NormalForm[TypeTheoryTerm["pathFunctionExtensionality"[b |-> "negationInvolution"[b]][1], "Cubical"]]
 ```
 
 <!-- => (x ∶ 𝔹) ↦ x -->
@@ -48,7 +48,7 @@ NormalForm[TypeTheoryTerm["pathFunctionExtensionality"[Typed[b, Booleans] |-> "n
 A path that is not a function, a variable `p` from `x` to `y`, is `y` at 1:
 
 ```wl
-NormalForm[TypeTheoryTerm[{Typed[x, Booleans], Typed[y, Booleans], Typed[p, Path[Booleans, x, y]]} |-> p[1], "Cubical"]]
+NormalForm[TypeTheoryTerm[{x, y, Typed[p, Path[Booleans, x, y]]} |-> p[1], "Cubical"]]
 ```
 
 <!-- => (x ∶ 𝔹) (y ∶ 𝔹) (p ∶ x ≡ y) ↦ y -->
@@ -59,8 +59,8 @@ The same holds in any type: a path `p` from `x` to `y`, at 1, is `y`:
 
 ```wl
 DefinitionallyEqualQ[
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> p[1], "Cubical"],
-    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[y, A], Typed[p, Path[A, x, y]]} |-> y, "Cubical"]
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> p[1], "Cubical"],
+    TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, y, Typed[p, Path[A, x, y]]} |-> y, "Cubical"]
 ]
 ```
 
@@ -71,7 +71,7 @@ DefinitionallyEqualQ[
 Over the face 1, which holds everywhere, a transport is its element, even in a type `A` that has no rule of transport of its own:
 
 ```wl
-NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[a, A]} |-> CubicalTransport[A, 1, a], "Cubical"]]
+NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], a} |-> CubicalTransport[A, 1, a], "Cubical"]]
 ```
 
 <!-- => {A ∶ Type} (a ∶ A) ↦ a -->
@@ -81,7 +81,7 @@ NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[a, A]} |-> C
 Over the face 1 a composition is its side at 1: composing `x` along a path `q` from `x` to `z` gives `z`:
 
 ```wl
-NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A], Typed[z, A], Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {1 -> q[j]}, x], "Cubical"]]
+NormalForm[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], x, z, Typed[q, Path[A, x, z]]} |-> CubicalComposition[A, j |-> {1 -> q[j]}, x], "Cubical"]]
 ```
 
 <!-- => {A ∶ Type} (x ∶ A) (z ∶ A) (q ∶ x ≡ z) ↦ z -->

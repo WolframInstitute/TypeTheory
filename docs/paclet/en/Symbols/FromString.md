@@ -67,7 +67,7 @@ TypeTheoryType["IsString"]
 Where an atom is expected, it is the atom of the string:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed[FromString["Hi"], Atoms]], TypeTheoryTerm["stringAtom"[Typed["Hi", Strings]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Typed[FromString["Hi"], Atoms]], TypeTheoryTerm["stringAtom"["Hi"]]]
 ```
 
 <!-- => True -->
@@ -77,7 +77,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Typed[FromString["Hi"], Atoms]], TypeTheoryT
 A function's result is a string where nothing else decides it:
 
 ```wl
-TypeTheoryType[Typed[n, NonNegativeIntegers] |-> If[n == 0, FromString["none"], FromString["some"]]]
+TypeTheoryType[n |-> If[n == 0, FromString["none"], FromString["some"]]]
 ```
 
 <!-- => ℕ → Strings -->
@@ -87,7 +87,7 @@ TypeTheoryType[Typed[n, NonNegativeIntegers] |-> If[n == 0, FromString["none"], 
 The type a function is given decides it:
 
 ```wl
-TypeTheoryType[Typed[Typed[n, NonNegativeIntegers] |-> FromString["a"], NonNegativeIntegers -> Expressions]]
+TypeTheoryType[Typed[n |-> FromString["a"], NonNegativeIntegers -> Expressions]]
 ```
 
 <!-- => ℕ → Expressions -->
@@ -97,7 +97,7 @@ TypeTheoryType[Typed[Typed[n, NonNegativeIntegers] |-> FromString["a"], NonNegat
 It applies to a variable as well as a literal:
 
 ```wl
-TypeTheoryType[Typed[s, Strings] |-> Typed[FromString[s], Expressions]]
+TypeTheoryType[s |-> Typed[FromString[s], Expressions]]
 ```
 
 <!-- => Strings → Expressions -->
@@ -117,7 +117,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[FromString["true"]], TypeTheoryTerm["string"
 At [Strings](), [FromString]() is the identity, which the kernel proves by computing:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, Strings]}, Typed[FromString[s], Strings] == s], {"Introduce"[s], "Reflexivity"}]
+TypeTheoryProof[ForAll[{s}, Typed[FromString[s], Strings] == s], {"Introduce"[s], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

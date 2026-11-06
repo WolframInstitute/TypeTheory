@@ -101,7 +101,7 @@ A family by cases: a Boolean with, for `"false"`, a Boolean, and for `"true"`, a
 TypeTheoryType[Typed["dependentPair"["true", "not"], DependentSum[Booleans, b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, Booleans, TypeSpecifier[{Booleans} -> Booleans], b]]], "Cubical"]
 ```
 
-<!-- => Σ_b∶𝔹 𝔹_rec[(#1 ∶ 𝔹) ↦ Type, 𝔹, 𝔹 → 𝔹, b] -->
+<!-- => Σ_b∶𝔹 𝔹_rec[Type &, 𝔹, 𝔹 → 𝔹, b] -->
 
 ---
 

@@ -27,7 +27,7 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 The body of a function reduces with its variable free:
 
 ```wl
-NormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
+NormalForm[TypeTheoryTerm[n |-> n + 0]]
 ```
 
 <!-- => (n ∶ ℕ) ↦ n -->
@@ -37,9 +37,7 @@ NormalForm[TypeTheoryTerm[Typed[n, Naturals] |-> n + 0]]
 The factorial, defined by the recursor of the natural numbers:
 
 ```wl
-factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, Typed[n, Naturals] |->
-    InductiveRecursor[Naturals][Typed[k, Naturals] |-> Naturals, 1, {Typed[k, Naturals], Typed[r, Naturals]} |-> (k + 1) r, n]
-]}]
+factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, n |-> InductiveRecursor[Naturals][Naturals &, 1, {k, r} |-> (k + 1) r, n]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -67,7 +65,7 @@ NormalForm[TypeTheoryTerm[ReplaceRepeated[HoldForm[log[a b c]], log[x_ y_] :> lo
 A local definition unfolds under the binder, and the body keeps its variable:
 
 ```wl
-NormalForm[TypeTheoryTerm[Typed[m, Naturals] |-> With[{pair = Typed[x, Naturals] |-> {x, x}}, pair[m]]]]
+NormalForm[TypeTheoryTerm[m |-> With[{pair = Typed[x, Naturals] |-> {x, x}}, pair[m]]]]
 ```
 
 <!-- => (m ∶ ℕ) ↦ {m, m} -->
@@ -97,7 +95,7 @@ NormalForm[TypeTheoryTerm[ExpressionEvaluate[1 + 2]]]
 Under the quantifier, `n + 0` computes to `n`, since addition recurs on its second argument:
 
 ```wl
-NormalForm[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]]
+NormalForm[TypeTheoryTerm[ForAll[{n}, n + 0 == n]]]
 ```
 
 <!-- => ∀_n∶ℕ n == n -->
@@ -105,7 +103,7 @@ NormalForm[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]]]
 So the statement is proved by computation, for every *n*:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, n + 0 == n], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -153,7 +151,7 @@ NormalForm[TypeTheoryTerm[TwoPlusTwo, arithmetic]]
 A term with a free variable reduces only as far as it computes: addition recurs on its second argument, here the variable, so `0 + n` is stuck:
 
 ```wl
-NormalForm[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 0 + n == n]]]
+NormalForm[TypeTheoryTerm[ForAll[{n}, 0 + n == n]]]
 ```
 
 <!-- => ∀_n∶ℕ ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 1, n] == n -->
@@ -161,7 +159,7 @@ NormalForm[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, 0 + n == n]]]
 So `"Reflexivity"` does not prove it, and the proof needs `"Induction"`:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Reflexivity"}]
+TypeTheoryProof[ForAll[{n}, 0 + n == n], {"Introduce"[n], "Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->

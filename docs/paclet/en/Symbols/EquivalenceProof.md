@@ -40,9 +40,9 @@ Negation is its own inverse on both sides. The path from `"not"["not"[b]]` to `b
 ```wl
 TypeTheoryType[EquivalenceProof[
     "not",
-    Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b],
+    b |-> InductiveRecursor[Booleans][t |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b],
     "not",
-    Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b]
+    b |-> InductiveRecursor[Booleans][t |-> "not"["not"[t]] == t, "equalityReflexivity"["false"], "equalityReflexivity"["true"], b]
 ], "HomotopyTypeTheory"]
 ```
 
@@ -54,7 +54,7 @@ The identity of the Booleans is its own inverse, and the paths are reflexivity; 
 
 ```wl
 TypeTheoryType[
-    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x]],
+    EquivalenceProof[Typed[x, Booleans] |-> x, x |-> "equalityReflexivity"[x], x |-> x, x |-> "equalityReflexivity"[x]],
     "HomotopyTypeTheory"
 ]
 ```
@@ -108,7 +108,7 @@ With `"equivalenceIntroduction"`, it makes an equivalence. The identity of the B
 ```wl
 TypeTheoryType["equivalenceIntroduction"[
     Function[{Typed[x, Booleans]}, x],
-    EquivalenceProof[Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x], Typed[x, Booleans] |-> x, Typed[x, Booleans] |-> "equalityReflexivity"[x]]
+    EquivalenceProof[x |-> x, x |-> "equalityReflexivity"[x], x |-> x, x |-> "equalityReflexivity"[x]]
 ], "HomotopyTypeTheory"]
 ```
 
@@ -120,12 +120,12 @@ The paths from `"true"` to `"false"` are equivalent to the empty type. A path ca
 
 ```wl
 TypeTheoryType[Typed["equivalenceIntroduction"[
-    Typed[p, "true" == "false"] |-> Transport[Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], False, True, b], p, "trueIntroduction"],
+    p |-> Transport[b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, False, True, b], p, "trueIntroduction"],
     EquivalenceProof[
-        Typed[y, False] |-> "falseElimination"[y],
-        Typed[p, "true" == "false"] |-> "falseElimination"[Transport[Typed[b, Booleans] |-> InductiveRecursor[Booleans][Typed[t, Booleans] |-> TypeUniverse[1], False, True, b], p, "trueIntroduction"]],
-        Typed[y, False] |-> "falseElimination"[y],
-        Typed[y, False] |-> "falseElimination"[y]
+        y |-> "falseElimination"[y],
+        p |-> "falseElimination"[Transport[b |-> InductiveRecursor[Booleans][TypeUniverse[1] &, False, True, b], p, "trueIntroduction"]],
+        y |-> "falseElimination"[y],
+        y |-> "falseElimination"[y]
     ]
 ], Equivalence["true" == "false", False]], "HomotopyTypeTheory"]
 ```
@@ -147,7 +147,7 @@ TypeTheoryType["isomorphismEquivalence", "Cubical"]
 The paths must hold for every element. For a variable `b`, `"not"["not"[b]]` does not compute to `b`, so reflexivity is refused; a proof by cases gives the path:
 
 ```wl
-TypeTheoryType[Typed[EquivalenceProof["not", Typed[b, Booleans] |-> "equalityReflexivity"[b], "not", Typed[b, Booleans] |-> "equalityReflexivity"[b]], IsEquivalence["not"]], "HomotopyTypeTheory"]
+TypeTheoryType[Typed[EquivalenceProof["not", b |-> "equalityReflexivity"[b], "not", b |-> "equalityReflexivity"[b]], IsEquivalence["not"]], "HomotopyTypeTheory"]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

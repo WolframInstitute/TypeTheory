@@ -99,11 +99,8 @@ The natural numbers up to parity, with the relation of having the same parity:
 
 ```wl
 parity = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[Parity, Typed[
-        Typed[n, Naturals] |-> InductiveRecursor[Naturals][Typed[k, Naturals] |-> Booleans, "false", {Typed[k, Naturals], Typed[r, Booleans]} |-> "not"[r], n],
-        TypeSpecifier[{Naturals} -> Booleans]
-    ]],
-    TypeTheoryDefinition[SameParity, Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> Parity[m] == Parity[n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]]
+    TypeTheoryDefinition[Parity, n |-> InductiveRecursor[Naturals][Booleans &, "false", {k, r} |-> "not"[r], n]],
+    TypeTheoryDefinition[SameParity, {m, n} |-> Parity[m] == Parity[n]]
 }]
 ```
 

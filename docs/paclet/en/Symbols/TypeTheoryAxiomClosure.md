@@ -118,7 +118,7 @@ TypeTheoryAxiomClosure[TypeTheoryProof[2 + 2 == 4, {"Decide"}]]
 A proof of excluded middle for every proposition, by the theorem:
 
 ```wl
-classical = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]]}, a || ! a], {"Introduce"[a], TypeTheoryTactic["Apply", "excludedMiddle"]}]
+classical = TypeTheoryProof[ForAll[{a}, a || ! a], {"Introduce"[a], TypeTheoryTactic["Apply", "excludedMiddle"]}]
 ```
 
 <!-- => Proof complete -->
@@ -186,7 +186,7 @@ Information[TypeTheoryTerm["excludedMiddle"], "AxiomClosure"] === TypeTheoryAxio
 The constants a statement mentions; its type, Prop, mentions none:
 
 ```wl
-Information[TypeTheoryTerm[ForAll[{Typed[n, Naturals]}, n + 0 == n]], "Constants"]
+Information[TypeTheoryTerm[ForAll[{n}, n + 0 == n]], "Constants"]
 ```
 
 <!-- => {ℤ_≥0, Equal, Plus} -->
@@ -206,7 +206,7 @@ Information[TypeTheoryTerm[TwoPlusTwo, TypeTheoryEnvironment[{TypeTheoryTheorem[
 A theorem left as a hole:
 
 ```wl
-later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k], TypeTheoryHole["by induction"]]}]
+later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{k}, k + 0 == k], TypeTheoryHole["by induction"]]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 259 constants -->

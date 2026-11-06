@@ -32,10 +32,10 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 
 ## Basic Examples
 
-The type of a function from natural numbers to natural numbers:
+The type of a function from natural numbers to natural numbers; the arithmetic makes `n` a natural number:
 
 ```wl
-TypeTheoryType[Typed[n, NonNegativeIntegers] |-> n + 1]
+TypeTheoryType[n |-> n + 1]
 ```
 
 <!-- => ℕ → ℕ -->
@@ -65,7 +65,7 @@ TypeTheoryType[1 + 1 == 2]
 A universal statement is a proposition:
 
 ```wl
-TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
+TypeTheoryType[ForAll[{n}, n + 0 == n]]
 ```
 
 <!-- => Prop -->
@@ -115,7 +115,7 @@ TypeTheoryType[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]
 A function that gives a list:
 
 ```wl
-TypeTheoryType[Typed[n, Naturals] |-> {n, n + 1}]
+TypeTheoryType[n |-> {n, n + 1}]
 ```
 
 <!-- => ℕ → {ℕ} -->
@@ -326,7 +326,7 @@ TypeTheoryType[Evaluate[Last[terms]]]
 A symbol whose value is not a [TypeTheoryTerm]() is a name, not the value:
 
 ```wl
-increment = Typed[n, Naturals] |-> n + 1;
+increment = n |-> n + 1;
 TypeTheoryType[increment]
 ```
 

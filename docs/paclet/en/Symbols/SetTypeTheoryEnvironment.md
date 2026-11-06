@@ -60,7 +60,7 @@ SetTypeTheoryEnvironment["Prelude"]
 Make the prelude with a definition added the default:
 
 ```wl
-SetTypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, Typed[n, Naturals] |-> n + n]}]
+SetTypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> n + n]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -268,7 +268,7 @@ SetTypeTheoryEnvironment["Prelude"]
 A term written without an environment is in the default environment when it is used, not when it was written. Make the prelude with a definition the default:
 
 ```wl
-SetTypeTheoryEnvironment[{TypeTheoryDefinition[Tripled, Typed[n, Naturals] |-> n + n + n]}]
+SetTypeTheoryEnvironment[{TypeTheoryDefinition[Tripled, n |-> n + n + n]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->

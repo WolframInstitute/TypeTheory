@@ -107,7 +107,7 @@ TypeTheoryType[InductiveRecursor[Strings]]
 So it gives the codes of a string, a list of natural numbers:
 
 ```wl
-TypeTheoryType[InductiveRecursor[Strings][Typed[s, Strings] |-> {NonNegativeIntegers}, Typed[c, {NonNegativeIntegers}] |-> c, "hello"]]
+TypeTheoryType[InductiveRecursor[Strings][{NonNegativeIntegers} &, c |-> c, "hello"]]
 ```
 
 <!-- => {ℕ} -->
@@ -115,7 +115,7 @@ TypeTheoryType[InductiveRecursor[Strings][Typed[s, Strings] |-> {NonNegativeInte
 Their [Length]() is the length of the string, 5, by computation:
 
 ```wl
-TypeTheoryProof[Length[InductiveRecursor[Strings][Typed[s, Strings] |-> {NonNegativeIntegers}, Typed[c, {NonNegativeIntegers}] |-> c, "hello"]] == 5, {"Reflexivity"}]
+TypeTheoryProof[Length[InductiveRecursor[Strings][{NonNegativeIntegers} &, c |-> c, "hello"]] == 5, {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -125,7 +125,7 @@ TypeTheoryProof[Length[InductiveRecursor[Strings][Typed[s, Strings] |-> {NonNega
 A code put in front of the codes of a string makes a longer string, here 72, `H`, in front of `"ello"`:
 
 ```wl
-TypeTheoryProof[InductiveRecursor[Strings][Typed[s, Strings] |-> Strings, Typed[c, {NonNegativeIntegers}] |-> "string"[Prepend[c, 72]], "ello"] == "Hello", {"Reflexivity"}]
+TypeTheoryProof[InductiveRecursor[Strings][Strings &, c |-> "string"[Prepend[c, 72]], "ello"] == "Hello", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -135,10 +135,9 @@ TypeTheoryProof[InductiveRecursor[Strings][Typed[s, Strings] |-> Strings, Typed[
 Joining two strings is joining their lists of codes, a definition the kernel computes:
 
 ```wl
-joining = TypeTheoryEnvironment[{TypeTheoryDefinition[JoinStrings, Function[{Typed[s, Strings], Typed[t, Strings]},
-    InductiveRecursor[Strings][Typed[u, Strings] |-> Strings, Typed[c, {NonNegativeIntegers}] |->
-        InductiveRecursor[Strings][Typed[v, Strings] |-> Strings, Typed[d, {NonNegativeIntegers}] |-> "string"[Join[c, d]], t], s]
-]]}]
+joining = TypeTheoryEnvironment[{TypeTheoryDefinition[JoinStrings, {s, t} |->
+    InductiveRecursor[Strings][Strings &, c |-> InductiveRecursor[Strings][Strings &, d |-> "string"[Join[c, d]], t], s]
+]}]
 ```
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
@@ -162,7 +161,7 @@ TypeTheoryProof[JoinStrings["Hello, ", "world"] == "Hello, world", joining, {"Re
 The empty string joined to any string is that string, by cases on the string:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[s, Strings]}, JoinStrings["", s] == s], joining, {"Introduce"[s], "Cases"[s], "Introduce"[c], "Reflexivity"}]
+TypeTheoryProof[ForAll[{s}, JoinStrings["", s] == s], joining, {"Introduce"[s], "Cases"[s], "Introduce"[c], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

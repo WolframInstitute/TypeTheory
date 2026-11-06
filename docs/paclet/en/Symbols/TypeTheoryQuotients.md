@@ -52,9 +52,9 @@ A lift applied to a class computes to the function's value. Here the classes are
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
-    Function[{Typed[k, Naturals]}, 7],
-    Function[{Typed[a, Naturals], Typed[b, Naturals], Typed[e, True]}, "equalityReflexivity"[7]],
-    QuotientIntroduction[Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> True, TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]], 5]
+    7 &,
+    {a, b, e} |-> "equalityReflexivity"[7],
+    QuotientIntroduction[{m, n} |-> True, 5]
 ]]]
 ```
 
@@ -120,15 +120,9 @@ The natural numbers up to parity: a number's parity, true for an odd number, the
 
 ```wl
 parity = TypeTheoryEnvironment[{
-    TypeTheoryDefinition[Parity, Typed[
-        Typed[n, Naturals] |-> InductiveRecursor[Naturals][Typed[k, Naturals] |-> Booleans, "false", {Typed[k, Naturals], Typed[r, Booleans]} |-> "not"[r], n],
-        TypeSpecifier[{Naturals} -> Booleans]
-    ]],
-    TypeTheoryDefinition[SameParity, Typed[{Typed[m, Naturals], Typed[n, Naturals]} |-> Parity[m] == Parity[n], TypeSpecifier[{Naturals, Naturals} -> TypeUniverse[0]]]],
-    TypeTheoryDefinition[ParityOfClass, Typed[
-        Typed[c, QuotientType[SameParity]] |-> QuotientLift[Parity, {Typed[a, Naturals], Typed[b, Naturals], Typed[e, SameParity[a, b]]} |-> e, c],
-        TypeSpecifier[{QuotientType[SameParity]} -> Booleans]
-    ]]
+    TypeTheoryDefinition[Parity, n |-> InductiveRecursor[Naturals][Booleans &, "false", {k, r} |-> "not"[r], n]],
+    TypeTheoryDefinition[SameParity, {m, n} |-> Parity[m] == Parity[n]],
+    TypeTheoryDefinition[ParityOfClass, Typed[c, QuotientType[SameParity]] |-> QuotientLift[Parity, {a, b, Typed[e, SameParity[a, b]]} |-> e, c]]
 }]
 ```
 

@@ -121,7 +121,7 @@ TypeTheoryEnvironment["Prelude"][MatchValue]
 [MatchBind]() of one result gives the results of the continuation applied to it, here 2 and 3:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchBind[MatchValue[2], Typed[x, NonNegativeIntegers] |-> {x, x + 1}]]]
+NormalForm[TypeTheoryTerm[MatchBind[MatchValue[2], x |-> {x, x + 1}]]]
 ```
 
 <!-- => {2, 3} -->

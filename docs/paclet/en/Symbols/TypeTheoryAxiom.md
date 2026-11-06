@@ -59,7 +59,7 @@ Assume the excluded middle in the constructive environment, which has no axioms:
 
 ```wl
 classical = TypeTheoryEnvironment["Constructive", {
-    TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]
+    TypeTheoryAxiom["excludedMiddle", ForAll[{p}, Or[p, Not[p]]]]
 }]
 ```
 
@@ -116,10 +116,10 @@ measured[Measure]
 And a term that uses it:
 
 ```wl
-TypeTheoryTerm[Typed[n, Naturals] |-> Measure[Measure[n]], measured]
+TypeTheoryTerm[n |-> Measure[Measure[n]], measured]
 ```
 
-<!-- => (n ∶ ℕ) ↦ μ[μ[n]] -->
+<!-- => n ↦ μ[μ[n]] -->
 
 ---
 
@@ -160,7 +160,7 @@ A conjecture, assumed with a note of what it is:
 ```wl
 goldbach = TypeTheoryEnvironment[{TypeTheoryAxiom[
     Goldbach,
-    ForAll[{Typed[n, Naturals]}, Implies[n > 1, Exists[{Typed[p, Naturals], Typed[q, Naturals]}, 2 n == p + q]]],
+    ForAll[{n}, Implies[n > 1, Exists[{p, q}, 2 n == p + q]]],
     "Annotation" -> "Goldbach's conjecture, without primality"
 ]}]
 ```
@@ -297,7 +297,7 @@ TypeTheoryEnvironment[TypeTheoryAxiom[Five, 5]]
 The prelude proves the excluded middle from its axioms, so the name is taken there:
 
 ```wl
-TypeTheoryEnvironment[TypeTheoryAxiom["excludedMiddle", ForAll[{Typed[p, TypeUniverse[0]]}, Or[p, Not[p]]]]]
+TypeTheoryEnvironment[TypeTheoryAxiom["excludedMiddle", ForAll[{p}, Or[p, Not[p]]]]]
 ```
 
 <!-- => Failure["AlreadyDeclared", ...] -->

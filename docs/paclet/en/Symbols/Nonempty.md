@@ -66,7 +66,7 @@ TypeTheoryType["nonempty"["trueIntroduction"]]
 A function is an element of a function type:
 
 ```wl
-TypeTheoryType["nonempty"[Typed[n, Naturals] |-> n + 1]]
+TypeTheoryType["nonempty"[n |-> n + 1]]
 ```
 
 <!-- => Nonempty[ℕ → ℕ] -->
@@ -86,7 +86,7 @@ TypeTheoryType["nonempty"[Naturals]]
 An element of a [Subtype]() shows that some number has the property, here that its double is 6:
 
 ```wl
-TypeTheoryType[Typed["nonempty"["subtype"[3, "equalityReflexivity"[6]]], Nonempty[Subtype[Typed[n, Naturals] |-> n + n == 6]]]]
+TypeTheoryType[Typed["nonempty"["subtype"[3, "equalityReflexivity"[6]]], Nonempty[Subtype[n |-> n + n == 6]]]]
 ```
 
 <!-- => Nonempty[{n ∶ ℕ // n + n == 6}] -->
@@ -122,7 +122,7 @@ TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Ty
     "Introduce"[A, B, h],
     "Cases"[h],
     "Introduce"[b],
-    "Exact"["nonempty"[Typed[a, A] |-> b]]
+    "Exact"["nonempty"[a |-> b]]
 }]
 ```
 
@@ -133,7 +133,7 @@ TypeTheoryProof[ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Ty
 A proof of an existential statement gives an element of the type of its witness:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]]}, Nonempty[Naturals]], {
+TypeTheoryProof[ForAll[{Typed[h, Exists[n |-> n + n == 6]]}, Nonempty[Naturals]], {
     "Introduce"[h],
     "Cases"[h],
     "Introduce"[w, hw],
@@ -148,7 +148,7 @@ TypeTheoryProof[ForAll[{Typed[h, Exists[Typed[n, Naturals] |-> n + n == 6]]}, No
 Any two proofs of [Nonempty]() are equal, here those made with 0 and with 5:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Typed["nonempty"[0], Nonempty[Naturals]]], TypeTheoryTerm[Typed["nonempty"[5], Nonempty[Naturals]]]]
+DefinitionallyEqualQ[TypeTheoryTerm["nonempty"[0]], TypeTheoryTerm["nonempty"[5]]]
 ```
 
 <!-- => True -->

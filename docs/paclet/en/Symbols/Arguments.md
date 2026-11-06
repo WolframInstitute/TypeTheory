@@ -74,7 +74,7 @@ TypeTheoryProof[Length[{Arguments[HoldForm[a + b + c]]}] == 3, {"Reflexivity"}]
 A function that reverses the arguments of an expression, as `Reverse[e]` does, by [Construct]() of the head and the reversed list as a sequence:
 
 ```wl
-TypeTheoryType[Typed[e, Expressions] |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]]]
+TypeTheoryType[e |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]]]
 ```
 
 <!-- => Expressions → Expressions -->
@@ -82,7 +82,7 @@ TypeTheoryType[Typed[e, Expressions] |-> Construct[Head[e], Sequence @@ Reverse[
 It takes `f[1, 2, 3]` to `f[3, 2, 1]`, by computation:
 
 ```wl
-TypeTheoryProof[(Typed[e, Expressions] |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]])[f[1, 2, 3]] == HoldForm[f[3, 2, 1]], {"Reflexivity"}]
+TypeTheoryProof[(e |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]])[f[1, 2, 3]] == HoldForm[f[3, 2, 1]], {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -92,7 +92,7 @@ TypeTheoryProof[(Typed[e, Expressions] |-> Construct[Head[e], Sequence @@ Revers
 A function of the arguments of an expression maps over their list, here the head of each, as `Head /@ List @@ e`:
 
 ```wl
-TypeTheoryType[Map[Typed[e, Expressions] |-> Head[e], {Arguments[HoldForm[f[x, 1, "s"]]]}]]
+TypeTheoryType[Map[e |-> Head[e], {Arguments[HoldForm[f[x, 1, "s"]]]}]]
 ```
 
 <!-- => {Expressions} -->

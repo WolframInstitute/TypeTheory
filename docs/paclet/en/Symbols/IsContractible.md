@@ -36,10 +36,10 @@ TypeTheoryEnvironment["Cubical"][IsContractible]
 The Booleans with a path from `"true"` are contractible: the center is `"true"` with its constant path, and the path to a pair of `x` and `p` follows `p`, with the path from `"true"` along `p` to the point it has reached:
 
 ```wl
-TypeTheoryProof[IsContractible[DependentSum[Booleans, Typed[x, Booleans] |-> Path[Booleans, "true", x]]], "Cubical", {
+TypeTheoryProof[IsContractible[DependentSum[Booleans, x |-> Path[Booleans, "true", x]]], "Cubical", {
     "Exact"["dependentPair"[
         "dependentPair"["true", Function[{j}, "true"]],
-        Typed[w, DependentSum[Booleans, Typed[x, Booleans] |-> Path[Booleans, "true", x]]] |-> Function[{i}, "dependentPair"[w[[2]][i], Function[{j}, w[[2]][Min[i, j]]]]]
+        w |-> Function[{i}, "dependentPair"[w[[2]][i], Function[{j}, w[[2]][Min[i, j]]]]]
     ]]
 }]
 ```
@@ -51,7 +51,7 @@ TypeTheoryProof[IsContractible[DependentSum[Booleans, Typed[x, Booleans] |-> Pat
 The fibers of an equivalence are contractible. `"identityEquivalence"` proves it for the fiber of the identity of the Booleans over `"true"`:
 
 ```wl
-TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], "Cubical", {"Exact"["identityEquivalence"[Booleans][[2]]["true"]]}]
+TypeTheoryProof[IsContractible[Fiber[x |-> x, "true"]], "Cubical", {"Exact"["identityEquivalence"[Booleans][[2]]["true"]]}]
 ```
 
 <!-- => Proof complete -->
@@ -92,7 +92,7 @@ Any two elements of a contractible type are joined by a path: the path from the 
 
 ```wl
 TypeTheoryType[
-    {TypedImplicit[A, TypeUniverse[1]], Typed[k, IsContractible[A]], Typed[x, A], Typed[y, A]} |-> "pathTransitivity"["pathSymmetry"[k[[2]][x]], k[[2]][y]],
+    {TypedImplicit[A, TypeUniverse[1]], Typed[k, IsContractible[A]], x, y} |-> "pathTransitivity"["pathSymmetry"[k[[2]][x]], k[[2]][y]],
     "Cubical"
 ]
 ```
@@ -114,7 +114,7 @@ WeakHeadNormalForm[TypeTheoryTerm[IsEquivalence["not"], "Cubical"]]
 The Booleans are not contractible: the constant path at `"true"` goes nowhere else, so it is no path from the center `"true"` to every Boolean:
 
 ```wl
-TypeTheoryType[Typed["dependentPair"["true", Typed[z, Booleans] |-> Function[{i}, "true"]], IsContractible[Booleans]], "Cubical"]
+TypeTheoryType[Typed["dependentPair"["true", z |-> Function[{i}, "true"]], IsContractible[Booleans]], "Cubical"]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->

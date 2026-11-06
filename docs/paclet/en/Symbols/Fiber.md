@@ -46,7 +46,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Fiber["not", "true"], "Cubical"]]
 `"false"` is in it: `"not"["false"]` computes to `"true"`, so the constant path at `"true"` goes from one to the other:
 
 ```wl
-TypeTheoryProof[Fiber["not", "true"], "Cubical", {"Exact"["dependentPair"["false", Typed[i, Interval] |-> "true"]]}]
+TypeTheoryProof[Fiber["not", "true"], "Cubical", {"Exact"["dependentPair"["false", i |-> "true"]]}]
 ```
 
 <!-- => Proof complete -->
@@ -94,7 +94,7 @@ WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]][[1]], 
 The fiber of the identity over a point is contractible, with the point and its constant path as center:
 
 ```wl
-TypeTheoryProof[IsContractible[Fiber[Typed[x, Booleans] |-> x, "true"]], "Cubical", {"Exact"["identityEquivalence"[Booleans][[2]]["true"]]}]
+TypeTheoryProof[IsContractible[Fiber[x |-> x, "true"]], "Cubical", {"Exact"["identityEquivalence"[Booleans][[2]]["true"]]}]
 ```
 
 <!-- => Proof complete -->
