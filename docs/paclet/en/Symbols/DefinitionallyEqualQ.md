@@ -190,7 +190,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Flip[BitOne], bits], TypeTheoryTerm[BitOne]]
 The head of an expression computes, as the prelude declares the Wolfram Language's expressions:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Head[f[1]]], TypeTheoryTerm[HoldForm[f]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Head[f[1]]], TypeTheoryTerm[Unevaluated[f]]]
 ```
 
 <!-- => True -->

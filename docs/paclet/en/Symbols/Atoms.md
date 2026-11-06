@@ -4,7 +4,7 @@ Name: Atoms
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Atoms
-Keywords: [Wolfram Language, expressions, atoms, symbols, contexts, integers, strings, real numbers, rationals, AtomQ, SameQ, Head, HoldForm, pattern matching, prelude]
+Keywords: [Wolfram Language, expressions, atoms, symbols, contexts, integers, strings, real numbers, rationals, AtomQ, SameQ, Head, Unevaluated, pattern matching, prelude]
 SeeAlso: [Expressions, Strings, Arguments, TypeTheoryEnvironment]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -18,7 +18,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 
 - [Atoms]() is an inductive type of the prelude, with five constructors: `"symbolAtom"` of a symbol's full name, `"naturalAtom"` of a natural number, `"negativeAtom"` of *n* for the integer -(*n* + 1), `"stringAtom"` of a string, and `"otherAtom"` of the head and the [InputForm]() of any other atom, as a real or a rational number.
 - `"atom"`, of the type `Atoms -> Expressions`, makes an expression of an atom, and an atom shows as the Wolfram Language atom it stands for.
-- A quotation, <code>[HoldForm]()[*e*]</code>, makes the atoms of *e* itself, and nothing declares them. Where an expression is expected, a natural number or a string is its atom by a coercion, a negative integer is its atom, and a symbol that names nothing stands for its own atom.
+- A quotation, <code>[Unevaluated]()[*e*]</code>, makes the atoms of *e* itself, and nothing declares them. Where an expression is expected, a natural number or a string is its atom by a coercion, a negative integer is its atom, and a symbol that names nothing stands for its own atom.
 - The head of an atom is [Symbol](), [Integer]() or [String](), or the head that `"otherAtom"` was given, so a pattern such as `_Integer` or `_Symbol` matches the atoms of that kind. [AtomQ]() of an atom is `"true"`, and its [Arguments]() are the empty sequence.
 - [SameQ]() of two atoms is a definition, which the kernel computes: two symbols are the same where their full names are, and two other atoms where their values are. Two real numbers are the same where their [InputForm]() is, which [SameQ]() of the Wolfram Language relaxes by a tolerance.
 
@@ -57,7 +57,7 @@ TypeTheoryType["atom"]
 `_Integer` picks out the integers among the parts of a list, positive or negative:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[HoldForm[{x, 1, -2, "s", 1.5}], {___, a_Integer, ___} :> a]]]
+NormalForm[TypeTheoryTerm[ReplaceList[Unevaluated[{x, 1, -2, "s", 1.5}], {___, a_Integer, ___} :> a]]]
 ```
 
 <!-- => {1, -2} -->
@@ -75,7 +75,7 @@ TypeTheoryType["symbolAtom"]
 A quoted symbol is that atom:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[Plus]], TypeTheoryTerm["atom"["symbolAtom"["System`Plus"]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[Plus]], TypeTheoryTerm["atom"["symbolAtom"["System`Plus"]]]]
 ```
 
 <!-- => True -->
@@ -85,7 +85,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[Plus]], TypeTheoryTerm["atom"["symb
 Two symbols with one name in two contexts are different atoms:
 
 ```wl
-TypeTheoryProof[SameQ[HoldForm[x], HoldForm[Other`x]] == "false", {"Reflexivity"}]
+TypeTheoryProof[SameQ[x, Other`x] == "false", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -103,7 +103,7 @@ TypeTheoryType["negativeAtom"]
 The integer -(*n* + 1) is `"negativeAtom"` of *n*:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[-3]], TypeTheoryTerm["atom"["negativeAtom"[2]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[-3]], TypeTheoryTerm["atom"["negativeAtom"[2]]]]
 ```
 
 <!-- => True -->
@@ -131,7 +131,7 @@ TypeTheoryType["otherAtom"]
 So a quoted real number is `"otherAtom"` of [Real]() and its digits:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[HoldForm[1.5]], TypeTheoryTerm["atom"["otherAtom"["System`Real", "1.5"]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Unevaluated[1.5]], TypeTheoryTerm["atom"["otherAtom"["System`Real", "1.5"]]]]
 ```
 
 <!-- => True -->
@@ -189,7 +189,7 @@ TypeTheoryProof[ForAll[{Typed[a, Atoms]}, Length[{Arguments["atom"[a]]}] == 0], 
 Two real numbers with the same [InputForm]() are the same atom, however they are written:
 
 ```wl
-TypeTheoryProof[SameQ[HoldForm[1.5], HoldForm[1.50]] == "true", {"Reflexivity"}]
+TypeTheoryProof[SameQ[Unevaluated[1.5], Unevaluated[1.50]] == "true", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -199,7 +199,7 @@ TypeTheoryProof[SameQ[HoldForm[1.5], HoldForm[1.50]] == "true", {"Reflexivity"}]
 Two real numbers whose [InputForm]() differs are not the same atom:
 
 ```wl
-TypeTheoryProof[SameQ[HoldForm[0.3], HoldForm[0.30000000000000004]] == "false", {"Reflexivity"}]
+TypeTheoryProof[SameQ[Unevaluated[0.3], Unevaluated[0.30000000000000004]] == "false", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -214,10 +214,10 @@ SameQ[0.3, 0.30000000000000004]
 
 ---
 
-A quoted fraction is no atom: [HoldForm]() keeps the product it is written as, where the Wolfram Language evaluates it to a [Rational]():
+A quoted fraction is no atom: [Unevaluated]() keeps the product it is written as, where the Wolfram Language evaluates it to a [Rational]():
 
 ```wl
-NormalForm[TypeTheoryTerm[Head[HoldForm[1/2]]]]
+NormalForm[TypeTheoryTerm[Head[Unevaluated[1/2]]]]
 ```
 
 <!-- => Times -->

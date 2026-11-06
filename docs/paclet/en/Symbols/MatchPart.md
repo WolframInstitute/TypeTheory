@@ -36,7 +36,7 @@ TypeTheoryType[MatchPart]
 With [MatchValue](), it is the match of the part itself, a match of expressions:
 
 ```wl
-TypeTheoryType[MatchPart[HoldForm[a + b c], 2, MatchValue]]
+TypeTheoryType[MatchPart[Unevaluated[a + b c], 2, MatchValue]]
 ```
 
 <!-- => Match[Expressions] -->
@@ -44,7 +44,7 @@ TypeTheoryType[MatchPart[HoldForm[a + b c], 2, MatchValue]]
 The second argument of the quoted sum, as one result:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, MatchValue]]]
+NormalForm[TypeTheoryTerm[MatchPart[Unevaluated[a + b c], 2, MatchValue]]]
 ```
 
 <!-- => {b c} -->
@@ -54,7 +54,7 @@ NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, MatchValue]]]
 The match of the part can have results of any type, here whether the part is an atom:
 
 ```wl
-TypeTheoryType[MatchPart[HoldForm[a + b c], 2, x |-> MatchValue[AtomQ[x]]]]
+TypeTheoryType[MatchPart[Unevaluated[a + b c], 2, x |-> MatchValue[AtomQ[x]]]]
 ```
 
 <!-- => Match[𝔹] -->
@@ -64,7 +64,7 @@ TypeTheoryType[MatchPart[HoldForm[a + b c], 2, x |-> MatchValue[AtomQ[x]]]]
 A part of a part, as `e[[2, 1]]`:
 
 ```wl
-NormalForm[TypeTheoryTerm[MatchPart[HoldForm[a + b c], 2, y |-> MatchPart[y, 1, MatchValue]]]]
+NormalForm[TypeTheoryTerm[MatchPart[Unevaluated[a + b c], 2, y |-> MatchPart[y, 1, MatchValue]]]]
 ```
 
 <!-- => {b} -->
@@ -132,7 +132,7 @@ TypeTheoryProof[ForAll[{a}, MatchPart["atom"[a], 1, MatchValue] == Typed[{}, Mat
 
 ---
 
-`1 + 2` computes to the atom 3, which has no first part; [HoldForm]() keeps the sum:
+`1 + 2` computes to the atom 3, which has no first part; [Unevaluated]() keeps the sum:
 
 ```wl
 NormalForm[TypeTheoryTerm[MatchPart[1 + 2, 1, MatchValue]]]

@@ -140,10 +140,10 @@ An [Optional]() argument is given or left out for its default:
 
 <!-- => {{{1, 2}, {3}}, {1, "a"}} -->
 
-The arguments of an [Orderless]() head match in every order, and those of a [Flat]() head in runs wrapped in the head, as [Plus]() has both. [Plus]() is a constant of the environment, the addition of natural numbers, so the expression is quoted with [HoldForm]() to keep it from computing:
+The arguments of an [Orderless]() head match in every order, and those of a [Flat]() head in runs wrapped in the head, as [Plus]() has both. [Plus]() is a constant of the environment, the addition of natural numbers, so the expression is quoted with [Unevaluated]() to keep it from computing:
 
 ```wl
-NormalForm[TypeTheoryTerm[Replace[HoldForm[a + b + 1], x_ + 1 :> x]]]
+NormalForm[TypeTheoryTerm[Replace[Unevaluated[a + b + 1], x_ + 1 :> x]]]
 ```
 
 <!-- => a + b -->
@@ -182,19 +182,19 @@ NormalForm[TypeTheoryTerm[ReplaceRepeated[f[f[f[x]]], f[y_] :> y]]]
 The right side of a rule is quoted: the rules rewrite, and arithmetic in a right side stays as it is written, for the Wolfram Language to evaluate:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceAll[HoldForm[d[x^3]], d[x^n_] :> n x^(n - 1)]]]
+NormalForm[TypeTheoryTerm[ReplaceAll[Unevaluated[d[x^3]], d[x^n_] :> n x^(n - 1)]]]
 ```
 
 <!-- => 3 x^(3 - 1) -->
 
 ## Expressions Where Expressions Are Expected
 
-Where an expression is expected, a term is evaluated as the Wolfram Language evaluates one: a symbol that names nothing stands for itself, and a constant computes. `1 + 2` is the addition of natural numbers, 3, which the rule matches; [HoldForm]() keeps it from computing, as it does in the Wolfram Language:
+Where an expression is expected, a term is evaluated as the Wolfram Language evaluates one: a symbol that names nothing stands for itself, and a constant computes. `1 + 2` is the addition of natural numbers, 3, which the rule matches; [Unevaluated]() keeps it from computing, as it does in the Wolfram Language:
 
 ```wl
 {
     NormalForm[TypeTheoryTerm[Replace[1 + 2, 3 -> "three"]]],
-    NormalForm[TypeTheoryTerm[Replace[HoldForm[1 + 2], 3 -> "three"]]]
+    NormalForm[TypeTheoryTerm[Replace[Unevaluated[1 + 2], 3 -> "three"]]]
 }
 ```
 

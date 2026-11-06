@@ -19,7 +19,7 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 - [NormalForm]() is [WeakHeadNormalForm]() applied to the term, then to each of its parts, as Lean's `#reduce`: a function's body is reduced with its variable free, and the arguments of an application that is stuck are reduced.
 - It applies functions to their arguments, unfolds definitions and local definitions, computes recursors on constructors and natural numbers as literals, and takes the fields of a structure, so a closed term of data reduces to its value. Theorems and axioms never unfold.
 - A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
-- An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [HoldForm]() that quotes it.
+- An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [Unevaluated]() that quotes it.
 - Two terms are equal by computation when their normal forms are the same, which [DefinitionallyEqualQ]() decides without computing them in full, and `"Reflexivity"` proves an equation whose two sides are.
 
 ## Basic Examples
@@ -55,7 +55,7 @@ NormalForm[TypeTheoryTerm[FactorialOf[20], factorials]]
 A rewriting of expressions reduces to the expression it gives, shown bare, here the logarithm of a product split into a sum:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceRepeated[HoldForm[log[a b c]], log[x_ y_] :> log[x] + log[y]]]]
+NormalForm[TypeTheoryTerm[ReplaceRepeated[Unevaluated[log[a b c]], log[x_ y_] :> log[x] + log[y]]]]
 ```
 
 <!-- => log[a] + (log[b] + log[c]) -->

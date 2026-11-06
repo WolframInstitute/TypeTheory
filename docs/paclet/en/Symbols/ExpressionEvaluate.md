@@ -19,7 +19,7 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 - [ExpressionEvaluate]() is an axiom of the prelude, of the type `Expressions -> Expressions`. The kernel never computes it, so a term reduces up to it and no further, and nothing in the type theory says what it gives.
 - It stands for the evaluation of the Wolfram Language, which the type theory takes as given. It is one of the four axioms of the prelude, beside `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and [TypeTheoryAxiomClosure]() lists it, as a `"Signature"`, for every term that rests on it.
 - The rules of a symbol, from [TypeTheoryFormalize]() with `"Meaning" -> "Rules"`, test a condition `x_ /; test` or a pattern test `x_?test` as [SameQ]() of the [ExpressionEvaluate]() of the test and [True](), a Boolean, which is what the Wolfram Language tests. So do rules given to [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() as terms: a rewriting by a rule with a condition computes in the kernel up to its test, so the kernel still decides every expression whose head or arguments the rule does not match.
-- Its argument is an expression where one is expected: a declared constant in it computes, so `ExpressionEvaluate[1 + 2]` is `ExpressionEvaluate[3]`, and [HoldForm]() quotes it as it is written.
+- Its argument is an expression where one is expected: a declared constant in it computes, so `ExpressionEvaluate[1 + 2]` is `ExpressionEvaluate[3]`, and [Unevaluated]() quotes it as it is written.
 
 ## Basic Examples
 
@@ -46,7 +46,7 @@ TypeTheoryEnvironment["Prelude"][ExpressionEvaluate]
 The kernel does not evaluate an expression, so the value of `1 + 2` stays as it is:
 
 ```wl
-NormalForm[TypeTheoryTerm[ExpressionEvaluate[HoldForm[1 + 2]]]]
+NormalForm[TypeTheoryTerm[ExpressionEvaluate[Unevaluated[1 + 2]]]]
 ```
 
 <!-- => ExpressionEvaluate[1 + 2] -->
@@ -67,7 +67,7 @@ Last[TypeTheoryFormalize[positive, "Meaning" -> "Rules"]]
 The test of a condition is a Boolean, whether the value is [True]():
 
 ```wl
-TypeTheoryType[SameQ[ExpressionEvaluate[HoldForm[1 > 0]], HoldForm[True]]]
+TypeTheoryType[SameQ[ExpressionEvaluate[Unevaluated[1 > 0]], Unevaluated[True]]]
 ```
 
 <!-- => 𝔹 -->
@@ -115,7 +115,7 @@ NormalForm[TypeTheoryTerm["DownValues[positive]"[positive[1, 2]], positives]]
 A rule with a condition rewrites in the kernel an expression whose head it does not match, leaving it as it is:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm[Replace[g[5], f[x_ /; x > 0] :> x]], TypeTheoryTerm[HoldForm[g[5]]]]
+DefinitionallyEqualQ[TypeTheoryTerm[Replace[g[5], f[x_ /; x > 0] :> x]], TypeTheoryTerm[Unevaluated[g[5]]]]
 ```
 
 <!-- => True -->
@@ -169,14 +169,14 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[Replace[f[5], f[x_] :> x]]]
 The value of `1 + 2` is not 3 by computation, since nothing in the type theory says what the Wolfram Language evaluates it to:
 
 ```wl
-TypeTheoryProof[ExpressionEvaluate[HoldForm[1 + 2]] == HoldForm[3], {"Reflexivity"}]
+TypeTheoryProof[ExpressionEvaluate[Unevaluated[1 + 2]] == 3, {"Reflexivity"}]
 ```
 
 <!-- => Failure["NotReflexive", ...] -->
 
 ## Possible Issues
 
-A declared constant in the argument computes first, so the sum is 3 before it is evaluated; [HoldForm]() keeps it as it is written:
+A declared constant in the argument computes first, so the sum is 3 before it is evaluated; [Unevaluated]() keeps it as it is written:
 
 ```wl
 NormalForm[TypeTheoryTerm[ExpressionEvaluate[1 + 2]]]

@@ -4,7 +4,7 @@ Name: Expressions
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Expressions
-Keywords: [Wolfram Language, expressions, Construct, atom, head, arguments, sequences, Unevaluated, HoldForm, nested inductive type, recursor, pattern matching, Match, rewriting, derivative, prelude]
+Keywords: [Wolfram Language, expressions, Construct, atom, head, arguments, sequences, Unevaluated, nested inductive type, recursor, pattern matching, Match, rewriting, derivative, prelude]
 SeeAlso: [Atoms, Arguments, Strings, ExpressionEvaluate, Match, MatchPart, NormalForm, TypeTheoryFormalize]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
@@ -20,10 +20,11 @@ RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting]
 - `A...` is the type of the sequences of any number of elements of `A`, as the pattern `p...` takes any number of expressions. A sequence is written held, `Unevaluated[a, b, ...]`, as the Wolfram Language holds the arguments it passes on, and shows in brackets, `[a, b, ...]`. Among its elements, a sequence `Unevaluated[...]`, and `Sequence @@ l` and `Unevaluated @@ l` of a list `l`, are spliced in, and <code>[Prepend]()[*s*, *x*]</code> puts *x* in front of a sequence *s*.
 - The last explicit binder of a function, if its type is `A...`, takes the arguments that are left as one sequence, each an `A` or a sequence spliced in, as the Wolfram Language gives a function its arguments: `Construct[h, a, b]` gives `h` the sequence of `a` and `b`, and `Construct[h]` the empty one, `h[]`.
 - [Construct]() of a term that is no expression applies it, as [Construct]() does in the Wolfram Language, so its type is the type of the result.
-- Where an expression is expected, a term evaluates as in the Wolfram Language: a symbol that names nothing stands for itself, a head that names nothing applied to arguments is that expression, `f[1][2]` is the expression with the head `f[1]`, `{a, b}` is the expression `List[a, b]`, and a natural number or a string is its atom, by a coercion. A declared constant computes, so `1 + 2` is the expression `3`, and <code>[HoldForm]()[*e*]</code> quotes *e*, so that nothing in it computes. A variable in a quotation is the expression it stands for. An expression shows bare, without the [HoldForm]().
-- Where nothing says an expression is expected, a symbol that names nothing is no term: <code>[Typed]()[f[1, 2], [Expressions]()]</code> or <code>[HoldForm]()[f[1, 2]]</code> makes it one.
+- Where an expression is expected, a term evaluates as in the Wolfram Language: a symbol that names nothing stands for itself, a head that names nothing applied to arguments is that expression, `f[1][2]` is the expression with the head `f[1]`, `{a, b}` is the expression `List[a, b]`, and a natural number or a string is its atom, by a coercion. A declared constant computes, so `1 + 2` is the expression `3`, and <code>[Unevaluated]()[*e*]</code> quotes *e*, so that nothing in it computes, as the Wolfram Language passes *e* on unevaluated. A variable in a quotation is the expression it stands for. An expression shows bare, without the [Unevaluated](). [HoldForm]() is a head as any other.
+- Where nothing says an expression is expected, a symbol that names nothing is no term: <code>[Typed]()[f[1, 2], [Expressions]()]</code> or <code>[Unevaluated]()[f[1, 2]]</code> makes it one.
 - [Head](), [Arguments](), [AtomQ]() and [SameQ]() are definitions by the recursor of [Expressions](), which the kernel computes, and so are [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated](). [ExpressionEvaluate](), the expression the Wolfram Language evaluates an expression to, is an axiom.
-- The Wolfram Language strips [Unevaluated]() from an argument of a function with rules, even one that holds its arguments, so a sequence on its own is written inside a term: <code>[TypeTheoryTerm]()[Unevaluated[1, 2]]</code>.
+- [Unevaluated]() of one expression is that one argument, as the Wolfram Language passes it on: quoted where an expression is expected, as among the arguments of [Construct](), and the element itself anywhere else. [Unevaluated]() of none or several is a sequence.
+- [TypeTheoryTerm](), [TypeTheoryType]() and [TypeTheoryProof]() keep an [Unevaluated]() they are given, so a sequence on its own is <code>[TypeTheoryType]()[Unevaluated[1, 2]]</code>.
 - The prelude, and the integers and the rationals that extend it, have [Expressions](); the constructive, homotopy and cubical environments do not.
 - [TypeTheoryFormalize]() gives a function that does not translate, and that it is given no type for, the type `Expressions -> ... -> Expressions`, one [Expressions]() for each argument.
 
@@ -62,7 +63,7 @@ TypeTheoryType[Construct]
 A quoted sum is an expression:
 
 ```wl
-TypeTheoryType[HoldForm[a + b c]]
+TypeTheoryType[Unevaluated[a + b c]]
 ```
 
 <!-- => Expressions -->
@@ -112,7 +113,7 @@ TypeTheoryType[Head]
 The arguments of a sum are a sequence of expressions:
 
 ```wl
-TypeTheoryType[Arguments[HoldForm[a + b + c]]]
+TypeTheoryType[Arguments[Unevaluated[a + b + c]]]
 ```
 
 <!-- => Expressions... -->
@@ -122,7 +123,7 @@ TypeTheoryType[Arguments[HoldForm[a + b + c]]]
 A quotation with a variable in it is a function of expressions, a template; in the quotation the variable is an expression:
 
 ```wl
-TypeTheoryType[x |-> HoldForm[x^2 + x]]
+TypeTheoryType[x |-> Unevaluated[x^2 + x]]
 ```
 
 <!-- => Expressions → Expressions -->
@@ -130,7 +131,7 @@ TypeTheoryType[x |-> HoldForm[x^2 + x]]
 The variable is the expression it is given, so the template filled in with `a + b` is `(a + b)^2 + (a + b)`, by computation:
 
 ```wl
-TypeTheoryProof[(x |-> HoldForm[x^2 + x])[HoldForm[a + b]] == HoldForm[(a + b)^2 + (a + b)], {"Reflexivity"}]
+TypeTheoryProof[(x |-> Unevaluated[x^2 + x])[Unevaluated[a + b]] == Unevaluated[(a + b)^2 + (a + b)], {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -176,7 +177,7 @@ TypeTheoryType[Typed[{d[u_ + v_] :> d[u] + d[v], d[x^n_] :> n x^(n - 1)}, Expres
 [ReplaceRepeated]() applies them in the kernel until neither applies:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceRepeated[HoldForm[d[x^2 + x^3]], {d[u_ + v_] :> d[u] + d[v], d[x^n_] :> n x^(n - 1)}]]]
+NormalForm[TypeTheoryTerm[ReplaceRepeated[Unevaluated[d[x^2 + x^3]], {d[u_ + v_] :> d[u] + d[v], d[x^n_] :> n x^(n - 1)}]]]
 ```
 
 <!-- => 2 x^(2 - 1) + 3 x^(3 - 1) -->
@@ -186,7 +187,7 @@ NormalForm[TypeTheoryTerm[ReplaceRepeated[HoldForm[d[x^2 + x^3]], {d[u_ + v_] :>
 A statement that the rule for a power rewrites `d[x^n]` for every exponent *n*:
 
 ```wl
-powerRule = TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[HoldForm[d[x^n]], d[x^m_] :> m x^(m - 1)] == HoldForm[n x^(n - 1)]]]
+powerRule = TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[Unevaluated[d[x^n]], d[x^m_] :> m x^(m - 1)] == Unevaluated[n x^(n - 1)]]]
 ```
 
 <!-- => ∀_n∶Expressions Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1) -->
@@ -232,7 +233,7 @@ TypeTheoryType[SameQ]
 [Construct]() of `f`, 1 and 2 is the expression `f[1, 2]`, by computation:
 
 ```wl
-TypeTheoryProof[SameQ[Construct[f, 1, 2], HoldForm[f[1, 2]]] == "true", {"Reflexivity"}]
+TypeTheoryProof[SameQ[Construct[f, 1, 2], f[1, 2]] == "true", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -268,10 +269,10 @@ TypeTheoryType[Typed[f[1, 2], Expressions]]
 
 ---
 
-A declared constant computes where an expression is expected, so `1 + 2` is the atom 3, and [HoldForm]() keeps it as it is written:
+A declared constant computes where an expression is expected, so `1 + 2` is the atom 3, and [Unevaluated]() keeps it as it is written:
 
 ```wl
-NormalForm[TypeTheoryTerm[Construct[f, 1 + 2, HoldForm[1 + 2]]]]
+NormalForm[TypeTheoryTerm[Construct[f, 1 + 2, Unevaluated[1 + 2]]]]
 ```
 
 <!-- => f[3, 1 + 2] -->
@@ -281,25 +282,17 @@ NormalForm[TypeTheoryTerm[Construct[f, 1 + 2, HoldForm[1 + 2]]]]
 Nothing evaluates a quoted expression, so the arguments of a quoted [Plus]() are not sorted, and two sums in another order are different expressions:
 
 ```wl
-TypeTheoryProof[SameQ[HoldForm[a + b], HoldForm[b + a]] == "false", {"Reflexivity"}]
+TypeTheoryProof[SameQ[Unevaluated[a + b], Unevaluated[b + a]] == "false", {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
 
 ---
 
-On its own, `Unevaluated[1, 2]` loses its wrapper as the Wolfram Language passes it on, and is read as `Sequence[1, 2]`, a sequence of exactly two elements:
+[TypeTheoryType]() keeps the [Unevaluated]() it is given, so `Unevaluated[1, 2]` is a sequence of any length, not `Sequence[1, 2]`, a sequence of exactly two elements:
 
 ```wl
 TypeTheoryType[Unevaluated[1, 2]]
-```
-
-<!-- => [ℕ, ℕ] -->
-
-Inside [TypeTheoryTerm]() it stays a sequence of any length:
-
-```wl
-TypeTheoryType[TypeTheoryTerm[Unevaluated[1, 2]]]
 ```
 
 <!-- => ℕ... -->

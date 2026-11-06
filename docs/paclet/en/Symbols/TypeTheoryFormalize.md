@@ -366,7 +366,7 @@ NormalForm[TypeTheoryTerm["DownValues[listed]"[listed[1]], listing]]
 The same, by [DefinitionallyEqualQ]():
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1, 2]], listing], TypeTheoryTerm["some"[HoldForm[{1, 2}]], listing]]
+DefinitionallyEqualQ[TypeTheoryTerm["DownValues[listed]"[listed[1, 2]], listing], TypeTheoryTerm["some"[Unevaluated[{1, 2}]], listing]]
 ```
 
 <!-- => True -->

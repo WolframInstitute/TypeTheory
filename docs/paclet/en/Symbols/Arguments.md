@@ -36,7 +36,7 @@ TypeTheoryType[Arguments]
 The arguments of a quoted sum:
 
 ```wl
-NormalForm[TypeTheoryTerm[Arguments[HoldForm[a + b + c]]]]
+NormalForm[TypeTheoryTerm[Arguments[Unevaluated[a + b + c]]]]
 ```
 
 <!-- => [a, b, c] -->
@@ -46,7 +46,7 @@ NormalForm[TypeTheoryTerm[Arguments[HoldForm[a + b + c]]]]
 In a list, the sequence is the list of the arguments, as `List @@ e`:
 
 ```wl
-TypeTheoryType[{Arguments[HoldForm[a + b + c]]}]
+TypeTheoryType[{Arguments[Unevaluated[a + b + c]]}]
 ```
 
 <!-- => {Expressions} -->
@@ -56,7 +56,7 @@ TypeTheoryType[{Arguments[HoldForm[a + b + c]]}]
 The number of the arguments, as `Length[e]`, is a natural number:
 
 ```wl
-TypeTheoryType[Length[{Arguments[HoldForm[a + b + c]]}]]
+TypeTheoryType[Length[{Arguments[Unevaluated[a + b + c]]}]]
 ```
 
 <!-- => ℕ -->
@@ -64,7 +64,7 @@ TypeTheoryType[Length[{Arguments[HoldForm[a + b + c]]}]]
 It is 3, by computation:
 
 ```wl
-TypeTheoryProof[Length[{Arguments[HoldForm[a + b + c]]}] == 3, {"Reflexivity"}]
+TypeTheoryProof[Length[{Arguments[Unevaluated[a + b + c]]}] == 3, {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -82,7 +82,7 @@ TypeTheoryType[e |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]]]
 It takes `f[1, 2, 3]` to `f[3, 2, 1]`, by computation:
 
 ```wl
-TypeTheoryProof[(e |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]])[f[1, 2, 3]] == HoldForm[f[3, 2, 1]], {"Reflexivity"}]
+TypeTheoryProof[(e |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]])[f[1, 2, 3]] == f[3, 2, 1], {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -92,7 +92,7 @@ TypeTheoryProof[(e |-> Construct[Head[e], Sequence @@ Reverse[{Arguments[e]}]])[
 A function of the arguments of an expression maps over their list, here the head of each, as `Head /@ List @@ e`:
 
 ```wl
-TypeTheoryType[Map[e |-> Head[e], {Arguments[HoldForm[f[x, 1, "s"]]]}]]
+TypeTheoryType[Map[e |-> Head[e], {Arguments[f[x, 1, "s"]]}]]
 ```
 
 <!-- => {Expressions} -->
@@ -181,14 +181,14 @@ TypeTheoryType[Length[{Arguments[f[1, 2]]}]]
 An atom is not [Construct]() of its head and its arguments, as in the Wolfram Language:
 
 ```wl
-NormalForm[TypeTheoryTerm[Construct[Head[HoldForm[3]], Arguments[HoldForm[3]]]]]
+NormalForm[TypeTheoryTerm[Construct[Head[3], Arguments[3]]]]
 ```
 
 <!-- => Integer[] -->
 
 ---
 
-`1 + 2` computes to the atom 3 where an expression is expected, which has no arguments; [HoldForm]() keeps the sum:
+`1 + 2` computes to the atom 3 where an expression is expected, which has no arguments; [Unevaluated]() keeps the sum:
 
 ```wl
 NormalForm[TypeTheoryTerm[Arguments[1 + 2]]]

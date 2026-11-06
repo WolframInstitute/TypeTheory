@@ -60,7 +60,7 @@ A rule that matches once gives [MatchValue]() of the expression it rewrites to:
 ```wl
 DefinitionallyEqualQ[
     TypeTheoryTerm[Typed[f[x_] :> {x, x}, Expressions -> Match[Expressions]][f[1]]],
-    TypeTheoryTerm[MatchValue[HoldForm[{1, 1}]]]
+    TypeTheoryTerm[MatchValue[Unevaluated[{1, 1}]]]
 ]
 ```
 

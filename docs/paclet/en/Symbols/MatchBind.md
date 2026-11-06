@@ -71,7 +71,7 @@ Every result of one match with every result of another, in order:
 ```wl
 NormalForm[TypeTheoryTerm[MatchBind[
     Typed[f[___, x_, ___] :> x, Expressions -> Match[Expressions]][f[a, b]],
-    x |-> MatchBind[Typed[g[___, y_, ___] :> y, Expressions -> Match[Expressions]][g[1, 2]], y |-> MatchValue[HoldForm[{x, y}]]]
+    x |-> MatchBind[Typed[g[___, y_, ___] :> y, Expressions -> Match[Expressions]][g[1, 2]], y |-> MatchValue[Unevaluated[{x, y}]]]
 ]]]
 ```
 
@@ -94,8 +94,8 @@ A match program for `f[x_Integer, y_] :> {y, x}`, which tests the head of the fi
 
 ```wl
 program = TypeTheoryTerm[e |-> MatchBind[
-    MatchPart[e, 1, x |-> (MatchValue[x] /; SameQ[Head[x], HoldForm[Integer]])],
-    x |-> MatchPart[e, 2, y |-> MatchValue[HoldForm[{y, x}]]]
+    MatchPart[e, 1, x |-> (MatchValue[x] /; SameQ[Head[x], Integer])],
+    x |-> MatchPart[e, 2, y |-> MatchValue[Unevaluated[{y, x}]]]
 ]]
 ```
 

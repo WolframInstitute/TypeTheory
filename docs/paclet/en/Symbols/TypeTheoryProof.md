@@ -24,7 +24,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 
 - A proof holds a partial proof term with holes, its goals. A [TypeTheoryTactic]() works on the first goal and fills it with a term that may have new holes, the goals it leaves. A proof with no goals left is finished.
 - The arguments come in the order statement, environment, list of tactics, options. Any other order gives a [Failure]() tagged `"ProofArguments"`.
-- A statement without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another. The prelude has the expressions of the Wolfram Language, so a statement about [HoldForm]() or [Replace]() with a rule names no environment. A statement about the integers or the rationals names their environment.
+- A statement without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another. The prelude has the expressions of the Wolfram Language, so a statement about an expression or [Replace]() with a rule names no environment. A statement about the integers or the rationals names their environment.
 - The statement is held. It may hold the patterns of a rule, as `Replace[f[5], f[x_] :> x] == 5` does, but a statement that is a pattern or an [Association]() starts no proof: <code>[TypeTheoryProof]()[_[Association]()]</code> stays as it is.
 - A list of tactics written out is held as well: <code>{"Introduce"[n], "Reflexivity"}</code> stands for <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, whose arguments are not evaluated. An environment, options and a list of tactics kept in a symbol evaluate. A statement kept in a symbol is used only when its value is a [TypeTheoryTerm]().
 - The tactics run in turn. The first that does not apply gives its [Failure](), which says why, and the proof stops there.
@@ -182,7 +182,7 @@ TypeTheoryProof[ForAll[{e}, Replace[g[e], g[x_] :> x] == e], {"Introduce"[e], "R
 A statement about a quoted expression, by computation: the head of `f[x]` is `f`:
 
 ```wl
-TypeTheoryProof[Head[HoldForm[f[x]]] == HoldForm[f], {"Reflexivity"}]
+TypeTheoryProof[Head[f[x]] == f, {"Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

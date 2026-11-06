@@ -122,6 +122,14 @@ A sequence of any number of elements of one type is of the type `A...`, as the p
 
 <!-- => {Expressions → Expressions... → Expressions, f[1, 2, 3]} -->
 
+`Unevaluated` of one expression, where an expression is expected or the type is still to be decided, is that expression itself, nothing in it elaborated as a term, as the Wolfram Language passes an argument on unevaluated: `Unevaluated[1 + 2]` is the expression `1 + 2`, where `1 + 2` alone is the natural number 3. Among the arguments it is one argument, so `Construct[f, 1 + 2, Unevaluated[1 + 2]]` is `f[3, 1 + 2]`, and where a term of another type is expected it is the term itself; of none or several expressions it is a sequence. It is the only head that quotes; [HoldForm]() is a head as any other. [TypeTheoryType]() and [TypeTheoryProof]() keep an `Unevaluated` they are given, as functions with the attribute [HoldAllComplete]() do:
+
+```wl
+TypeTheoryType[Unevaluated[1 + 2]]
+```
+
+<!-- => Expressions -->
+
 Where the arguments run out at such a binder, it takes the empty sequence, as `f[x_, rest___]` matches `f[a]`: [Missing]()`["NotAvailable"]` is a missing value with no details.
 
 A bare arrow has one domain, so `{A} -> B` is a function of lists of `A`; a function of several arguments is curried, `A -> B -> C`, of a sequence, `Sequence[A, B] -> C`, of any number of arguments, `A... -> C`, or written as the compiler writes it, `TypeSpecifier[{A, B} -> C]`.
@@ -254,7 +262,7 @@ later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{k}, k + 0 == k],
 Information[TypeTheoryTerm[Later, later], "Holes"]
 ```
 
-<!-- => <|Later -> {<|"Hole" -> TypeTheoryHole[Later, 1], "Statement" -> ∀_{k∶ℕ} k + 0 == k, "Annotation" -> <|"Citation" -> "by induction"|>|>}|> -->
+<!-- => <|Later -> {<|"Hole" -> TypeTheoryHole[Later, 1], "Statement" -> ∀_k∶ℕ k + 0 == k, "Annotation" -> <|"Citation" -> "by induction"|>|>}|> -->
 
 ## Formalizing Wolfram Language Definitions
 
