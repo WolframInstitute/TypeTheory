@@ -489,3 +489,49 @@ VerificationTest[
 	{True, "TypeMismatch"},
 	TestID -> "An-ascription-has-the-type-it-is-given"
 ]
+
+(* the Wolfram Language reading of a term: the data of its normal form as the Wolfram Language writes them *)
+VerificationTest[
+	{
+		TypeTheoryExpression[TypeTheoryTerm[2 + 3]],
+		TypeTheoryExpression[TypeTheoryTerm[Map[Typed[n, NonNegativeIntegers] |-> n^2, {1, 2, 3}]]],
+		TypeTheoryExpression[TypeTheoryTerm[FromString["Hi"]]],
+		TypeTheoryExpression[TypeTheoryTerm[Decide[2 <= 3]]],
+		TypeTheoryExpression[TypeTheoryTerm[Replace[readingHead[1, 2], readingHead[x_, y_] :> readingOther[y, x]]]],
+		TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1 + 2]], HoldComplete],
+		TypeTheoryExpression[TypeTheoryTerm[Typed["text", NonNegativeIntegers | Strings]]],
+		TypeTheoryExpression[TypeTheoryTerm[Lookup[<|"a" -> 1|>, "b"]]],
+		TypeTheoryExpression[TypeTheoryTerm[<|"a" -> 1, "b" -> 2|>]],
+		TypeTheoryExpression[TypeTheoryTerm[Typed["none", Option[NonNegativeIntegers]]]],
+		TypeTheoryExpression[TypeTheoryTerm[Typed[{}, {NonNegativeIntegers}]]],
+		{TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1, 2]]]},
+		TypeTheoryExpression[TypeTheoryTerm[Unevaluated[1, 2]], HoldComplete],
+		Information[TypeTheoryTerm[{1, 2}], "Expression"],
+		MemberQ[Information[TypeTheoryTerm[2], "Properties"], "Expression"]
+	},
+	{
+		5, {1, 4, 9}, "Hi", True, readingOther[2, 1], HoldComplete[1 + 2], "text", Missing["KeyAbsent", "b"], <|"a" -> 1, "b" -> 2|>,
+		Missing["NotAvailable"], {}, {1, 2}, HoldComplete[Sequence[1, 2]], {1, 2}, True
+	},
+	TestID -> "The-reading-of-a-term-is-the-data-of-its-normal-form"
+]
+
+(* the classes of the integers and the rationals are numbers; a function is a Function of its explicit arguments, from
+   its normal form or, where that unfolds arithmetic into recursors, as it is written; a proof, or a constant the Wolfram
+   Language does not have, has no reading *)
+VerificationTest[
+	{
+		TypeTheoryExpression[TypeTheoryTerm[Typed[-3, Integers] + 1, "Integers"]],
+		TypeTheoryExpression[TypeTheoryTerm[{Typed[-3, Integers], Typed[4, Integers] - 9}, "Integers"]],
+		TypeTheoryExpression[TypeTheoryTerm[Typed[1/2, Rationals] + Typed[1/3, Rationals], "Rationals"]],
+		TypeTheoryExpression[TypeTheoryTerm[Typed[-3/4, Rationals], "Rationals"]],
+		TypeTheoryExpression[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n + 1]][4],
+		TypeTheoryExpression[TypeTheoryTerm[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]} |-> a + 2 b]][3, 4],
+		TypeTheoryExpression[TypeTheoryTerm[{TypedImplicit[A, TypeUniverse[1]], Typed[x, A]} |-> x]][7],
+		TypeTheoryExpression[TypeTheoryTerm[readingDouble[3], TypeTheoryEnvironment[{TypeTheoryDefinition[readingDouble, Typed[n, NonNegativeIntegers] |-> 2 n]}]]],
+		First[TypeTheoryExpression[TypeTheoryTerm[Typed[m, NonNegativeIntegers] |-> readingDouble[m] + 1, TypeTheoryEnvironment[{TypeTheoryDefinition[readingDouble, Typed[n, NonNegativeIntegers] |-> 2 n]}]]]],
+		First[TypeTheoryExpression[TypeTheoryTerm["equalityReflexivity"[2]]]]
+	},
+	{-2, {-3, -5}, 5/6, -3/4, 5, 11, 7, 6, "NoExpression", "NoExpression"},
+	TestID -> "Quotient-classes-are-numbers-functions-are-Functions-and-proofs-have-no-reading"
+]

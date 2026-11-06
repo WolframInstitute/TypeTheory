@@ -40,6 +40,7 @@ quantity; where they gain them, the kernel gives the constructors and recursors 
 
 
 PackageExported[TypeTheoryType]
+PackageExported[TypeTheoryExpression]
 PackageExported[TypeTheoryCheck]
 PackageExported[TypeTheoryAxiomClosure]
 PackageExported[TypeTheoryTranslate]
@@ -68,6 +69,8 @@ TypeTheoryAxiomClosure::usage = "TypeTheoryAxiomClosure[term] gives the axioms t
 it mentions and of the constants those mention, as <|axiom -> kind, ...|>: \"Proposition\" for an axiom that is a proposition, \"Signature\" for one whose \
 type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite rule of a constant reached, which the kernel computes with.\n\
 TypeTheoryAxiomClosure[proof] gives the axioms the finished TypeTheoryProof proof rests on."
+TypeTheoryExpression::usage = "TypeTheoryExpression[term] gives the expression of the Wolfram Language that the value of the TypeTheoryTerm term stands for, read from its normal form: a natural number, an integer or a rational as a number, a string, a list or an association as itself, a Boolean as True or False, a quoted expression as the expression, a value of A | B or of Option[A] as the value or Missing[\"NotAvailable\"], a pair as a list of two, a sequence as a Sequence and a function as a Function, or a Failure where something in the value is the type theory's only, as a proof is.\n\
+TypeTheoryExpression[term, h] wraps the expression in h before it evaluates, as ToExpression does."
 TypeTheoryType::usage = "TypeTheoryType[term] gives the type of term, or a Failure if it does not type-check: term is an expression of the type theory, \
 kept unevaluated and in the default environment, or a TypeTheoryTerm in its own environment.\n\
 TypeTheoryType[term, environment] gives the type of term in the TypeTheoryEnvironment environment, or in the library environment a name such as \"WolframLanguage\" stands for."
@@ -149,7 +152,77 @@ TypeTheoryProofTree[TypeTheoryProof[data_Association]] := catchKernelFailure @ I
 ]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := TypeTheoryProofTree[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] := catchKernelFailure[termImplementation[termEnvironment[term], term]]
-TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation"}
+TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation", "Expression"}
+
+(* the Wolfram Language reading of a term: the expression its value stands for, from its normal form, read back; it
+   evaluates as the result of the function, or is wrapped in h before it does *)
+TypeTheoryExpression[term_TypeTheoryTerm] := Replace[termReading[term], HoldComplete[expression_] :> expression]
+TypeTheoryExpression[term_TypeTheoryTerm, wrapper_] := Replace[termReading[term], HoldComplete[expression_] :> wrapper[expression]]
+TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Expression"] := TypeTheoryExpression[term]
+
+(* the reading of the normal form, data as the Wolfram Language writes them; or else, as a function's normal form unfolds
+   its arithmetic into recursors, of the term as it is written, where each constant in it is a System symbol, which
+   the environment defines as the Wolfram Language does *)
+termReading[term_TypeTheoryTerm] := catchKernelFailure[Replace[NormalForm[term], {
+	normal : TypeTheoryTerm[_, ___] :> With[{quotients = quotientReadings[termEnvironment[normal]]},
+		Replace[wolframReading[heldExpression[normal], quotients], None :> Replace[writtenReading[termEnvironment[term], heldExpression[term], quotients], {
+			None :> kernelFailure["NoExpression", "`1` has no reading as an expression of the Wolfram Language.", {normal}]
+		}]]
+	],
+	failure_Failure :> failure
+}]]
+
+writtenReading[environment_, held_HoldComplete, quotients_List] := Replace[wolframReading[held, quotients], {
+	read_HoldComplete /; systemConstantsQ[environment, read] :> read,
+	_ -> None
+}]
+systemConstantsQ[environment_, held_HoldComplete] := AllTrue[
+	Cases[held, symbol_Symbol :> HoldComplete[symbol], {0, Infinity}, Heads -> True],
+	Function[name, ! constantDeclaredQ[environment, name] || Replace[name, HoldComplete[symbol_] :> Context[Unevaluated[symbol]]] === "System`"]
+]
+
+SetAttributes[heldExpression, HoldAllComplete]
+heldExpression[TypeTheoryTerm[expression_, ___]] := HoldComplete[expression]
+
+(* the readable term, its data read as the Wolfram Language writes them, or None where something in it is the type
+   theory's only. A class of a quotient is marked first, while its relation is as the normal form of the relation's
+   constant writes it, and read once the pair in it is read. Nothing a rule puts in a held expression evaluates. *)
+wolframReading[held_HoldComplete, quotients_List] := With[
+	{read = ReplaceRepeated[ReplaceRepeated[held, quotients], $wolframReadings]},
+	If[readQ[read], read, None]
+]
+$wolframReadings = {
+	HoldPattern[Unevaluated[e_]] :> e,
+	HoldPattern[Unevaluated[elements___]] :> Sequence[elements],
+	HoldPattern["successor"[x_]] :> x + 1,
+	"zero" -> 0,
+	"true" -> True,
+	"false" -> False,
+	HoldPattern[("left" | "right" | "some")[x_]] :> x,
+	"none" :> Missing["NotAvailable"],
+	HoldPattern["pair"[a_, b_]] :> {a, b},
+	(* a function takes its explicit arguments: its implicit binders are left out, and the types of the others *)
+	HoldPattern[Function[{before___, _TypedImplicit, after___}, body_]] :> Function[{before, after}, body],
+	HoldPattern[Function[{}, body_]] :> body,
+	HoldPattern[Typed[x_, _]] :> x,
+	HoldPattern[quotientClass[reading_, a_Integer, b_Integer]] :> RuleCondition[reading[a, b]]
+}
+(* the classes of the integers and the rationals by the normal forms of their relations: (a, b) is a - b, and (n, d) of
+   an integer and a natural number is n / (d + 1) *)
+quotientReadings[environment_] := quotientReadings[environment] = Join[
+	quotientReading[environment, "integerRelation", Function[{a, b}, a - b]],
+	quotientReading[environment, "rationalRelation", Function[{n, d}, n / (d + 1)]]
+]
+quotientReading[environment_, name_String, reading_] := If[ ! constantDeclaredQ[environment, HoldComplete[name]], {},
+	Replace[With[{normal = NormalForm[TypeTheoryTerm @@ {name, environment}]}, heldExpression[normal]], {
+		HoldComplete[relation_] :> {HoldPattern[QuotientIntroduction[relation, "pair"[a_, b_]]] :> quotientClass[reading, a, b]},
+		_ -> {}
+	}]
+]
+
+(* read: no constant named by a string, recursor, type of the type theory or unread class is left *)
+readQ[HoldComplete[expression_]] := FreeQ[Unevaluated[expression], _String[___] | _InductiveRecursor | _QuotientIntroduction | _QuotientLift | _Typed | _TypedImplicit | _quotientClass]
+
 
 
 (* TypeTheoryType holds its argument, an expression of the type theory as a statement of TypeTheoryProof is, or a
