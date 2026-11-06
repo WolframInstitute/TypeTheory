@@ -7,6 +7,7 @@ URI: WolframInstitute/TypeTheory/ref/TypeTheoryAxiomClosure
 Keywords: [axioms, dependencies, print axioms, trust, signature, rewrite rule, closure, holes, classical logic, choice]
 SeeAlso: [TypeTheoryAxiom, TypeTheoryCheck, TypeTheoryTerm, TypeTheoryProof, TypeTheoryEnvironment, TypeTheoryRewriteRule, TypeTheoryHole]
 RelatedGuides: [TypeTheory]
+RelatedTutorials: [Paradoxes]
 ---
 
 ## Usage
@@ -21,7 +22,8 @@ RelatedGuides: [TypeTheory]
 - A constant on its own, such as <code>[TypeTheoryTerm]()["excludedMiddle"]</code>, rests on what its declaration uses: the proof of a theorem and the value of a definition, not only the statement.
 - An axiom is `"Proposition"` when its type is a proposition, such as `"propositionalExtensionality"`, and `"Signature"` otherwise: an axiom of a type, such as a constant of [NonNegativeIntegers]() or a type of its own, which a theorem holds for whatever it stands for, as for a variable. `"choice"`, whose value is an element of a type, is a signature by this rule, and so is every axiom under rules without Prop.
 - A rewrite rule of a constant the closure reaches is listed as `"RewriteRule"`: the kernel computes with it, so it is trusted as an axiom is.
-- A theorem that rests on no axiom has the closure <code><\|\|></code>.
+- An operation on natural numbers registered without defining equations to check, as one registered as the greatest common divisor, is listed as `"Registration"`: the kernel computes it on literals as it trusts it to, and a definition that computes otherwise proves `False`, as the tutorial *Paradoxes* shows. An operation with defining equations, as an addition, is checked against them when it is registered, and is not listed.
+- A theorem that rests on no trusted assumption, axiom, rewrite rule or registration, has the closure <code><\|\|></code>: it rests on the kernel alone.
 - A hole, <code>[TypeTheoryHole]()[*theorem*, *k*]</code>, is no axiom and is left out; <code>[Information]()[*term*, "Holes"]</code> gives the holes *term* rests on, those of the theorems it uses included.
 - A finished proof rests on its own term, implicit arguments included. A proof with goals left gives a [Failure]() tagged `"ProofIncomplete"`.
 - <code>[Information]()[*term*, "AxiomClosure"]</code> gives the same, and <code>[Information]()[*term*, "Constants"]</code> gives the constants the type and the value of *term* mention, those of a constant's declaration for a constant.

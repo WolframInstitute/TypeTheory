@@ -294,3 +294,21 @@ TypeTheoryType[Typed[z, typeBooleans] |-> z[typeBooleans]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
+
+---
+
+In Prop, the Church numerals of Nederpelt and Geuvers's Exercise 3.12 are proofs of one proposition, and any two proofs are equal, so two and three are the same numeral:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> f[f[x]]], TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[x]]]]]
+```
+
+<!-- => True -->
+
+Over Type the numerals are data, and two and three differ:
+
+```wl
+DefinitionallyEqualQ[TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[f[x]]], TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[x]]]]]
+```
+
+<!-- => False -->

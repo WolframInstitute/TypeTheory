@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/RulesAndComputation
 Keywords: [rules, computation, axiom, rewrite rule, definitional equality, Prop, proof irrelevance, quotient, Martin-Löf, calculus of inductive constructions]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction, HomotopyTypeTheory, ThePrelude]
+RelatedTutorials: [TypeTheoryIntroduction, Paradoxes, HomotopyTypeTheory, ThePrelude]
 ---
 
 A type theory has two parts. Its rules say what the kernel allows and what it computes; its declarations say what an environment assumes. [TypeTheoryRules]() holds the rules as a value, and every [TypeTheoryEnvironment]() carries the rules it was started with. This tutorial shows how each kind of constant computes, what the rules change, and how a [TypeTheoryRewriteRule]() makes an axiom compute, as some axioms do in Lean's kernel and in homotopy type theory.
