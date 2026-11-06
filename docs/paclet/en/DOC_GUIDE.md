@@ -40,8 +40,14 @@ section gave a value.
   environment is in the default environment, the prelude, so examples never write
   `TypeTheoryEnvironment["Prelude"]` where it could be left out: <code>[TypeTheoryTerm]()[2 + 3]</code>,
   <code>[TypeTheoryProof]()[*statement*, {...}]</code>, <code>[TypeTheoryEnvironment]()[{*declaration*}]</code>.
-  Name an environment only when it is not the prelude, and build on <code>[TypeTheoryEnvironment]()[]</code>
-  when the prelude must be left out, as for natural numbers of your own.
+  Name an environment only when it is not the prelude, and then by its name, in the call itself:
+  <code>[TypeTheoryTerm]()[*term*, "WolframLanguage"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code>,
+  never a variable set to <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> first. Build on
+  <code>[TypeTheoryEnvironment]()[]</code> when the prelude must be left out, as for natural numbers of your own.
+- **Examples show what a symbol is for.** Each example is one thing a reader would do with the symbol, or one fact
+  they need to use it right, on an input that means something: a rewrite of a real expression, a match with several
+  results, a proof that needs the tactic. No filler: no variations that differ only in a number, no example that only
+  shows a constant reducing to itself.
 - **An example that sets the default environment sets the prelude back.** The build evaluates every
   page in one kernel, and [$TypeTheoryEnvironment]() is the kernel's, so a page that calls
   [SetTypeTheoryEnvironment]() ends with <code>[SetTypeTheoryEnvironment]()["Prelude"]</code>, or the pages

@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/Elaboration
 Keywords: [elaboration, type inference, implicit arguments, metavariables, universe levels, overloads, holes, compiler types, TypeSpecifier, formalization]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction, InstancesAndCoercions, ThePrelude, RulesAndComputation]
+RelatedTutorials: [TypeTheoryIntroduction, InstancesAndCoercions, ThePrelude, RulesAndComputation, ProgramsAndProofs]
 ---
 
 A term is written as a Wolfram Language expression: `Function[{Typed[n, NonNegativeIntegers]}, n + 1]` uses the built-in heads [Function](), [Typed]() and [Plus](), held so that none of them evaluates. Elaboration turns that surface term into a core term of the type theory: it resolves each name, fills in the arguments left out, decides the types and universe levels nobody wrote, and chooses between the meanings of overloaded names. The elaborator is not trusted. Everything it produces is checked again by the kernel, so a mistake in elaboration gives a [Failure](), never a false theorem.
