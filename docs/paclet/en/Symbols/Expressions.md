@@ -194,10 +194,18 @@ powerRule = TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[d[x^n], d[x^m
 
 <!-- => ∀_n∶Expressions Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1) -->
 
-The kernel proves it by computation, with *n* a variable:
+The kernel proves it by computation, with *n* a variable: `"Reflexivity"` proves an equation whose two sides compute to the same term, and the match of `d[x^m_]` against `d[x^n]` computes without knowing *n*, as `m_` takes whatever stands there:
 
 ```wl
 TypeTheoryProof[powerRule, {"Introduce"[n], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+The computation is no step of the proof but part of checking it. `"Change"` writes the step out, replacing the goal by what it computes to, which the kernel checks:
+
+```wl
+TypeTheoryProof[powerRule, {"Introduce"[n], "Change"[n x^(n - 1) == n x^(n - 1)], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->

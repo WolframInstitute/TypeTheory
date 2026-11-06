@@ -927,16 +927,25 @@ $wholeQueryTerm = False
    it takes a number, or, where an expression is expected, any arguments of a function whose value is a proposition
    or a type; never a head that elaboration reads itself *)
 expressionApplicationQ[head : syntaxSymbol[held_], arguments_List, expected_] := And[
-	expressionOrNothingExpectedQ[expected],
+	expressionsDeclaredQ[],
+	expressionOrNothingExpectedQ[expected] || undecidedTypeQ[expected],
 	! MemberQ[$expressionReadHeads, held],
 	Replace[held, HoldComplete[symbol_] :> Context[Unevaluated[symbol]]] =!= "WolframInstitute`TypeTheory`",
 	With[{meanings = declaredHeadMeanings[head]}, And[
 		meanings =!= {},
-		If[ expected === None,
-			Block[{$namelessSymbolic = TrueQ[$wholeQueryTerm]}, symbolicMisfitQ[meanings, arguments]] && ! AllTrue[meanings, sortValuedQ],
+		If[ expected === None || undecidedTypeQ[expected],
+			Block[{$namelessSymbolic = expected === None && TrueQ[$wholeQueryTerm]}, symbolicMisfitQ[meanings, arguments]] && ! AllTrue[meanings, sortValuedQ],
 			symbolicMisfitQ[meanings, arguments] || AllTrue[meanings, sortValuedQ]
 		]
 	]]
+]
+
+(* a type still to be decided, as the type of the sides of an equation before either is elaborated: where a function
+   is applied to a variable of expressions there, the application is that expression, as n x^(n - 1) is in
+   n x^(n - 1) == n x^(n - 1) *)
+undecidedTypeQ[expected_] := expected =!= None && MatchQ[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]],
+	metavariable[id_] /; unassignedMetavariableQ[metavariable[id]]
 ]
 
 $expressionReadHeads = HoldComplete /@ Unevaluated[{

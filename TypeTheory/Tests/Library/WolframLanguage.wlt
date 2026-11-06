@@ -296,3 +296,17 @@ VerificationTest[
 	{True, True, "ElaborationFailed", "ElaborationFailed", "ElaborationFailed", True, True, True},
 	TestID -> "A-name-that-names-nothing-makes-an-expression-only-as-the-whole-term-of-a-query"
 ]
+
+(* where the type of an equation is still to be decided, as in a statement of "Change" whose two sides are both
+   applications to a variable of expressions, the applications are expressions: the power rule's goal computes to
+   n x^(n - 1) == n x^(n - 1), which "Change" states, and refuses a statement the goal does not compute to *)
+VerificationTest[
+	With[{powerRule = TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1)]]},
+		{
+			TypeTheoryProof[powerRule, {"Introduce"[n], "Change"[n x^(n - 1) == n x^(n - 1)], "Reflexivity"}]["Goals"],
+			First[TypeTheoryProof[powerRule, {"Introduce"[n], "Change"[n x^n == n x^(n - 1)]}]]
+		}
+	],
+	{{}, "NotDefinitionallyEqual"},
+	TestID -> "An-equation-of-undecided-type-reads-applications-to-expressions-as-expressions"
+]
