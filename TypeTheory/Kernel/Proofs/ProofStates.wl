@@ -193,7 +193,7 @@ proofFrom[held_, Hold[tactics : {___TypeTheoryTactic}, options : OptionsPattern[
 proofFrom[HoldComplete[term_], Hold[options : OptionsPattern[]]] /; termExpressionQ[Unevaluated[term]] := With[{evaluated = term},
 	startProof[termEnvironment[evaluated], heldTerm[evaluated], Hold[options]]
 ]
-proofFrom[held_, Hold[options : OptionsPattern[]]] := startProof[defaultEnvironment[], held, Hold[options]]
+proofFrom[held_, Hold[options : OptionsPattern[]]] := startProof[unnamedEnvironment[held], held, Hold[options]]
 proofFrom[_, Hold[___, failure_Failure, ___]] := failure
 proofFrom[_, Hold[arguments___]] := Failure["ProofArguments", <|
 	"MessageTemplate" -> "TypeTheoryProof takes a statement, then an environment, a list of tactics and options, in that order, not `1`.",
@@ -211,7 +211,10 @@ startProof[environment_, held_HoldComplete, Hold[options___]] := catchKernelFail
 runTactics[state_, tactics_List] := Fold[Function[{current, tactic}, If[FailureQ[current], current, tactic[current]]], state, tactics]
 
 statementQ[Unevaluated[_Association]] := False
-statementQ[Unevaluated[statement_]] := FreeQ[Unevaluated[statement], _Pattern | _Blank | _BlankSequence | _BlankNullSequence]
+(* a statement is no pattern, as the left side TypeTheoryProof[data_Association] of a definition is; the patterns of a
+   rule in it, as in Replace[f[5], f[x_] :> x] == 5, are the rule's *)
+statementQ[Unevaluated[statement_]] :=
+	FreeQ[ReplaceAll[HoldComplete[statement], (Rule | RuleDelayed)[_, _] -> Null], _Pattern | _Blank | _BlankSequence | _BlankNullSequence]
 
 termExpressionQ[Unevaluated[_TypeTheoryTerm]] := True
 termExpressionQ[Unevaluated[symbol_Symbol]] := MatchQ[OwnValues[symbol], {Verbatim[RuleDelayed][_, _TypeTheoryTerm]}]

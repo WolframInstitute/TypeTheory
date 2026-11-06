@@ -56,6 +56,7 @@ PackageExported[TypeTheoryProofTree]
 PackageScoped[termEnvironment]
 PackageScoped[heldTerm]
 PackageScoped[termSyntax]
+PackageScoped[unnamedEnvironment]
 PackageScoped[declarationOf]
 
 
@@ -87,6 +88,7 @@ NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every 
 TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of the TypeTheoryTerm proof, a proof of propositional logic. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\" or \"FalseElim\"."
 
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
+unnamedEnvironment::usage = "unnamedEnvironment[HoldComplete[term]] gives the environment a term given without one is in: the default environment, or TypeTheoryEnvironment[\"WolframLanguage\"] where the default is the prelude and the term names what only that environment declares."
 heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
 termSyntax::usage = "termSyntax[term] gives the syntax tree of the TypeTheoryTerm term."
 declarationOf::usage = "declarationOf[environment, HoldComplete[name], mode] gives the declaration that introduced the constant name, \

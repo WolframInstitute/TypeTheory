@@ -693,3 +693,17 @@ VerificationTest[
 	{},
 	TestID -> "Simplify-unfolds-an-inner-definition-first-so-its-recursive-call-folds-back"
 ]
+
+(* a statement may hold the patterns of a rule, as a statement about rewriting does, and is no pattern itself; a proof
+   with no environment that names what only the Wolfram Language environment declares is in it; a negative integer
+   where an expression is expected is its atom *)
+VerificationTest[
+	{
+		TypeTheoryProof[Replace[f[5], f[x_] :> x] == 5, "WolframLanguage", {"Reflexivity"}]["Goals"],
+		TypeTheoryProof[Head[HoldForm[f[x]]] == HoldForm[f], {"Reflexivity"}]["Goals"],
+		MatchQ[TypeTheoryProof[_Association], HoldPattern[TypeTheoryProof[_Association]]],
+		TypeTheoryProof[Construct[f, -2] == HoldForm[f[-2]], "WolframLanguage", {"Reflexivity"}]["Goals"]
+	},
+	{{}, {}, True, {}},
+	TestID -> "A-statement-about-rules-proves-and-negative-integers-are-expressions"
+]

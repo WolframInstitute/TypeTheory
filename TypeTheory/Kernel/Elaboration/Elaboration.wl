@@ -394,6 +394,8 @@ elaborateSyntax[syntax_, expected_] := Replace[syntax, {
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
 	syntaxApplication[head_, arguments_List] :> applyArguments[elaborateHead[head], arguments, head, expected],
 	syntaxInteger[n_Integer?NonNegative] :> {naturalLiteral[n], naturalNumberTypeForElaboration[syntax]},
+	(* a negative integer where an expression is expected is its atom, as a natural number is by a coercion *)
+	syntaxInteger[n_Integer?Negative] /; expressionExpectedQ[expected] :> elaborateSyntax[quotationSyntax[syntax], expected],
 	syntaxSymbol[HoldComplete[symbol_Symbol]] /; storedValueQ[symbol] :> elaborateStoredValue[symbol, expected],
 	_ :> elaborationFailure["`1` is not a term of the type theory: it is neither a variable in scope nor a declared constant.", syntax]
 }]
