@@ -612,6 +612,10 @@ appliedDisplay /: MakeBoxes[appliedDisplay[head_, arguments___], form_] := RowBo
 	"]"
 }]
 
+(* in text, f[x] with its parts unevaluated *)
+appliedDisplay /: Format[appliedDisplay[head_, arguments___], OutputForm] :=
+	Row[{HoldForm[head], "[", Row[Map[HoldForm, Unevaluated[{arguments}]], ", "], "]"}]
+
 (* the heads that rules of MakeBoxes are given for, MakeBoxes[head[...], form] := ..., which it keeps as its FormatValues *)
 notationHeads[] := Cases[FormatValues[MakeBoxes], Verbatim[RuleDelayed][Verbatim[HoldPattern][Verbatim[MakeBoxes][(head : (_Symbol | _String))[___], ___]], _] :> HoldComplete[head]]
 

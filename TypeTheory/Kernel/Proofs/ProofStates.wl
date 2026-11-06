@@ -100,7 +100,7 @@ PackageScoped[instantiateProofTerm]
 
 
 TypeTheoryProof::usage = "TypeTheoryProof[statement] starts a proof of statement in the default environment, $TypeTheoryEnvironment, with statement itself as its one goal.\n\
-TypeTheoryProof[statement, environment] starts the proof in the TypeTheoryEnvironment environment.\n\
+TypeTheoryProof[statement, environment] starts the proof in the TypeTheoryEnvironment environment, or in the library environment a name such as \"Integers\" stands for.\n\
 TypeTheoryProof[TypeTheoryTerm[statement, environment]] does the same.\n\
 TypeTheoryProof[statement, {tactic1, tactic2, ...}], TypeTheoryProof[statement, environment, {tactic1, ...}] and \
 TypeTheoryProof[TypeTheoryTerm[statement, environment], {tactic1, ...}] apply the TypeTheoryTactic tactics in turn; in a list written out, \
@@ -185,6 +185,8 @@ preparedTactic[other_] := Replace[other, {name_String :> TypeTheoryTactic[name],
 proofFrom[held_, Hold[environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] :=
 	runTactics[proofFrom[held, Hold[environment, options]], tactics]
 proofFrom[held_, Hold[environment_?environmentQ, options : OptionsPattern[]]] := startProof[environment, held, Hold[options]]
+(* a library environment by its name, as "Integers" *)
+proofFrom[held_, Hold[name_String, rest___]] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> proofFrom[held, Hold[environment, rest]]]
 proofFrom[held_, Hold[tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] := runTactics[proofFrom[held, Hold[options]], tactics]
 (* a TypeTheoryTerm, written out or held in a symbol, carries its own environment; a statement without one is proved
    in the default environment *)

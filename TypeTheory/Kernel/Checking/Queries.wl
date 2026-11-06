@@ -69,7 +69,7 @@ type is a type, a parameter as a variable is, and \"RewriteRule\" for a rewrite 
 TypeTheoryAxiomClosure[proof] gives the axioms the finished TypeTheoryProof proof rests on."
 TypeTheoryType::usage = "TypeTheoryType[term] gives the type of term, or a Failure if it does not type-check: term is an expression of the type theory, \
 kept unevaluated and in the default environment, or a TypeTheoryTerm in its own environment.\n\
-TypeTheoryType[term, environment] gives the type of term in the TypeTheoryEnvironment environment."
+TypeTheoryType[term, environment] gives the type of term in the TypeTheoryEnvironment environment, or in the library environment a name such as \"WolframLanguage\" stands for."
 TypeTheoryCheck::usage = "TypeTheoryCheck[term] gives the type of the TypeTheoryTerm term by calling TypeTheoryType[term].\n\
 TypeTheoryCheck[term, type] gives a Success if term has the given type, and a Failure otherwise.\n\
 TypeTheoryCheck[environment] checks every declaration of the TypeTheoryEnvironment environment again from scratch and gives a Success, \
@@ -157,8 +157,8 @@ TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomCl
 SetAttributes[TypeTheoryType, HoldAll]
 SetAttributes[TypeTheoryType, SequenceHold]
 TypeTheoryType[term_] := typeOfTerm[givenTerm[term, None]]
-TypeTheoryType[term_, environment_] := With[{evaluated = environment}, typeOfTerm[givenTerm[term, evaluated]] /; environmentQ[evaluated]]
-TypeTheoryType[_, environment_] := With[{evaluated = environment}, evaluated /; FailureQ[evaluated]]
+TypeTheoryType[term_, environment_] := With[{evaluated = environmentNamed[environment]}, typeOfTerm[givenTerm[term, evaluated]] /; environmentQ[evaluated]]
+TypeTheoryType[_, environment_] := With[{evaluated = environmentNamed[environment]}, evaluated /; FailureQ[evaluated]]
 
 SetAttributes[givenTerm, HoldAllComplete]
 givenTerm[term : TypeTheoryTerm[__], None] := term
@@ -567,6 +567,7 @@ Options[TypeTheoryCheck] = {Method -> Automatic}
    Where it refuses a declaration, those before it are declared again first, so that the failure is that of the first
    declaration in order that does not check. Where it does not handle the environment, or Method -> "Symbolic", every
    declaration is replayed with the kernel of TypeChecking.wl. *)
+TypeTheoryCheck[name_String, options : OptionsPattern[]] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryCheck[environment, options]]
 TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ Replace[
 	If[MemberQ[{Automatic, "Compiled"}, OptionValue[Method]], compiledKernelCheck[environment], None],
 	{
@@ -669,6 +670,7 @@ redeclare[original_, replayed_, name_, record_] := Replace[record["Kind"], {
 
 Options[TypeTheoryTranslate] = {"Axioms" -> False}
 
+TypeTheoryTranslate[name_String, rest__] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryTranslate[environment, rest]]
 TypeTheoryTranslate[environment_?environmentQ, rules_?rulesQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ With[
 	{
 		direction = Replace[{TrueQ[rulesSetting[environment, "Prop"]], TrueQ[rules["Prop"]]}, {{True, False} -> "LoseProp", {False, True} -> "GainProp", _ -> "SameProp"}],

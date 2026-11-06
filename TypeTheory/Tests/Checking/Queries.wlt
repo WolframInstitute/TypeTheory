@@ -446,3 +446,17 @@ VerificationTest[
 	ConstantArray["UnknownEnvironment", 4],
 	TestID -> "A-misspelled-library-environment-is-a-Failure"
 ]
+
+(* a library environment by its name, wherever an environment is given, and a name that names none is a Failure *)
+VerificationTest[
+	{
+		WeakHeadNormalForm[TypeTheoryTerm[MatchFirst[MatchValue[3]], "WolframLanguage"]] === TypeTheoryTerm["some"[3], TypeTheoryEnvironment["WolframLanguage"]],
+		TypeTheoryType[Arguments, "WolframLanguage"] === TypeTheoryTerm[Expressions -> Expressions..., TypeTheoryEnvironment["WolframLanguage"]],
+		TypeTheoryProof[2 + 2 == 4, "Integers", {"Reflexivity"}]["Goals"],
+		Head[TypeTheoryEnvironment["Integers", {TypeTheoryAxiom[namedEnvironmentAxiom, Integers]}]],
+		FailureQ[TypeTheoryTerm[1, "NoSuchEnvironment"]],
+		FailureQ[TypeTheoryType[1, "NoSuchEnvironment"]]
+	},
+	{True, True, {}, TypeTheoryEnvironment, True, True},
+	TestID -> "A-library-environment-is-given-by-its-name"
+]

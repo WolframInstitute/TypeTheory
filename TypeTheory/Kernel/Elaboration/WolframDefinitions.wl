@@ -126,6 +126,8 @@ SetAttributes[TypeTheoryFormalize, HoldAll]
 TypeTheoryFormalize[symbol_Symbol, options : OptionsPattern[]] := With[{environment = defaultEnvironment[]},
 	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
 ]
+TypeTheoryFormalize[symbol_Symbol, name_String, options : OptionsPattern[]] :=
+	Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryFormalize[symbol, environment, options]]
 TypeTheoryFormalize[symbol_Symbol, environment_, options : OptionsPattern[]] /; environmentQ[environment] :=
 	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
 

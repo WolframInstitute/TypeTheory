@@ -80,6 +80,7 @@ PackageScoped[constantDeclaredQ]
 PackageScoped[addConstantRecords]
 PackageScoped[environmentNames]
 PackageScoped[$environmentNames]
+PackageScoped[environmentNamed]
 PackageScoped[naturalNumberSettings]
 PackageScoped[setNaturalNumberSettings]
 PackageScoped[withStoreCleanup]
@@ -96,7 +97,7 @@ PackageScoped[$kernelFailureTag]
 
 
 TypeTheoryEnvironment::usage = "TypeTheoryEnvironment[] gives the environment with no constants.\n\
-TypeTheoryEnvironment[\"Prelude\"] gives the prelude: classical logic, equality, the natural numbers and the Booleans.\n\
+TypeTheoryEnvironment[\"Prelude\"] gives the prelude: classical logic, equality, the natural numbers and the Booleans; TypeTheoryEnvironment[\"name\", declarations] extends a library environment by its name.\n\
 TypeTheoryEnvironment[\"Constructive\"] gives the prelude without its axioms and the theorems proved from them.\n\
 TypeTheoryEnvironment[\"HomotopyTypeTheory\"] gives homotopy type theory: paths, univalence and the circle, under rules without Prop.\n\
 TypeTheoryEnvironment[\"Integers\"] gives the prelude with the integers, and TypeTheoryEnvironment[\"Rationals\"] the integers with the rationals.\n\
@@ -114,6 +115,7 @@ SetTypeTheoryEnvironment[spec] makes TypeTheoryEnvironment[spec] the default: \"
 $TypeTheoryEnvironment::usage = "$TypeTheoryEnvironment is the default environment, of the terms, proofs and declarations that name none: the prelude, unless \
 SetTypeTheoryEnvironment set another. Block[{$TypeTheoryEnvironment = environment}, expr] makes environment the default while expr evaluates; a name such as \"Constructive\" stands for TypeTheoryEnvironment[name]."
 emptyEnvironment::usage = "emptyEnvironment[] gives an environment with no constants and the default rules; emptyEnvironment[rules] gives one with the given rules."
+environmentNamed::usage = "environmentNamed[environment] gives environment, or the library environment its name stands for, as TypeTheoryEnvironment[\"WolframLanguage\"] for \"WolframLanguage\"."
 defaultEnvironment::usage = "defaultEnvironment[] gives $TypeTheoryEnvironment, the environment a library name in it stands for, or else the prelude."
 environmentRules::usage = "environmentRules[environment] gives the TypeTheoryRules environment follows."
 addRewriteRuleRecord::usage = "addRewriteRuleRecord[environment, HoldComplete[name], record] gives a new environment with the rewrite rule name added to the rules of its head."
@@ -206,6 +208,10 @@ defaultEnvironment[] := Which[
 $environmentNames = {"Prelude", "Constructive", "HomotopyTypeTheory", "Integers", "Rationals", "Cubical", "WolframLanguage"}
 
 SetTypeTheoryEnvironment[environment_?environmentQ] := ($TypeTheoryEnvironment = environment)
+
+(* an environment given to a function, or the library environment its name, as "WolframLanguage", stands for *)
+environmentNamed[name_String] := TypeTheoryEnvironment[name]
+environmentNamed[environment_] := environment
 
 SetTypeTheoryEnvironment[specification_] := Replace[TypeTheoryEnvironment[specification], {
 	environment_?environmentQ :> SetTypeTheoryEnvironment[environment],

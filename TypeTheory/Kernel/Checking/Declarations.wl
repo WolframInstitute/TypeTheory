@@ -176,6 +176,8 @@ TypeTheoryEnvironment[name_String] := Failure["UnknownEnvironment", <|
 	"MessageTemplate" -> "`1` is not the name of a library environment, which are `2`.",
 	"MessageParameters" -> {name, $environmentNames}
 |>]
+(* a library environment by its name, extended *)
+TypeTheoryEnvironment[name_String, rest__] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryEnvironment[environment, rest]]
 TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[defaultEnvironment[], declarations]
 TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[defaultEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]
