@@ -20,7 +20,7 @@ The environment, the prelude with the integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 325 constants -->
+<!-- => TypeTheoryEnvironment summary box: 332 constants -->
 
 [Integers]() is the quotient of pairs by a relation, and shows as ℤ:
 

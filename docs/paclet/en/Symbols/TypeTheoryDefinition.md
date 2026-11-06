@@ -37,7 +37,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 Compute with it:
 
@@ -73,7 +73,7 @@ factorial = TypeTheoryEnvironment[{TypeTheoryDefinition[NaturalFactorial, Typed[
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 The factorial of 20:
 
@@ -93,7 +93,7 @@ factorial = TypeTheoryEnvironment[{TypeTheoryDefinition[NaturalFactorial, Typed[
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 Its recursion equation holds by computation, so reflexivity proves it for every `n`, and the kernel checks the theorem:
 
@@ -105,7 +105,7 @@ recursion = TypeTheoryEnvironment[factorial, {TypeTheoryTheorem[FactorialSuccess
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 252 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 The theorem:
 
@@ -123,7 +123,7 @@ A predicate, the even numbers, defined by an existential statement:
 even = TypeTheoryEnvironment[{TypeTheoryDefinition[EvenNumber, Typed[n, Naturals] |-> Exists[{Typed[k, Naturals]}, n == k + k]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 Its type is that of a predicate on the natural numbers:
 
@@ -152,7 +152,7 @@ quadrupled = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 252 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 Four times 5:
 
@@ -170,7 +170,7 @@ A definition on the integers, extending them by their name:
 distances = TypeTheoryEnvironment["Integers", {TypeTheoryDefinition[SquaredDistance, {Typed[x, Integers], Typed[y, Integers]} |-> (x - y)^2]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 326 constants -->
+<!-- => TypeTheoryEnvironment summary box: 333 constants -->
 
 Its type:
 
@@ -190,7 +190,7 @@ identity = TypeTheoryEnvironment[
 ]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 Its universe parameter `u` and implicit argument `A` show in its declaration:
 
@@ -226,7 +226,7 @@ composite = TypeTheoryEnvironment[TypeTheoryDefinition[Composite,
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 Doubling after adding one, at 4:
 
@@ -261,7 +261,7 @@ monoids = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 255 constants -->
+<!-- => TypeTheoryEnvironment summary box: 262 constants -->
 
 The operation on two natural numbers finds the instance, and adds:
 
@@ -289,7 +289,7 @@ coerced = TypeTheoryEnvironment[
 ]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 A Boolean added to a natural number is coerced:
 
@@ -323,7 +323,7 @@ An opaque definition, whose value the kernel checks:
 secret = TypeTheoryEnvironment[TypeTheoryDefinition[Secret, Typed[42, Naturals], "Opaque" -> True]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 It never unfolds, so it is not equal to its value:
 
@@ -352,7 +352,7 @@ vectors = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 254 constants -->
+<!-- => TypeTheoryEnvironment summary box: 261 constants -->
 
 A sum of two vectors is their addition, which shows as `+`:
 
@@ -390,7 +390,7 @@ Define doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, Typed[n, Naturals] |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 A definition unfolds, so it is equal by computation to its value:
 
@@ -479,7 +479,7 @@ monoids = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 255 constants -->
+<!-- => TypeTheoryEnvironment summary box: 262 constants -->
 
 The operation on two Booleans finds none:
 

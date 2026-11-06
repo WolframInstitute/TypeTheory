@@ -27,7 +27,7 @@ inhabited = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 256 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 `Default` where a natural number is expected finds the instance for the naturals, and computes to its element:
 
@@ -76,7 +76,7 @@ pairs = TypeTheoryEnvironment[inhabited, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 265 constants -->
 
 A default pair of a number and a list of Booleans comes from three instances:
 
@@ -107,7 +107,7 @@ defaultPairs = TypeTheoryEnvironment[pairs, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 259 constants -->
+<!-- => TypeTheoryEnvironment summary box: 266 constants -->
 
 At the naturals it is a pair of zeros:
 
@@ -156,7 +156,7 @@ coercions = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 252 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 `"true"` where a natural number is expected becomes `NaturalOfBoolean["true"]`, which computes to 1:
 

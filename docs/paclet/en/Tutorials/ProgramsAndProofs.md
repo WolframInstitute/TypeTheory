@@ -111,7 +111,7 @@ An environment with the three programs, each a definition the kernel has checked
 programs = TypeTheoryEnvironment[Join[TypeTheoryFormalize[triangular], TypeTheoryFormalize[cubes], TypeTheoryFormalize[total]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 253 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 Each is a function on the natural numbers, or on lists of them:
 

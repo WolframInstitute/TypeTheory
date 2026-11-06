@@ -253,7 +253,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-250 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+257 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
 Lean's three axioms, propositional extensionality, the soundness of quotients and choice, are axioms,
 and function extensionality and the excluded middle are proved from them. It also declares the Wolfram
 Language's expressions, strings, sequences and matches, sums written `A | B`, failures, `A | Failure`

@@ -5,7 +5,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/Strings
 Keywords: [strings, string literals, character codes, string comparison, string concatenation, StringJoin, ToUpperCase, StringLength, Characters, ToString, formalization, Wolfram Language, prelude]
-SeeAlso: [TypeTheoryFormalize, Expressions, Atoms, SameQ, InductiveRecursor]
+SeeAlso: [FromString, TypeTheoryFormalize, Expressions, Atoms, SameQ, InductiveRecursor]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [Elaboration, TheWolframLanguage]
 ---
@@ -17,7 +17,8 @@ RelatedTutorials: [Elaboration, TheWolframLanguage]
 ## Details & Options
 
 - [Strings]() is an inductive type of the prelude with one constructor, `"string"`, of the type `{ℕ} -> Strings`: a string is `"string"` of the list of its character codes, so two strings compare by computation.
-- A string literal `"abc"` that names no constant is that string, where a string is expected or where nothing decides the type. A literal that names a constant, as `"true"` does, is the constant. Where an expression is expected, a string is the expression, the atom `"stringAtom"` of the string, by a coercion.
+- A string literal `"abc"` that names no constant is that string where a string is expected, or where the type is still to be decided, as an element of a list. A literal that names a constant, as `"true"` does, is the constant. Where an expression is expected, a string is the expression, the atom `"stringAtom"` of the string, by a coercion.
+- A string on its own, where no type is expected, is the name of a constant; one that names none is refused, as a misspelled name would be. <code>[FromString]()["abc"]</code> is the string, even where `"abc"` names a constant, and so is <code>[Typed]()["abc", [Strings]()]</code> where it does not.
 - A string that names no constant, applied to arguments, as `"abc"[1]`, is no term: it is taken for a misspelled constant.
 - [SameQ]() of two strings computes, and so does every match of a pattern against a string, such as a string literal on the left of a rule or `_String`.
 - [TypeTheoryFormalize]() declares a string function that a definition calls by its signature over [Strings](): [StringReverse]() and [ToUpperCase]() `Strings -> Strings`, [StringJoin]() `Strings -> Strings -> Strings`, [StringLength]() `Strings -> ℕ`, [Characters]() `Strings -> {Strings}` and [ToString]() `Expressions -> Strings`. They are axioms, which the Wolfram Language computes.
@@ -45,20 +46,20 @@ TypeTheoryEnvironment["Prelude"][Strings]
 
 ---
 
-A string literal is a string:
+A string literal is a string where a string is expected, as an element of a list:
 
 ```wl
-TypeTheoryType["Hi"]
+TypeTheoryType[{"Hi", "there"}]
 ```
 
-<!-- => Strings -->
+<!-- => {Strings} -->
 
 ---
 
-The literal `"Hi"` is the string of the codes 72 and 105:
+[FromString]()`["Hi"]` is the string of the codes 72 and 105:
 
 ```wl
-DefinitionallyEqualQ[TypeTheoryTerm["Hi"], TypeTheoryTerm["string"[{72, 105}]]]
+DefinitionallyEqualQ[TypeTheoryTerm[FromString["Hi"]], TypeTheoryTerm["string"[{72, 105}]]]
 ```
 
 <!-- => True -->
@@ -140,7 +141,7 @@ joining = TypeTheoryEnvironment[{TypeTheoryDefinition[JoinStrings, Function[{Typ
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 It takes two strings to a string:
 
@@ -215,6 +216,26 @@ TypeTheoryType[Typed["true", Strings]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
+
+---
+
+[FromString]() makes it the string:
+
+```wl
+TypeTheoryType[FromString["true"]]
+```
+
+<!-- => Strings -->
+
+---
+
+A string on its own that names no constant is taken for a misspelled constant, and refused:
+
+```wl
+TypeTheoryType["Hi"]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->
 
 ---
 

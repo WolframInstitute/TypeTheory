@@ -92,7 +92,7 @@ positive[x_ /; x > 0] := x;
 positives = TypeTheoryEnvironment[TypeTheoryFormalize[positive, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 They take an expression to the option of the expression it rewrites to:
 

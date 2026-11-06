@@ -180,7 +180,7 @@ The prelude's own rules with rewrite rules allowed, the prelude's declarations r
 rewriting = TypeTheoryEnvironment[TypeTheoryRules["CalculusOfInductiveConstructions", "RewriteRules" -> True], Normal[TypeTheoryEnvironment["Prelude"]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 250 constants -->
+<!-- => TypeTheoryEnvironment summary box: 257 constants -->
 
 There an axiom on the natural numbers may compute:
 

@@ -42,7 +42,7 @@ factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, Typed[n, N
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 The definition unfolds and the recursor computes on the literal, here the factorial of 20:
 
@@ -138,7 +138,7 @@ A theorem, which does not unfold:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 251 constants -->
+<!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
 Its proof stays a name:
 

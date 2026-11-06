@@ -50,6 +50,14 @@ TypeTheoryType[undeclaredName]
 
 <!-- => Failure["ElaborationFailed", ...]: undeclaredName is not a term of the type theory -->
 
+A string on its own is so the name of a constant, and one that names none is refused rather than taken for a string, as a misspelled name would be. Where a string is expected it is the string, and [FromString]()`[s]` is the value of the type expected whose string is *s*, the string where nothing decides, even where *s* names a constant:
+
+```wl
+TypeTheoryType[FromString["true"]]
+```
+
+<!-- => Strings -->
+
 A symbol whose value is a [TypeTheoryTerm]() stands for that term, so terms can be built in steps:
 
 ```wl
@@ -58,6 +66,8 @@ TypeTheoryType["equalitySymmetry"[reflexivity]]
 ```
 
 <!-- => 2 == 2 -->
+
+A term that carries an environment of its own keeps the meaning of that environment's constants where it is used in another: one the other does not declare is refused, not read as a string or a symbol standing for itself.
 
 Code copied from a documentation page holds `PacletSymbol[paclet, name]` where a symbol stood, the paclet often guarded by an `If` that installs it. A term stores the symbol each `PacletSymbol` names instead, without loading or evaluating anything, so the copied code works as written:
 
@@ -343,6 +353,14 @@ TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 | A type error | a failure of compilation, or a refused argument | a [Failure]() of elaboration; the kernel accepts nothing it has not checked |
 | What runs | machine code | reduction in the kernel, or the Wolfram Language for an axiom with an `"Implementation"` |
 | Pattern matching | a match program, compiled to code that tests and binds the parts of the call | a term of the monad of matches, `Match[A]`, whose first result is the rule applied: a function's rules have type `Expressions -> Option[Expressions]` |
+
+[TypeHint]()`[e, type]` is how the compiler is told the type of an expression, and it evaluates to *e*, so code with type hints runs as it is. Elaboration reads it as *e* of that type where the type is one of the type theory, and as *e* alone where it is only the compiler's, as `"MachineInteger"`, which says how *e* is stored; [TypeTheoryFormalize]() reads it as *e*:
+
+```wl
+TypeTheoryType[Typed[x, NonNegativeIntegers] |-> TypeHint[x + 1, "MachineInteger"]]
+```
+
+<!-- => ℕ → ℕ -->
 
 Both hold their argument: [TypeOf]() types the expression as the compiler would, and [TypeTheoryType]() elaborates it as a term of the type theory. A [TypeTheoryTerm]() kept in a variable stands for the term it holds:
 

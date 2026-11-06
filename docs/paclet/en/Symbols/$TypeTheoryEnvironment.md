@@ -29,7 +29,7 @@ The default environment is the prelude:
 $TypeTheoryEnvironment
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 250 constants -->
+<!-- => TypeTheoryEnvironment summary box: 257 constants -->
 
 ---
 
@@ -107,7 +107,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 250 constants -->
+<!-- => TypeTheoryEnvironment summary box: 257 constants -->
 
 ## Properties and Relations
 
