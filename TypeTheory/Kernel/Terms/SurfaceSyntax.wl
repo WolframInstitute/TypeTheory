@@ -230,6 +230,11 @@ readableSyntax[syntaxApplication[syntaxString["missing"], {reason_, details_}]] 
 (* an association of a list of pairs written out as <|k -> v, ...|>, which reads back as the same association *)
 readableSyntax[syntaxApplication[syntaxString["association"], {pairs_}]] /; associationPairsQ[pairs] :=
 	syntaxHead[Association, Function[pair, syntaxHead[Rule, readableSyntax /@ Last[pair]]] /@ prependedElements[pairs]]
+(* and an association a key is put in, written with that key last, which reads back as the same insertions *)
+readableSyntax[syntaxApplication[syntaxString["associationInsert"], {association_, key_, value_}]] := Replace[readableSyntax[association], {
+	syntaxApplication[syntaxSymbol[HoldComplete[Association]], rules_List] :> syntaxHead[Association, Append[rules, syntaxHead[Rule, {readableSyntax[key], readableSyntax[value]}]]],
+	other_ :> syntaxApplication[syntaxString["associationInsert"], {other, readableSyntax[key], readableSyntax[value]}]
+}]
 (* a sequence as it is written, Unevaluated[a, b, ...], and its type, A... *)
 readableSyntax[syntaxString["emptySequenceOf"]] := syntaxHead[Unevaluated, {}]
 readableSyntax[syntax : syntaxApplication[syntaxString["sequenceOfPrepend"], {_, _}]] := syntaxHead[Unevaluated, readableSyntax /@ sequencePieces[syntax]]

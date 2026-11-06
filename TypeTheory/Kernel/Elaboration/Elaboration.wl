@@ -762,8 +762,6 @@ expressionHeadSyntaxQ[_] := False
 failuresDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["confirmBind"]]
 associationsDeclaredQ[] := constantDeclaredQ[$elaborationEnvironment, HoldComplete["associationInsert"]]
 
-ruleSyntaxQ[syntax_] := MatchQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]
-
 (* <|k1 -> v1, k2 -> v2|> as "associationInsert"["associationInsert"["association"[{}], k1, v1], k2, v2] *)
 associationLiteralSyntax[rules_List] := Fold[
 	Function[{inner, rule}, syntaxApplication[syntaxString["associationInsert"], Prepend[Last[rule], inner]]],
