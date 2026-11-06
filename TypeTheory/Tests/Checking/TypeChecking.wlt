@@ -481,3 +481,97 @@ VerificationTest[
 	TypeTheoryTerm,
 	TestID -> "A-vector-index-computes-in-a-dependent-type"
 ]
+
+(* Church numerals, Exercises 3.12 and 3.13 of the book and section 5.2 of Pierce's Types and Programming Languages: a
+   numeral n is ∀A. (A → A) → A → A, n applications of a function. In Prop the numerals have their types by
+   impredicativity, but they are proofs of one proposition, all equal by proof irrelevance, so 2 + 3 is 6 as much as 5;
+   in Type, where Type 1 holds them, successor, addition and multiplication compute: 2 + 3 is 5 and not 6, 2 × 3 is 6 *)
+VerificationTest[
+	Module[{numerals, successor, addition, two, three, six},
+		numerals = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[0]]}, (A -> A) -> A -> A]];
+		successor = TypeTheoryTerm[{Typed[n, numerals], Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> f[n[A, f, x]]];
+		addition = TypeTheoryTerm[{Typed[m, numerals], Typed[n, numerals], Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> m[A, f, n[A, f, x]]];
+		two = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> f[f[x]]];
+		three = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[x]]]];
+		six = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[f[f[f[x]]]]]]];
+		{
+			DefinitionallyEqualQ[TypeTheoryType[numerals], TypeTheoryTerm[TypeUniverse[0]]],
+			DefinitionallyEqualQ[TypeTheoryType[successor], TypeTheoryTerm[numerals -> numerals]],
+			DefinitionallyEqualQ[TypeTheoryType[addition], TypeTheoryTerm[numerals -> numerals -> numerals]],
+			DefinitionallyEqualQ[TypeTheoryTerm[addition[two, three]], six]
+		}
+	],
+	{True, True, True, True},
+	TestID -> "Church-numerals-in-Prop-are-one-proof"
+]
+
+VerificationTest[
+	Module[{numerals, zero, successor, addition, multiplication, two, three, five, six},
+		numerals = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]]}, (A -> A) -> A -> A]];
+		zero = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> x];
+		successor = TypeTheoryTerm[{Typed[n, numerals], Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[n[A, f, x]]];
+		addition = TypeTheoryTerm[{Typed[m, numerals], Typed[n, numerals], Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> m[A, f, n[A, f, x]]];
+		multiplication = TypeTheoryTerm[{Typed[m, numerals], Typed[n, numerals], Typed[A, TypeUniverse[1]], Typed[f, A -> A]} |-> m[A, n[A, f]]];
+		two = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[f[x]]];
+		three = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[x]]]];
+		five = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[f[f[x]]]]]];
+		six = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[f, A -> A], Typed[x, A]} |-> f[f[f[f[f[f[x]]]]]]];
+		{
+			DefinitionallyEqualQ[TypeTheoryType[numerals], TypeTheoryTerm[TypeUniverse[2]]],
+			DefinitionallyEqualQ[TypeTheoryType[addition], TypeTheoryTerm[numerals -> numerals -> numerals]],
+			DefinitionallyEqualQ[TypeTheoryTerm[successor[successor[zero]]], two],
+			DefinitionallyEqualQ[TypeTheoryTerm[addition[two, three]], five],
+			DefinitionallyEqualQ[TypeTheoryTerm[addition[two, three]], six],
+			DefinitionallyEqualQ[TypeTheoryTerm[multiplication[two, three]], six]
+		}
+	],
+	{True, True, True, True, False, True},
+	TestID -> "Church-numerals-in-Type-add-and-multiply-by-computation"
+]
+
+(* the combinators of chapter 1: K and S have the types of the axioms of implication, and S K K computes to the
+   identity, applied to any argument *)
+VerificationTest[
+	Module[{constant, substitution},
+		constant = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[x, A], Typed[y, B]} |-> x];
+		substitution = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[C, TypeUniverse[1]], Typed[x, A -> B -> C], Typed[y, A -> B], Typed[z, A]} |-> x[z, y[z]]];
+		{
+			DefinitionallyEqualQ[TypeTheoryType[constant], TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]]}, A -> B -> A]]],
+			DefinitionallyEqualQ[TypeTheoryType[substitution], TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[C, TypeUniverse[1]]}, (A -> B -> C) -> (A -> B) -> A -> C]]],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]]} |-> substitution[A, B -> A, A, constant[A, B -> A], constant[A, B]]],
+				TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[z, A]} |-> z]
+			]
+		}
+	],
+	{True, True, True},
+	TestID -> "S-K-K-is-the-identity"
+]
+
+(* System F, after Girard's Proofs and Types: the polymorphic identity of Prop applies to its own type and to itself,
+   which only an impredicative sort allows; a pair over Type is ∀C:Type. (A → B → C) → C, whose first projection gives
+   the first element and not the second *)
+VerificationTest[
+	Module[{identityType, identity, pairs},
+		identityType = TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[0]]}, A -> A]];
+		identity = TypeTheoryTerm[{Typed[A, TypeUniverse[0]], Typed[x, A]} |-> x];
+		pairs = TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]]} |-> ForAll[{Typed[C, TypeUniverse[1]]}, (A -> B -> C) -> C]];
+		{
+			DefinitionallyEqualQ[TypeTheoryType[identity[identityType, identity]], identityType],
+			DefinitionallyEqualQ[
+				TypeTheoryType[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[a, A], Typed[b, B], Typed[C, TypeUniverse[1]], Typed[k, A -> B -> C]} |-> k[a, b]],
+				TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]]}, A -> B -> pairs[A, B]]]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[a, A], Typed[b, A]} |-> ({Typed[C, TypeUniverse[1]], Typed[k, A -> A -> C]} |-> k[a, b])[A, {Typed[x, A], Typed[y, A]} |-> x]],
+				TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[a, A], Typed[b, A]} |-> a]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[a, A], Typed[b, A]} |-> ({Typed[C, TypeUniverse[1]], Typed[k, A -> A -> C]} |-> k[a, b])[A, {Typed[x, A], Typed[y, A]} |-> x]],
+				TypeTheoryTerm[{Typed[A, TypeUniverse[1]], Typed[a, A], Typed[b, A]} |-> b]
+			]
+		}
+	],
+	{True, True, True, False},
+	TestID -> "The-polymorphic-identity-applies-to-itself-and-pairs-project"
+]
