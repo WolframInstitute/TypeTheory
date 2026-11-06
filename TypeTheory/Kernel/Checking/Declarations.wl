@@ -178,7 +178,9 @@ TypeTheoryEnvironment[name_String] := Failure["UnknownEnvironment", <|
 |>]
 (* a library environment by its name, extended *)
 TypeTheoryEnvironment[name_String, rest__] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryEnvironment[environment, rest]]
-TypeTheoryEnvironment[declarations_List] := TypeTheoryEnvironment[defaultEnvironment[], declarations]
+TypeTheoryEnvironment[declarations_List, options : OptionsPattern[]] := TypeTheoryEnvironment[defaultEnvironment[], declarations, options]
+(* rules or an environment that failed, as rules of a name of none *)
+TypeTheoryEnvironment[failure_Failure, ___] := failure
 TypeTheoryEnvironment[declaration_?declarationQ] := TypeTheoryEnvironment[defaultEnvironment[], {declaration}]
 TypeTheoryEnvironment[environment_?environmentQ, declaration_?declarationQ] := TypeTheoryEnvironment[environment, {declaration}]
 

@@ -89,6 +89,16 @@ TypeTheoryRules[name_String, changes__Rule] /; KeyExistsQ[$namedRules, name] := 
 TypeTheoryRules[rules_TypeTheoryRules?rulesQ, changes__Rule] /; SubsetQ[$ruleSettings, Keys[{changes}]] && AllTrue[Values[{changes}], BooleanQ] :=
 	TypeTheoryRules[Join[First[rules], Association[{changes}]]]
 
+(* a name of no rules, a setting the rules do not have, or a value that is no Boolean is a Failure *)
+TypeTheoryRules[name_String, ___Rule] /; ! KeyExistsQ[$namedRules, name] := Failure["UnknownRules", <|
+	"MessageTemplate" -> "`1` is not the name of rules, which are `2`.",
+	"MessageParameters" -> {name, Keys[$namedRules]}
+|>]
+TypeTheoryRules[rules_TypeTheoryRules?rulesQ, changes__Rule] := Failure["InvalidRuleSetting", <|
+	"MessageTemplate" -> "The settings `1` are not settings of rules, each one of `2` with the value True or False.",
+	"MessageParameters" -> {{changes}, $ruleSettings}
+|>]
+
 (rules : TypeTheoryRules[settings_Association])[setting_String] /; rulesQ[rules] := Lookup[settings, setting, Missing["NotAvailable", setting]]
 
 $defaultRules = TypeTheoryRules["CalculusOfInductiveConstructions"]

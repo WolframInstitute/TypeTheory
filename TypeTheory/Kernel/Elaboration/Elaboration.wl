@@ -1437,6 +1437,9 @@ typeConclusion[type_] := type
    elaborated as usual. *)
 (* a core term, as an import builds it, is already explicit *)
 explicitTerm[_, HoldComplete[term : (_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _constantReference | _universeSort | _naturalLiteral)], _] := term
+(* a literal, a symbol or a string on its own is elaborated, which costs nothing and coerces it to the type it is given,
+   as 0 to an integer *)
+explicitTerm[_, HoldComplete[_Integer | _Symbol | _String], _] := None
 explicitTerm[environment_, held_HoldComplete, universeParameters_List] := Block[
 	{$elaborationEnvironment = environment, $universeParameterNames = universeParameters},
 	Catch[explicitCore[toSyntax @@ held, {}], $notExplicitTag]

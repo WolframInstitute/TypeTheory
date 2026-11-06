@@ -307,3 +307,17 @@ VerificationTest[
 	{TypeTheoryEnvironment, "TypeMismatch", "TypeMismatch"},
 	TestID -> "A-declared-sequence-is-one-term-and-a-forged-one-is-rejected"
 ]
+
+(* a definition's value is coerced to the type it is given, as 0 to an integer; an environment built on the default takes
+   Method; rules of a name of none, or with a setting they do not have, are a Failure, and so is an environment with them *)
+VerificationTest[
+	{
+		MatchQ[TypeTheoryType[Origin, TypeTheoryEnvironment["Integers", {TypeTheoryDefinition[Origin, Typed[0, Integers]]}]], HoldPattern[TypeTheoryTerm[Integers, _]]],
+		Head[TypeTheoryEnvironment[{TypeTheoryTheorem[WrongSum, 2 + 2 == 5, "equalityReflexivity"[4]]}, Method -> "Compiled"]],
+		First[TypeTheoryRules["NoSuchRules"]],
+		First[TypeTheoryRules["MartinLofTypeTheory", "Univalence" -> True]],
+		First[TypeTheoryEnvironment[TypeTheoryRules["NoSuchRules"], {}]]
+	},
+	{True, Failure, "UnknownRules", "InvalidRuleSetting", "UnknownRules"},
+	TestID -> "Definitions-coerce-options-pass-and-unknown-rules-fail"
+]
