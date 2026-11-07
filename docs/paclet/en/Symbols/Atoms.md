@@ -57,7 +57,7 @@ TypeTheoryType["atom"]
 `_Integer` picks out the integers among the parts of a list, positive or negative:
 
 ```wl
-NormalForm[TypeTheoryTerm[ReplaceList[Unevaluated[{x, 1, -2, "s", 1.5}], {___, a_Integer, ___} :> a]]]
+NormalForm[TypeTheoryTerm[ReplaceList[{x, 1, -2, "s", 1.5}, {___, a_Integer, ___} :> a]]]
 ```
 
 <!-- => {1, -2} -->

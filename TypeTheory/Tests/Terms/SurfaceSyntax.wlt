@@ -451,7 +451,7 @@ VerificationTest[
 			power = typeTips[TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1)]]],
 			atom = typeTips[TypeTheoryTerm[Typed[e, Expressions] |-> AtomQ[e]]],
 			successor = typeTips[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"[k] == k + 1]]],
-			quoted = typeTips[TypeTheoryTerm[Unevaluated[1 + 2 x]]]
+			quoted = typeTips[TypeTheoryTerm[Unevaluated[1 + 2 + x]]]
 		},
 		{
 			SubsetQ[natural, {{"+", "\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]"}, {"-", "\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]"}, {"0", "\[DoubleStruckCapitalN]"}, {"1", "\[DoubleStruckCapitalN]"}, {"\[DoubleStruckCapitalN]", "Type"}}],
