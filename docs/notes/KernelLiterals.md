@@ -105,14 +105,30 @@ registered as the greatest common divisor computes `FirstNumber[2, 3]` as 1 on l
   - multiplication: `t * zero == zero`, `t * successor[s] == t * s + t`, with an addition registered;
   - power: `t ^ zero == successor[zero]`, `t ^ successor[s] == t ^ s * t`, with a multiplication registered;
   - subtraction: `t - zero == t`, `t - successor[s] == predecessor[t - s]`, the predecessor by the recursor;
-  - equality and order: `equal` and `lessEqual` on `zero` and successors, in four and three equations.
+  - equality and order: `equal` and `lessEqual` on `zero` and successors, in four and three equations;
+  - remainder and quotient, by recursion on the dividend with the divisor `s` fixed, with an equality registered, the
+    quotient with a remainder too, and the choice by the recursor of the Booleans the equality gives:
 
-  An operation equal to the prelude's only by a proof, as `isZero[(m - n) + (n - m)]` for equality, is refused: the
-  kernel computes the role on literals, which must agree with what the definition computes.
-- **Trusted:** an operation without simple equations, the quotient, the remainder, the greatest common divisor, the
-  logarithm, the bitwise operations and the shifts, is accepted and trusted, as Lean's kernel trusts GMP, but its
-  registration stays a trusted assumption: `TypeTheoryAxiomClosure` names it, as `"Registration"`, wherever a proof
-  rests on it. The prelude registers none of these.
+        remainder[zero, s] == zero
+        remainder[successor[t], s] == if equal[successor[remainder[t, s]], s] then zero else successor[remainder[t, s]]
+        quotient[zero, s] == zero
+        quotient[successor[t], s] == if equal[successor[remainder[t, s]], s] then successor[quotient[t, s]] else quotient[t, s]
+
+    With `s` zero the remainder plus one is never `s`, which gives Lean's `t % 0 = t` and `t / 0 = 0`.
+
+  An operation equal to the prelude's only by a proof, as `isZero[(m - n) + (n - m)]` for equality, fails its
+  equations: the kernel computes the role on literals, which must agree with what the definition computes.
+- **Refused or trusted:** where the equations fail, an operation of a role the kernel reads terms through, addition for
+  the offset rule, and multiplication, power, subtraction, equality and order, is refused. A quotient or a remainder is
+  accepted and trusted: Lean's `Nat.div` and `Nat.mod` are defined by well-founded recursion, which does not compute on
+  a variable, so the bridge from Lean is honest only by reporting them. Approved by Stephen, 2026-11-07.
+- **Trusted:** an operation without equations, the greatest common divisor, the logarithm, the bitwise operations and
+  the shifts, is accepted and trusted, as Lean's kernel trusts GMP. A trusted registration stays a trusted assumption:
+  `TypeTheoryAxiomClosure` names it, as `"Registration"`, wherever a proof rests on it, so every role is either checked
+  or in the closure. Whether a quotient or a remainder is trusted is decided where the closure asks, by its equations
+  in the environment, so the natural numbers an environment stores keep their form. The prelude registers none of
+  these. The greatest common divisor can follow by Euclid's equations, `gcd[zero, s] == s` and a step through the
+  remainder.
 - **The closure** names every trusted assumption a proof rests on: axioms, rewrite rules and unchecked registrations.
   An empty closure means the proof rests on the kernel alone.
 

@@ -128,8 +128,9 @@ with the auxiliary types, and then `J ps` takes each one's place again. An auxil
 `registerNaturalNumbers` checks the shape of the type and its two constructors, and the type of each operation
 registered for a role. An operation with defining equations, addition, multiplication, power, subtraction, equality
 and order, must satisfy them by computation for variables `t` and `s`, as the prelude's definitions do; an addition by
-recursion on its first argument computes the literals right and fails the second of its equations. An operation without
-them, as the greatest common divisor, is trusted to compute on literals what its role's function computes on integers,
+recursion on its first argument computes the literals right and fails the second of its equations. A quotient and a
+remainder are checked against theirs, by recursion on the dividend, and trusted where they fail them, as Lean's, defined
+by well-founded recursion, do. An operation without equations, as the greatest common divisor, is trusted to compute on literals what its role's function computes on integers,
 as Lean's kernel trusts GMP, and `TypeTheoryAxiomClosure` names its registration as a trusted assumption wherever a proof
 rests on it: a projection registered as the greatest common divisor proves `False`, as the tutorial *Paradoxes* shows.
 The addition's equations are what the kernel reads terms through:

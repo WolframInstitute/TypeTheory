@@ -17,9 +17,14 @@ successor : type -> type. Then the literal 2 means successor[successor[zero]].
 An operation is registered for one of the roles of $naturalNumberOperations, and must have the type the
 role asks for: type -> type -> type, type -> type for "Log2", and type -> type -> B for "Equal" and
 "LessEqual", where B is an inductive type with two constructors without fields, false and true in that
-order, as Lean's Bool and the prelude's Booleans. The kernel trusts that the operation computes on
-literals what the role's function computes on integers, as Lean's kernel trusts GMP for its Nat
-operations; a constant registered for a role it does not compute makes the environment inconsistent.
+order, as Lean's Bool and the prelude's Booleans. An operation whose role has defining equations is
+checked against them by computation, for variables. The kernel reads terms through addition, so an
+operation of the roles of $refusedRoles that fails them is refused; one of quotient or remainder that
+fails them, as Lean's Nat.div and Nat.mod defined by well-founded recursion, which does not compute on a
+variable, is accepted and trusted, as is an operation of a role without equations. The kernel trusts
+that a trusted operation computes on literals what the role's function computes on integers, as Lean's
+kernel trusts GMP for its Nat operations, and TypeTheoryAxiomClosure names it wherever a term rests on
+it. A constant trusted for a role it does not compute makes the environment inconsistent.
 
 The natural numbers are registered once. A later registration with the same type, zero and successor
 adds operations; "Registrations" keeps the roles each registration added, in order, so Normal and the
@@ -202,43 +207,73 @@ $roleEquations = <|
 		{terms["Operation"][terms["Zero"], terms["s"]], terms["True"], "lessEqual[zero, s] == true"},
 		{terms["Operation"][terms["Successor"][terms["t"]], terms["Zero"]], terms["False"], "lessEqual[successor[t], zero] == false"},
 		{terms["Operation"][terms["Successor"][terms["t"]], terms["Successor"][terms["s"]]], terms["Operation"][terms["t"], terms["s"]], "lessEqual[successor[t], successor[s]] == lessEqual[t, s]"}
+	}],
+	(* by recursion on the dividend with the divisor s fixed, the remainder counted up to s and back to zero, as Lean's
+	   n % 0 = n and n / 0 = 0: with s zero, the remainder plus one is never s *)
+	"Remainder" -> Function[terms, {
+		{terms["Operation"][terms["Zero"], terms["s"]], terms["Zero"], "remainder[zero, s] == zero"},
+		{
+			terms["Operation"][terms["Successor"][terms["t"]], terms["s"]],
+			terms["If"][terms["Equal"][terms["Successor"][terms["Operation"][terms["t"], terms["s"]]], terms["s"]], terms["Zero"], terms["Successor"][terms["Operation"][terms["t"], terms["s"]]]],
+			"remainder[successor[t], s] == if equal[successor[remainder[t, s]], s] then zero else successor[remainder[t, s]]"
+		}
+	}],
+	"Quotient" -> Function[terms, {
+		{terms["Operation"][terms["Zero"], terms["s"]], terms["Zero"], "quotient[zero, s] == zero"},
+		{
+			terms["Operation"][terms["Successor"][terms["t"]], terms["s"]],
+			terms["If"][terms["Equal"][terms["Successor"][terms["Remainder"][terms["t"], terms["s"]]], terms["s"]], terms["Successor"][terms["Operation"][terms["t"], terms["s"]]], terms["Operation"][terms["t"], terms["s"]]],
+			"quotient[successor[t], s] == if equal[successor[remainder[t, s]], s] then successor[quotient[t, s]] else quotient[t, s]"
+		}
 	}]
 |>
 
 (* the operations another's equations use *)
-$roleRequirements = <|"Multiplication" -> {"Addition"}, "Power" -> {"Multiplication"}|>
+$roleRequirements = <|"Multiplication" -> {"Addition"}, "Power" -> {"Multiplication"}, "Remainder" -> {"Equal"}, "Quotient" -> {"Remainder", "Equal"}|>
 
-checkRoleEquations[environment_, settings_, operations_, role_, name_] := (
-	Scan[
-		Function[required, If[ ! KeyExistsQ[operations, required],
-			kernelFailure["InvalidNaturalNumberOperation", "`1` cannot be registered as `2` without an operation registered as `3`, which its equations use.", {HoldForm @@ name, role, required}]
-		]],
-		Lookup[$roleRequirements, role, {}]
-	];
-	With[
-		{
-			natural = constantReference[settings["Type"], {}],
-			first = freshFreeVariable[],
-			second = freshFreeVariable[]
-		},
-		With[{context = extendContext[extendContext[<||>, first, HoldComplete["t"], natural, "Explicit"], second, HoldComplete["s"], natural, "Explicit"]},
-			Scan[
-				Apply[Function[{left, right, statement}, If[ ! definitionallyEqualQ[environment, context, left, right],
-					kernelFailure[
-						"InvalidNaturalNumberOperation",
-						"`1` cannot be registered as `2`: `3` does not hold by computation.",
-						{HoldForm @@ name, role, statement}
-					]
-				]]],
-				$roleEquations[role][equationTerms[environment, settings, operations, name, freeVariable[first], freeVariable[second]]]
+(* an operation whose equations fail is refused where its role is one of $refusedRoles, and accepted, to be trusted,
+   otherwise *)
+checkRoleEquations[environment_, settings_, operations_, role_, name_] := Replace[roleEquationFailure[environment, settings, operations, role, name], {
+	{template_String, parameters_List} /; MemberQ[$refusedRoles, role] :> kernelFailure["InvalidNaturalNumberOperation", template, parameters],
+	_ -> Null
+}]
+
+(* the roles the kernel reads terms through, or whose equations any definition of them by recursion meets, refused where
+   their equations fail; quotient and remainder are trusted then, as Lean's are defined by well-founded recursion *)
+$refusedRoles = {"Addition", "Multiplication", "Power", "Subtraction", "Equal", "LessEqual"}
+
+(* None, or the message and parameters of what fails: an operation the equations use not registered, or an equation
+   that does not hold by computation *)
+roleEquationFailure[environment_, settings_, operations_, role_, name_] := Replace[
+	SelectFirst[Lookup[$roleRequirements, role, {}], Function[required, ! KeyExistsQ[operations, required]], None],
+	{
+		required_String :> {"`1` cannot be registered as `2` without an operation registered as `3`, which its equations use.", {HoldForm @@ name, role, required}},
+		None :> With[
+			{
+				natural = constantReference[settings["Type"], {}],
+				first = freshFreeVariable[],
+				second = freshFreeVariable[]
+			},
+			With[{context = extendContext[extendContext[<||>, first, HoldComplete["t"], natural, "Explicit"], second, HoldComplete["s"], natural, "Explicit"]},
+				Replace[
+					SelectFirst[
+						$roleEquations[role][equationTerms[environment, settings, operations, name, freeVariable[first], freeVariable[second]]],
+						Apply[Function[{left, right, statement}, ! definitionallyEqualQ[environment, context, left, right]]],
+						None
+					],
+					{
+						{_, _, statement_String} :> {"`1` cannot be registered as `2`: `3` does not hold by computation.", {HoldForm @@ name, role, statement}},
+						None -> None
+					}
+				]
 			]
 		]
-	]
-)
+	}
+]
 
 (* the terms the equations are written in: the constructors, the operation and those its equations use as functions of
-   their arguments, the predecessor as the recursor that gives it, and the Booleans of a comparison; each composite
-   term is built from parts computed first *)
+   their arguments, the predecessor as the recursor that gives it, the Booleans of a comparison, and a choice by the
+   Booleans the registered equality gives, by their recursor; each composite term is built from parts computed first *)
 equationTerms[environment_, settings_, operations_, name_, t_, s_] := With[
 	{
 		zero = constantReference[settings["Zero"], {}],
@@ -261,7 +296,10 @@ equationTerms[environment_, settings_, operations_, name_, t_, s_] := With[
 			"Multiplication" -> Function[{left, right}, applier[Lookup[operations, "Multiplication"]][{left, right}]],
 			"Predecessor" -> Function[argument, predecessorTerm[settings, zero, natural, argument]],
 			"True" -> If[booleans === {}, None, constantReference[Last[booleans], {}]],
-			"False" -> If[booleans === {}, None, constantReference[First[booleans], {}]]
+			"False" -> If[booleans === {}, None, constantReference[First[booleans], {}]],
+			"Equal" -> Function[{left, right}, applier[Lookup[operations, "Equal"]][{left, right}]],
+			"Remainder" -> Function[{left, right}, applier[Lookup[operations, "Remainder"]][{left, right}]],
+			"If" -> Function[{condition, then, else}, choiceTerm[environment, natural, Lookup[operations, "Equal"], condition, then, else]]
 		|>
 	]
 ]
@@ -276,9 +314,26 @@ predecessorTerm[settings_, zero_, natural_, argument_] := With[
 	makeApplication[recursor, {motive, zero, step, argument}]
 ]
 
-(* a registration the kernel trusts without a check: of an operation that has no defining equations *)
+(* if condition then a else b, of natural numbers, by the recursor of the Booleans the equality gives: its cases in the
+   order of their constructors, false and true *)
+choiceTerm[environment_, natural_, equality_HoldComplete, condition_, then_, else_] := With[
+	{booleans = booleansOf[constantRecord[environment, equality]["Type"]]},
+	With[
+		{
+			recursor = constantReference[Replace[booleans, HoldComplete[type_] :> HoldComplete[InductiveRecursor[type]]], {1}],
+			motive = lambdaAbstraction[HoldComplete["b"], constantReference[booleans, {}], natural, "Explicit"]
+		},
+		makeApplication[recursor, {motive, else, then, condition}]
+	]
+]
+
+(* a registration the kernel trusts without a check: of an operation whose role has no defining equations, or that fails
+   those of quotient or remainder in the environment; decided where it is asked, so the natural numbers an environment
+   stores, and the environments saved, keep their form *)
 uncheckedRegistrationQ[environment_, name_HoldComplete] := Replace[naturalNumberSettings[environment], {
-	settings_Association :> KeyExistsQ[settings["Roles"], name] && ! KeyExistsQ[$roleEquations, settings["Roles"][name]],
+	settings_Association /; KeyExistsQ[settings["Roles"], name] :> With[{role = settings["Roles"][name]},
+		! KeyExistsQ[$roleEquations, role] || (! MemberQ[$refusedRoles, role] && roleEquationFailure[environment, settings, settings["Operations"], role, name] =!= None)
+	],
 	_ -> False
 }]
 

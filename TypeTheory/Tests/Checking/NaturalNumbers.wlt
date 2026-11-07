@@ -415,3 +415,68 @@ VerificationTest[
 	"equal[successor[t], zero] == false",
 	TestID -> "An-equality-equal-to-the-reference-only-by-proof-is-refused"
 ]
+
+(* a quotient and a remainder by recursion on the dividend, the remainder counted up to the divisor and back to zero and
+   decided by the registered equality, satisfy their equations by computation: they are checked, and a theorem that
+   computes with them on literals rests on nothing trusted; 7 = 3 * 2 + 1, and with the divisor 0 the quotient is 0
+   and the remainder the dividend, as in Lean *)
+VerificationTest[
+	With[
+		{
+			divided = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition["remainderOf", Function[{Typed[dividend, NonNegativeIntegers], Typed[divisor, NonNegativeIntegers]},
+					InductiveRecursor[NonNegativeIntegers][
+						Function[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers],
+						0,
+						Function[{Typed[n, NonNegativeIntegers], Typed[remainder, NonNegativeIntegers]},
+							InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, NonNegativeIntegers], remainder + 1, 0, "equal"[remainder + 1, divisor]]
+						],
+						dividend
+					]
+				]],
+				TypeTheoryDefinition["quotientOf", Function[{Typed[dividend, NonNegativeIntegers], Typed[divisor, NonNegativeIntegers]},
+					InductiveRecursor[NonNegativeIntegers][
+						Function[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers],
+						0,
+						Function[{Typed[n, NonNegativeIntegers], Typed[quotient, NonNegativeIntegers]},
+							InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, NonNegativeIntegers], quotient, quotient + 1, "equal"["remainderOf"[n, divisor] + 1, divisor]]
+						],
+						dividend
+					]
+				]],
+				TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Quotient" -> "quotientOf", "Remainder" -> "remainderOf"|>]
+			}]
+		},
+		{
+			TypeTheoryAxiomClosure[TypeTheoryProof[TypeTheoryTerm["quotientOf"[7, 2] == 3 && "remainderOf"[7, 2] == 1, divided], {"Decide"}]],
+			First /@ {WeakHeadNormalForm[TypeTheoryTerm["quotientOf"[7, 0], divided]], WeakHeadNormalForm[TypeTheoryTerm["remainderOf"[7, 0], divided]]}
+		}
+	],
+	{<||>, {0, 7}},
+	TestID -> "A-quotient-and-a-remainder-that-meet-their-equations-are-checked"
+]
+
+(* a quotient that does not meet its equations, as a projection, is accepted and trusted, as Lean's Nat.div, defined by
+   well-founded recursion, which does not compute on a variable, has to be: it computes the quotient on literals, 0 for
+   2 / 3, and unfolds to 2, so 0 == 2, a proof of False, and the axiom closure names the registration it rests on;
+   an operation of a role the kernel reads terms through is refused instead, as a multiplication *)
+VerificationTest[
+	With[
+		{
+			lied = TypeTheoryEnvironment[beforeNaturalNumbers, {
+				TypeTheoryDefinition[
+					FirstNumber,
+					Typed[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]
+				],
+				TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Quotient" -> FirstNumber|>]
+			}]
+		},
+		{
+			First @ WeakHeadNormalForm[TypeTheoryTerm[FirstNumber[2, 3], lied]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm[Typed["equalityReflexivity"[FirstNumber[2, 3]], FirstNumber[2, 3] == 0], lied]],
+			FailureQ[TypeTheoryEnvironment[lied, {TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Multiplication" -> FirstNumber|>]}]]
+		}
+	],
+	{0, <|FirstNumber -> "Registration"|>, True},
+	TestID -> "A-quotient-that-fails-its-equations-is-trusted-and-named"
+]
