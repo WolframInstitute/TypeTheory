@@ -15,7 +15,7 @@ A page is done when it has been built and every output cell read back. Run the b
 CLI, not `wolframscript`:
 
 ```
-wl -f build_docs.wls
+wolframscript -f build_docs.wls
 ```
 
 The `<!-- => ... -->` hint after a cell is for authors only: the converter strips it, so nothing

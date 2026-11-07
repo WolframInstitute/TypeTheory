@@ -43,9 +43,9 @@ literate Markdown in [docs/paclet/en](docs/paclet/en), written to
 [PacletPage](https://www.wolframcloud.com/obj/wolframinstitute/PacletPage) builds and publishes them:
 
 ```bash
-wl -f build_docs.wls             # evaluate the pages into notebooks under TypeTheory/Documentation
-wl -f release.wls --dry-run      # build and check the site and the paclet archive, deploying nothing
-wl -f release.wls                # publish the site and the paclet, as wolframinstitute
+wolframscript -f build_docs.wls          # evaluate the pages into notebooks under TypeTheory/Documentation
+wolframscript -f release.wls --dry-run   # build and check the site and the paclet archive, deploying nothing
+wolframscript -f release.wls             # publish the site and the paclet, as wolframinstitute
 ```
 
 ## A first session

@@ -13,9 +13,9 @@
    before building anything if that is another account. A dry run deploys nothing and runs under any
    login, or none.
 
-       wl -f release.wls [--no-cache]   build, deploy and publish
-       wl -f release.wls --dry-run      build and check the documentation and the archive; deploy nothing
-       wl -f release.wls --republish    replace the deployed release of this same version
+       wolframscript -f release.wls [--no-cache]   build, deploy and publish
+       wolframscript -f release.wls --dry-run      build and check the documentation and the archive; deploy nothing
+       wolframscript -f release.wls --republish    replace the deployed release of this same version
 *)
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "pacletpage.wl"}]]

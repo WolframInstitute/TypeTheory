@@ -43,7 +43,7 @@ umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and e
 
 Every exported symbol has a page in `docs/paclet/en/Symbols/`, written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md). A new exported symbol gets its page, and a
-change in behavior updates the examples it touches. `wl -f build_docs.wls` evaluates every page; read the
+change in behavior updates the examples it touches. `wolframscript -f build_docs.wls` evaluates every page; read the
 outputs back and compare them with the `<!-- => ... -->` hints, which nothing checks automatically.
 `release.wls` publishes the site and the paclet resource as wolframinstitute.
 

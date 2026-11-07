@@ -7,7 +7,7 @@
    engine that runs TypeTheory can time it; LeanLink's typetheory_benchmark.wls --save writes its Mathlib cones as
    such files.
 
-       wl -f scripts/check_saved.wls file.wxf ... [--runs n] [--profile] [--method Compiled|Symbolic]
+       wolframscript -f scripts/check_saved.wls file.wxf ... [--runs n] [--profile] [--method Compiled|Symbolic]
 
    --profile adds a run that times the kernel's main functions: calls, exclusive time without the profiled functions
    they call, and the inclusive time of their outermost calls, each less the instrumentation's own cost, measured

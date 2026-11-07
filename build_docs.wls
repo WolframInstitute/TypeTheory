@@ -11,7 +11,7 @@
 
    Run with the `wl` CLI, not wolframscript, whose init can wedge the kernel mid-build:
 
-       wl -f build_docs.wls [--no-cache]
+       wolframscript -f build_docs.wls [--no-cache]
 *)
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "pacletpage.wl"}]]

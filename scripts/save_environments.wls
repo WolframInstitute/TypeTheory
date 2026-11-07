@@ -6,7 +6,7 @@
    wrote them (Kernel/Checking/SavedEnvironments.wl). release.wls saves them before it builds the archive; run
    this after changing the kernel, to load fast again from the checkout:
 
-       wl -f scripts/save_environments.wls *)
+       wolframscript -f scripts/save_environments.wls *)
 
 Get[FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "pacletpage.wl"}]]
 

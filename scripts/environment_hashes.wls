@@ -7,8 +7,8 @@
    environment built the same way, so a built environment's lines match the saved files', and match on every kernel
    that builds and writes WXF as Wolfram 15 does:
 
-       TYPETHEORY_SAVED_ENVIRONMENTS=0 wl -f scripts/environment_hashes.wls
-       wl -f scripts/environment_hashes.wls *)
+       TYPETHEORY_SAVED_ENVIRONMENTS=0 wolframscript -f scripts/environment_hashes.wls
+       wolframscript -f scripts/environment_hashes.wls *)
 
 PacletDirectoryLoad[FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "TypeTheory"}]]
 

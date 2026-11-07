@@ -6,7 +6,7 @@
    Run it after changing the program, with each engine and version the paclet runs under; on Wolfram 15.1 it takes about
    five minutes and six gigabytes of memory:
 
-       wl -f scripts/compile_kernel.wls *)
+       wolframscript -f scripts/compile_kernel.wls *)
 
 PacletDirectoryLoad[FileNameJoin[{ParentDirectory[DirectoryName[$InputFileName]], "TypeTheory"}]]
 
