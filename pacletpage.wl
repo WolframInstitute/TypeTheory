@@ -28,7 +28,7 @@ newEnoughQ[_] := False
    files name this checkout's kernel and the archive carries them. TypeTheoryEnvironment is named in full: this
    file is read before TypeTheory is loaded. *)
 
-$libraryEnvironmentNames = {"Constructive", "Prelude", "Integers", "Rationals", "HomotopyTypeTheory", "Cubical"}
+$libraryEnvironmentNames = {"Constructive", "Prelude", "Integers", "Rationals", "Machine", "HomotopyTypeTheory", "Cubical"}
 
 saveLibraryEnvironments[] := Module[{directory = FileNameJoin[{$pacletDirectory, "Environments"}]},
 	PacletDirectoryLoad[$pacletDirectory];

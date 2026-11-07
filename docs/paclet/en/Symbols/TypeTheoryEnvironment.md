@@ -30,6 +30,8 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 <code>[TypeTheoryEnvironment]()["Rationals"]</code> gives the integers with the rationals, a quotient of pairs of an integer and a natural number, and the laws of a field.
 
+<code>[TypeTheoryEnvironment]()["Machine"]</code> gives the integers with the 64-bit integers of the compiler's typed entries, a subtype of the integers in [-2^63, 2^63), whose operations give `Failure["IntegerOverflow", <||>]`, the leave of a typed entry, where a result is out of range.
+
 <code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
 
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
@@ -40,7 +42,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 - A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers](), [TypeTheoryRewriteRule](), [TypeTheoryQuotients]() and [TypeTheoryCubical](). Each is checked by the kernel in the environment the declarations before it made, and the result is a new environment, or a [Failure]() for the first declaration that does not check, with none of them added.
 - A single declaration needs no list: <code>[TypeTheoryEnvironment]()[*declaration*]</code> and <code>[TypeTheoryEnvironment]()[*env*, *declaration*]</code> add one, and so does <code>[Append]()[*env*, *declaration*]</code>.
-- The library environments are named by strings: `"Prelude"`, `"Constructive"`, `"HomotopyTypeTheory"`, `"Integers"`, `"Rationals"` and `"Cubical"`, and `"WolframLanguage"` is an old name of the prelude, from when the Wolfram Language's expressions were an environment of their own. Every function that takes an environment takes its name too, as in <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code> and <code>[TypeTheoryType]()[*term*, "HomotopyTypeTheory"]</code>. Any other name gives a [Failure]() tagged `"UnknownEnvironment"` that lists the names.
+- The library environments are named by strings: `"Prelude"`, `"Constructive"`, `"HomotopyTypeTheory"`, `"Integers"`, `"Rationals"`, `"Machine"` and `"Cubical"`, and `"WolframLanguage"` is an old name of the prelude, from when the Wolfram Language's expressions were an environment of their own. Every function that takes an environment takes its name too, as in <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code> and <code>[TypeTheoryType]()[*term*, "HomotopyTypeTheory"]</code>. Any other name gives a [Failure]() tagged `"UnknownEnvironment"` that lists the names.
 - The default environment, [$TypeTheoryEnvironment](), is the environment wherever none is given: declarations without one extend it, and a [TypeTheoryTerm]() or [TypeTheoryProof]() without one is in it. It is the prelude unless [SetTypeTheoryEnvironment]() set another. <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[], {*declaration1*, ...}]</code> starts from no constants instead.
 - Every environment carries the rules it was started with, which say what the kernel allows and computes: the prelude follows the calculus of inductive constructions, the HoTT environment Martin-Löf type theory with rewrite rules, and the cubical environment cubical type theory. Environments made from one follow its rules, and <code>[Information]()[*env*, "Rules"]</code> gives them.
 - The prelude is classical: it assumes `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and proves `"functionExtensionality"` and `"excludedMiddle"` from them. Its fourth axiom, [ExpressionEvaluate](), is the evaluation of the Wolfram Language. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
@@ -81,7 +83,7 @@ A library environment by its name, here the integers:
 TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 332 constants -->
+<!-- => TypeTheoryEnvironment summary box: 344 constants -->
 
 ---
 
@@ -97,7 +99,7 @@ squares = TypeTheoryEnvironment["Integers", {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 333 constants -->
+<!-- => TypeTheoryEnvironment summary box: 345 constants -->
 
 The theorem it declares:
 
@@ -258,7 +260,7 @@ The rationals, which extend the integers:
 TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 411 constants -->
+<!-- => TypeTheoryEnvironment summary box: 423 constants -->
 
 ---
 
@@ -484,7 +486,7 @@ Declarations without an environment extend the default one, here the integers fo
 Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryEnvironment[{TypeTheoryDefinition[IntegerSquare, Typed[x, Integers] |-> x x]}]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 333 constants -->
+<!-- => TypeTheoryEnvironment summary box: 345 constants -->
 
 ---
 

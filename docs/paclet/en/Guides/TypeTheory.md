@@ -128,6 +128,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - `"rationalOfIntegerAddition"`, `"rationalOfIntegerMultiplication"` the integers among the rationals
 - `"rationalEqualityDecidable"` the instance deciding `==` of rationals
 - `"rationalLessEqualReflexivity"`, `"rationalSquareNonnegative"` the order
+- <code>[TypeTheoryEnvironment]()["Machine"]</code> the integers with the 64-bit integers of the compiler's typed entries, `"Int64"`, a subtype of the integers in range, and `"machinePlus"` and `"machineTimes"`, whose results out of range are the leave `Failure["IntegerOverflow", <||>]`
 
 ### Cubical type theory
 

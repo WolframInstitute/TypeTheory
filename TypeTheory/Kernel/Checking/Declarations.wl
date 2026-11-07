@@ -170,6 +170,7 @@ TypeTheoryEnvironment["Constructive"] := constructiveEnvironment[]
 TypeTheoryEnvironment["HomotopyTypeTheory"] := homotopyTypeTheoryEnvironment[]
 TypeTheoryEnvironment["Integers"] := integersEnvironment[]
 TypeTheoryEnvironment["Rationals"] := rationalsEnvironment[]
+TypeTheoryEnvironment["Machine"] := machineEnvironment[]
 TypeTheoryEnvironment["Cubical"] := cubicalEnvironment[]
 TypeTheoryEnvironment["WolframLanguage"] := wolframLanguageEnvironment[]
 TypeTheoryEnvironment[name_String] := Failure["UnknownEnvironment", <|

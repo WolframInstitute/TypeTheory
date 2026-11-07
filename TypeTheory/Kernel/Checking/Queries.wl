@@ -212,6 +212,9 @@ $wolframReadings = {
 	HoldPattern[("left" | "right" | "some")[x_]] :> x,
 	"none" :> Missing["NotAvailable"],
 	HoldPattern["pair"[a_, b_]] :> {a, b},
+	(* an element of a subtype is its value, the proof that it is in the subtype no part of the expression, as a
+	   machine integer is the integer *)
+	HoldPattern["subtype"[value_, _]] :> value,
 	HoldPattern[quotientClass[reading_, a_Integer, b_Integer]] :> RuleCondition[reading[a, b]],
 	HoldPattern[parsedString[HoldComplete[expression_]]] :> expression,
 	(* an atom or an association quoted, as a normal form reads one back among data, is itself *)
