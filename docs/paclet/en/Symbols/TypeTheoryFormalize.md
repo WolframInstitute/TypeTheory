@@ -361,7 +361,7 @@ And one with fewer stays as it is:
 NormalForm[TypeTheoryTerm["DownValues[listed]"[listed[1]], listing]]
 ```
 
-<!-- => none -->
+<!-- => none ∶ Option[Expressions] -->
 
 The same, by [DefinitionallyEqualQ]():
 

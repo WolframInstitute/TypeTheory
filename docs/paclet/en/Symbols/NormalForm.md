@@ -20,6 +20,7 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 - It applies functions to their arguments, unfolds definitions and local definitions, computes recursors on constructors and natural numbers as literals, and takes the fields of a structure, so a closed term of data reduces to its value. Theorems and axioms never unfold.
 - A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
 - An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [Unevaluated]() that quotes it.
+- A value whose reading alone does not elaborate again, as a lone string, which on its own names a constant, the empty list, a value of a sum or `"none"`, comes back ascribed its type, <code>[Typed]()[*value*, *type*]</code>, so that the result elaborates to a term of the same type; its reading in the Wolfram Language, [TypeTheoryExpression](), is the same.
 - Two terms are equal by computation when their normal forms are the same, which [DefinitionallyEqualQ]() decides without computing them in full, and `"Reflexivity"` proves an equation whose two sides are.
 
 ## Basic Examples

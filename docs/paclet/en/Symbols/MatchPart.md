@@ -138,7 +138,7 @@ TypeTheoryProof[ForAll[{a}, MatchPart["atom"[a], 1, MatchValue] == Typed[{}, Mat
 NormalForm[TypeTheoryTerm[MatchPart[1 + 2, 1, MatchValue]]]
 ```
 
-<!-- => {} -->
+<!-- => {} ∶ Match[Expressions] -->
 
 ---
 

@@ -133,7 +133,7 @@ The empty list has none:
 WeakHeadNormalForm[TypeTheoryTerm[FirstOfList[{}], heads]]
 ```
 
-<!-- => none -->
+<!-- => none ∶ Option[ℕ] -->
 
 ---
 
@@ -159,7 +159,7 @@ NormalForm[TypeTheoryTerm[CheckedSubtract[7, 3], checked]]
 NormalForm[TypeTheoryTerm[CheckedSubtract[3, 7], checked]]
 ```
 
-<!-- => none -->
+<!-- => none ∶ Option[ℕ] -->
 
 ---
 
@@ -190,7 +190,7 @@ The key 3 is not there:
 NormalForm[TypeTheoryTerm[LookupNumber[3, {"pair"[1, 10], "pair"[2, 20]}], lookups]]
 ```
 
-<!-- => none -->
+<!-- => none ∶ Option[ℕ] -->
 
 ## Properties and Relations
 

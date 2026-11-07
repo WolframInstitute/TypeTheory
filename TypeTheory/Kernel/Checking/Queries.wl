@@ -309,21 +309,33 @@ DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[cat
 
 
 WeakHeadNormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
-	coreToTypeTheoryTerm[
-		environment,
-		<||>,
-		weakHeadNormalForm[environment, <||>, First @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]
+	With[{elaborated = elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]},
+		valueTerm[environment, weakHeadNormalForm[environment, <||>, First[elaborated]], Last[elaborated]]
 	]
 ]
 
 (* the normal form: the head reduced, then each part, a binder's body with its variable free *)
 NormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
-	coreToTypeTheoryTerm[
-		environment,
-		<||>,
-		withKernelCaches[normalForm[environment, <||>, First @ elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]]
+	With[{elaborated = elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]},
+		valueTerm[environment, withKernelCaches[normalForm[environment, <||>, First[elaborated]]], Last[elaborated]]
 	]
 ]
+
+(* A value read back as it is written, and ascribed its type where the reading alone does not elaborate: a lone string,
+   which on its own names a constant, the empty list, or a value of a sum, "right"["text"], whose types the reading
+   does not give; the type flows from the ascription into the parts, so one at the top is enough. A reading that
+   elaborates is left as it is, with the type it elaborates to, as "none" is an option of any type. *)
+valueTerm[environment_, term_, type_] := With[{read = coreToTypeTheoryTerm[environment, <||>, term]},
+	If[ readBackQ[environment, read],
+		read,
+		Replace[{read, coreToTypeTheoryTerm[environment, <||>, type]}, {
+			{TypeTheoryTerm[value_, ___], TypeTheoryTerm[typeValue_, ___]} :> TypeTheoryTerm[Typed[value, typeValue], environment],
+			_ :> read
+		}]
+	]
+]
+
+readBackQ[environment_, read_TypeTheoryTerm] := ListQ[Quiet[catchKernelFailure[elaborateQueryTerm[environment, read, None, universeParameterNames[{termSyntax[read]}]]]]]
 
 normalForm[environment_, context_, term_] := normalParts[environment, context, weakHeadNormalForm[environment, context, term]]
 

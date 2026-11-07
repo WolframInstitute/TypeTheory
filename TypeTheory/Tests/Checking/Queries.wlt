@@ -606,3 +606,26 @@ VerificationTest[
 	{True, {"RecursionLimit", 3}},
 	TestID -> "DefinitionallyEqualQ-that-runs-out-of-recursion-is-a-failure-not-False"
 ]
+
+(* a value read back elaborates again to a term of its type: a lone string, the empty list and a value of a sum, whose
+   readings alone do not, are ascribed their types, and a reading that elaborates is left as it is; the reading in the
+   Wolfram Language is the same either way *)
+VerificationTest[
+	Map[
+		Function[term, With[{normal = NormalForm[term]}, {
+			DefinitionallyEqualQ[TypeTheoryType[normal], TypeTheoryType[term]],
+			TypeTheoryExpression[normal] === TypeTheoryExpression[term],
+			MatchQ[normal, TypeTheoryTerm[_Typed, ___]]
+		}]],
+		{
+			TypeTheoryTerm[FromString["Hi"]],
+			TypeTheoryTerm[Typed[{}, {NonNegativeIntegers}]],
+			TypeTheoryTerm[Typed["right"[Typed["text", Strings]], NonNegativeIntegers | Strings]],
+			TypeTheoryTerm["pair"[Typed[{}, {NonNegativeIntegers}], 1]],
+			TypeTheoryTerm[Typed["some"[3], Option[NonNegativeIntegers]]],
+			TypeTheoryTerm[2 + 3]
+		}
+	],
+	{{True, True, True}, {True, True, True}, {True, True, True}, {True, True, True}, {True, True, False}, {True, True, False}},
+	TestID -> "A-normal-form-read-back-elaborates-again-to-its-type"
+]

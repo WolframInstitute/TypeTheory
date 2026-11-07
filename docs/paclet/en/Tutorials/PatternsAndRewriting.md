@@ -223,7 +223,7 @@ The kernel computes which rule applies:
 }
 ```
 
-<!-- => {some[{2, 1}], some[{{2, 3}, 1}], none} -->
+<!-- => {some[{2, 1}], some[{{2, 3}, 1}], none ∶ Option[Expressions]} -->
 
 ## Possible Issues
 

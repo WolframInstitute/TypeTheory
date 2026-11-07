@@ -74,7 +74,7 @@ The center of the fiber of the identity over `"true"` is `"true"` with the const
 WeakHeadNormalForm[TypeTheoryTerm["identityEquivalence"[Booleans][[2]]["true"][[1]], "Cubical"]]
 ```
 
-<!-- => 〈true, (j ∶ Interval) ↦ true〉 -->
+<!-- => 〈true, (j ∶ Interval) ↦ true〉 ∶ Fiber[identityEquivalence[𝔹]〚1〛, true] -->
 
 ---
 

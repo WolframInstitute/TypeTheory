@@ -210,13 +210,13 @@ TypeTheoryType[{p, Annotation[Typed[d, Decidable[p]], "InstanceImplicit"]} |-> D
 
 ## Possible Issues
 
-[TypedImplicit]() takes a variable and its type:
+[TypedImplicit]() with a variable alone, `TypedImplicit[A]`, leaves its type to elaboration, as a bare binder does: here a type, since `x` has type `A`:
 
 ```wl
 TypeTheoryType[{TypedImplicit[A], Typed[x, A]} |-> x]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => ∀_{A∶Type} A → A -->
 
 ---
 

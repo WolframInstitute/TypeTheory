@@ -123,7 +123,7 @@ With a string first, the test fails and the second argument is never matched:
 NormalForm[TypeTheoryTerm[program[f["a", 1]]]]
 ```
 
-<!-- => {} -->
+<!-- => {} ∶ Match[Expressions] -->
 
 ## Properties and Relations
 

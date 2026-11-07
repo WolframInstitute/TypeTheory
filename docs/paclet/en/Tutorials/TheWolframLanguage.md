@@ -134,7 +134,7 @@ Of two failures, the first confirmed is the one it gives:
 NormalForm[TypeTheoryTerm[Function[{Typed[a, NonNegativeIntegers | Failure], Typed[b, NonNegativeIntegers | Failure]}, Enclose[Confirm[a] * Confirm[b]]][Failure["First", 1], Failure["Second", 2]]]]
 ```
 
-<!-- => right[Failure["First", 1]] -->
+<!-- => right[Failure["First", 1]] ∶ ℕ | Failure -->
 
 A [Confirm]() outside an [Enclose]() has nowhere to give its failure, and is refused:
 
@@ -176,7 +176,7 @@ A key that is not there gives [Missing]()`["KeyAbsent", key]`, as in the Wolfram
 NormalForm[TypeTheoryTerm[Lookup[<|"apples" -> 3, "pears" -> 5|>, "plums"]]]
 ```
 
-<!-- => right[Missing["KeyAbsent", "plums"]] -->
+<!-- => right[Missing["KeyAbsent", "plums"]] ∶ ℕ | Missing -->
 
 The lookup of a key that is there gives its value, whatever the value is, which the kernel proves by computing:
 

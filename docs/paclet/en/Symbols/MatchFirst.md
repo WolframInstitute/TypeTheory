@@ -105,7 +105,7 @@ An expression with one argument matches neither rule, so it stays as it is:
 NormalForm[TypeTheoryTerm["DownValues[swapped]"[swapped[1]], swapping]]
 ```
 
-<!-- => none -->
+<!-- => none ∶ Option[Expressions] -->
 
 ## Properties and Relations
 

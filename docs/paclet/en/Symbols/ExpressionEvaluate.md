@@ -108,7 +108,7 @@ An expression with two arguments does not match the pattern, so the kernel compu
 NormalForm[TypeTheoryTerm["DownValues[positive]"[positive[1, 2]], positives]]
 ```
 
-<!-- => none -->
+<!-- => none ∶ Option[Expressions] -->
 
 ---
 

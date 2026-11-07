@@ -79,7 +79,7 @@ The equivalence of negation has contractible fibers, and the center of the fiber
 WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], "Cubical"]]
 ```
 
-<!-- => 〈!true, negationInvolution[true]〉 -->
+<!-- => 〈!true, negationInvolution[true]〉 ∶ Fiber[negationEquivalence〚1〛, true] -->
 
 Its element computes to `"false"`:
 

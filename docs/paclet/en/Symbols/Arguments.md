@@ -194,4 +194,4 @@ NormalForm[TypeTheoryTerm[Construct[Head[3], Arguments[3]]]]
 NormalForm[TypeTheoryTerm[Arguments[1 + 2]]]
 ```
 
-<!-- => [] -->
+<!-- => [] ∶ Expressions... -->

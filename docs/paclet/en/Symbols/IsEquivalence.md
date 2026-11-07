@@ -106,7 +106,7 @@ The cubical proof for negation gives, over `"true"`, the center of its fiber, wh
 WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], "Cubical"]]
 ```
 
-<!-- => 〈!true, negationInvolution[true]〉 -->
+<!-- => 〈!true, negationInvolution[true]〉 ∶ Fiber[negationEquivalence〚1〛, true] -->
 
 ## Properties and Relations
 

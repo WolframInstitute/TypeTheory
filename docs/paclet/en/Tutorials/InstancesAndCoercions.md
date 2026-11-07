@@ -84,7 +84,7 @@ A default pair of a number and a list of Booleans comes from three instances:
 WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[Naturals, {Booleans}]], pairs]]
 ```
 
-<!-- => (NaturalsInhabited〚1〛, ListsInhabited〚1〛) -->
+<!-- => (NaturalsInhabited〚1〛, ListsInhabited〚1〛) ∶ ℕ × {𝔹} -->
 
 The instances are tried the latest declared first, at most 32 deep. Where none applies, elaboration fails:
 
