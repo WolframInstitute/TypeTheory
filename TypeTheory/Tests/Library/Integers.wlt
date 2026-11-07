@@ -222,3 +222,19 @@ VerificationTest[
 	{{}, {}, {}, {}, True},
 	TestID -> "Ring-normalizes-integer-polynomials-with-the-integers'-laws"
 ]
+
+(* the order of the integers is decided, as their equality is: "integerLessEqualQ" computes the Boolean of x <= y on
+   representing pairs, and the instance "integerLessEqualDecidable" lets "Decide" prove an order of literals, at once
+   for a bound of a 64-bit integer, and not a false one *)
+VerificationTest[
+	With[{integers = TypeTheoryEnvironment["Integers"]},
+		{
+			TypeTheoryProof[TypeTheoryTerm[Typed[5, Integers] <= Typed[9223372036854775807, Integers], integers], {"Decide"}]["Goals"],
+			TypeTheoryProof[TypeTheoryTerm[Typed[-3, Integers] <= Typed[2, Integers], integers], {"Decide"}]["Goals"],
+			First /@ {NormalForm[TypeTheoryTerm["integerLessEqualQ"[Typed[-3, Integers], Typed[2, Integers]], integers]], NormalForm[TypeTheoryTerm["integerLessEqualQ"[Typed[3, Integers], Typed[-2, Integers]], integers]]},
+			FailureQ[TypeTheoryProof[TypeTheoryTerm[Typed[3, Integers] <= Typed[-2, Integers], integers], {"Decide"}]]
+		}
+	],
+	{{}, {}, {"true", "false"}, True},
+	TestID -> "The-order-of-the-integers-is-decided"
+]

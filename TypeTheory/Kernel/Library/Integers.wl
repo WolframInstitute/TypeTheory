@@ -904,5 +904,155 @@ $integerDeclarations = {
 				h
 			]
 		]
+	],
+	(* The order decided, as "integerEqual" decides equality: "integerLessEqualQ", the Boolean that x <= y, read on a
+	   representing pair of each by lessEqual of natural numbers, respects the relation on both sides, is true exactly
+	   where x <= y, and makes the instance "integerLessEqualDecidable", by which "Decide" decides an order of integers;
+	   a machine integer's range is such an order (Machine) *)
+	TypeTheoryTheorem[
+		"lessEqualOfEquivalent",
+		ForAll[
+			{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]},
+			Implies[Equivalent[a <= b, c <= d], "lessEqual"[a, b] == "lessEqual"[c, d]]
+		],
+		Function[
+			{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[h, Equivalent[a <= b, c <= d]]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[x, Booleans]}, Implies["lessEqual"[a, b] == x, "lessEqual"[a, b] == "lessEqual"[c, d]]],
+				Function[{Typed[e, "lessEqual"[a, b] == "false"]}, InductiveRecursor[Booleans][
+					Function[{Typed[y, Booleans]}, Implies["lessEqual"[c, d] == y, "lessEqual"[a, b] == "lessEqual"[c, d]]],
+					Function[{Typed[f, "lessEqual"[c, d] == "false"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
+					Function[{Typed[f, "lessEqual"[c, d] == "true"]}, "falseElimination"["lessEqualFalse"[a, b, e]["equivalentBackward"[h]["lessEqualTrue"[c, d, f]]]]],
+					"lessEqual"[c, d]
+				]["equalityReflexivity"["lessEqual"[c, d]]]],
+				Function[{Typed[e, "lessEqual"[a, b] == "true"]}, InductiveRecursor[Booleans][
+					Function[{Typed[y, Booleans]}, Implies["lessEqual"[c, d] == y, "lessEqual"[a, b] == "lessEqual"[c, d]]],
+					Function[{Typed[f, "lessEqual"[c, d] == "false"]}, "falseElimination"["lessEqualFalse"[c, d, f]["equivalentForward"[h]["lessEqualTrue"[a, b, e]]]]],
+					Function[{Typed[f, "lessEqual"[c, d] == "true"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
+					"lessEqual"[c, d]
+				]["equalityReflexivity"["lessEqual"[c, d]]]],
+				"lessEqual"[a, b]
+			]["equalityReflexivity"["lessEqual"[a, b]]]
+		]
+	],
+	integerTheorem[
+		"integerLessEqualRespectsRight",
+		ForAll[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
+			Implies["integerRelation"[q, s], Equivalent[p[[1]] + q[[2]] <= q[[1]] + p[[2]], p[[1]] + s[[2]] <= s[[1]] + p[[2]]]]
+		],
+		{"Introduce"[p, q, s, h], "Constructor", "Introduce"[k], "LinearArithmetic", "Introduce"[k], "LinearArithmetic"}
+	],
+	integerTheorem[
+		"integerLessEqualRespectsLeft",
+		ForAll[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
+			Implies["integerRelation"[p, q], Equivalent[p[[1]] + s[[2]] <= s[[1]] + p[[2]], q[[1]] + s[[2]] <= s[[1]] + q[[2]]]]
+		],
+		{"Introduce"[p, q, s, h], "Constructor", "Introduce"[k], "LinearArithmetic", "Introduce"[k], "LinearArithmetic"}
+	],
+	TypeTheoryDefinition[
+		"integerLessEqualQOfPair",
+		Typed[
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "lessEqual"[p[[1]] + q[[2]], q[[1]] + p[[2]]]],
+				Function[{Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[q, s]]},
+					"lessEqualOfEquivalent"[p[[1]] + q[[2]], q[[1]] + p[[2]], p[[1]] + s[[2]], s[[1]] + p[[2]], "integerLessEqualRespectsRight"[p, q, s, e]]
+				],
+				y
+			]],
+			TypeSpecifier[{CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], Integers} -> Booleans]
+		]
+	],
+	TypeTheoryDefinition[
+		"integerLessEqualQ",
+		Typed[
+			Function[{Typed[x, Integers], Typed[y, Integers]}, QuotientLift[
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "integerLessEqualQOfPair"[p, y]],
+				Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[e, "integerRelation"[p, q]]},
+					Construct[QuotientInduction, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], "integerRelation",
+						Function[{Typed[z, Integers]}, "integerLessEqualQOfPair"[p, z] == "integerLessEqualQOfPair"[q, z]],
+						Function[{Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
+							"lessEqualOfEquivalent"[p[[1]] + s[[2]], s[[1]] + p[[2]], q[[1]] + s[[2]], s[[1]] + q[[2]], "integerLessEqualRespectsLeft"[p, q, s, e]]
+						],
+						y
+					]
+				],
+				x
+			]],
+			TypeSpecifier[{Integers, Integers} -> Booleans]
+		]
+	],
+	TypeTheoryTheorem[
+		"lessEqualComplete",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, "lessEqual"[m, n] == "true"]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, m <= n]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[b, Booleans]}, Implies["lessEqual"[m, n] == b, "lessEqual"[m, n] == "true"]],
+				Function[{Typed[e, "lessEqual"[m, n] == "false"]}, "falseElimination"["lessEqualFalse"[m, n, e][h]]],
+				Function[{Typed[e, "lessEqual"[m, n] == "true"]}, e],
+				"lessEqual"[m, n]
+			]["equalityReflexivity"["lessEqual"[m, n]]]
+		]
+	],
+	integerTheorem[
+		"orderWitnessRelation",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]},
+			Implies[c + b == (a + d) + k, c + b == (a + k) + d]
+		],
+		{"Introduce"[a, b, c, d, k, h], "LinearArithmetic"}
+	],
+	integerTheorem[
+		"pairOrderSelfAddition",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, a + b <= (a + n) + b],
+		{"Introduce"[a, b, n], "LinearArithmetic"}
+	],
+	integerTheorem[
+		"integerLessEqualQTrue",
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies["integerLessEqualQ"[x, y] == "true", "integerLessEqual"[x, y]]],
+		{
+			"Introduce"[x, y], "Induction"[x], "Introduce"[p], "Induction"[y], "Introduce"[q, h],
+			"Exact"[InductiveRecursor[Exists][
+				Function[{Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, q[[1]] + p[[2]] == (p[[1]] + q[[2]]) + k]]},
+					"integerLessEqual"[QuotientIntroduction["integerRelation", p], QuotientIntroduction["integerRelation", q]]
+				],
+				Function[{Typed[k, NonNegativeIntegers], Typed[e, q[[1]] + p[[2]] == (p[[1]] + q[[2]]) + k]},
+					"existsIntroduction"[k, "quotientSoundness"["orderWitnessRelation"[p[[1]], p[[2]], q[[1]], q[[2]], k, e]]]
+				],
+				"lessEqualWitness"[p[[1]] + q[[2]], q[[1]] + p[[2]], "lessEqualTrue"[p[[1]] + q[[2]], q[[1]] + p[[2]], h]]
+			]]
+		}
+	],
+	integerTheorem[
+		"integerLessEqualQSelfAddition",
+		ForAll[{Typed[x, Integers], Typed[n, NonNegativeIntegers]}, "integerLessEqualQ"[x, "integerAddition"[x, "integerOfNatural"[n]]] == "true"],
+		{
+			"Introduce"[x, n], "Induction"[x], "Introduce"[p],
+			"Exact"["lessEqualComplete"[p[[1]] + p[[2]], (p[[1]] + n) + p[[2]], "pairOrderSelfAddition"[p[[1]], p[[2]], n]]]
+		}
+	],
+	TypeTheoryTheorem[
+		"integerLessEqualQFalse",
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies["integerLessEqualQ"[x, y] == "false", Not["integerLessEqual"[x, y]]]],
+		Function[{Typed[x, Integers], Typed[y, Integers], Typed[e, "integerLessEqualQ"[x, y] == "false"], Typed[le, "integerLessEqual"[x, y]]},
+			InductiveRecursor[Exists][
+				Function[{Typed[w, "integerLessEqual"[x, y]]}, False],
+				Function[{Typed[n, NonNegativeIntegers], Typed[h, y == "integerAddition"[x, "integerOfNatural"[n]]]},
+					"falseNotTrue"["equalityTransitivity"[
+						"equalitySymmetry"[e],
+						"equalityTransitivity"["equalityCongruence"[Function[{Typed[z, Integers]}, "integerLessEqualQ"[x, z]], h], "integerLessEqualQSelfAddition"[x, n]]
+					]]
+				],
+				le
+			]
+		]
+	],
+	TypeTheoryDefinition[
+		"integerLessEqualDecidable",
+		Function[{Typed[x, Integers], Typed[y, Integers]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["integerLessEqualQ"[x, y] == b, Decidable["integerLessEqual"[x, y]]]],
+			Function[{Typed[e, "integerLessEqualQ"[x, y] == "false"]}, "decidableFalse"["integerLessEqualQFalse"[x, y, e]]],
+			Function[{Typed[e, "integerLessEqualQ"[x, y] == "true"]}, "decidableTrue"["integerLessEqualQTrue"[x, y, e]]],
+			"integerLessEqualQ"[x, y]
+		]["equalityReflexivity"["integerLessEqualQ"[x, y]]]],
+		"Instance" -> True
 	]
 }

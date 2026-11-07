@@ -113,7 +113,7 @@ TypeTheoryFormalize[next, "Integers"]
 formalized = TypeTheoryEnvironment["Integers", TypeTheoryFormalize[next, "Integers"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 334 constants -->
+<!-- => TypeTheoryEnvironment summary box: 346 constants -->
 
 ```wl
 TypeTheoryType[next, formalized]
@@ -391,7 +391,7 @@ square[x_Integer] := x^2 + 1;
 TypeTheoryEnvironment["Integers", TypeTheoryFormalize[square, "Integers"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 333 constants -->
+<!-- => TypeTheoryEnvironment summary box: 345 constants -->
 
 ---
 

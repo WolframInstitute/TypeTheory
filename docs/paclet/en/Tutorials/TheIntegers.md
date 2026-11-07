@@ -20,7 +20,7 @@ The environment, the prelude with the integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 332 constants -->
+<!-- => TypeTheoryEnvironment summary box: 344 constants -->
 
 [Integers]() is the quotient of pairs by a relation, and shows as ℤ:
 
@@ -285,4 +285,4 @@ The theorems of the integers are constants named by strings. These are those the
 KeyDrop[Information[TypeTheoryEnvironment["Integers"], "Theorems"], Keys[Information[TypeTheoryEnvironment["Prelude"], "Theorems"]]]
 ```
 
-<!-- => <|"integerNegationRespects" -> ..., ..., "integerAdditionCommutativity" -> ∀_x∶ℤ ∀_y∶ℤ x + y == y + x, ...|>, 57 theorems -->
+<!-- => <|"integerNegationRespects" -> ..., ..., "integerAdditionCommutativity" -> ∀_x∶ℤ ∀_y∶ℤ x + y == y + x, ...|>, 66 theorems -->
