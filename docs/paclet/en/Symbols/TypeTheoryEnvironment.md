@@ -30,7 +30,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 <code>[TypeTheoryEnvironment]()["Rationals"]</code> gives the integers with the rationals, a quotient of pairs of an integer and a natural number, and the laws of a field.
 
-<code>[TypeTheoryEnvironment]()["Machine"]</code> gives the integers with the 64-bit integers of the compiler's typed entries, a subtype of the integers in [-2^63, 2^63), whose operations give `Failure["IntegerOverflow", <||>]`, the leave of a typed entry, where a result is out of range.
+<code>[TypeTheoryEnvironment]()["Machine"]</code> gives the integers with the 64-bit integers of the compiler's typed entries, `"Integer64"`, as the compiler and [NumericArray]() name them, or `"MachineInteger"`, a subtype of the integers in [-2^63, 2^63), whose operations give `Failure["IntegerOverflow", <||>]`, the leave of a typed entry, where a result is out of range.
 
 <code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
 

@@ -15,10 +15,13 @@ machine = TypeTheoryEnvironment["Machine"]
 VerificationTest[
 	{
 		Length[Information[machine, "Constants"]] - Length[Information[TypeTheoryEnvironment["Integers"], "Constants"]],
-		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", machine]], TypeTheoryTerm[TypeSpecifier[{"Int64", "Int64"} -> ("Int64" | Failure)], machine]],
-		TypeTheoryAxiomClosure[TypeTheoryTerm["naturalInt64Range", machine]]
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", machine]], TypeTheoryTerm[TypeSpecifier[{"Integer64", "Integer64"} -> ("Integer64" | Failure)], machine]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["naturalInteger64Range", machine]],
+		(* the compiler's names for the types *)
+		DefinitionallyEqualQ[TypeTheoryTerm["MachineInteger", machine], TypeTheoryTerm["Integer64", machine]],
+		DefinitionallyEqualQ[TypeTheoryTerm["Boolean", machine], TypeTheoryTerm[Booleans, machine]]
 	},
-	{10, True, <|"quotientSoundness" -> "Proposition"|>},
+	{12, True, <|"quotientSoundness" -> "Proposition"|>, True, True},
 	TestID -> "The-machine-integers-extend-the-integers"
 ]
 
@@ -38,8 +41,8 @@ VerificationTest[
 VerificationTest[
 	Module[{three, half},
 		(* a symbol whose value is a finished proof stands for its proof in a term *)
-		three = TypeTheoryProof[TypeTheoryTerm["int64Range"[Typed[3, Integers]], machine], {"Decide"}];
-		half = TypeTheoryProof[TypeTheoryTerm["int64Range"[Typed[4611686018427387904, Integers]], machine], {"Decide"}];
+		three = TypeTheoryProof[TypeTheoryTerm["integer64Range"[Typed[3, Integers]], machine], {"Decide"}];
+		half = TypeTheoryProof[TypeTheoryTerm["integer64Range"[Typed[4611686018427387904, Integers]], machine], {"Decide"}];
 		{
 			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machinePlus"["subtype"[Typed[3, Integers], three], "subtype"[Typed[3, Integers], three]], machine]]],
 			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machineTimes"["subtype"[Typed[3, Integers], three], "subtype"[Typed[3, Integers], three]], machine]]],

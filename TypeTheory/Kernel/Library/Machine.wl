@@ -8,15 +8,17 @@ integer it computes where that integer is in range, and a failure, Failure["Inte
 not: a typed entry of the compiler leaves its machine code for the generic code of the Wolfram Language where a
 value is out of its type, and the failure is that leave.
 
-	"Int64"                          Subtype["int64Range"], an integer x with -2^63 <= x < 2^63
+	"Integer64"                      Subtype["integer64Range"], an integer x with -2^63 <= x < 2^63, as the
+	                                 compiler and NumericArray name the type
+	"MachineInteger", "Boolean"      the compiler's other names: "Integer64" on a 64-bit machine, and the Booleans
 	"machineResult"[x]               the machine integer of x where x is in range, "left", and the failure where it
-	                                 is not, "right": Int64 | Failure
+	                                 is not, "right": Integer64 | Failure
 	"machinePlus", "machineTimes"    the sum and the product of machine integers, as machine results
 
 The range is decided by the order of the integers, "integerLessEqualDecidable", so a machine result of literals
 computes: "machineResult"[5] is the machine integer 5, and "machineResult"[2^63] the failure. Where an exact result is
 in range it is the machine value, "machineResultInRange", and the natural numbers below 2^63 are machine integers,
-"naturalInt64Range": the first steps of the bridge from the machine's arithmetic to the mathematics, which
+"naturalInteger64Range": the first steps of the bridge from the machine's arithmetic to the mathematics, which
 TypeTheoryFormalize[f, "Machine"] is to state of a compiled function.
 *)
 
@@ -60,51 +62,54 @@ addMachineDeclaration[environment_, declaration_] := TypeTheoryEnvironment[envir
 (* the bounds written as literals, never as powers, which the integers would compute one factor at a time *)
 $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854775808}, {
 	TypeTheoryDefinition["machineDecision", Function[{Typed[q, TypeUniverse[0]], Annotation[Typed[d, Decidable[q]], "InstanceImplicit"]}, d]],
-	TypeTheoryDefinition["int64Range", Typed[Typed[x, Integers] |-> Typed[lower, Integers] <= x && x < Typed[upper, Integers], Integers -> TypeUniverse[0]]],
-	TypeTheoryDefinition["Int64", Subtype["int64Range"]],
+	TypeTheoryDefinition["integer64Range", Typed[Typed[x, Integers] |-> Typed[lower, Integers] <= x && x < Typed[upper, Integers], Integers -> TypeUniverse[0]]],
+	TypeTheoryDefinition["Integer64", Subtype["integer64Range"]],
+	(* the compiler's names: "MachineInteger" is "Integer64" on a 64-bit machine, and "Boolean" the Booleans *)
+	TypeTheoryDefinition["MachineInteger", "Integer64"],
+	TypeTheoryDefinition["Boolean", Booleans],
 	TypeTheoryDefinition["machineResult", Typed[
 		Typed[x, Integers] |-> InductiveRecursor[Decidable][
-			Typed[d, Decidable["int64Range"[x]]] |-> "Int64" | Failure,
-			Typed[h, Not["int64Range"[x]]] |-> Typed["right"[Failure["IntegerOverflow", <||>]], "Int64" | Failure],
-			Typed[h, "int64Range"[x]] |-> Typed["left"["subtype"[x, h]], "Int64" | Failure],
-			"machineDecision"["int64Range"[x]]
+			Typed[d, Decidable["integer64Range"[x]]] |-> "Integer64" | Failure,
+			Typed[h, Not["integer64Range"[x]]] |-> Typed["right"[Failure["IntegerOverflow", <||>]], "Integer64" | Failure],
+			Typed[h, "integer64Range"[x]] |-> Typed["left"["subtype"[x, h]], "Integer64" | Failure],
+			"machineDecision"["integer64Range"[x]]
 		],
-		Integers -> ("Int64" | Failure)
+		Integers -> ("Integer64" | Failure)
 	]],
 	(* an exact result in range is the machine value, with no overflow: the decision of the range, whatever the instance,
 	   takes its true case, and any two proofs of the range are one *)
 	TypeTheoryTheorem["machineResultInRange",
-		ForAll[{Typed[x, Integers], Typed[h, "int64Range"[x]]}, "machineResult"[x] == Typed["left"["subtype"[x, h]], "Int64" | Failure]],
-		Function[{Typed[x, Integers], Typed[h, "int64Range"[x]]}, InductiveRecursor[Decidable][
-			Typed[d, Decidable["int64Range"[x]]] |-> InductiveRecursor[Decidable][
-				Typed[e, Decidable["int64Range"[x]]] |-> "Int64" | Failure,
-				Typed[k, Not["int64Range"[x]]] |-> Typed["right"[Failure["IntegerOverflow", <||>]], "Int64" | Failure],
-				Typed[k, "int64Range"[x]] |-> Typed["left"["subtype"[x, k]], "Int64" | Failure],
+		ForAll[{Typed[x, Integers], Typed[h, "integer64Range"[x]]}, "machineResult"[x] == Typed["left"["subtype"[x, h]], "Integer64" | Failure]],
+		Function[{Typed[x, Integers], Typed[h, "integer64Range"[x]]}, InductiveRecursor[Decidable][
+			Typed[d, Decidable["integer64Range"[x]]] |-> InductiveRecursor[Decidable][
+				Typed[e, Decidable["integer64Range"[x]]] |-> "Integer64" | Failure,
+				Typed[k, Not["integer64Range"[x]]] |-> Typed["right"[Failure["IntegerOverflow", <||>]], "Integer64" | Failure],
+				Typed[k, "integer64Range"[x]] |-> Typed["left"["subtype"[x, k]], "Integer64" | Failure],
 				d
-			] == Typed["left"["subtype"[x, h]], "Int64" | Failure],
-			Typed[k, Not["int64Range"[x]]] |-> "falseElimination"[k[h]],
-			Typed[k, "int64Range"[x]] |-> "equalityReflexivity"[Typed["left"["subtype"[x, h]], "Int64" | Failure]],
-			"machineDecision"["int64Range"[x]]
+			] == Typed["left"["subtype"[x, h]], "Integer64" | Failure],
+			Typed[k, Not["integer64Range"[x]]] |-> "falseElimination"[k[h]],
+			Typed[k, "integer64Range"[x]] |-> "equalityReflexivity"[Typed["left"["subtype"[x, h]], "Integer64" | Failure]],
+			"machineDecision"["integer64Range"[x]]
 		]]
 	],
-	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Int64" -> "Int64" -> ("Int64" | Failure)]],
-	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Int64" -> "Int64" -> ("Int64" | Failure)]],
+	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
+	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	(* the natural numbers below 2^63 are machine integers, the arithmetic stated of the bound so that LinearArithmetic
 	   reads it as an offset *)
 	(* the arithmetic stated of a bound b, not of the literal, which LinearArithmetic then never meets *)
-	machineTheorem["int64LowerRelation", ForAll[{Typed[m, NonNegativeIntegers]}, m + (upper + 0) == (0 + (m + upper)) + 0], {"Introduce"[m], "LinearArithmetic"}],
-	machineTheorem["int64UpperRelation",
+	machineTheorem["integer64LowerRelation", ForAll[{Typed[m, NonNegativeIntegers]}, m + (upper + 0) == (0 + (m + upper)) + 0], {"Introduce"[m], "LinearArithmetic"}],
+	machineTheorem["integer64UpperRelation",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[upper == m + 1 + k, upper + (0 + 0 + 0) == ((m + 1) + k) + 0]],
 		{"Introduce"[m, k, e], "LinearArithmetic"}
 	],
-	machineTheorem["naturalInt64Range",
-		ForAll[{Typed[m, NonNegativeIntegers]}, Implies[m < upper, "int64Range"["integerOfNatural"[m]]]],
+	machineTheorem["naturalInteger64Range",
+		ForAll[{Typed[m, NonNegativeIntegers]}, Implies[m < upper, "integer64Range"["integerOfNatural"[m]]]],
 		{
 			"Introduce"[m, h], "Constructor",
-			"Exact"["existsIntroduction"[m + upper, "quotientSoundness"["int64LowerRelation"[m]]]],
+			"Exact"["existsIntroduction"[m + upper, "quotientSoundness"["integer64LowerRelation"[m]]]],
 			"Exact"[InductiveRecursor[Exists][
 				Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, upper == m + 1 + k]] |-> "integerOfNatural"[m] < Typed[upper, Integers],
-				{Typed[k, NonNegativeIntegers], Typed[e, upper == m + 1 + k]} |-> "existsIntroduction"[k, "quotientSoundness"["int64UpperRelation"[m, k, e]]],
+				{Typed[k, NonNegativeIntegers], Typed[e, upper == m + 1 + k]} |-> "existsIntroduction"[k, "quotientSoundness"["integer64UpperRelation"[m, k, e]]],
 				"lessEqualWitness"[m + 1, upper, h]
 			]]
 		}
