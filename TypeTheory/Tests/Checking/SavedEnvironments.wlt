@@ -191,4 +191,28 @@ VerificationTest[
 	TestID -> "A-file-of-another-kernel-reads-only-with-a-check"
 ]
 
+(* whether a quotient is trusted is decided where the axiom closure asks, by its equations in the environment, so the
+   closure is the same for an environment built, saved and read back, and read back with its declarations checked
+   again: a projection registered as the quotient fails its equations and is named *)
+VerificationTest[
+	With[
+		{
+			lied = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition[
+					FirstNumber,
+					Typed[Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, m], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]
+				],
+				TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Quotient" -> FirstNumber|>]
+			}]
+		},
+		Export[savedFile["lied"], lied];
+		Map[
+			Function[environment, TypeTheoryAxiomClosure[TypeTheoryTerm[Typed["equalityReflexivity"[FirstNumber[2, 3]], FirstNumber[2, 3] == 0], environment]]],
+			{lied, TypeTheoryEnvironment[File[savedFile["lied"]]], TypeTheoryEnvironment[File[savedFile["lied"]], "Check" -> True]}
+		]
+	],
+	ConstantArray[<|FirstNumber -> "Registration"|>, 3],
+	TestID -> "A-trusted-quotient-is-named-alike-before-and-after-saving"
+]
+
 DeleteDirectory[directory, DeleteContents -> True]
