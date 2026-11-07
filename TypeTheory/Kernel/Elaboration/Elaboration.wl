@@ -1563,9 +1563,11 @@ meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
 		$pendingInstances = $pendingInstances,
 		$elaborationTrace = $elaborationTrace
 	},
-	TrueQ @ Quiet @ catchKernelFailure[
+	(* a trial that goes deeper than the kernel can recurse decides nothing, and the failure goes on, so that another
+	   meaning is not chosen for it *)
+	Replace[Quiet @ catchKernelFailure[
 		With[{result = elaborateMeaning[meaning, arguments, expected]}, expected === None || unify[Last[result], expected]]
-	]
+	], {exhausted : Failure["RecursionLimit", _] :> throwFailure[exhausted], result_ :> TrueQ[result]}]
 ]
 
 (* the constant itself, applied to the arguments; a && b && c is a && (b && c) for propositions, as Lean's

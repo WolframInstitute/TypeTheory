@@ -458,6 +458,15 @@ stuckQ[context_, _, freeVariable[id_]] := ! KeyExistsQ[Lookup[context, id, <||>]
 stuckQ[context_, settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] := stuckQ[context, settings, argument]
 stuckQ[context_, settings_, application[application[constantReference[addition_, {}], left_], right_]] /; addition === Lookup[settings["Operations"], "Addition"] :=
 	stuckQ[context, settings, left] || stuckQ[context, settings, right]
+(* a product, a power or a difference by a registered operation, read by the defining equations its registration checked:
+   t s and t^s are stuck where s is, and where t is and s a positive literal, as t (k + 1) == t k + t and t^(k + 1) ==
+   t^k t leave t in the sum or the product, while t 0 == 0 and t^0 == 1 are literals; t - s is stuck where either is,
+   as t - (k + 1) == predecessor[t - k]. A product of a variable by a literal is so no literal at once, where reading
+   its value would unfold it one step for each unit of the literal *)
+stuckQ[context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; MemberQ[{"Multiplication", "Power"}, Lookup[settings["Roles"], Key[operation]]] :=
+	stuckQ[context, settings, right] || (stuckQ[context, settings, left] && MatchQ[right, naturalLiteral[_Integer ? Positive]])
+stuckQ[context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; Lookup[settings["Roles"], Key[operation]] === "Subtraction" :=
+	stuckQ[context, settings, left] || stuckQ[context, settings, right]
 stuckQ[_, _, _] := False
 
 zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]

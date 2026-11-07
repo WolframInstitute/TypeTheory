@@ -288,8 +288,9 @@ TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure 
 ]
 
 
-(* the kernel checks each term as elaboration finishes, so the two compared are checked *)
-DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := TrueQ @ catchKernelFailure @ With[
+(* the kernel checks each term as elaboration finishes, so the two compared are checked; a comparison that goes deeper than
+   the kernel can recurse is undecided, a failure that names the two terms, not False *)
+DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[catchKernelFailure @ With[
 	{environment = sharedEnvironment[first, second], universeParameters = universeParameterNames[{termSyntax[first], termSyntax[second]}]},
 	{
 		terms = {
@@ -298,7 +299,13 @@ DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := TrueQ @ cat
 		}
 	},
 	withCheckedTerms[definitionallyEqualQ[environment, <||>, First[terms], Last[terms]]]
-]
+], {
+	exhausted : Failure["RecursionLimit", _] :> Failure["RecursionLimit", <|
+		"MessageTemplate" -> "Deciding whether `1` and `2` are definitionally equal goes deeper than the kernel can recurse, `3` calls: the two are not known to differ.",
+		"MessageParameters" -> {first, second, First[exhausted["MessageParameters"]]}
+	|>],
+	result_ :> TrueQ[result]
+}]
 
 
 WeakHeadNormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},

@@ -722,3 +722,21 @@ VerificationTest[
 	{{}, {}, "NoLinearCombination"},
 	TestID -> "NonlinearArithmetic-proves-products-of-inequalities"
 ]
+
+(* "NonlinearArithmetic" with large literals: the products of the hypothesis are scaled by literals near the bound, and
+   the kernel checks the proof without unfolding a product by a literal; the bound of a 64-bit multiplication,
+   n (n + 1) <= 2^63 - 1 below 3037000499, in well under a second *)
+VerificationTest[
+	{
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 32, n n <= 1024]], {"Introduce"[n, h], "NonlinearArithmetic"}]["Goals"],
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 1000, n n <= 1000000]], {"Introduce"[n, h], "NonlinearArithmetic"}]["Goals"],
+		With[{timed = AbsoluteTiming[TypeTheoryProof[
+			ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n (n + 1) <= 9223372036854775807]],
+			{"Introduce"[n, h], "NonlinearArithmetic"}
+		]]},
+			{Last[timed]["Goals"], First[timed] < 10}
+		]
+	},
+	{{}, {}, {{}, True}},
+	TestID -> "NonlinearArithmetic-proves-bounds-with-large-literals"
+]

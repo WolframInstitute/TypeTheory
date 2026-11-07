@@ -738,17 +738,20 @@ definitionallyEqualCases[_, _, _, _intervalUniverse] := False
 (* two elements of the interval are equal by their normal forms *)
 definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 	cubicalDeclaredQ[environment] && intervalEqualQ[environment, context, a, b],
-	Replace[naturalOffsetsEqualQ[environment, context, a, b], None :> reducedEqualQ[environment, context, a, b]]
+	reducedEqualQ[environment, context, a, b]
 ]
 
 (* Lean's order: each side reduced as far as it reduces without unfolding a definition, then, where neither
-   reduces, proof irrelevance, which decides two proofs by their propositions, then lazy delta. Proof
-   irrelevance is asked once for the two sides as they reduce no further, never of the sides on the way. *)
+   reduces, the offsets of natural numbers, then proof irrelevance, which decides two proofs by their propositions,
+   then lazy delta. The offset rule and proof irrelevance are asked once for the two sides as they reduce no further,
+   never of the sides on the way: a beta-redex compared with its reduct, (x |-> x + 0)[t 2082] and t 2082 + 0, is
+   decided once the redex is reduced, where reading the offsets of the redex first unfolded t 2082 by one step for
+   each round of the comparison, linear in the literal. *)
 reducedEqualQ[environment_, context_, a_, b_] := coresEqualQ[environment, context, a, b, reducedHeadWithoutUnfolding[environment, context, a], reducedHeadWithoutUnfolding[environment, context, b]]
 
 coresEqualQ[environment_, context_, a_, b_, coreA_, coreB_] := If[ coreA =!= a || coreB =!= b,
 	definitionallyEqualQ[environment, context, coreA, coreB],
-	Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]
+	Replace[naturalOffsetsEqualQ[environment, context, a, b], None :> Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]]
 ]
 
 (* one definition applied to equal arguments at both heads, tried before unfolding it *)

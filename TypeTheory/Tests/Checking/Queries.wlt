@@ -585,3 +585,24 @@ VerificationTest[
 	{<|FirstNumber -> "Registration"|>, <||>},
 	TestID -> "The-axiom-closure-names-a-registration-the-kernel-trusts"
 ]
+
+(* a comparison that goes deeper than the kernel can recurse is undecided, a failure that names the two terms, not
+   False, which would say they differ: a doubling by recursion unfolds its literal one step for each unit, which the
+   kernel computes for 100 and not for 20000 *)
+VerificationTest[
+	With[
+		{
+			doubled = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition["doubled", Function[{Typed[k, NonNegativeIntegers]},
+					InductiveRecursor[NonNegativeIntegers][Function[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers], 0, Function[{Typed[n, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, r + 2], k]
+				]]
+			}]
+		},
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm["doubled"[100], doubled], TypeTheoryTerm[200, doubled]],
+			Replace[DefinitionallyEqualQ[TypeTheoryTerm["doubled"[20000], doubled], TypeTheoryTerm[40000, doubled]], failure_Failure :> {First[failure], Length[failure["MessageParameters"]]}]
+		}
+	],
+	{True, {"RecursionLimit", 3}},
+	TestID -> "DefinitionallyEqualQ-that-runs-out-of-recursion-is-a-failure-not-False"
+]

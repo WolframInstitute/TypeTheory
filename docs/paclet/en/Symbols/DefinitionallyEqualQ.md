@@ -20,6 +20,7 @@ RelatedGuides: [TypeTheory]
 - A term without an environment takes the other's, and two without one are in the default environment, the prelude.
 - The kernel checks each term before they are compared. A term that does not type-check is not equal to anything, and neither are two terms that carry different environments: [DefinitionallyEqualQ]() gives [False]().
 - Equality by computation is decidable but not every equation that holds is one: `0 + n == n` holds for every natural number `n`, by induction, and `0 + n` does not compute to `n`.
+- A comparison that goes deeper than the kernel can recurse, as one that unfolds a definition by recursion one step for each unit of a large literal, is undecided: [DefinitionallyEqualQ]() gives a [Failure]() tagged `"RecursionLimit"` that names the two terms, not [False](), which would say they differ. An operation registered with [TypeTheoryNaturalNumbers]() computes on literals at once.
 - [DefinitionallyEqualQ]() does not hold its arguments; each is a [TypeTheoryTerm]().
 
 ## Basic Examples

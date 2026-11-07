@@ -575,3 +575,33 @@ VerificationTest[
 	{True, True, True, False},
 	TestID -> "The-polymorphic-identity-applies-to-itself-and-pairs-project"
 ]
+
+(* a beta-redex is compared with its reduct in one step, however large a literal it holds: the sides are reduced
+   without unfolding before their offsets are read, and a product of a variable by a positive literal is no literal at
+   once, where reading its value unfolded t 2082 to t 2081 + t once for each unit, past the kernel's recursion limit *)
+VerificationTest[
+	Map[
+		Function[k, With[
+			{timed = AbsoluteTiming[DefinitionallyEqualQ[
+				TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> (Typed[x, NonNegativeIntegers] |-> x + n^2)[(32 n) k]],
+				TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> (32 n) k + n^2]
+			]]},
+			{Last[timed], First[timed] < 1}
+		]],
+		{2082, 9223372036854775807}
+	],
+	{{True, True}, {True, True}},
+	TestID -> "A-redex-over-a-product-by-a-large-literal-is-equal-to-its-reduct-at-once"
+]
+
+VerificationTest[
+	Map[
+		Function[k, DefinitionallyEqualQ[
+			TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> (Typed[x, NonNegativeIntegers] |-> x + 0)[(32 n) k]],
+			TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> (32 n) k + 0]
+		]],
+		{2082, 9223372036854775807}
+	],
+	{True, True},
+	TestID -> "A-redex-of-a-sum-with-zero-over-a-large-product-is-its-reduct"
+]

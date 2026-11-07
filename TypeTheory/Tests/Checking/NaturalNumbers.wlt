@@ -480,3 +480,18 @@ VerificationTest[
 	{0, <|FirstNumber -> "Registration"|>, True},
 	TestID -> "A-quotient-that-fails-its-equations-is-trusted-and-named"
 ]
+
+(* the products, powers and differences read as stuck are those no literal can be, by the operations' defining equations:
+   n 0 and n^0 still compute to 0 and 1, and n - 0 to n, where n 5, n^5 and n - 5 are no literal *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n 0], TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> 0]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n^0], TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> 1]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n - 0], TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n 5], TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n 4 + n]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> n^5], TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> 5]],
+		DefinitionallyEqualQ[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> 3 5], TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> 15]]
+	},
+	{True, True, True, True, False, True},
+	TestID -> "Products-powers-and-differences-compute-to-literals-where-their-equations-give-them"
+]

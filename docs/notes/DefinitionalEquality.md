@@ -135,7 +135,7 @@ under eager unfolding point instead at the order of unfolding: §6.
 | 1. quick: success set (or equivalence manager); binders, sorts, literals of the same kind | `===`, the cache; `definitionallyEqualCases`' rules for sorts, literals and binders |
 | 2. `decide`: if `t` has no free variables (or under `eagerReduce`) and `s` is `Bool.true`, `whnf(t)` and compare with `Bool.true` | none |
 | 3. `whnf_core` of both, without δ and with cheap projections; the quick check again if either changed | `reducedEqualQ`: `reducedHeadWithoutUnfolding` of both, without δ, but its projection case (`reduceProjection`) reduces the structure by `weakHeadNormalForm`, δ included, as Lean's `whnf_core` with `cheap_proj = false` would; the whole of `definitionallyEqualQ` if either changed |
-| 4. proof irrelevance | `proofIrrelevance` in `reducedEqualQ`, where neither side reduced; inside a check its type queries infer only (`typeQuery`) |
+| 4. proof irrelevance | `naturalOffsetsEqualQ`, then `proofIrrelevance`, in `coresEqualQ`, where neither side reduced: the offset rule reads the sides as they reduce no further (since 2026-11-08; before, it read them first, a beta-redex unreduced); inside a check the type queries infer only (`typeQuery`) |
 | 5. lazy δ: hints order the unfolding; a projection application on one side is unfolded before the definition on the other; the argument shortcut with the failure set; offsets of `Nat.succ`; the quick check after each step | `lazyDeltaEqualQ`: a projection function is an abbreviation (`"Hint" -> "Abbreviation"`), which unfolds before a regular definition, two of them together; of two regular definitions the higher first; no projection rule, nor a need for one, since 3 reduced every projection it could; the arguments of one regular definition at both heads, from the first step on (`sameHeadArgumentsEqualQ` in `lazyDeltaStep`); identity between steps |
 | 6. the same constant with equal levels; the same free variable | in `headsEqualQ`, under `spinesEqualQ` |
 | 7. projections of the same index: `lazy_delta_proj_reduction` of the structures | `headsEqualQ` compares the structure terms, but only of projections whose structures 3 left stuck |
@@ -172,6 +172,14 @@ The differences that can cost minutes:
   - **Theorems.** Lean also unfolds theorems, which `get_hints` gives opaque hints, so they unfold
     last. TypeTheory never unfolds a theorem (`Kernel.md`). Proof irrelevance decides most
     comparisons of proofs, so this rarely matters.
+- **Offsets and literals (4, 5).** Lean compares offsets of `Nat.succ` inside lazy δ; TypeTheory
+  once, at 4, on the sides as they reduce no further, so a beta-redex is reduced before its
+  offsets are read: `(x ↦ x + 0)[t 2082]` against `t 2082 + 0` is one step. Reading a side's
+  offset, and the value of a literal argument (`literalValue`), never walks a literal one step at
+  a time: a product or power of a variable by a positive literal, and a difference with a
+  variable, is stuck at once (`stuckQ`, by the defining equations the registration checked), where
+  reading its value unfolded `t·2082` to `t·2081 + t` once for each unit, past the recursion limit
+  at about 500. With both, `n ≤ 3037000499 ⇒ n (n + 1) ≤ 2⁶³ − 1` checks in 0.07 s.
 - **`decide` (2).** The five `decide` proofs on `ZMod` characters are the shape Lean's shortcut serves:
   `Eq.refl true : decide p = true`, decided by evaluating the closed side in one `whnf`.
   `TypeChecking.wl` has no such path, so the comparison runs through lazy δ.
@@ -214,8 +222,10 @@ What they show:
 - **The projection rule moves none of these.** Its case is `le_union`'s chain of structure
   comparisons (§7.2), where it takes the eager order's root from over 300 s to 181 s.
 
-The kernel decides in Lean's own order (§6): reduction without unfolding, then proof irrelevance
-where neither side reduces, then lazy δ, with infer-only queries inside a check. It takes the four
+The kernel decides in Lean's own order (§6): reduction without unfolding, then the offsets of natural
+numbers and proof irrelevance where neither side reduces, then lazy δ, with infer-only queries inside a
+check. A check that goes deeper than the kernel can recurse is undecided, a `"RecursionLimit"` failure,
+never `False`. It takes the four
 failing checks in 0.39 s, 0.14 s, 0.09 s and 1.69 s, 27× to 611× faster than the eager order.
 
 ### 7.2 `le_union`'s root

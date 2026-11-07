@@ -1145,10 +1145,18 @@ arithmeticReduced[environment_, context_, term_] := Replace[term, {
 
 (* the goal solved by a proof that the kernel checks first; the proof shares its subterms many times
    over, which the kernel's caches check once *)
+(* a check that goes deeper than the kernel can recurse leaves the proof undecided, which a rejection would misstate *)
 solvedByCheckedProof[data_, goal_, current_, proof_] := (
-	Replace[catchKernelFailure[withKernelCaches[checkHasType[data["Environment"], current["Context"], proof, current["Type"]]]],
+	Replace[catchKernelFailure[withKernelCaches[checkHasType[data["Environment"], current["Context"], proof, current["Type"]]]], {
+		exhausted : Failure["RecursionLimit", _] :> tacticFailure[
+			"RecursionLimit",
+			"The kernel cannot finish checking the proof built for the goal `1`: it goes deeper than `2` calls, so the proof is not known to be wrong.",
+			data,
+			goal,
+			{First[exhausted["MessageParameters"]]}
+		],
 		failure_Failure :> tacticFailure["ProofRejected", "The kernel rejects the proof built for the goal `1`: `2`", data, goal, {failureText[failure]}]
-	];
+	}];
 	solveGoal[data, goal, proof, {}]
 )
 
