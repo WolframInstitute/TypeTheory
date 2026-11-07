@@ -94,7 +94,7 @@ PackageScoped[$displayTooltips]
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
-$displayTooltips::usage = "$displayTooltips is True where a display shows the types of constants and bound variables on mouseover, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_NOTEBOOK_BOXES is \"True\"."
+$displayTooltips::usage = "$displayTooltips is True where a display shows the types of its parts on mouseover, of constants, bound variables, numbers, strings and operators, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_NOTEBOOK_BOXES is \"True\"."
 prependedElements::usage = "prependedElements[syntax] gives the elements of the list literal syntax, {} where it is none."
 ruleSyntaxQ::usage = "ruleSyntaxQ[syntax] gives True if syntax is a rule, lhs -> rhs or lhs :> rhs."
 associationPairsQ::usage = "associationPairsQ[syntax] gives True if syntax is a list literal of pairs, the pairs of an association written out."
@@ -107,7 +107,8 @@ $displayColors::usage = "$displayColors is the Association of the colors a displ
 
 (* Naturals, written for the natural numbers, shows as they do, unless the term binds a variable of that name *)
 typeTheoryBoxes[syntax_, form_] := displayed[syntax, form,
-	quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @ Replace[heldFromSyntax[displaySyntax[syntax]], HoldComplete[display_] :> MakeBoxes[display, form]]
+	inspectableBoxes @ quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @
+		Replace[heldFromSyntax[inspectable[displaySyntax[syntax]]], HoldComplete[display_] :> MakeBoxes[display, form]]
 ]
 
 (* the state a display of the syntax of a term reads while it is built, in a notebook and in text alike *)
@@ -124,7 +125,7 @@ displayed[syntax_, form_, body_] := Block[
 		$displayForm = form,
 		$notationHeads = notationHeads[]
 	},
-	body
+	Block[{$displayTrace = displayTrace[syntax], $operatorTips = <||>, $leafTips = <||>, $tipKeys = <||>, $tipBoxes = <||>, $coreTypeSyntax = <||>}, body]
 ]
 
 (* in text, as a front end that shows OutputForm prints it, a term shows as it shows in a notebook; a Format rule with a
@@ -238,6 +239,7 @@ $looseOperators = {"\[And]", "\[Or]", "\[Xor]", "\[Equivalent]", "\[Implies]"}
 
 quantifierEndedQ[RowBox[{SubscriptBox["\[ForAll]" | "\[Exists]", _], _}]] := True
 quantifierEndedQ[RowBox[{"\[Not]", operand_}]] := quantifierEndedQ[operand]
+quantifierEndedQ[StyleBox[operand_, _String, ___]] := quantifierEndedQ[operand]
 quantifierEndedQ[RowBox[{__, operator_String, last_}]] /; MemberQ[$looseOperators, operator] := quantifierEndedQ[last]
 quantifierEndedQ[_] := False
 
@@ -293,7 +295,17 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 
 
 (* the arguments are rewritten first, so each rule sees displayed arguments *)
-displaySyntax[syntaxApplication[head_, arguments_List]] := displayApplication[head, displaySyntax /@ arguments]
+displaySyntax[node : syntaxApplication[head_, arguments_List]] := registered[node, displayApplication[head, displaySyntax /@ arguments]]
+(* with types on mouseover, a - 3 and a - b, written Plus[a, -3] and Plus[a, Times[-1, b]], show as Subtract[a, 3] and
+   Subtract[a, b], which look the same, so that 3 and b are parts of their own, with their own types, where the sign
+   would take them in *)
+displaySyntax[node : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxInteger[k_Integer ? Negative]}]] /; TrueQ[$tooltipsShown] :=
+	registered[node, syntaxHead[Subtract, {displaySyntax[first], typeTooltip[syntaxInteger[-k], subtrahendTip[k]]}]]
+(* the number subtracted has the type of the negative number written, -3 of an expression, or of the number elaboration
+   subtracts, 3 of a subtraction of numbers *)
+subtrahendTip[k_Integer] := Replace[tracedType[syntaxInteger[k]], None :> tracedType[syntaxInteger[-k]]]
+displaySyntax[node : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}]}]] /;
+	TrueQ[$tooltipsShown] := registered[node, syntaxHead[Subtract, {displaySyntax[first], displaySyntax[second]}]]
 (* products, sums, pairs and lists nested to the right show as one row, as Lean shows them *)
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[CartesianProductType]], {_, _}]] :=
 	syntaxHead[Cross, displaySyntax /@ rightNested[CartesianProductType, syntax]]
@@ -354,7 +366,7 @@ displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[RepeatedNull]], {eleme
    strings in quotes, its arguments in order, a sequence of them that is no literal spliced in; where a part is none of
    these, it shows as Construct[h, a, ...], the head and the arguments it is built from. The display holds the term, so
    what it shows copies as the term. *)
-displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
+displaySyntax[syntax : syntaxApplication[syntaxString["Construct"], {_, _}]] /; quotableQ[syntax] := quotedDisplay[unquoted[syntax]]
 displaySyntax[syntaxApplication[syntaxString["Construct"], {head_, sequence_}]] := syntaxHead[Construct, Prepend[pieceDisplay /@ constructedPieces[sequence], displaySyntax[head]]]
 displaySyntax[syntaxString["Construct"]] := syntaxSymbol[HoldComplete[Construct]]
 (* the constructor of failures shows as the Wolfram Language writes a failure, Failure[tag, details] *)
@@ -380,12 +392,12 @@ associationDisplay[rules_List] := tupleDisplay["\[LeftAssociation]", rules, "\[R
 ruleSyntaxQ[syntax_] := MatchQ[syntax, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]
 (* a natural number or a string where an expression is expected shows as itself, as it is an expression in the Wolfram
    Language *)
-displaySyntax[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {value_}]] := displaySyntax[value]
-displaySyntax[syntaxApplication[syntaxString["StringExpressionCoercion"], {value_}]] := displaySyntax[value]
-displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := displaySyntax[unquoted[syntax]]
+displaySyntax[syntaxApplication[syntaxString["NaturalExpressionCoercion"], {value_}]] := quotedDisplay[value]
+displaySyntax[syntaxApplication[syntaxString["StringExpressionCoercion"], {value_}]] := quotedDisplay[value]
+displaySyntax[syntax : syntaxApplication[syntaxString["atom"], {_}]] /; quotableQ[syntax] := quotedDisplay[unquoted[syntax]]
 (* a quotation, Unevaluated[e], shows as the expression it quotes, as the Wolfram Language passes e on; a string in it is a
    string, no name of a constant *)
-displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {quoted_}]] := displaySyntax[quoted /. syntaxString[text_String] :> syntaxOther[HoldComplete[text]]]
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Unevaluated]], {quoted_}]] := quotedDisplay[quoted /. syntaxString[text_String] :> syntaxOther[HoldComplete[text]]]
 (* a string in an expression shows in quotes, apart from the names of constants *)
 displaySyntax[syntaxOther[HoldComplete[text_String]]] := syntaxString[ToString[text, InputForm]]
 
@@ -709,8 +721,169 @@ typeTooltipped /: MakeBoxes[typeTooltipped[shown_, RawBoxes[tip_]], form_] := To
 
 typeTooltip[display_, None] := display
 typeTooltip[display_, typeSyntax_] := If[ TrueQ[$tooltipsShown],
-	syntaxHead[typeTooltipped, {display, syntaxOther[HoldComplete @@ {RawBoxes[Block[{$displayTooltips = False}, typeTheoryBoxes[typeSyntax, $displayForm]]]}]}],
+	syntaxHead[typeTooltipped, {display, syntaxOther[HoldComplete @@ {RawBoxes[tipBoxes[typeSyntax]]}]}],
 	display
+]
+
+(* the boxes of a type shown on mouseover, drawn once a display *)
+tipBoxes[typeSyntax_] := Lookup[$tipBoxes, Key[typeSyntax], $tipBoxes[typeSyntax] = Block[{$displayTooltips = False}, typeTheoryBoxes[typeSyntax, $displayForm]]]
+$tipBoxes = <||>
+
+(* What each piece of the term elaborated to, the constant at the head of an application and the type of a literal,
+   which the syntax alone does not tell: Times in n x^(n - 1) is a product of natural numbers, or of an expression n an
+   expression. A display that shows types elaborates its term once for them, in its environment; a term that does not
+   elaborate on its own, as one with variables of a proof's goal, shows the types of its constants only. *)
+$displayTrace = <||>
+$tracingDisplay = False
+displayTrace[syntax_] := If[ TrueQ[$tooltipsShown] && ! TrueQ[$tracingDisplay],
+	Block[{$tracingDisplay = True}, elaborationTrace[displayEnvironment[], syntax]],
+	<||>
+]
+
+(* The types on mouseover of the parts a display takes from its term, noted as each is shown: an application shows the
+   type of its head on its operators, as + and ==, or on its head and brackets, as AtomQ[x]; a part of an expression the
+   term quotes is an expression. A number shown alike with two types shows neither. *)
+$operatorTips = <||>
+$leafTips = <||>
+$quotedExpression = False
+
+registered[node_, display_] := (
+	If[ TrueQ[$tooltipsShown] && MatchQ[display, _syntaxApplication],
+		With[{tip = applicationTip[node]}, If[tip =!= None, noteOperatorTip[display, tip]]]
+	];
+	display
+)
+
+(* parts that show alike, as successor[k] and k + 1, are noted in order, as the display shows them, left to right *)
+noteOperatorTip[display_, tip_] := ($operatorTips[display] = Append[Lookup[$operatorTips, Key[display], {}], tip])
+takeOperatorTip[display_] := Replace[Lookup[$operatorTips, Key[display], {}], {
+	{first_, rest___} :> ($operatorTips[display] = {rest}; first),
+	{} -> None
+}]
+noteLeafTip[leaf_, tip_] := ($leafTips[leaf] = If[KeyExistsQ[$leafTips, leaf] && $leafTips[leaf] =!= tip, None, tip])
+
+applicationTip[node_] := If[TrueQ[$quotedExpression], expressionsTypeSyntax[], tracedHeadTip[node]]
+
+tracedHeadTip[node_] := Replace[Lookup[$displayTrace, Key[node], None], {
+	{term_, type_} :> headTip[First[applicationSpine[term]], node, type],
+	_ -> None
+}]
+
+(* the head of an expression put together is an expression; a function, rules, a quantifier and a universe, which no
+   constant heads, show their own type, as ↦ and :> show the type of the function *)
+headTip[constantReference[HoldComplete["Construct"], ___], _, _] := expressionsTypeSyntax[]
+headTip[constantReference[name_HoldComplete, ___], _, _] := constantTypeSyntax[name]
+headTip[_, syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse | Function | Rule | RuleDelayed | ForAll | Exists]], _], type_] /; closedCoreQ[type] := coreTypeSyntax[type]
+headTip[___] := None
+
+expressionsTypeSyntax[] := syntaxSymbol[HoldComplete[Expressions]]
+
+(* an expression the term quotes, its parts expressions, numbers and symbols alike *)
+quotedDisplay[syntax_] := With[{display = Block[{$quotedExpression = True}, displaySyntax[syntax]]},
+	If[TrueQ[$tooltipsShown], Scan[Function[leaf, noteLeafTip[leaf, expressionsTypeSyntax[]]], quotedLeaves[display]]];
+	display
+]
+
+quotedLeaves[syntaxApplication[syntaxSymbol[HoldComplete[Style | typeTooltipped]], _]] := {}
+quotedLeaves[syntaxApplication[_, arguments_List]] := Catenate[quotedLeaves /@ arguments]
+quotedLeaves[leaf : (_syntaxInteger | _syntaxOther | syntaxSymbol[HoldComplete[_Symbol]])] := {leaf}
+quotedLeaves[leaf : syntaxString[text_String]] /; StringStartsQ[text, "\""] := {leaf}
+quotedLeaves[_] := {}
+
+(* the type of a number, a string or a symbol that is no variable and no constant shown in bold: an expression where the
+   term quotes it, as the number in Unevaluated[1 + x], which elaborates to an atom of a natural number, or else what it
+   elaborated to; a constant of System, as AtomQ, or a type shown by its letter, as ℕ, also by its declaration *)
+leafTip[leaf_] := Replace[Lookup[$leafTips, Key[leaf], Missing[]], Missing[] :> tracedLeafType[leaf]]
+
+tracedLeafType[leaf : syntaxSymbol[held : HoldComplete[symbol_Symbol]]] /; Context[Unevaluated[symbol]] === "System`" :=
+	Replace[tracedType[leaf], None :> If[displayedConstantQ[held], constantTypeSyntax[held], None]]
+tracedLeafType[syntaxString[text_String]] /; KeyExistsQ[$displayedTypeNames, text] :=
+	With[{name = $displayedTypeNames[text]}, If[displayedConstantQ[name], constantTypeSyntax[name], None]]
+tracedLeafType[leaf_] := tracedType[leaf]
+
+tracedType[piece_] := Replace[Lookup[$displayTrace, Key[piece], None], {{_, type_} /; closedCoreQ[type] :> coreTypeSyntax[type], _ -> None}]
+
+$displayedTypeNames = <|
+	"\[DoubleStruckCapitalN]" -> HoldComplete[NonNegativeIntegers],
+	"\[DoubleStruckCapitalZ]" -> HoldComplete[Integers],
+	"\[DoubleStruckCapitalQ]" -> HoldComplete[Rationals],
+	"\[DoubleStruckCapitalB]" -> HoldComplete[Booleans],
+	"\[DoubleStruckCapitalS]\:00b9" -> HoldComplete[Circle]
+|>
+
+closedCoreQ[term_] := FreeQ[term, _metavariable | _freeVariable | _levelMetavariable | _boundVariable]
+
+$coreTypeSyntax = <||>
+coreTypeSyntax[type_] := Lookup[$coreTypeSyntax, Key[type], $coreTypeSyntax[type] = Quiet[Check[delaborate[displayEnvironment[], <||>, type], None]]]
+
+(* Once the display is written, each part noted gets its type: a number, a string or a symbol in a tooltip, an
+   application in a style named for its type, which keeps the parentheses the Wolfram Language gives the application,
+   and which inspectableBoxes replaces by tooltips on its operators. A part that an operator takes in, as -1 in a sum or
+   x^-1 in a product, is left as it is, so that it shows as before. *)
+inspectable[display_] := If[TrueQ[$tooltipsShown], inspectableSyntax[display, None], display]
+
+inspectableSyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[Style | typeTooltipped]], _], _] := syntax
+inspectableSyntax[syntax : syntaxApplication[head_, arguments_List], parent_] := With[
+	{
+		inspected = syntaxApplication[head, Map[Function[argument, inspectableSyntax[argument, head]], arguments]],
+		tip = takeOperatorTip[syntax]
+	},
+	If[tip === None || mergedQ[parent, syntax], inspected, operatorMarked[inspected, tip]]
+]
+inspectableSyntax[leaf : (_syntaxInteger | _syntaxString | _syntaxOther | _syntaxSymbol), parent_] := With[{tip = leafTip[leaf]},
+	If[tip === None || mergedQ[parent, leaf], leaf, typeTooltip[leaf, tip]]
+]
+inspectableSyntax[other_, _] := other
+
+mergedQ[syntaxSymbol[HoldComplete[Plus]], syntaxInteger[_Integer ? Negative] | syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[_Integer ? Negative], ___}]] := True
+mergedQ[syntaxSymbol[HoldComplete[Times]], syntaxInteger[_Integer ? Negative] | syntaxOther[HoldComplete[_Rational]] | syntaxApplication[syntaxSymbol[HoldComplete[Power]], {_, syntaxInteger[_Integer ? Negative]}]] := True
+mergedQ[syntaxSymbol[HoldComplete[Power]], syntaxInteger[_Integer ? Negative] | syntaxOther[HoldComplete[_Rational]]] := True
+(* m_, _h and #1 are written with the name itself *)
+mergedQ[syntaxSymbol[HoldComplete[Pattern | Blank | BlankSequence | BlankNullSequence | Optional | Slot | SlotSequence | MessageName]], _] := True
+mergedQ[_, _] := False
+
+$tipKeys = <||>
+operatorMarked[syntax : syntaxApplication[head_, arguments_List], tip_] := With[{key = "TypeTheoryInspectable" <> IntegerString[Length[$tipKeys] + 1]},
+	$tipKeys[key] = {tipBoxes[tip], head, Length[arguments]};
+	syntaxHead[Style, {syntax, syntaxString[key]}]
+]
+
+(* the boxes of each application marked with a type, innermost first: its operators, the strings MakeBoxes puts between
+   its arguments, as + and ==, or around them, as the head and brackets of f[x], each with the type on mouseover; an
+   application whose boxes have another shape, as x^y, has it on the whole *)
+inspectableBoxes[boxes_] := If[ $tipKeys === <||>,
+	boxes,
+	Replace[boxes, StyleBox[content_, key_String, ___] /; KeyExistsQ[$tipKeys, key] :> operatorTooltips[content, $tipKeys[key]], {0, Infinity}]
+]
+
+operatorTooltips[content_, {tip_, head_, arity_}] := Replace[{content, operatorTokenPositions[head, arity]}, {
+	{RowBox[elements_List], {length_, positions_List}} /; Length[elements] === length :> RowBox[MapAt[Function[token, TooltipBox[token, tip]], elements, List /@ positions]],
+	_ :> TooltipBox[content, tip]
+}]
+
+(* the positions of the operators in the boxes MakeBoxes gives an application of the head to placeholder arguments,
+   kept for the heads of System and of the paclet, whose notation does not change *)
+$operatorTokenPositions = <||>
+operatorTokenPositions[syntaxSymbol[held : HoldComplete[symbol_Symbol]], arity_Integer] := If[ fixedNotationQ[symbol],
+	Lookup[$operatorTokenPositions, Key[{held, arity, $displayForm}], $operatorTokenPositions[{held, arity, $displayForm}] = placeholderTokens[held, arity, $displayForm]],
+	placeholderTokens[held, arity, $displayForm]
+]
+operatorTokenPositions[_, _] := None
+
+SetAttributes[fixedNotationQ, HoldAllComplete]
+fixedNotationQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]}, context === "System`" || StringStartsQ[context, "WolframInstitute`TypeTheory`"]]
+
+placeholderTokens[HoldComplete[symbol_Symbol], arity_Integer, form_] := With[
+	{placeholders = Table["TypeTheoryPlaceholder" <> IntegerString[k], {k, arity}]},
+	With[{placeholderBoxes = Map[Function[placeholder, MakeBoxes[placeholder, form]], placeholders]},
+		Replace[Replace[HoldComplete @@ placeholders, HoldComplete[arguments___] :> MakeBoxes[symbol[arguments], form]], {
+			RowBox[elements_List] :> With[
+				{positions = Flatten[Position[Map[Function[element, StringQ[element] && ! MemberQ[placeholderBoxes, element]], elements], True]]},
+				If[positions === {}, None, {Length[elements], positions}]
+			],
+			_ -> None
+		}]
+	]
 ]
 
 (* the declared type of a constant of the display's environment, read back once a display; None where it has none *)

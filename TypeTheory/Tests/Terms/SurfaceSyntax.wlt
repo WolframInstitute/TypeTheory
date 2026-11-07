@@ -7,6 +7,10 @@ PacletDirectoryLoad[Directory[]]
 
 Needs["WolframInstitute`TypeTheory`"]
 
+(* the boxes of an expression as they show, each tooltip's type left out: a term shows the types of its parts on
+   mouseover, which change nothing it shows *)
+shownBoxes[expression_] := ToBoxes[expression] //. TooltipBox[shown_, ___] :> shown
+
 toSyntax = Symbol["WolframInstitute`TypeTheory`PackageScope`toSyntax"]
 heldFromSyntax = Symbol["WolframInstitute`TypeTheory`PackageScope`heldFromSyntax"]
 
@@ -51,7 +55,7 @@ VerificationTest[
 
 VerificationTest[
 	Map[
-		Function[term, With[{boxes = ToBoxes[term]}, {
+		Function[term, With[{boxes = shownBoxes[term]}, {
 			Count[boxes, RowBox[{"(", RowBox[{SubscriptBox["\[ForAll]" | "\[Exists]", _], _}] | RowBox[{"\[Not]", _}], ")"}], Infinity],
 			Count[boxes, RowBox[{SubscriptBox["\[ForAll]" | "\[Exists]", _], _}], Infinity]
 		}]],
@@ -106,7 +110,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	Cases[ToBoxes[TypeTheoryTerm[{TypeUniverse[0], TypeUniverse[1], NonNegativeIntegers}]], "\"Prop\"" | "\"Type\"" | "\"\[DoubleStruckCapitalN]\"", Infinity],
+	Cases[shownBoxes[TypeTheoryTerm[{TypeUniverse[0], TypeUniverse[1], NonNegativeIntegers}]], "\"Prop\"" | "\"Type\"" | "\"\[DoubleStruckCapitalN]\"", Infinity],
 	{"\"Prop\"", "\"Type\"", "\"\[DoubleStruckCapitalN]\""},
 	TestID -> "Universes-and-the-natural-numbers-have-their-usual-names"
 ]
@@ -137,7 +141,7 @@ VerificationTest[
 
 VerificationTest[
 	MatchQ[
-		ToBoxes[TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne]],
+		shownBoxes[TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne]],
 		InterpretationBox[GridBox[{{_, "FlipZero", ":", RowBox[{_, "\[LongRightArrow]", "BitOne"}]}}, ___], _TypeTheoryRewriteRule]
 	],
 	True,
@@ -184,7 +188,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{boxes = ToBoxes[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, Not[a && b] || (a && b && a)]]]]},
+	With[{boxes = shownBoxes[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, Not[a && b] || (a && b && a)]]]]},
 		{! FreeQ[boxes, "&&"], ! FreeQ[boxes, "||"], ! FreeQ[boxes, RowBox[{"!", _}]], FreeQ[boxes, "\[And]" | "\[Or]" | "\[Not]"], ! FreeQ[boxes, "\"\[DoubleStruckCapitalB]\""]}
 	],
 	{True, True, True, True, True},
@@ -208,11 +212,11 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Cases[ToBoxes[TypeTheoryTerm[CartesianProductType[NonNegativeIntegers, CartesianProductType[Booleans, Integers]]]], RowBox[{_, "\[Times]", _, "\[Times]", _}], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[CartesianProductType[CartesianProductType[NonNegativeIntegers, Booleans], Integers]]], RowBox[{RowBox[{"(", _, ")"}], "\[Times]", _}], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[DisjointUnionType[CartesianProductType[NonNegativeIntegers, Booleans], Booleans]]], RowBox[{RowBox[{_, "\[Times]", _}], "|", _}], Infinity] =!= {},
-		FreeQ[ToBoxes[TypeTheoryTerm[DisjointUnionType[NonNegativeIntegers, CartesianProductType[NonNegativeIntegers, Booleans]]]], "CartesianProductType" | "DisjointUnionType" | "\[Cross]"],
-		Cases[ToBoxes[TypeTheoryTerm[CircleTimes[A, B]]], RowBox[{"A", "\[CircleTimes]", "B"}], Infinity] =!= {}
+		Cases[shownBoxes[TypeTheoryTerm[CartesianProductType[NonNegativeIntegers, CartesianProductType[Booleans, Integers]]]], RowBox[{_, "\[Times]", _, "\[Times]", _}], Infinity] =!= {},
+		Cases[shownBoxes[TypeTheoryTerm[CartesianProductType[CartesianProductType[NonNegativeIntegers, Booleans], Integers]]], RowBox[{RowBox[{"(", _, ")"}], "\[Times]", _}], Infinity] =!= {},
+		Cases[shownBoxes[TypeTheoryTerm[DisjointUnionType[CartesianProductType[NonNegativeIntegers, Booleans], Booleans]]], RowBox[{RowBox[{_, "\[Times]", _}], "|", _}], Infinity] =!= {},
+		FreeQ[shownBoxes[TypeTheoryTerm[DisjointUnionType[NonNegativeIntegers, CartesianProductType[NonNegativeIntegers, Booleans]]]], "CartesianProductType" | "DisjointUnionType" | "\[Cross]"],
+		Cases[shownBoxes[TypeTheoryTerm[CircleTimes[A, B]]], RowBox[{"A", "\[CircleTimes]", "B"}], Infinity] =!= {}
 	},
 	{True, True, True, True, True},
 	TestID -> "Products-and-sums-of-types-show-as-times-and-alternatives"
@@ -220,8 +224,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Cases[ToBoxes[TypeTheoryTerm["pair"[1, "pair"[2, 3]]]], TemplateBox[{"\"(\"", TemplateBox[{", ", "\", \"", "1", "2", "3"}, "RowWithSeparators"], "\")\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm["dependentPair"[1, 2]]], TemplateBox[{"\"\[LeftAngleBracket]\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"\[RightAngleBracket]\""}, "RowDefault"], Infinity] =!= {}
+		Cases[shownBoxes[TypeTheoryTerm["pair"[1, "pair"[2, 3]]]], TemplateBox[{"\"(\"", TemplateBox[{", ", "\", \"", "1", "2", "3"}, "RowWithSeparators"], "\")\""}, "RowDefault"], Infinity] =!= {},
+		Cases[shownBoxes[TypeTheoryTerm["dependentPair"[1, 2]]], TemplateBox[{"\"\[LeftAngleBracket]\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"\[RightAngleBracket]\""}, "RowDefault"], Infinity] =!= {}
 	},
 	{True, True},
 	TestID -> "Pairs-show-as-tuples-and-dependent-pairs-in-angle-brackets"
@@ -229,10 +233,10 @@ VerificationTest[
 
 VerificationTest[
 	{
-		Cases[ToBoxes[TypeTheoryTerm[Prepend[1][Prepend[2][{}]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[Prepend[Typed[{}, {NonNegativeIntegers}], 1]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
-		Cases[ToBoxes[TypeTheoryTerm[Join[l, {}]]], RowBox[{"{", "}"}], Infinity],
-		FreeQ[ToBoxes[TypeTheoryTerm[Prepend[1][l]]], "Prepend"]
+		Cases[shownBoxes[TypeTheoryTerm[Prepend[1][Prepend[2][{}]]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1", "2"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[shownBoxes[TypeTheoryTerm[Prepend[Typed[{}, {NonNegativeIntegers}], 1]]], TemplateBox[{"\"{\"", TemplateBox[{", ", "\", \"", "1"}, "RowWithSeparators"], "\"}\""}, "RowDefault"], Infinity] =!= {},
+		Cases[shownBoxes[TypeTheoryTerm[Join[l, {}]]], RowBox[{"{", "}"}], Infinity],
+		FreeQ[shownBoxes[TypeTheoryTerm[Prepend[1][l]]], "Prepend"]
 	},
 	{True, True, {RowBox[{"{", "}"}]}, False},
 	TestID -> "A-list-ending-in-the-empty-list-shows-its-elements-in-braces"
@@ -243,7 +247,7 @@ VerificationTest[
 VerificationTest[
 	With[
 		{
-			lists = ToBoxes[TypeTheoryTerm[{{NonNegativeIntegers}}]],
+			lists = shownBoxes[TypeTheoryTerm[{{NonNegativeIntegers}}]],
 			named = TypeTheoryEnvironment[prelude, {
 				TypeTheoryAxiom[Polynomial, TypeUniverse[1]],
 				TypeTheoryAxiom["Polynomials", TypeUniverse[1]],
@@ -255,12 +259,12 @@ VerificationTest[
 		{
 			Cases[lists, RowBox[{"{", RowBox[{"{", "\"\[DoubleStruckCapitalN]\"", "}"}], "}"}], {0, Infinity}] =!= {},
 			FreeQ[lists, StyleBox],
-			Length[Cases[ToBoxes[TypeTheoryTerm[TypeSpecifier[{Polynomial} -> {Polynomial}], named]], StyleBox["Polynomial", Bold, ___], Infinity]],
-			FreeQ[ToBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> {"Polynomials"}], named]], StyleBox],
-			FreeQ[ToBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
-			FreeQ[ToBoxes[TypeTheoryTerm[True && False]], StyleBox],
-			Sort[Cases[ToBoxes[TypeTheoryTerm[degree[zero], named]] /. TooltipBox[boxes_, ___] :> boxes, StyleBox[name_String, Bold, ___] :> name, Infinity]],
-			FreeQ[ToBoxes[TypeTheoryTerm[Function[Typed[zero, NonNegativeIntegers], zero], named]], StyleBox[_, Bold, ___]]
+			Length[Cases[shownBoxes[TypeTheoryTerm[TypeSpecifier[{Polynomial} -> {Polynomial}], named]], StyleBox["Polynomial", Bold, ___], Infinity]],
+			FreeQ[shownBoxes[TypeTheoryTerm[TypeSpecifier[{"Polynomials"} -> {"Polynomials"}], named]], StyleBox],
+			FreeQ[shownBoxes[TypeTheoryTerm[Typed["zeroPolynomial", "Polynomials"], named]], StyleBox],
+			FreeQ[shownBoxes[TypeTheoryTerm[True && False]], StyleBox],
+			Sort[Cases[shownBoxes[TypeTheoryTerm[degree[zero], named]] /. TooltipBox[boxes_, ___] :> boxes, StyleBox[name_String, Bold, ___] :> name, Infinity]],
+			FreeQ[shownBoxes[TypeTheoryTerm[Function[Typed[zero, NonNegativeIntegers], zero], named]], StyleBox[_, Bold, ___]]
 		}
 	],
 	{True, True, 2, True, True, True, {"degree", "zero"}, True},
@@ -313,14 +317,14 @@ VerificationTest[
 			styled = Function[boxes, Cases[boxes, StyleBox[text_String, color_, ___] /; color =!= Bold :> {StringTrim[text, "\""], color}, Infinity]]
 		},
 		{
-			DeleteDuplicates[styled[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]] === {{"n", colors["BoundVariable"]}},
-			DeleteDuplicates[styled[ToBoxes[TypeTheoryType[TypeTheoryTerm[List]]]]],
-			FreeQ[styled[ToBoxes[TypeTheoryTerm[TypeUniverse[1]]]], colors["Level"]],
+			DeleteDuplicates[styled[shownBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]] === {{"n", colors["BoundVariable"]}},
+			DeleteDuplicates[styled[shownBoxes[TypeTheoryType[TypeTheoryTerm[List]]]]],
+			FreeQ[styled[shownBoxes[TypeTheoryTerm[TypeUniverse[1]]]], colors["Level"]],
 			MemberQ[
-				styled[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce"]}]]],
+				styled[shownBoxes[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], {TypeTheoryTactic["Introduce"]}]]],
 				{"n", colors["BoundVariable"]}
 			],
-			ToBoxes[TypeTheoryTerm[TypeUniverse[Placeholder["?u3"]]]] =!= {} && ! FreeQ[
+			shownBoxes[TypeTheoryTerm[TypeUniverse[Placeholder["?u3"]]]] =!= {} && ! FreeQ[
 				ToBoxes[RawBoxes[WolframInstitute`TypeTheory`PackageScope`typeTheoryBoxes[
 					WolframInstitute`TypeTheory`PackageScope`syntaxHead[TypeUniverse, {WolframInstitute`TypeTheory`PackageScope`syntaxHead[Placeholder, {WolframInstitute`TypeTheory`PackageScope`syntaxString["?u3"]}]}],
 					StandardForm
@@ -355,13 +359,15 @@ textMessagesQ[] := With[{saved = Environment["TYPETHEORY_NOTEBOOK_BOXES"]},
 VerificationTest[
 	With[{tips = Function[boxes, Cases[boxes, TooltipBox[shown_, tip_, ___] :> {shown /. StyleBox[inner_, ___] :> inner, FreeQ[tip, TooltipBox]}, Infinity]]},
 		{
-			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, DeleteDuplicates[tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]]],
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, With[{shown = tips[ToBoxes[TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]]]},
+				MemberQ[shown, {"n", True}] && AllTrue[shown, Last]
+			]],
 			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, First[tips[ToBoxes[TypeTheoryTerm["andIntroduction"]]]]],
 			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, FreeQ[ToBoxes[TypeTheoryTerm["andIntroduction"]], TooltipBox]],
 			textMessagesQ[]
 		}
 	],
-	{{{"n", True}}, {"\"andIntroduction\"", True}, True, True},
+	{True, {"\"andIntroduction\"", True}, True, True},
 	TestID -> "A-constant-and-a-bound-variable-show-their-types-on-mouseover"
 ]
 
@@ -429,4 +435,60 @@ VerificationTest[
 	],
 	{True, True, True},
 	TestID -> "A-sequence-and-its-type-show-in-brackets"
+]
+
+(* every part with a type shows it on mouseover, as Lean's infoview does: an operator the type of the constant it is,
+   which elaboration decides, ℕ → ℕ → ℕ for + of natural numbers and Expressions for an operator of an expression, as
+   - in n x^(n - 1), a number its type, a constant of System, as Replace and AtomQ, on its name and brackets, and ↦ the
+   type of its function; successor[k], shown as k + 1, shows the successor's type, beside the sum k + 1 *)
+boxText[boxes_] := StringDelete[StringJoin[Cases[boxes //. {TooltipBox[shown_, ___] :> shown, StyleBox[shown_, ___] :> shown, TemplateBox[{items___}, ___] :> RowBox[{items}]}, _String, {0, Infinity}]], "\""]
+typeTips[term_] := Cases[ToBoxes[term], TooltipBox[shown_, tip_, ___] :> {boxText[shown], boxText[tip]}, Infinity]
+
+VerificationTest[
+	With[
+		{
+			natural = typeTips[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k - 1]]],
+			power = typeTips[TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1)]]],
+			atom = typeTips[TypeTheoryTerm[Typed[e, Expressions] |-> AtomQ[e]]],
+			successor = typeTips[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"[k] == k + 1]]],
+			quoted = typeTips[TypeTheoryTerm[Unevaluated[1 + 2 x]]]
+		},
+		{
+			SubsetQ[natural, {{"+", "\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]"}, {"-", "\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]"}, {"0", "\[DoubleStruckCapitalN]"}, {"1", "\[DoubleStruckCapitalN]"}, {"\[DoubleStruckCapitalN]", "Type"}}],
+			StringEndsQ[Last[SelectFirst[natural, First[#] === "\[Equal]" &]], "Prop"],
+			SubsetQ[power, {{"Replace", "Expressions\[RightArrow](Expressions\[RightArrow]Match[Expressions])\[RightArrow]Expressions"}, {"d", "Expressions"}, {"x", "Expressions"}, {"-", "Expressions"}, {"1", "Expressions"}}],
+			SubsetQ[atom, {{"AtomQ", "Expressions\[RightArrow]\[DoubleStruckCapitalB]"}, {"[", "Expressions\[RightArrow]\[DoubleStruckCapitalB]"}, {"\[RightTeeArrow]", "Expressions\[RightArrow]\[DoubleStruckCapitalB]"}}],
+			Select[successor, First[#] === "+" &],
+			Union[Last /@ quoted]
+		}
+	],
+	{
+		True, True, True, True,
+		{{"+", "\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]"}, {"+", "\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]\[RightArrow]\[DoubleStruckCapitalN]"}},
+		{"Expressions"}
+	},
+	TestID -> "Operators-numbers-and-symbols-show-their-types-on-mouseover"
+]
+
+(* the types on mouseover change nothing a term shows: its boxes with them left out are its boxes without them *)
+VerificationTest[
+	With[{integers = TypeTheoryEnvironment["Integers"], rationals = TypeTheoryEnvironment["Rationals"]},
+		Map[
+			Function[term, shownBoxes[term] === Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, ToBoxes[term]]],
+			{
+				TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k - 1]],
+				TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1)]],
+				TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"[k] == k + 1]],
+				TypeTheoryTerm[ForAll[{Typed[a, Integers], Typed[b, Integers]}, a - 1 < a + 2 && -a <= a b], integers],
+				TypeTheoryTerm[ForAll[{Typed[a, Rationals], Typed[b, Rationals]}, a / b == a - 1/2 + 1/2], rationals],
+				TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[p && q, q || ! p]]],
+				TypeTheoryTerm[Typed[l, {NonNegativeIntegers}] |-> Length[Prepend[l, 1]] + 2 * 3^2],
+				TypeTheoryTerm[Unevaluated[1 + 2 x - 3/4]],
+				NormalForm[TypeTheoryTerm[Replace[d[x^3], d[x^m_] :> m x^(m - 1)]]],
+				TypeTheoryTerm["pair"[1, "pair"[2, 3]]]
+			}
+		]
+	],
+	ConstantArray[True, 10],
+	TestID -> "The-types-on-mouseover-change-nothing-a-term-shows"
 ]

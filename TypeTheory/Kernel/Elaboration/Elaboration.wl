@@ -55,6 +55,7 @@ it close, or when the term is finished, is ambiguous, and Typed must say which i
 
 
 PackageScoped[$queryTermNext]
+PackageScoped[elaborationTrace]
 PackageScoped[withElaborationState]
 PackageScoped[elaborateSyntax]
 PackageScoped[elaborateClosedTerm]
@@ -93,6 +94,9 @@ PackageScoped[unfoldedApplication]
 (*Usage Messages*)
 
 
+elaborationTrace::usage = "elaborationTrace[environment, syntax] gives <|piece -> {term, type}, ...|>: what each piece of syntax, as written, \
+elaborated to where syntax is elaborated as the whole term of a query, a piece elaborated to several different terms left out, and <||> where \
+syntax does not elaborate."
 withElaborationState::usage = "withElaborationState[{environment, context, scope, universeParameters}, body] evaluates body with fresh elaboration state."
 elaborateSyntax::usage = "elaborateSyntax[syntax, expected] gives {term, type} for a syntax tree, with expected the expected type or None; metavariables may remain."
 $queryTermNext::usage = "$queryTermNext is True while the next syntax elaborated is the whole term of a query, which may be an expression of a name that names nothing, as f[1, 2], where nothing is expected."
@@ -288,7 +292,36 @@ canonicalIdentifiers[expression_] := With[{identified = DeleteDuplicates[Cases[e
 (* the whole term of a query, where nothing is expected, may be an expression as the Wolfram Language writes one, as in
    TypeTheoryType[f[1, 2]]; inside a term, as in the value of a declaration, a name that names nothing is no term, as it
    is most often a name misspelled or the one being declared, which a definition may not use *)
-elaborateSyntax[syntax_, expected_] := Block[{$wholeQueryTerm = TrueQ[$queryTermNext], $queryTermNext = False}, elaborateSyntaxCases[syntax, expected]]
+elaborateSyntax[syntax_, expected_] := Block[{$wholeQueryTerm = TrueQ[$queryTermNext], $queryTermNext = False}, traced[syntax, elaborateSyntaxCases[syntax, expected]]]
+
+(* What a display shows on mouseover: with a trace, each piece of syntax is recorded with what it elaborated to, the
+   constant at the head of an application and the type of a literal, which the syntax alone does not tell, as Times
+   in n x^(n - 1) is a product of natural numbers or, of an expression n, an expression. A piece is recorded as it is
+   written, before an elaboration rewrites it, as a - 1 to Subtract[a, 1]. Nothing else changes. *)
+$elaborationTrace = None
+
+traced[syntax_, result_] := (
+	If[AssociationQ[$elaborationTrace], $elaborationTrace[syntax] = Append[Lookup[$elaborationTrace, Key[syntax], {}], result]];
+	result
+)
+
+(* the overloads settled and the metavariables solved, as the elaborated term has them; no kernel check, as the term
+   only shows *)
+elaborationTrace[environment_, syntax_] := Block[{$elaborationTrace = <||>, $queryTermNext = True},
+	Replace[
+		Quiet[catchKernelFailure[withElaborationState[{environment, <||>, <||>, {}}, (
+			settleOverloads[First[elaborateSyntax[loneTermSyntax[syntax], None]]];
+			settledTrace[$elaborationTrace]
+		)]]],
+		Except[_Association] -> <||>
+	]
+]
+
+settledTrace[trace_Association] := DeleteCases[
+	Map[Function[results, Replace[DeleteDuplicates[settledResult /@ results], {{one_} :> one, _ -> None}]], trace],
+	None
+]
+settledResult[{term_, type_}] := {instantiateMetavariables[term], instantiateMetavariables[type]}
 
 elaborateSyntaxCases[syntax_, expected_] := Replace[syntax, {
 	syntaxElaborated[elaborated_List, _] :> elaborated,
@@ -1148,9 +1181,16 @@ flexibleTypeQ[type_] := With[{spine = applicationSpine[instantiateMetavariables[
 checkAgainst[syntax_, expected_] := With[{result = elaborateSyntax[syntax, expected]},
 	With[{term = If[attemptOrRestore[unify[Last[result], expected] || pathAsFunctionQ[Last[result], expected]], First[result], coercedOrFail[result, expected, syntax]]},
 		synthesizePendingInstances[False];
+		If[term =!= First[result], retraced[syntax, {term, expected}]];
 		term
 	]
 ]
+
+(* a number, a string or a name coerced shows as itself, and has the type it is coerced to, as 1 where an expression is
+   expected; an application keeps the constant at its head *)
+retraced[syntax : (_syntaxInteger | _syntaxString | _syntaxOther | _syntaxSymbol), result_] /; AssociationQ[$elaborationTrace] && KeyExistsQ[$elaborationTrace, syntax] :=
+	($elaborationTrace[syntax] = Append[Most[$elaborationTrace[syntax]], result])
+retraced[_, _] := Null
 
 coercedOrFail[{term_, type_}, expected_, syntax_] := Replace[If[$coercions, Replace[injected[term, type, expected], None :> coercedTerm[term, type, expected]], None], None :> (
 	unifyOrFail[type, expected, syntax];
@@ -1520,7 +1560,8 @@ meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
 		$metavariableTypes = $metavariableTypes,
 		$metavariableContexts = $metavariableContexts,
 		$pendingOverloads = $pendingOverloads,
-		$pendingInstances = $pendingInstances
+		$pendingInstances = $pendingInstances,
+		$elaborationTrace = $elaborationTrace
 	},
 	TrueQ @ Quiet @ catchKernelFailure[
 		With[{result = elaborateMeaning[meaning, arguments, expected]}, expected === None || unify[Last[result], expected]]
@@ -2554,21 +2595,23 @@ admissibleSolutionQ[id_, value_] := FreeQ[value, metavariable[id]] && withinCont
 
 (* the term an attempt gives, or None with the solutions it recorded undone *)
 SetAttributes[attemptOrNone, HoldFirst]
-attemptOrNone[attempt_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments},
+attemptOrNone[attempt_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments, trace = $elaborationTrace},
 	Replace[attempt, None :> (
 		$metavariableAssignments = assignments;
 		$levelAssignments = levels;
+		$elaborationTrace = trace;
 		None
 	)]
 ]
 
 (* undo the solutions a failed attempt recorded *)
 SetAttributes[attemptOrRestore, HoldFirst]
-attemptOrRestore[attempt_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments},
+attemptOrRestore[attempt_] := With[{assignments = $metavariableAssignments, levels = $levelAssignments, trace = $elaborationTrace},
 	If[ TrueQ[attempt],
 		True,
 		$metavariableAssignments = assignments;
 		$levelAssignments = levels;
+		$elaborationTrace = trace;
 		False
 	]
 ]
