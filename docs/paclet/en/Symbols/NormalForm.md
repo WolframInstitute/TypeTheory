@@ -155,7 +155,7 @@ A term with a free variable reduces only as far as it computes: addition recurs 
 NormalForm[TypeTheoryTerm[ForAll[{n}, 0 + n == n]]]
 ```
 
-<!-- => ∀_n∶ℕ ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 1, n] == n -->
+<!-- => ∀_n∶ℕ 0 + n == n -->
 
 So `"Reflexivity"` does not prove it, and the proof needs `"Induction"`:
 

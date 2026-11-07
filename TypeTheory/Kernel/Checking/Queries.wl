@@ -55,6 +55,7 @@ PackageExported[TypeTheoryProofTree]
 
 
 PackageScoped[termEnvironment]
+PackageScoped[withNormalFormCheck]
 PackageScoped[heldTerm]
 PackageScoped[termSyntax]
 PackageScoped[unnamedEnvironment]
@@ -92,6 +93,7 @@ WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm
 NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every part of it, under its binders too, until nothing can reduce: its normal form."
 TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of the TypeTheoryTerm proof, a proof of propositional logic. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\" or \"FalseElim\"."
 
+withNormalFormCheck::usage = "withNormalFormCheck[expr] gives {result, redexes}: the result of expr, and the normal forms NormalForm computed while it ran that hold a beta-redex, a function applied to an argument, which no normal form may."
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
 unnamedEnvironment::usage = "unnamedEnvironment[HoldComplete[term]] gives the environment a term given without one is in, the default environment."
 heldTerm::usage = "heldTerm[term] gives HoldComplete[expr] for the TypeTheoryTerm term holding expr."
@@ -317,9 +319,18 @@ WeakHeadNormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environmen
 (* the normal form: the head reduced, then each part, a binder's body with its variable free *)
 NormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	With[{elaborated = elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]},
-		valueTerm[environment, withKernelCaches[normalForm[environment, <||>, First[elaborated]]], Last[elaborated]]
+		valueTerm[environment, noted[withKernelCaches[normalForm[environment, <||>, First[elaborated]]]], Last[elaborated]]
 	]
 ]
+
+(* the normal forms with a beta-redex, which none may hold, collected while withNormalFormCheck runs *)
+$normalFormRedexes = None
+SetAttributes[withNormalFormCheck, HoldFirst]
+withNormalFormCheck[expr_] := Block[{$normalFormRedexes = {}}, With[{result = expr}, {result, $normalFormRedexes}]]
+noted[normal_] := (
+	If[ListQ[$normalFormRedexes] && ! FreeQ[normal, application[_lambdaAbstraction, _]], AppendTo[$normalFormRedexes, normal]];
+	normal
+)
 
 (* A value read back as it is written, and ascribed its type where the reading alone does not elaborate: a lone string,
    which on its own names a constant, the empty list, or a value of a sum, "right"["text"], whose types the reading
@@ -339,7 +350,15 @@ readBackQ[environment_, read_TypeTheoryTerm] := ListQ[Quiet[catchKernelFailure[e
 
 normalForm[environment_, context_, term_] := normalParts[environment, context, weakHeadNormalForm[environment, context, term]]
 
-normalParts[environment_, context_, application[f_, a_]] := Construct[application, normalForm[environment, context, f], normalForm[environment, context, a]]
+(* an application in weak head normal form is a head that does not reduce applied to its arguments: the head, a
+   constant, a variable or a stuck recursor, stays, and only the arguments are normalized. Normalizing the function of
+   each application on its own unfolds a partial application, as Plus[0] of a sum 0 + n stuck on n, into a function
+   applied to n, a redex *)
+normalParts[environment_, context_, term : application[_, _]] := With[{spine = applicationSpine[term]},
+	makeApplication[normalHead[environment, context, First[spine]], Map[Function[argument, normalForm[environment, context, argument]], Last[spine]]]
+]
+normalHead[_, _, head : (_constantReference | _freeVariable | _boundVariable | _metavariable)] := head
+normalHead[environment_, context_, head_] := normalForm[environment, context, head]
 normalParts[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_]] := With[{id = freshFreeVariable[]},
 	Construct[lambdaAbstraction, name, normalForm[environment, context, domain], abstractFreeVariable[
 		normalForm[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[body, freeVariable[id]]], id
