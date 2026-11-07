@@ -39,7 +39,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation]
 | `"Equal"`, `"LessEqual"` | whether *m* = *n*, and whether *m* ≤ *n*, as a Boolean |
 
 - These are the operations Lean's kernel computes on its literals with GMP, with the same values at 0. An operation of a role must be a definition or an axiom without universe parameters, of type <code>*type* → *type* → *type*</code>, <code>*type* → *type*</code> for `"Log2"`, and <code>*type* → *type* → *B*</code> for `"Equal"` and `"LessEqual"`, where *B* is an inductive type with two constructors without fields, false and then true, as [Booleans]() is.
-- The kernel trusts that an operation computes what its role says, as Lean's kernel trusts GMP: an operation that computes something else makes the environment inconsistent. It checks the operation's type, not its definition. An axiom registered for a role computes on literals though it has no value.
+- An operation whose role has defining equations, addition, multiplication, power, subtraction, equality, order, quotient and remainder, is checked against them by computation for variables when it is registered: an addition must satisfy `t + zero == t` and `t + successor[s] == successor[t + s]`, and a quotient and a remainder their recursion on the dividend. An operation that fails them is refused, but a quotient or a remainder is accepted and trusted, as Lean's `Nat.div` and `Nat.mod`, defined by well-founded recursion, have to be. The kernel trusts that an operation it does not check computes what its role says, as Lean's kernel trusts GMP, and [TypeTheoryAxiomClosure]() names such a registration, `"Registration"`, wherever a term rests on it: an operation that computes something else makes the environment inconsistent. An axiom registered for a role computes on literals though it has no value.
 - An operation computes on arguments that compute to literals, and unfolds otherwise. Powers and left shifts by 2^24 or more unfold, as in Lean.
 - An environment registers its natural numbers once. A later registration of the same *type*, *zero* and *successor* adds operations. The prelude registers [NonNegativeIntegers]() with [Plus](), [Subtract](), [Times]() and [Power](), and with the Boolean comparisons `"equal"` and `"lessEqual"`, through which `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"` decide literals in one step; <code>[Information]()[*env*, "NaturalNumbers"]</code> lists the operations of an environment.
 - Natural numbers of your own go in an environment built on the empty one, <code>[TypeTheoryEnvironment]()[]</code>.
@@ -299,25 +299,45 @@ TypeTheoryEnvironment[{
 
 ---
 
-The kernel trusts a registered operation. Register a projection as addition:
+An operation with defining equations is checked against them when it is registered. A projection is no addition, and is refused:
 
 ```wl
-trusted = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+TypeTheoryEnvironment[TypeTheoryEnvironment[], {
     TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
     TypeTheoryDefinition[FirstNumber, {Typed[m, Unary], Typed[n, Unary]} |-> m],
     TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor, <|"Addition" -> FirstNumber|>]
 }]
 ```
 
+<!-- => Failure["InvalidNaturalNumberOperation", ...]: t + successor[s] == successor[t + s] does not hold by computation -->
+
+An operation without defining equations, as the greatest common divisor, the kernel trusts. Register the projection as one:
+
+```wl
+trusted = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+    TypeTheoryInductiveType[Unary, TypeUniverse[1], {UnaryZero -> Unary, UnarySuccessor -> ForAll[{Typed[n, Unary]}, Unary]}],
+    TypeTheoryDefinition[FirstNumber, {Typed[m, Unary], Typed[n, Unary]} |-> m],
+    TypeTheoryNaturalNumbers[Unary, UnaryZero, UnarySuccessor, <|"GCD" -> FirstNumber|>]
+}]
+```
+
 <!-- => TypeTheoryEnvironment summary box: 5 constants -->
 
-It computes as addition on literals, though its definition gives its first argument:
+It computes as the greatest common divisor on literals, though its definition gives its first argument:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[FirstNumber[2, 3], trusted]]
 ```
 
-<!-- => 5 -->
+<!-- => 1 -->
+
+The registration is a trusted assumption, which [TypeTheoryAxiomClosure]() names wherever a term rests on it:
+
+```wl
+TypeTheoryAxiomClosure[TypeTheoryTerm[FirstNumber[2, 3], trusted]]
+```
+
+<!-- => <|FirstNumber -> "Registration"|> -->
 
 ---
 
