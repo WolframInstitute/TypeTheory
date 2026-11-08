@@ -1151,5 +1151,27 @@ $integerDeclarations = {
 	TypeTheoryDefinition["integerMod", Typed[
 		Function[{Typed[x, Integers], Typed[y, Integers]}, "integerSubtraction"[x, "integerMultiplication"[y, "integerQuotient"[x, y]]]],
 		Integers -> Integers -> Integers
-	]]
+	]],
+	(* a quotient is at most its dividend, by induction on the dividend, each step adding 0 or 1; and the integers' quotient
+	   of natural numbers is theirs, where the normal pair's 0 - p, which stops at 0, is 0 by "subtractionZeroLeft" *)
+	TypeTheoryTheorem["quotientLessEqual",
+		ForAll[{Typed[p, NonNegativeIntegers], Typed[s, NonNegativeIntegers]}, Quotient[p, s] <= p],
+		Function[{Typed[p, NonNegativeIntegers], Typed[s, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[j, NonNegativeIntegers]}, Quotient[j, s] <= j],
+			Typed["lessEqualReflexivity", 0 <= 0],
+			Function[{Typed[j, NonNegativeIntegers], Typed[h, Quotient[j, s] <= j]}, InductiveRecursor[Booleans][
+				Function[{Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, NonNegativeIntegers], Quotient[j, s], "successor"[Quotient[j, s]], b] <= j + 1],
+				"lessEqualStep"[h],
+				"lessEqualSuccessor"[h],
+				"equal"["successor"[Mod[j, s]], s]
+			]],
+			p
+		]]
+	],
+	TypeTheoryTheorem["integerQuotientOfNatural",
+		ForAll[{Typed[p, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, "integerQuotient"["integerOfNatural"[p], "integerOfNatural"[k + 1]] == "integerOfNatural"[Quotient[p, k + 1]]],
+		Function[{Typed[p, NonNegativeIntegers], Typed[k, NonNegativeIntegers]},
+			"equalityCongruence"[Function[{Typed[q, NonNegativeIntegers]}, "integerQuotientOfParts"[p, q, k + 1]], "subtractionZeroLeft"[p]]
+		]
+	]
 }

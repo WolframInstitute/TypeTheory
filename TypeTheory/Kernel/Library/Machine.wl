@@ -135,5 +135,11 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 				"lessEqualWitness"[m + 1, upper, h]
 			]]
 		}
+	],
+	(* a natural number below 2^63 is its machine result, the first step of every bridge: the theorem a proof rewrites a
+	   step of compiled code with, where the step's exact value is known to be in range *)
+	TypeTheoryTheorem["machineResultOfNatural",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[h, m < upper]}, "machineResult"["integerOfNatural"[m]] == Typed["left"["subtype"["integerOfNatural"[m], "naturalInteger64Range"[m, h]]], "Integer64" | Failure]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[h, m < upper]}, "machineResultInRange"["integerOfNatural"[m], "naturalInteger64Range"[m, h]]]
 	]
 }]

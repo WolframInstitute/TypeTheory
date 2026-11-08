@@ -137,3 +137,58 @@ VerificationTest[
 	{{10, 4611686016981624750, Failure["IntegerOverflow", <||>], 4611686016981624750}, {-2, 5}},
 	TestID -> "The-compiled-closed-form-and-a-constant-argument"
 ]
+
+(* the bridge: for n <= 3037000499 the closed form's typed code never declines, and its value is the mathematical
+   Quotient[n (n + 1), 2]. Each step of the typed code is shown in range, the sum, the product and the quotient, and the
+   kernel computes the code between the steps; the proof rests on the integers' quotient axiom alone *)
+VerificationTest[
+	Module[{bounds, proof},
+		bounds = TypeTheoryEnvironment[compiledEnvironment, {
+			TypeTheoryTheorem["argumentBound", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n < 9223372036854775808]], compiledEnvironment, {"Introduce"[n, h], "LinearArithmetic"}]],
+			TypeTheoryTheorem["successorBound", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n + 1 < 9223372036854775808]], compiledEnvironment, {"Introduce"[n, h], "LinearArithmetic"}]],
+			TypeTheoryTheorem["pronicBound", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n (n + 1) < 9223372036854775808]], compiledEnvironment, {"Introduce"[n, h], "NonlinearArithmetic"}]]
+		}];
+		bounds = TypeTheoryEnvironment[bounds, {TypeTheoryTheorem["quotientBound",
+			ForAll[{Typed[n, NonNegativeIntegers], Typed[h, n <= 3037000499]}, Quotient[n (n + 1), 2] < 9223372036854775808],
+			Function[{Typed[n, NonNegativeIntegers], Typed[h, n <= 3037000499]}, "lessEqualTransitivity"["lessEqualSuccessor"["quotientLessEqual"[n (n + 1), 2]], "pronicBound"[n, h]]]
+		]}];
+		proof = TypeTheoryProof[
+			ForAll[{Typed[n, NonNegativeIntegers], Typed[h, n <= 3037000499]},
+				"confirmBind"["machineResult"["integerOfNatural"[n]], compiledClosedForm] ==
+					Typed["left"["subtype"["integerOfNatural"[Quotient[n (n + 1), 2]], "naturalInteger64Range"[Quotient[n (n + 1), 2], "quotientBound"[n, h]]]], "Integer64" | Failure]
+			],
+			bounds,
+			{"Introduce"[n, h], "Exact"[
+				"equalityTransitivity"[
+					"equalityCongruence"[Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, compiledClosedForm]], "machineResultOfNatural"[n, "argumentBound"[n, h]]],
+					"equalityTransitivity"[
+						"equalityCongruence"[
+							Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t3, "Integer64"]}, "confirmBind"["machineResult"["integerOfNatural"[n] t3[[1]]], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]]]],
+							"machineResultInRange"["integerOfNatural"[n] + 1, "naturalInteger64Range"[n + 1, "successorBound"[n, h]]]
+						],
+						"equalityTransitivity"[
+							"equalityCongruence"[
+								Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]],
+								"equalitySymmetry"["integerOfNaturalMultiplication"[n, n + 1]]
+							],
+							"equalityTransitivity"[
+								"equalityCongruence"[
+									Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]],
+									"machineResultOfNatural"[n (n + 1), "pronicBound"[n, h]]
+								],
+								"equalityTransitivity"[
+									"equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "integerQuotientOfNatural"[n (n + 1), 1]],
+									"machineResultOfNatural"[Quotient[n (n + 1), 2], "quotientBound"[n, h]]
+								]
+							]
+						]
+					]
+				]
+			]}
+		];
+		{FailureQ[proof], TypeTheoryAxiomClosure[proof]}
+	],
+	{False, <|"quotientSoundness" -> "Proposition"|>},
+	TestID -> "The-closed-forms-typed-code-never-declines-below-3037000500"
+]
+
