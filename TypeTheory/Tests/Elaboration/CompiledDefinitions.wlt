@@ -197,19 +197,18 @@ VerificationTest[
 
 (* a function that calls itself takes first the levels left: each call of itself is one, and with none left it leaves, as
    a typed entry leaves where its recursion is deeper than its bound; a function that calls it passes the levels on.
-   Evaluating it by normal form costs about 25 times more at each level, as reduction shares no value, so the depths
-   here are small *)
+   A machine integer's projection is its value at once in beta reduction, so a depth of 20 takes no longer than one *)
 VerificationTest[
 	With[{environment = TypeTheoryEnvironment[machine, TypeTheoryFormalize[compiledDoubleTriangle, machine]]},
 		{
 			Map[
 				Apply[Function[{function, levels, k}, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> function[levels, m]], environment]]]]],
-				{{compiledTriangle, 4, 3}, {compiledTriangle, 3, 3}, {compiledTriangle, 0, 0}, {compiledTriangle, 1, 0}, {compiledDoubleTriangle, 3, 2}}
+				{{compiledTriangle, 4, 3}, {compiledTriangle, 3, 3}, {compiledTriangle, 0, 0}, {compiledTriangle, 1, 0}, {compiledDoubleTriangle, 3, 2}, {compiledTriangle, 21, 20}, {compiledTriangle, 20, 20}}
 			],
 			DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[compiledTriangle, environment]], TypeTheoryTerm[NonNegativeIntegers -> "Integer64" -> ("Integer64" | Failure), environment]]
 		}
 	],
-	{{6, Failure["RecursionLimit", <||>], Failure["RecursionLimit", <||>], 0, 6}, True},
+	{{6, Failure["RecursionLimit", <||>], Failure["RecursionLimit", <||>], 0, 6, 210, Failure["RecursionLimit", <||>]}, True},
 	TestID -> "Recursion-counts-the-levels-left-and-leaves-without-them"
 ]
 
