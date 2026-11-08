@@ -408,13 +408,13 @@ TypeTheoryAxiomClosure[TypeTheoryTerm[Answer, TypeTheoryEnvironment[TypeTheoryDe
 
 ---
 
-An axiom of the same type has no value, so it never computes:
+An axiom of the same type has no value, so it never computes: `Answer + 1` takes one step, to the successor of `Answer + 0`, and stops at the axiom:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Answer + 1, TypeTheoryEnvironment[TypeTheoryAxiom[Answer, Naturals]]]]
 ```
 
-<!-- => ℕ_rec[(t ∶ ℕ) ↦ ℕ, Answer, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 1, 0] + 1 -->
+<!-- => Answer + 0 + 1 -->
 
 ## Possible Issues
 

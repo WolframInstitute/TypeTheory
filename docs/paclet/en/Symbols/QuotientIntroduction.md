@@ -142,7 +142,7 @@ A lift computes on a class. Negation, lifted from swapping a pair, takes the cla
 WeakHeadNormalForm[TypeTheoryTerm[-QuotientIntroduction["integerRelation", "pair"[2, 5]], "Integers"]]
 ```
 
-<!-- => QuotientIntroduction[integerRelation, ((2, 5)〚2〛, (2, 5)〚1〛)] -->
+<!-- => QuotientIntroduction[integerRelation, (5, 2)] -->
 
 ---
 

@@ -232,13 +232,13 @@ TypeTheoryType[2 + 3, polynomials]
 
 ## Properties and Relations
 
-An axiom has no value, so computation stops at it. Addition recurses on its second argument, so `0 + Mystery` stops at the recursor, waiting for a constructor that the axiom never gives:
+An axiom has no value, so computation stops at it. Addition recurses on its second argument, so `0 + Mystery` stays as it is, waiting for a constructor that the axiom never gives:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[0 + Mystery, TypeTheoryEnvironment[TypeTheoryAxiom[Mystery, Naturals]]]]
 ```
 
-<!-- => ℕ_rec[(t ∶ ℕ) ↦ ℕ, 0, (k ∶ ℕ) (r ∶ ℕ) ↦ r + 1, Mystery] -->
+<!-- => 0 + Mystery -->
 
 ---
 
