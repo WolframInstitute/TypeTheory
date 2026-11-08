@@ -99,13 +99,16 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	]],
 	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
-	(* the natural numbers below 2^63 are machine integers, the arithmetic stated of the bound so that LinearArithmetic
-	   reads it as an offset *)
-	(* the arithmetic stated of a bound b, not of the literal, which LinearArithmetic then never meets *)
-	machineTheorem["integer64LowerRelation", ForAll[{Typed[m, NonNegativeIntegers]}, m + (upper + 0) == (0 + (m + upper)) + 0], {"Introduce"[m], "LinearArithmetic"}],
-	machineTheorem["integer64UpperRelation",
+	(* the natural numbers below 2^63 are machine integers: the relations of the pairs, stated as the integers' order
+	   unfolds them, proved by terms that need no reduction of the bound, only of x + 0 and of sums of literals, so that
+	   a kernel that unfolds a literal one unit at a time, as Lean's does for m + 2^63, checks them too *)
+	TypeTheoryTheorem["integer64LowerRelation",
+		ForAll[{Typed[m, NonNegativeIntegers]}, m + (upper + 0) == (0 + (m + upper)) + 0],
+		Function[{Typed[m, NonNegativeIntegers]}, "equalitySymmetry"["additionZeroLeft"[m + upper]]]
+	],
+	TypeTheoryTheorem["integer64UpperRelation",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[upper == m + 1 + k, upper + (0 + 0 + 0) == ((m + 1) + k) + 0]],
-		{"Introduce"[m, k, e], "LinearArithmetic"}
+		Function[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers], Typed[e, upper == m + 1 + k]}, e]
 	],
 	machineTheorem["naturalInteger64Range",
 		ForAll[{Typed[m, NonNegativeIntegers]}, Implies[m < upper, "integer64Range"["integerOfNatural"[m]]]],
