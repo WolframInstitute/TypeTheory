@@ -100,11 +100,12 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	(* the natural numbers below 2^63 are machine integers: the relations of the pairs, stated as the integers' order
-	   unfolds them, proved by terms that need no reduction of the bound, only of x + 0 and of sums of literals, so that
-	   a kernel that unfolds a literal one unit at a time, as Lean's does for m + 2^63, checks them too *)
+	   unfolds them, proved by terms that reduce no sum that holds the bound, only sums of literals, so that a kernel
+	   that unfolds a literal one unit at a time, as Lean's does for m + 2^63, checks them too: x + 0 == x of such a
+	   sum is "additionZeroRight", not a computation *)
 	TypeTheoryTheorem["integer64LowerRelation",
 		ForAll[{Typed[m, NonNegativeIntegers]}, m + (upper + 0) == (0 + (m + upper)) + 0],
-		Function[{Typed[m, NonNegativeIntegers]}, "equalitySymmetry"["additionZeroLeft"[m + upper]]]
+		Function[{Typed[m, NonNegativeIntegers]}, "equalityTransitivity"["equalitySymmetry"["additionZeroLeft"[m + upper]], "equalitySymmetry"["additionZeroRight"[0 + (m + upper)]]]]
 	],
 	TypeTheoryTheorem["integer64UpperRelation",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[upper == m + 1 + k, upper + (0 + 0 + 0) == ((m + 1) + k) + 0]],
