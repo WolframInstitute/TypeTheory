@@ -21,6 +21,10 @@ kernel checks every proof as it checks any other.
 Elaboration reads +, *, -, the comparisons, -x and negative literals as the integers' where the arguments
 or the expected type are integers, and as the natural numbers' otherwise.
 
+The quotient and the remainder of natural numbers, Quotient and Mod, are defined by recursion on the dividend, as the
+role equations of "Quotient" and "Remainder" are, and registered: the registration is checked, and they compute on
+literals, by a 0 divisor as Lean's n / 0 and n % 0.
+
 Equations of integers are decidable: "integerEqualityDecidable" decides x == y with the Boolean
 "integerEqual", which compares a + d and c + b for the pairs (a, b) and (c, d), so Decide and the tactic
 "Decide" settle an equation of integer literals by computation.
@@ -1054,5 +1058,32 @@ $integerDeclarations = {
 			"integerLessEqualQ"[x, y]
 		]["equalityReflexivity"["integerLessEqualQ"[x, y]]]],
 		"Instance" -> True
-	]
+	],
+	(* the remainder and the quotient of natural numbers, by recursion on the dividend with the divisor s fixed: the
+	   remainder counts up to s and back to zero, and the quotient counts each return, so that n == s Quotient[n, s] +
+	   Mod[n, s]; with s zero, the remainder is n and the quotient 0, as Lean's n % 0 and n / 0. They are the role
+	   equations of "Remainder" and "Quotient" themselves, so the registration is checked, and they compute on literals *)
+	TypeTheoryDefinition[Mod, Typed[
+		Function[{Typed[t, NonNegativeIntegers], Typed[s, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers],
+			0,
+			Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]},
+				InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, NonNegativeIntegers], "successor"[r], 0, "equal"["successor"[r], s]]
+			],
+			t
+		]],
+		TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
+	]],
+	TypeTheoryDefinition[Quotient, Typed[
+		Function[{Typed[t, NonNegativeIntegers], Typed[s, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers],
+			0,
+			Function[{Typed[k, NonNegativeIntegers], Typed[q, NonNegativeIntegers]},
+				InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, NonNegativeIntegers], q, "successor"[q], "equal"["successor"[Mod[k, s]], s]]
+			],
+			t
+		]],
+		TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
+	]],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Remainder" -> Mod, "Quotient" -> Quotient|>]
 }

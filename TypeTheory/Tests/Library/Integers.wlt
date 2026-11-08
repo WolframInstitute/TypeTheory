@@ -238,3 +238,18 @@ VerificationTest[
 	{{}, {}, {"true", "false"}, True},
 	TestID -> "The-order-of-the-integers-is-decided"
 ]
+
+(* the quotient and the remainder of natural numbers compute on literals as Quotient and Mod, by a 0 divisor as Lean's
+   n / 0 and n % 0; their definitions are the role equations, so the registration is checked and trusts nothing *)
+VerificationTest[
+	With[{integers = TypeTheoryEnvironment["Integers"]},
+		{
+			First[NormalForm[TypeTheoryTerm[{Quotient[17, 5], Mod[17, 5], Quotient[7, 0], Mod[7, 0], Quotient[0, 5], Quotient[9223372040037250500, 2], Mod[18446744073709551617, 3]}, integers]]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm[Quotient[17, 5], integers]],
+			FailureQ[TypeTheoryProof[ForAll[{Typed[s, NonNegativeIntegers]}, Quotient[0, s] == 0 && Mod[0, s] == 0], integers, {"Introduce"[s], "Constructor", "Reflexivity", "Reflexivity"}]],
+			DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[Quotient, integers]], TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers, integers]]
+		}
+	],
+	{{3, 2, 0, 7, 0, 4611686020018625250, 2}, <||>, False, True},
+	TestID -> "Quotient-and-Mod-of-natural-numbers-compute-and-are-checked"
+]
