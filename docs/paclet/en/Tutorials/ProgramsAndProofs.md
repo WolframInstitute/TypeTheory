@@ -344,6 +344,8 @@ neverDeclines = TypeTheoryProof[
 
 <!-- => Proof complete -->
 
+A machine integer's value is an integer, a class of pairs of natural numbers, and two classes are the same integer where their pairs are related, which computation alone does not always show: n - 1 is the class of (n, 1), not of (n - 1, 0). So a theorem about the machine states the integers it computes, as this one does with the integer of a natural number, and `"Reflexivity"` does not prove that compiled code with a subtraction gives a literal: [The Integers](paclet:WolframInstitute/TypeTheory/tutorial/TheIntegers) shows the two classes of -3 that only `"quotientSoundness"` makes equal.
+
 It rests on the integers' quotient axiom alone, as every theorem about the integers does:
 
 ```wl
