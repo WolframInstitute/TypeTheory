@@ -477,7 +477,7 @@ endpointOrReduced[environment_, context_, term_, head_, arguments_, reduced_] :=
 
 (* a function of several variables applied to arguments for them takes them all in one substitution, as in
    Lean's kernel, not one substitution each *)
-reduceSpine[_, _, _, function_lambdaAbstraction, arguments : {__}] := betaReduced[peelFunctions[function, Length[arguments]], arguments]
+reduceSpine[environment_, _, _, function_lambdaAbstraction, arguments : {__}] := betaReduced[environment, peelFunctions[function, Length[arguments]], arguments]
 reduceSpine[_, _, _, localDefinition[_, _, value_, body_], arguments_List] := makeApplication[instantiateBoundVariable[body, value], arguments]
 reduceSpine[_, _, _, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id], arguments_List] :=
 	makeApplication[$metavariableAssignments[id], arguments]
@@ -488,7 +488,25 @@ reduceSpine[environment_, context_, term_, projection[structure_, index_, struct
 reduceSpine[_, context_, _, freeVariable[id_], arguments_List] /; KeyExistsQ[Lookup[context, id, <||>], "Value"] := makeApplication[context[id]["Value"], arguments]
 reduceSpine[_, _, term_, _, _] := term
 
-betaReduced[{body_, count_}, arguments_] := makeApplication[instantiateBoundVariables[body, Take[arguments, count]], Drop[arguments, count]]
+(* each projection of a value that is a structure's constructor applied in full is its field at once (CoreTerms.wl,
+   instantiateBoundVariablesProjecting) *)
+betaReduced[environment_, {body_, count_}, arguments_] := With[{values = Take[arguments, count]},
+	makeApplication[instantiateBoundVariablesProjecting[body, values, Map[Function[value, constructedFields[environment, value]], values]], Drop[arguments, count]]
+]
+
+(* {HoldComplete[structure], fields} of a value that is, as it is written and not reduced, the one constructor of a
+   structure applied to all its parameters and fields; None of any other value *)
+constructedFields[environment_, value_] := Replace[applicationSpine[value], {
+	{constantReference[constructor_, _], arguments_List} /; constructorOfStructureQ[environment, constructor, Length[arguments]] :>
+		With[{record = constantRecord[environment, constructor]}, {record["InductiveType"], Drop[arguments, record["NumberOfParameters"]]}],
+	_ -> None
+}]
+
+constructorOfStructureQ[environment_, constructor_, count_Integer] := constantDeclaredQ[environment, constructor] && With[{record = constantRecord[environment, constructor]}, And[
+	Lookup[record, "Kind"] === "Constructor",
+	structureLikeQ[environment, record["InductiveType"]],
+	count == record["NumberOfParameters"] + record["NumberOfFields"]
+]]
 
 (* {body, count}: the body under the outermost functions nested in term, count of them and at most limit *)
 peelFunctions[term_, limit_Integer] := NestWhile[

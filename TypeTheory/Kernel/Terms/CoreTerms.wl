@@ -75,6 +75,7 @@ PackageScoped[looseBoundRange]
 PackageScoped[$looseBoundRangeCache]
 PackageScoped[instantiateBoundVariable]
 PackageScoped[instantiateBoundVariables]
+PackageScoped[instantiateBoundVariablesProjecting]
 PackageScoped[abstractFreeVariable]
 PackageScoped[abstractFreeVariables]
 PackageScoped[boundVariableOccursQ]
@@ -130,6 +131,7 @@ looseBoundRange::usage = "looseBoundRange[term] gives one more than the largest 
 $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loose bound ranges remembered while the kernel checks a declaration, or None."
 instantiateBoundVariable::usage = "instantiateBoundVariable[body, value] replaces the variable bound just outside body by value."
 instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ..., valuek}] replaces the k variables bound just outside body by the values at once, the innermost by valuek."
+instantiateBoundVariablesProjecting::usage = "instantiateBoundVariablesProjecting[body, values, fields] replaces the variables as instantiateBoundVariables[body, values] does, and each projection of a replaced variable whose entry of fields, aligned with values, is {HoldComplete[structure], {field1, ...}} by its field: the entry None leaves the variable's projections to be replaced as any other occurrence."
 abstractFreeVariable::usage = "abstractFreeVariable[term, id] replaces freeVariable[id] by a bound variable, ready to be wrapped in a binder."
 abstractFreeVariables::usage = "abstractFreeVariables[term, {id, ...}] replaces each freeVariable[id] by the bound variable of a binder for it, the last id the innermost, \
 ready to be wrapped in those binders: what abstracting the ids one at a time, the last first, gives, in one walk of the term."
@@ -255,7 +257,20 @@ instantiateBoundVariable[body_, value_] := instantiateBoundVariables[body, {valu
 (* the variables bound just outside body, innermost last, replaced at once by values, as beta reduction of a
    function of several arguments needs: body refers to the last value as boundVariable[0] *)
 instantiateBoundVariables[body_, values_List] := withRangeCache[
-	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>}, substituteShared[body, Reverse[values], 0]]]
+	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>, $substitutedFields = {}}, substituteShared[body, Reverse[values], 0]]]
+]
+
+(* Beta reduction with each projection of a value that is a structure's constructor applied in full taken at once:
+   projection i of the constructor applied to its parameters and fields reduces to field i, by the kernel's own rule
+   for projections, so the reduct is definitionally equal to the one of instantiateBoundVariables and of the same type.
+   Taken later, the projection would carry the whole value, its other fields with it, into every place the variable is
+   projected, and a term that shares such values level after level grows in its tree size, which hashing and walking a
+   term cost, though not in memory. Any term shared many times still costs its tree size so; a traversal that visits
+   each shared subterm once is the general remedy. *)
+$substitutedFields = {}
+
+instantiateBoundVariablesProjecting[body_, values_List, fields_List] := withRangeCache[
+	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>, $substitutedFields = Reverse[fields]}, substituteShared[body, Reverse[values], 0]]]
 ]
 
 (* values innermost first: boundVariable[depth + j] is the value at j + 1 *)
@@ -280,9 +295,19 @@ substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], values
 	Construct[dependentFunctionType, name, substituteShared[domain, values, depth], substituteShared[codomain, values, depth + 1], binder]
 substituteNode[localDefinition[name_, type_, definedValue_, body_], values_, depth_] :=
 	Construct[localDefinition, name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
-substituteNode[projection[structure_, index_, term_], values_, depth_] := Construct[projection, structure, index, substituteShared[term, values, depth]]
+substituteNode[projection[structure_, index_, term_], values_, depth_] :=
+	Replace[substitutedField[structure, index, term, depth], None :> Construct[projection, structure, index, substituteShared[term, values, depth]]]
 substituteNode[cubicalSystem[branches_List], values_, depth_] := Construct[cubicalSystem, Map[Function[part, substituteShared[part, values, depth]], branches, {2}]]
 substituteNode[term_, _, _] := term
+
+(* the field of a projection of a replaced variable whose value is a constructor applied in full, lifted as the value
+   would be; None for any other projection *)
+substitutedField[structure_, index_Integer, boundVariable[k_Integer], depth_] /; depth <= k < depth + Length[$substitutedFields] :=
+	Replace[Extract[$substitutedFields, k - depth + 1], {
+		{structure, fields_List} /; 0 <= index < Length[fields] :> liftBoundVariables[Extract[fields, index + 1], depth, 0],
+		_ -> None
+	}]
+substitutedField[___] := None
 
 
 abstractFreeVariable[term_, id_] := Block[{$abstractionMemo = <||>}, abstractShared[term, id, 0]]

@@ -605,3 +605,23 @@ VerificationTest[
 	{True, True},
 	TestID -> "A-redex-of-a-sum-with-zero-over-a-large-product-is-its-reduct"
 ]
+
+
+(* beta reduction takes a projection of a value that is a structure's constructor applied in full as its field at once:
+   the reduct is the same by computation, a forged equation of the wrong field is still refused, a partial application
+   of the constructor and a value that only reduces to a constructor are left to the projection's own rule, and a
+   variable that also occurs whole is replaced by the whole value there *)
+VerificationTest[
+	With[{prelude = TypeTheoryEnvironment["Prelude"]},
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm[(Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> p[[1]] + 10 p[[2]])["pair"[1, 2]], prelude], TypeTheoryTerm[21, prelude]],
+			DefinitionallyEqualQ[TypeTheoryTerm[(Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> p[[1]])["pair"[1, 2]], prelude], TypeTheoryTerm[2, prelude]],
+			FailureQ[TypeTheoryProof[(Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> p[[2]])["pair"[1, 2]] == 1, prelude, {"Reflexivity"}]],
+			DefinitionallyEqualQ[TypeTheoryTerm[(Typed[f, NonNegativeIntegers -> CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> f[5][[2]])["pair"[3]], prelude], TypeTheoryTerm[5, prelude]],
+			DefinitionallyEqualQ[TypeTheoryTerm[(Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> p[[1]])[(Typed[k, NonNegativeIntegers] |-> "pair"[k, k + 1])[4]], prelude], TypeTheoryTerm[4, prelude]],
+			DefinitionallyEqualQ[TypeTheoryTerm[(Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]] |-> "pair"[p[[2]], p])["pair"[1, 2]], prelude], TypeTheoryTerm["pair"[2, "pair"[1, 2]], prelude]]
+		}
+	],
+	{True, False, True, True, True, True},
+	TestID -> "Beta-reduction-takes-a-projection-of-a-constructor-as-its-field"
+]

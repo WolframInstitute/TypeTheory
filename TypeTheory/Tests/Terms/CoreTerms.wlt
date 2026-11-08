@@ -25,6 +25,8 @@ levelLessEqualQ = scoped["levelLessEqualQ"]
 instantiateBoundVariable = scoped["instantiateBoundVariable"]
 instantiateBoundVariables = scoped["instantiateBoundVariables"]
 abstractFreeVariable = scoped["abstractFreeVariable"]
+instantiateBoundVariablesProjecting = scoped["instantiateBoundVariablesProjecting"]
+projection[parts___] := Construct[scoped["projection"], parts]
 betaNormalize = scoped["betaNormalize"]
 
 u = levelParameter[HoldComplete[\[FormalU]]]
@@ -50,6 +52,29 @@ VerificationTest[
 	],
 	True,
 	TestID -> "Instantiating-several-variables-at-once-is-instantiating-them-in-turn"
+]
+
+(* a projection of a replaced variable whose value is a structure's constructor applied in full is its field, lifted as
+   the value would be under a binder; the variable's other occurrences are replaced by the value, and a projection is
+   kept, of the value, where the value's entry is None or names another structure *)
+VerificationTest[
+	With[{structure = HoldComplete["pairStructure"], value = application[freeVariable[9], freeVariable[8]]},
+		{
+			instantiateBoundVariablesProjecting[application[projection[structure, 1, boundVariable[0]], boundVariable[0]], {value}, {{structure, {freeVariable[1], freeVariable[2]}}}],
+			instantiateBoundVariablesProjecting[application[projection[structure, 1, boundVariable[0]], boundVariable[0]], {value}, {None}],
+			instantiateBoundVariablesProjecting[projection[structure, 0, boundVariable[0]], {value}, {{HoldComplete["otherStructure"], {freeVariable[1], freeVariable[2]}}}],
+			instantiateBoundVariablesProjecting[lambdaAbstraction[HoldComplete[\[FormalX]], universeSort[0], projection[structure, 0, boundVariable[1]], "Explicit"], {value}, {{structure, {boundVariable[0], freeVariable[2]}}}],
+			instantiateBoundVariablesProjecting[projection[structure, 0, boundVariable[0]], {freeVariable[5], value}, {{structure, {freeVariable[1], freeVariable[2]}}, None}]
+		}
+	],
+	{
+		application[freeVariable[2], application[freeVariable[9], freeVariable[8]]],
+		application[projection[HoldComplete["pairStructure"], 1, application[freeVariable[9], freeVariable[8]]], application[freeVariable[9], freeVariable[8]]],
+		projection[HoldComplete["pairStructure"], 0, application[freeVariable[9], freeVariable[8]]],
+		lambdaAbstraction[HoldComplete[\[FormalX]], universeSort[0], boundVariable[1], "Explicit"],
+		projection[HoldComplete["pairStructure"], 0, application[freeVariable[9], freeVariable[8]]]
+	},
+	TestID -> "A-projection-of-a-replaced-constructor-is-its-field"
 ]
 
 VerificationTest[
