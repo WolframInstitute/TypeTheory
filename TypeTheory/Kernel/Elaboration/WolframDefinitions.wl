@@ -49,7 +49,7 @@ PackageScoped[missingDeclarations]
 (*Usage Messages*)
 
 
-TypeTheoryFormalize::usage = "TypeTheoryFormalize[symbol] gives the declarations that make the Wolfram Language function symbol a constant of the default environment: a definition read off its definitions where they translate, typed by elaboration, and otherwise an axiom that symbol computes. TypeTheoryFormalize[symbol, environment] makes them for environment. The option \"Type\" -> type gives the type the constant must have. With \"Meaning\" -> \"Rules\", it gives instead the rules of symbol, a definition of type Expressions -> Option[Expressions] in TypeTheoryEnvironment[\"WolframLanguage\"]: the expression each expression rewrites to by the first rule that matches it."
+TypeTheoryFormalize::usage = "TypeTheoryFormalize[symbol] gives the declarations that make the Wolfram Language function symbol a constant of the default environment: a definition read off its definitions where they translate, typed by elaboration, and otherwise an axiom that symbol computes. TypeTheoryFormalize[symbol, environment] makes them for environment. The option \"Type\" -> type gives the type the constant must have. With \"Meaning\" -> \"Rules\", it gives instead the rules of symbol, a definition of type Expressions -> Option[Expressions] in TypeTheoryEnvironment[\"WolframLanguage\"]: the expression each expression rewrites to by the first rule that matches it. In an environment of the machine integers, TypeTheoryEnvironment[\"Machine\"], or with \"Meaning\" -> \"Compiled\", it gives what the compiler's typed code of symbol computes, a function of \"Integer64\" whose value is the result or the leave Failure[\"IntegerOverflow\", <||>]."
 lowerDefinitions::usage = "lowerDefinitions[HoldComplete[symbol]] gives the Core`Program of the definitions of symbol, by the compiler's ToCore, or a Failure."
 kernelCompilerSymbol::usage = "kernelCompilerSymbol[name] gives the symbol of the compiler named name, in the context the paclet Wolfram/KernelCompiler puts it, or None."
 coreNormal::usage = "coreNormal[program] gives program with each form of Core and Match as coreForm[name]."
@@ -131,15 +131,19 @@ TypeTheoryFormalize[symbol_Symbol, name_String, options : OptionsPattern[]] :=
 TypeTheoryFormalize[symbol_Symbol, environment_, options : OptionsPattern[]] /; environmentQ[environment] :=
 	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
 
-(* the option "Meaning": "Function", the default, a constant that is the function symbol computes, or "Rules", its rules
-   as a rewriting of expressions *)
+(* the option "Meaning": "Function", the default, a constant that is the function symbol computes; "Compiled", the
+   default in an environment of the machine integers, the function its compiled code computes, which may leave; or
+   "Rules", its rules as a rewriting of expressions *)
 $codedStrings = False
 
 formalizeMeaning[environment_, held_, options_Hold] := Block[{$codedStrings = constantDeclaredQ[environment, HoldComplete["string"]]}, formalizeMeaningIn[environment, held, options]]
 formalizeMeaningIn[environment_, held_, options_Hold] := Replace[Cases[options, HoldPattern["Meaning" -> meaning_] :> meaning, {1}], {
+	(* in an environment of the machine integers, a function means what its compiled code computes *)
+	{} /; machineEnvironmentQ[environment] :> compiledDeclarations[environment, held],
 	{} | {"Function", ___} :> formalize[environment, held, formalizeType[options]],
+	{"Compiled", ___} :> compiledDeclarations[environment, held],
 	{"Rules", ___} :> rulesDeclarations[environment, held],
-	{other_, ___} :> kernelFailure["InvalidOption", "The value of the option \"Meaning\" must be \"Function\" or \"Rules\", not `1`.", {other}]
+	{other_, ___} :> kernelFailure["InvalidOption", "The value of the option \"Meaning\" must be \"Function\", \"Compiled\" or \"Rules\", not `1`.", {other}]
 }]
 
 (* the type the option "Type" gives, held, or None *)

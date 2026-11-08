@@ -14,6 +14,7 @@ value is out of its type, and the failure is that leave.
 	"machineResult"[x]               the machine integer of x where x is in range, "left", and the failure where it
 	                                 is not, "right": Integer64 | Failure
 	"machinePlus", "machineTimes"    the sum and the product of machine integers, as machine results
+	"machineIf"[b, x, y]             the compiler's If of a Boolean test
 
 The range is decided by the order of the integers, "integerLessEqualDecidable", so a machine result of literals
 computes: "machineResult"[5] is the machine integer 5, and "machineResult"[2^63] the failure. Where an exact result is
@@ -92,6 +93,10 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 			"machineDecision"["integer64Range"[x]]
 		]]
 	],
+	(* the compiler's If of a Boolean test, the first value where it is true and the second where it is false *)
+	TypeTheoryDefinition["machineIf", Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[b, "Boolean"], Typed[x, A], Typed[y, A]},
+		InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, A], y, x, b]
+	]],
 	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	(* the natural numbers below 2^63 are machine integers, the arithmetic stated of the bound so that LinearArithmetic
