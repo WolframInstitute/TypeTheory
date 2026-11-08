@@ -20,8 +20,10 @@ administrative normal form, one statement for each step the C takes. Each step i
 A step that may leave continues by "confirmBind", so that the function leaves where any step does: its value is of
 "Integer64" | Failure, and where it is the failure the generic code of the Wolfram Language computes the call instead,
 exactly. The meaning is the value of the typed code where it does not leave. The checks of the recursion level, which
-depend on the caller and not on the arguments, are not part of it, and a function that calls itself is not formalized
-yet.
+depend on the caller and not on the arguments, are not part of it; but a function that calls itself takes first the
+levels its recursion may use, a natural number, each call of itself one, and leaves with Failure["RecursionLimit", <||>]
+where none is left, as a typed entry leaves where its recursion passes its bound. Functions that call each other are
+not formalized yet.
 *)
 
 
@@ -94,27 +96,83 @@ compiledProgramDeclarations[environment_, HoldComplete[symbol_Symbol], signature
 
 (* the names in the order they are declared: each function after those it calls *)
 callOrder[name_String, signatures_Association, seen_List] := Which[
-	MemberQ[Join[signatures[name]["Calls"], signatures[name]["Reached"]], name],
-		kernelFailure["Recursive", "The typed code of `1` calls itself: recursion is not formalized for the machine yet.", {ToExpression[name, InputForm, HoldForm]}],
+	mutuallyRecursiveQ[name, signatures],
+		kernelFailure["Recursive", "The typed code of `1` calls itself through another function: mutual recursion is not formalized for the machine yet.", {ToExpression[name, InputForm, HoldForm]}],
 	True,
 		DeleteDuplicates[Append[
-			Catenate[Map[Function[callee, callOrder[callee, signatures, Append[seen, name]]], Select[signatures[name]["Calls"], Function[callee, ! MemberQ[seen, callee]]]]],
+			Catenate[Map[Function[callee, callOrder[callee, signatures, Append[seen, name]]], Select[signatures[name]["Calls"], Function[callee, ! MemberQ[Append[seen, name], callee]]]]],
 			name
 		]]
 ]
+
+(* a function that calls itself, directly *)
+selfRecursiveQ[name_String, signatures_Association] := MemberQ[signatures[name]["Calls"], name]
+
+(* a function that a function it calls reaches back to *)
+mutuallyRecursiveQ[name_String, signatures_Association] := AnyTrue[
+	DeleteCases[signatures[name]["Calls"], name],
+	Function[callee, MemberQ[Join[signatures[callee]["Calls"], signatures[callee]["Reached"]], name]]
+]
+
+(* a function whose meaning takes the levels its recursion may use: one that calls itself, or calls one that does *)
+fueledQ[name_String, signatures_Association] := selfRecursiveQ[name, signatures] || AnyTrue[DeleteCases[signatures[name]["Calls"], name], Function[callee, fueledQ[callee, signatures]]]
+
+compiledSymbol[name_String] := ToExpression[$compiledContext <> name, InputForm, HoldComplete]
 
 compiledFunctionDeclarations[environment_, name_String, signatures_Association] := With[
 	{held = ToExpression[name, InputForm, HoldComplete]},
 	If[constantDeclaredQ[environment, held], {}, {compiledDefinition[held, signatures[name], signatures]}]
 ]
 
-(* the definition: a function of the parameters, of their machine types, to the result or its leave *)
+(* the definition: a function of the parameters, of their machine types, to the result or its leave. A function whose
+   recursion counts levels takes first the levels left, a natural number: one that calls itself is defined by recursion
+   on them, each call of itself a level, and leaves with Failure["RecursionLimit", <||>] where none is left, as a typed
+   entry leaves where its recursion is deeper than its bound; one that calls such a function passes them on *)
 compiledDefinition[held : HoldComplete[symbol_Symbol], signature_Association, signatures_Association] := With[
-	{parameters = parameterTerms[held, signature["Parameters"]]},
-	definitionDeclaration[
-		held,
-		functionTerm[Map[Function[parameter, {First[parameter], machineType[Last[parameter]]}], parameters], blockTerm[signature["Body"], parameterScope[signature["Parameters"], parameters], signature, signatures]],
-		functionType[Map[Function[parameter, machineType[Last[parameter]]], parameters], resultType[signature["Result"]]]
+	{
+		parameters = parameterTerms[held, signature["Parameters"]],
+		name = fullName[symbol],
+		fuel = compiledSymbol["fuel"],
+		levels = compiledSymbol["levels"],
+		recursion = compiledSymbol["recursion"]
+	},
+	With[
+		{
+			binders = Map[Function[parameter, {First[parameter], machineType[Last[parameter]]}], parameters],
+			ownType = functionType[Map[Function[parameter, machineType[Last[parameter]]], parameters], resultType[signature["Result"]]],
+			scope = parameterScope[signature["Parameters"], parameters],
+			context = Join[signature, <|"Name" -> name, "Fuel" -> If[selfRecursiveQ[name, signatures], levels, fuel], "Recursion" -> recursion|>]
+		},
+		Which[
+			selfRecursiveQ[name, signatures],
+				definitionDeclaration[
+					held,
+					functionTerm[Prepend[binders, {fuel, HoldComplete[NonNegativeIntegers]}], recursionTerm[fuel, levels, recursion, binders, ownType, blockTerm[signature["Body"], scope, context, signatures], signature["Result"]]],
+					functionType[{HoldComplete[NonNegativeIntegers]}, ownType]
+				],
+			fueledQ[name, signatures],
+				definitionDeclaration[
+					held,
+					functionTerm[Prepend[binders, {fuel, HoldComplete[NonNegativeIntegers]}], blockTerm[signature["Body"], scope, context, signatures]],
+					functionType[{HoldComplete[NonNegativeIntegers]}, ownType]
+				],
+			True,
+				definitionDeclaration[held, functionTerm[binders, blockTerm[signature["Body"], scope, context, signatures]], ownType]
+		]
+	]
+]
+
+(* recursion on the levels left: with none, the leave; with one more than levels, the body, whose calls of itself are
+   recursion, the function at levels; then applied to the parameters *)
+recursionTerm[HoldComplete[fuel_], HoldComplete[levels_], HoldComplete[recursion_], binders_List, HoldComplete[type_], body_HoldComplete, result_String] := With[
+	{leave = functionTerm[binders, Replace[resultType[result], HoldComplete[r_] :> HoldComplete[Typed["right"[Failure["RecursionLimit", <||>]], r]]]], step = functionTerm[binders, body]},
+	Replace[{leave, step, callTerm[HoldComplete[Null], Map[First, binders]]}, {HoldComplete[l_], HoldComplete[f_], HoldComplete[Null[arguments___]]} :>
+		HoldComplete[InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[WolframInstitute`TypeTheory`Compiled`j, NonNegativeIntegers]}, type],
+			l,
+			Function[{Typed[levels, NonNegativeIntegers], Typed[recursion, type]}, f],
+			fuel
+		][arguments]]
 	]
 ]
 
@@ -248,8 +306,20 @@ stepTerm[coreForm["Call"][operation_String, {a_, b_}], scope_, _, _] /; KeyExist
 	{"Pure", $machineComparisons[operation][integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]], "Bool"}
 stepTerm[coreForm["Call"]["System`Not", {a_}], scope_, _, _] :=
 	Replace[atomTerm[a, scope], {{HoldComplete[b_], "Bool"} :> {"Pure", HoldComplete["not"[b]], "Bool"}, _ :> unmodeled["System`Not"]}]
-stepTerm[coreForm["Call"][name_String, arguments_List], scope_, _, signatures_] /; KeyExistsQ[signatures, name] :=
-	{"Result", callTerm[ToExpression[name, InputForm, HoldComplete], Map[Function[argument, machineTerm[atomTerm[argument, scope]]], arguments]], signatures[name]["Result"]}
+(* a call of the function itself is its recursion, at a level less; a call of a function that takes the levels left gets
+   this function's *)
+stepTerm[coreForm["Call"][name_String, arguments_List], scope_, signature_, signatures_] /; KeyExistsQ[signatures, name] := With[
+	{values = Map[Function[argument, machineTerm[atomTerm[argument, scope]]], arguments]},
+	{
+		"Result",
+		Which[
+			name === signature["Name"], callTerm[signature["Recursion"], values],
+			fueledQ[name, signatures], callTerm[ToExpression[name, InputForm, HoldComplete], Prepend[values, signature["Fuel"]]],
+			True, callTerm[ToExpression[name, InputForm, HoldComplete], values]
+		],
+		signatures[name]["Result"]
+	}
+]
 stepTerm[coreForm["Call"][name_String, _], _, _, _] := unmodeled[name]
 stepTerm[other_, _, _, _] := unmodeled[other]
 

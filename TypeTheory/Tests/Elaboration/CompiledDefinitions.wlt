@@ -17,8 +17,11 @@ compiledNext[n_Integer] := compiledAbsolute[n] + 1
 compiledSum[a_Integer, b_Integer, c_Integer] := a + b + c
 compiledSign[n_Integer] := If[n < 0, -1, If[n == 0, 0, 1]]
 compiledSmallQ[n_Integer] := n < 10
-compiledCount[n_Integer] := If[n <= 0, 0, n + compiledCount[n - 1]]
 compiledUntyped[x_] := x
+compiledEvenQ[n_Integer] := If[n == 0, True, compiledOddQ[n - 1]]
+compiledOddQ[n_Integer] := If[n == 0, False, compiledEvenQ[n - 1]]
+compiledTriangle[n_Integer] := If[n == 0, 0, n + compiledTriangle[n - 1]]
+compiledDoubleTriangle[n_Integer] := 2 compiledTriangle[n]
 compiledClosedForm[n_Integer] := Quotient[n (n + 1), 2]
 compiledQuotient[a_Integer, b_Integer] := Quotient[a, b]
 compiledMod[a_Integer, b_Integer] := Mod[a, b]
@@ -92,7 +95,7 @@ VerificationTest[
 (* what the machine model does not have yet is a Failure, not a meaning *)
 VerificationTest[
 	{
-		TypeTheoryFormalize[compiledCount, machine]["Tag"],
+		TypeTheoryFormalize[compiledEvenQ, machine]["Tag"],
 		TypeTheoryFormalize[compiledUntyped, machine]["Tag"],
 		TypeTheoryFormalize[compiledProduct, TypeTheoryEnvironment["Integers"], "Meaning" -> "Compiled"]["Tag"]
 	},
@@ -190,5 +193,23 @@ VerificationTest[
 	],
 	{False, <|"quotientSoundness" -> "Proposition"|>},
 	TestID -> "The-closed-forms-typed-code-never-declines-below-3037000500"
+]
+
+(* a function that calls itself takes first the levels left: each call of itself is one, and with none left it leaves, as
+   a typed entry leaves where its recursion is deeper than its bound; a function that calls it passes the levels on.
+   Evaluating it by normal form costs about 25 times more at each level, as reduction shares no value, so the depths
+   here are small *)
+VerificationTest[
+	With[{environment = TypeTheoryEnvironment[machine, TypeTheoryFormalize[compiledDoubleTriangle, machine]]},
+		{
+			Map[
+				Apply[Function[{function, levels, k}, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> function[levels, m]], environment]]]]],
+				{{compiledTriangle, 4, 3}, {compiledTriangle, 3, 3}, {compiledTriangle, 0, 0}, {compiledTriangle, 1, 0}, {compiledDoubleTriangle, 3, 2}}
+			],
+			DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[compiledTriangle, environment]], TypeTheoryTerm[NonNegativeIntegers -> "Integer64" -> ("Integer64" | Failure), environment]]
+		}
+	],
+	{{6, Failure["RecursionLimit", <||>], Failure["RecursionLimit", <||>], 0, 6}, True},
+	TestID -> "Recursion-counts-the-levels-left-and-leaves-without-them"
 ]
 
