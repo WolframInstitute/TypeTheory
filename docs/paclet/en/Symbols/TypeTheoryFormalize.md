@@ -16,6 +16,8 @@ RelatedTutorials: [Elaboration, TheWolframLanguage, PatternsAndRewriting]
 
 <code>[TypeTheoryFormalize]()[*symbol*, *environment*]</code> makes the declarations for *environment*, an environment or the name of a library environment, such as `"Integers"`.
 
+<code>[TypeTheoryFormalize]()[*symbol*, "Machine"]</code> gives what the compiler's typed code of *symbol* computes, in the environment of the machine integers: a function of `"Integer64"` whose value is the result, or `Failure["IntegerOverflow", <||>]` where the typed code leaves.
+
 <code>[TypeTheoryFormalize]()[*symbol*, *environment*, "Meaning" -> "Rules"]</code> gives the rules of *symbol* instead, a definition of type `Expressions -> Option[Expressions]`, in an environment with the Wolfram Language's expressions, as the prelude.
 
 ## Details & Options
@@ -31,7 +33,10 @@ RelatedTutorials: [Elaboration, TheWolframLanguage, PatternsAndRewriting]
 - The option `"Type" -> type` gives the type the constant must have: a definition is checked against it, and where none checks, the axiom takes it. Without it, an axiom's type is `Expressions -> ... -> Expressions`, one [Expressions]() for each argument, [Expressions]() being the type of any Wolfram Language expression: the inductive type of expressions of the prelude, and an axiom, declared with the coercions of the environment's numbers into it, where the environment lacks it, as the constructive environment does.
 - The strings are [Strings](): [StringReverse]() has the signature `Strings -> Strings`, [StringLength]() `Strings -> ℕ` and [StringJoin]() `Strings -> Strings -> Strings`. In the prelude, which has [Strings](), a string literal is the string it is. Where the environment has no [Strings](), as the constructive one, [Strings]() is declared as an axiom where a definition needs it, and a string literal `"abc"` is a constant of it, named by its [InputForm]() and declared with the definition that uses it.
 - A built-in that a body calls is declared by its signature, where the environment does not declare it already: precise where the built-in allows, as [Simplify]() with the type ∀ A, A → A, and over [Expressions]() otherwise, as [D]() with `Expressions -> Expressions -> Expressions` and [Sqrt]() with `Expressions -> Expressions`. The numbers of the environment go into [Expressions]() by coercions. No equation about a built-in is assumed.
-- The option `"Meaning"` is `"Function"`, the default, for a constant that is the function *symbol* computes, or `"Rules"` for its rules, its [DownValues](), as a rewriting of expressions: the definition named `"DownValues[symbol]"` gives the expression that an expression rewrites to by the first rule that matches it, and `"none"` where none does and the expression stays as it is. The rules are terms of an environment with the Wolfram Language's expressions and matches, the prelude or one that extends it, as the integers do; another, such as the constructive environment, gives a [Failure]() tagged `"RulesEnvironment"`.
+- In an environment of the machine integers, [TypeTheoryEnvironment]()`["Machine"]` or one that extends it, the meaning is `"Compiled"`: the function that the compiler's typed entry of *symbol* computes. The compiler's `TypedSignatures` gives the types of the parameters and the result, `"Int64"` read as `"Integer64"` and `"Bool"` as `"Boolean"`, and the typed body, one statement for each step the C takes. A sum or a product is the machine result of the exact one, `"machineResult"[x + y]`, and a call of three numbers or more is the pairwise steps in order, so that `a + b + c` leaves where `a + b` overflows, as the C does. A comparison is a Boolean of the integers' order or equality, [If]() is `"machineIf"` of the test, and a call of another function with a typed entry is that function, formalized and declared first.
+- A step that may leave continues by `"confirmBind"`, so the value is of `"Integer64" | Failure`: the result, or `Failure["IntegerOverflow", <||>]` where the typed code leaves, and the Wolfram Language's generic code computes the call exactly instead. The checks of the recursion level are not part of the meaning, which depends on the arguments only.
+- The compiled meaning needs one definition whose arguments are each `x_Integer`, and gives a [Failure]() tagged `"NoTypedEntry"` otherwise, or where the compiler gives no typed entry. A function that calls itself gives `"Recursive"`, a type other than the machine integers and the Booleans `"UnmodeledType"`, a step the model does not have yet, as a loop, `"UnmodeledOperation"`, and `"Meaning" -> "Compiled"` in an environment without the machine integers `"NoMachineIntegers"`.
+- The option `"Meaning"` is `"Function"`, the default outside the machine environment, for a constant that is the function *symbol* computes, `"Compiled"` for what its compiled code computes, or `"Rules"` for its rules, its [DownValues](), as a rewriting of expressions: the definition named `"DownValues[symbol]"` gives the expression that an expression rewrites to by the first rule that matches it, and `"none"` where none does and the expression stays as it is. The rules are terms of an environment with the Wolfram Language's expressions and matches, the prelude or one that extends it, as the integers do; another, such as the constructive environment, gives a [Failure]() tagged `"RulesEnvironment"`.
 - The rules are [MatchFirst]() of the [MatchSum]() of the matches of the rules, in the order the Wolfram Language tries them. The left side of each rule is translated from its pattern: the lengths and parts of the expression by [Length](), [Arguments]() and [MatchPart](), its heads and literals by [SameQ](), sequences by every split, an [Orderless]() head by every order, alternatives by [MatchSum](), exceptions by [MatchQ](), and conditions by [SameQ]() of their [ExpressionEvaluate]() and `True`. The right side is quoted as it is, its pattern variables the parts they match, whatever it calls: the rules give one step of evaluation. The tutorial *Patterns and Rewriting* goes through every pattern.
 - The atoms of the rules are data of the type [Atoms](), which nothing declares, so the kernel computes every test but a condition or a pattern test, which only the Wolfram Language evaluates.
 - [KeyValuePattern]() does not translate, as an [Association]() is an atom, and gives a [Failure]() tagged `"Untranslatable"`.
@@ -381,6 +386,35 @@ TypeTheoryFormalize[slope, "Meaning" -> "Rules"]
 ```
 
 <!-- => {definition DownValues[slope] : Expressions → Option[Expressions] := (expression ∶ Expressions) ↦ MatchFirst[MatchPart[expression, 1, (y ∶ Expressions) ↦ MatchValue[∂_t y]] /; ¬AtomQ[expression] ∧ Decide[Length[{Arguments[expression]}] == 1]]} -->
+
+---
+
+In the environment of the machine integers, a function means what its compiled code computes. The pronic numbers n (n + 1):
+
+```wl
+machine = TypeTheoryEnvironment["Machine"];
+pronic[n_Integer] := n (n + 1);
+compiledPronic = TypeTheoryFormalize[pronic, machine]
+```
+
+<!-- => {definition pronic : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machineResult[n〚1〛 + 1], (t3∶Integer64) ↦ machineResult[n〚1〛 t3〚1〛]]} -->
+
+Each step is the machine result of the exact one, as the compiler's typed code computes it. At the largest argument whose product is a machine integer, the value is the product:
+
+```wl
+pronics = TypeTheoryEnvironment[machine, compiledPronic];
+TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[3037000499], pronic], pronics]]]
+```
+
+<!-- => 9223372033963249500 -->
+
+At the next, the typed code leaves, and the Wolfram Language computes the call exactly instead:
+
+```wl
+TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[3037000500], pronic], pronics]]]
+```
+
+<!-- => Failure["IntegerOverflow", <||>] -->
 
 ## Properties and Relations
 

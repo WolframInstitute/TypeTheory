@@ -376,6 +376,7 @@ TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 | Inference | forward, from the types of the arguments and of the built-ins | unification of metavariables: implicit arguments, untyped binders, universe levels |
 | A type error | a failure of compilation, or a refused argument | a [Failure]() of elaboration; the kernel accepts nothing it has not checked |
 | What runs | machine code | reduction in the kernel, or the Wolfram Language for an axiom with an `"Implementation"` |
+| Overflow | a typed entry leaves for the generic code, which computes the exact value | none in ℤ; in [TypeTheoryEnvironment]()`["Machine"]`, the leave is a value, `Failure["IntegerOverflow", <||>]` |
 | Pattern matching | a match program, compiled to code that tests and binds the parts of the call | a term of the monad of matches, `Match[A]`, whose first result is the rule applied: a function's rules have type `Expressions -> Option[Expressions]` |
 
 [TypeHint]()`[e, type]` is how the compiler is told the type of an expression, and it evaluates to *e*, so code with type hints runs as it is. Elaboration reads it as *e* of that type where the type is one of the type theory, and as *e* alone where it is only the compiler's, as `"MachineInteger"`, which says how *e* is stored; [TypeTheoryFormalize]() reads it as *e*:
@@ -395,3 +396,20 @@ TypeTheoryType[reflexivity]
 <!-- => 2 == 2 -->
 
 The compiler of the WolframKernel project has types of its own, of the same kind as [FunctionCompile]()'s: how values are stored, inferred to choose code. [TypeTheoryFormalize]() reads its match programs and Core, which say what a definition does, and leaves the types to elaboration, which gives the mathematical ones. With `"Meaning" -> "Rules"`, it reads the match programs as matches instead, one instruction of the compiler a constant of the type theory, so that both describe the same matching.
+
+In the environment of the machine integers, [TypeTheoryFormalize]() reads the compiler's typed code instead, and the types are the compiler's: a function of `"Integer64"`, a subtype of the integers, whose value is the result or the leave of the typed entry, where the machine would overflow. The compiler gives `pronic` one typed step for `n + 1` and one for the product:
+
+```wl
+pronic[n_Integer] := n (n + 1);
+TypeTheoryFormalize[pronic, "Machine"]
+```
+
+<!-- => {definition pronic : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machineResult[n〚1〛 + 1], (t3∶Integer64) ↦ machineResult[n〚1〛 t3〚1〛]]} -->
+
+The mathematical meaning of the same definition, in the integers, has no leave:
+
+```wl
+TypeTheoryFormalize[pronic, "Integers"]
+```
+
+<!-- => {definition pronic := (n ∶ ℤ) ↦ n (n + 1)} -->
