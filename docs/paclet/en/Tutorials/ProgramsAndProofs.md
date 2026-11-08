@@ -259,4 +259,98 @@ compiledClosedForm[2^32]
 
 <!-- => 9223372039002259456, with CompiledCodeFunction::uncomp: IntegerOverflow -->
 
-The theorem does not say that the compiled code is fast or that it does not overflow: it says what the program computes wherever the machine computes it. A type of the machine integers, numbers modulo 2^64, would let a theorem say where that is. That type, and compiling a definition and reading it as mathematics in one step, are the next steps, with the typed entries of the WolframKernel project's compiler.
+The theorem does not say that the compiled code is fast or that it does not overflow: it says what the program computes wherever the machine computes it. Where that is, is a theorem of its own, about the code the compiler runs.
+
+## The Machine's Theorem
+
+In the environment of the machine integers, [TypeTheoryFormalize]() reads the compiler's typed code of a definition: its steps, each the machine result of the exact one, which leaves the typed code with a [Failure]() where the machine would overflow. The closed form is a step for n + 1, one for the product and one for the quotient:
+
+```wl
+closedForm[n_Integer] := Quotient[n (n + 1), 2];
+machine = TypeTheoryEnvironment["Machine"];
+compiled = TypeTheoryFormalize[closedForm, machine]
+```
+
+<!-- => {definition closedForm : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machineResult[n〚1〛 + 1], (t3∶Integer64) ↦ confirmBind[machineResult[n〚1〛 t3〚1〛], (t4∶Integer64) ↦ machineQuotient[t4〚1〛, 2]]]} -->
+
+At 3037000500 it leaves, as the compiled code does:
+
+```wl
+closedForms = TypeTheoryEnvironment[machine, compiled];
+TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[3037000500], closedForm], closedForms]]]
+```
+
+<!-- => Failure["IntegerOverflow", <||>] -->
+
+That it never leaves below is the theorem. Its bounds are the program's own: the argument, n + 1 and the quotient are below 2^63 where n <= 3037000499, and so is the product, by `"NonlinearArithmetic"`, since 2^63 - 1 - n (n + 1) is (3037000499 - n) times 3037000500 + n plus a positive number:
+
+```wl
+bounds = TypeTheoryEnvironment[closedForms, {
+    TypeTheoryTheorem["argumentBound", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n < 9223372036854775808]], closedForms, {"Introduce"[n, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["successorBound", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n + 1 < 9223372036854775808]], closedForms, {"Introduce"[n, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["pronicBound", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n (n + 1) < 9223372036854775808]], closedForms, {"Introduce"[n, h], "NonlinearArithmetic"}]]
+}];
+bounds = TypeTheoryEnvironment[bounds, {TypeTheoryTheorem["quotientBound",
+    ForAll[{Typed[n, NonNegativeIntegers], Typed[h, n <= 3037000499]}, Quotient[n (n + 1), 2] < 9223372036854775808],
+    Function[{Typed[n, NonNegativeIntegers], Typed[h, n <= 3037000499]}, "lessEqualTransitivity"["lessEqualSuccessor"["quotientLessEqual"[n (n + 1), 2]], "pronicBound"[n, h]]]
+]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 377 constants -->
+
+The theorem: for every n <= 3037000499, the typed code at the machine integer n is the machine integer Quotient[n (n + 1), 2], never the leave. The proof is a chain of equations, one for each step of the typed code, and the kernel computes the code between them:
+
+- the argument is a machine integer, by `"machineResultOfNatural"`, so the first `"confirmBind"` passes it on;
+- n + 1 is in range by `"successorBound"`, so `"machineResultInRange"` makes its step a machine integer;
+- the product of the integers n and n + 1 is the integer of the natural number n (n + 1), by `"integerOfNaturalMultiplication"`, which is in range by `"pronicBound"`;
+- the divisor 2 is not 0 by computation, and the integers' quotient of natural numbers is theirs, by `"integerQuotientOfNatural"`, in range by `"quotientBound"`.
+
+```wl
+neverDeclines = TypeTheoryProof[
+    ForAll[{Typed[n, NonNegativeIntegers], Typed[h, n <= 3037000499]},
+        "confirmBind"["machineResult"["integerOfNatural"[n]], closedForm] ==
+            Typed["left"["subtype"["integerOfNatural"[Quotient[n (n + 1), 2]], "naturalInteger64Range"[Quotient[n (n + 1), 2], "quotientBound"[n, h]]]], "Integer64" | Failure]
+    ],
+    bounds,
+    {"Introduce"[n, h], "Exact"[
+        "equalityTransitivity"[
+            "equalityCongruence"[Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, closedForm]], "machineResultOfNatural"[n, "argumentBound"[n, h]]],
+            "equalityTransitivity"[
+                "equalityCongruence"[
+                    Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t3, "Integer64"]}, "confirmBind"["machineResult"["integerOfNatural"[n] t3[[1]]], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]]]],
+                    "machineResultInRange"["integerOfNatural"[n] + 1, "naturalInteger64Range"[n + 1, "successorBound"[n, h]]]
+                ],
+                "equalityTransitivity"[
+                    "equalityCongruence"[
+                        Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]],
+                        "equalitySymmetry"["integerOfNaturalMultiplication"[n, n + 1]]
+                    ],
+                    "equalityTransitivity"[
+                        "equalityCongruence"[
+                            Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]],
+                            "machineResultOfNatural"[n (n + 1), "pronicBound"[n, h]]
+                        ],
+                        "equalityTransitivity"[
+                            "equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "integerQuotientOfNatural"[n (n + 1), 1]],
+                            "machineResultOfNatural"[Quotient[n (n + 1), 2], "quotientBound"[n, h]]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]}
+]
+```
+
+<!-- => Proof complete -->
+
+It rests on the integers' quotient axiom alone, as every theorem about the integers does:
+
+```wl
+TypeTheoryAxiomClosure[neverDeclines]
+```
+
+<!-- => <|"quotientSoundness" -> "Proposition"|> -->
+
+So the compiled closed form never leaves its machine code for n <= 3037000499, and computes Quotient[n (n + 1), 2] there; at 3037000500 it leaves, and the Wolfram Language computes the call exactly instead. The recursion and the loop of `compiledTriangular` and `compiledTotal` are the next steps: their typed code is not read yet.
+

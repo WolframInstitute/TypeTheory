@@ -110,7 +110,7 @@ squares = TypeTheoryEnvironment["Integers", {TypeTheoryTheorem[SquareOfSum, Type
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 355 constants -->
+<!-- => TypeTheoryEnvironment summary box: 357 constants -->
 
 The theorem it declares:
 
@@ -288,7 +288,7 @@ squares = TypeTheoryEnvironment["Integers", {TypeTheoryTheorem[SquareOfSum, Type
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 355 constants -->
+<!-- => TypeTheoryEnvironment summary box: 357 constants -->
 
 The axiom it rests on:
 

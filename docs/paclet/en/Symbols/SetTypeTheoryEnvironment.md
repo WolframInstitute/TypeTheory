@@ -37,7 +37,7 @@ Make the integers the default environment:
 SetTypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 354 constants -->
+<!-- => TypeTheoryEnvironment summary box: 356 constants -->
 
 A proof about integers now names no environment:
 
@@ -123,7 +123,7 @@ Declarations extend the default that is set. Make the integers the default:
 SetTypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 354 constants -->
+<!-- => TypeTheoryEnvironment summary box: 356 constants -->
 
 Then add a definition to them and make the result the default:
 
@@ -131,7 +131,7 @@ Then add a definition to them and make the result the default:
 SetTypeTheoryEnvironment[{TypeTheoryDefinition[IntegerSquare, Typed[x, Integers] |-> x x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 355 constants -->
+<!-- => TypeTheoryEnvironment summary box: 357 constants -->
 
 The definition is a function on the integers:
 
@@ -201,7 +201,7 @@ TypeTheoryType["excludedMiddle"]
 SetTypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 354 constants -->
+<!-- => TypeTheoryEnvironment summary box: 356 constants -->
 
 [$TypeTheoryEnvironment]() is now the integers:
 
