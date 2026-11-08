@@ -272,3 +272,26 @@ VerificationTest[
 	{True, True, True, False},
 	TestID -> "Quotient-and-Mod-of-integers-are-the-Wolfram-Languages"
 ]
+
+(* Quotient and Mod of integers at the machine edges, ±2^63 and ±(2^63 - 1) by ±1, ±2 and large divisors up to 2^64,
+   and at 40 pairs of random signs and magnitudes up to 2^64, are the Wolfram Language's *)
+VerificationTest[
+	With[
+		{
+			integers = TypeTheoryEnvironment["Integers"],
+			grid = Join[
+				Tuples[{{0, 1, -1, 2^63 - 1, -(2^63 - 1), 2^63, -2^63}, {1, -1, 2, -2, 2^62 + 3, -(2^62 + 3), 2^63 - 1, -(2^63 - 1), 2^63, -2^63, 2^64 - 1, -(2^64 - 1)}}],
+				BlockRandom[
+					Table[{RandomChoice[{-1, 1}] RandomInteger[2^RandomInteger[{1, 64}]], RandomChoice[{-1, 1}] (1 + RandomInteger[2^RandomInteger[{0, 64}]])}, 40],
+					RandomSeeding -> 20261108
+				]
+			]
+		},
+		TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			Evaluate[Map[Function[xy, {"integerQuotient"[Typed[First[xy], Integers], Typed[Last[xy], Integers]], "integerMod"[Typed[First[xy], Integers], Typed[Last[xy], Integers]]}], grid]],
+			integers
+		]]] === Map[Function[xy, {Quotient @@ xy, Mod @@ xy}], grid]
+	],
+	True,
+	TestID -> "Quotient-and-Mod-of-integers-at-the-machine-edges-and-large-random-values"
+]
