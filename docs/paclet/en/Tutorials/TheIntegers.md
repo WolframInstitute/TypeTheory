@@ -20,7 +20,7 @@ The environment, the prelude with the integers:
 integers = TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 344 constants -->
+<!-- => TypeTheoryEnvironment summary box: 354 constants -->
 
 [Integers]() is the quotient of pairs by a relation, and shows as ℤ:
 
@@ -277,6 +277,40 @@ TypeTheoryProof[Typed[2 - 5, Integers] == -3, integers, {"Decide"}]
 
 <!-- => Proof complete -->
 
+## Quotient and Remainder
+
+[Quotient]() and [Mod]() of integers are the Wolfram Language's: the quotient rounded down, and the remainder of the divisor's sign:
+
+```wl
+TypeTheoryExpression[NormalForm[TypeTheoryTerm[{Quotient[-7, 2], Mod[-7, 2], Quotient[7, -2], Mod[7, -2]}, integers]]]
+```
+
+<!-- => {-4, 1, -4, -1} -->
+
+An integer is a class of pairs, so a function of it must give one value for every pair of the class. The quotient is a function of the integer's normal pair, (a - b, b - a) of a representing pair (a, b) in the natural numbers' subtraction, which stops at 0. Both representatives of -3 have the same normal pair:
+
+```wl
+NormalForm[TypeTheoryTerm[{"integerNormalPair"[Typed[2 - 5, Integers]], "integerNormalPair"[Typed[-3, Integers]]}, integers]]
+```
+
+<!-- => {(0, 3), (0, 3)} -->
+
+That a - b == c - d where a + d == c + b is the theorem `"subtractionOfRelation"`, which makes the normal pair a function of the class; the quotient is then defined by the signs of the normal pairs. `"Decide"` proves an equation of quotients by computation:
+
+```wl
+TypeTheoryProof[Quotient[-9223372036854775809, 2] == -4611686018427387905, integers, {"Decide"}]
+```
+
+<!-- => Proof complete -->
+
+Of natural numbers, [Quotient]() and [Mod]() are the natural numbers', defined by recursion on the dividend, so that the registration of their roles is checked, not trusted:
+
+```wl
+TypeTheoryType[Typed[n, Naturals] |-> Quotient[n (n + 1), 2], integers]
+```
+
+<!-- => ℕ → ℕ -->
+
 ## Theorems
 
 The theorems of the integers are constants named by strings. These are those the integers add to the prelude's, each with its statement:
@@ -285,4 +319,4 @@ The theorems of the integers are constants named by strings. These are those the
 KeyDrop[Information[TypeTheoryEnvironment["Integers"], "Theorems"], Keys[Information[TypeTheoryEnvironment["Prelude"], "Theorems"]]]
 ```
 
-<!-- => <|"integerNegationRespects" -> ..., ..., "integerAdditionCommutativity" -> ∀_x∶ℤ ∀_y∶ℤ x + y == y + x, ...|>, 66 theorems -->
+<!-- => <|"integerNegationRespects" -> ..., ..., "integerAdditionCommutativity" -> ∀_x∶ℤ ∀_y∶ℤ x + y == y + x, ...|>, 70 theorems -->

@@ -20,7 +20,7 @@ The environment, the integers with the rationals:
 rationals = TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 423 constants -->
+<!-- => TypeTheoryEnvironment summary box: 433 constants -->
 
 [Rationals]() is the quotient of pairs by a relation, and shows as ℚ:
 

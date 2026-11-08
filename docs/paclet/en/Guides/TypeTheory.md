@@ -110,7 +110,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The integers
 
-- <code>[TypeTheoryEnvironment]()["Integers"]</code> the prelude with the integers, classes of pairs of natural numbers, where `+`, `*`, `-` and the comparisons are the integers' wherever the types say so
+- <code>[TypeTheoryEnvironment]()["Integers"]</code> the prelude with the integers, classes of pairs of natural numbers, where `+`, `*`, `-`, [Quotient]() and [Mod]() and the comparisons are the integers' wherever the types say so
 - `"integerAdditionCommutativity"`, `"integerAdditionAssociativity"`, `"integerAdditionZero"`, `"integerAdditionNegation"`, `"integerSubtractionNegation"` addition and negation
 - `"integerMultiplicationCommutativity"`, `"integerMultiplicationAssociativity"`, `"integerMultiplicationOne"`, `"integerDistributivity"` multiplication
 - `"integerOfNaturalAddition"`, `"integerOfNaturalMultiplication"` the natural numbers among the integers, and `"integerLessEqualReflexivity"` the order
@@ -128,7 +128,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 - `"rationalOfIntegerAddition"`, `"rationalOfIntegerMultiplication"` the integers among the rationals
 - `"rationalEqualityDecidable"` the instance deciding `==` of rationals
 - `"rationalLessEqualReflexivity"`, `"rationalSquareNonnegative"` the order
-- <code>[TypeTheoryEnvironment]()["Machine"]</code> the integers with the 64-bit integers of the compiler's typed entries, `"Integer64"` or `"MachineInteger"`, the compiler's names, a subtype of the integers in range, and `"machinePlus"` and `"machineTimes"`, whose results out of range are the leave `Failure["IntegerOverflow", <||>]`
+- <code>[TypeTheoryEnvironment]()["Machine"]</code> the integers with the 64-bit integers of the compiler's typed entries, `"Integer64"` or `"MachineInteger"`, the compiler's names, a subtype of the integers in range, and `"machinePlus"`, `"machineTimes"`, `"machineQuotient"` and `"machineMod"`, whose results out of range are the leave `Failure["IntegerOverflow", <||>]`, and by 0 `Failure["DivideByZero", <||>]`
 
 ### Cubical type theory
 

@@ -166,7 +166,7 @@ A definition on the integers, extending them by their name:
 distances = TypeTheoryEnvironment["Integers", {TypeTheoryDefinition[SquaredDistance, {Typed[x, Integers], Typed[y, Integers]} |-> (x - y)^2]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 345 constants -->
+<!-- => TypeTheoryEnvironment summary box: 355 constants -->
 
 Its type:
 

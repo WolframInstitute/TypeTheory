@@ -83,7 +83,7 @@ A library environment by its name, here the integers:
 TypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 344 constants -->
+<!-- => TypeTheoryEnvironment summary box: 354 constants -->
 
 ---
 
@@ -99,7 +99,7 @@ squares = TypeTheoryEnvironment["Integers", {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 345 constants -->
+<!-- => TypeTheoryEnvironment summary box: 355 constants -->
 
 The theorem it declares:
 
@@ -260,7 +260,7 @@ The rationals, which extend the integers:
 TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 423 constants -->
+<!-- => TypeTheoryEnvironment summary box: 433 constants -->
 
 ---
 
@@ -486,7 +486,7 @@ Declarations without an environment extend the default one, here the integers fo
 Block[{$TypeTheoryEnvironment = "Integers"}, TypeTheoryEnvironment[{TypeTheoryDefinition[IntegerSquare, Typed[x, Integers] |-> x x]}]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 345 constants -->
+<!-- => TypeTheoryEnvironment summary box: 355 constants -->
 
 ---
 
