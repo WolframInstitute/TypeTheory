@@ -253,3 +253,22 @@ VerificationTest[
 	{{3, 2, 0, 7, 0, 4611686020018625250, 2}, <||>, False, True},
 	TestID -> "Quotient-and-Mod-of-natural-numbers-compute-and-are-checked"
 ]
+
+(* Quotient and Mod of integers are the Wolfram Language's, rounded down and of the divisor's sign, at every sign of the
+   dividend and the divisor; by 0 they give 0 and the dividend, as Lean's Int.fdiv and Int.fmod. Quotient of natural
+   numbers stays the natural numbers' *)
+VerificationTest[
+	With[{integers = TypeTheoryEnvironment["Integers"], grid = Flatten[Table[{x, y}, {x, -5, 5}, {y, -3, 3}], 1]},
+		{
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+				Evaluate[Map[Function[xy, {"integerQuotient"[Typed[First[xy], Integers], Typed[Last[xy], Integers]], "integerMod"[Typed[First[xy], Integers], Typed[Last[xy], Integers]]}], grid]],
+				integers
+			]]] === Map[Function[xy, If[Last[xy] == 0, {0, First[xy]}, {Quotient @@ xy, Mod @@ xy}]], grid],
+			DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[Typed[x, Integers] |-> Quotient[x, 2], integers]], TypeTheoryTerm[Integers -> Integers, integers]],
+			DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> Quotient[n, 2], integers]], TypeTheoryTerm[NonNegativeIntegers -> NonNegativeIntegers, integers]],
+			FailureQ[TypeTheoryProof[Quotient[-9223372036854775809, 2] == -4611686018427387905, integers, {"Decide"}]]
+		}
+	],
+	{True, True, True, False},
+	TestID -> "Quotient-and-Mod-of-integers-are-the-Wolfram-Languages"
+]

@@ -546,6 +546,8 @@ displayApplication[syntaxString["integerMultiplication"], arguments_List] := dis
 ]
 displayApplication[syntaxString["integerSubtraction"], arguments_List] := syntaxHead[Subtract, arguments]
 displayApplication[syntaxString["integerPower"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Power]], arguments]
+displayApplication[syntaxString["integerQuotient"], arguments_List] := syntaxHead[Quotient, arguments]
+displayApplication[syntaxString["integerMod"], arguments_List] := syntaxHead[Mod, arguments]
 displayApplication[syntaxString["integerNegation"], {argument_}] := prefixed["-", argument]
 displayApplication[syntaxString["integerLessEqual"], arguments_List] := syntaxHead[LessEqual, arguments]
 displayApplication[syntaxString["integerLess"], arguments_List] := syntaxHead[Less, arguments]

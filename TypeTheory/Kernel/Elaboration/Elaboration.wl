@@ -1455,6 +1455,8 @@ $overloadedNames = <|
 	HoldComplete[Times] -> {HoldComplete[Times], HoldComplete["integerMultiplication"], HoldComplete["rationalMultiplication"]},
 	HoldComplete[Subtract] -> {HoldComplete[Subtract], HoldComplete["integerSubtraction"], HoldComplete["rationalSubtraction"]},
 	HoldComplete[Power] -> {HoldComplete[Power], HoldComplete["integerPower"], HoldComplete["rationalPower"]},
+	HoldComplete[Quotient] -> {HoldComplete[Quotient], HoldComplete["integerQuotient"]},
+	HoldComplete[Mod] -> {HoldComplete[Mod], HoldComplete["integerMod"]},
 	HoldComplete[LessEqual] -> {HoldComplete[LessEqual], HoldComplete["integerLessEqual"], HoldComplete["rationalLessEqual"]},
 	HoldComplete[Less] -> {HoldComplete[Less], HoldComplete["integerLess"], HoldComplete["rationalLess"]},
 	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"], HoldComplete["rationalGreaterEqual"]},
@@ -1466,7 +1468,7 @@ $overloadedNames = <|
 $builtInMeanings = DeleteDuplicates[Catenate[Values[$overloadedNames]]]
 
 (* the operations of the natural numbers, which an environment with the integers overloads *)
-$arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, LessEqual, Less, GreaterEqual, Greater}]
+$arithmeticNames = HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, Quotient, Mod, LessEqual, Less, GreaterEqual, Greater}]
 
 (* the names that take their first meaning where nothing decides between them *)
 $defaultedNames = Join[$arithmeticNames, HoldComplete /@ Unevaluated[{Length, Lookup, Keys, Values, KeyExistsQ}]]

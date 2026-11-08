@@ -10,6 +10,7 @@ the integers, where Lean's Int is an inductive type.
 	"integerOfNatural"[n]         the class of (n, 0), a coercion: a natural number where an integer is expected
 	-x, x + y, x - y, x * y       "integerNegation", "integerAddition", "integerSubtraction" and "integerMultiplication"
 	x <= y, x < y, x >= y, x > y  "integerLessEqual" and the others: y is x plus a natural number, at least 1 for <
+	Quotient[x, y], Mod[x, y]     "integerQuotient", rounded down, and "integerMod", of the divisor's sign
 
 An operation lifts a function on pairs with QuotientLift, given a proof that the function respects the
 relation; a binary one lifts in one argument, then in the other. The proofs that the functions respect
@@ -1085,5 +1086,70 @@ $integerDeclarations = {
 		]],
 		TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
 	]],
-	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Remainder" -> Mod, "Quotient" -> Quotient|>]
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Remainder" -> Mod, "Quotient" -> Quotient|>],
+
+	(* The quotient of integers, rounded down, as Quotient of the Wolfram Language, and the remainder, of the divisor's
+	   sign, as Mod. An integer's normal pair, (a - b, b - a) of a representing pair (a, b) in the natural numbers'
+	   subtraction, which stops at 0, is the same for every pair of the class: a - b == c - d where a + d == c + b, since
+	   a - b == (a + d) - (b + d), and so it is lifted once; the quotient is then a function of normal pairs, by the
+	   signs: x / n of a positive n is Quotient[p, n] where x is p >= 0 and -(Quotient[q - 1, n] + 1) where x is -q < 0,
+	   and x / -n is -x / n. A 0 divisor gives 0, and the remainder x, as Lean's Int.fdiv and Int.fmod. *)
+	TypeTheoryTheorem["subtractionCancellation",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Subtract[a + k, b + k] == Subtract[a, b]],
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[j, NonNegativeIntegers]}, Subtract[a + j, b + j] == Subtract[a, b]],
+			"equalityReflexivity"[Subtract[a, b]],
+			Function[{Typed[j, NonNegativeIntegers], Typed[h, Subtract[a + j, b + j] == Subtract[a, b]]}, "equalityTransitivity"["subtractionSuccessor"[a + j, b + j], h]],
+			k
+		]]
+	],
+	integerTheorem["subtractionOfRelation",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, Implies[a + d == c + b, Subtract[a, b] == Subtract[c, d]]],
+		{"Introduce"[a, b, c, d, h], "Rewrite"["subtractionCancellation"[a, b, d], "RightToLeft"], "Rewrite"[h], "Rewrite"["additionCommutativity"[b, d]], "Exact"["subtractionCancellation"[c, d, b]]}
+	],
+	integerTheorem["subtractionOfRelationReversed",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, Implies[a + d == c + b, Subtract[b, a] == Subtract[d, c]]],
+		{"Introduce"[a, b, c, d, h], "Apply"["subtractionOfRelation"], "LinearArithmetic"}
+	],
+	integerTheorem["integerNormalPairRespects",
+		ForAll[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]], Typed[q, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
+			Implies["integerRelation"[p, q], "pair"[Subtract[p[[1]], p[[2]]], Subtract[p[[2]], p[[1]]]] == "pair"[Subtract[q[[1]], q[[2]]], Subtract[q[[2]], q[[1]]]]]
+		],
+		{"Introduce"[p, q, e], "Rewrite"["subtractionOfRelation"[p[[1]], p[[2]], q[[1]], q[[2]], e]], "Rewrite"["subtractionOfRelationReversed"[p[[1]], p[[2]], q[[1]], q[[2]], e]]}
+	],
+	TypeTheoryDefinition["integerNormalPair", Typed[
+		Function[{Typed[x, Integers]}, QuotientLift[
+			Function[{Typed[p, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]}, "pair"[Subtract[p[[1]], p[[2]]], Subtract[p[[2]], p[[1]]]]],
+			"integerNormalPairRespects",
+			x
+		]],
+		Integers -> CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]
+	]],
+	TypeTheoryDefinition["integerQuotientOfParts", Typed[
+		Function[{Typed[p, NonNegativeIntegers], Typed[q, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[j, NonNegativeIntegers]}, Integers],
+			"integerOfNatural"[Quotient[p, n]],
+			Function[{Typed[j, NonNegativeIntegers], Typed[r, Integers]}, "integerNegation"["integerOfNatural"[Quotient[j, n] + 1]]],
+			q
+		]],
+		NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers -> Integers
+	]],
+	TypeTheoryDefinition["integerQuotient", Typed[
+		Function[{Typed[x, Integers], Typed[y, Integers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[j, NonNegativeIntegers]}, Integers],
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[j, NonNegativeIntegers]}, Integers],
+				"integerOfNatural"[0],
+				Function[{Typed[d, NonNegativeIntegers], Typed[r, Integers]}, "integerQuotientOfParts"["integerNormalPair"[x][[2]], "integerNormalPair"[x][[1]], d + 1]],
+				"integerNormalPair"[y][[2]]
+			],
+			Function[{Typed[c, NonNegativeIntegers], Typed[r, Integers]}, "integerQuotientOfParts"["integerNormalPair"[x][[1]], "integerNormalPair"[x][[2]], c + 1]],
+			"integerNormalPair"[y][[1]]
+		]],
+		Integers -> Integers -> Integers
+	]],
+	TypeTheoryDefinition["integerMod", Typed[
+		Function[{Typed[x, Integers], Typed[y, Integers]}, "integerSubtraction"[x, "integerMultiplication"[y, "integerQuotient"[x, y]]]],
+		Integers -> Integers -> Integers
+	]]
 }
