@@ -11,6 +11,8 @@ administrative normal form, one statement for each step the C takes. Each step i
 	t = Plus[a, b], Times[a, b]     the machine result of the exact sum or product, "machineResult"[a + b], the leave
 	                                Failure["IntegerOverflow", <||>] out of range; more arguments combine pairwise, in
 	                                order, each step a result of its own, as the C combines them
+	t = Quotient[a, b], Mod[a, b]   "machineQuotient" and "machineMod", rounded down as the integers' and leaving
+	                                with Failure["DivideByZero", <||>] by 0, as the C does
 	t = Less[a, b], Equal[a, b]     the Boolean of the integers' order or equality, which never leaves
 	If[test, then, else]            "machineIf" of the test, each branch a block of its own
 	t = g[a, ...]                   a call of another function with a typed entry, formalized first
@@ -210,6 +212,15 @@ expandedStatements[statements_List] := Catenate[Map[expandedStatement, statement
 
 expandedStatement[coreForm["SetTemporary"][t_String, coreForm["Call"][operation : "System`Plus" | "System`Times", {first_, second_, more__}]]] :=
 	expandedPairwise[t, operation, first, {second, more}]
+(* a constant argument of a call of another function is first a machine integer of its own, bound as a step *)
+expandedStatement[coreForm["SetTemporary"][t_String, coreForm["Call"][name_String, arguments_List]]] /;
+	! StringStartsQ[name, "System`"] && ! FreeQ[arguments, coreForm["Constant"][_Integer]] :=
+	With[{constants = MapIndexed[Function[{argument, position}, If[MatchQ[argument, coreForm["Constant"][_Integer]], {StringJoin[t, "c", ToString[First[position]]], argument}, None]], arguments]},
+		Append[
+			Map[Function[constant, coreForm["SetTemporary"][First[constant], Last[constant]]], DeleteCases[constants, None]],
+			coreForm["SetTemporary"][t, coreForm["Call"][name, MapThread[Function[{argument, constant}, If[constant === None, argument, coreForm["Temporary"][First[constant]]]], {arguments, constants}]]]
+		]
+	]
 expandedStatement[statement_] := {statement}
 
 (* Plus[a, b, c] as p1 = Plus[a, b] and t = Plus[p1, c] *)
@@ -227,6 +238,12 @@ stepTerm[coreForm["Call"][operation : "System`Plus" | "System`Times", {a_, b_}],
 		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Plus" :> {"Result", HoldComplete["machineResult"[x + y]], "Int64"},
 		{HoldComplete[x_], HoldComplete[y_]} :> {"Result", HoldComplete["machineResult"[x y]], "Int64"}
 	}]
+stepTerm[coreForm["Call"][operation : "System`Quotient" | "System`Mod", {a_, b_}], scope_, _, _] :=
+	Replace[{integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]}, {
+		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Quotient" :> {"Result", HoldComplete["machineQuotient"[x, y]], "Int64"},
+		{HoldComplete[x_], HoldComplete[y_]} :> {"Result", HoldComplete["machineMod"[x, y]], "Int64"}
+	}]
+stepTerm[coreForm["Constant"][value_Integer], _, _, _] := {"Result", HoldComplete["machineResult"[value]], "Int64"}
 stepTerm[coreForm["Call"][operation_String, {a_, b_}], scope_, _, _] /; KeyExistsQ[$machineComparisons, operation] :=
 	{"Pure", $machineComparisons[operation][integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]], "Bool"}
 stepTerm[coreForm["Call"]["System`Not", {a_}], scope_, _, _] :=
@@ -267,9 +284,9 @@ integerTerm[{HoldComplete[x_], "Int64"}] := HoldComplete[x[[1]]]
 integerTerm[{term_HoldComplete, "Integer"}] := term
 integerTerm[{_, kind_}] := unmodeled[kind]
 
-(* a machine integer or a Boolean as a value, a constant by the machine integer it is *)
+(* a machine integer or a Boolean as a value; a constant was bound as a machine integer before the call *)
 machineTerm[{term_HoldComplete, "Int64" | "Bool"}] := term
-machineTerm[{HoldComplete[x_], "Integer"}] := HoldComplete["machineResult"[x]]
+machineTerm[{_, kind_}] := unmodeled[kind]
 
 (* the block's value as a result: a machine integer or a Boolean that never left, or a constant's machine result *)
 valueTerm[{HoldComplete[x_], "Int64"}, "Int64"] := HoldComplete[Typed["left"[x], "Integer64" | Failure]]

@@ -15,6 +15,8 @@ value is out of its type, and the failure is that leave.
 	                                 is not, "right": Integer64 | Failure
 	"machinePlus", "machineTimes"    the sum and the product of machine integers, as machine results
 	"machineIf"[b, x, y]             the compiler's If of a Boolean test
+	"machineQuotient", "machineMod"  the quotient rounded down and the remainder of two machine integers' values, as
+	                                 machine results, leaving with Failure["DivideByZero", <||>] by 0
 
 The range is decided by the order of the integers, "integerLessEqualDecidable", so a machine result of literals
 computes: "machineResult"[5] is the machine integer 5, and "machineResult"[2^63] the failure. Where an exact result is
@@ -96,6 +98,17 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	(* the compiler's If of a Boolean test, the first value where it is true and the second where it is false *)
 	TypeTheoryDefinition["machineIf", Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[b, "Boolean"], Typed[x, A], Typed[y, A]},
 		InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, A], y, x, b]
+	]],
+	(* the machine quotient and remainder of the values of two machine integers, as the compiler's C computes them: by a 0
+	   divisor the typed entry leaves, Failure["DivideByZero", <||>]; otherwise the quotient rounded down, which is out of
+	   range only for -2^63 / -1, and the remainder, which is always in range *)
+	TypeTheoryDefinition["machineQuotient", Typed[
+		Function[{Typed[x, Integers], Typed[y, Integers]}, "machineIf"["integerEqual"[y, 0], Typed["right"[Failure["DivideByZero", <||>]], "Integer64" | Failure], "machineResult"[Quotient[x, y]]]],
+		Integers -> Integers -> ("Integer64" | Failure)
+	]],
+	TypeTheoryDefinition["machineMod", Typed[
+		Function[{Typed[x, Integers], Typed[y, Integers]}, "machineIf"["integerEqual"[y, 0], Typed["right"[Failure["DivideByZero", <||>]], "Integer64" | Failure], "machineResult"[Mod[x, y]]]],
+		Integers -> Integers -> ("Integer64" | Failure)
 	]],
 	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],

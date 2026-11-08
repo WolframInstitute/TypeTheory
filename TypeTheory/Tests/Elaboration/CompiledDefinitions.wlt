@@ -19,13 +19,20 @@ compiledSign[n_Integer] := If[n < 0, -1, If[n == 0, 0, 1]]
 compiledSmallQ[n_Integer] := n < 10
 compiledCount[n_Integer] := If[n <= 0, 0, n + compiledCount[n - 1]]
 compiledUntyped[x_] := x
+compiledClosedForm[n_Integer] := Quotient[n (n + 1), 2]
+compiledQuotient[a_Integer, b_Integer] := Quotient[a, b]
+compiledMod[a_Integer, b_Integer] := Mod[a, b]
+compiledFifth[n_Integer] := compiledQuotient[n, 5] + 1
 
 compiledEnvironment = TypeTheoryEnvironment[machine, Catenate[{
 	TypeTheoryFormalize[compiledProduct, machine],
 	TypeTheoryFormalize[compiledNext, machine],
 	TypeTheoryFormalize[compiledSum, machine],
 	TypeTheoryFormalize[compiledSign, machine],
-	TypeTheoryFormalize[compiledSmallQ, machine]
+	TypeTheoryFormalize[compiledSmallQ, machine],
+	TypeTheoryFormalize[compiledClosedForm, machine],
+	TypeTheoryFormalize[compiledMod, machine],
+	TypeTheoryFormalize[compiledFifth, machine]
 }]]
 
 
@@ -98,4 +105,35 @@ VerificationTest[
 	TypeTheoryFormalize[compiledProduct, machine, "Meaning" -> "Function"],
 	{TypeTheoryDefinition[compiledProduct, Function[{Typed[n, Integers]}, n (n + 1)]]},
 	TestID -> "The-mathematical-meaning-in-the-machine-environment"
+]
+
+(* Quotient and Mod leave by 0, as the C's b == 0, and the quotient also at -2^63 / -1, the C's INT64_MIN with -1, the one
+   quotient out of range; otherwise they round down as the integers' *)
+VerificationTest[
+	{
+		Apply[Function[{x, y}, TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			"confirmBind"["machineResult"[Typed[x, Integers]], Typed[a, "Integer64"] |-> "confirmBind"["machineResult"[Typed[y, Integers]], Typed[b, "Integer64"] |-> compiledQuotient[a, b]]],
+			compiledEnvironment
+		]]]], {{7, -2}, {-7, 2}, {7, 0}, {-9223372036854775808, -1}, {-9223372036854775808, 1}}, {1}],
+		Apply[Function[{x, y}, TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			"confirmBind"["machineResult"[Typed[x, Integers]], Typed[a, "Integer64"] |-> "confirmBind"["machineResult"[Typed[y, Integers]], Typed[b, "Integer64"] |-> compiledMod[a, b]]],
+			compiledEnvironment
+		]]]], {{7, -2}, {-7, 2}, {7, 0}, {-9223372036854775808, -1}}, {1}]
+	},
+	{
+		{-4, -4, Failure["DivideByZero", <||>], Failure["IntegerOverflow", <||>], -9223372036854775808},
+		{-1, 1, Failure["DivideByZero", <||>], 0}
+	},
+	TestID -> "Machine-Quotient-and-Mod-leave-where-the-C-does"
+]
+
+(* the closed form of the tutorial, Quotient[n (n + 1), 2]: its typed code leaves only where the product overflows, and a
+   constant argument of a call is bound as a machine integer first *)
+VerificationTest[
+	{
+		Map[Function[n, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[n, Integers]], compiledClosedForm], compiledEnvironment]]]], {4, 3037000499, 3037000500, -3037000500}],
+		Map[Function[n, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[n, Integers]], compiledFifth], compiledEnvironment]]]], {-11, 24}]
+	},
+	{{10, 4611686016981624750, Failure["IntegerOverflow", <||>], 4611686016981624750}, {-2, 5}},
+	TestID -> "The-compiled-closed-form-and-a-constant-argument"
 ]
