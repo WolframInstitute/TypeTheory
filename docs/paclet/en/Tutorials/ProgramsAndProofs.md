@@ -153,21 +153,45 @@ proof = TypeTheoryProof[gaussStatement, {"Introduce"[n], "Induction"[n]}]
 
 <!-- => Proof, 2 goals: case zero ⊢ 2 triangular[0] == 0 (0 + 1); case successor ⊢ ∀_n∶ℕ 2 triangular[n] == n (n + 1) ⇒ 2 triangular[n + 1] == (n + 1) (n + 1 + 1) -->
 
+The tactics build one term, the proof, and each goal still open is a hole in it. So far the term is a function of n that applies the recursor of the natural numbers, with the statement as its motive and a hole for each case:
+
+```wl
+proof["Term"]
+```
+
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), ?1, ?2, n], the two holes numbered as the session numbers them -->
+
 At 0, the definition computes, and both sides are 0:
 
 ```wl
-proof = TypeTheoryTactic["Simplify", {triangular}][proof]
+proof = TypeTheoryTactic["RewriteRepeated", triangular][proof]
 ```
 
 <!-- => Proof, 1 goal: case successor ⊢ ∀_n∶ℕ 2 triangular[n] == n (n + 1) ⇒ 2 triangular[n + 1] == (n + 1) (n + 1 + 1) -->
 
+The first hole is now a proof by reflexivity:
+
+```wl
+proof["Term"]
+```
+
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], ?2, n] -->
+
 At k + 1, the definition unfolds once, triangular[k + 1] is k + 1 + triangular[k], and the induction hypothesis `ih` gives 2 triangular[k]:
 
 ```wl
-proof = TypeTheoryTactic["Simplify", {triangular}][TypeTheoryTactic["Introduce", k, ih][proof]]
+proof = TypeTheoryTactic["RewriteRepeated", triangular][TypeTheoryTactic["Introduce", k, ih][proof]]
 ```
 
 <!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1) -->
+
+The second case is now a function of k and of the hypothesis, with the hole inside:
+
+```wl
+proof["Term"]
+```
+
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ ?3, n] -->
 
 What is left is algebra with the hypothesis: twice the left side is 2 (k + 1) + k (k + 1), which is (k + 1) (k + 2). `"PolynomialReduce"` finds the combination of the hypothesis that proves it:
 
@@ -176,6 +200,23 @@ proof = TypeTheoryTactic["PolynomialReduce"][proof]
 ```
 
 <!-- => Proof complete -->
+
+The term is whole. `"PolynomialReduce"` filled the last hole with the algebra written out: the laws of arithmetic, `"additionCommutativity"`, `"multiplicationDistributivityLeft"` and the others, joined by `"equalityTransitivity"` and applied inside a sum or a product by `"equalityCongruence"`, down to the hypothesis `ih`:
+
+```wl
+proof["Term"]
+```
+
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ equalityTransitivity[equalityTransitivity[equalitySymmetry[additionSubtractionCancellation[2 (k + 1 + triangular[k]), 1 (k (k + 1))]], equalityCongruence[…, ih], …], …], n] -->
+
+That term is all there is to the proof: the tactics are only how it was written. [TypeTheoryProofTree]() reads it as a derivation, each part of the term a rule: the induction over its two cases, and under the second the 200 steps of the algebra:
+
+```wl
+tree = TypeTheoryProofTree[proof];
+Counts[Cases[tree, TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
+```
+
+<!-- => <|"equalityReflexivity" -> 1, "additionSubtractionCancellation" -> 2, "equalitySymmetry" -> 34, "additionCommutativity" -> 9, "equalityCongruence" -> 48, "equalityTransitivity" -> 61, ..., "Assumption" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
 
 The kernel checks the proof again when the theorem is declared:
 
@@ -196,7 +237,7 @@ The sum of the first n cubes is the square of the n-th triangular number. Multip
 nicomachus = TypeTheoryProof[
     ForAll[{n}, 4 cubes[n] == (n (n + 1))^2],
     programs,
-    {"Introduce"[n], "Induction"[n], "Simplify"[{cubes}], "Introduce"[k, ih], "Simplify"[{cubes}], "PolynomialReduce"}
+    {"Introduce"[n], "Induction"[n], "RewriteRepeated"[cubes], "Introduce"[k, ih], "RewriteRepeated"[cubes], "PolynomialReduce"}
 ]
 ```
 
@@ -220,13 +261,13 @@ joinStatement = TypeTheoryTerm[ForAll[{Typed[a, {NonNegativeIntegers}], Typed[b,
 
 <!-- => ∀_a∶{ℕ} ∀_b∶{ℕ} total[Join[a, b]] == total[a] + total[b] -->
 
-The proof is by induction on the first list. On the empty list, `"Simplify"` unfolds [Join]() and `total`, and `"Ring"` closes 0 + total[b] == total[b]. On a list with a first element x, [Join]() unfolds to put x in front of Join[rest, b], and `total` to x plus the total of that; the induction hypothesis `ih` rewrites total[Join[rest, b]], and what is left is the associativity of addition:
+The proof is by induction on the first list. On the empty list, `"RewriteRepeated"` unfolds [Join]() and `total`, and `"Ring"` closes 0 + total[b] == total[b]. On a list with a first element x, [Join]() unfolds to put x in front of Join[rest, b], and `total` to x plus the total of that; the induction hypothesis `ih` rewrites total[Join[rest, b]], and what is left is the associativity of addition:
 
 ```wl
 TypeTheoryProof[joinStatement, {
     "Introduce"[a, b], "Induction"[a],
-    "Simplify"[{total, Join}], "Ring",
-    "Introduce"[x, rest, ih], "Simplify"[{total, Join}], "Rewrite"[ih], "Ring"
+    "RewriteRepeated"[total, Join], "Ring",
+    "Introduce"[x, rest, ih], "RewriteRepeated"[total, Join], "Rewrite"[ih], "Ring"
 }]
 ```
 
