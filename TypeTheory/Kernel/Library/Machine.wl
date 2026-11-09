@@ -141,5 +141,11 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	TypeTheoryTheorem["machineResultOfNatural",
 		ForAll[{Typed[m, NonNegativeIntegers], Typed[h, m < upper]}, "machineResult"["integerOfNatural"[m]] == Typed["left"["subtype"["integerOfNatural"[m], "naturalInteger64Range"[m, h]]], "Integer64" | Failure]],
 		Function[{Typed[m, NonNegativeIntegers], Typed[h, m < upper]}, "machineResultInRange"["integerOfNatural"[m], "naturalInteger64Range"[m, h]]]
+	],
+	(* the machine's n - 1 of a positive natural number is the natural number before it: the value a recursion calls
+	   itself with is the class of (k + 1, 1), which is the integer k, though not by computation *)
+	machineTheorem["integerOfNaturalPredecessor",
+		ForAll[{Typed[n, NonNegativeIntegers]}, "integerOfNatural"[n + 1] - 1 == "integerOfNatural"[n]],
+		{"Introduce"[n], "Rewrite"["integerOfNaturalAddition"[n, 1]], "Ring"}
 	]
 }]

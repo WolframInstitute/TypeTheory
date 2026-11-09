@@ -22,6 +22,8 @@ compiledEvenQ[n_Integer] := If[n == 0, True, compiledOddQ[n - 1]]
 compiledOddQ[n_Integer] := If[n == 0, False, compiledEvenQ[n - 1]]
 compiledTriangle[n_Integer] := If[n == 0, 0, n + compiledTriangle[n - 1]]
 compiledDoubleTriangle[n_Integer] := 2 compiledTriangle[n]
+mathematicalTriangle[0] = 0
+mathematicalTriangle[n_Integer] := n + mathematicalTriangle[n - 1]
 compiledClosedForm[n_Integer] := Quotient[n (n + 1), 2]
 compiledQuotient[a_Integer, b_Integer] := Quotient[a, b]
 compiledMod[a_Integer, b_Integer] := Mod[a, b]
@@ -210,5 +212,109 @@ VerificationTest[
 	],
 	{{6, Failure["RecursionLimit", <||>], Failure["RecursionLimit", <||>], 0, 6, 210, Failure["RecursionLimit", <||>]}, True},
 	TestID -> "Recursion-counts-the-levels-left-and-leaves-without-them"
+]
+
+(* the bridge for a recursion: with levels enough, more than n, and wherever the exact result fits a machine integer,
+   the compiled triangle of a machine integer whose value is n is the machine integer of the mathematical triangle, a
+   recursion on the natural numbers. By induction on n and cases on the levels: none is absurd; at 0 the test is true; at
+   k + 1 the test is false, k is a machine integer, the recursion is the induction hypothesis at it, and the sum is the
+   next triangle. The argument is any machine integer equal to n as an integer, since the recursion's own argument, the
+   class of (k + 1, 1), is k only so *)
+VerificationTest[
+	Module[{environment, proof},
+		environment = TypeTheoryEnvironment[machine, Join[
+			TypeTheoryFormalize[mathematicalTriangle, machine, "Meaning" -> "Function", "Type" -> (NonNegativeIntegers -> NonNegativeIntegers)],
+			TypeTheoryFormalize[compiledTriangle, machine]
+		]];
+		environment = TypeTheoryEnvironment[environment, {
+			TypeTheoryTheorem["notLessZero", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n < 0, False]], environment, {"Introduce"[n, h], "LinearArithmetic"}]],
+			TypeTheoryTheorem["lessOfSuccessors", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[l, NonNegativeIntegers]}, Implies[n + 1 < l + 1, n < l]], environment, {"Introduce"[n, l, h], "LinearArithmetic"}]],
+			TypeTheoryTheorem["partBound", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[t, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[(a + 1) + t < u, t < u]], environment, {"Introduce"[a, t, u, h], "LinearArithmetic"}]],
+			TypeTheoryTheorem["argumentBound", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[t, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[(a + 1) + t < u, a < u]], environment, {"Introduce"[a, t, u, h], "LinearArithmetic"}]]
+		}];
+		proof = TypeTheoryProof[
+			ForAll[{Typed[n, NonNegativeIntegers], Typed[levels, NonNegativeIntegers], Typed[m, "Integer64"]},
+				Implies[n < levels, Implies[mathematicalTriangle[n] < 9223372036854775808, Implies[m[[1]] == "integerOfNatural"[n],
+					Exists[{Typed[v, "Integer64"]}, compiledTriangle[levels, m] == Typed["left"[v], "Integer64" | Failure] && v[[1]] == "integerOfNatural"[mathematicalTriangle[n]]]]]]],
+			environment,
+			{
+				"Introduce"[n], "Induction"[n], "Introduce"[levels], "Induction"[levels],
+				"Introduce"[m, h], "Exact"["falseElimination"["notLessZero"[0, h]]],
+				"Introduce"[l, ihl, m, h, b, e],
+				"Exact"["existsIntroduction"[
+					"subtype"["integerOfNatural"[mathematicalTriangle[0]], "naturalInteger64Range"[mathematicalTriangle[0], b]],
+					"andIntroduction"[
+						"equalityTransitivity"[
+							"equalityCongruence"[
+								Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machineResult"[x - 1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[compiledTriangle[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"[x + t10[[1]]]]]]]]],
+								e
+							],
+							"machineResultOfNatural"[mathematicalTriangle[0], b]
+						],
+						"equalityReflexivity"["integerOfNatural"[mathematicalTriangle[0]]]
+					]
+				]],
+				"Introduce"[k, ih, levels], "Induction"[levels],
+				"Introduce"[m, h], "Exact"["falseElimination"["notLessZero"[k + 1, h]]],
+				"Introduce"[l, ihl, m, h, b, e],
+				"Exact"[InductiveRecursor[Exists][
+					Function[{w0}, Exists[{Typed[w, "Integer64"]}, compiledTriangle[l + 1, m] == Typed["left"[w], "Integer64" | Failure] && w[[1]] == "integerOfNatural"[mathematicalTriangle[k + 1]]]],
+					Function[
+						{
+							Typed[v, "Integer64"],
+							Typed[hv, compiledTriangle[l, "subtype"["integerOfNatural"[k], "naturalInteger64Range"[k, "argumentBound"[k, mathematicalTriangle[k], 9223372036854775808, b]]]] == Typed["left"[v], "Integer64" | Failure] && v[[1]] == "integerOfNatural"[mathematicalTriangle[k]]]
+						},
+						"existsIntroduction"[
+							"subtype"["integerOfNatural"[mathematicalTriangle[k + 1]], "naturalInteger64Range"[mathematicalTriangle[k + 1], b]],
+							"andIntroduction"[
+								"equalityTransitivity"[
+									"equalityCongruence"[
+										Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machineResult"[x - 1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[compiledTriangle[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"[x + t10[[1]]]]]]]]],
+										e
+									],
+									"equalityTransitivity"[
+										"equalityCongruence"[
+											Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t9, "Integer64"]}, "confirmBind"[compiledTriangle[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]]]],
+											"integerOfNaturalPredecessor"[k]
+										],
+										"equalityTransitivity"[
+											"equalityCongruence"[
+												Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t9, "Integer64"]}, "confirmBind"[compiledTriangle[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]]]],
+												"machineResultOfNatural"[k, "argumentBound"[k, mathematicalTriangle[k], 9223372036854775808, b]]
+											],
+											"equalityTransitivity"[
+												"equalityCongruence"[
+													Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]],
+													"andEliminationLeft"[hv]
+												],
+												"equalityTransitivity"[
+													"equalityCongruence"[Function[{Typed[y, Integers]}, "machineResult"["integerOfNatural"[k + 1] + y]], "andEliminationRight"[hv]],
+													"equalityTransitivity"[
+														"equalityCongruence"[Function[{Typed[y, Integers]}, "machineResult"[y]], "equalitySymmetry"["integerOfNaturalAddition"[k + 1, mathematicalTriangle[k]]]],
+														"machineResultOfNatural"[mathematicalTriangle[k + 1], b]
+													]
+												]
+											]
+										]
+									]
+								],
+								"equalityReflexivity"["integerOfNatural"[mathematicalTriangle[k + 1]]]
+							]
+						]
+					],
+					ih[
+						l,
+						"subtype"["integerOfNatural"[k], "naturalInteger64Range"[k, "argumentBound"[k, mathematicalTriangle[k], 9223372036854775808, b]]],
+						"lessOfSuccessors"[k, l, h],
+						"partBound"[k, mathematicalTriangle[k], 9223372036854775808, b],
+						"equalityReflexivity"["integerOfNatural"[k]]
+					]
+				]]
+			}
+		];
+		{FailureQ[proof], TypeTheoryAxiomClosure[proof]}
+	],
+	{False, <|"quotientSoundness" -> "Proposition"|>},
+	TestID -> "A-compiled-recursion-computes-the-mathematical-recursion"
 ]
 
