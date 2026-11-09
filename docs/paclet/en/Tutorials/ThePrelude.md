@@ -225,7 +225,7 @@ doubling = TypeTheoryProof[ForAll[{n}, n * 2 == n + n], {
 
 ## Order
 
-[LessEqual](), written `m <= n`, is inductive as in Lean: `"lessEqualReflexivity"` proves `n <= n`, and `"lessEqualStep"` goes from `n <= m` to `n <= m + 1`:
+[LessEqual](), written `m <= n`, is inductive: `"lessEqualReflexivity"` proves `n <= n`, and `"lessEqualStep"` goes from `n <= m` to `n <= m + 1`:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm["lessEqualStep"["lessEqualStep"["lessEqualReflexivity"]]], TypeTheoryTerm[2 <= 4]]
@@ -323,7 +323,7 @@ The tutorial *Instances and Coercions* shows how an environment adds instances o
 
 ## Pairs, Sums and Options
 
-<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with `"pair"`, whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with `"left"`, and those of `β` on the right, with `"right"`; and <code>[Option]()[α]</code> has `"none"` and the values <code>"some"[x]</code>. They are laid out as Lean's `Prod`, `Sum` and `Option`:
+<code>[CartesianProductType]()[α, β]</code> is the type of pairs, made with `"pair"`, whose fields are `p[[1]]` and `p[[2]]`; <code>[DisjointUnionType]()[α, β]</code> has the elements of `α` on the left, with `"left"`, and those of `β` on the right, with `"right"`; and <code>[Option]()[α]</code> has `"none"` and the values <code>"some"[x]</code>. Each is an inductive type:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[1]]]]
@@ -357,7 +357,7 @@ lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}
 
 ## Classical Logic
 
-The prelude's three axioms are those of Lean's library. `"propositionalExtensionality"` makes equivalent propositions equal:
+The prelude has three axioms. `"propositionalExtensionality"` makes equivalent propositions equal:
 
 ```wl
 TypeTheoryType["propositionalExtensionality"["equivalentIntroduction"[Typed[h, True] |-> "andIntroduction"[h, h], h |-> "andEliminationLeft"[h]]]]
@@ -456,7 +456,7 @@ Information[excludedMiddle, "Axioms"]
 
 ## What the Prelude Does Not Have Yet
 
-Lean's library is much larger than this prelude. The integers and the rationals are in environments of their own, <code>[TypeTheoryEnvironment]()["Integers"]</code> and <code>[TypeTheoryEnvironment]()["Rationals"]</code>. The kernel has what Lean's library needs of it, mutual and nested inductive types and quotients among it, so LeanLink imports that library itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
+The prelude is small. The integers and the rationals are in environments of their own, <code>[TypeTheoryEnvironment]()["Integers"]</code> and <code>[TypeTheoryEnvironment]()["Rationals"]</code>. The kernel has mutual and nested inductive types and quotients, which a large library needs of it, so LeanLink imports Mathlib itself: the tutorial *Mathlib in TypeTheory* works with Mathlib's natural numbers.
 
 ## Theorems
 

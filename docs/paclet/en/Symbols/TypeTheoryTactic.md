@@ -26,7 +26,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Exact", term` | solves the goal with a term |
 | `"Apply", term` | solves the goal with a term applied to new goals, as many as its conclusion needs |
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
-| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized. On a class of a quotient, one goal for the class of an element, as Lean's induction using `Quot.ind` |
+| `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized. On a class of a quotient, one goal for the class of an element |
 | `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
 | `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
 | `"Constructor"` | applies the first constructor of the goal's inductive type that applies |

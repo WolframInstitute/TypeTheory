@@ -13,12 +13,12 @@ WolframVersion: 15.0+
 Categories: [Higher Mathematical Computation, Symbolic & Numeric Computation]
 Disclosures: [WLSystemSymbols]
 Sources: ["Thierry Coquand, Gérard Huet, *The Calculus of Constructions*, Information and Computation 76, 1988", "Christine Paulin-Mohring, *Inductive Definitions in the System Coq: Rules and Properties*, TLCA 1993", "Mario Carneiro, *The Type Theory of Lean*, Master's thesis, Carnegie Mellon University, 2019"]
-Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarations to and from TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)", "[Lean 4 (lean-lang.org)](https://lean-lang.org/)"]
+Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarations to and from TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
 ## Details & Options
 
-- TypeTheory is a proof engine for the **Calculus of Inductive Constructions**, a dependent type theory, written in the Wolfram Language, with no dependency on Lean; [TypeTheoryCheck]() also has a compiled kernel, the same algorithm compiled to native code.
+- TypeTheory is a proof engine for the **Calculus of Inductive Constructions**, a dependent type theory, written in the Wolfram Language; [TypeTheoryCheck]() also has a compiled kernel, the same algorithm compiled to native code.
 - Terms are ordinary expressions built from built-in symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](), which displays them in mathematical notation.
 - Declarations are inert constructors - [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers](), [TypeTheoryRewriteRule](), [TypeTheoryQuotients]() and [TypeTheoryCubical]() - that a small kernel checks when they are added to a [TypeTheoryEnvironment](). An environment is a value, a handle to a store of definitions, and every term and proof carries the environment it lives in; the one setting is the default environment, [$TypeTheoryEnvironment](), the prelude unless [SetTypeTheoryEnvironment]() sets another.
 - The kernel infers types, reduces terms, decides definitional equality (with eta for functions and structures, and proof irrelevance), checks inductive families for strict positivity and universe constraints, and generates their recursors.

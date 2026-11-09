@@ -72,7 +72,7 @@ Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Rules"] === TypeTheory
 
 ## Scope
 
-The settings of the calculus of inductive constructions, those of Lean's kernel:
+The settings of the calculus of inductive constructions:
 
 ```wl
 TypeTheoryRules["CalculusOfInductiveConstructions"] /@ {"Prop", "Quotients", "RewriteRules", "Quantities", "Cubical"}
@@ -362,7 +362,7 @@ TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory"], Normal[TypeTheoryE
 A name of no type theory gives a [Failure]() that lists the names there are:
 
 ```wl
-TypeTheoryRules["Lean"]
+TypeTheoryRules["SetTheory"]
 ```
 
 <!-- => Failure["UnknownRules", ...] -->

@@ -17,7 +17,7 @@ RelatedTutorials: [ThePrelude]
 ## Details & Options
 
 - [CartesianProductType]() is an inductive type of the prelude, with the one constructor `"pair"`. `"pair"` takes the types of its fields implicitly, from the fields.
-- It is a structure: a pair `p` has the fields `p[[1]]` and `p[[2]]`, which compute on a pair: `"pair"[a, b][[1]]` is `a`. A pair is its fields: `p` and `"pair"[p[[1]], p[[2]]]` are equal by computation, as Lean's structure eta has it.
+- It is a structure: a pair `p` has the fields `p[[1]]` and `p[[2]]`, which compute on a pair: `"pair"[a, b][[1]]` is `a`. A pair is its fields: `p` and `"pair"[p[[1]], p[[2]]]` are equal by computation, the eta rule of a structure.
 - Its recursor, <code>[InductiveRecursor]()[[CartesianProductType]()]</code>, takes a function of the two fields.
 - For *α* in `Type u` and *β* in `Type v`, <code>[CartesianProductType]()[*α*, *β*]</code> is in `Type (max u v)`. The fields are data: for propositions, [And]() is the conjunction, a structure too.
 - <code>[CartesianProductType]()[*α*, *β*]</code> displays as *α* × *β*, and a product nested to the right, <code>[CartesianProductType]()[*α*, [CartesianProductType]()[*β*, *γ*]]</code>, as *α* × *β* × *γ*. A pair displays as `(a, b)`, and a pair nested to the right as `(a, b, c)`.

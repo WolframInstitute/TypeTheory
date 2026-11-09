@@ -22,7 +22,7 @@ RelatedTutorials: [TypeTheoryIntroduction, Elaboration, Quantities]
 - <code>[Construct]()[*f*, *a*, ...]</code> gives every argument, implicit ones included.
 - `"Introduce"` moves an implicit variable into the context of a proof as it moves an explicit one.
 - <code>[TypedImplicit]()[*x*, *A*, *q*]</code> is an implicit binder of quantity *q*, 0 or 1, under rules with quantities, as <code>[Typed]()[*x*, *A*, *q*]</code> is an explicit one; see [TypeTheoryRules]().
-- <code>[TypedImplicit]()[*x*, *A*]</code> is the same binder as <code>[Annotation]()[[Typed]()[*x*, *A*], "Implicit"]</code>, and terms and declarations read back with it. The strict implicit and instance implicit binders of Lean are written <code>[Annotation]()[[Typed]()[*x*, *A*], "StrictImplicit"]</code> and <code>[Annotation]()[[Typed]()[*x*, *A*], "InstanceImplicit"]</code>, and show as `⦃x ∶ A⦄` and `[x ∶ A]`.
+- <code>[TypedImplicit]()[*x*, *A*]</code> is the same binder as <code>[Annotation]()[[Typed]()[*x*, *A*], "Implicit"]</code>, and terms and declarations read back with it. The strict implicit and instance implicit binders are written <code>[Annotation]()[[Typed]()[*x*, *A*], "StrictImplicit"]</code> and <code>[Annotation]()[[Typed]()[*x*, *A*], "InstanceImplicit"]</code>, and show as `⦃x ∶ A⦄` and `[x ∶ A]`.
 
 ## Basic Examples
 

@@ -170,7 +170,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Naturals][Naturals &, 0, #2 
 
 ## Universe Levels
 
-A variable whose type is a sort, but whose level nothing decides, gets the level that the declaration allows. A theorem's statement is a proposition where it can be, as Lean elaborates a theorem's type against Prop, so `p` here is a proposition:
+A variable whose type is a sort, but whose level nothing decides, gets the level that the declaration allows. A theorem's statement is a proposition where it can be, so `p` here is a proposition:
 
 ```wl
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p, p]], {p, h} |-> h]}][SelfImplication]

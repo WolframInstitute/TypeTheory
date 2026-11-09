@@ -10,7 +10,7 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, InstancesAndCoercions, RulesAndComputation]
 ---
 
-The integers are not in the prelude; <code>[TypeTheoryEnvironment]()["Integers"]</code> adds them, read from the file saved with the paclet the first time it is asked for. An integer there is a class of pairs of natural numbers: (a, b) stands for a - b, and two pairs (a, b) and (c, d) are the same integer when a + d == c + b. That is a quotient type, the way many textbooks build the integers; Lean's `Int` is an inductive type instead. Every operation is lifted from pairs, and every law of a commutative ring is proved by TypeTheory's own tactics, then checked by the kernel.
+The integers are not in the prelude; <code>[TypeTheoryEnvironment]()["Integers"]</code> adds them, read from the file saved with the paclet the first time it is asked for. An integer there is a class of pairs of natural numbers: (a, b) stands for a - b, and two pairs (a, b) and (c, d) are the same integer when a + d == c + b. That is a quotient type, the way many textbooks build the integers. Every operation is lifted from pairs, and every law of a commutative ring is proved by TypeTheory's own tactics, then checked by the kernel.
 
 ## The Integers as a Quotient
 

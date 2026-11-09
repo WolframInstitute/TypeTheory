@@ -10,11 +10,11 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, Paradoxes, HomotopyTypeTheory, ThePrelude]
 ---
 
-A type theory has two parts. Its rules say what the kernel allows and what it computes; its declarations say what an environment assumes. [TypeTheoryRules]() holds the rules as a value, and every [TypeTheoryEnvironment]() carries the rules it was started with. This tutorial shows how each kind of constant computes, what the rules change, and how a [TypeTheoryRewriteRule]() makes an axiom compute, as some axioms do in Lean's kernel and in homotopy type theory.
+A type theory has two parts. Its rules say what the kernel allows and what it computes; its declarations say what an environment assumes. [TypeTheoryRules]() holds the rules as a value, and every [TypeTheoryEnvironment]() carries the rules it was started with. This tutorial shows how each kind of constant computes, what the rules change, and how a [TypeTheoryRewriteRule]() makes an axiom compute, as the lift of a quotient does and as paths do in homotopy type theory.
 
 ## Rules and Declarations
 
-The prelude follows the calculus of inductive constructions, the rules of Lean's kernel:
+The prelude follows the calculus of inductive constructions:
 
 ```wl
 Information[TypeTheoryEnvironment[], "Rules"]["Name"]
@@ -152,7 +152,7 @@ TypeTheoryType[ForAll[{Typed[A, TypeUniverse[1]]}, A], hott]
 
 <!-- => Type 1 -->
 
-As pure type systems, the two rules differ in one place. Both have a sort `Sort u` for every level `u`, the axioms `Sort u : Sort (u + 1)`, and products by the rule `(Sort u, Sort v, Sort (imax u v))`: a function type is in the larger universe of its domain and its codomain, except that one into Prop is in Prop, as [ImpredicativeMaximum]() says. Without Prop no level is 0, and `imax` is `max`. Neither rule is cumulative, as Lean's is not: a type in `Type` is not one in `Type 1`, and `Type 1` does not take the natural numbers:
+As pure type systems, the two rules differ in one place. Both have a sort `Sort u` for every level `u`, the axioms `Sort u : Sort (u + 1)`, and products by the rule `(Sort u, Sort v, Sort (imax u v))`: a function type is in the larger universe of its domain and its codomain, except that one into Prop is in Prop, as [ImpredicativeMaximum]() says. Without Prop no level is 0, and `imax` is `max`. Neither rule is cumulative: a type in `Type` is not one in `Type 1`, and `Type 1` does not take the natural numbers:
 
 ```wl
 TypeTheoryType[Typed[Naturals, TypeUniverse[2]]]
@@ -164,7 +164,7 @@ Proof irrelevance, with an equality in Prop eliminating into any type, is what m
 
 ## Axioms That Compute
 
-Lean's kernel has quotient types built in. Their constructor and lift are constants with no definition, and the kernel adds one computation rule: lifting a function to the quotient and applying it to a class gives the function's value. TypeTheory's kernel has the same rule for the prelude's [QuotientLift](), as above. A kernel without quotient types, as Rocq's, can still have them, with axioms for the constants and a [TypeTheoryRewriteRule]() for the rule, which needs rules that allow rewrite rules.
+The kernel has quotient types built in. Their constructor and lift are constants with no definition, and the kernel adds one computation rule: lifting a function to the quotient and applying it to a class gives the function's value, as the prelude's [QuotientLift]() does above. Rules without quotient types, as Rocq's kernel has, can still have them, with axioms for the constants and a [TypeTheoryRewriteRule]() for the rule, which needs rules that allow rewrite rules.
 
 The axioms of the quotient types, under names of their own:
 
@@ -386,9 +386,9 @@ TypeTheoryTranslate[TypeTheoryEnvironment["HomotopyTypeTheory"], TypeTheoryRules
 
 ## Summary
 
-| | The prelude's rules | The same with rewrite rules allowed | Martin-Löf rules, as in the HoTT environment | Lean's kernel |
-| --- | --- | --- | --- | --- |
-| a definition, a recursor on a constructor | computes | computes | computes | computes |
-| two proofs of a proposition | equal by computation | equal by computation | no Prop: two paths need not be equal | equal by computation |
-| an axiom | stuck | computes by its rewrite rules | computes by its rewrite rules, where the rules allow them | stuck |
-| a quotient's lift on a class | computes | computes | no quotient types | computes |
+| | The prelude's rules | The same with rewrite rules allowed | Martin-Löf rules, as in the HoTT environment |
+| --- | --- | --- | --- |
+| a definition, a recursor on a constructor | computes | computes | computes |
+| two proofs of a proposition | equal by computation | equal by computation | no Prop: two paths need not be equal |
+| an axiom | stuck | computes by its rewrite rules | computes by its rewrite rules, where the rules allow them |
+| a quotient's lift on a class | computes | computes | no quotient types |

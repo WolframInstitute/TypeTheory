@@ -10,7 +10,7 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, RulesAndComputation]
 ---
 
-Lean leaves out more than implicit arguments. An argument in square brackets, `[Decidable p]`, is found by type class resolution among the instances, and a term of the wrong type gets a coercion, `↑x`, in front of it. TypeTheory's elaborator does both. A definition declared with `"Instance" -> True` is an instance of the class its type ends in, and fills an argument of an instance-implicit binder; a definition declared with `"Coercion" -> True` is applied where a term's type is not the one its place expects. Neither is trusted: the kernel checks every term that elaboration builds with them.
+A term leaves out more than implicit arguments. An argument in square brackets, `[Decidable p]`, is found among the instances of its class, and a term of the wrong type gets a coercion, `↑x`, in front of it. Elaboration does both. A definition declared with `"Instance" -> True` is an instance of the class its type ends in, and fills an argument of an instance-implicit binder; a definition declared with `"Coercion" -> True` is applied where a term's type is not the one its place expects. Neither is trusted: the kernel checks every term that elaboration builds with them.
 
 ## A Class and Its Instances
 
@@ -96,7 +96,7 @@ TypeTheoryType[Typed[Default, Option[Naturals]], pairs]
 
 ## Local Instances
 
-Inside a function, a variable bound by an instance-implicit binder is an instance itself, found before any of the environment's, as Lean's local instances are. `DefaultPair` gets both its components from its argument `h`:
+Inside a function, a variable bound by an instance-implicit binder is an instance itself, found before any of the environment's. `DefaultPair` gets both its components from its argument `h`:
 
 ```wl
 defaultPairs = TypeTheoryEnvironment[pairs, {

@@ -10,7 +10,7 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheIntegers, ThePrelude, InstancesAndCoercions]
 ---
 
-<code>[TypeTheoryEnvironment]()["Rationals"]</code> is the environment of the integers with the rationals, read from the file saved with the paclet the first time it is asked for. A rational there is a class of pairs of an integer and a natural number: (a, b) stands for a / (b + 1), and (a, b) and (c, d) are the same rational when a (d + 1) == c (b + 1). The denominator b + 1 is never 0, so every pair stands for a rational. It is a quotient type over the integers, as the integers are one over the natural numbers; Lean's `Rat` is a structure of a numerator and a denominator in lowest terms instead. The operations are lifted from pairs, and the laws of a field are proved by TypeTheory's own tactics, then checked by the kernel.
+<code>[TypeTheoryEnvironment]()["Rationals"]</code> is the environment of the integers with the rationals, read from the file saved with the paclet the first time it is asked for. A rational there is a class of pairs of an integer and a natural number: (a, b) stands for a / (b + 1), and (a, b) and (c, d) are the same rational when a (d + 1) == c (b + 1). The denominator b + 1 is never 0, so every pair stands for a rational. It is a quotient type over the integers, as the integers are one over the natural numbers. The operations are lifted from pairs, and the laws of a field are proved by TypeTheory's own tactics, then checked by the kernel.
 
 ## The Rationals as a Quotient
 

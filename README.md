@@ -89,8 +89,8 @@ TypeTheoryCheck[TypeTheoryTerm[ZeroLeftIdentity[7], proved], TypeTheoryTerm[0 + 
 ```
 
 In a notebook a proof shows its open goals, each as a list of hypotheses over the goal. A term shows
-in mathematical notation, with `∧`, `∨`, `¬`, and the natural numbers as `0` and `n + 1` as Lean shows
-them; a declaration shows as its keyword, its name and its type.
+in mathematical notation, with `∧`, `∨`, `¬`, and the natural numbers as `0` and `n + 1`;
+a declaration shows as its keyword, its name and its type.
 
 ## The language
 
@@ -233,7 +233,7 @@ WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["equivalenceToPath"["negation
 
 ### Instances and coercions
 
-Elaboration fills in what Lean's type classes and coercions do. An argument of an instance-implicit
+Elaboration fills in instances and coercions. An argument of an instance-implicit
 binder, `Annotation[Typed[h, class], "InstanceImplicit"]`, is a variable bound by such a binder, or else
 the first definition declared with `"Instance" -> True` whose type unifies with the binder's, the latest
 declared first, its own instance arguments found in turn. A term whose type does not unify with the one
@@ -253,7 +253,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (
 
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
-257 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
+257 constants is checked by the kernel when the paclet loads. It is classical:
 the three axioms, propositional extensionality, the soundness of quotients and choice, are axioms,
 and function extensionality and the excluded middle are proved from them. It also declares the Wolfram
 Language's expressions, strings, sequences and matches, sums written `A | B`, failures, `A | Failure`
@@ -274,21 +274,21 @@ written in terms are symbols; its constructors, theorems and axioms are constant
 - **Functions:** `Identity` and `Composition`.
 - **Quotients:** the quotient types, `QuotientType[r]`, with `QuotientIntroduction`,
   `QuotientLift` and `QuotientInduction`, declared by `TypeTheoryQuotients[]`: a lift computes on a
-  class, and `"quotientSoundness"`, Lean's `Quot.sound`, is an axiom.
+  class, and `"quotientSoundness"` is an axiom.
 - **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `"zero"`, `"successor"` and
   `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
-  and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean, and computed
+  and `Subtract` (which stops at 0), each by recursion on its second argument, and computed
   on literals with integers; `LessEqual`,
-  inductive as Lean's `Nat.le` (`"lessEqualReflexivity"`, `"lessEqualStep"`), with `Less`, `GreaterEqual`
+  inductive (`"lessEqualReflexivity"`, `"lessEqualStep"`), with `Less`, `GreaterEqual`
   and `Greater`.
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
   multiplication, the zero, one and successor laws, cancellation of subtraction and of a positive factor,
   the laws of powers, injectivity of the successor, the order's transitivity, antisymmetry,
   irreflexivity and totality, and sums and multiples of inequalities.
 - **Booleans:** `Booleans`, with the constants `"false"` and `"true"`, and `"not"`, `"and"` and `"or"`,
-  named by strings, by cases on the first argument as Lean's `Bool`. `True`, `False`, `Not`, `And` and
+  named by strings, by cases on the first argument. `True`, `False`, `Not`, `And` and
   `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
-- **Decisions:** `Decidable` (`"decidableFalse"`, `"decidableTrue"`), a class as Lean's, with `Decide[p]`
+- **Decisions:** `Decidable` (`"decidableFalse"`, `"decidableTrue"`), a class, with `Decide[p]`
   giving the Boolean of the decision of `p`, found among the instances, and `"decideSoundness"` the proof
   from one that computes to `"true"`. The instances
   `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"` decide `==` and `<=` of natural numbers
@@ -296,14 +296,14 @@ written in terms are symbols; its constructors, theorems and axioms are constant
   `"notDecidable"`, `"andDecidable"` and `"orDecidable"` combine decisions, and `"trueDecidable"`,
   `"falseDecidable"` and `"booleanEqualityDecidable"` decide `True`, `False` and equations of Booleans.
 - **Pairs, sums, options and lists:** `CartesianProductType` (`"pair"`), `DisjointUnionType` (`"left"`,
-  `"right"`), `Option` (`"none"`, `"some"`) and lists, `{A}` (`{}`, `Prepend[x][l]`), as
-  Lean's `Prod`, `Sum`, `Option` and `List`; `Join`, `Length`, `Map`, `Append` and `Reverse` on lists,
+  `"right"`), `Option` (`"none"`, `"some"`) and lists, `{A}` (`{}`, `Prepend[x][l]`);
+  `Join`, `Length`, `Map`, `Append` and `Reverse` on lists,
   and their laws `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`,
   `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"` and `"lengthReverse"`.
 - **Classical logic:** `Nonempty` (`"nonempty"`) and `Subtype` (`"subtype"`); the
   axioms `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`; `ChosenWitness` with
   `"chosenWitnessProperty"`; and the theorems `"functionExtensionality"`, proved from the soundness of
-  quotients as Lean proves it, `"excludedMiddle"`, proved by Diaconescu's argument, and
+  quotients, `"excludedMiddle"`, proved by Diaconescu's argument, and
   `"doubleNegationElimination"`.
 
 The elaborator reads `a - b` as `Subtract[a, b]` and `a && b && c` as `a && (b && c)` for propositions

@@ -22,8 +22,8 @@ RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
 - <code>[QuotientType]()[*r*]</code> is the type of the classes of the relation *r*, <code>[QuotientIntroduction]()[*r*, *a*]</code> the class of *a*, and <code>[QuotientLift]()[*f*, *h*, *q*]</code> applies *f* to the class *q*, given a proof *h* that *f* gives related elements the same value.
 - The rules of the environment must have quotients, the setting `"Quotients"` of [TypeTheoryRules](), and Prop: the calculus of inductive constructions has them, Martin-Löf type theory does not.
 - The equality must be the identity type: an inductive type with one universe parameter, of the type <code>[ForAll]()[{[TypedImplicit]()[α, [TypeUniverse]()[u]]}, α -> α -> Prop]</code>, with one constructor of the type <code>[ForAll]()[{[TypedImplicit]()[α, [TypeUniverse]()[u]], [Typed]()[x, α]}, x == x]</code>. The type of the lift mentions it, and with another equality a lift could tell apart elements that the quotient identifies.
-- That the classes of related elements are equal is an axiom, Lean's `Quot.sound`, which the prelude declares as `"quotientSoundness"`. Without it, two classes are equal only if they are equal by computation.
-- The prelude declares the quotient types, and the integers and the rationals are quotients; LeanLink declares Lean's own with <code>[TypeTheoryQuotients]()["Eq", {"Quot", "Quot.mk", "Quot.lift", "Quot.ind"}]</code>.
+- That the classes of related elements are equal is an axiom, which the prelude declares as `"quotientSoundness"`. Without it, two classes are equal only if they are equal by computation.
+- The prelude declares the quotient types, and the integers and the rationals are quotients; LeanLink declares those of a library it imports, under that library's names, with <code>[TypeTheoryQuotients]()["Eq", {"Quot", "Quot.mk", "Quot.lift", "Quot.ind"}]</code>.
 - The four constants come from one declaration: [Normal]() gives it once, and <code>[TypeTheoryCheck]()[*env*]</code> replays it and compares the four records with those it gives.
 
 ## Basic Examples

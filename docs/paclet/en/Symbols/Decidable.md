@@ -18,7 +18,7 @@ RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 
 - [Decidable]() is an inductive type of the prelude, with the constructors `"decidableFalse"`, which takes a proof of <code>[Not]()[*p*]</code>, and `"decidableTrue"`, which takes a proof of *p*, in that order.
 - A decision is data, in `Type`, not a proposition, so it computes, and its recursor eliminates into any universe: [Decide]() turns it into a Boolean, and `"decideSoundness"` turns a decision that computes to `"true"` into a proof of *p*.
-- [Decidable]() is a class: its instances are definitions declared with `"Instance" -> True`, and elaboration finds the decision of a proposition among them, as Lean's type class resolution does.
+- [Decidable]() is a class: its instances are definitions declared with `"Instance" -> True`, and elaboration finds the decision of a proposition among them.
 - The prelude's instances decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, which compare literals in one step of the kernel, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans with `"trueDecidable"`, `"falseDecidable"` and `"booleanEqualityDecidable"`.
 - The tactic `"Decide"` of [TypeTheoryTactic]() finds the decision of the goal and proves it with `"decideSoundness"`; an environment extends it with instances of its own.
 

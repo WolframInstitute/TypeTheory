@@ -13,7 +13,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ## Abstract
 
-<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers, the Booleans, decisions, quotients, pairs, sums, options and lists, unless [SetTypeTheoryEnvironment]() sets another; the integers are a quotient in an environment of their own. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide, and elaboration fills in instances and inserts coercions, as Lean's type classes and coercions do. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle, the cubical environment follows cubical type theory, where univalence computes, and rules with quantities erase variables or use them at most once, as affine type theories do. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
+<code>WolframInstitute\`TypeTheory\`</code> is a proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language. Its terms are ordinary expressions built from the language's own symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](). Declarations are constructors, such as [TypeTheoryTheorem]() and [TypeTheoryInductiveType](), that a [TypeTheoryEnvironment]() checks with a small kernel; terms, proofs and declarations that name no environment are in the default environment, the prelude of classical logic, equality, the natural numbers, the Booleans, decisions, quotients, pairs, sums, options and lists, unless [SetTypeTheoryEnvironment]() sets another; the integers are a quotient in an environment of their own. [True](), [And]() and the other connectives are propositions or Booleans, as their types decide, and elaboration fills in instances and inserts coercions. The rules the kernel checks by are a value, [TypeTheoryRules](): the HoTT environment follows Martin-Löf type theory, without Prop, with univalence and the circle, the cubical environment follows cubical type theory, where univalence computes, and rules with quantities erase variables or use them at most once, as affine type theories do. [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step, and nothing a tactic does is trusted: the kernel checks the finished proof.
 
 ## Functions
 
@@ -75,14 +75,14 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 ### The prelude: quotients
 
-- [QuotientType]() the type of the classes of a relation, Lean's `Quot`
+- [QuotientType]() the type of the classes of a relation
 - [QuotientIntroduction]() the class of an element
 - [QuotientLift]() a function that respects the relation, applied to classes, computing on a class
 - [QuotientInduction]() a property of every class, from the classes of the elements
 
 ### The prelude: classical logic
 
-- `"propositionalExtensionality"`, `"quotientSoundness"`, `"choice"` the axioms of the prelude, Lean's three
+- `"propositionalExtensionality"`, `"quotientSoundness"`, `"choice"` the axioms of the prelude
 - `"functionExtensionality"` functions equal at every point are equal, proved from `"quotientSoundness"`
 - `"nonempty"` proving [Nonempty](), which `"choice"` takes to an element
 - `"subtype"` an element of a [Subtype](), with a proof of its property

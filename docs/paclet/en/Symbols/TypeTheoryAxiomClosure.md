@@ -30,7 +30,7 @@ RelatedTutorials: [Paradoxes]
 
 ## Basic Examples
 
-Excluded middle rests on the three axioms Lean's proof of it uses:
+Excluded middle rests on the three axioms of the prelude:
 
 ```wl
 TypeTheoryAxiomClosure[TypeTheoryTerm["excludedMiddle"]]
