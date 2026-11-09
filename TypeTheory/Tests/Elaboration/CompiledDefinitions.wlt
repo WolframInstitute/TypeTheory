@@ -22,6 +22,12 @@ compiledEvenQ[n_Integer] := If[n == 0, True, compiledOddQ[n - 1]]
 compiledOddQ[n_Integer] := If[n == 0, False, compiledEvenQ[n - 1]]
 compiledTriangle[n_Integer] := If[n == 0, 0, n + compiledTriangle[n - 1]]
 compiledDoubleTriangle[n_Integer] := 2 compiledTriangle[n]
+compiledWhileSum[n_Integer] := Module[{s = 0, i = 1}, While[i <= n, s = s + i; i = i + 1]; s]
+compiledTestSets[n_Integer] := Module[{s = 0, i = 0}, While[(i = i + 1) <= n, s = s + i]; s]
+compiledNested[n_Integer] := Module[{s = 0, i = 1, j = 1}, While[i <= n, j = 1; While[j <= i, s = s + 1; j = j + 1]; i = i + 1]; s]
+compiledTwiceSum[n_Integer] := compiledWhileSum[n] + compiledWhileSum[n]
+compiledDoSum[n_Integer] := Module[{s = 0}, Do[s += i, {i, n}]; s]
+compiledCollatz[n_Integer] := Module[{k = n, c = 0}, While[k != 1, If[Mod[k, 2] == 0, k = Quotient[k, 2], k = 3 k + 1]; c = c + 1]; c]
 mathematicalTriangle[0] = 0
 mathematicalTriangle[n_Integer] := n + mathematicalTriangle[n - 1]
 compiledClosedForm[n_Integer] := Quotient[n (n + 1), 2]
@@ -316,5 +322,55 @@ VerificationTest[
 	],
 	{False, <|"quotientSoundness" -> "Proposition"|>},
 	TestID -> "A-compiled-recursion-computes-the-mathematical-recursion"
+]
+
+(* a While is a constant of its own, "While[f]", by recursion on the fuel, the iterations it may take: its arguments are
+   the fuel, the locals it reads and the locals it sets, and its value the pair of those it sets. The function takes the
+   fuel first and goes on with the loop's value. A sum to n takes n rounds and a last test: with fuel n + 1 it is the sum,
+   and with n it is out of fuel, Failure["OutOfFuel", <||>], which is no leave of the typed code *)
+VerificationTest[
+	With[{declarations = TypeTheoryFormalize[compiledWhileSum, machine]},
+		With[{environment = TypeTheoryEnvironment[machine, declarations]},
+			{
+				Map[Function[declaration, HoldForm @@ Take[declaration, 1]], declarations],
+				DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["While[compiledWhileSum]", environment]], TypeTheoryTerm[NonNegativeIntegers -> "Integer64" -> "Integer64" -> "Integer64" -> (CartesianProductType["Integer64", "Integer64"] | Failure), environment]],
+				DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm[compiledWhileSum, environment]], TypeTheoryTerm[NonNegativeIntegers -> "Integer64" -> ("Integer64" | Failure), environment]],
+				Map[
+					Apply[Function[{fuel, k}, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> compiledWhileSum[fuel, m]], environment]]]]],
+					{{4, 3}, {3, 3}, {1, 0}, {0, 0}, {30, 20}}
+				]
+			}
+		]
+	],
+	{{HoldForm["While[compiledWhileSum]"], HoldForm[compiledWhileSum]}, True, True, {6, Failure["OutOfFuel", <||>], 0, Failure["OutOfFuel", <||>], 210}},
+	TestID -> "A-While-is-a-constant-of-its-own-by-recursion-on-the-fuel"
+]
+
+(* a local that the test sets is of the loop's state too; a loop in a loop is a constant of its own, declared first; and a
+   function that calls one with a loop takes the fuel and passes it on *)
+VerificationTest[
+	With[{environment = TypeTheoryEnvironment[machine, Join[TypeTheoryFormalize[compiledTestSets, machine], TypeTheoryFormalize[compiledNested, machine], TypeTheoryFormalize[compiledTwiceSum, machine]]]},
+		{
+			Map[Function[declaration, HoldForm @@ Take[declaration, 1]], TypeTheoryFormalize[compiledNested, machine]],
+			Map[Function[declaration, HoldForm @@ Take[declaration, 1]], TypeTheoryFormalize[compiledTwiceSum, machine]],
+			Map[
+				Apply[Function[{function, fuel, k}, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> function[fuel, m]], environment]]]]],
+				{{compiledTestSets, 50, 5}, {compiledTestSets, 5, 5}, {compiledNested, 50, 5}, {compiledNested, 5, 5}, {compiledTwiceSum, 50, 5}, {compiledTwiceSum, 5, 5}}
+			]
+		}
+	],
+	{
+		{HoldForm["While[compiledNested, 2]"], HoldForm["While[compiledNested]"], HoldForm[compiledNested]},
+		{HoldForm["While[compiledWhileSum]"], HoldForm[compiledWhileSum], HoldForm[compiledTwiceSum]},
+		{15, Failure["OutOfFuel", <||>], 15, Failure["OutOfFuel", <||>], 30, Failure["OutOfFuel", <||>]}
+	},
+	TestID -> "A-loops-state-nested-loops-and-fuel-passed-on"
+]
+
+(* a Do, whose iterator is a global the code localizes, and an If whose branch sets a local are not read yet *)
+VerificationTest[
+	{TypeTheoryFormalize[compiledDoSum, machine]["Tag"], TypeTheoryFormalize[compiledCollatz, machine]["Tag"]},
+	{"UnmodeledOperation", "UnmodeledOperation"},
+	TestID -> "A-Do-and-a-branch-that-sets-a-local-are-not-read-yet"
 ]
 

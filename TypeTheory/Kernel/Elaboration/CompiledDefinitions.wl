@@ -24,6 +24,12 @@ depend on the caller and not on the arguments, are not part of it; but a functio
 levels its recursion may use, a natural number, each call of itself one, and leaves with Failure["RecursionLimit", <||>]
 where none is left, as a typed entry leaves where its recursion passes its bound. Functions that call each other are
 not formalized yet.
+
+A While of typed code has no bound, and a definition must end: a function with a loop takes fuel, a natural number
+after the levels, the iterations each of its loops may take, and a loop out of fuel gives Failure["OutOfFuel", <||>],
+which is no value of the typed entry but the meaning given too little: a theorem about a loop holds of all fuel from
+some on, and of a run that nothing aborts. A local set in straight code is its new value from there on; the locals a
+loop sets are its state.
 *)
 
 
@@ -115,25 +121,42 @@ mutuallyRecursiveQ[name_String, signatures_Association] := AnyTrue[
 ]
 
 (* a function whose meaning takes the levels its recursion may use: one that calls itself, or calls one that does *)
-fueledQ[name_String, signatures_Association] := selfRecursiveQ[name, signatures] || AnyTrue[DeleteCases[signatures[name]["Calls"], name], Function[callee, fueledQ[callee, signatures]]]
+leveledQ[name_String, signatures_Association] := selfRecursiveQ[name, signatures] || AnyTrue[DeleteCases[signatures[name]["Calls"], name], Function[callee, leveledQ[callee, signatures]]]
+
+(* a function whose meaning takes fuel, the iterations its loops may take: one with a While, or one that calls one with
+   fuel *)
+fueledQ[name_String, signatures_Association] := ! FreeQ[signatures[name]["Body"], coreForm["While"]] || AnyTrue[DeleteCases[signatures[name]["Calls"], name], Function[callee, fueledQ[callee, signatures]]]
 
 compiledSymbol[name_String] := ToExpression[$compiledContext <> name, InputForm, HoldComplete]
 
 compiledFunctionDeclarations[environment_, name_String, signatures_Association] := With[
 	{held = ToExpression[name, InputForm, HoldComplete]},
-	If[constantDeclaredQ[environment, held], {}, {compiledDefinition[held, signatures[name], signatures]}]
+	If[constantDeclaredQ[environment, held], {}, compiledDefinitions[held, signatures[name], signatures]]
 ]
 
-(* the definition: a function of the parameters, of their machine types, to the result or its leave. A function whose
-   recursion counts levels takes first the levels left, a natural number: one that calls itself is defined by recursion
-   on them, each call of itself a level, and leaves with Failure["RecursionLimit", <||>] where none is left, as a typed
-   entry leaves where its recursion is deeper than its bound; one that calls such a function passes them on *)
+(* the function's definition after those of its loops, which its translation sows as it meets them *)
+$loopTag = "CompiledLoop"
+$loopCount = 0
+
+compiledDefinitions[held_HoldComplete, signature_Association, signatures_Association] := Block[{$loopCount = 0},
+	Replace[Reap[compiledDefinition[held, signature, signatures], $loopTag], {definition_, loops_List} :> Append[Catenate[loops], definition]]
+]
+
+(* the definition: a function of the parameters, of their machine types, to the result or its leave. Two budgets come
+   first, each a natural number, where the function needs them. The levels are the compiler's: a typed entry leaves where
+   its recursion is deeper than its bound, so a function that calls itself is defined by recursion on the levels left,
+   each call of itself a level, and leaves with Failure["RecursionLimit", <||>] where none is left; a function that calls
+   such a function passes its levels on. The fuel is the proof's: a loop of typed code has no bound, so a While is
+   defined by recursion on the fuel, the iterations it may take, and gives Failure["OutOfFuel", <||>] where none is left,
+   which is no value of the typed entry but the meaning given too few iterations; a call passes the fuel on, and a
+   theorem holds of all fuel from some on *)
 compiledDefinition[held : HoldComplete[symbol_Symbol], signature_Association, signatures_Association] := With[
 	{
 		parameters = parameterTerms[held, signature["Parameters"]],
 		name = fullName[symbol],
-		fuel = compiledSymbol["fuel"],
 		levels = compiledSymbol["levels"],
+		levelsLeft = compiledSymbol["levelsLeft"],
+		fuel = compiledSymbol["fuel"],
 		recursion = compiledSymbol["recursion"]
 	},
 	With[
@@ -141,37 +164,41 @@ compiledDefinition[held : HoldComplete[symbol_Symbol], signature_Association, si
 			binders = Map[Function[parameter, {First[parameter], machineType[Last[parameter]]}], parameters],
 			ownType = functionType[Map[Function[parameter, machineType[Last[parameter]]], parameters], resultType[signature["Result"]]],
 			scope = parameterScope[signature["Parameters"], parameters],
-			context = Join[signature, <|"Name" -> name, "Fuel" -> If[selfRecursiveQ[name, signatures], levels, fuel], "Recursion" -> recursion|>]
+			budgets = Join[
+				If[leveledQ[name, signatures], {{levels, HoldComplete[NonNegativeIntegers]}}, {}],
+				If[fueledQ[name, signatures], {{fuel, HoldComplete[NonNegativeIntegers]}}, {}]
+			],
+			context = Join[signature, <|
+				"Name" -> name,
+				"Symbol" -> SymbolName[Unevaluated[symbol]],
+				"Levels" -> Which[selfRecursiveQ[name, signatures], levelsLeft, leveledQ[name, signatures], levels, True, None],
+				"Fuel" -> If[fueledQ[name, signatures], fuel, None],
+				"Recursion" -> If[selfRecursiveQ[name, signatures], recursion, None]
+			|>]
 		},
-		Which[
-			selfRecursiveQ[name, signatures],
-				definitionDeclaration[
-					held,
-					functionTerm[Prepend[binders, {fuel, HoldComplete[NonNegativeIntegers]}], recursionTerm[fuel, levels, recursion, binders, ownType, blockTerm[signature["Body"], scope, context, signatures], signature["Result"]]],
-					functionType[{HoldComplete[NonNegativeIntegers]}, ownType]
+		With[{body = blockTerm[signature["Body"], scope, context, signatures]},
+			definitionDeclaration[
+				held,
+				functionTerm[
+					Join[budgets, binders],
+					If[selfRecursiveQ[name, signatures], recursionTerm[levels, levelsLeft, recursion, binders, ownType, body, signature["Result"]], body]
 				],
-			fueledQ[name, signatures],
-				definitionDeclaration[
-					held,
-					functionTerm[Prepend[binders, {fuel, HoldComplete[NonNegativeIntegers]}], blockTerm[signature["Body"], scope, context, signatures]],
-					functionType[{HoldComplete[NonNegativeIntegers]}, ownType]
-				],
-			True,
-				definitionDeclaration[held, functionTerm[binders, blockTerm[signature["Body"], scope, context, signatures]], ownType]
+				functionType[Map[Last, budgets], ownType]
+			]
 		]
 	]
 ]
 
-(* recursion on the levels left: with none, the leave; with one more than levels, the body, whose calls of itself are
-   recursion, the function at levels; then applied to the parameters *)
-recursionTerm[HoldComplete[fuel_], HoldComplete[levels_], HoldComplete[recursion_], binders_List, HoldComplete[type_], body_HoldComplete, result_String] := With[
+(* recursion on the levels: with none, the leave; with one more than levelsLeft, the body, whose calls of itself are
+   recursion, the function at levelsLeft; then applied to the parameters *)
+recursionTerm[HoldComplete[levels_], HoldComplete[levelsLeft_], HoldComplete[recursion_], binders_List, HoldComplete[type_], body_HoldComplete, result_String] := With[
 	{leave = functionTerm[binders, Replace[resultType[result], HoldComplete[r_] :> HoldComplete[Typed["right"[Failure["RecursionLimit", <||>]], r]]]], step = functionTerm[binders, body]},
 	Replace[{leave, step, callTerm[HoldComplete[Null], Map[First, binders]]}, {HoldComplete[l_], HoldComplete[f_], HoldComplete[Null[arguments___]]} :>
 		HoldComplete[InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[WolframInstitute`TypeTheory`Compiled`j, NonNegativeIntegers]}, type],
 			l,
-			Function[{Typed[levels, NonNegativeIntegers], Typed[recursion, type]}, f],
-			fuel
+			Function[{Typed[levelsLeft, NonNegativeIntegers], Typed[recursion, type]}, f],
+			levels
 		][arguments]]
 	]
 ]
@@ -226,43 +253,196 @@ functionType[domains_List, HoldComplete[codomain_]] := Fold[
 (*Blocks and steps*)
 
 
-(* a block's statements in turn, then its value, a term of the result type; the scope gives each variable so far its term
-   and its kind: "Int64" a machine integer, "Bool" a Boolean, "Integer" an exact integer the code has as a constant *)
+(* a block's statements in turn, then its ending; the scope gives each variable so far its term and its kind: "Int64" a
+   machine integer, "Bool" a Boolean, "Integer" an exact integer the code has as a constant. A block ends with its value,
+   valueEnding[atom], a term of the result type, or goes on as continuationEnding[f] says of the scope it ends with, as
+   the test and the body of a loop do *)
 blockTerm[coreForm["StatementBlock"][statements_List, value_], scope_Association, signature_Association, signatures_Association] :=
-	statementsTerm[expandedStatements[statements], value, scope, signature, signatures]
+	statementsTerm[expandedStatements[statements], valueEnding[value], scope, signature, signatures]
 blockTerm[other_, _, _, _] := unmodeled[other]
 
-statementsTerm[{}, value_, scope_, signature_, _] := valueTerm[atomTerm[value, scope], signature["Result"]]
-statementsTerm[{(coreForm["CheckLevel"] | coreForm["SetLevel"])[___], rest___}, value_, scope_, signature_, signatures_] :=
-	statementsTerm[{rest}, value, scope, signature, signatures]
-statementsTerm[{coreForm["SetTemporary"][t_String, coreForm["Copy"][atom_]], rest___}, value_, scope_, signature_, signatures_] :=
-	statementsTerm[{rest}, value, Append[scope, {"T", t} -> atomTerm[atom, scope]], signature, signatures]
-statementsTerm[{coreForm["SetTemporary"][t_String, step_], rest___}, value_, scope_, signature_, signatures_] := Replace[stepTerm[step, scope, signature, signatures], {
-	{"Pure", term_HoldComplete, kind_String} :> statementsTerm[{rest}, value, Append[scope, {"T", t} -> {term, kind}], signature, signatures],
-	{"Result", term_HoldComplete, kind_String} :> boundTerm[term, t, kind, {rest}, value, scope, signature, signatures]
+endingTerm[valueEnding[atom_], scope_, signature_] := valueTerm[atomTerm[atom, scope], signature["Result"]]
+endingTerm[continuationEnding[continuation_], scope_, _] := continuation[scope]
+
+statementsTerm[{}, ending_, scope_, signature_, _] := endingTerm[ending, scope, signature]
+statementsTerm[{(coreForm["CheckLevel"] | coreForm["SetLevel"])[___], rest___}, ending_, scope_, signature_, signatures_] :=
+	statementsTerm[{rest}, ending, scope, signature, signatures]
+statementsTerm[{coreForm["SetTemporary"][t_String, coreForm["Copy"][atom_]], rest___}, ending_, scope_, signature_, signatures_] :=
+	statementsTerm[{rest}, ending, Append[scope, {"T", t} -> atomTerm[atom, scope]], signature, signatures]
+statementsTerm[{coreForm["SetTemporary"][t_String, step_], rest___}, ending_, scope_, signature_, signatures_] := Replace[stepTerm[step, scope, signature, signatures], {
+	{"Pure", term_HoldComplete, kind_String} :> statementsTerm[{rest}, ending, Append[scope, {"T", t} -> {term, kind}], signature, signatures],
+	{"Result", term_HoldComplete, kind_String} :> boundTerm[term, {"T", t}, compiledSymbol[t], kind, {rest}, ending, scope, signature, signatures]
 }]
-statementsTerm[{coreForm["If"][t_String, test_, then_, else_, ___], rest___}, value_, scope_, signature_, signatures_] := With[
+(* a local set to a value is that value from here on; set to a constant, the machine integer of it, a step of its own *)
+statementsTerm[{coreForm["SetLocal"][v_String, atom_], rest___}, ending_, scope_, signature_, signatures_] := Replace[atomTerm[atom, scope], {
+	{HoldComplete[constant_], "Integer"} :> boundTerm[HoldComplete["machineResult"[constant]], {"L", v}, localSymbol[v], "Int64", {rest}, ending, scope, signature, signatures],
+	entry_ :> statementsTerm[{rest}, ending, Append[scope, {"L", v} -> entry], signature, signatures]
+}]
+(* a branch that sets a local would have to give the local back with its value: not yet *)
+statementsTerm[{coreForm["If"][_, _, then_, else_, ___], ___}, _, _, _, _] /; ! FreeQ[{then, else}, coreForm["SetLocal"] | coreForm["While"]] :=
+	unmodeled["an If whose branch sets a local"]
+statementsTerm[{coreForm["If"][t_String, test_, then_, else_, ___], rest___}, ending_, scope_, signature_, signatures_] := With[
 	{kind = Lookup[signature["Variables"], Key[{"T", t}], "Fail"], condition = atomTerm[test, scope]},
 	boundTerm[
 		Replace[
 			{First[condition], blockTerm[then, scope, Append[signature, "Result" -> kind], signatures], blockTerm[else, scope, Append[signature, "Result" -> kind], signatures]},
 			{HoldComplete[b_], HoldComplete[x_], HoldComplete[y_]} :> HoldComplete["machineIf"[b, x, y]]
 		],
-		t, kind, {rest}, value, scope, signature, signatures
+		{"T", t}, compiledSymbol[t], kind, {rest}, ending, scope, signature, signatures
 	] /; Last[condition] === "Bool"
 ]
+statementsTerm[{coreForm["While"][test_, body_], rest___}, ending_, scope_, signature_, signatures_] :=
+	loopTerm[test, body, {rest}, ending, scope, signature, signatures, ++$loopCount]
 statementsTerm[{other_, ___}, _, _, _, _] := unmodeled[other]
 
-(* the rest of the block continues with the value of a step that may leave, by "confirmBind"; the step itself where the
-   block's value is the step's *)
-boundTerm[term_HoldComplete, t_String, kind_String, {}, coreForm["Temporary"][t_String], _, _, _] := term
-boundTerm[HoldComplete[step_], t_String, kind_String, rest_List, value_, scope_, signature_, signatures_] := With[
-	{variable = ToExpression[$compiledContext <> t, InputForm, HoldComplete]},
+(* the rest of the block continues with the value of a step that may leave, by "confirmBind", the value bound to a
+   variable under the key of the scope; the step itself where the block's value is the step's *)
+boundTerm[term_HoldComplete, {"T", t_String}, _, _, {}, valueEnding[coreForm["Temporary"][t_String]], _, _, _] := term
+boundTerm[HoldComplete[step_], key_List, variable_HoldComplete, kind_String, rest_List, ending_, scope_, signature_, signatures_] :=
 	Replace[
-		{variable, machineType[kind], statementsTerm[rest, value, Append[scope, {"T", t} -> {variable, kind}], signature, signatures]},
+		{variable, machineType[kind], statementsTerm[rest, ending, Append[scope, key -> {variable, kind}], signature, signatures]},
 		{HoldComplete[name_], HoldComplete[type_], HoldComplete[body_]} :> HoldComplete["confirmBind"[step, Function[{Typed[name, type]}, body]]]
 	]
+
+(* the variable of a local: its name in the source and its number in the code, s2 for the compiler's vs_2 *)
+localSymbol[v_String] := compiledSymbol[StringReplace[v, {StartOfString ~~ "v" -> "", "_" -> ""}]]
+
+
+(* ::Subsection:: *)
+(*Loops*)
+
+
+(* A While is a constant of its own, "While[f]" for the first of the function f and "While[f, k]" for the k-th, so that a
+   proof can state what it keeps. Its state is the locals that its test or its body set, of those set before it, in the
+   order they are first set: each is an argument of its own, after the locals the loop only reads, and its value is their
+   nested pair. It is the recursion on the fuel: with none, Failure["OutOfFuel", <||>]; with one more than fuelLeft, the
+   test, then where it is true the body and the loop at fuelLeft on the locals as the body leaves them, and where it is
+   false the pair of the locals as the test leaves them. A step of the test or the body that leaves is the function's
+   leave. The function goes on with the loop's value, the locals as its parts. The locals are arguments, not one pair,
+   so that each is a variable whose value a round reads at once: a part of a part of a pair would carry the pair along. *)
+loopTerm[test : coreForm["StatementBlock"][_List, _], body : coreForm["StatementBlock"][_List, _], rest_List, ending_, scope_, signature_, signatures_, index_Integer] := With[
+	{
+		assigned = Select[DeleteDuplicates[Cases[{test, body}, coreForm["SetLocal"][v_String, _] :> v, Infinity]], Function[v, KeyExistsQ[scope, {"L", v}]]],
+		name = loopName[signature["Symbol"], index],
+		stateOut = compiledSymbol["state" <> ToString[index]]
+	},
+	With[
+		{
+			read = Select[DeleteDuplicates[Cases[{test, body}, coreForm["Local"][v_String] :> v, Infinity]], Function[v, KeyExistsQ[scope, {"L", v}] && ! MemberQ[assigned, v]]],
+			kinds = Map[Function[v, Last[scope[{"L", v}]]], assigned]
+		},
+		Which[
+			assigned === {},
+				unmodeled["a While that sets no local"],
+			signature["Fuel"] === None,
+				unmodeled["a While without fuel"],
+			True,
+				loopBound[
+					Sow[loopDeclaration[name, assigned, kinds, read, test, body, scope, signature, signatures], $loopTag],
+					callTerm[HoldComplete[name], Join[
+						If[signature["Levels"] === None, {}, {signature["Levels"]}],
+						{signature["Fuel"]},
+						Map[Function[v, First[scope[{"L", v}]]], read],
+						Map[Function[v, First[scope[{"L", v}]]], assigned]
+					]],
+					stateOut,
+					tupleType[Map[machineType, kinds]],
+					statementsTerm[rest, ending, Join[scope, stateScope[assigned, kinds, stateOut]], signature, signatures]
+				]
+		]
+	]
 ]
+loopTerm[test_, _, _, _, _, _, _, _] := unmodeled[test]
+
+loopBound[_, HoldComplete[call_], HoldComplete[out_], HoldComplete[type_], HoldComplete[after_]] := HoldComplete["confirmBind"[call, Function[{Typed[out, type]}, after]]]
+
+loopName[symbol_String, 1] := "While[" <> symbol <> "]"
+loopName[symbol_String, index_Integer] := "While[" <> symbol <> ", " <> ToString[index] <> "]"
+
+(* the locals of a state as the parts of the term that holds it *)
+stateScope[assigned_List, kinds_List, state_HoldComplete] := Association[MapThread[
+	Function[{v, kind, part}, {"L", v} -> {part, kind}],
+	{assigned, kinds, projectionTerms[state, Length[assigned]]}
+]]
+
+loopDeclaration[name_String, assigned_List, kinds_List, read_List, coreForm["StatementBlock"][testStatements_List, testValue_], coreForm["StatementBlock"][bodyStatements_List, _], scope_, signature_, signatures_] := With[
+	{
+		loop = compiledSymbol["loop"],
+		fuel = compiledSymbol["fuel"],
+		fuelLeft = compiledSymbol["fuelLeft"],
+		levels = compiledSymbol["levels"],
+		stateType = tupleType[Map[machineType, kinds]],
+		readBinders = Map[Function[v, {localSymbol[v], machineType[Last[scope[{"L", v}]]]}], read],
+		stateBinders = MapThread[Function[{v, kind}, {localSymbol[v], machineType[kind]}], {assigned, kinds}]
+	},
+	With[
+		{
+			(* in the loop each local is a variable of its own: the ones it reads its arguments, the ones it sets the
+			   arguments of each round *)
+			inner = Association[Join[
+				Map[Function[v, {"L", v} -> {localSymbol[v], Last[scope[{"L", v}]]}], read],
+				MapThread[Function[{v, kind}, {"L", v} -> {localSymbol[v], kind}], {assigned, kinds}]
+			]],
+			(* the levels and the fuel are the loop's own arguments, and the function's recursion is out of reach *)
+			context = Join[signature, <|"Levels" -> If[signature["Levels"] === None, None, levels], "Fuel" -> fuel, "Recursion" -> None|>],
+			stateTerms = Function[ended, Map[Function[v, First[ended[{"L", v}]]], assigned]],
+			budgets = Join[If[signature["Levels"] === None, {}, {{levels, HoldComplete[NonNegativeIntegers]}}], {{fuel, HoldComplete[NonNegativeIntegers]}}],
+			roundType = functionType[Map[Last, stateBinders], Replace[stateType, HoldComplete[type_] :> HoldComplete[type | Failure]]]
+		},
+		With[
+			{
+				step = statementsTerm[
+					expandedStatements[testStatements],
+					continuationEnding[Function[tested, Replace[
+						{
+							atomTerm[testValue, tested],
+							statementsTerm[
+								expandedStatements[bodyStatements],
+								continuationEnding[Function[ended, callTerm[loop, stateTerms[ended]]]],
+								tested, context, signatures
+							],
+							tupleTerm[stateTerms[tested]],
+							stateType
+						},
+						{
+							{{HoldComplete[b_], "Bool"}, HoldComplete[continue_], HoldComplete[tuple_], HoldComplete[type_]} :> HoldComplete["machineIf"[b, continue, Typed["left"[tuple], type | Failure]]],
+							_ :> unmodeled["a While whose test is no Boolean"]
+						}
+					]]],
+					inner, context, signatures
+				],
+				outOfFuel = Replace[stateType, HoldComplete[type_] :> HoldComplete[Typed["right"[Failure["OutOfFuel", <||>]], type | Failure]]]
+			},
+			definitionDeclaration[
+				HoldComplete[name],
+				functionTerm[
+					Join[budgets, readBinders, stateBinders],
+					Replace[
+						{fuel, fuelLeft, loop, roundType, functionTerm[stateBinders, outOfFuel], functionTerm[stateBinders, step], callTerm[HoldComplete[Null], Map[First, stateBinders]]},
+						{HoldComplete[f_], HoldComplete[g_], HoldComplete[l_], HoldComplete[type_], HoldComplete[none_], HoldComplete[round_], HoldComplete[Null[arguments___]]} :>
+							HoldComplete[InductiveRecursor[NonNegativeIntegers][
+								Function[{Typed[WolframInstitute`TypeTheory`Compiled`j, NonNegativeIntegers]}, type],
+								none,
+								Function[{Typed[g, NonNegativeIntegers], Typed[l, type]}, round],
+								f
+							][arguments]]
+					]
+				],
+				functionType[Join[Map[Last, budgets], Map[Last, readBinders], Map[Last, stateBinders]], Replace[stateType, HoldComplete[type_] :> HoldComplete[type | Failure]]]
+			]
+		]
+	]
+]
+
+(* a state of several locals is a pair of the first and the state of the others *)
+tupleTerm[{term_HoldComplete}] := term
+tupleTerm[{HoldComplete[first_], rest__}] := Replace[tupleTerm[{rest}], HoldComplete[others_] :> HoldComplete["pair"[first, others]]]
+
+tupleType[{type_HoldComplete}] := type
+tupleType[{HoldComplete[first_], rest__}] := Replace[tupleType[{rest}], HoldComplete[others_] :> HoldComplete[CartesianProductType[first, others]]]
+
+projectionTerms[state_HoldComplete, 1] := {state}
+projectionTerms[HoldComplete[state_], count_Integer] := Prepend[projectionTerms[HoldComplete[state[[2]]], count - 1], HoldComplete[state[[1]]]]
 
 (* a call of more than two numbers is the pairwise steps the C takes, each a temporary of its own; a call of a function
    takes machine integers, so a constant argument is first made one *)
@@ -306,20 +486,29 @@ stepTerm[coreForm["Call"][operation_String, {a_, b_}], scope_, _, _] /; KeyExist
 	{"Pure", $machineComparisons[operation][integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]], "Bool"}
 stepTerm[coreForm["Call"]["System`Not", {a_}], scope_, _, _] :=
 	Replace[atomTerm[a, scope], {{HoldComplete[b_], "Bool"} :> {"Pure", HoldComplete["not"[b]], "Bool"}, _ :> unmodeled["System`Not"]}]
-(* a call of the function itself is its recursion, at a level less; a call of a function that takes the levels left gets
-   this function's *)
+(* a call of the function itself is its recursion, at a level less; a call of another function gives it this function's
+   levels and fuel, where it takes them *)
 stepTerm[coreForm["Call"][name_String, arguments_List], scope_, signature_, signatures_] /; KeyExistsQ[signatures, name] := With[
 	{values = Map[Function[argument, machineTerm[atomTerm[argument, scope]]], arguments]},
 	{
 		"Result",
 		Which[
-			name === signature["Name"], callTerm[signature["Recursion"], values],
-			fueledQ[name, signatures], callTerm[ToExpression[name, InputForm, HoldComplete], Prepend[values, signature["Fuel"]]],
-			True, callTerm[ToExpression[name, InputForm, HoldComplete], values]
+			name === signature["Name"] && signature["Recursion"] === None,
+				unmodeled["a call of the function itself in its loop"],
+			name === signature["Name"],
+				callTerm[signature["Recursion"], values],
+			True,
+				callTerm[ToExpression[name, InputForm, HoldComplete], Join[
+					If[leveledQ[name, signatures], {budgetTerm[signature, "Levels"]}, {}],
+					If[fueledQ[name, signatures], {budgetTerm[signature, "Fuel"]}, {}],
+					values
+				]]
 		],
 		signatures[name]["Result"]
 	}
 ]
+
+budgetTerm[signature_, key_String] := Replace[signature[key], None :> unmodeled[key]]
 stepTerm[coreForm["Call"][name_String, _], _, _, _] := unmodeled[name]
 stepTerm[other_, _, _, _] := unmodeled[other]
 
