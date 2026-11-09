@@ -136,7 +136,7 @@ TypeTheoryProof[ForAll[{Typed[m, Match[NonNegativeIntegers]]}, MatchBind[m, Matc
     "Induction"[m],
     "Reflexivity",
     "Introduce"[x, l, h],
-    "Simplify"[{MatchBind, h}]
+    "RewriteRepeated"[MatchBind, h]
 }]
 ```
 

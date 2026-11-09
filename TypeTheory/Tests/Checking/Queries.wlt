@@ -417,14 +417,40 @@ VerificationTest[
 	TestID -> "Peirce's-law-by-excluded-middle-has-an-open-assumption-and-shows-drawn"
 ]
 
+(* a term that is no proof has no derivation; a proof beyond propositional logic has one, a theorem applied a rule of its
+   name *)
 VerificationTest[
 	{
 		Information[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n], prelude], "ProofTree"],
-		Information[TypeTheoryTerm["equalityReflexivity"[2], prelude], "ProofTree"],
+		Replace[Information[TypeTheoryTerm["equalityReflexivity"[2], prelude], "ProofTree"], TypeTheoryProofTree[rule_, claim_, premises_] :> {rule, claim === TypeTheoryTerm[2 == 2, prelude], premises}],
 		MemberQ[Information[TypeTheoryTerm[2, prelude], "Properties"], "ProofTree"]
 	},
-	{Missing["Untranslatable"], Missing["Untranslatable"], True},
-	TestID -> "A-proof-beyond-propositional-logic-has-no-proof-tree"
+	{Missing["Untranslatable"], {"equalityReflexivity", True, {}}, True},
+	TestID -> "A-term-that-is-no-proof-has-no-proof-tree"
+]
+
+(* a proof by induction: the variable introduced, the recursor an induction over its two cases, the successor's case a
+   variable and a hypothesis introduced, and the hypothesis an assumption under the theorem applied to it; a hypothesis
+   applied to a number is a universal statement eliminated *)
+VerificationTest[
+	With[
+		{
+			induction = TypeTheoryProofTree[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude,
+				{"Introduce"[n], "Induction"[n], "Reflexivity", "Introduce"[k, ih], "Exact"["equalityCongruence"["successor", ih]]}]],
+			instance = TypeTheoryProofTree[TypeTheoryTerm[Function[{Typed[h, ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]}, h[2]], prelude]]
+		},
+		{
+			Replace[induction, TypeTheoryProofTree[rule_, _, {TypeTheoryProofTree[inner_, _, premises_]}] :> {rule, inner, Length[premises]}],
+			Counts[rules[induction]],
+			rules[instance]
+		}
+	],
+	{
+		{"ForAllIntro", "Induction", 2},
+		<|"equalityReflexivity" -> 1, "Assumption" -> 1, "equalityCongruence" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|>,
+		{"Assumption", "ForAllElim", "ImpliesIntro"}
+	},
+	TestID -> "A-proof-by-induction-has-a-proof-tree"
 ]
 
 (* an environment's theorems by name, each with its statement: the prelude's are named by strings, and a library adds

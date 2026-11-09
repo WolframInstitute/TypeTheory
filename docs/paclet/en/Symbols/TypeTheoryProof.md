@@ -350,8 +350,8 @@ Twice the n-th triangular number is n (n + 1). By induction, the case of zero co
 
 ```wl
 proof = TypeTheoryProof[ForAll[{n}, 2 triangular[n] == n (n + 1)], programs, {
-    "Introduce"[n], "Induction"[n], "Simplify"[{triangular}],
-    "Introduce"[k, ih], "Simplify"[{triangular}]
+    "Introduce"[n], "Induction"[n], "RewriteRepeated"[triangular],
+    "Introduce"[k, ih], "RewriteRepeated"[triangular]
 }]
 ```
 
@@ -381,17 +381,17 @@ The sum of two lists joined is the sum of their sums. After induction on the fir
 
 ```wl
 proof = TypeTheoryProof[ForAll[{a, b}, total[Join[a, b]] == total[a] + total[b]], programs, {
-    "Introduce"[a, b], "Induction"[a], "Simplify"[{total, Join}], "Ring",
+    "Introduce"[a, b], "Induction"[a], "RewriteRepeated"[total, Join], "Ring",
     "Introduce"[x, rest, ih]
 }]
 ```
 
 <!-- => Proof, 1 goal: b ∶ {ℕ}, x ∶ ℕ, rest ∶ {ℕ}, ih ∶ total[Join[rest, b]] == total[rest] + total[b] ⊢ total[Join[Prepend • x • rest, b]] == total[Prepend • x • rest] + total[b] -->
 
-`"Simplify"` unfolds [Join]() inside `total` first, so that `total[Join[rest, b]]` appears and the induction hypothesis rewrites it:
+`"RewriteRepeated"` unfolds [Join]() inside `total` first, so that `total[Join[rest, b]]` appears and the induction hypothesis rewrites it:
 
 ```wl
-proof = TypeTheoryTactic["Simplify", {total, Join, ih}][proof]
+proof = TypeTheoryTactic["RewriteRepeated", total, Join, ih][proof]
 ```
 
 <!-- => Proof, 1 goal: b ∶ {ℕ}, x ∶ ℕ, rest ∶ {ℕ}, ih ∶ total[Join[rest, b]] == total[rest] + total[b] ⊢ x + (total[rest] + total[b]) == x + total[rest] + total[b] -->

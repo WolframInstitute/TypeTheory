@@ -36,7 +36,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Rewrite", h, "RightToLeft"` | replaces the right side by the left |
 | `"Rewrite", h, "At" -> k` | rewrites the hypothesis `k` instead of the goal; `"RightToLeft"` can come before `"At" -> k` |
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
-| `"Simplify", {h, ...}` | rewrites with the equations `h, ...` until none applies, unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation |
+| `"RewriteRepeated", h, ...` | rewrites with the equations `h, ...` until none applies, as [ReplaceRepeated]() does where `"Rewrite"` is [Replace](); unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation; the equations may also be one list |
 | `"Decide"` | proves a statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's instances decide `==` and `<=` of natural numbers, `==` of Booleans, [And](), [Or](), [Not](), [True]() and [False](). A closed statement always computes; one with variables computes only where its decision does not depend on them |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws |
 | `"Classical"` | proves a statement of classical propositional logic from the hypotheses that are propositions, by a truth table: each atom, a proposition that no connective builds, is split by `"excludedMiddle"`, and the goal is built from the cases under every assignment that makes the hypotheses true |
@@ -49,7 +49,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - In a list of tactics written out in [TypeTheoryProof](), a tactic is written as its name, or its name applied to its arguments: <code>{"Introduce"[n], "Reflexivity"}</code> is <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, and its arguments are held as well.
-- A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"Simplify"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`, as Lean's `simp [f]` unfolds `f`. A definition applied to another unfolds after the inner one, so for a sum `total` defined by recursion on lists, `total[Join[Prepend[x][l], m]]` becomes `x + total[Join[l, m]]`, where an induction hypothesis about `total[Join[l, m]]` applies.
+- A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"RewriteRepeated"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`, as Lean's `simp [f]` unfolds `f`. A definition applied to another unfolds after the inner one, so for a sum `total` defined by recursion on lists, `total[Join[Prepend[x][l], m]]` becomes `x + total[Join[l, m]]`, where an induction hypothesis about `total[Join[l, m]]` applies.
 - `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - `"NonlinearArithmetic"` multiplies once: it adds products of two factors, not of three.
 - The proofs `"LinearArithmetic"` and `"NonlinearArithmetic"` build compute with the literals of the statement, and with a few hundred, or with products of a few dozen, the kernel can reject the proof as a computation too deep to check.
@@ -315,10 +315,10 @@ proof = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {
 
 <!-- => Proof, 2 goals: case {} ⊢ Join[{}, {}] == {}; case Prepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[Prepend • x • l, {}] == Prepend • x • l -->
 
-`"Simplify"` unfolds [Join]() on the empty list, and the sides are then the same:
+`"RewriteRepeated"` unfolds [Join]() on the empty list, and the sides are then the same:
 
 ```wl
-proof = TypeTheoryTactic["Simplify", {Join}][proof]
+proof = TypeTheoryTactic["RewriteRepeated", Join][proof]
 ```
 
 <!-- => Proof, 1 goal: case Prepend ⊢ ∀_x∶ℕ ∀_l∶{ℕ} Join[l, {}] == l ⇒ Join[Prepend • x • l, {}] == Prepend • x • l -->
@@ -334,7 +334,7 @@ proof = TypeTheoryTactic["Introduce", x, rest, ih][proof]
 Unfolding [Join]() once more brings out `Join[rest, {}]`, which the induction hypothesis rewrites:
 
 ```wl
-TypeTheoryTactic["Simplify", {Join, ih}][proof]
+TypeTheoryTactic["RewriteRepeated", Join, ih][proof]
 ```
 
 <!-- => Proof complete -->
@@ -585,12 +585,12 @@ TypeTheoryTactic["Ring"][proof]
 
 ---
 
-`"Simplify"` rewrites with several theorems until none applies. The length of a reversed join:
+`"RewriteRepeated"` rewrites with several theorems until none applies. The length of a reversed join:
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[l, {Naturals}], Typed[m, {Naturals}]}, Length[Reverse[Join[l, m]]] == Length[l] + Length[m]], {
     "Introduce"[l, m],
-    "Simplify"[{"lengthReverse", "lengthJoin"}]
+    "RewriteRepeated"["lengthReverse", "lengthJoin"]
 }]
 ```
 
@@ -598,12 +598,12 @@ TypeTheoryProof[ForAll[{Typed[l, {Naturals}], Typed[m, {Naturals}]}, Length[Reve
 
 ---
 
-A definition among the equations of `"Simplify"` unfolds where it computes. [Length]() computes on a list with a first element:
+A definition among the equations of `"RewriteRepeated"` unfolds where it computes. [Length]() computes on a list with a first element:
 
 ```wl
 TypeTheoryProof[ForAll[{x, Typed[l, {Naturals}]}, Length[Prepend[x][l]] == Length[l] + 1], {
     "Introduce"[x, l],
-    "Simplify"[{Length}]
+    "RewriteRepeated"[Length]
 }]
 ```
 
@@ -1008,7 +1008,7 @@ TypeTheoryProof[ForAll[{n}, n <= n + 1], {"Introduce"[n], "Decide"}]
 A definition by recursion does not unfold on a variable, where it does not compute; `"Induction"` on the variable comes first:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {"Introduce"[l], "Simplify"[{Join}]}]
+TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], {"Introduce"[l], "RewriteRepeated"[Join]}]
 ```
 
 <!-- => Failure["NoProgress", ...] -->

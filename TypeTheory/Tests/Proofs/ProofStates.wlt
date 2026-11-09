@@ -384,7 +384,7 @@ VerificationTest[
 	TestID -> "Generalize-moves-a-hypothesis-and-those-that-depend-on-it-back-into-the-goal"
 ]
 
-(* Change, Simplify and Decide, and laws of lists proved with tactics alone *)
+(* Change, RewriteRepeated and Decide, and laws of lists proved with tactics alone *)
 
 joinEmpty = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[l, {\[Alpha]}]}, Join[l, {}] == l], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], l],
@@ -426,27 +426,37 @@ VerificationTest[
 	{
 		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Reverse[Join[a, b]]] == Length[a] + Length[b]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a, b],
-			TypeTheoryTactic["Simplify", {"lengthReverse", "lengthJoin"}]
+			TypeTheoryTactic["RewriteRepeated", {"lengthReverse", "lengthJoin"}]
 		}]["Goals"],
 		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Reverse[Join[a, b]]] == Length[b] + Length[a]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a, b],
-			TypeTheoryTactic["Simplify", {"lengthReverse", "lengthJoin"}]
+			TypeTheoryTactic["RewriteRepeated", "lengthReverse", "lengthJoin"]
 		}]["Goals"]
 	},
 	{
 		{},
 		{TypeTheoryTerm[RightTee[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[a] + Length[b] == Length[b] + Length[a]], prelude]}
 	},
-	TestID -> "Simplify-rewrites-with-the-lemmas-and-closes-what-becomes-reflexive"
+	TestID -> "RewriteRepeated-rewrites-with-the-lemmas-and-closes-what-becomes-reflexive"
 ]
 
 VerificationTest[
 	First @ TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m == m + 1], prelude, {
 		TypeTheoryTactic["Introduce", m],
-		TypeTheoryTactic["Simplify", {"additionCommutativity"}]
+		TypeTheoryTactic["RewriteRepeated", "additionCommutativity"]
 	}],
 	"NoProgress",
-	TestID -> "Simplify-that-leaves-the-goal-as-it-is-gives-a-Failure"
+	TestID -> "RewriteRepeated-that-leaves-the-goal-as-it-is-gives-a-Failure"
+]
+
+(* the tactic was named "Simplify", which is a function of the Wolfram Language that does something else: the old name
+   is a Failure that names the new one *)
+VerificationTest[
+	With[{failure = TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m + 0 == m], prelude, {TypeTheoryTactic["Introduce", m], TypeTheoryTactic["Simplify", {"additionZeroRight"}]}]},
+		{First[failure], StringContainsQ[ToString[failure["Message"]], "RewriteRepeated"]}
+	],
+	{"UnknownTactic", True},
+	TestID -> "The-tactic-Simplify-is-named-RewriteRepeated"
 ]
 
 VerificationTest[
@@ -471,30 +481,30 @@ VerificationTest[
 	TestID -> "A-goal-is-not-solved-with-a-hypothesis-it-does-not-have"
 ]
 
-(* Simplify unfolds a definition it is given where the definition computes, and Rewrite reaches into hypotheses *)
+(* RewriteRepeated unfolds a definition it is given where the definition computes, and Rewrite reaches into hypotheses *)
 
 joinAssociativity = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}], Typed[c, {\[Alpha]}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b, c],
 	TypeTheoryTactic["Induction", a],
-	TypeTheoryTactic["Simplify", {Join}],
+	TypeTheoryTactic["RewriteRepeated", Join],
 	TypeTheoryTactic["Introduce", x, rest, ih],
-	TypeTheoryTactic["Simplify", {Join, ih}]
+	TypeTheoryTactic["RewriteRepeated", Join, ih]
 }]
 
 lengthJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Length[Join[a, b]] == Length[a] + Length[b]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
-	TypeTheoryTactic["Simplify", {Join, Length, "additionZeroLeft"}],
+	TypeTheoryTactic["RewriteRepeated", Join, Length, "additionZeroLeft"],
 	TypeTheoryTactic["Introduce", x, rest, ih],
-	TypeTheoryTactic["Simplify", {Join, Length, ih, "additionSuccessorLeft"}]
+	TypeTheoryTactic["RewriteRepeated", Join, Length, ih, "additionSuccessorLeft"]
 }]
 
 reverseJoin = TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}], Typed[b, {\[Alpha]}]}, Reverse[Join[a, b]] == Join[Reverse[b], Reverse[a]]], prelude, {
 	TypeTheoryTactic["Introduce", \[Alpha], a, b],
 	TypeTheoryTactic["Induction", a],
-	TypeTheoryTactic["Simplify", {Join, Reverse, "joinEmptyRight"}],
+	TypeTheoryTactic["RewriteRepeated", Join, Reverse, "joinEmptyRight"],
 	TypeTheoryTactic["Introduce", x, rest, ih],
-	TypeTheoryTactic["Simplify", {Join, Reverse, ih, Append, "joinAssociativity"}]
+	TypeTheoryTactic["RewriteRepeated", Join, Reverse, ih, Append, "joinAssociativity"]
 }]
 
 VerificationTest[
@@ -512,26 +522,26 @@ VerificationTest[
 		]
 	},
 	{{}, {}, {}, True},
-	TestID -> "Simplify-unfolds-a-definition-by-recursion-where-it-computes"
+	TestID -> "RewriteRepeated-unfolds-a-definition-by-recursion-where-it-computes"
 ]
 
 VerificationTest[
 	{
 		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Reverse[Prepend[x][a]] == Append[Reverse[a], x]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], x, a],
-			TypeTheoryTactic["Simplify", {Reverse}]
+			TypeTheoryTactic["RewriteRepeated", Reverse]
 		}]["Goals"],
 		TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]], Typed[a, {\[Alpha]}]}, Append[a, x] == Join[a, Prepend[x][{}]]], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], x, a],
-			TypeTheoryTactic["Simplify", {Append}]
+			TypeTheoryTactic["RewriteRepeated", Append]
 		}]["Goals"],
 		First @ TypeTheoryProof[ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[a, {\[Alpha]}]}, Join[a, {}] == a], prelude, {
 			TypeTheoryTactic["Introduce", \[Alpha], a],
-			TypeTheoryTactic["Simplify", {Join}]
+			TypeTheoryTactic["RewriteRepeated", Join]
 		}]
 	},
 	{{}, {}, "NoProgress"},
-	TestID -> "Simplify-folds-recursive-calls-back-and-leaves-a-definition-that-does-not-compute"
+	TestID -> "RewriteRepeated-folds-recursive-calls-back-and-leaves-a-definition-that-does-not-compute"
 ]
 
 VerificationTest[
@@ -677,7 +687,7 @@ VerificationTest[
 	TestID -> "Classical-refuses-a-goal-its-hypotheses-do-not-imply"
 ]
 
-(* "Simplify" unfolds a definition applied to another before the outer one, so the inner one's recursive call folds back
+(* "RewriteRepeated" unfolds a definition applied to another before the outer one, so the inner one's recursive call folds back
    too: total[Join[Prepend[x][l], m]] is x + total[Join[l, m]], where the induction hypothesis applies *)
 VerificationTest[
 	Module[{total, environment},
@@ -687,11 +697,11 @@ VerificationTest[
 		TypeTheoryProof[
 			ForAll[{Typed[a, {NonNegativeIntegers}], Typed[b, {NonNegativeIntegers}]}, total[Join[a, b]] == total[a] + total[b]],
 			environment,
-			{"Introduce"[a, b], "Induction"[a], "Simplify"[{total, Join}], "Ring", "Introduce"[x, rest, ih], "Simplify"[{total, Join, ih}], "Ring"}
+			{"Introduce"[a, b], "Induction"[a], "RewriteRepeated"[total, Join], "Ring", "Introduce"[x, rest, ih], "RewriteRepeated"[total, Join, ih], "Ring"}
 		]["Goals"]
 	],
 	{},
-	TestID -> "Simplify-unfolds-an-inner-definition-first-so-its-recursive-call-folds-back"
+	TestID -> "RewriteRepeated-unfolds-an-inner-definition-first-so-its-recursive-call-folds-back"
 ]
 
 (* a statement may hold the patterns of a rule, as a statement about rewriting does, and is no pattern itself; a proof

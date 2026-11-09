@@ -1156,7 +1156,8 @@ TypeTheoryProofTree /: MakeBoxes[tree : TypeTheoryProofTree[_String, _, _List], 
 
 $ruleLabels = <|
 	"ImpliesIntro" -> "\[RightArrow]I", "ImpliesElim" -> "\[RightArrow]E", "AndIntro" -> "\[And]I", "AndElim" -> "\[And]E",
-	"OrIntro" -> "\[Or]I", "OrElim" -> "\[Or]E", "FalseElim" -> "\[UpTee]E"
+	"OrIntro" -> "\[Or]I", "OrElim" -> "\[Or]E", "FalseElim" -> "\[UpTee]E",
+	"ForAllIntro" -> "\[ForAll]I", "ForAllElim" -> "\[ForAll]E", "ExistsElim" -> "\[Exists]E", "EqualElim" -> "=E"
 |>
 
 derivationBoxes[TypeTheoryProofTree["Assumption", claim_, {}], form_] := MakeBoxes[claim, form]

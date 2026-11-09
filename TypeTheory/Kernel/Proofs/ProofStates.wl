@@ -43,8 +43,10 @@ The tactics:
 	                        copy of it, by the right side; "Rewrite", h, "RightToLeft" replaces the right side;
 	                        with "At" -> k last, it rewrites the hypothesis k instead
 	"Change", statement     replaces the goal by a statement equal to it by computation
-	"Simplify", {h, ...}    rewrites with the equations h, ... until none applies, then closes an equation whose
-	                        sides are equal by computation; a definition among them unfolds where it computes
+	"RewriteRepeated", h, ...
+	                        rewrites with the equations h, ... until none applies, as ReplaceRepeated does where
+	                        "Rewrite" is Replace, then closes an equation whose sides are equal by computation; a
+	                        definition among them unfolds where it computes; the equations may be given as a list
 	"Decide"                proves a closed statement by computing its decision, the instance of Decidable found:
 	                        the prelude's decide equations and inequalities of natural numbers and the connectives
 	"Classical"             proves a statement of classical propositional logic from the hypotheses that are
@@ -125,8 +127,8 @@ TypeTheoryTactic[\"Rewrite\", h] replaces an instance of the left side of the eq
 TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\"] replaces the right side by the left.\n\
 TypeTheoryTactic[\"Rewrite\", h, \"At\" -> k] and TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\", \"At\" -> k] rewrite the hypothesis k instead of the goal.\n\
 TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which must be equal to it by computation.\n\
-TypeTheoryTactic[\"Simplify\", {h1, h2, ...}] rewrites the goal with the equations until none applies, then closes it if its sides are equal by computation; \
-a definition among h1, h2, ... unfolds where it computes, as Join does on Prepend[l, x], with its recursive calls folded back.\n\
+TypeTheoryTactic[\"RewriteRepeated\", h1, h2, ...] rewrites the goal with the equations until none applies, as ReplaceRepeated does where \"Rewrite\" is Replace, then closes it if its sides are equal by computation; \
+a definition among h1, h2, ... unfolds where it computes, as Join does on Prepend[l, x], with its recursive calls folded back; the equations may also be given as one list.\n\
 TypeTheoryTactic[\"Decide\"] proves a closed statement by computing its decision, the instance of Decidable that elaboration finds: \
 the prelude's decide == and <= of natural numbers, And, Or, Not, True and False, and an environment may declare more.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
@@ -361,7 +363,10 @@ runTactic["Cases", Hold[variable : _Symbol | _String], data_, goal_] := eliminat
 runTactic["Generalize", Hold[names : (_Symbol | _String) ..], data_, goal_] := generalize[data, goal, HoldComplete /@ Unevaluated[{names}]]
 runTactic["Constructor", Hold[], data_, goal_] := constructorTactic[data, goal]
 runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldComplete[statement]]
-runTactic["Simplify", Hold[{lemmas___}], data_, goal_] := simplify[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
+(* one equation, several, or a list of them *)
+runTactic["RewriteRepeated", Hold[{lemmas___}], data_, goal_] := rewriteRepeated[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
+runTactic["RewriteRepeated", Hold[lemmas__], data_, goal_] := rewriteRepeated[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
+runTactic["Simplify", _, _, _] := kernelFailure["UnknownTactic", "The tactic \"Simplify\" is named \"RewriteRepeated\" now, beside \"Rewrite\" as ReplaceRepeated is beside Replace.", {}]
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
 runTactic["Classical", Hold[], data_, goal_] := classical[data, goal]
 runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
@@ -816,7 +821,7 @@ rewriteMotive[context_, equality_, levels_List, elementType_, start_, motiveBody
 ]
 
 (* ::Subsection:: *)
-(*Change, Simplify and Decide*)
+(*Change, RewriteRepeated and Decide*)
 
 
 (* The goal replaced by a statement equal to it by computation, which a rewrite can then reach into: the
@@ -844,8 +849,8 @@ change[data_, goal_, held_HoldComplete] := With[
    none does or the goal repeats, as commutativity would make it; the goal is then closed by reflexivity
    if its sides are equal by computation. A lemma that applies nowhere is no failure, but a goal that no
    lemma changes and reflexivity does not close is. *)
-simplify[data_, goal_, lemmas_List] := Replace[
-	simplificationSteps[data, goal, lemmas, {}],
+rewriteRepeated[data_, goal_, lemmas_List] := Replace[
+	rewritingSteps[data, goal, lemmas, {}],
 	{
 		{state_, None, _} :> state,
 		{state_, current_, _} :> Replace[
@@ -861,14 +866,14 @@ simplify[data_, goal_, lemmas_List] := Replace[
 
 (* {state, the goal as rewritten so far or None once a rewrite closed it, whether a lemma rewrote it};
    at most a hundred rewrites *)
-simplificationSteps[state_, goal_, lemmas_List, seen_List] := If[
+rewritingSteps[state_, goal_, lemmas_List, seen_List] := If[
 	Length[seen] >= 100 || MemberQ[seen, currentGoal[state, goal]["Type"]],
 	{state, goal, seen =!= {}},
 	Replace[firstRewrite[state, goal, lemmas], {
 		None :> {state, goal, seen =!= {}},
 		(* the rewritten goal comes first, unless the rewrite closed it *)
 		rewritten_ /; Length[rewritten["Goals"]] < Length[state["Goals"]] :> {rewritten, None, True},
-		rewritten_ :> simplificationSteps[rewritten, First[rewritten["Goals"]], lemmas, Append[seen, currentGoal[state, goal]["Type"]]]
+		rewritten_ :> rewritingSteps[rewritten, First[rewritten["Goals"]], lemmas, Append[seen, currentGoal[state, goal]["Type"]]]
 	}]
 ]
 

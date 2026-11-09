@@ -205,7 +205,7 @@ WeakHeadNormalForm[TypeTheoryTerm[SumTo[100], sums]]
 
 <!-- => 5050 -->
 
-Gauss's formula, by induction: `"Simplify"` unfolds `SumTo` at the successor `k + 1`, the recursor's step:
+Gauss's formula, by induction: `"RewriteRepeated"` unfolds `SumTo` at the successor `k + 1`, the recursor's step:
 
 ```wl
 gauss = TypeTheoryProof[ForAll[{n}, 2 * SumTo[n] == n * (n + 1)], sums, {
@@ -213,7 +213,7 @@ gauss = TypeTheoryProof[ForAll[{n}, 2 * SumTo[n] == n * (n + 1)], sums, {
     "Induction"[n],
     "Reflexivity",
     "Introduce"[k, ih],
-    "Simplify"[{SumTo}]
+    "RewriteRepeated"[SumTo]
 }]
 ```
 

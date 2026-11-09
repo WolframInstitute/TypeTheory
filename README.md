@@ -356,7 +356,7 @@ theory to the calculus of inductive constructions with rewrite rules. Axioms are
 | `"Assumption"` | solves the goal with a hypothesis |
 | `"Rewrite", h` | rewrites the goal with the equation `h`, left to right, or right to left with `"RightToLeft"`; `"At" -> k` rewrites the hypothesis `k` instead |
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
-| `"Simplify", {h, ...}` | rewrites with the equations until none applies, unfolds each definition among them where it computes, and closes an equation whose sides are equal by computation |
+| `"RewriteRepeated", h, ...` | rewrites with the equations until none applies, as `ReplaceRepeated` does where `"Rewrite"` is `Replace`, unfolds each definition among them where it computes, and closes an equation whose sides are equal by computation |
 | `"Decide"` | proves a closed statement by computing its decision, the instance of `Decidable` that elaboration finds: the prelude's decide `==` and `<=` of natural numbers and the connectives |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, by normal forms with proofs from the prelude's laws |
 | `"FindInstance"` | proves an existential statement over the natural numbers with witnesses that Wolfram's `FindInstance` finds |
@@ -368,16 +368,16 @@ theory to the calculus of inductive constructions with rewrite rules. Axioms are
 `TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics. Nothing a tactic does
 is trusted: the finished term is checked by the kernel when the theorem is added to an environment.
 
-`"Simplify"` unfolds a definition by recursion where it computes, as Lean's `simp [f]` does, and folds
+`"RewriteRepeated"` unfolds a definition by recursion where it computes, as Lean's `simp [f]` does, and folds
 its recursive calls back, so the laws of lists go through with induction and simplification alone:
 
 ```wolfram
 TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Naturals}]}, Join[Join[a, b], c] == Join[a, Join[b, c]]], {
     "Introduce"[a, b, c],
     "Induction"[a],
-    "Simplify"[{Join}],                (* Join[{}, m] is m *)
+    "RewriteRepeated"[Join],                (* Join[{}, m] is m *)
     "Introduce"[x, rest, ih],
-    "Simplify"[{Join, ih}]             (* Join[Prepend[x][l], m] is Prepend[x][Join[l, m]] *)
+    "RewriteRepeated"[Join, ih]             (* Join[Prepend[x][l], m] is Prepend[x][Join[l, m]] *)
 }]
 ```
 

@@ -91,7 +91,7 @@ DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if 
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
 NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every part of it, under its binders too, until nothing can reduce: its normal form."
-TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of the TypeTheoryTerm proof, a proof of propositional logic. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree, rule being \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\" or \"FalseElim\"."
+TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of proof, a TypeTheoryTerm that is a proof or a finished TypeTheoryProof. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree: rule is \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"ForAllIntro\", \"ForAllElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\", \"FalseElim\", \"ExistsElim\", \"EqualElim\", \"Induction\", or the name of a theorem, an axiom or a constructor applied, whose premises are the proofs among its arguments."
 
 withNormalFormCheck::usage = "withNormalFormCheck[expr] gives {result, redexes}: the result of expr, and the normal forms NormalForm computed while it ran that hold a beta-redex, a function applied to an argument, which no normal form may."
 termEnvironment::usage = "termEnvironment[term] gives the environment of the TypeTheoryTerm term, or the default environment if it has none."
@@ -964,13 +964,22 @@ registerWhenDeclared[replayed_, None] := replayed
 (*Proof trees*)
 
 
-(* The natural-deduction derivation of a proof of propositional logic. Its leading functions of propositions bind its atoms;
-   then each part is a rule by its form, its claim the type the part has where it stands, which must be a formula over the
-   atoms: a hypothesis is an assumption, a function of a proof an implication introduced, "andIntroduction",
-   "andEliminationLeft" and "andEliminationRight", the two introductions of Or, Or's recursor and "falseElimination" their rules,
-   and any other application an implication eliminated. A constant applied to formulas, as "excludedMiddle"[p], is an open
-   assumption. A part whose claim is not a formula, as a proof of 2 == 2, or that has another form, makes the whole
-   Missing["Untranslatable"]. *)
+(* The natural-deduction derivation of a proof. Its leading functions of propositions bind its atoms; then each part that
+   is a proof is a rule by its form, its claim the proposition the part proves where it stands: a hypothesis is an
+   assumption, a function of a proof an implication introduced and a function of anything else a universal statement
+   introduced, "andIntroduction", "andEliminationLeft" and "andEliminationRight", the two introductions of Or, Or's
+   recursor and "falseElimination" their rules, and an application an implication or a universal statement eliminated,
+   by whether the argument is a proof.
+
+   A proof of propositional logic has those rules alone, and a constant applied to formulas in it, as "excludedMiddle"[p],
+   is an open assumption. Beyond it, a theorem, an axiom or a constructor applied to arguments is a rule of its own
+   name, its premises the proofs among its arguments, so that "equalityTransitivity"[p, q] has two premises and
+   "additionCommutativity"[k, 1] none; and a recursor whose motive gives propositions is the elimination of its type,
+   "Induction" for the natural numbers and the like, with the cases its premises, after the major premise where that
+   is a proof, as an existence's or an equation's. The arguments that are no proofs, numbers and functions and types,
+   are no premises: they show in the claims.
+
+   A term that is no proof, as 2 + 2, makes the whole Missing["Untranslatable"]. *)
 proofTree[environment_, term_] := Catch[
 	withCheckedTerms[atomsOpened[environment, <||>, First[checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]]]],
 	untranslatable
@@ -1006,19 +1015,33 @@ connectiveFormulaQ[_, _] := False
 (* the claim beta-normal, as a recursor's type is its motive applied to the major premise *)
 derivation[environment_, context_, term_] := derivationOf[environment, context, term, betaNormalize[inferType[environment, context, term]]]
 
-derivationOf[environment_, context_, term_, claim_] := If[formulaQ[context, claim], derivationNode[environment, context, term, claim], notTranslated[]]
+derivationOf[environment_, context_, term_, claim_] := If[propositionTypeQ[environment, context, claim], derivationNode[environment, context, term, claim], notTranslated[]]
+
+(* a term that proves a proposition *)
+proofQ[environment_, context_, term_] := propositionTypeQ[environment, context, inferType[environment, context, term]]
 
 treeNode[environment_, context_, rule_String, claim_, premises_List] := TypeTheoryProofTree[rule, coreToTypeTheoryTerm[environment, context, claim], premises]
 
 derivationNode[environment_, context_, freeVariable[_], claim_] := treeNode[environment, context, "Assumption", claim, {}]
-derivationNode[environment_, context_, constantReference[_, _], claim_] := treeNode[environment, context, "Assumption", claim, {}]
-derivationNode[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_], claim_] := If[
-	propositionTypeQ[environment, context, domain],
-	treeNode[environment, context, "ImpliesIntro", claim, {assumed[environment, context, name, domain, binder, body, freshFreeVariable[]]}],
-	notTranslated[]
+(* a constant alone: an assumption where it claims a formula, and by its name otherwise, as a theorem of arithmetic *)
+derivationNode[environment_, context_, constantReference[name_, _], claim_] :=
+	treeNode[environment, context, If[formulaQ[context, claim], "Assumption", ruleName[name]], claim, {}]
+derivationNode[environment_, context_, lambdaAbstraction[name_, domain_, body_, binder_], claim_] := treeNode[
+	environment, context,
+	If[propositionTypeQ[environment, context, domain], "ImpliesIntro", "ForAllIntro"],
+	claim,
+	{assumed[environment, context, name, domain, binder, body, freshFreeVariable[]]}
 ]
+derivationNode[environment_, context_, localDefinition[_, _, value_, body_], _] := derivation[environment, context, instantiateBoundVariable[body, value]]
+derivationNode[environment_, context_, projection[structure_, _, proof_], claim_] :=
+	treeNode[environment, context, If[structure === HoldComplete[And], "AndElim", "Projection"], claim, If[proofQ[environment, context, proof], {derivation[environment, context, proof]}, {}]]
 derivationNode[environment_, context_, term_application, claim_] := applicationDerivation[environment, context, applicationSpine[term], term, claim]
 derivationNode[___] := notTranslated[]
+
+(* the rule a constant is: its name *)
+ruleName[HoldComplete[name_String]] := name
+ruleName[HoldComplete[name_Symbol]] := SymbolName[Unevaluated[name]]
+ruleName[HoldComplete[other_]] := ToString[Unevaluated[other], InputForm]
 
 (* the derivation of body with its bound variable, a proof of domain, among the hypotheses *)
 assumed[environment_, context_, name_, domain_, binder_, body_, id_] :=
@@ -1043,14 +1066,49 @@ applicationDerivation[
 }]
 applicationDerivation[environment_, context_, {constantReference[HoldComplete["falseElimination"], _], {_, falsity_}}, _, claim_] :=
 	treeNode[environment, context, "FalseElim", claim, {derivation[environment, context, falsity]}]
-(* a constant applied to formulas is an open assumption, and any proofs it is applied to after them eliminate implications *)
-applicationDerivation[environment_, context_, {head_constantReference, arguments_List}, _, claim_] := If[
-	AllTrue[arguments, Function[argument, formulaQ[context, argument]]],
-	treeNode[environment, context, "Assumption", claim, {}],
-	treeNode[environment, context, "ImpliesElim", claim, {derivation[environment, context, makeApplication[head, Most[arguments]]], derivation[environment, context, Last[arguments]]}]
+(* a recursor applied up to its major premise, where its motive gives propositions: the elimination of its type, its
+   premises the major premise where that is a proof and then the cases *)
+applicationDerivation[environment_, context_, {constantReference[name : HoldComplete[_InductiveRecursor], _], arguments_List}, _, claim_] /; recursorAppliedQ[environment, name, arguments] :=
+	recursorDerivation[environment, context, constantRecord[environment, name], arguments, claim]
+(* a constant applied to formulas is an open assumption, and any proofs it is applied to after them eliminate implications;
+   applied to anything else, as a theorem of arithmetic to numbers, it is the rule of its name over the proofs among its
+   arguments *)
+applicationDerivation[environment_, context_, {head : constantReference[name_, _], arguments_List}, _, claim_] := With[
+	{proofs = Select[arguments, Function[argument, proofQ[environment, context, argument]]]},
+	Which[
+		AllTrue[arguments, Function[argument, formulaQ[context, argument]]],
+			treeNode[environment, context, "Assumption", claim, {}],
+		AllTrue[Select[arguments, Function[argument, ! MemberQ[proofs, argument]]], Function[argument, formulaQ[context, argument]]],
+			treeNode[environment, context, "ImpliesElim", claim, {derivation[environment, context, makeApplication[head, Most[arguments]]], derivation[environment, context, Last[arguments]]}],
+		True,
+			treeNode[environment, context, ruleName[name], claim, Map[Function[proof, derivation[environment, context, proof]], proofs]]
+	]
 ]
-applicationDerivation[environment_, context_, _, application[function_, argument_], claim_] :=
-	treeNode[environment, context, "ImpliesElim", claim, {derivation[environment, context, function], derivation[environment, context, argument]}]
+(* any other function applied: to a proof, an implication eliminated; to anything else, a universal statement *)
+applicationDerivation[environment_, context_, _, application[function_, argument_], claim_] := If[
+	proofQ[environment, context, argument],
+	treeNode[environment, context, "ImpliesElim", claim, {derivation[environment, context, function], derivation[environment, context, argument]}],
+	treeNode[environment, context, "ForAllElim", claim, {derivation[environment, context, function]}]
+]
+
+recursorAppliedQ[environment_, name_, arguments_List] := constantDeclaredQ[environment, name] && With[{record = constantRecord[environment, name]},
+	Lookup[record, "Kind"] === "Recursor" && Length[arguments] == Total[Lookup[record, {"NumberOfParameters", "NumberOfMotives", "NumberOfMinors", "NumberOfIndices"}]] + 1
+]
+
+recursorDerivation[environment_, context_, record_, arguments_List, claim_] := Replace[
+	TakeList[arguments, Append[Lookup[record, {"NumberOfParameters", "NumberOfMotives", "NumberOfMinors", "NumberOfIndices"}], 1]],
+	{_, _, minors_List, _, {major_}} :> treeNode[environment, context, recursorRule[record["InductiveType"]], claim, Join[
+		If[proofQ[environment, context, major], {derivation[environment, context, major]}, {}],
+		Map[Function[minor, derivation[environment, context, minor]], minors]
+	]]
+]
+
+recursorRule[HoldComplete[Or]] := "OrElim"
+recursorRule[HoldComplete[And]] := "AndElim"
+recursorRule[HoldComplete[False]] := "FalseElim"
+recursorRule[HoldComplete[Exists]] := "ExistsElim"
+recursorRule[HoldComplete[Equal]] := "EqualElim"
+recursorRule[_] := "Induction"
 
 (* a case of Or's recursor proves its claim from one disjunct: the body of a function of it, or the case applied to it *)
 caseDerivation[environment_, context_, _, lambdaAbstraction[name_, domain_, body_, binder_]] := assumed[environment, context, name, domain, binder, body, freshFreeVariable[]]

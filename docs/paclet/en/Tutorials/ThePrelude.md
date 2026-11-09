@@ -341,15 +341,15 @@ DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Prepend[1][Prepend[2][{}]]]], TypeTh
 
 <!-- => True -->
 
-Their laws are theorems: `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`, `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"` and `"lengthReverse"`. Each is proved by recursion on a list, and tactics prove such laws too: `"Induction"` splits a list into the empty list and a list with a first element, and `"Simplify"` unfolds a definition where its list is one of these, folding the recursive call back, before it rewrites with the induction hypothesis and the laws of arithmetic:
+Their laws are theorems: `"joinEmptyRight"`, `"joinAssociativity"`, `"lengthJoin"`, `"lengthMap"`, `"mapJoin"`, `"mapComposition"`, `"reverseJoin"`, `"reverseReverse"` and `"lengthReverse"`. Each is proved by recursion on a list, and tactics prove such laws too: `"Induction"` splits a list into the empty list and a list with a first element, and `"RewriteRepeated"` unfolds a definition where its list is one of these, folding the recursive call back, before it rewrites with the induction hypothesis and the laws of arithmetic:
 
 ```wl
 lengthJoin = TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}]}, Length[Join[a, b]] == Length[a] + Length[b]], {
     "Introduce"[a, b],
     "Induction"[a],
-    "Simplify"[{Join, Length, "additionZeroLeft"}],
+    "RewriteRepeated"[Join, Length, "additionZeroLeft"],
     "Introduce"[x, rest, ih],
-    "Simplify"[{Join, Length, ih, "additionSuccessorLeft"}]
+    "RewriteRepeated"[Join, Length, ih, "additionSuccessorLeft"]
 }]
 ```
 
