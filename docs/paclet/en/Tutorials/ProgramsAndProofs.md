@@ -296,7 +296,7 @@ bounds = TypeTheoryEnvironment[bounds, {TypeTheoryTheorem["quotientBound",
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 377 constants -->
+<!-- => TypeTheoryEnvironment summary box: 378 constants -->
 
 The theorem: for every n <= 3037000499, the typed code at the machine integer n is the machine integer Quotient[n (n + 1), 2], never the leave. The proof is a chain of equations, one for each step of the typed code, and the kernel computes the code between them:
 
@@ -354,5 +354,143 @@ TypeTheoryAxiomClosure[neverDeclines]
 
 <!-- => <|"quotientSoundness" -> "Proposition"|> -->
 
-So the compiled closed form never leaves its machine code for n <= 3037000499, and computes Quotient[n (n + 1), 2] there; at 3037000500 it leaves, and the Wolfram Language computes the call exactly instead. The recursion and the loop of `compiledTriangular` and `compiledTotal` are the next steps: their typed code is not read yet.
+So the compiled closed form never leaves its machine code for n <= 3037000499, and computes Quotient[n (n + 1), 2] there; at 3037000500 it leaves, and the Wolfram Language computes the call exactly instead.
+
+## The Recursion on the Machine
+
+The recursion has typed code too. A typed entry leaves where its recursion passes its bound, 4096 levels for a compiled definition, so the meaning of a function that calls itself takes first the levels left, a natural number: each call of itself is a level, and where none is left it leaves. The recursion of `compiledTriangular`, as a definition, beside the program `triangular` as a recursion on the natural numbers:
+
+```wl
+machineTriangular[n_Integer] := If[n == 0, 0, n + machineTriangular[n - 1]];
+recursions = TypeTheoryEnvironment[bounds, Join[
+    TypeTheoryFormalize[triangular, bounds, "Meaning" -> "Function", "Type" -> (NonNegativeIntegers -> NonNegativeIntegers)],
+    TypeTheoryFormalize[machineTriangular, bounds]
+]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 380 constants -->
+
+Its type has the levels first:
+
+```wl
+TypeTheoryType[TypeTheoryTerm[machineTriangular, recursions]]
+```
+
+<!-- => ℕ → Integer64 → (Integer64 | Failure) -->
+
+At 20 it needs 21 levels, one for each call down to 0, and with 20 it leaves:
+
+```wl
+TypeTheoryExpression[NormalForm[TypeTheoryTerm[{"confirmBind"["machineResult"[20], Typed[m, "Integer64"] |-> machineTriangular[21, m]], "confirmBind"["machineResult"[20], Typed[m, "Integer64"] |-> machineTriangular[20, m]]}, recursions]]]
+```
+
+<!-- => {210, Failure["RecursionLimit", <||>]} -->
+
+The theorem: with more levels than n, and wherever `triangular[n]` fits a machine integer, the compiled recursion at a machine integer whose value is n is the machine integer of `triangular[n]`: it never leaves, and it computes the program. Four facts of arithmetic first:
+
+```wl
+recursions = TypeTheoryEnvironment[recursions, {
+    TypeTheoryTheorem["notLessZero", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n < 0, False]], recursions, {"Introduce"[n, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["lessOfSuccessors", TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[l, NonNegativeIntegers]}, Implies[n + 1 < l + 1, n < l]], recursions, {"Introduce"[n, l, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["sumBoundsRest", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[t, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[(a + 1) + t < u, t < u]], recursions, {"Introduce"[a, t, u, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["sumBoundsIndex", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[t, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[(a + 1) + t < u, a < u]], recursions, {"Introduce"[a, t, u, h], "LinearArithmetic"}]]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 384 constants -->
+
+The proof is by induction on n, and in each case by cases on the levels. With no level, n < 0 is absurd. At 0 with a level, the test is true and the value is the machine integer 0. At k + 1 with a level, the test is false; k is a machine integer, since it is below `triangular[k + 1]`; the call of itself is the induction hypothesis at that machine integer, with a level less; and the sum is `triangular[k + 1]`, which fits. The argument is any machine integer whose value equals n as an integer, because the recursion's own argument, (k + 1) - 1, is the class of (k + 1, 1): it is the integer k by `"integerOfNaturalPredecessor"`, not by computation.
+
+```wl
+recursionComputes = TypeTheoryProof[
+    ForAll[{Typed[n, NonNegativeIntegers], Typed[levels, NonNegativeIntegers], Typed[m, "Integer64"]},
+        Implies[n < levels, Implies[triangular[n] < 9223372036854775808, Implies[m[[1]] == "integerOfNatural"[n],
+            Exists[{Typed[v, "Integer64"]}, machineTriangular[levels, m] == Typed["left"[v], "Integer64" | Failure] && v[[1]] == "integerOfNatural"[triangular[n]]]]]]],
+    recursions,
+    {
+        "Introduce"[n], "Induction"[n], "Introduce"[levels], "Induction"[levels],
+        "Introduce"[m, h], "Exact"["falseElimination"["notLessZero"[0, h]]],
+        "Introduce"[l, ihl, m, h, b, e],
+        "Exact"["existsIntroduction"[
+            "subtype"["integerOfNatural"[triangular[0]], "naturalInteger64Range"[triangular[0], b]],
+            "andIntroduction"[
+                "equalityTransitivity"[
+                    "equalityCongruence"[
+                        Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machineResult"[x - 1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"[x + t10[[1]]]]]]]]],
+                        e
+                    ],
+                    "machineResultOfNatural"[triangular[0], b]
+                ],
+                "equalityReflexivity"["integerOfNatural"[triangular[0]]]
+            ]
+        ]],
+        "Introduce"[k, ih, levels], "Induction"[levels],
+        "Introduce"[m, h], "Exact"["falseElimination"["notLessZero"[k + 1, h]]],
+        "Introduce"[l, ihl, m, h, b, e],
+        "Exact"[InductiveRecursor[Exists][
+            Function[{w0}, Exists[{Typed[w, "Integer64"]}, machineTriangular[l + 1, m] == Typed["left"[w], "Integer64" | Failure] && w[[1]] == "integerOfNatural"[triangular[k + 1]]]],
+            Function[
+                {
+                    Typed[v, "Integer64"],
+                    Typed[hv, machineTriangular[l, "subtype"["integerOfNatural"[k], "naturalInteger64Range"[k, "sumBoundsIndex"[k, triangular[k], 9223372036854775808, b]]]] == Typed["left"[v], "Integer64" | Failure] && v[[1]] == "integerOfNatural"[triangular[k]]]
+                },
+                "existsIntroduction"[
+                    "subtype"["integerOfNatural"[triangular[k + 1]], "naturalInteger64Range"[triangular[k + 1], b]],
+                    "andIntroduction"[
+                        "equalityTransitivity"[
+                            "equalityCongruence"[
+                                Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machineResult"[x - 1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"[x + t10[[1]]]]]]]]],
+                                e
+                            ],
+                            "equalityTransitivity"[
+                                "equalityCongruence"[
+                                    Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]]]],
+                                    "integerOfNaturalPredecessor"[k]
+                                ],
+                                "equalityTransitivity"[
+                                    "equalityCongruence"[
+                                        Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]]]],
+                                        "machineResultOfNatural"[k, "sumBoundsIndex"[k, triangular[k], 9223372036854775808, b]]
+                                    ],
+                                    "equalityTransitivity"[
+                                        "equalityCongruence"[
+                                            Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]],
+                                            "andEliminationLeft"[hv]
+                                        ],
+                                        "equalityTransitivity"[
+                                            "equalityCongruence"[Function[{Typed[y, Integers]}, "machineResult"["integerOfNatural"[k + 1] + y]], "andEliminationRight"[hv]],
+                                            "equalityTransitivity"[
+                                                "equalityCongruence"[Function[{Typed[y, Integers]}, "machineResult"[y]], "equalitySymmetry"["integerOfNaturalAddition"[k + 1, triangular[k]]]],
+                                                "machineResultOfNatural"[triangular[k + 1], b]
+                                            ]
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ],
+                        "equalityReflexivity"["integerOfNatural"[triangular[k + 1]]]
+                    ]
+                ]
+            ],
+            ih[
+                l,
+                "subtype"["integerOfNatural"[k], "naturalInteger64Range"[k, "sumBoundsIndex"[k, triangular[k], 9223372036854775808, b]]],
+                "lessOfSuccessors"[k, l, h],
+                "sumBoundsRest"[k, triangular[k], 9223372036854775808, b],
+                "equalityReflexivity"["integerOfNatural"[k]]
+            ]
+        ]]
+    }
+]
+```
+
+<!-- => Proof complete -->
+
+```wl
+TypeTheoryAxiomClosure[recursionComputes]
+```
+
+<!-- => <|"quotientSoundness" -> "Proposition"|> -->
+
+The levels are a variable of the theorem, so it holds of a compiled definition's 4096 levels and of the deeper recursion of a program [FunctionCompile]() compiles alike: the compiled recursion computes `triangular[n]` for every n it has levels for, as long as the sum fits. The loop of `compiledTotal` is the next step: its typed code is not read yet.
 
