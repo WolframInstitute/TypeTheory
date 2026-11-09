@@ -4,7 +4,7 @@ Name: QuotientLift
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/QuotientLift
-Keywords: [quotient, lift, function on classes, well defined, respects the relation, Quot.lift, Lean, computation, prelude, integers, integer negation, integer addition]
+Keywords: [quotient, lift, function on classes, well defined, respects the relation, computation, prelude, integers, integer negation, integer addition]
 SeeAlso: [QuotientType, QuotientIntroduction, QuotientInduction, TypeTheoryQuotients, WeakHeadNormalForm, DefinitionallyEqualQ]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
 
 ## Details & Options
 
-- [QuotientLift]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot.lift`.
+- [QuotientLift]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude.
 - The type α, the relation *r* and the codomain β of *f* are implicit arguments. β may be any type, data or a proposition.
 - It computes on a class: <code>[QuotientLift]()[*f*, *h*, [QuotientIntroduction]()[*r*, *a*]]</code> is *f*[*a*]. This is one of the two computation rules of quotients, with that of [QuotientInduction]().
 - *h* is what makes the lift well defined: two related elements, whose classes are equal by `"quotientSoundness"`, give the same value. When *f* gives classes, *h* is `"quotientSoundness"` applied to a proof that *f* takes related elements to related ones, as for the operations of the integers.

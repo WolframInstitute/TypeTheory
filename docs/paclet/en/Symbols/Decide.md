@@ -18,7 +18,7 @@ RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 
 ## Details & Options
 
-- [Decide]() is a definition of the prelude, by recursion on the decision, as Lean's `decide`.
+- [Decide]() is a definition of the prelude, by recursion on the decision.
 - The decision is an instance-implicit argument: elaboration finds it among the instances of <code>[Decidable]()[*p*]</code>.
 - The prelude has instances deciding `==` and `<=` of natural numbers, `==` of Booleans, [True](), [False](), [Not](), [And]() and [Or](); a definition such as [Less]() or [Unequal](), or one of an environment's own, unfolds to a proposition that has one. A proposition with none, such as one with a quantifier, gives a [Failure]() tagged `"NoInstance"`.
 - The decisions of `==` and `<=` compare literals in one step of the kernel, so large numbers decide at once.

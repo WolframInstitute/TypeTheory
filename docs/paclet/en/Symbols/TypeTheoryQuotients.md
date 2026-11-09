@@ -4,7 +4,7 @@ Name: TypeTheoryQuotients
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryQuotients
-Keywords: [quotient, quotient type, Quot, Lean, kernel, declaration, environment, trusted, equivalence classes, lift, parity, integers]
+Keywords: [quotient, quotient type, kernel, declaration, environment, trusted, equivalence classes, lift, parity, integers]
 SeeAlso: [QuotientType, QuotientIntroduction, QuotientLift, QuotientInduction, TypeTheoryRules, TypeTheoryEnvironment]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
@@ -12,13 +12,13 @@ RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
 
 ## Usage
 
-<code>[TypeTheoryQuotients]()[]</code> declares the quotient types of Lean's kernel, [QuotientType](), [QuotientIntroduction](), [QuotientLift]() and [QuotientInduction](), when added to a [TypeTheoryEnvironment]().
+<code>[TypeTheoryQuotients]()[]</code> declares the quotient types, [QuotientType](), [QuotientIntroduction](), [QuotientLift]() and [QuotientInduction](), when added to a [TypeTheoryEnvironment]().
 
 <code>[TypeTheoryQuotients]()[*equality*, {*type*, *introduction*, *lift*, *induction*}]</code> declares them under the given names, with the inductive type *equality* as the equality their types mention.
 
 ## Details & Options
 
-- The kernel writes the four types itself, as Lean's kernel does for `Quot`, `Quot.mk`, `Quot.lift` and `Quot.ind`, and adds two computation rules: <code>[QuotientLift]()[*f*, *h*, [QuotientIntroduction]()[*r*, *a*]]</code> is *f*[*a*], and <code>[QuotientInduction]()[*premise*, [QuotientIntroduction]()[*r*, *a*]]</code> is *premise*[*a*].
+- The kernel writes the four types itself, and adds two computation rules: <code>[QuotientLift]()[*f*, *h*, [QuotientIntroduction]()[*r*, *a*]]</code> is *f*[*a*], and <code>[QuotientInduction]()[*premise*, [QuotientIntroduction]()[*r*, *a*]]</code> is *premise*[*a*].
 - <code>[QuotientType]()[*r*]</code> is the type of the classes of the relation *r*, <code>[QuotientIntroduction]()[*r*, *a*]</code> the class of *a*, and <code>[QuotientLift]()[*f*, *h*, *q*]</code> applies *f* to the class *q*, given a proof *h* that *f* gives related elements the same value.
 - The rules of the environment must have quotients, the setting `"Quotients"` of [TypeTheoryRules](), and Prop: the calculus of inductive constructions has them, Martin-Löf type theory does not.
 - The equality must be the identity type: an inductive type with one universe parameter, of the type <code>[ForAll]()[{[TypedImplicit]()[α, [TypeUniverse]()[u]]}, α -> α -> Prop]</code>, with one constructor of the type <code>[ForAll]()[{[TypedImplicit]()[α, [TypeUniverse]()[u]], [Typed]()[x, α]}, x == x]</code>. The type of the lift mentions it, and with another equality a lift could tell apart elements that the quotient identifies.

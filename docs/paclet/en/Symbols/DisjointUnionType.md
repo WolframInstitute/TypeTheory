@@ -18,7 +18,7 @@ RelatedTutorials: [ThePrelude, TheWolframLanguage]
 
 ## Details & Options
 
-- [DisjointUnionType]() is an inductive type of the prelude, with the constructors `"left"` and `"right"`, as Lean's `Sum`: <code>"left"[*x*]</code> for *x* in *α*, and <code>"right"[*y*]</code> for *y* in *β*.
+- [DisjointUnionType]() is an inductive type of the prelude, with the constructors `"left"` and `"right"`: <code>"left"[*x*]</code> for *x* in *α*, and <code>"right"[*y*]</code> for *y* in *β*.
 - Each constructor takes both types implicitly, and its value gives only one of them, so an element needs the type it is expected to have, given by [Typed]() or by where it is used.
 - Its recursor, <code>[InductiveRecursor]()[[DisjointUnionType]()]</code>, takes a function for each side: a function on a disjoint union is defined by cases on the side, and `"Cases"` splits a proof the same way.
 - The sides are told apart: `"left"[x]` is never `"right"[y]`, which the recursor into Prop proves. `"Decide"` does not decide such equations, since the prelude has no instance of [Decidable]() for them.

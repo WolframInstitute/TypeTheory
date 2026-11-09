@@ -4,7 +4,7 @@ Name: TypeTheoryRules
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryRules
-Keywords: [rules, type theory, Prop, universes, impredicativity, proof irrelevance, rewrite rules, Martin-Löf, calculus of inductive constructions, Rocq, Lean, HoTT, quotients, quantities, affine, erasure, cubical]
+Keywords: [rules, type theory, Prop, universes, impredicativity, proof irrelevance, rewrite rules, Martin-Löf, calculus of inductive constructions, Rocq, HoTT, quotients, quantities, affine, erasure, cubical]
 SeeAlso: [TypeTheoryEnvironment, TypeTheoryRewriteRule, TypeTheoryQuotients, TypeTheoryCubical, TypeTheoryTheorem, TypeTheoryTranslate, TypeUniverse]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory, Quantities, CubicalTypeTheory]
@@ -32,7 +32,7 @@ RelatedTutorials: [RulesAndComputation, HomotopyTypeTheory, Quantities, CubicalT
 
 - The setting `"Prop"` says whether <code>[TypeUniverse]()[0]</code> is a universe of propositions: impredicative, with proof irrelevance, K-like reduction and elimination of subsingletons into any universe.
 - The setting `"RewriteRules"` says whether [TypeTheoryRewriteRule]() declarations may give an axiom computation rules.
-- The setting `"Quotients"` says whether [TypeTheoryQuotients]() may declare the quotient types of Lean's kernel, whose lift computes on a class. The calculus of inductive constructions has them, as Lean's kernel does; without them it is the theory of Rocq's kernel. They need Prop.
+- The setting `"Quotients"` says whether [TypeTheoryQuotients]() may declare the quotient types, whose lift computes on a class. The calculus of inductive constructions has them; without them it is the theory of Rocq's kernel. They need Prop.
 - The setting `"Quantities"` says whether a binder may have a quantity, the third argument of <code>[Typed]()[*x*, *A*, *q*]</code> or <code>[TypedImplicit]()[*x*, *A*, *q*]</code>: 0, so the code that runs never uses *x*, or 1, so it uses *x* at most once. A binder without one has the quantity [Infinity](). The kernel then counts how many times the value of each definition, the proof of each theorem and each term it checks uses its variables outside its types, and two function types are equal only if their binders have the same quantities. None of the named rules has quantities.
 - Rules with quantities only reject more than the same rules without them, so they are consistent whenever those are.
 - The setting `"Cubical"` says whether [TypeTheoryCubical]() may declare the interval, paths, transport, composition and Glue types of cubical type theory. It needs no Prop and no quantities. <code>[TypeTheoryRules]()["CubicalTypeTheory"]</code> is Martin-Löf type theory with it, the rules of <code>[TypeTheoryEnvironment]()["Cubical"]</code>.

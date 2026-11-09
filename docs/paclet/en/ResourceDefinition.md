@@ -6,7 +6,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language
 ContributedBy: Nik Murzin
-Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, theorem proving, formal mathematics, Lean, Rocq]
+Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, theorem proving, formal mathematics, Rocq]
 MainGuide: Documentation/English/Guides/TypeTheory.nb
 License: MIT
 WolframVersion: 15.0+
@@ -18,13 +18,13 @@ Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarat
 
 ## Details & Options
 
-- TypeTheory is a proof engine for the **Calculus of Inductive Constructions**, the dependent type theory of Lean and Rocq, written in the Wolfram Language, with no dependency on Lean; [TypeTheoryCheck]() also has a compiled kernel, the same algorithm compiled to native code.
+- TypeTheory is a proof engine for the **Calculus of Inductive Constructions**, a dependent type theory, written in the Wolfram Language, with no dependency on Lean; [TypeTheoryCheck]() also has a compiled kernel, the same algorithm compiled to native code.
 - Terms are ordinary expressions built from built-in symbols - [Function](), [Typed](), [ForAll](), [Implies](), [Equal](), [Plus]() - held in a [TypeTheoryTerm](), which displays them in mathematical notation.
 - Declarations are inert constructors - [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers](), [TypeTheoryRewriteRule](), [TypeTheoryQuotients]() and [TypeTheoryCubical]() - that a small kernel checks when they are added to a [TypeTheoryEnvironment](). An environment is a value, a handle to a store of definitions, and every term and proof carries the environment it lives in; the one setting is the default environment, [$TypeTheoryEnvironment](), the prelude unless [SetTypeTheoryEnvironment]() sets another.
 - The kernel infers types, reduces terms, decides definitional equality (with eta for functions and structures, and proof irrelevance), checks inductive families for strict positivity and universe constraints, and generates their recursors.
 - [TypeTheoryProof]() and [TypeTheoryTactic]() build proofs step by step. Nothing a tactic does is trusted: the kernel checks the finished proof term.
 - The prelude has classical logic ([True](), [False](), [Not](), [And](), [Or](), [Exists]()), equality ([Equal]()), the natural numbers ([NonNegativeIntegers]()) with their arithmetic and order, so that literals are natural numbers, the Booleans, decisions, quotient types, pairs, sums, options and lists. It is the default environment unless [SetTypeTheoryEnvironment]() sets another.
-- Terms display as mathematics: `∀`, `∃`, `↦`, `⇒`, `∧`, `∨`, `¬`, universes as Prop, Type and Sort, and the natural numbers as `0` and `n + 1`, as Lean shows them.
+- Terms display as mathematics: `∀`, `∃`, `↦`, `⇒`, `∧`, `∨`, `¬`, universes as Prop, Type and Sort, and the natural numbers as `0` and `n + 1`.
 
 ## Usage
 

@@ -16,7 +16,7 @@ RelatedTutorials: [TheWolframLanguage, Elaboration, InstancesAndCoercions]
 
 ## Details & Options
 
-- [FromString]() is a definition of the prelude, of the type `∀ {A} [IsString[A]] Strings → A`. Its instance argument, of the class `"IsString"`, is found by the type *A* expected: Haskell's class `IsString` with its `fromString`, as Lean's `OfNat` is for numerals.
+- [FromString]() is a definition of the prelude, of the type `∀ {A} [IsString[A]] Strings → A`. Its instance argument, of the class `"IsString"`, is found by the type *A* expected: Haskell's class `IsString` with its `fromString`.
 - The prelude has instances for [Strings](), the string itself, [Expressions](), the string as an expression, and [Atoms](), its atom `"stringAtom"[s]`. Another type gets its own by an instance of `"IsString"` declared with `"Instance" -> True`.
 - Where nothing decides the type, <code>[FromString]()[*s*]</code> is the string *s*: the instance for [Strings]() is declared last, and the latest instance that fits is the one found. Inside a function, it is found before the function's variables go out of scope.
 - A string literal applied to [FromString]() is the string, even where it names a constant: <code>[FromString]()["true"]</code> is the string `"true"`, though `"true"` alone is the Boolean.

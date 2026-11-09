@@ -31,7 +31,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 - In a notebook a proof shows each open goal as its hypotheses over the goal, with the name of the constructor on goals that come from induction, as `case zero` or `case Prepend`. A finished proof shows `Proof complete`, with the number of holes the tactic `"Hole"` left. The display stands for the proof itself: copied, or evaluated again, it gives the [TypeTheoryProof]().
 - <code>*proof*["Goals"]</code> gives the open goals as <code>[TypeTheoryTerm]()[[RightTee]()[{[Typed]()[*x*, *type*], ...}, *goal*], *env*]</code>, each a statement in its own right, its hypotheses quantified. <code>*proof*["Term"]</code> gives the proof term, <code>*proof*["Statement"]</code> the statement and <code>*proof*["Environment"]</code> the environment.
 - Nothing a tactic does is trusted: <code>[TypeTheoryTheorem]()[*name*, *proof*]</code> has the kernel check the finished proof term before it declares the theorem. [TypeTheoryProofTree]() gives the natural-deduction derivation of a finished proof of propositional logic.
-- The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear, and makes each level that nothing in the statement decides one more, `"u_1"`, `"u_2"`, …, as Lean does.
+- The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear, and makes each level that nothing in the statement decides one more, `"u_1"`, `"u_2"`, ….
 
 ## Basic Examples
 

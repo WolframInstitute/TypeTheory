@@ -5,7 +5,7 @@ Title: The Integers
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheIntegers
-Keywords: [integers, quotient, quotient type, commutative ring, coercion, induction, Ring, inequality, sum of squares, SumOfSquares, Lean]
+Keywords: [integers, quotient, quotient type, commutative ring, coercion, induction, Ring, inequality, sum of squares, SumOfSquares]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, InstancesAndCoercions, RulesAndComputation]
 ---
@@ -48,7 +48,7 @@ integers["integerOfNatural"]
 
 ## Arithmetic
 
-In this environment `+`, `*`, `-`, `^` with a natural number exponent, the comparisons and negative literals are the integers' wherever the types say so, and the natural numbers' otherwise, as in Lean:
+In this environment `+`, `*`, `-`, `^` with a natural number exponent, the comparisons and negative literals are the integers' wherever the types say so, and the natural numbers' otherwise:
 
 ```wl
 TypeTheoryTerm[{Typed[x, Integers], Typed[n, Naturals]} |-> 2 x - 7 <= x + n, integers]

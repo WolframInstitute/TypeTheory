@@ -16,7 +16,7 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 
 ## Details & Options
 
-- [NormalForm]() is [WeakHeadNormalForm]() applied to the term, then to each of its parts, as Lean's `#reduce`: a function's body is reduced with its variable free, and the arguments of an application that is stuck are reduced.
+- [NormalForm]() is [WeakHeadNormalForm]() applied to the term, then to each of its parts: a function's body is reduced with its variable free, and the arguments of an application that is stuck are reduced.
 - It applies functions to their arguments, unfolds definitions and local definitions, computes recursors on constructors and natural numbers as literals, and takes the fields of a structure, so a closed term of data reduces to its value. Theorems and axioms never unfold.
 - A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
 - An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [Unevaluated]() that quotes it.

@@ -18,14 +18,14 @@ RelatedTutorials: [ThePrelude, ProgramsAndProofs]
 
 ## Details & Options
 
-- Its arguments are the type's parameters (implicit), a motive, one minor premise per constructor, the indices (implicit) and the term to eliminate. For types declared together, or nested in containers, there is a motive for each type and container, and a minor premise for each of their constructors, as in Lean.
+- Its arguments are the type's parameters (implicit), a motive, one minor premise per constructor, the indices (implicit) and the term to eliminate. For types declared together, or nested in containers, there is a motive for each type and container, and a minor premise for each of their constructors.
 - The motive is a function from the term eliminated to the type of the result, which may depend on the term: a type such as [Naturals]() for a definition by recursion, a proposition for a proof by induction.
 - A minor premise takes the constructor's fields and a result for each recursive field: the recursive call, or the induction hypothesis.
 - Applied to a constructor, the recursor reduces to its minor premise, and on a literal of the natural numbers to the case of its predecessor; at a variable it does not reduce, so a fact about a definition by recursion at a variable is proved by induction.
-- The motive may go into any universe, except for a proposition with more than one constructor, as [Or](), or with a constructor that holds data, as [Exists]() holds its witness: those eliminate only into Prop, so no function computes data from their proofs, as in Lean. [And](), [Equal]() and [False]() eliminate into any universe.
+- The motive may go into any universe, except for a proposition with more than one constructor, as [Or](), or with a constructor that holds data, as [Exists]() holds its witness: those eliminate only into Prop, so no function computes data from their proofs. [And](), [Equal]() and [False]() eliminate into any universe.
 - The recursor is how definitions recurse and how proofs go by induction: the tactics `"Induction"` and `"Cases"` build an application of it.
 - The kernel reduces a recursion on a literal *n* one step at a time, *n* steps deep, and near a thousand nested steps it reports that the computation goes deeper than it can recurse, a [Failure]() tagged `"RecursionLimit"`; the arithmetic that [TypeTheoryNaturalNumbers]() registers, [Plus]() and the others, computes on literals with Wolfram integers instead. The kernel does not share results either, so a step that uses the result before it twice, as a Fibonacci step does, computes it twice, and the time grows exponentially with *n*.
-- <code>[InductiveRecursor]()[*type*]</code> shows as *type*_rec, and <code>[InductiveRecursor]()[*type*, *k*]</code> as *type*_rec_*k*, as Lean writes `type.rec`.
+- <code>[InductiveRecursor]()[*type*]</code> shows as *type*_rec, and <code>[InductiveRecursor]()[*type*, *k*]</code> as *type*_rec_*k*.
 
 ## Basic Examples
 

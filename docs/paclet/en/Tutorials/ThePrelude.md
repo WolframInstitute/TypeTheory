@@ -10,7 +10,7 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [InstancesAndCoercions, TypeTheoryIntroduction, HomotopyTypeTheory]
 ---
 
-The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, the Booleans, decisions of propositions, quotient types, pairs, sums, optional values, and lists with their operations and laws. It is classical: it assumes propositional extensionality, quotient soundness and choice, Lean's three axioms, and proves function extensionality and the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
+The prelude is the environment of every term, proof and list of declarations that names no other, unless [SetTypeTheoryEnvironment]() makes another the default. It declares the propositions of logic and their proofs, equality, a few functions, the natural numbers with their arithmetic, their order and the theorems about them, the Booleans, decisions of propositions, quotient types, pairs, sums, optional values, and lists with their operations and laws. It is classical: it assumes propositional extensionality, quotient soundness and choice, the three axioms, and proves function extensionality and the excluded middle from them. Each theorem is a constant whose type is its statement, so it applies to arguments like a function. This tutorial goes through all of it.
 
 ## What the Prelude Declares
 
@@ -56,7 +56,7 @@ TypeTheoryType[{p, q, Typed[h, p && q]} |-> "andIntroduction"[h[[2]], h[[1]]]]
 
 <!-- => ∀_p∶Prop ∀_q∶Prop (p ∧ q) ⇒ (q ∧ p) -->
 
-`a && b && c` is read as `a && (b && c)`, as in Lean:
+`a && b && c` is read as `a && (b && c)`:
 
 ```wl
 TypeTheoryCheck[TypeTheoryTerm["andIntroduction"["trueIntroduction", "andIntroduction"["trueIntroduction", "trueIntroduction"]]], TypeTheoryTerm[True && True && True]]
@@ -126,7 +126,7 @@ DefinitionallyEqualQ[TypeTheoryTerm[Composition["successor", Identity][3]], Type
 
 ## Quotients
 
-The prelude has the quotient types of Lean's kernel, which [TypeTheoryQuotients]() declares: <code>[QuotientType]()[r]</code> is the type of the classes of a relation `r`, <code>[QuotientIntroduction]()[r, a]</code> is the class of `a`, [QuotientLift]() applies a function that respects `r` to a class, and [QuotientInduction]() proves a property of every class. Here is equality of natural numbers, as a relation:
+The prelude has the quotient types, which [TypeTheoryQuotients]() declares: <code>[QuotientType]()[r]</code> is the type of the classes of a relation `r`, <code>[QuotientIntroduction]()[r, a]</code> is the class of `a`, [QuotientLift]() applies a function that respects `r` to a class, and [QuotientInduction]() proves a property of every class. Here is equality of natural numbers, as a relation:
 
 ```wl
 equalNaturals = TypeTheoryTerm[Typed[{m, n} |-> m == n, Naturals -> Naturals -> TypeUniverse[0]]]
@@ -134,7 +134,7 @@ equalNaturals = TypeTheoryTerm[Typed[{m, n} |-> m == n, Naturals -> Naturals -> 
 
 <!-- => m n ↦ m == n ∶ ℕ → ℕ → Prop -->
 
-The successor respects it, so it lifts to the classes, and the lift computes on a class, as in Lean's kernel:
+The successor respects it, so it lifts to the classes, and the lift computes on a class:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
@@ -166,7 +166,7 @@ WeakHeadNormalForm[TypeTheoryTerm[NaturalNumberPredecessor[0]]]
 
 <!-- => 0 -->
 
-[Plus](), [Times](), [Power]() and [Subtract]() are defined by recursion on their second argument, as in Lean. They compute, and on literals the kernel computes them with Wolfram integers, as Lean's kernel does with GMP:
+[Plus](), [Times](), [Power]() and [Subtract]() are defined by recursion on their second argument. They compute, and on literals the kernel computes them with Wolfram integers:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[3 * 4 + 2^3 - 5]]
@@ -253,7 +253,7 @@ The other theorems are `"lessEqualZero"`, `"lessEqualSuccessor"`, `"lessEqualPre
 
 ## Booleans
 
-[Booleans]() has two values, `"false"` and `"true"`, and `"not"`, `"and"` and `"or"` compute with them by cases on their first argument, as with Lean's `Bool`. These constants are named by strings, and you rarely write them: where a Boolean is expected, [True](), [False](), [Not](), [And]() and [Or]() stand for them, and so do `!`, `&&` and `||`:
+[Booleans]() has two values, `"false"` and `"true"`, and `"not"`, `"and"` and `"or"` compute with them by cases on their first argument. These constants are named by strings, and you rarely write them: where a Boolean is expected, [True](), [False](), [Not](), [And]() and [Or]() stand for them, and so do `!`, `&&` and `||`:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Typed[True && Not[False], Booleans]]]
@@ -261,7 +261,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed[True && Not[False], Booleans]]]
 
 <!-- => true -->
 
-A Boolean shows in lower case, and its operations as Lean writes them, which tells them apart from the propositions. The arguments decide too: on Booleans, `||` is the operation on Booleans, and on propositions it is the disjunction:
+A Boolean shows in lower case, and its operations, which tells them apart from the propositions. The arguments decide too: on Booleans, `||` is the operation on Booleans, and on propositions it is the disjunction:
 
 ```wl
 TypeTheoryType[Typed[b, Booleans] |-> b || False]
@@ -295,7 +295,7 @@ TypeTheoryType[b |-> InductiveRecursor[Booleans][t |-> Not[Not[t]] == t, "equali
 
 ## Decisions
 
-A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with `"decidableTrue"` or `"decidableFalse"`. It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class, as in Lean: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's instances decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give, as Lean's `Nat.decEq` is what `Nat.beq` gives; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
+A decision of a proposition `p`, an element of <code>[Decidable]()[p]</code>, is a proof of `p` or a proof of its negation, made with `"decidableTrue"` or `"decidableFalse"`. It is data, so it computes, and <code>[Decide]()[p]</code> turns the decision of `p` into a Boolean. [Decidable]() is a class: <code>[Decide]()[p]</code> finds the decision among its instances. The prelude's instances decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans. The first two are what the Boolean comparisons `"equal"` and `"lessEqual"` give; the kernel computes the comparisons on literals with integers, so deciding literals of any size is one step:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[Decide[1 <= 2 && 2 == 2]]]
@@ -333,7 +333,7 @@ WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[1]]]]
 
 ## List
 
-<code>[List]()[α]</code> is the type of finite lists, built from `{}` by `Prepend[x][l]`, the operator form of [Prepend]() applied, as Lean builds `List` from `nil` and `cons x l`; `Prepend[l, x]` is the same list. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
+<code>[List]()[α]</code> is the type of finite lists, built from `{}` by `Prepend[x][l]`, the operator form of [Prepend]() applied; `Prepend[l, x]` is the same list. [Join](), [Length](), [Map](), [Append]() and [Reverse]() are defined on them, each by recursion on its first list, and compute:
 
 ```wl
 DefinitionallyEqualQ[TypeTheoryTerm[Reverse[Prepend[1][Prepend[2][{}]]]], TypeTheoryTerm[Prepend[2][Prepend[1][{}]]]]
@@ -365,7 +365,7 @@ TypeTheoryType["propositionalExtensionality"["equivalentIntroduction"[Typed[h, T
 
 <!-- => True == (True ∧ True) -->
 
-`"quotientSoundness"` makes the classes of related elements equal. From it the prelude proves `"functionExtensionality"`, as Lean proves `funext`: functions that agree on every argument are equal:
+`"quotientSoundness"` makes the classes of related elements equal. From it the prelude proves `"functionExtensionality"`: functions that agree on every argument are equal:
 
 ```wl
 TypeTheoryType["functionExtensionality"["additionZeroLeft"]]
@@ -389,7 +389,7 @@ TypeTheoryType[Typed[h, Exists[n |-> n + n == 6]] |-> "chosenWitnessProperty"[h]
 
 <!-- => ∀_h∶∃_n∶ℕ n + n == 6 ChosenWitness[h] + ChosenWitness[h] == 6 -->
 
-From the three axioms the prelude proves the excluded middle, by Diaconescu's argument, as Lean does:
+From the three axioms the prelude proves the excluded middle, by Diaconescu's argument:
 
 ```wl
 TypeTheoryType["excludedMiddle"]

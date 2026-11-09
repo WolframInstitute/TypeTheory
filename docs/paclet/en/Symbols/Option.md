@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Option]() is an inductive type of the prelude, with the constructors `"none"` and `"some"`, as Lean's `Option`.
+- [Option]() is an inductive type of the prelude, with the constructors `"none"` and `"some"`.
 - Both constructors take *α* implicitly. `"some"[x]` finds it from `x`; `"none"` has nothing to find it from, so it needs the type it is expected to have, as <code>[Typed]()["none", [Option]()[[Naturals]()]]</code> gives.
 - An [Option]()-valued function is a partial function: it gives `"none"` where it has no answer, as a lookup that finds no key, or a subtraction that would go below 0.
 - Its recursor, <code>[InductiveRecursor]()[[Option]()]</code>, takes the result for `"none"` and a function of the value for `"some"`: a default value, or a map over the value.

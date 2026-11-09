@@ -4,7 +4,7 @@ Name: QuotientIntroduction
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/QuotientIntroduction
-Keywords: [quotient, equivalence class, class of an element, representative, Quot.mk, Lean, prelude, integers, quotientSoundness]
+Keywords: [quotient, equivalence class, class of an element, representative, prelude, integers, quotientSoundness]
 SeeAlso: [QuotientType, QuotientLift, QuotientInduction, TypeTheoryQuotients, DefinitionallyEqualQ]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
 
 ## Details & Options
 
-- [QuotientIntroduction]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot.mk`.
+- [QuotientIntroduction]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude.
 - The type α of *a* is an implicit argument; the relation *r* is explicit.
 - The classes of two elements that *r* relates are equal by the axiom `"quotientSoundness"`, not by computation: <code>[QuotientIntroduction]()[*r*, *a*]</code> and <code>[QuotientIntroduction]()[*r*, *b*]</code> are equal by computation only when *a* and *b* are.
 - [QuotientLift]() and [QuotientInduction]() compute on a class, to the function or the premise at its element.

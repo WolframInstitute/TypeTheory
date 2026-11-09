@@ -4,7 +4,7 @@ Name: QuotientType
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/QuotientType
-Keywords: [quotient, quotient type, equivalence class, classes, Quot, Lean, prelude, integers, rationals, parity, quotientSoundness, function extensionality]
+Keywords: [quotient, quotient type, equivalence class, classes, prelude, integers, rationals, parity, quotientSoundness, function extensionality]
 SeeAlso: [QuotientIntroduction, QuotientLift, QuotientInduction, TypeTheoryQuotients, Integers, Rationals]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
 
 ## Details & Options
 
-- [QuotientType]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot`.
+- [QuotientType]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude.
 - α is an implicit argument, found from the type of *r*, which is `α -> α -> Prop`. Any relation will do, not only an equivalence: two elements have equal classes when the equivalence relation that *r* generates relates them.
 - <code>[QuotientType]()[*r*]</code> lives in the universe of α: a quotient of a type is a type, and a quotient of the proofs of a proposition is a proposition.
 - Its elements are classes. [QuotientIntroduction]() makes the class of an element, [QuotientLift]() takes a function on elements that respects *r* to a function on classes, [QuotientInduction]() proves a property of every class, and the axiom `"quotientSoundness"` makes the classes of related elements equal. Two classes are equal by computation only when their elements are.

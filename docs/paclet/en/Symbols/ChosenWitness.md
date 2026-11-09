@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [ChosenWitness]() is a definition of the prelude, as Lean's `Classical.choose`. The recursor of [Exists]() turns *h* into a proof of <code>[Nonempty]()[[Subtype]()[*P*]]</code>, the axiom `"choice"` chooses an element of the [Subtype](), and [ChosenWitness]() is its first field.
+- [ChosenWitness]() is a definition of the prelude. The recursor of [Exists]() turns *h* into a proof of <code>[Nonempty]()[[Subtype]()[*P*]]</code>, the axiom `"choice"` chooses an element of the [Subtype](), and [ChosenWitness]() is its first field.
 - A proof of an existential statement cannot be taken apart to give its witness as data; [ChosenWitness]() gives one, and `"chosenWitnessProperty"` proves that it has the property: <code>"chosenWitnessProperty"[*h*]</code> proves <code>*P*[[ChosenWitness]()[*h*]]</code>.
 - The type of the witness and *P* are implicit arguments, found from the type of *h*. A proof written out with `"existsIntroduction"` does not determine *P*, so it is given with [Typed]().
 - Any two proofs of a proposition are equal, so the witness depends on the statement *h* proves, not on the witness *h* was made with.

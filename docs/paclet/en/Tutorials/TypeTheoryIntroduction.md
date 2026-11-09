@@ -9,7 +9,7 @@ Keywords: [type theory, getting started, terms, computation, environments, induc
 RelatedGuides: [TypeTheory]
 ---
 
-TypeTheory is a proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written in the Wolfram Language. This tutorial writes terms with built-in symbols, computes with them, declares theorems, definitions and inductive types, and proves a theorem by induction one tactic at a time. Terms, proofs and declarations that name no environment are in the prelude, an environment of logic, equality, the natural numbers and the Booleans.
+TypeTheory is a proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language. This tutorial writes terms with built-in symbols, computes with them, declares theorems, definitions and inductive types, and proves a theorem by induction one tactic at a time. Terms, proofs and declarations that name no environment are in the prelude, an environment of logic, equality, the natural numbers and the Booleans.
 
 ## Terms and Their Types
 

@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [NaturalNumberPredecessor]() is a definition of the prelude, by the recursor of [NonNegativeIntegers](): the predecessor of `0` is `0`, and of <code>*k* + 1</code> is *k*, as Lean's `Nat.pred`.
+- [NaturalNumberPredecessor]() is a definition of the prelude, by the recursor of [NonNegativeIntegers](): the predecessor of `0` is `0`, and of <code>*k* + 1</code> is *k*.
 - It computes on a literal of any size in one step, and at a successor `n + 1` of a variable to `n`; at a variable `n` it does not reduce.
 - [Subtract]() is defined from it: <code>*m* - (*n* + 1)</code> is the predecessor of <code>*m* - *n*</code>, so subtraction stops at 0 as the predecessor does.
 - The predecessor undoes the successor, so `"successorInjectivity"` is proved from it, by congruence.

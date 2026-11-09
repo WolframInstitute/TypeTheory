@@ -1,6 +1,6 @@
 # TypeTheory
 
-A proof engine for the Calculus of Inductive Constructions, the type theory of Lean and Rocq, written
+A proof engine for the Calculus of Inductive Constructions, written
 in the Wolfram Language. Terms are ordinary Wolfram Language expressions built from built-in symbols
 (`Function`, `Typed`, `ForAll`, `Implies`, `Equal`, `Plus`, ...). A small trusted kernel checks them,
 and tactics build proofs step by step in a notebook.
@@ -126,12 +126,12 @@ evaluates inside a term.
 | Constructor | Declares |
 | --- | --- |
 | `TypeTheoryAxiom[name, type]` | an axiom |
-| `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]`; `"Instance" -> True` makes it an instance of its type's class, `"Coercion" -> True` a coercion, and `"Opaque" -> True` a definition checked as any other that never unfolds, as Lean's `opaque` |
+| `TypeTheoryDefinition[name, value]` | a definition; `value` may be `Typed[v, type]`; `"Instance" -> True` makes it an instance of its type's class, `"Coercion" -> True` a coercion, and `"Opaque" -> True` a definition checked as any other that never unfolds |
 | `TypeTheoryTheorem[name, statement, proof]` | a theorem; `TypeTheoryTheorem[name, proof]` takes the statement of a finished proof |
 | `TypeTheoryInductiveType[name, type, {c -> type, ...}]` | an inductive type with its constructors and its recursor `InductiveRecursor[name]`; `{name -> type, ...}` declares mutually inductive types |
 | `TypeTheoryNaturalNumbers[type, zero, successor, <\|role -> operation, ...\|>]` | the natural numbers that literals belong to, and the operations computed on literals |
 | `TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]` | a computation rule for an axiom, where the rules allow it |
-| `TypeTheoryQuotients[]` | the quotient types of Lean's kernel; `TypeTheoryQuotients[equality, {type, introduction, lift, induction}]` under other names |
+| `TypeTheoryQuotients[]` | the quotient types; `TypeTheoryQuotients[equality, {type, introduction, lift, induction}]` under other names |
 | `TypeTheoryCubical[sum]` | the interval, paths, transport, composition and Glue types of cubical type theory, where the rules are cubical |
 
 `TypeTheoryEnvironment[{declaration, ...}]` adds declarations in turn to the default environment, which is
@@ -254,7 +254,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Decide[2 < 3 && 4 != 5]]]                    (
 The prelude is the default environment, that of every term, proof and declaration list that names
 none, unless `SetTypeTheoryEnvironment` sets another. Each of its
 257 constants is checked by the kernel when the paclet loads. It is classical, as Lean's library is:
-Lean's three axioms, propositional extensionality, the soundness of quotients and choice, are axioms,
+the three axioms, propositional extensionality, the soundness of quotients and choice, are axioms,
 and function extensionality and the excluded middle are proved from them. It also declares the Wolfram
 Language's expressions, strings, sequences and matches, sums written `A | B`, failures, `A | Failure`
 with `Enclose` and `Confirm`, and associations, `<|k -> v|>`, whose `Lookup` gives `V | Missing`; its fourth axiom is `ExpressionEvaluate`, the expression an expression
@@ -272,13 +272,13 @@ written in terms are symbols; its constructors, theorems and axioms are constant
 - **Equality:** `Equal` (`"equalityReflexivity"`, `"equalitySymmetry"`, `"equalityTransitivity"`,
   `"equalityCongruence"`, `"equalitySubstitution"`) and `Unequal`, `x != y`.
 - **Functions:** `Identity` and `Composition`.
-- **Quotients:** the quotient types of Lean's kernel, `QuotientType[r]`, with `QuotientIntroduction`,
+- **Quotients:** the quotient types, `QuotientType[r]`, with `QuotientIntroduction`,
   `QuotientLift` and `QuotientInduction`, declared by `TypeTheoryQuotients[]`: a lift computes on a
   class, and `"quotientSoundness"`, Lean's `Quot.sound`, is an axiom.
 - **Natural numbers:** `NonNegativeIntegers`, or `Naturals` for short, with `"zero"`, `"successor"` and
   `NaturalNumberPredecessor`, registered so that literals are natural numbers; `Plus`, `Times`, `Power`
   and `Subtract` (which stops at 0), each by recursion on its second argument as in Lean, and computed
-  on literals with integers, as Lean's kernel computes them with GMP; `LessEqual`,
+  on literals with integers; `LessEqual`,
   inductive as Lean's `Nat.le` (`"lessEqualReflexivity"`, `"lessEqualStep"`), with `Less`, `GreaterEqual`
   and `Greater`.
 - **Theorems about them:** commutativity, associativity and distributivity of addition and
@@ -290,7 +290,7 @@ written in terms are symbols; its constructors, theorems and axioms are constant
   `Or` stand for them where a Boolean is expected, and they show as `true`, `false`, `!`, `&&` and `||`.
 - **Decisions:** `Decidable` (`"decidableFalse"`, `"decidableTrue"`), a class as Lean's, with `Decide[p]`
   giving the Boolean of the decision of `p`, found among the instances, and `"decideSoundness"` the proof
-  from one that computes to `"true"`, as Lean's `decide` and `of_decide_eq_true`. The instances
+  from one that computes to `"true"`. The instances
   `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"` decide `==` and `<=` of natural numbers
   through the Boolean comparisons `"equal"` and `"lessEqual"`, which the kernel computes on literals;
   `"notDecidable"`, `"andDecidable"` and `"orDecidable"` combine decisions, and `"trueDecidable"`,
@@ -368,7 +368,7 @@ theory to the calculus of inductive constructions with rewrite rules. Axioms are
 `TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics. Nothing a tactic does
 is trusted: the finished term is checked by the kernel when the theorem is added to an environment.
 
-`"RewriteRepeated"` unfolds a definition by recursion where it computes, as Lean's `simp [f]` does, and folds
+`"RewriteRepeated"` unfolds a definition by recursion where it computes, and folds
 its recursive calls back, so the laws of lists go through with induction and simplification alone:
 
 ```wolfram
@@ -406,7 +406,7 @@ TypeTheory/Kernel/
   Checking/TypeChecking.wl     the kernel: inference, reduction, definitional equality, projections
   Checking/InductiveTypes.wl   checking inductive families and generating recursors
   Checking/NaturalNumbers.wl   registering the natural numbers for literals
-  Checking/Quotients.wl        the quotient types of Lean's kernel, and their computation
+  Checking/Quotients.wl        the quotient types, and their computation
   Checking/Quantities.wl       binder quantities and the live check of erased and affine variables
   Checking/Cubical.wl          the interval, paths, transport, composition and Glue types
   Checking/Environment.wl      environments as stores of definitions, and kernel failures
@@ -439,7 +439,7 @@ declarations, where the paclet has a library for the platform (`scripts/compile_
 Mathlib cones imported through LeanLink it checks faster than Lean's own kernel replays them, and a whole
 `TypeTheoryCheck` takes four to six times Lean's replay, against about sixty-five with `TypeChecking.wl`.
 
-Definitional equality unfolds definitions lazily, as Lean's kernel does: of two applications of different
+Definitional equality unfolds definitions lazily: of two applications of different
 definitions, the one whose definition is higher, defined in terms of the other, unfolds one step, and the
 two are compared again, so that two applications of the same definition are compared by their arguments
 before either computes. A definition's height is one more than the greatest height of the definitions

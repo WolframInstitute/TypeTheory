@@ -66,7 +66,7 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][Naturals &, 0, 1, 
 
 <!-- => 1 -->
 
-The arithmetic of the natural numbers computes on literals with the Wolfram Language's own integers, as Lean's kernel computes on its literals with GMP. [TypeTheoryNaturalNumbers]() registers the operations, which the kernel trusts:
+The arithmetic of the natural numbers computes on literals with the Wolfram Language's own integers. [TypeTheoryNaturalNumbers]() registers the operations, which the kernel trusts:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[123456789 * 987654321 + 2^64]]
@@ -74,7 +74,7 @@ WeakHeadNormalForm[TypeTheoryTerm[123456789 * 987654321 + 2^64]]
 
 <!-- => 18568676704822186885 -->
 
-The quotient types of Lean's kernel compute too: lifting a function to the classes of a relation and applying the lift to a class gives the function's value. Here the classes are those of the relation that relates any two numbers, and the constant function 7 respects it:
+The quotient types compute too: lifting a function to the classes of a relation and applying the lift to a class gives the function's value. Here the classes are those of the relation that relates any two numbers, and the constant function 7 respects it:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[QuotientLift[
@@ -166,7 +166,7 @@ Proof irrelevance, with an equality in Prop eliminating into any type, is what m
 
 Lean's kernel has quotient types built in. Their constructor and lift are constants with no definition, and the kernel adds one computation rule: lifting a function to the quotient and applying it to a class gives the function's value. TypeTheory's kernel has the same rule for the prelude's [QuotientLift](), as above. A kernel without quotient types, as Rocq's, can still have them, with axioms for the constants and a [TypeTheoryRewriteRule]() for the rule, which needs rules that allow rewrite rules.
 
-The axioms, as Lean states its quotient types, under names of their own:
+The axioms of the quotient types, under names of their own:
 
 ```wl
 quotientDeclarations = {

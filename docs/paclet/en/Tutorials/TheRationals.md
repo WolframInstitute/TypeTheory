@@ -5,7 +5,7 @@ Title: The Rationals
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheRationals
-Keywords: [rationals, quotient, quotient type, field, inverse, division, coercion, Ring, Decide, PolynomialReduce, Lean]
+Keywords: [rationals, quotient, quotient type, field, inverse, division, coercion, Ring, Decide, PolynomialReduce]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheIntegers, ThePrelude, InstancesAndCoercions]
 ---

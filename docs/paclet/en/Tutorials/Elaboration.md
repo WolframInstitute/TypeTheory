@@ -178,7 +178,7 @@ TypeTheoryEnvironment[{TypeTheoryTheorem[SelfImplication, ForAll[{p}, Implies[p,
 
 <!-- => theorem SelfImplication : ∀_p∶Prop p ⇒ p -->
 
-A level still undecided becomes a universe parameter of the declaration, `"u_1"`, as Lean binds one:
+A level still undecided becomes a universe parameter of the declaration, `"u_1"`:
 
 ```wl
 TypeTheoryEnvironment[{TypeTheoryTheorem[SelfEquality, ForAll[{A, Typed[y, A]}, y == y], {A, y} |-> "equalityReflexivity"[y]]}][SelfEquality]
@@ -255,7 +255,7 @@ TypeTheoryType[Failure["NotFound", <|"Key" -> "plums", "Reason" -> Missing["KeyA
 
 ## Holes
 
-A proof can leave a part for later with [TypeTheoryHole](), as Lean's `sorry`. The kernel checks the rest, and the hole is recorded, never taken for a proof:
+A proof can leave a part for later with [TypeTheoryHole](). The kernel checks the rest, and the hole is recorded, never taken for a proof:
 
 ```wl
 later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{k}, k + 0 == k], TypeTheoryHole["by induction"]]}];

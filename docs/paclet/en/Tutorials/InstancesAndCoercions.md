@@ -5,7 +5,7 @@ Title: Instances and Coercions
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/InstancesAndCoercions
-Keywords: [instance, type class, instance-implicit, coercion, Decidable, decide, elaboration, Lean]
+Keywords: [instance, type class, instance-implicit, coercion, Decidable, decide, elaboration]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, RulesAndComputation]
 ---
@@ -45,7 +45,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, Booleans], inhabited]]
 
 <!-- => false -->
 
-An instance shows as one, as Lean's `instance` declarations do:
+An instance shows as one:
 
 ```wl
 inhabited[NaturalsInhabited]
@@ -182,7 +182,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[Naturals]], coercions]]
 
 <!-- => some[NaturalOfBoolean[true]] -->
 
-Both types must be known: a coercion is inserted only where no metavariable is left in either, as Lean waits for them. With no coercion that applies, the term's type is a mismatch:
+Both types must be known: a coercion is inserted only where no metavariable is left in either. With no coercion that applies, the term's type is a mismatch:
 
 ```wl
 TypeTheoryType[Typed[{}, Naturals], coercions]

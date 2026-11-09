@@ -12,14 +12,14 @@ RelatedTutorials: [TypeTheoryIntroduction, Elaboration, Quantities]
 
 ## Usage
 
-<code>[TypedImplicit]()[*x*, *A*]</code> is an implicit binder: a variable *x* of type *A* that is found from the other arguments rather than written, shown as `{x ∶ A}` as Lean writes it.
+<code>[TypedImplicit]()[*x*, *A*]</code> is an implicit binder: a variable *x* of type *A* that is found from the other arguments rather than written, shown as `{x ∶ A}`.
 
 ## Details & Options
 
 - [TypedImplicit]() is a binder of [ForAll](), [Function]() and [Exists](), wherever <code>[Typed]()[*x*, *A*]</code> is one: in terms, in statements and in the types of declarations.
 - Where a constant with an implicit binder is applied, elaboration fills in the implicit argument by unification with the types of the explicit ones, or with the type the term is expected to have, as given by [Typed](). Where nothing determines it, elaboration gives a [Failure]() tagged `"UnsolvedImplicitArgument"`.
 - The constructors and theorems of the prelude take their types, and the variables their hypotheses mention, as implicit arguments: `"some"[3]` is an option of natural numbers, and `"lessEqualAntisymmetry"[h1, h2]` finds its numbers from the proofs.
-- <code>[Construct]()[*f*, *a*, ...]</code> gives every argument, implicit ones included, as Lean's `@f a ...`.
+- <code>[Construct]()[*f*, *a*, ...]</code> gives every argument, implicit ones included.
 - `"Introduce"` moves an implicit variable into the context of a proof as it moves an explicit one.
 - <code>[TypedImplicit]()[*x*, *A*, *q*]</code> is an implicit binder of quantity *q*, 0 or 1, under rules with quantities, as <code>[Typed]()[*x*, *A*, *q*]</code> is an explicit one; see [TypeTheoryRules]().
 - <code>[TypedImplicit]()[*x*, *A*]</code> is the same binder as <code>[Annotation]()[[Typed]()[*x*, *A*], "Implicit"]</code>, and terms and declarations read back with it. The strict implicit and instance implicit binders of Lean are written <code>[Annotation]()[[Typed]()[*x*, *A*], "StrictImplicit"]</code> and <code>[Annotation]()[[Typed]()[*x*, *A*], "InstanceImplicit"]</code>, and show as `⦃x ∶ A⦄` and `[x ∶ A]`.

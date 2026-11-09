@@ -4,7 +4,7 @@ Name: QuotientInduction
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/QuotientInduction
-Keywords: [quotient, induction, classes, Quot.ind, Lean, prelude, integers, Induction tactic, proof by representatives]
+Keywords: [quotient, induction, classes, prelude, integers, Induction tactic, proof by representatives]
 SeeAlso: [QuotientType, QuotientIntroduction, QuotientLift, TypeTheoryQuotients, TypeTheoryProof, Construct]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude, RulesAndComputation, TheIntegers]
 
 ## Details & Options
 
-- [QuotientInduction]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude, as Lean's `Quot.ind`.
+- [QuotientInduction]() is a constant of the kernel, declared by [TypeTheoryQuotients]() in the prelude.
 - The type α, the relation *r* and the property *P*, a proposition about classes, are implicit arguments. *P* is found from the expected type, as the goal of a proof or a type [Typed]() gives, and not from the premise alone; <code>[Construct]()[[QuotientInduction](), α, *r*, *P*, *premise*]</code> gives it explicitly.
 - *P* is a proposition: a property of every class needs no proof that it respects *r*, since any two proofs of a proposition are equal. A function into data comes from [QuotientLift]() instead, with such a proof.
 - It computes on a class: <code>[QuotientInduction]()[*premise*, [QuotientIntroduction]()[*r*, *a*]]</code> is *premise*[*a*].

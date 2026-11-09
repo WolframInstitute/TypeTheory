@@ -16,7 +16,7 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Nonempty]() is an inductive proposition of the prelude, with the one constructor `"nonempty"`, which takes an element of *a*, as Lean's `Nonempty`.
+- [Nonempty]() is an inductive proposition of the prelude, with the one constructor `"nonempty"`, which takes an element of *a*.
 - A proof of <code>[Nonempty]()[*a*]</code> says that *a* has an element without giving one to compute with: any two proofs of it are equal, whatever elements they were made with. `"Cases"` takes a proof apart only to prove a proposition.
 - The axiom `"choice"` takes a proof of <code>[Nonempty]()[*a*]</code> to an element of *a*, which does not compute. [ChosenWitness]() chooses a witness of an existential statement with it.
 - *a* may be in any universe, a proposition among them.

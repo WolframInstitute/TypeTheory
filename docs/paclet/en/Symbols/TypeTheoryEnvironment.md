@@ -53,7 +53,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 - <code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of *env* again from scratch.
 - <code>[TypeTheoryEnvironment]()[*env*, {*declaration1*, ...}, [Method]() -> "Compiled"]</code> adds the declarations without checking them, inductive types aside, and then checks them all at once with the compiled kernel (see [TypeTheoryCheck]()), which is faster for many declarations, as an import from Lean has. Where the compiled kernel cannot check them, or one does not check, the declarations are added again with each one checked, so the result is the same as without the option.
 - <code>[Export]()["*file*.wxf", *env*]</code> saves *env* in a file that holds each of its terms once, and only the constants beyond the library environment it extends, such as the prelude, which it names. A file reads back in a fraction of the time its declarations take to check.
-- Reading a file takes its declarations as checked, as Lean takes an `.olean` file it imports. The option `"Check" -> True` checks every declaration again with [TypeTheoryCheck]() as it reads the file. A file saved by another version of TypeTheory reads only with `"Check" -> True`.
+- Reading a file takes its declarations as checked. The option `"Check" -> True` checks every declaration again with [TypeTheoryCheck]() as it reads the file. A file saved by another version of TypeTheory reads only with `"Check" -> True`.
 - A file is read without evaluating anything in it, and a file that holds anything but terms and plain data, or whose terms were changed out of order, is refused.
 - The library environments are read from files saved with the paclet, so loading the paclet does not check the prelude again.
 

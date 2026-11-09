@@ -21,7 +21,7 @@ RelatedGuides: [TypeTheory]
 - Prop is impredicative: a statement about every type, or about every proposition, is still a proposition, and any two proofs of a proposition are equal. Above Prop, a function type is in the larger universe of its domain and its codomain; [ImpredicativeMaximum]() is the level that covers both cases.
 - A declaration's universe parameters are the symbols and strings in its universe levels, unless the option `"UniverseParameters"` lists them. A constant with parameters is used at any levels, which elaboration finds, or which <code>[Subscript]()[*c*, *level1*, ...]</code> gives explicitly.
 - Under rules without Prop, as those of <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code> and <code>[TypeTheoryEnvironment]()["Cubical"]</code>, <code>[TypeUniverse]()[0]</code> is no universe, and the kernel gives a [Failure]() tagged `"NoProp"`.
-- In a notebook, universes show as Lean writes them: Prop, Type, Type 1, ..., Type *u* for <code>[TypeUniverse]()[*u* + 1]</code>, and Sort *u* for <code>[TypeUniverse]()[*u*]</code>.
+- In a notebook, universes show: Prop, Type, Type 1, ..., Type *u* for <code>[TypeUniverse]()[*u* + 1]</code>, and Sort *u* for <code>[TypeUniverse]()[*u*]</code>.
 
 ## Basic Examples
 

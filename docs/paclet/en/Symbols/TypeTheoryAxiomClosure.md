@@ -18,11 +18,11 @@ RelatedTutorials: [Paradoxes]
 
 ## Details & Options
 
-- The closure follows every constant *term* mentions, then the constants in the type and value of each of those, as Lean's `#print axioms` does. A constructor or recursor leads to its inductive type, and an inductive type to its constructors.
+- The closure follows every constant *term* mentions, then the constants in the type and value of each of those. A constructor or recursor leads to its inductive type, and an inductive type to its constructors.
 - A constant on its own, such as <code>[TypeTheoryTerm]()["excludedMiddle"]</code>, rests on what its declaration uses: the proof of a theorem and the value of a definition, not only the statement.
 - An axiom is `"Proposition"` when its type is a proposition, such as `"propositionalExtensionality"`, and `"Signature"` otherwise: an axiom of a type, such as a constant of [NonNegativeIntegers]() or a type of its own, which a theorem holds for whatever it stands for, as for a variable. `"choice"`, whose value is an element of a type, is a signature by this rule, and so is every axiom under rules without Prop.
 - A rewrite rule of a constant the closure reaches is listed as `"RewriteRule"`: the kernel computes with it, so it is trusted as an axiom is.
-- An operation on natural numbers the kernel trusts is listed as `"Registration"`: one registered without defining equations to check, as the greatest common divisor, and a quotient or a remainder that does not meet its equations, as Lean's `Nat.div`, defined by well-founded recursion. The kernel computes it on literals as it trusts it to, and a definition that computes otherwise proves `False`, as the tutorial *Paradoxes* shows. An operation that meets its defining equations, as an addition or a quotient by recursion on the dividend, is checked when it is registered, and is not listed.
+- An operation on natural numbers the kernel trusts is listed as `"Registration"`: one registered without defining equations to check, as the greatest common divisor, and a quotient or a remainder that does not meet its equations, as one defined by well-founded recursion does not. The kernel computes it on literals as it trusts it to, and a definition that computes otherwise proves `False`, as the tutorial *Paradoxes* shows. An operation that meets its defining equations, as an addition or a quotient by recursion on the dividend, is checked when it is registered, and is not listed.
 - A theorem that rests on no trusted assumption, axiom, rewrite rule or registration, has the closure <code><\|\|></code>: it rests on the kernel alone.
 - A hole, <code>[TypeTheoryHole]()[*theorem*, *k*]</code>, is no axiom and is left out; <code>[Information]()[*term*, "Holes"]</code> gives the holes *term* rests on, those of the theorems it uses included.
 - A finished proof rests on its own term, implicit arguments included. A proof with goals left gives a [Failure]() tagged `"ProofIncomplete"`.
@@ -231,7 +231,7 @@ Information[TypeTheoryTerm[Later, later], "Holes"]
 
 ---
 
-Every constant of the rationals rests on Lean's three axioms at most:
+Every constant of the rationals rests on the three axioms at most:
 
 ```wl
 Union @@ Map[name |-> Keys[TypeTheoryAxiomClosure[TypeTheoryTerm[name, "Rationals"]]], Keys[TypeTheoryEnvironment["Rationals"]]]

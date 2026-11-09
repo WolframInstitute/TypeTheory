@@ -11,7 +11,7 @@ RelatedGuides: [TypeTheory]
 
 ## Usage
 
-<code>[TypeTheoryHole]()[]</code> stands in the proof of a declared theorem for a term of the type expected there, a proof left to give, as Lean's `sorry`.
+<code>[TypeTheoryHole]()[]</code> stands in the proof of a declared theorem for a term of the type expected there, a proof left to give.
 
 <code>[TypeTheoryHole]()[*annotation*]</code> carries *annotation*, a citation or the evidence of a computation, which the theorem's environment keeps.
 

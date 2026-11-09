@@ -15,12 +15,12 @@ RelatedGuides: [TypeTheory]
 
 ## Details & Options
 
-- A function type into propositions is itself a proposition, whatever its domain: this is what makes Prop impredicative. Into any other universe, a function type is in the larger universe of its domain and its codomain. <code>[ImpredicativeMaximum]()[*u*, *v*]</code> covers both cases, as Lean's `imax u v` does.
+- A function type into propositions is itself a proposition, whatever its domain: this is what makes Prop impredicative. Into any other universe, a function type is in the larger universe of its domain and its codomain. <code>[ImpredicativeMaximum]()[*u*, *v*]</code> covers both cases.
 - The kernel gives the type of <code>[ForAll]()[{[Typed]()[*x*, *A*]}, *B*]</code>, for *A* in <code>[TypeUniverse]()[*u*]</code> and *B* in <code>[TypeUniverse]()[*v*]</code>, the level <code>[ImpredicativeMaximum]()[*u*, *v*]</code>.
 - A level written with [ImpredicativeMaximum]() simplifies when its second argument is known to be 0, to 0, or known never to be, such as `v + 1` or a positive integer, to a [Max](); it also simplifies when its first argument is 0 or the two are the same. The kernel simplifies the levels it computes, and compares levels by these rules; [TypeTheoryTerm]() keeps a level as it is written.
 - Its arguments are levels, not universes: `u`, not <code>[TypeUniverse]()[*u*]</code>.
 - [ImpredicativeMaximum]() does not evaluate outside a term.
-- A universe shows its level as Lean writes it: <code>[ImpredicativeMaximum]()[*u*, *v*]</code> as `imax u v` and <code>[Max]()[*u*, *v*]</code> as `max u v`.
+- A universe shows its level: <code>[ImpredicativeMaximum]()[*u*, *v*]</code> as `imax u v` and <code>[Max]()[*u*, *v*]</code> as `max u v`.
 
 ## Basic Examples
 

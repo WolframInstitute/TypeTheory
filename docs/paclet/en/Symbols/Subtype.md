@@ -16,13 +16,13 @@ RelatedTutorials: [ThePrelude]
 
 ## Details & Options
 
-- [Subtype]() is an inductive type of the prelude, with the one constructor `"subtype"`, as Lean's `Subtype`. The type of the elements is an implicit argument, found from the type of *P*.
+- [Subtype]() is an inductive type of the prelude, with the one constructor `"subtype"`. The type of the elements is an implicit argument, found from the type of *P*.
 - An element `s` of <code>[Subtype]()[*P*]</code> is a structure: `s[[1]]` is the element and `s[[2]]` the proof of its property. The kernel checks the proof against the element: `"subtype"[x, h]` is in <code>[Subtype]()[*P*]</code> only if `h` proves <code>*P*[*x*]</code>.
 - Any two proofs of a proposition are equal, so two elements with the same first field are equal by computation, whatever proofs they hold.
 - An element of a [Subtype]() is data, and its first field computes. An element of the proposition <code>[Exists]()[*P*]</code> is a proof, which cannot be taken apart to compute its witness; [ChosenWitness]() chooses one, through a [Subtype]().
 - For elements in `Sort u`, <code>[Subtype]()[*P*]</code> is in `Sort (max 1 u)`: it is a type of data even when its elements are proofs.
 - [Subtype]() is declared with the prelude's classical declarations, with [ChosenWitness](), so <code>[TypeTheoryEnvironment]()["Constructive"]</code> does not have it.
-- <code>[Subtype]()[[Function]()[{[Typed]()[*x*, *A*]}, *p*]]</code> displays as `{x ∶ A // p}`, as Lean writes `{ x // p }`.
+- <code>[Subtype]()[[Function]()[{[Typed]()[*x*, *A*]}, *p*]]</code> displays as `{x ∶ A // p}`.
 
 ## Basic Examples
 

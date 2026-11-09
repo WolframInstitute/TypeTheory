@@ -21,7 +21,7 @@ RelatedTutorials: [CubicalTypeTheory]
 - For *A* in `Type u` and *B* into `Type v`, <code>[DependentSum]()[*A*, *B*]</code> is in `Type (max u v)`.
 - It is a constant of <code>[TypeTheoryEnvironment]()["Cubical"]</code>, which has no Prop: a property there is a type of paths, so a pair of an element and a path, as an element of a [Fiber](), is an element with a proof of its property. [TypeTheoryCubical]() names it, and the kernel writes the equivalences of Glue types with it, as the cubical library writes [Fiber](), [IsContractible]() and [Equivalence]().
 - In the prelude, [Subtype]() pairs an element with a proof of a proposition about it, and [CartesianProductType]() is the sum of a family that does not depend.
-- <code>[DependentSum]()[*A*, [Function]()[{[Typed]()[*x*, *A*]}, *B*]]</code> displays as `Σ_x∶A B`, with the binder under Σ as ∀ has it, as Lean writes `(x : A) × B`, and a pair as `〈a, b〉`.
+- <code>[DependentSum]()[*A*, [Function]()[{[Typed]()[*x*, *A*]}, *B*]]</code> displays as `Σ_x∶A B`, with the binder under Σ as ∀ has it, and a pair as `〈a, b〉`.
 
 ## Basic Examples
 
