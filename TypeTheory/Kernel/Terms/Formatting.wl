@@ -282,7 +282,11 @@ binderSymbol[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_,
 binderSymbol[_] := {}
 
 SetAttributes[offPathQ, HoldAllComplete]
-offPathQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]}, context =!= $Context && ! MemberQ[$ContextPath, context]]
+(* a symbol that would show with its context: one in a context the context path leaves out, or one that another symbol
+   of its name shadows, as a variable n1 of a notebook's context is by an n1 of the context that is current *)
+offPathQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
+	(context =!= $Context && ! MemberQ[$ContextPath, context]) || Quiet[Context[Evaluate[SymbolName[Unevaluated[symbol]]]]] =!= context
+]
 
 SetAttributes[privateNameQ, HoldAllComplete]
 privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},

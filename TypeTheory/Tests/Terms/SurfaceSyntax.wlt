@@ -492,3 +492,20 @@ VerificationTest[
 	ConstantArray[True, 10],
 	TestID -> "The-types-on-mouseover-change-nothing-a-term-shows"
 ]
+
+(* a variable the term binds shows by its name also where another symbol of that name shadows it, as a variable of a
+   notebook's context is shadowed by one of the context that is current: its context never shows *)
+VerificationTest[
+	Module[{term, boxes},
+		term = ToExpression["TypeTheoryTerm[Function[{Typed[ShadowedTest`shadowed, NonNegativeIntegers]}, ShadowedTest`shadowed + 1]]"];
+		ToExpression["ShadowingTest`shadowed"];
+		boxes = Block[{$Context = "ShadowingTest`", $ContextPath = {"System`", "ShadowedTest`", "WolframInstitute`TypeTheory`"}}, ToBoxes[term]];
+		{
+			FreeQ[First[boxes], text_String /; StringContainsQ[text, "ShadowedTest`"]],
+			! FreeQ[First[boxes], text_String /; StringContainsQ[text, "shadowed"]]
+		}
+	],
+	{True, True},
+	TestID -> "A-bound-variable-that-another-symbol-shadows-shows-by-its-name"
+]
+
