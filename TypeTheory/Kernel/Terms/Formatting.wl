@@ -121,7 +121,8 @@ typeTheoryBoxes[syntax_, form_] := displayed[syntax, form,
    sum and the factors of a product in an order of its own, also in boxes that a rule of MakeBoxes gave it, and a term
    shows its sums as they are. What TraditionalForm shows differently the display decides, by $displayForm: f(x) for an
    application, a recursor as its cases, and = for an equation, which is put in here. *)
-traditionalBoxes[TraditionalForm][boxes_] := ReplaceAll[boxes, "==" -> "="]
+(* an equation's sign is "==" from a kernel on its own and the one character of a notebook's from a kernel with a front end *)
+traditionalBoxes[TraditionalForm][boxes_] := ReplaceAll[boxes, "==" | "\[Equal]" -> "="]
 traditionalBoxes[_][boxes_] := boxes
 
 (* the state a display of the syntax of a term reads while it is built, in a notebook and in text alike *)

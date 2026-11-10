@@ -231,7 +231,7 @@ VerificationTest[
 			FreeQ[
 				ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"[k] == k + 1 && "equalitySymmetry"["equalityReflexivity"[k]] == "equalityReflexivity"[k]], prelude], TraditionalForm] //.
 					(StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown,
-				"==" | "["
+				"==" | "\[Equal]" | "["
 			],
 			FreeQ[
 				ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "equalitySymmetry"["equalityReflexivity"[k]] == "equalityReflexivity"[k]], prelude], TraditionalForm] //.
