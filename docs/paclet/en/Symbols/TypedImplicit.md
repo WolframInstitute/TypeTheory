@@ -19,7 +19,7 @@ RelatedTutorials: [TypeTheoryIntroduction, Elaboration, Quantities]
 - [TypedImplicit]() is a binder of [ForAll](), [Function]() and [Exists](), wherever <code>[Typed]()[*x*, *A*]</code> is one: in terms, in statements and in the types of declarations.
 - Where a constant with an implicit binder is applied, elaboration fills in the implicit argument by unification with the types of the explicit ones, or with the type the term is expected to have, as given by [Typed](). Where nothing determines it, elaboration gives a [Failure]() tagged `"UnsolvedImplicitArgument"`.
 - The constructors and theorems of the prelude take their types, and the variables their hypotheses mention, as implicit arguments: `"some"[3]` is an option of natural numbers, and `"lessEqualAntisymmetry"[h1, h2]` finds its numbers from the proofs.
-- <code>[Construct]()[*f*, *a*, ...]</code> gives every argument, implicit ones included.
+- <code>[Construct]()[*f*, *a*, ...]</code> gives every argument, implicit ones included. An argument is also given by the name of its binder, as an option is, <code>*f*[*x*, *A* -> *type*]</code>, after the arguments in order, and arguments that are more than the explicit binders take fill every binder in order.
 - `"Introduce"` moves an implicit variable into the context of a proof as it moves an explicit one.
 - <code>[TypedImplicit]()[*x*, *A*, *q*]</code> is an implicit binder of quantity *q*, 0 or 1, under rules with quantities, as <code>[Typed]()[*x*, *A*, *q*]</code> is an explicit one; see [TypeTheoryRules]().
 - <code>[TypedImplicit]()[*x*, *A*]</code> is the same binder as <code>[Annotation]()[[Typed]()[*x*, *A*], "Implicit"]</code>, and terms and declarations read back with it. The strict implicit and instance implicit binders are written <code>[Annotation]()[[Typed]()[*x*, *A*], "StrictImplicit"]</code> and <code>[Annotation]()[[Typed]()[*x*, *A*], "InstanceImplicit"]</code>, and show as `⦃x ∶ A⦄` and `[x ∶ A]`.
@@ -238,13 +238,29 @@ identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {Typ
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
-An implicit argument is not written in an ordinary application, so here 5 is one argument too many; [Construct]() takes it:
+As many arguments as the explicit binders take are for those, so a type given alone is the element, not the implicit argument, and the identity at a type is a type:
+
+```wl
+TypeTheoryType[PolymorphicIdentity[Naturals], identity]
+```
+
+<!-- => Type -->
+
+Its name gives the implicit argument:
+
+```wl
+TypeTheoryType[PolymorphicIdentity[A -> Naturals], identity]
+```
+
+<!-- => ℕ → ℕ -->
+
+More arguments than the explicit binders take fill every binder in order, here the type and then the element:
 
 ```wl
 TypeTheoryType[PolymorphicIdentity[Naturals, 5], identity]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => ℕ -->
 
 ---
 

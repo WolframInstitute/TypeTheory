@@ -731,25 +731,29 @@ applyArguments[{function_, functionType_}, {}, headSyntax_, expected_] /; emptyS
 	applyArguments[{function, functionType}, {syntaxHead[Unevaluated, {}]}, headSyntax, expected]
 applyArguments[head : {_, functionType_}, arguments_List, headSyntax_, expected_] := With[
 	{names = If[FreeQ[arguments, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}], {1}], {}, binderNames[functionType]]},
-	{certain = Select[arguments, Function[argument, namingRuleQ[names, argument] === True]], possible = Select[arguments, Function[argument, namingRuleQ[names, argument] === Automatic]]},
-	If[ certain === {} && possible === {} && ! implicitBinderWithinQ[functionType, Length[arguments]],
+	{certain = {}, possible = trailingNames[names, arguments]},
+	{everyBinderQ = implicitBinderWithinQ[functionType, Length[arguments]] && Length[arguments] - Length[certain] - Length[possible] > explicitBinderCount[functionType]},
+	If[ certain === {} && possible === {} && ! everyBinderQ,
 		applyReading[head, arguments, {}, False, headSyntax, expected],
-		tryReadings[head, applicationReadings[arguments, certain, possible, implicitBinderWithinQ[functionType, Length[arguments]]], {}, {arguments, names, functionType}, headSyntax, expected]
+		tryReadings[head, applicationReadings[arguments, certain, possible, everyBinderQ], {}, {arguments, names, functionType}, headSyntax, expected]
 	]
 ]
 
 (* The readings of an application, the usual one first. An argument name -> value or name :> value, where name is the
    name of a binder of the function's type, gives that binder its value by name, implicit or not, as an option is
-   given, and the other arguments fill the explicit binders in order. A rule names an argument where it can be nothing
+   given: the arguments by name come after the arguments in order, which fill the explicit binders, and a rule before
+   an argument in order is an argument in order itself. A rule names an argument where it can be nothing
    else: it is first read as an argument of its own, a function type, or a rule where an expression is expected, and
    names an argument only if that reading fails, so that List[A -> B] stays the lists of functions and the details of a
-   failure stay rules. name :> value is no type, so it names the argument where name -> value would be a function type. Where an application so read fails and an implicit binder is among the
-   first binders, the arguments are read once more as filling every binder in order, the implicit ones too, as Construct
-   gives them: "push"[Naturals, 2, 0, rest]. The first reading that elaborates is the application. Where none does, the
-   failure says what was most likely meant: a rule whose left side is no term and no binder's name names an argument the
-   function does not have; a rule whose left side is a binder's name was meant to name it, and the failure is that
-   reading's; more arguments than the type has explicit binders were meant for every binder, and the failure is that
-   reading's; otherwise it is the usual reading's. *)
+   failure stay rules. name :> value is no type, so it names the argument where name -> value would be a function type.
+   Where an application so read fails and its arguments are more than the explicit binders of the type take, with an
+   implicit binder among the first, the arguments are read once more as filling every binder in order, the implicit
+   ones too, as Construct gives them: "push"[Naturals, 2, 0, rest]. As many arguments as the explicit binders take are
+   for those. The first reading that elaborates is the application. Where none does, the failure says what was most
+   likely meant: a rule whose left side is no term and no binder's name names an argument the function does not have;
+   a rule whose left side is a binder's name was meant to name it, and the failure is that reading's; arguments read
+   for every binder give that reading's failure, unless the usual one says just that they are too many; otherwise it
+   is the usual reading's. *)
 applicationReadings[arguments_List, certain_List, possible_List, implicitQ_] := DeleteDuplicates[Join[
 	{{certain, False}},
 	If[possible === {}, {}, {{Join[certain, possible], False}}],
@@ -763,8 +767,18 @@ tryReadings[head_, {{positional_, named_, all_}, more___}, failures_List, writte
 	failure_Failure :> tryReadings[head, {more}, Append[failures, {all, named =!= {}, failure}], written, headSyntax, expected]
 ]
 tryReadings[_, {}, failures_List, {arguments_List, names_List, functionType_}, headSyntax_, _] := With[
-	{unknown = SelectFirst[arguments, Function[argument, unknownNameQ[names, argument]], None]},
+	{
+		unknown = SelectFirst[arguments, Function[argument, unknownNameQ[names, argument]], None],
+		early = SelectFirst[Drop[arguments, -Length[trailingNames[names, arguments]]], Function[argument, namingRuleQ[names, argument] === Automatic], None]
+	},
 	Which[
+		(* a rule that names a binder before an argument in order: the arguments by name come last *)
+		early =!= None && ! termNameQ[First[Last[early]]],
+			kernelFailure[
+				"ElaborationFailed",
+				"The argument `2` of `1` is given by name before an argument in order: the arguments by name come last, as options do.",
+				{HoldForm @@ heldFromSyntax[headSyntax], HoldForm @@ heldFromSyntax[early]}
+			],
 		unknown =!= None,
 			kernelFailure[
 				"ElaborationFailed",
@@ -774,8 +788,16 @@ tryReadings[_, {}, failures_List, {arguments_List, names_List, functionType_}, h
 		(* a rule whose left side is a binder's name, which is no argument of its own, was meant to name it *)
 		MemberQ[failures, {False, True, _}],
 			throwFailure[Last[SelectFirst[failures, Function[entry, MatchQ[entry, {False, True, _}]]]]],
-		Count[arguments, Except[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]] > explicitBinderCount[functionType] && MemberQ[failures, {True, _, _}],
+		(* arguments read for every binder: that reading's failure; where the usual reading says that they are too many,
+		   that is the failure, since which was meant is not known, and it keeps the other as "EveryBinder" *)
+		MemberQ[failures, {True, _, _}] && ! tooManyArgumentsQ[Last[First[failures]]],
 			throwFailure[Last[SelectFirst[failures, First]]],
+		MemberQ[failures, {True, _, _}],
+			throwFailure[Failure["ElaborationFailed", <|
+				"MessageTemplate" -> $tooManyArguments,
+				"MessageParameters" -> {HoldForm @@ heldFromSyntax[headSyntax]},
+				"EveryBinder" -> Last[SelectFirst[failures, First]]
+			|>]],
 		True,
 			throwFailure[Last[First[failures]]]
 	]
@@ -786,6 +808,10 @@ unknownNameQ[names_List, syntaxApplication[syntaxSymbol[HoldComplete[Rule | Rule
 	StringQ[text] && ! MemberQ[names, text] && ! termNameQ[name]
 ]
 unknownNameQ[_, _] := False
+
+$tooManyArguments = "`1` is applied to more arguments than its type takes."
+tooManyArgumentsQ[failure_Failure] := failure["MessageTemplate"] === $tooManyArguments
+tooManyArgumentsQ[_] := False
 
 explicitBinderCount[dependentFunctionType[_, _, codomain_, binder_]] := If[explicitBinderQ[binder], 1, 0] + explicitBinderCount[codomain]
 explicitBinderCount[_] := 0
@@ -834,6 +860,9 @@ binderNameText[_] := None
 namedArgumentName[syntaxSymbol[name_HoldComplete]] := binderNameText[name]
 namedArgumentName[syntaxString[name_String]] := name
 namedArgumentName[_] := None
+
+(* the arguments by name: the rules at the end of the arguments whose left sides are names of binders *)
+trailingNames[names_List, arguments_List] := Reverse[TakeWhile[Reverse[arguments], Function[argument, namingRuleQ[names, argument] === Automatic]]]
 
 (* Automatic for a rule that names an argument where it is nothing else, one whose left side is the name of a binder, and
    False for any other. No rule is taken for a named argument before the usual reading has failed: a rule is data where
@@ -920,7 +949,7 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 			{part = projectedPart[structureOfType[structureType], partIndex[structureOfType[structureType], structureType, First[First[arguments]], headSyntax], term]},
 			collectArguments[First[part], Last[part], Rest[arguments], postponed, headSyntax, expected]
 		],
-		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
+		_ :> elaborationFailure[$tooManyArguments, headSyntax]
 	}
 ]
 
@@ -1354,7 +1383,7 @@ applyExplicitly[{function_, functionType_}, {argument_, rest___}, headSyntax_] :
 			applyExplicitly[{application[function, value], instantiateBoundVariable[codomain, value]}, {rest}, headSyntax]
 		],
 		pathType_ /; asIntervalFunction[pathType] =!= pathType :> applyExplicitly[{function, asIntervalFunction[pathType]}, {argument, rest}, headSyntax],
-		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
+		_ :> elaborationFailure[$tooManyArguments, headSyntax]
 	}
 ]
 

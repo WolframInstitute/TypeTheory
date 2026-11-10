@@ -588,13 +588,13 @@ loops = TypeTheoryEnvironment[loops, {
             InductiveRecursor[Exists][
                 Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, n == m + k]] |-> "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true",
                 {Typed[k, NonNegativeIntegers], Typed[e, n == m + k]} |-> "equalitySubstitution"[
-                    P -> Function[{Typed[x, NonNegativeIntegers]}, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[x]] == "true"],
                     "equalitySymmetry"[e],
                     "equalitySubstitution"[
-                        P -> Function[{Typed[y, Integers]}, "integerLessEqualQ"["integerOfNatural"[m], y] == "true"],
                         "equalitySymmetry"["integerOfNaturalAddition"[m, k]],
-                        "integerLessEqualQSelfAddition"["integerOfNatural"[m], k]
-                    ]
+                        "integerLessEqualQSelfAddition"["integerOfNatural"[m], k],
+                        P -> Function[{Typed[y, Integers]}, "integerLessEqualQ"["integerOfNatural"[m], y] == "true"]
+                    ],
+                    P -> Function[{Typed[x, NonNegativeIntegers]}, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[x]] == "true"]
                 ],
                 "lessEqualWitness"[m, n, h]
             ]
@@ -697,7 +697,7 @@ invariant = TypeTheoryProof[
         "Introduce"[f, ihf, s, i, e, h, hs, hi],
         "Exact"["existsIntroduction"[s, "existsIntroduction"[i, "andIntroduction"[
             "whileStop"[f, n1, s, i, j + 1, top, hn, hi, "roundStops"[j, top, e]],
-            "equalitySubstitution"[P -> Function[{Typed[x, NonNegativeIntegers]}, s[["integer"]] == "integerOfNatural"[triangular[x]]], "equalitySymmetry"[e], hs]
+            "equalitySubstitution"["equalitySymmetry"[e], hs, P -> Function[{Typed[x, NonNegativeIntegers]}, s[["integer"]] == "integerOfNatural"[triangular[x]]]]
         ]]]],
         (* a round left: one round, then the hypothesis of the induction at the next counter and a unit of fuel less *)
         "Introduce"[d1, ihd, j, fuel], "Induction"[fuel],

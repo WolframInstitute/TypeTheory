@@ -672,8 +672,8 @@ VerificationTest[
 
 
 (* Arguments by name, and for every binder. name -> value and name :> value give the binder called name its value,
-   implicit or not, wherever they stand among the arguments, as options are given; the other arguments fill the explicit
-   binders in order. Where the usual reading of an application fails, its arguments fill every binder in order, the
+   implicit or not, after the arguments in order, as options are given; the arguments in order fill the explicit
+   binders. Where the usual reading of an application fails, its arguments fill every binder in order, the
    implicit ones too, as Construct gives them. Each form is the same term. *)
 VerificationTest[
 	With[
@@ -683,23 +683,23 @@ VerificationTest[
 					"empty" -> ForAll[{TypedImplicit[A, TypeUniverse[1]]}, Vector[A, 0]],
 					"push" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, Naturals], Typed[x, A], Typed[rest, Vector[A, n]]}, Vector[A, n + 1]]
 				}],
-				TypeTheoryDefinition[zeros, n |-> InductiveRecursor[Naturals][Vector[Naturals, #] &, "empty", {k, rest} |-> "push"[0, rest], n]]
+				TypeTheoryDefinition[zeros, n |-> InductiveRecursor[Naturals][Vector[Naturals, #] &, "empty"[], {k, rest} |-> "push"[0, rest], n]]
 			}]
 		},
 		With[{exact = namedPartCore[Construct["push", Naturals, 2, 0, zeros[2]], vectors]},
 			{
 				namedPartCore["push"[0, zeros[2]], vectors] === exact,
-				namedPartCore["push"[n -> 2, 0, zeros[2]], vectors] === exact,
 				namedPartCore["push"[0, zeros[2], n -> 2], vectors] === exact,
-				namedPartCore["push"[n :> 2, 0, zeros[2]], vectors] === exact,
+				namedPartCore["push"[0, zeros[2], n :> 2], vectors] === exact,
+				namedPartCore["push"[0, zeros[2], n -> 2, A -> Naturals], vectors] === exact,
 				namedPartCore["push"[rest -> zeros[2], x -> 0], vectors] === exact,
-				namedPartCore["push"[A -> Naturals, n -> 2, 0, zeros[2]], vectors] === exact,
+				namedPartCore["push"[0, rest -> zeros[2], A -> Naturals], vectors] === exact,
 				namedPartCore["push"[Naturals, 2, 0, zeros[2]], vectors] === exact,
 				(* some of the arguments, by name or for every binder: a function of the rest *)
-				DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["push"[Naturals, 2], vectors]], TypeTheoryTerm[Naturals -> Vector[Naturals, 2] -> Vector[Naturals, 3], vectors]],
+				DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["push"[A -> Naturals, n -> 2], vectors]], TypeTheoryTerm[Naturals -> Vector[Naturals, 2] -> Vector[Naturals, 3], vectors]],
 				DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["push"[0, n -> 2], vectors]], TypeTheoryTerm[Vector[Naturals, 2] -> Vector[Naturals, 3], vectors]],
 				(* a name that is a variable in scope still names the argument, where the rule is nothing else *)
-				namedPartCore[Function[{Typed[n, Naturals], Typed[v, Vector[Naturals, n]]}, "push"[n -> n, 0, v]], vectors] ===
+				namedPartCore[Function[{Typed[n, Naturals], Typed[v, Vector[Naturals, n]]}, "push"[0, v, n -> n]], vectors] ===
 					namedPartCore[Function[{Typed[n, Naturals], Typed[v, Vector[Naturals, n]]}, "push"[0, v]], vectors]
 			}
 		]
@@ -720,16 +720,22 @@ VerificationTest[
 					"empty" -> ForAll[{TypedImplicit[A, TypeUniverse[1]]}, Vector[A, 0]],
 					"push" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, Naturals], Typed[x, A], Typed[rest, Vector[A, n]]}, Vector[A, n + 1]]
 				}],
-				TypeTheoryDefinition[zeros, n |-> InductiveRecursor[Naturals][Vector[Naturals, #] &, "empty", {k, rest} |-> "push"[0, rest], n]]
+				TypeTheoryDefinition[zeros, n |-> InductiveRecursor[Naturals][Vector[Naturals, #] &, "empty"[], {k, rest} |-> "push"[0, rest], n]]
 			}],
 			(* a type constructor whose binder is named a, as the variable below is *)
 			boxes = TypeTheoryEnvironment[{TypeTheoryInductiveType[Boxed, ForAll[{Typed[a, TypeUniverse[1]]}, TypeUniverse[1]], {"boxed" -> ForAll[{TypedImplicit[a, TypeUniverse[1]], Typed[content, a]}, Boxed[a]]}]}]
 		},
 		{
-			Replace[namedPartCore["push"[n -> 5, 0, zeros[2]], vectors], failure_Failure :> failure["Tag"]],
+			Replace[namedPartCore["push"[0, zeros[2], n -> 5], vectors], failure_Failure :> failure["Tag"]],
+			(* an argument by name before one in order is no argument by name, and the failure says where they go *)
+			Replace[namedPartCore["push"[n -> 2, 0, zeros[2]], vectors], failure_Failure :> {failure["Tag"], StringContainsQ[ToString[failure["Message"]], "come last"]}],
 			Replace[namedPartCore["push"[Naturals, 5, 0, zeros[2]], vectors], failure_Failure :> {failure["Tag"], StringContainsQ[ToString[failure["Message"]], "zeros"]}],
-			Replace[namedPartCore["push"[m -> 2, 0, zeros[2]], vectors], failure_Failure :> {failure["Tag"], StringContainsQ[ToString[failure["Message"]], "no argument named"]}],
+			Replace[namedPartCore["push"[0, zeros[2], m -> 2], vectors], failure_Failure :> {failure["Tag"], StringContainsQ[ToString[failure["Message"]], "no argument named"]}],
 			Replace[namedPartCore["push"[0], vectors], failure_Failure :> failure["Tag"]],
+			(* as many arguments as the explicit binders take are for those: a type is no element, and the failure says so *)
+			FailureQ[namedPartCore["push"[Naturals, 2], vectors]],
+			(* too many arguments, which no reading takes, are too many *)
+			Replace[namedPartCore[Function[{Typed[n, Naturals]}, "successor"[n, n]], vectors], failure_Failure :> StringContainsQ[ToString[failure["Message"]], "more arguments"]],
 			namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[a -> b]]}, o], boxes] ===
 				namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[TypeSpecifier[{a} -> b]]]}, o], boxes],
 			namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[a :> b]]}, o], boxes] ===
@@ -738,7 +744,7 @@ VerificationTest[
 			TypeTheoryExpression[TypeTheoryTerm[Failure["Tag", <|"x" -> 1|>]]] === TypeTheoryExpression[NormalForm[TypeTheoryTerm[Failure["Tag", <|"x" -> 1|>]]]]
 		}
 	],
-	{"TypeMismatch", {"TypeMismatch", True}, {"ElaborationFailed", True}, "UnsolvedImplicitArgument", True, True, True},
+	{"TypeMismatch", {"ElaborationFailed", True}, {"TypeMismatch", True}, {"ElaborationFailed", True}, "UnsolvedImplicitArgument", True, True, True, True, True},
 	TestID -> "A-named-argument-is-checked-and-a-rule-that-is-an-argument-stays-one"
 ]
 

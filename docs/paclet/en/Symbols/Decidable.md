@@ -50,7 +50,7 @@ The decision of `1 <= 4` computes to `"decidableTrue"` with a proof:
 WeakHeadNormalForm[TypeTheoryTerm["lessEqualDecidable"[1, 4]]]
 ```
 
-<!-- => decidableTrue[lessEqualTrue[1, 4, equalityReflexivity[lessEqual[1, 4]]]] -->
+<!-- => decidableTrue[lessEqualTrue[1, 4, equalityReflexivity[true]]] -->
 
 ## Scope
 
@@ -70,7 +70,7 @@ The decision of `4 <= 1` computes to `"decidableFalse"`, with a proof that `4 <=
 WeakHeadNormalForm[TypeTheoryTerm["lessEqualDecidable"[4, 1]]]
 ```
 
-<!-- => decidableFalse[lessEqualFalse[4, 1, equalityReflexivity[lessEqual[4, 1]]]] -->
+<!-- => decidableFalse[lessEqualFalse[4, 1, equalityReflexivity[false]]] -->
 
 ---
 
@@ -80,7 +80,7 @@ The decision of an equation of natural numbers:
 WeakHeadNormalForm[TypeTheoryTerm["naturalNumberEqualityDecidable"[2, 3]]]
 ```
 
-<!-- => decidableFalse[equalFalse[2, 3, equalityReflexivity[equal[2, 3]]]] -->
+<!-- => decidableFalse[equalFalse[2, 3, equalityReflexivity[false]]] -->
 
 ---
 

@@ -108,10 +108,10 @@ vectors = TypeTheoryEnvironment[{
 
 <!-- => TypeTheoryEnvironment summary box: 261 constants -->
 
-A rule gives the argument of that name, as an option is given, wherever it stands among the arguments; the others fill the explicit binders in order:
+A rule gives the argument of that name, as an option is given: after the arguments in order, which fill the explicit binders:
 
 ```wl
-TypeTheoryType[TypeTheoryTerm["push"[n -> 0, 7, "empty"], vectors]]
+TypeTheoryType[TypeTheoryTerm["push"[7, "empty", n -> 0], vectors]]
 ```
 
 <!-- => Vector[ℕ, 0 + 1] -->
@@ -127,12 +127,12 @@ TypeTheoryType[TypeTheoryTerm["push"[Naturals, 0, 7, "empty"], vectors]]
 What is given is checked like any argument: the empty vector has length 0, not 5:
 
 ```wl
-TypeTheoryType[TypeTheoryTerm["push"[n -> 5, 7, "empty"], vectors]]
+TypeTheoryType[TypeTheoryTerm["push"[7, "empty", n -> 5], vectors]]
 ```
 
 <!-- => Failure["TypeMismatch", ...] -->
 
-The usual reading comes first, so nothing that elaborates without these changes its meaning. A rule that is an argument of its own stays one: for a type constructor whose binder is called `a`, `Boxed[a -> b]` is still the boxes of functions from `a` to `b`. `name :> value` is no type, so it names the argument there, and is the form to write where the two could be confused. A rule where an expression is expected, as in the details of a [Failure](), stays a rule. `Construct[f, a, ...]` gives every argument in order and nothing else, the exact form that `Normal` writes an environment's declarations in.
+A rule before an argument in order is an argument in order itself, not a name. The usual reading comes first, so nothing that elaborates without these changes its meaning. A rule that is an argument of its own stays one: for a type constructor whose binder is called `a`, `Boxed[a -> b]` is still the boxes of functions from `a` to `b`. `name :> value` is no type, so it names the argument there, and is the form to write where the two could be confused. A rule where an expression is expected, as in the details of a [Failure](), stays a rule. `Construct[f, a, ...]` gives every argument in order and nothing else, the exact form that `Normal` writes an environment's declarations in.
 
 ## Lists, Sequences and Their Types
 

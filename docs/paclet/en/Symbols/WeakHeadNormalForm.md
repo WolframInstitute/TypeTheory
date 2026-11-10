@@ -17,7 +17,7 @@ RelatedTutorials: [RulesAndComputation]
 ## Details & Options
 
 - Reduction applies functions to their arguments, unfolds definitions and local definitions, applies a recursor to a constructor, takes a field of a constructed structure, and computes the operations on natural number literals. Theorems never unfold.
-- Only the head is reduced: the arguments of a constructor, and the body of a function, stay as they are. So the result says which constructor a term is, or that it is a function, without computing the rest. [NormalForm]() reduces every part.
+- Only the head is reduced: the arguments of a constructor, and the body of a function, stay as they are, except that an operation on two number literals that a reduction builds as it substitutes is its literal at once. So the result says which constructor a term is, or that it is a function, without computing the rest. [NormalForm]() reduces every part.
 - A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
 - A value whose reading alone does not elaborate again, as a lone string, which on its own names a constant, the empty list, a value of a sum or `"none"`, comes back ascribed its type, <code>[Typed]()[*value*, *type*]</code>, so that the result elaborates to a term of the same type; its reading in the Wolfram Language, [TypeTheoryExpression](), is the same.
 - The kernel reduces a term to its weak head normal form to compare it with another, as [DefinitionallyEqualQ]() and [TypeTheoryCheck]() do.
@@ -27,10 +27,18 @@ RelatedTutorials: [RulesAndComputation]
 A function applied to an argument reduces to its body, and the list it gives keeps its element as it is:
 
 ```wl
+WeakHeadNormalForm[TypeTheoryTerm[(x |-> {Length[{x, x}]})[41]]]
+```
+
+<!-- => {Length[{41, 41}]} -->
+
+An operation on two number literals that the reduction itself builds, as `x + 1` at 41, is computed with it:
+
+```wl
 WeakHeadNormalForm[TypeTheoryTerm[(x |-> {x + 1})[41]]]
 ```
 
-<!-- => {41 + 1} -->
+<!-- => {42} -->
 
 ---
 

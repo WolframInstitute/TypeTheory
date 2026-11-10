@@ -268,13 +268,13 @@ checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, {m, n} |-
 
 <!-- => TypeTheoryEnvironment summary box: 258 constants -->
 
-[WeakHeadNormalForm]() computes only as far as the constructor, and leaves the value inside as it is; [NormalForm]() computes it too:
+[WeakHeadNormalForm]() computes as far as the constructor; the value inside is the difference of two literals, which the reduction computes as it builds it:
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[CheckedSubtract[7, 3], checked]]
 ```
 
-<!-- => some[7 - 3] -->
+<!-- => some[4] -->
 
 ---
 

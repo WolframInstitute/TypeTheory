@@ -218,4 +218,4 @@ Nor has composition in a universe, so transport along the concatenation of two p
 WeakHeadNormalForm[TypeTheoryTerm[CubicalTransport["pathTransitivity"["equivalenceToPath"["negationEquivalence"], "equivalenceToPath"["negationEquivalence"]], 0, "true"], "Cubical"]]
 ```
 
-<!-- => CubicalTransport[(i ∶ Interval) ↦ pathTransitivity[Type, 𝔹, 𝔹, 𝔹, equivalenceToPath[negationEquivalence], equivalenceToPath[negationEquivalence], i], 0, true] ∶ ((i ∶ Interval) ↦ pathTransitivity[...])[1] -->
+<!-- => CubicalTransport[(i ∶ Interval) ↦ pathTransitivity[Type, 𝔹, 𝔹, 𝔹, equivalenceToPath[negationEquivalence], equivalenceToPath[negationEquivalence], i], 0, true] -->
