@@ -5,8 +5,8 @@ WolframDefinitions: reading the definitions of a Wolfram Language symbol, the fi
 
 The definitions are lowered by the compiler of the WolframKernel project, which the paclet Wolfram/KernelCompiler
 publishes: its ToCore turns a symbol's definitions into a Core`Program, each definition a match program of the Match
-IR for its left side and Core for its right side. TypeTheory loads that paclet only when definitions are read, as
-LeanLink loads TypeTheory, and gives a Failure naming how to install it where it is missing. The Core`/Match` forms
+IR for its left side and Core for its right side. TypeTheory loads that paclet only when definitions are read,
+and gives a Failure naming how to install it where it is missing. The Core`/Match` forms
 are versioned by $CoreVersion, which must be the version this file is written for; they are read by their names, in
 whichever context the paclet puts them, as coreForm["Call"][...].
 

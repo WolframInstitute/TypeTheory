@@ -4,7 +4,7 @@
 The integers: TypeTheoryEnvironment["Integers"] is the prelude with them, built and checked the first time
 it is asked for. An integer is a class of pairs (a, b) of natural numbers, standing for a - b, by the
 relation that relates (a, b) and (c, d) when a + d == c + b: a quotient type, the way many textbooks build
-the integers, where Lean's Int is an inductive type.
+the integers.
 
 	Integers                      QuotientType["integerRelation"], shown as ℤ
 	"integerOfNatural"[n]         the class of (n, 0), a coercion: a natural number where an integer is expected
@@ -24,7 +24,7 @@ or the expected type are integers, and as the natural numbers' otherwise.
 
 The quotient and the remainder of natural numbers, Quotient and Mod, are defined by recursion on the dividend, as the
 role equations of "Quotient" and "Remainder" are, and registered: the registration is checked, and they compute on
-literals, by a 0 divisor as Lean's n / 0 and n % 0.
+literals; by a 0 divisor, the quotient is 0 and the remainder the dividend.
 
 Equations of integers are decidable: "integerEqualityDecidable" decides x == y with the Boolean
 "integerEqual", which compares a + d and c + b for the pairs (a, b) and (c, d), so Decide and the tactic
@@ -1062,7 +1062,7 @@ $integerDeclarations = {
 	],
 	(* the remainder and the quotient of natural numbers, by recursion on the dividend with the divisor s fixed: the
 	   remainder counts up to s and back to zero, and the quotient counts each return, so that n == s Quotient[n, s] +
-	   Mod[n, s]; with s zero, the remainder is n and the quotient 0, as Lean's n % 0 and n / 0. They are the role
+	   Mod[n, s]; with s zero, the remainder is n and the quotient 0. They are the role
 	   equations of "Remainder" and "Quotient" themselves, so the registration is checked, and they compute on literals *)
 	TypeTheoryDefinition[Mod, Typed[
 		Function[{Typed[t, NonNegativeIntegers], Typed[s, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
@@ -1093,7 +1093,8 @@ $integerDeclarations = {
 	   subtraction, which stops at 0, is the same for every pair of the class: a - b == c - d where a + d == c + b, since
 	   a - b == (a + d) - (b + d), and so it is lifted once; the quotient is then a function of normal pairs, by the
 	   signs: x / n of a positive n is Quotient[p, n] where x is p >= 0 and -(Quotient[q - 1, n] + 1) where x is -q < 0,
-	   and x / -n is -x / n. A 0 divisor gives 0, and the remainder x, as Lean's Int.fdiv and Int.fmod. *)
+	   and x / -n is -x / n. A 0 divisor gives 0, and the remainder x; by any other, they are what Quotient and Mod compute,
+	   rounding down. *)
 	TypeTheoryTheorem["subtractionCancellation",
 		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Subtract[a + k, b + k] == Subtract[a, b]],
 		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][

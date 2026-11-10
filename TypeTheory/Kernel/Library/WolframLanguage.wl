@@ -20,7 +20,7 @@ environment of their own.
 	                                Construct[Head[e], Arguments[e]] is e where e is no atom, and whether it is an atom
 	Sequence[A, B, ...]             where a type is expected, the type of the sequences Sequence[a, b, ...] of an element
 	                                of A, then of B, ...: a list of elements of different types, its length and their
-	                                types given by its type, as Lean's HList, indexed by the list {A, B, ...};
+	                                types given by its type, indexed by the list {A, B, ...};
 	                                "emptySequence" and "sequencePrepend" construct it, and Sequence[a, ...] writes them
 	SameQ                           whether two expressions are the same, a Boolean the kernel computes: atoms by their
 	                                names and values, normal expressions part by part
@@ -175,7 +175,7 @@ $wolframLanguageDeclarations = {
 		"atom" -> (Atoms -> Expressions),
 		"Construct" -> (Expressions -> Expressions... -> Expressions)
 	}],
-	(* the sequences of elements of the types of a list, as Lean's HList, a universe above its elements *)
+	(* the sequences of elements of the types of a list, a universe above its elements *)
 	TypeTheoryInductiveType[
 		Sequence,
 		ForAll[{Typed[types, {TypeUniverse[u + 1]}]}, TypeUniverse[u + 2]],
@@ -201,7 +201,7 @@ $wolframLanguageDeclarations = {
 	]],
 	TypeTheoryDefinition["NaturalExpressionCoercion", Typed[n, NonNegativeIntegers] |-> "atom"["naturalAtom"[n]], "Coercion" -> True],
 	TypeTheoryDefinition["StringExpressionCoercion", Typed[s, Strings] |-> "atom"["stringAtom"[s]], "Coercion" -> True],
-	(* the values written by a string, Haskell's class IsString, as Lean's OfNat for numerals: FromString[s] is the value of
+	(* the values written by a string, Haskell's class IsString: FromString[s] is the value of
 	   the type expected by the instance of "IsString" of that type, an atom, an expression or, where nothing decides, the
 	   string, declared last so that it is found first *)
 	TypeTheoryInductiveType[
@@ -582,7 +582,7 @@ $wolframLanguageDeclarations = {
 	   association does not have gives Missing["KeyAbsent", key] *)
 	TypeTheoryInductiveType[Missing, TypeUniverse[1], {"missing" -> (Strings -> Expressions... -> Missing)}],
 
-	(* a type whose values are expressions, as Lean's ToExpr: its values quote to expressions, which SameQ compares, as
+	(* a type whose values are expressions: its values quote to expressions, which SameQ compares, as
 	   the Wolfram Language compares the keys of an association *)
 	TypeTheoryInductiveType[
 		"Quotable",

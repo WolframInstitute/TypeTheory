@@ -264,7 +264,7 @@ givenTerm[term_, environment_] := TypeTheoryTerm[term, environment]
 
 (* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
 typeOfTerm[failure_Failure] := failure
-(* an ascription, Typed[t, T], has the type T it is given, checked, as Lean's #check (t : T) shows T: the kernel's own
+(* an ascription, Typed[t, T], has the type T it is given, checked: the kernel's own
    type of t, as 4 == 4 for "equalityReflexivity"[4], is equal to it but no longer as written *)
 typeOfTerm[term_TypeTheoryTerm] /; MatchQ[heldTerm[term], HoldComplete[Typed[_, _]]] := catchKernelFailure @ With[
 	{environment = termEnvironment[term], universeParameters = universeParameterNames[{termSyntax[term]}]},
@@ -582,7 +582,7 @@ readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delabor
 (*The axioms a term rests on*)
 
 
-(* Lean's #print axioms: the constants a term mentions, then those in the type and value of each, until an axiom,
+(* The axioms a term depends on: the constants a term mentions, then those in the type and value of each, until an axiom,
    which is collected and its type followed, so that a signature's own parameters show; a constructor or recursor
    leads to its inductive type, and an inductive type to its constructors. A rewrite rule of a constant reached is
    trusted as an axiom is, and so is the registration of an operation on natural numbers without defining equations,

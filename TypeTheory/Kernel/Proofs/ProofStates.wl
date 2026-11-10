@@ -29,7 +29,7 @@ The tactics:
 	"Exact", term           solves the goal with term
 	"Apply", term           solves the goal with term applied to as many new goals as its conclusion needs
 	"Reflexivity"           solves a goal a == b whose sides are definitionally equal, of Equal or of another type
-	                        of equations, such as Lean's Eq imported
+	                        of equations, such as an imported library's
 	"Induction", x          splits on the variable x of an inductive type: one goal per constructor, taking
 	                        the constructor's fields and an induction hypothesis per recursive field; the
 	                        indices of x's type must be variables, and hypotheses that depend on x or them
@@ -68,7 +68,7 @@ The tactics:
 	                        from the inequalities and equations among the hypotheses, with multipliers Wolfram
 	                        finds
 	"NonlinearArithmetic"   the same from the hypotheses and their products: each inequality a <= b times each side
-	                        of each, a k <= b k, so a product of inequalities follows linearly, as Lean's nlinarith
+	                        of each, a k <= b k, so a product of inequalities follows linearly
 	"FindEquationalProof"   proves an equation from the hypotheses that are equations for all values, by replaying
 	                        a proof that Wolfram's FindEquationalProof finds (Equational.wl)
 	"SumOfSquares"          proves an inequality of the integers of TypeTheoryEnvironment["Integers"], or of natural
@@ -481,7 +481,7 @@ reflexivity[data_, goal_] := With[{current = currentGoal[data, goal], environmen
 	}]
 ]
 
-(* a type of equations, as Equal is and Lean's Eq imported: an inductive type of a type A and two elements of
+(* a type of equations, as Equal is, or an imported library's: an inductive type of a type A and two elements of
    it, whose one constructor makes an element x equal to x *)
 equalityTypeQ[environment_, name_HoldComplete] := With[{record = constantRecord[environment, name]},
 	And[
@@ -517,14 +517,14 @@ assumption[data_, goal_] := With[{current = currentGoal[data, goal], environment
 
 (* The proof h is applied to new metavariables until its type is an equation lhs == rhs of a type of
    equations. The first subterm of the statement that unifies with the side to replace, children before
-   their parent and functions before arguments as Lean's kabstract visits them, fixes those
+   their parent and functions before arguments, fixes those
    metavariables, and every copy of that instance is abstracted into the motive P.
    Left to right, the new goal is P[rhs], carried back along the equation to a proof of the goal P[lhs];
    right to left, the new goal is P[lhs], carried forward to P[rhs]. A new goal whose two sides are the
-   same term is closed by reflexivity, as after Lean's rw.
+   same term is closed by reflexivity.
    At a hypothesis k : P[lhs], left to right, k is carried forward to a proof of P[rhs], which a new
    hypothesis of the same name takes, and right to left back; the new hypothesis replaces k unless the
-   goal or another hypothesis depends on k, as with Lean's rw at k. *)
+   goal or another hypothesis depends on k. *)
 rewrite[data_, goal_, held_HoldComplete, direction_String, location_] := With[
 	{current = currentGoal[data, goal], environment = data["Environment"], goalTypes = openGoalTypes[data]},
 	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
@@ -729,9 +729,9 @@ abstractInstanceBelow[localDefinition[name_, type_, value_, body_], instanceQ_, 
 abstractInstanceBelow[projection[structure_, index_, inner_], instanceQ_, depth_] := Construct[projection, structure, index, abstractInstance[inner, instanceQ, depth]]
 abstractInstanceBelow[term_, _, _] := term
 
-(* The subterms a rewrite takes for its instance, as Lean's kabstract takes them: a copy, or a subterm with no
+(* The subterms a rewrite takes for its instance: a copy, or a subterm with no
    variable of a binder inside the goal and no hole, with the instance's head and number of arguments, equal to it
-   without unfolding a definition. Lean compares them at instances transparency, so a subterm equal to the instance
+   without unfolding a definition. A subterm equal to the instance
    only once a definition unfolds is no instance: a full test could unfold far, and leave a motive that is not well
    typed. *)
 instanceOfQ[environment_, context_, instance_] := With[{key = instancePatternKey[instance], closedQ = FreeQ[instance, _metavariable]},
@@ -927,7 +927,7 @@ closedByReflexivity[state_, goal_] := Replace[
 ]
 
 
-(* A closed proposition gets its decision from the instances of Decidable[p], as Lean's decide: the
+(* A closed proposition gets its decision from the instances of Decidable[p]: the
    prelude's decide == and <= on the natural numbers, And, Or, Not, True and False, and an environment may
    declare more; the kernel computes Decide of it to True, and "decideSoundness" turns
    "equalityReflexivity"[True] into a proof of the goal. *)
@@ -1713,8 +1713,8 @@ eliminate[data_, goal_, variableName_HoldComplete, mode : "Induction" | "Cases"]
 quotientTypeQ[environment_, head_] := MatchQ[head, constantReference[name_, _] /; MatchQ[constantRecord[environment, name], KeyValuePattern[{"Kind" -> "Quotient", "QuotientRole" -> "Type"}]]]
 
 (* A class q of the quotient of α by r: the goal, with the hypotheses that mention q, is a proposition P[q],
-   and the quotient's induction proves it from the one goal ForAll[{Typed[a, α]}, P[class of a]], as
-   Lean's induction using Quot.ind. Into data, a quotient is eliminated by lifting a function instead. *)
+   and the quotient's induction proves it from the one goal ForAll[{Typed[a, α]}, P[class of a]].
+   Into data, a quotient is eliminated by lifting a function instead. *)
 quotientElimination[data_, goal_, current_, id_, {head : constantReference[name_, levels_], {alpha_, relation_}}, variableName_] := With[
 	{
 		environment = data["Environment"],

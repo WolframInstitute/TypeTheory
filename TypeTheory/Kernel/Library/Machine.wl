@@ -114,7 +114,7 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
 	(* the natural numbers below 2^63 are machine integers: the relations of the pairs, stated as the integers' order
 	   unfolds them, proved by terms that reduce no sum that holds the bound, only sums of literals, so that a kernel
-	   that unfolds a literal one unit at a time, as Lean's does for m + 2^63, checks them too: x + 0 == x of such a
+	   that unfolds a literal one unit at a time checks them too: x + 0 == x of such a
 	   sum is "additionZeroRight", not a computation *)
 	TypeTheoryTheorem["integer64LowerRelation",
 		ForAll[{Typed[m, NonNegativeIntegers]}, m + (upper + 0) == (0 + (m + upper)) + 0],

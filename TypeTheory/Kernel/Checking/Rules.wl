@@ -13,7 +13,7 @@ environment are its assumptions, axioms included; the rules are what the kernel 
 	                  universe is TypeUniverse[level] with level at least 1, and a theorem's statement may
 	                  be any type.
 	"RewriteRules"    TypeTheoryRewriteRule declarations may add computation rules to an axiom.
-	"Quotients"       TypeTheoryQuotients[] may declare the quotient types of Lean's kernel, whose lift
+	"Quotients"       TypeTheoryQuotients[] may declare the quotient types, whose lift
 	                  computes on a class; they need Prop.
 	"Quantities"      a binder may have a quantity, 0 or 1, which bounds how many times the code that runs
 	                  uses its variable, as in BendTT's affine type theory (Quantities.wl). The rules only
@@ -22,7 +22,7 @@ environment are its assumptions, axioms included; the rules are what the kernel 
 	                  Glue types of cubical type theory, in which univalence computes (Cubical.wl); they
 	                  exclude Prop, whose proof irrelevance contradicts univalence, and quantities.
 
-"CalculusOfInductiveConstructions" is the rules of the prelude, which those of Lean's kernel are, quotients
+"CalculusOfInductiveConstructions" is the rules of the prelude, quotients
 included; without "Quotients" they are those of Rocq's kernel.
 "MartinLofTypeTheory" has no Prop, as Martin-Löf's intensional type theory, and so no rule that would
 make any two equalities equal: univalence is consistent with it. Neither has quantities.

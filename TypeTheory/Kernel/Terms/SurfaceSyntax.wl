@@ -30,7 +30,7 @@ TypeTheoryTerm[term, environment] holds a surface term (it has the HoldFirst att
 functions never evaluate it: ForAll[Typed[x, A], B] on its own evaluates to B, because a quantifier whose
 variable does not occur is dropped. The environment, evaluated, says where its constants come from.
 
-Two more forms make a term exact, as the Lean bridge and Normal[environment] need:
+Two more forms make a term exact, as LeanLink and Normal[environment] need:
 
 	Construct[f, a, b]                                f applied to a and b with no implicit arguments filled in
 	t[[i]]                                            field i of t, of a structure type

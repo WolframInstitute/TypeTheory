@@ -28,18 +28,18 @@ does InductiveRecursor[Naturals] for the recursor.
 While a tactic elaborates a term for a goal, $goalMetavariableTypes gives the types of the proof's open
 goals, which may occur in the goal's type, and $goalMetavariableContexts their hypotheses.
 
-A metavariable has the local context it was made in, as in Lean: its solution may name only the
+A metavariable has the local context it was made in: its solution may name only the
 variables of that context. A metavariable left unsolved in a function when its binders close is lifted
 out of them, so it never names a variable after the variable's binder is gone.
 
 The argument of an instance-implicit binder is a metavariable that waits in $pendingInstances for an
-instance: a variable of the local context bound by an instance-implicit binder, as Lean's local
-instances, or else a definition declared with "Instance" -> True whose type, under its binders, unifies
+instance: a variable of the local context bound by an instance-implicit binder,
+or else a definition declared with "Instance" -> True whose type, under its binders, unifies
 with the binder's type, its own instance-implicit arguments found the same way. It is found as soon as the
 type's arguments are known, and at the end at the latest; the kernel checks the term found as any
 other. A term whose type does not unify with the one its place expects is coerced: x becomes f[x] for a
 definition f declared with "Coercion" -> True from the term's type to the one expected, or a chain of at
-most three, as Lean inserts ↑x.
+most three.
 
 True, False, Not, And and Or are overloaded: they stand for the propositions or, in an environment that
 declares them, for the Booleans' constants "true", "false", "not", "and" and "or", named by strings. The
@@ -221,7 +221,7 @@ elaborateClosedType[environment_, held_HoldComplete, universeParameters_List] :=
 	First[result]
 ]
 
-(* a statement is a proposition where its sort can be Prop, as Lean elaborates a theorem's type against Prop: the sort of
+(* a statement is a proposition where its sort can be Prop: the sort of
    p in ForAll[{p}, Implies[p, p]] is then Prop, not a universe parameter *)
 propositionPreferred[environment_, result : {_, type_}] := (
 	If[TrueQ[$propositionExpected] && rulesSetting[environment, "Prop"], attemptOrRestore[unify[type, universeSort[0]]]];
@@ -449,7 +449,7 @@ elaborateSyntaxCases[syntax_, expected_] := Replace[syntax, {
 		elaborateSyntax[Fold[Function[{applied, argument}, syntaxApplication[applied, {argument}]], function, {arguments}], expected],
 	syntaxApplication[syntaxSymbol[name_], arguments_List] /; ! KeyExistsQ[$elaborationScope, name] && overloadedNameQ[$elaborationEnvironment, name] :>
 		elaborateOverloaded[name, arguments, syntax, expected],
-	(* a && b && c is a && (b && c), as in Lean *)
+	(* a && b && c is a && (b && c) *)
 	syntaxApplication[syntaxSymbol[HoldComplete[head : And | Or]], arguments_List] /; Length[arguments] > 2 :>
 		elaborateSyntax[rightFold[head, arguments], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}] :> insertImplicitArguments[constantWithLevels[constant, {levels}]],
@@ -540,8 +540,8 @@ elaborateSyntaxCases[syntax_, expected_] := Replace[syntax, {
 		constructed[syntaxElaborated[elaborateSyntax[head, expected], head], arguments, expected],
 	syntaxSymbol[name_] /; overloadedNameQ[$elaborationEnvironment, name] :> elaborateOverloaded[name, {}, syntax, expected],
 	_ /; declaredConstantSyntaxQ[syntax] :> insertImplicitArguments[constantWithFreshLevels[constantNameOfSyntax[syntax]]],
-	(* a recursor applied to all its arguments has its major premise, the last, elaborated first where it is a variable, as
-	   Lean elaborates an eliminator, so that its type's parameters are known to the motive and the cases *)
+	(* a recursor applied to all its arguments has its major premise, the last, elaborated first where it is a variable,
+	   so that its type's parameters are known to the motive and the cases *)
 	syntaxApplication[head : syntaxApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {_}], arguments : {__, major_}] /;
 		variableSyntaxQ[major] && explicitArity[Last[elaborateHead[head]]] === Length[arguments] :>
 		With[{elaborated = elaborateSyntax[major, None]},
@@ -609,7 +609,7 @@ listedPiece[syntaxString["{}"], splicedPiece[sequence_]] := syntaxApplication[sy
 listedPiece[rest_, splicedPiece[sequence_]] := syntaxHead[Join, {syntaxApplication[syntaxString["listOfSequence"], {sequence}], rest}]
 listedPiece[rest_, element_] := syntaxApplication[syntaxString["Prepend"], {element, rest}]
 
-(* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], as in Lean, each Exists applied to a predicate *)
+(* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], each Exists applied to a predicate *)
 nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]
 nestedExistential[{binder_, rest__}, body_] := nestedExistential[{binder}, syntaxHead[Exists, {syntaxHead[List, {rest}], body}]]
 
@@ -717,9 +717,9 @@ elaborateHead[syntax : syntaxString[name_String]] /; unnamedStringQ[name] :=
 elaborateHead[syntax_] := elaborateSyntax[syntax, None]
 
 (* Implicit binders get metavariables, and each explicit binder takes the next argument, elaborated at
-   once against its binder's type; the implicit binders after the last argument get metavariables too, as
-   in Lean. Before the first explicit argument, the expected type is unified with the type the application
-   will have, where that type does not depend on the arguments, as Lean's propagateExpectedType: the
+   once against its binder's type; the implicit binders after the last argument get metavariables too.
+   Before the first explicit argument, the expected type is unified with the type the application
+   will have, where that type does not depend on the arguments: the
    arguments are then checked against what it determines, and the instances it determines are found
    first. An argument whose type is still an unknown applied to arguments, as the proof of P[x] for an
    implicit predicate P, waits: the type of the whole application is unified with the expected type first,
@@ -1292,7 +1292,7 @@ expectedQuantityBinder[parsed_, expected_] := If[ parsed["Quantity"] === Automat
 ]
 
 (* a variable written without a type takes the domain of the function type expected, or else a type to be
-   found from how the body uses it, as Lean leaves a binder's type to unification *)
+   found from how the body uses it, by unification *)
 expectedDomain[expected_, binder_] := Replace[
 	If[expected === None, None, asIntervalFunction[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[expected]]]],
 	{
@@ -1572,8 +1572,8 @@ meaningFitsQ[meaning_HoldComplete, arguments_List, expected_] := Block[
 	], {exhausted : Failure["RecursionLimit", _] :> throwFailure[exhausted], result_ :> TrueQ[result]}]
 ]
 
-(* the constant itself, applied to the arguments; a && b && c is a && (b && c) for propositions, as Lean's
-   ∧, and (a && b) && c for Booleans, as Lean's && *)
+(* the constant itself, applied to the arguments; a && b && c is a && (b && c) for propositions
+   and (a && b) && c for Booleans *)
 elaborateMeaning[meaning_HoldComplete, {}, _] := insertImplicitArguments[constantWithFreshLevels[meaning]]
 elaborateMeaning[meaning : HoldComplete[head : And | Or], arguments_List, expected_] /; Length[arguments] > 2 :=
 	applyArguments[constantWithFreshLevels[meaning], {First[arguments], rightFold[head, Rest[arguments]]}, nameSyntax[meaning], expected]
@@ -1610,7 +1610,7 @@ resolvePendingOverloads[start_Integer, final_] := With[
 			$pendingOverloads = DeleteCases[$pendingOverloads, First[decided], {1}, 1];
 			decideOverload @@ decided;
 			resolvePendingOverloads[start, final],
-		(* an arithmetic operation nothing decides is that of the natural numbers, as a numeral is in Lean, and an operation
+		(* an arithmetic operation nothing decides is that of the natural numbers, as a numeral nothing decides is a natural number, and an operation
 		   on associations its first meaning, of lists or of expressions *)
 		final && Length[$pendingOverloads] > start && MemberQ[$defaultedNames, $pendingOverloads[[start + 1]]["Name"]],
 			With[{entry = $pendingOverloads[[start + 1]]},
@@ -1760,7 +1760,7 @@ subgoalSolvedQ[id_, depth_] := Or[
 
 
 (* the term coerced from its type to the one expected, or None; both types must be known, with no
-   metavariable left, as Lean waits for them *)
+   metavariable left *)
 (* a value of A or of B where A | B is expected is that sum's "left" or "right" of it, as the pattern _A | _B matches either
    with no tag; in A | (B | C), a value of C is right[right[c]]. Both types are known, so nothing is guessed. *)
 injected[term_, actual_, expected_] /; knownTypeQ[actual] && knownTypeQ[expected] := Replace[
@@ -2117,7 +2117,7 @@ newMetavariable[type_, context_List] := With[{id = freshMetavariableId[]},
 newLevelMetavariable[] := levelMetavariable[++$levelMetavariableCounter]
 
 (* A level that nothing decided, as the level of the sort of p in ForAll[{p}, Implies[p, p]], becomes a universe parameter
-   of the declaration, u_1, u_2, ..., as Lean binds one, or Type in a term on its own, which has no parameters; a
+   of the declaration, u_1, u_2, ..., or Type in a term on its own, which has no parameters; a
    variable whose type nothing decided at all is still asked for. *)
 generalizedLevels[term_] := With[{levels = Union[Cases[instantiateMetavariables[term], levelMetavariable[id_] :> id, {0, Infinity}]]},
 	If[ levels === {} || $levelGeneralization === None,
@@ -2154,7 +2154,7 @@ instantiateContext[context_Association] := Function[entry, Append[entry, "Type" 
 boundVariableTypes[ids_List] := Function[id, $elaborationContext[id]["Type"]] /@ ids
 
 (* Before the variables ids are abstracted, each metavariable left unsolved in terms whose context has one
-   of them is replaced by a new one made outside them, applied to them, as Lean's elimMVarDeps does: ?m,
+   of them is replaced by a new one made outside them, applied to them: ?m,
    made with x in scope, becomes ?n[x], where ?n has the type (x : A) -> T. A solution found for it later,
    under another binder, may then depend on the variable there, and no solution names x once x is gone.
    The variables of its context from the first of ids on are abstracted, with the ones after that depend
@@ -2191,7 +2191,7 @@ freeVariableIds[term_] := Union @ Cases[term, freeVariable[id_] :> id, {0, Infin
 
 (* Whether term may stand where only the variables allowed are in scope, as a solution of a metavariable
    made there: it names no other variable, and each unsolved metavariable in it made in a larger context is
-   restricted to the variables both contexts have, as Lean's checkAssignment does, by a solution that is a
+   restricted to the variables both contexts have, by a solution that is a
    new metavariable made in the smaller context. A solution found for it later then names no variable the
    solution it is part of must not. *)
 withinContextQ[_, All] := True
@@ -2577,7 +2577,7 @@ etaReducedSolution[ids_List, value_] := With[{valueSpine = applicationSpine[valu
 (* A solution must have the metavariable's type; unifying the two types is what solves universe levels,
    such as the level of Equal in a == b once the type of a is known. It names only variables of the
    context the metavariable was made in. A value that names another variable, or the metavariable itself,
-   only inside a redex is beta reduced first, as Lean's unifier reduces it: ?b against ((t) ↦ N)[o], the
+   only inside a redex is beta reduced first: ?b against ((t) ↦ N)[o], the
    codomain of a function of o, is N. A solution whose type does not fit is undone, with what unifying the
    types solved, so that no failure is reported with it in place. *)
 assignMetavariable[metavariable[id_], value_] := Replace[admissibleSolution[id, value], {
@@ -2658,8 +2658,8 @@ unifyReduced[a_, b_] := With[
 	If[coreA =!= a || coreB =!= b, unify[coreA, coreB], unifyUnfolded[a, b]]
 ]
 
-(* a definition at the head of either side is unfolded once first, its recursive calls folded back, as
-   Lean's smart unfolding: n + (k + 1) against ?m + 1 gives ?m = n + k, not the recursor that Plus
+(* a definition at the head of either side is unfolded once first, its recursive calls folded back:
+   n + (k + 1) against ?m + 1 gives ?m = n + k, not the recursor that Plus
    unfolds to; only where neither unfolds so do both go to their weak head normal forms *)
 unifyUnfolded[a_, b_] := With[{unfoldedA = headUnfolded[a], unfoldedB = headUnfolded[b]},
 	If[ unfoldedA =!= None || unfoldedB =!= None,
@@ -2723,7 +2723,7 @@ unifyLevels[a_, b_] := With[{first = normalizeLevel[instantiateLevels[a]], secon
 			unifyLevels[First[first], loweredLevel[second, Last[first]]],
 		MatchQ[second, levelSuccessor[_levelMetavariable, _]] && loweredLevel[first, Last[second]] =!= None,
 			unifyLevels[First[second], loweredLevel[first, Last[second]]],
-		(* imax(a, b) = 0 holds exactly when b = 0, as Lean solves it: a statement whose sort must be Prop *)
+		(* imax(a, b) = 0 holds exactly when b = 0: a statement whose sort must be Prop *)
 		MatchQ[{first, second}, {levelImpredicativeMaximum[_, _], 0}],
 			unifyLevels[Last[first], 0],
 		MatchQ[{first, second}, {0, levelImpredicativeMaximum[_, _]}],

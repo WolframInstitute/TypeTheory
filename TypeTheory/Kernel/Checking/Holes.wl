@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (*
-Holes: theorems whose proofs are not finished yet, as Lean's sorry.
+Holes: theorems whose proofs are not finished yet.
 
 TypeTheoryHole[] and TypeTheoryHole[annotation] stand in the proof of a declared theorem for a term of the type
 expected there, and TypeTheoryTactic["Hole"] or TypeTheoryTactic["Hole", annotation] closes a goal of a proof with
@@ -49,7 +49,7 @@ PackageScoped[holeNameQ]
 (*Usage Messages*)
 
 
-TypeTheoryHole::usage = "TypeTheoryHole[] stands in the proof of a declared theorem for a term of the type expected there, a proof left to give, as Lean's sorry.\n\
+TypeTheoryHole::usage = "TypeTheoryHole[] stands in the proof of a declared theorem for a term of the type expected there, a proof left to give.\n\
 TypeTheoryHole[annotation] carries annotation, a citation or the evidence of a computation, which the hole's record keeps.\n\
 TypeTheoryHole[theorem, k] is the k-th hole of the proof of theorem, a constant of the environment that declares theorem."
 $elaboratedHoles::usage = "$elaboratedHoles is the list of the holes elaboration closed while a declaration's proof was elaborated, each \

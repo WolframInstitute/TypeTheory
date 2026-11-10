@@ -25,7 +25,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	And[a, b], Or[a, b], Not[a]         a ∧ b, a ∨ b, ¬a
 	Booleans, "true", "false"          𝔹, true, false       a constant named by a string shows as the string
 	Circle                              𝕊¹                   the circle of the HoTT environment
-	"and", "or", "not"                  a && b, a || b, !a   as Lean writes them for its Bool
+	"and", "or", "not"                  a && b, a || b, !a   the operations of the Booleans
 	Integers                            ℤ                    the integers of TypeTheoryEnvironment["Integers"]
 	"integerAddition" and the others    x + y, x y, x - y, -x, x^n, x ≤ y, ...   as the natural numbers' operations
 	"integerOfNatural"[n]               ↑n, or the literal n itself
@@ -33,7 +33,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	"rationalAddition" and the others   x + y, x y, x - y, -x, x^n, x^-1, x / y, x ≤ y, ...   as the integers' operations
 	"rationalOfInteger"[x]              ↑x, or the literal itself
 	"rationalOfPair"["pair"[a, b]]        a / (b + 1), and a where b is 0, for a literal b
-	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment, as Lean shows them
+	zero, successor[n]                  0, n + 1             the natural numbers of the term's environment
 	NaturalNumberPredecessor[n]         n - 1
 	IntervalZero, IntervalOne           0, 1                 the endpoints of the interval of cubical type theory
 	IntervalMeet, IntervalJoin, IntervalReverse   r ∧ s, r ∨ s, ~r
@@ -49,7 +49,7 @@ so the Wolfram Language's own typesetting decides where parentheses go:
 	Sequence[A, B]                      [A, B]               the type, as the sequences show; Sequence @@ As for a list
 	                                                         As of types that is no literal
 	List[A]                             {A}                  the type, as the Wolfram Language shows List[A]
-	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder, as Lean writes { x // p }
+	Subtype[Function[{x}, p]]           {x ∶ A // p}         one binder
 
 A constant named by a symbol outside System, a type or a function alike, as Option or a declared degree,
 shows in bold, so that it is told apart from a constant named by a string, which shows as the
@@ -222,7 +222,7 @@ typeOperatorBoxes[boxes_] := Replace[
 	{0, Infinity}
 ]
 
-(* A quantifier reaches as far right as it can, as Lean reads it, but for MakeBoxes ∀ binds tighter than
+(* A quantifier reaches as far right as it can, but for MakeBoxes ∀ binds tighter than
    ∧, ∨ and ⧦, so (∀x, p) ∧ q would show as ∀_x p ∧ q. An operand of those that ends with a quantifier,
    other than the last, is parenthesized, as MakeBoxes already does before ⇒ and ==; a notation given
    with MakeBoxes is parenthesized too. *)
@@ -306,7 +306,7 @@ displaySyntax[node : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_
 subtrahendTip[k_Integer] := Replace[tracedType[syntaxInteger[k]], None :> tracedType[syntaxInteger[-k]]]
 displaySyntax[node : syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[Times]], {syntaxInteger[-1], second_}]}]] /;
 	TrueQ[$tooltipsShown] := registered[node, syntaxHead[Subtract, {displaySyntax[first], displaySyntax[second]}]]
-(* products, sums, pairs and lists nested to the right show as one row, as Lean shows them *)
+(* products, sums, pairs and lists nested to the right show as one row *)
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[CartesianProductType]], {_, _}]] :=
 	syntaxHead[Cross, displaySyntax /@ rightNested[CartesianProductType, syntax]]
 displaySyntax[syntax : syntaxApplication[syntaxSymbol[HoldComplete[DisjointUnionType]], {_, _}]] :=
@@ -477,7 +477,7 @@ displaySyntax[syntaxSymbol[HoldComplete[Circle]]] := syntaxString["\[DoubleStruc
 displaySyntax[syntaxSymbol[HoldComplete[IntervalZero]]] := syntaxInteger[0]
 displaySyntax[syntaxSymbol[HoldComplete[IntervalOne]]] := syntaxInteger[1]
 displaySyntax[name : syntaxSymbol[_] | syntaxString[_]] /; naturalNumberConstantQ[name, "Zero"] := syntaxInteger[0]
-(* a variable the term binds shows in the color of a local variable, by its name, as Lean prints one, also when it was
+(* a variable the term binds shows in the color of a local variable, by its name, also when it was
    read in a context the context path leaves out, or in the paclet's own, where the symbol would show its context *)
 displaySyntax[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] /; KeyExistsQ[$boundSymbols, name] := typeTooltip[
 	styled[If[offPathQ[symbol] || privateNameQ[symbol], syntaxString[SymbolName[Unevaluated[symbol]]], syntaxSymbol[name]], "BoundVariable"],
@@ -531,13 +531,13 @@ displayApplication[
 ] /; FreeQ[body, name] := syntaxHead[Congruent, {left, right}]
 (* the predecessor shows as n - 1, which it is by computation *)
 displayApplication[syntaxSymbol[HoldComplete[NaturalNumberPredecessor]], {argument_}] := syntaxHead[Subtract, {argument, syntaxInteger[1]}]
-(* (a && b) && c shows as a && b && c, the way Lean reads it *)
+(* (a && b) && c shows as a && b && c, the way it is read *)
 displayApplication[syntaxString["not"], {argument_}] := syntaxHead[PlusMinus, {argument}]
 displayApplication[syntaxString["and"], {syntaxApplication[syntaxSymbol[HoldComplete[Nand]], rest_List], last_}] := syntaxHead[Nand, Append[rest, last]]
 displayApplication[syntaxString["and"], arguments_List] := syntaxHead[Nand, arguments]
 displayApplication[syntaxString["or"], {syntaxApplication[syntaxSymbol[HoldComplete[Nor]], rest_List], last_}] := syntaxHead[Nor, Append[rest, last]]
 displayApplication[syntaxString["or"], arguments_List] := syntaxHead[Nor, arguments]
-(* the integers' operations show as those of the natural numbers, which the types tell apart, as in Lean *)
+(* the integers' operations show as those of the natural numbers, which the types tell apart *)
 displayApplication[syntaxString["integerAddition"], arguments_List] := displayApplication[syntaxSymbol[HoldComplete[Plus]], arguments]
 displayApplication[syntaxString["integerMultiplication"], arguments_List] := displayApplication[
 	syntaxSymbol[HoldComplete[Times]],
@@ -607,7 +607,7 @@ displayApplication[syntaxString["rationalGreaterEqual"], arguments_List] := synt
 displayApplication[syntaxString["rationalGreater"], arguments_List] := syntaxHead[Greater, arguments]
 displayApplication[syntaxString["rationalOfInteger"], {literal : syntaxInteger[_Integer]}] := literal
 displayApplication[syntaxString["rationalOfInteger"], {negative : syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["-"], syntaxInteger[_Integer]}]}]}] := negative
-(* a natural number cast to an integer and then to a rational shows as Lean shows it, ↑↑n *)
+(* a natural number cast to an integer and then to a rational shows with an arrow for each cast, ↑↑n *)
 displayApplication[
 	syntaxString["rationalOfInteger"],
 	{syntaxApplication[syntaxSymbol[HoldComplete[Row]], {syntaxApplication[syntaxSymbol[HoldComplete[List]], {syntaxString["\[UpArrow]"], inner_}]}]}
@@ -632,13 +632,13 @@ fractionDisplay[numerator_, denominator_Integer] := syntaxHead[Divide, {numerato
    ↑(m + n) its sum *)
 prefixed[sign_String, argument_] /; atomicDisplayQ[argument] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign], argument}]}]
 prefixed[sign_String, argument_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign <> "("], argument, syntaxString[")"]}]}]
-(* (a + b) + c shows as a + b + c, and (a b) c as a b c, the way Lean reads + and * *)
+(* (a + b) + c shows as a + b + c, and (a b) c as a b c, the way they are read *)
 displayApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], {syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List], last_}] :=
 	syntaxHead[head, Append[rest, last]]
 (* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
 displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
 	syntaxHead[head, Prepend[rest, first]]
-(* successors of successors add up from the left, n + 1 + 1, as Lean writes them *)
+(* successors of successors add up from the left, n + 1 + 1 *)
 displayApplication[head_, {syntaxApplication[syntaxSymbol[HoldComplete[Plus]], summands_List]}] /; naturalNumberConstantQ[head, "Successor"] :=
 	syntaxHead[Plus, Append[summands, syntaxInteger[1]]]
 displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successor"] := syntaxHead[Plus, {argument, syntaxInteger[1]}]
@@ -955,7 +955,7 @@ displayApplication[
 	{_, syntaxApplication[syntaxSymbol[HoldComplete[RightTeeArrow]], {binder : syntaxApplication[syntaxSymbol[HoldComplete[Colon]], _], body_}]}
 ] := syntaxHead[NotExists, {binder, body}]
 
-(* a subtype of a predicate of one variable shows as Lean shows it, {x ∶ A // p} *)
+(* a subtype of a predicate of one variable shows as {x ∶ A // p} *)
 displayApplication[
 	syntaxSymbol[HoldComplete[Subtype]],
 	{syntaxApplication[syntaxSymbol[HoldComplete[RightTeeArrow]], {binder : syntaxApplication[syntaxSymbol[HoldComplete[Colon]], _], body_}]}
@@ -979,7 +979,7 @@ universeDisplay[syntaxInteger[n_Integer]] := sortDisplay["Type", syntaxInteger[n
 universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[1]}]] := sortDisplay["Type", level]
 universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[n_Integer]}]] :=
 	sortDisplay["Type", syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level, syntaxInteger[n - 1]}]]
-(* a maximum of successors is a successor: Type (max u v), as Lean writes it *)
+(* a maximum of successors is a successor: Type (max u v) *)
 universeDisplay[syntaxApplication[syntaxSymbol[HoldComplete[Max]], levels_List]] /; AllTrue[levels, successorSyntaxQ] :=
 	sortDisplay["Type", syntaxHead[Max, predecessorSyntax /@ levels]]
 universeDisplay[level_] := sortDisplay["Sort", level]
@@ -992,7 +992,7 @@ predecessorSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, s
 predecessorSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Plus]], {level_, syntaxInteger[n_Integer]}]] := syntaxHead[Plus, {level, syntaxInteger[n - 1]}]
 predecessorSyntax[syntaxInteger[n_Integer]] := syntaxInteger[n - 1]
 
-(* a level that is a sum or a maximum is parenthesized, as Lean writes it: Type (u + 1), Sort (max 1 u) *)
+(* a level that is a sum or a maximum is parenthesized: Type (u + 1), Sort (max 1 u) *)
 sortDisplay[keyword_String, level : syntaxApplication[syntaxSymbol[HoldComplete[Plus | Max | ImpredicativeMaximum]], _]] :=
 	sortDisplay[keyword, levelArgumentDisplay[level]]
 sortDisplay[keyword_String, level_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[keyword], styled[level, "Level"]}], syntaxString[" "]}]
@@ -1071,7 +1071,7 @@ TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, Type
 TypeTheoryDefinition /: MakeBoxes[declaration : TypeTheoryDefinition[name_, value_, options___], form : StandardForm | TraditionalForm] :=
 	declarationBoxes[declaration, definitionKeyword[Hold[options]], {{toSyntax[name], None, toSyntax[value]}}, form]
 
-(* an opaque definition, an instance or a coercion is named so, as Lean's opaque, instance and @[coe] *)
+(* an opaque definition, an instance or a coercion is named so *)
 definitionKeyword[heldOptions_Hold] := Replace[
 	Select[{"Opaque", "Instance", "Coercion"}, Function[role, MemberQ[heldOptions, (Rule | RuleDelayed)[role, True]]]],
 	{{} -> "definition", roles_ :> ToLowerCase[StringRiffle[roles, " "]]}

@@ -4,7 +4,7 @@
 Saved environments: an environment written to a file, and read back without checking its declarations again.
 
 Export["file.wxf", environment] writes the environment, and TypeTheoryEnvironment[File["file.wxf"]] reads it back. A
-file holds each term once, as Lean's .olean files do: the distinct composite subterms of the records, each in a row
+file holds each term once: the distinct composite subterms of the records, each in a row
 of a table after the rows of its parts, a part being termRef[row], and the records with termRef[row] for each term.
 The library environments share their records with the environments built on them, so a file stores only the
 records beyond the largest library environment it extends, its base, which it names:
@@ -34,7 +34,7 @@ records beyond the largest library environment it extends, its base, which it na
 	                      Normal writes a function type without its binder's name, can give an equal environment whose
 	                      hash differs
 
-Reading a file is a convenience, not a check: its records are taken as the file has them, as Lean takes an .olean.
+Reading a file is a convenience, not a check: its records are taken as the file has them.
 TypeTheoryEnvironment[File[...], "Check" -> True] reads the file and then replays every declaration with
 TypeTheoryCheck, as lean4checker replays an environment, and it is how to read a file another kernel wrote. The
 file is read held, with BinaryDeserialize[bytes, HoldComplete], and nothing in it evaluates before it is checked:

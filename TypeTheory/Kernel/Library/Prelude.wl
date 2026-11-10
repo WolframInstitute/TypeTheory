@@ -21,10 +21,10 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Equivalent[p, q]           with "equivalentIntroduction", the two implications
 	x != y                     Unequal, Not[x == y]
 	Identity, Composition      the identity function and composition of functions
-	QuotientType[r]            the quotient types of Lean's kernel, with QuotientIntroduction, QuotientLift and
+	QuotientType[r]            the quotient types, with QuotientIntroduction, QuotientLift and
 	                           QuotientInduction
 	m * n, m^n, Subtract[m, n] Times, Power and Subtract, the last stopping at 0, all by recursion on n
-	m <= n                     LessEqual, inductive as in Lean, with Less, GreaterEqual and Greater
+	m <= n                     LessEqual, an inductive family, with Less, GreaterEqual and Greater
 	Booleans                   with the constants "false" and "true", "not", "and" and "or", named by strings;
 	                           True, False, Not, And and Or stand for these where a Boolean is expected
 	"equal", "lessEqual"       the Boolean comparisons of natural numbers, which the kernel computes on literals
@@ -43,7 +43,7 @@ The theorems are proved by terms, mostly with the recursors: "falseElimination",
 order: commutativity, associativity and distributivity of addition and multiplication, cancellation,
 injectivity of the successor, and the order's reflexivity, transitivity and antisymmetry.
 
-The classical declarations come last: Lean's axioms "propositionalExtensionality", "quotientSoundness" and
+The classical declarations come last: the axioms "propositionalExtensionality", "quotientSoundness" and
 "choice", ChosenWitness defined from "choice", and "functionExtensionality", "excludedMiddle" and
 "doubleNegationElimination" proved from the axioms.
 
@@ -197,7 +197,7 @@ $constructiveDeclarations = {
 			Function[{Typed[x, \[Alpha]]}, f[g[x]]]
 		]
 	],
-	(* the quotient types of Lean's kernel, whose lift computes on a class; that related elements have equal
+	(* the quotient types, whose lift computes on a class; that related elements have equal
 	   classes is the axiom "quotientSoundness", among the classical declarations *)
 	TypeTheoryQuotients[],
 	TypeTheoryInductiveType[
@@ -208,7 +208,7 @@ $constructiveDeclarations = {
 			"successor" -> ForAll[{Typed[n, NonNegativeIntegers]}, NonNegativeIntegers]
 		}
 	],
-	(* addition by recursion on the second argument, as Lean's *)
+	(* addition by recursion on the second argument *)
 	TypeTheoryDefinition[
 		Plus,
 		Typed[
@@ -234,7 +234,7 @@ $constructiveDeclarations = {
 			TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]
 		]
 	],
-	(* subtraction stops at 0, by recursion on the second argument, as Lean's *)
+	(* subtraction stops at 0, by recursion on the second argument *)
 	TypeTheoryDefinition[
 		Subtract,
 		Typed[
@@ -249,7 +249,7 @@ $constructiveDeclarations = {
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
 		]
 	],
-	(* m (n + 1) is m n + m, as Lean's *)
+	(* m (n + 1) is m n + m *)
 	TypeTheoryDefinition[
 		Times,
 		Typed[
@@ -278,9 +278,9 @@ $constructiveDeclarations = {
 			TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]
 		]
 	],
-	(* the kernel computes these on literals with integers, as Lean's kernel computes its own *)
+	(* the kernel computes these on literals with integers *)
 	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power|>],
-	(* m <= n as Lean defines it: n is m, or the successor of a number m is at most *)
+	(* m <= n, inductively: n is m, or the successor of a number m is at most *)
 	TypeTheoryInductiveType[
 		LessEqual,
 		TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> TypeUniverse[0]],
@@ -734,17 +734,16 @@ $constructiveDeclarations = {
 		]]
 	],
 
-	(* the Booleans, with false before true and the operations by cases on the first argument, as Lean's
-	   Bool; the constants are named by strings, and once they are declared, True, False, And, Or and Not
+	(* the Booleans, with false before true and the operations by cases on the first argument;
+	   the constants are named by strings, and once they are declared, True, False, And, Or and Not
 	   stand for them where a Boolean is expected *)
 	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {"false" -> Booleans, "true" -> Booleans}],
 	TypeTheoryDefinition["not", Function[{Typed[a, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "true", "false", a]]],
 	TypeTheoryDefinition["and", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], "false", b, a]]],
 	TypeTheoryDefinition["or", Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, Booleans], b, "true", a]]],
 
-	(* decidable propositions, as Lean's Decidable: a proof of Not[p] or of p, in that order, which Decide
-	   turns into the Boolean it computes; Decide[p] finds the decision of p among the instances, as Lean's
-	   decide *)
+	(* decidable propositions: a proof of Not[p] or of p, in that order, which Decide
+	   turns into the Boolean it computes; Decide[p] finds the decision of p among the instances *)
 	TypeTheoryInductiveType[
 		Decidable,
 		ForAll[{Typed[p, TypeUniverse[0]]}, TypeUniverse[1]],
@@ -760,7 +759,7 @@ $constructiveDeclarations = {
 		]
 	],
 
-	(* Decide[p] == True proves p, as Lean's of_decide_eq_true; True, False, the connectives, and the
+	(* Decide[p] == True proves p; True, False, the connectives, and the
 	   equality and order of the natural numbers, are decidable, by instances *)
 	TypeTheoryTheorem[
 		"decideSoundness",
@@ -845,7 +844,7 @@ $constructiveDeclarations = {
 			e
 		]]
 	],
-	(* the equality of Booleans is decidable, by cases on both, as Lean's instDecidableEqBool *)
+	(* the equality of Booleans is decidable, by cases on both *)
 	TypeTheoryDefinition[
 		"booleanEqualityDecidable",
 		Function[{Typed[a, Booleans], Typed[b, Booleans]}, InductiveRecursor[Booleans][
@@ -857,7 +856,7 @@ $constructiveDeclarations = {
 		"Instance" -> True
 	],
 
-	(* the Boolean comparisons of natural numbers, by recursion on both, as Lean's Nat.beq and Nat.ble; the
+	(* the Boolean comparisons of natural numbers, by recursion on both; the
 	   kernel computes them on literals *)
 	TypeTheoryDefinition[
 		"equal",
@@ -982,8 +981,8 @@ $constructiveDeclarations = {
 		]]
 	],
 
-	(* a decision of m == n or m <= n is what the comparison gives, with the proof it gives, as Lean's
-	   Nat.decEq and Nat.decLe, instances as they are: on literals it is one step of the kernel, however
+	(* a decision of m == n or m <= n is what the comparison gives, with the proof it gives,
+	   an instance of each: on literals it is one step of the kernel, however
 	   large they are *)
 	TypeTheoryDefinition[
 		"naturalNumberEqualityDecidable",
@@ -1006,7 +1005,7 @@ $constructiveDeclarations = {
 		"Instance" -> True
 	],
 
-	(* pairs, sums, optional values and lists, laid out as Lean's Prod, Sum, Option and List *)
+	(* pairs, sums, optional values and lists *)
 	TypeTheoryInductiveType[
 		CartesianProductType,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
@@ -1220,9 +1219,9 @@ $constructiveDeclarations = {
 	]
 }
 
-(* The classical part of the prelude: Lean's axioms, propositional extensionality, the soundness of
+(* The classical part of the prelude: three axioms, propositional extensionality, the soundness of
    quotients and choice, with function extensionality proved from the soundness of quotients and the
-   excluded middle from all three, as Lean proves them, the second by Diaconescu's argument.
+   excluded middle from all three, the second by Diaconescu's argument.
    TypeTheoryEnvironment["Constructive"] is the prelude without it. *)
 $classicalDeclarations = {
 	TypeTheoryInductiveType[
@@ -1252,7 +1251,7 @@ $classicalDeclarations = {
 		]
 	],
 	(* two functions equal at every point are equal: they have the same class in the quotient of functions by
-	   that relation, and applying a class to a point gives the value there, as Lean proves funext *)
+	   that relation, and applying a class to a point gives the value there *)
 	TypeTheoryTheorem[
 		"functionExtensionality",
 		ForAll[
