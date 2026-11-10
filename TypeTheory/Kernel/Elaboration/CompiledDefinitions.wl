@@ -274,7 +274,8 @@ compiledDefinition[held : HoldComplete[symbol_Symbol], signature_Association, si
 				"Recursion" -> If[selfRecursiveQ[name, signatures], recursion, None]
 			|>]
 		},
-		With[{body = blockTerm[signature["Body"], scope, context, signatures]},
+		(* a loop that calls the function takes its recursion, of the function's own type *)
+		With[{body = blockTerm[signature["Body"], scope, Append[context, "OwnType" -> ownType], signatures]},
 			definitionDeclaration[
 				held,
 				functionTerm[
@@ -483,7 +484,11 @@ localSymbol[v_String] := compiledSymbol[StringReplace[v, {StartOfString ~~ "v" -
    test, then where it is true the body and the loop at fuelLeft on the locals as the body leaves them, and where it is
    false the pair of the locals as the test leaves them. A step of the test or the body that leaves is the function's
    leave. The function goes on with the loop's value, the locals as its parts. The locals are arguments, not one pair,
-   so that each is a variable whose value a round reads at once: a part of a part of a pair would carry the pair along. *)
+   so that each is a variable whose value a round reads at once: a part of a part of a pair would carry the pair along.
+   A loop that calls the function itself, in its test, in its body or in a loop of its own, takes after the fuel the
+   function's recursion, the function at the level below and of the function's own type, which the function passes on:
+   a call of the function in the loop is a call of that argument, and a theorem about the loop says what it takes that
+   argument to compute, which the induction on the levels gives. *)
 loopTerm[test : coreForm["StatementBlock"][_List, _], body : coreForm["StatementBlock"][_List, _], rest_List, ending_, scope_, signature_, signatures_, index_Integer] := With[
 	{
 		assigned = Select[DeleteDuplicates[Cases[{test, body}, coreForm["SetLocal"][v_String, _] :> v, Infinity]], Function[v, KeyExistsQ[scope, {"L", v}]]],
@@ -506,6 +511,7 @@ loopTerm[test : coreForm["StatementBlock"][_List, _], body : coreForm["Statement
 					callTerm[HoldComplete[name], Join[
 						If[signature["Levels"] === None, {}, {signature["Levels"]}],
 						{signature["Fuel"]},
+						If[selfCallingQ[{test, body}, signature], {signature["Recursion"]}, {}],
 						Map[Function[v, First[scope[{"L", v}]]], read],
 						Map[Function[v, First[scope[{"L", v}]]], assigned]
 					]],
@@ -519,6 +525,9 @@ loopTerm[test : coreForm["StatementBlock"][_List, _], body : coreForm["Statement
 loopTerm[test_, _, _, _, _, _, _, _] := unmodeled[test]
 
 loopBound[_, HoldComplete[call_], HoldComplete[out_], HoldComplete[type_], HoldComplete[after_]] := HoldComplete["confirmBind"[call, Function[{Typed[out, type]}, after]]]
+
+(* a loop whose test or body calls the function itself, in a loop of its own too *)
+selfCallingQ[code_, signature_Association] := signature["Recursion"] =!= None && ! FreeQ[code, coreForm["Call"][signature["Name"], _]]
 
 loopName[symbol_String, 1] := "While[" <> symbol <> "]"
 loopName[symbol_String, index_Integer] := "While[" <> symbol <> ", " <> ToString[index] <> "]"
@@ -535,6 +544,8 @@ loopDeclaration[name_String, assigned_List, kinds_List, read_List, coreForm["Sta
 		fuel = compiledSymbol["fuel"],
 		fuelLeft = compiledSymbol["fuelLeft"],
 		levels = compiledSymbol["levels"],
+		recursion = compiledSymbol["recursion"],
+		selfCalling = selfCallingQ[{testStatements, bodyStatements}, signature],
 		stateType = tupleType[Map[machineType, kinds]],
 		readBinders = Map[Function[v, {localSymbol[v], machineType[Last[scope[{"L", v}]]]}], read],
 		stateBinders = MapThread[Function[{v, kind}, {localSymbol[v], machineType[kind]}], {assigned, kinds}]
@@ -547,10 +558,15 @@ loopDeclaration[name_String, assigned_List, kinds_List, read_List, coreForm["Sta
 				Map[Function[v, {"L", v} -> {localSymbol[v], Last[scope[{"L", v}]]}], read],
 				MapThread[Function[{v, kind}, {"L", v} -> {localSymbol[v], kind}], {assigned, kinds}]
 			]],
-			(* the levels and the fuel are the loop's own arguments, and the function's recursion is out of reach *)
-			context = Join[signature, <|"Levels" -> If[signature["Levels"] === None, None, levels], "Fuel" -> fuel, "Recursion" -> None|>],
+			(* the levels and the fuel are the loop's own arguments, and so is the function's recursion where the loop calls
+			   the function itself: the function at the level below, which the function passes on *)
+			context = Join[signature, <|"Levels" -> If[signature["Levels"] === None, None, levels], "Fuel" -> fuel, "Recursion" -> If[selfCalling, recursion, None]|>],
 			stateTerms = Function[ended, Map[Function[v, First[ended[{"L", v}]]], assigned]],
-			budgets = Join[If[signature["Levels"] === None, {}, {{levels, HoldComplete[NonNegativeIntegers]}}], {{fuel, HoldComplete[NonNegativeIntegers]}}],
+			budgets = Join[
+				If[signature["Levels"] === None, {}, {{levels, HoldComplete[NonNegativeIntegers]}}],
+				{{fuel, HoldComplete[NonNegativeIntegers]}},
+				If[selfCalling, {{recursion, signature["OwnType"]}}, {}]
+			],
 			roundType = functionType[Map[Last, stateBinders], Replace[stateType, HoldComplete[type_] :> HoldComplete[type | Failure]]]
 		},
 		With[
@@ -700,6 +716,9 @@ atomTerm[coreForm["Temporary"][name_String], scope_] := Lookup[scope, Key[{"T", 
 atomTerm[coreForm["Constant"][value_Integer], _] := {HoldComplete[value], "Integer"}
 atomTerm[coreForm["Constant"][True], _] := {HoldComplete["true"], "Boolean"}
 atomTerm[coreForm["Constant"][False], _] := {HoldComplete["false"], "Boolean"}
+(* True and False as the code names them where a test gives one outright, as the And of two tests does *)
+atomTerm[coreForm["Global"]["System`True"], _] := {HoldComplete["true"], "Boolean"}
+atomTerm[coreForm["Global"]["System`False"], _] := {HoldComplete["false"], "Boolean"}
 atomTerm[other_, _] := unmodeled[other]
 
 (* the exact integer of a machine integer or a constant *)

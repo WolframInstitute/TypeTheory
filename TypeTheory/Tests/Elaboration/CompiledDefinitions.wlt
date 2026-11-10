@@ -449,6 +449,91 @@ VerificationTest[
 	TestID -> "Ranges-nested-Dos-and-where-a-Do-leaves"
 ]
 
+(* A loop that calls its function. A loop is a constant declared before its function, so it takes the function's
+   recursion as an argument, after the fuel: the function at the level below, of the function's own type. Four shapes: a
+   While and a Do whose bodies call the function, a loop in a loop that does, and a While whose test does. Each agrees
+   with the Wolfram Language given levels and fuel enough, leaves with Failure["RecursionLimit", <||>] with a level too
+   few, and is out of fuel with a round too few. The arguments are small: the functions call themselves 2^n times, and
+   the kernel computes a machine integer's sum anew wherever it reads it. *)
+selfLoop[n_Integer] := Module[{s = 0, i = 1}, While[i < n, s = s + selfLoop[i]; i = i + 1]; s + 1]
+selfDo[n_Integer] := Module[{s = 1}, Do[s = s + selfDo[i - 1], {i, n}]; s]
+selfNested[n_Integer] := Module[{s = 1, i = 1, j = 1}, While[i <= n, j = 1; While[j < i, s = s + selfNested[j - 1]; j = j + 1]; i = i + 1]; s]
+selfTested[n_Integer] := Module[{k = n, c = 0}, While[k > 0 && selfTested[k - 1] >= 0, c = c + 1; k = k - 1]; c]
+
+VerificationTest[
+	Module[{environment, model},
+		environment = TypeTheoryEnvironment[machine, Join[
+			TypeTheoryFormalize[selfLoop, machine], TypeTheoryFormalize[selfDo, machine], TypeTheoryFormalize[selfNested, machine], TypeTheoryFormalize[selfTested, machine]
+		]];
+		model[f_, levels_, fuel_, k_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], f[levels, fuel]], environment]]];
+		{
+			Head[environment],
+			Map[Function[declaration, HoldForm @@ Take[declaration, 1]], TypeTheoryFormalize[selfNested, machine]],
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["While[selfLoop]", environment]],
+				TypeTheoryTerm[
+					NonNegativeIntegers -> NonNegativeIntegers -> ("Integer64" -> ("Integer64" | Failure)) -> "Integer64" -> "Integer64" -> "Integer64" -> (CartesianProductType["Integer64", "Integer64"] | Failure),
+					environment
+				]
+			],
+			Map[Function[k, model[selfLoop, 20, 20, k] === selfLoop[k]], {-1, 0, 1, 2, 4, 5}],
+			Map[Function[k, model[selfDo, 20, 20, k] === selfDo[k]], {-1, 0, 1, 3, 4}],
+			Map[Function[k, model[selfNested, 20, 20, k] === selfNested[k]], {0, 1, 3, 4, 5}],
+			Map[Function[k, model[selfTested, 20, 20, k] === selfTested[k]], {-2, 0, 1, 3, 4}],
+			(* selfLoop at 5 calls itself to a depth of 5, and its loop takes 4 rounds and a last test *)
+			{model[selfLoop, 5, 5, 5], model[selfLoop, 4, 5, 5], model[selfLoop, 5, 4, 5]},
+			(* selfDo at 4 calls itself down to 0, and its Do takes 4 rounds and a last test *)
+			{model[selfDo, 5, 5, 4], model[selfDo, 4, 5, 4], model[selfDo, 5, 4, 4]},
+			{model[selfTested, 5, 5, 4], model[selfTested, 4, 5, 4], model[selfTested, 5, 4, 4]},
+			(* without a round no call is made, but the function is a level itself *)
+			{model[selfLoop, 1, 1, 1], model[selfLoop, 0, 1, 1], model[selfLoop, 1, 0, 1]}
+		}
+	],
+	{
+		TypeTheoryEnvironment,
+		{HoldForm["While[selfNested, 2]"], HoldForm["While[selfNested]"], HoldForm[selfNested]},
+		True,
+		ConstantArray[True, 6], ConstantArray[True, 5], ConstantArray[True, 5], ConstantArray[True, 5],
+		{selfLoop[5], Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]},
+		{selfDo[4], Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]},
+		{selfTested[4], Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]},
+		{1, Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]}
+	},
+	TestID -> "A-loop-that-calls-its-function-takes-the-functions-recursion"
+]
+
+(* And and Or of tests are the Ifs the compiler writes for them, with True or False outright in a branch, so the second
+   test is computed only where the first leaves the value open: a quotient behind a test of its divisor never divides
+   by 0 *)
+testsBoth[a_Integer, b_Integer] := If[a > 0 && b > 0, 1, 0]
+testsEither[a_Integer, b_Integer] := If[a > 0 || b > 0, 1, 0]
+testsGuarded[a_Integer, b_Integer] := If[a != 0 && Quotient[b, a] > 1, 1, 0]
+testsThree[a_Integer, b_Integer] := If[a > 0 && b > 0 && a < b, a, b]
+testsMixed[a_Integer, b_Integer] := If[(a > 0 || b > 0) && ! (a == b), a + b, 0]
+
+VerificationTest[
+	Module[{environment, model},
+		environment = TypeTheoryEnvironment[machine, Join[
+			TypeTheoryFormalize[testsBoth, machine], TypeTheoryFormalize[testsEither, machine], TypeTheoryFormalize[testsGuarded, machine],
+			TypeTheoryFormalize[testsThree, machine], TypeTheoryFormalize[testsMixed, machine]
+		]];
+		model[f_, a_, b_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			"confirmBind"["machineResult"[Typed[a, Integers]], Typed[x, "Integer64"] |-> "confirmBind"["machineResult"[Typed[b, Integers]], f[x]]],
+			environment
+		]]];
+		{
+			Head[environment],
+			Map[
+				Function[f, AllTrue[Tuples[{-2, 0, 1, 3}, 2], Apply[Function[{a, b}, model[f, a, b] === f[a, b]]]]],
+				{testsBoth, testsEither, testsGuarded, testsThree, testsMixed}
+			],
+			{model[testsGuarded, 0, 5], model[testsGuarded, 2, 5]}
+		}
+	],
+	{TypeTheoryEnvironment, ConstantArray[True, 5], {0, 1}},
+	TestID -> "And-and-Or-of-tests-compute-the-second-only-where-it-is-open"
+]
+
 (* an If whose branch sets a local, in the body of a loop: the steps to 1 of the Collatz map, counted, as the Wolfram
    Language counts them, and out of fuel with one round too few *)
 VerificationTest[
