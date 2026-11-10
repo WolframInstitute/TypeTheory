@@ -539,15 +539,3 @@ TypeTheoryProof[_Association]
 ```
 
 <!-- => TypeTheoryProof[_Association] -->
-
----
-
-[TypeTheoryProofTree]() knows the rules of natural deduction, not the recursor of [And]() that `"Cases"` uses to take a conjunction apart:
-
-```wl
-TypeTheoryProofTree[TypeTheoryProof[ForAll[{a, b}, Implies[a && b, b && a]], {
-    "Introduce"[a, b, h], "Cases"[h], "Introduce"[x, y], "Constructor", "Exact"[y], "Exact"[x]
-}]]
-```
-
-<!-- => Missing["Untranslatable"] -->

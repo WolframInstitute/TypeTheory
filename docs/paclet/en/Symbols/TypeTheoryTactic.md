@@ -52,7 +52,6 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"RewriteRepeated"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`. A definition applied to another unfolds after the inner one, so for a sum `total` defined by recursion on lists, `total[Join[Prepend[x][l], m]]` becomes `x + total[Join[l, m]]`, where an induction hypothesis about `total[Join[l, m]]` applies.
 - `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - `"NonlinearArithmetic"` multiplies once: it adds products of two factors, not of three.
-- The proofs `"LinearArithmetic"` and `"NonlinearArithmetic"` build compute with the literals of the statement, and with a few hundred, or with products of a few dozen, the kernel can reject the proof as a computation too deep to check.
 - A tactic that does not apply gives a [Failure]() that says why, with the goal.
 
 ## Basic Examples
@@ -1093,27 +1092,6 @@ TypeTheoryProof[ForAll[{n, m}, Implies[n <= m, n n n <= m m m]], {"Introduce"[n,
 ```
 
 <!-- => Failure["NoLinearCombination", ...] -->
-
----
-
-The proofs of `"LinearArithmetic"` compute with the literals of the statement, and with a few hundred the computation goes too deep for the kernel, which rejects the proof:
-
-```wl
-TypeTheoryProof[ForAll[{x, y}, Implies[2 x + 3 y <= 600, Implies[200 <= x, y <= 66]]], {
-    "Introduce"[x, y, h, k],
-    "LinearArithmetic"
-}]
-```
-
-<!-- => Failure["ProofRejected", ...] -->
-
-The products of `"NonlinearArithmetic"` reach that depth sooner; `n <= 7` gives `n n <= 49`, but `n <= 8` does not give `n n <= 64`:
-
-```wl
-TypeTheoryProof[ForAll[{n}, Implies[n <= 8, n n <= 64]], {"Introduce"[n, h], "NonlinearArithmetic"}]
-```
-
-<!-- => Failure["ProofRejected", ...] -->
 
 ---
 
