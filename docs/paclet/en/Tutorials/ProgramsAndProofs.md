@@ -918,7 +918,7 @@ doSum[n_Integer] := Module[{s = 0}, Do[s += i, {i, n}]; s];
 counted = TypeTheoryEnvironment[loops, TypeTheoryFormalize[doSum, loops]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 388 constants -->
+<!-- => TypeTheoryEnvironment summary box: 407 constants -->
 
 Its arguments are the fuel, the end and the step of the range, which it reads, and s and the counter, which it sets:
 
