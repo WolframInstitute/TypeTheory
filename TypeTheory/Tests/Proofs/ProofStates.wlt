@@ -750,3 +750,17 @@ VerificationTest[
 	{{}, {}, {{}, True}},
 	TestID -> "NonlinearArithmetic-proves-bounds-with-large-literals"
 ]
+
+
+(* the term of an unfinished proof has a hole for each open goal, numbered as the goals are listed, whatever ids the
+   proof keeps: ?1 and ?2 after the induction, and ?1, the step, once the base case is closed *)
+VerificationTest[
+	With[{proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]},
+		{
+			Cases[proof["Term"], Placeholder[hole_String] :> hole, {0, Infinity}, Heads -> True],
+			Cases[TypeTheoryTactic["Reflexivity"][proof]["Term"], Placeholder[hole_String] :> hole, {0, Infinity}, Heads -> True]
+		}
+	],
+	{{"?1", "?2"}, {"?1"}},
+	TestID -> "The-holes-of-an-unfinished-proof's-term-are-numbered-as-its-goals"
+]
