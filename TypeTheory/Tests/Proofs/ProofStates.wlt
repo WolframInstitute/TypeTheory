@@ -772,3 +772,31 @@ VerificationTest[
 	{{"?1", "?2"}, {"?1"}, True, {1, 1}},
 	TestID -> "The-holes-of-an-unfinished-proof's-term-are-numbered-as-its-goals"
 ]
+
+(* A definition by recursion unfolds at x + 1 as at successor[x], which shows alike, and recurses on x as it is written;
+   at x + 2 it unfolds twice. A recursion that gives a function, the recursor applied further to the definition's last
+   variables, unfolds too, its recursive call folded back into the definition. And a rewrite finds f[k + 1] where the
+   goal has f[successor[k]]. Each goal is closed by the reflexivity that ends the rewrite. *)
+VerificationTest[
+	With[
+		{
+			unfolding = TypeTheoryEnvironment[{
+				TypeTheoryDefinition[UnfoldingSum, n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> (k + 1) + r, n]],
+				TypeTheoryDefinition[UnfoldingAdd, {n, m} |-> InductiveRecursor[Naturals][(Naturals -> Naturals) &, x |-> x, {k, r} |-> (x |-> r[x + 1]), n][m]]
+			}]
+		},
+		{
+			TypeTheoryProof[ForAll[{a}, UnfoldingSum[a + 1] == (a + 1) + UnfoldingSum[a]], unfolding, {"Introduce"[a], "RewriteRepeated"[UnfoldingSum]}]["Goals"],
+			TypeTheoryProof[ForAll[{a}, UnfoldingSum[a + 2] == (a + 1 + 1) + ((a + 1) + UnfoldingSum[a])], unfolding, {"Introduce"[a], "RewriteRepeated"[UnfoldingSum]}]["Goals"],
+			TypeTheoryProof[ForAll[{a, b}, UnfoldingAdd[a + 1, b] == UnfoldingAdd[a, b + 1]], unfolding, {"Introduce"[a, b], "RewriteRepeated"[UnfoldingAdd]}]["Goals"],
+			NormalForm[TypeTheoryTerm[UnfoldingAdd[3, 4], unfolding]],
+			TypeTheoryProof[ForAll[{Typed[f, Naturals -> Naturals], Typed[k, Naturals]}, Implies[f[k + 1] == 0, f["successor"[k]] == 0]], {"Introduce"[f, k, h], "Rewrite"[h]}]["Goals"],
+			(* a variable for the argument: nothing unfolds, and the goal that no lemma changes is a failure *)
+			Replace[TypeTheoryProof[ForAll[{a}, UnfoldingSum[a] == 0], unfolding, {"Introduce"[a], "RewriteRepeated"[UnfoldingSum]}], failure_Failure :> failure["Tag"]]
+		}
+	],
+	{{}, {}, {}, TypeTheoryTerm[7, _], {}, "NoProgress"},
+	SameTest -> MatchQ,
+	TestID -> "A-recursion-unfolds-at-a-sum-with-a-literal-and-where-it-gives-a-function"
+]
+

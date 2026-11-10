@@ -2411,40 +2411,48 @@ openedFunction[body_, count_Integer] := {body, count}
 recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]], constantReference[recursor_, _] /; constantRecord[environment, recursor]["Kind"] === "Recursor"]
 
 (* A definition by structural recursion has a recursor applied to its parameters, motives and minor
-   premises, no indices, and last the major premise, one of the definition's count variables, which no
-   other argument of the recursor mentions. None for any other body. *)
+   premises, no indices, and the major premise, one of the definition's count variables, which no
+   other argument mentions. Where the recursion gives a function, the recursor may be applied further to the
+   definition's last variables, in order, as a loop is to the locals it sets: "While[f]"[fuel, n, s, i] is a recursor on
+   fuel applied to s and i, which the recursor's own arguments do not mention. None for any other body. *)
 computedRecursion[environment_, context_, name_, levels_, {body_, count_Integer}, arguments_List] := With[
 	{spine = applicationSpine[body]},
-	{record = constantRecord[environment, First[First[spine]]], recursorArguments = Last[spine]},
+	{record = constantRecord[environment, First[First[spine]]]},
+	{own = record["NumberOfParameters"] + record["NumberOfMotives"] + record["NumberOfMinors"] + 1},
+	{recursorArguments = Take[Last[spine], UpTo[own]], further = Drop[Last[spine], UpTo[own]]},
 	If[ And[
 			record["NumberOfIndices"] === 0,
-			Length[recursorArguments] === record["NumberOfParameters"] + record["NumberOfMotives"] + record["NumberOfMinors"] + 1,
-			MatchQ[Last[recursorArguments], boundVariable[k_Integer] /; k < count],
-			NoneTrue[Most[recursorArguments], Function[argument, boundVariableOccursQ[argument, First[Last[recursorArguments]]]]]
+			Length[recursorArguments] === own,
+			further === Table[boundVariable[k], {k, Length[further] - 1, 0, -1}],
+			MatchQ[Last[recursorArguments], boundVariable[k_Integer] /; Length[further] <= k < count],
+			NoneTrue[Most[recursorArguments], Function[argument, boundVariableOccursQ[argument, First[Last[recursorArguments]]]]],
+			NoneTrue[Most[recursorArguments], Function[argument, AnyTrue[Range[0, Length[further] - 1], Function[k, boundVariableOccursQ[argument, k]]]]]
 		],
-		refoldedRecursion[environment, context, name, levels, First[spine], recursorArguments, count, arguments],
+		refoldedRecursion[environment, context, name, levels, First[spine], recursorArguments, count, Length[further], arguments],
 		None
 	]
 ]
 
 (* The recursor reduced on the argument given for its major premise, or None if it does not reduce; in
    what it gives, a recursive call, the recursor applied to the same arguments but a smaller major
-   premise, is the definition applied to that one in its place. *)
-refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArguments_List, count_Integer, arguments_List] := With[
+   premise, is the definition applied to that one in its place. Where the definition applies the recursor to its last
+   further variables, the recursive call is the definition without them, a function of them as the recursor's value is,
+   and the reduct is applied to the arguments given for them. *)
+refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArguments_List, count_Integer, further_Integer, arguments_List] := With[
 	{
 		position = count - First[Last[recursorArguments]],
 		given = Take[arguments, count]
 	},
 	{prefix = makeApplication[recursor, Function[argument, instantiateBoundVariables[argument, given]] /@ Most[recursorArguments]]},
-	{reduced = reducedHeadWithoutUnfolding[environment, context, Construct[application, prefix, First[Drop[given, position - 1]]]]},
+	{reduced = reducedHeadWithoutUnfolding[environment, context, Construct[application, prefix, successorForm[environment, First[Drop[given, position - 1]]]]]},
 	If[ MatchQ[reduced, application[Verbatim[prefix], _]] || definitionApplicationQ[environment, context, First[Drop[given, position - 1]]],
 		None,
 		makeApplication[
 			ReplaceAll[reduced, application[Verbatim[prefix], smaller_] :> With[
-				{call = makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Drop[given, position]]]},
+				{call = makeApplication[constantReference[name, levels], Join[Take[given, position - 1], {smaller}, Take[Drop[given, position], count - position - further]]]},
 				call /; True
 			]],
-			Drop[arguments, count]
+			Drop[arguments, count - further]
 		]
 	]
 ]
@@ -2453,10 +2461,22 @@ refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArg
 (* the argument recursed on is an application of a definition, which unfolds first, children before their parent: the
    recursion reduced through it would leave that definition's own recursion in the result, where no recursive call of it
    folds back, as total[Join[Prepend[l, x], m]] would leave the recursor of Join in the call of total on the rest *)
-definitionApplicationQ[environment_, context_, term_] := MatchQ[
+definitionApplicationQ[environment_, context_, term_] := ! successorOffsetQ[environment, term] && MatchQ[
 	First[applicationSpine[reducedHeadWithoutUnfolding[environment, context, term]]],
 	constantReference[name_, _] /; constantRecord[environment, name]["Kind"] === "Definition"
 ]
+
+(* x + k, for a literal k > 0 and the registered addition, is k successors of x to the kernel, which reduces a recursor on
+   it as on a successor: triangular[k + 1] unfolds as triangular[successor[k]] does, which shows as it too *)
+successorOffsetQ[environment_, application[application[constantReference[name_, {}], _], naturalLiteral[k_Integer /; k > 0]]] :=
+	Replace[naturalNumberSettings[environment], {settings_Association :> name === Lookup[settings["Operations"], "Addition", None], _ :> False}]
+successorOffsetQ[_, _] := False
+
+(* x + k so read, written as the successor it is, of x or of x + (k - 1): the recursion then recurses on x as it is
+   written, where the addition's own equation would give x + 0 *)
+successorForm[environment_, term : application[application[addition_, base_], naturalLiteral[k_Integer]]] /; successorOffsetQ[environment, term] :=
+	Construct[application, constantReference[naturalNumberSettings[environment]["Successor"], {}], If[k == 1, base, makeApplication[addition, {base, Construct[naturalLiteral, k - 1]}]]]
+successorForm[_, term_] := term
 
 
 (* ::Subsection:: *)

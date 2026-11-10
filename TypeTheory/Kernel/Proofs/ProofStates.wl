@@ -753,12 +753,16 @@ instanceOfQ[environment_, context_, instance_] := With[{key = instancePatternKey
 	]]
 ]
 
-(* two closed terms equal without unfolding a definition: the same, the same number by arithmetic on literals, or
-   the same head applied to arguments equal in the same way. m 2 and m (1 + 1) are; Doubled[2] + 1 and 4 + 1 are not,
-   as Doubled must unfold, which reducing the head Plus would do to its arguments. *)
+(* two closed terms equal without unfolding a definition: the same, the same number by arithmetic on literals, the
+   same number of successors of bases equal in this way, or the same head applied to arguments equal in the same way.
+   m 2 and m (1 + 1) are, and f[k + 1] and f[successor[k]], which show alike; Doubled[2] + 1 and 4 + 1 are not, as
+   Doubled must unfold, which reducing the head Plus would do to its arguments. *)
 equalWithoutUnfoldingQ[environment_, context_, a_, b_] := Or[
 	a === b,
 	With[{valueA = literalValue[environment, context, a]}, valueA =!= None && valueA === literalValue[environment, context, b]],
+	With[{offsetA = successorOffset[environment, a], offsetB = successorOffset[environment, b]},
+		Last[offsetA] > 0 && Last[offsetA] === Last[offsetB] && equalWithoutUnfoldingQ[environment, context, First[offsetA], First[offsetB]]
+	],
 	With[{spineA = applicationSpine[a], spineB = applicationSpine[b]},
 		And[
 			Last[spineA] =!= {},
@@ -768,6 +772,16 @@ equalWithoutUnfoldingQ[environment_, context_, a_, b_] := Or[
 		]
 	]
 ]
+
+(* a term as k successors of a base, {base, k}, read without reducing: successor[x], and x + k for a literal k and the
+   registered addition, which the kernel reads as k successors of x *)
+successorOffset[environment_, term_] := Replace[naturalNumberSettings[environment], {settings_Association :> offsetOver[settings, term], _ :> {term, 0}}]
+
+offsetOver[settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] :=
+	With[{inner = offsetOver[settings, argument]}, {First[inner], Last[inner] + 1}]
+offsetOver[settings_, application[application[constantReference[addition_, {}], left_], naturalLiteral[k_Integer]]] /; addition === Lookup[settings["Operations"], "Addition", None] :=
+	With[{inner = offsetOver[settings, left]}, {First[inner], Last[inner] + k}]
+offsetOver[_, term_] := {term, 0}
 
 (* the literal a term computes to by the registered operations on literals alone, or None *)
 literalValue[_, _, literal_naturalLiteral] := literal
