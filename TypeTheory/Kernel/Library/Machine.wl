@@ -13,7 +13,8 @@ value is out of its type, and the failure is that leave.
 	                                 machine integer n, and n["proof"] the proof that it is in range
 	"MachineInteger", "Boolean"      the compiler's other names: "Integer64" on a 64-bit machine, and the Booleans
 	"machineResult"[x]               the machine integer of x where x is in range, "left", and the failure where it
-	                                 is not, "right": Integer64 | Failure
+	                                 is not, "right": Integer64 | Failure. It computes x first, so the value holds the
+	                                 class of one pair of literals, not the expression that x was
 	"machinePlus", "machineTimes"    the machine's sum and product of two integers: the machine result of the exact one
 	"machineIf"[b, x, y]             the compiler's If of a Boolean test
 	"machineQuotient", "machineMod"  the machine's quotient, rounded down, and remainder of two integers, leaving with
@@ -72,7 +73,91 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	(* the compiler's names: "MachineInteger" is "Integer64" on a 64-bit machine, and "Boolean" the Booleans *)
 	TypeTheoryDefinition["MachineInteger", "Integer64"],
 	TypeTheoryDefinition["Boolean", Booleans],
-	TypeTheoryDefinition["machineResult", Typed[
+	(* A machine value is one 64-bit integer, so its integer is kept as the class of one pair of literals, (n, 0) or
+	   (0, n), whatever expression computed it: "machineResult" computes its argument first. The kernel reduces a term
+	   only where it reads it, and a value that kept its sum as written would be computed again at every read, with
+	   everything it was computed from.
+	   "naturalStrict"[f, n] is f[n] with n computed first: the recursor reads n to choose its case, and gives f the
+	   literal, 0 or the one before it and 1. "integerStrict"[f, x] is f[x] with x computed first, as the class of its
+	   normal pair, each part computed. Both are f at the argument, "naturalStrictApply" and "integerStrictApply": the
+	   first in each case by computation, the second for the class of a pair, whose normal pair is of its class,
+	   "subtractionBalance". *)
+	machineTheorem["additionSuccessorSwap",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, (k + m) + 1 == (k + 1) + m],
+		{"Introduce"[k, m], "Ring"}
+	],
+	TypeTheoryTheorem["subtractionBalance",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Subtract[a, b] + b == a + Subtract[b, a]],
+		Function[{Typed[a, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[n, NonNegativeIntegers]}, ForAll[{Typed[b, NonNegativeIntegers]}, Subtract[n, b] + b == n + Subtract[b, n]]],
+			Function[{Typed[b, NonNegativeIntegers]}, "equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + b], "subtractionZeroLeft"[b]]],
+			Function[{Typed[k, NonNegativeIntegers], Typed[ih, ForAll[{Typed[b, NonNegativeIntegers]}, Subtract[k, b] + b == k + Subtract[b, k]]], Typed[b, NonNegativeIntegers]},
+				InductiveRecursor[NonNegativeIntegers][
+					Function[{Typed[c, NonNegativeIntegers]}, Subtract[k + 1, c] + c == (k + 1) + Subtract[c, k + 1]],
+					"equalitySymmetry"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, (k + 1) + x], "subtractionZeroLeft"[k + 1]]],
+					Function[{Typed[d, NonNegativeIntegers], Typed[ihd, Subtract[k + 1, d] + d == (k + 1) + Subtract[d, k + 1]]},
+						"equalityTransitivity"[
+							"equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + (d + 1)], "subtractionSuccessor"[k, d]],
+							"equalityTransitivity"[
+								"equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, x + 1], ih[d]],
+								"equalityTransitivity"[
+									"additionSuccessorSwap"[k, Subtract[d, k]],
+									"equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, (k + 1) + x], "equalitySymmetry"["subtractionSuccessor"[d, k]]]
+								]
+							]
+						]
+					],
+					b
+				]
+			],
+			a
+		]]
+	],
+	TypeTheoryDefinition["naturalStrict", Function[{TypedImplicit[B, TypeUniverse[u + 1]], Typed[f, NonNegativeIntegers -> B], Typed[n, NonNegativeIntegers]},
+		InductiveRecursor[NonNegativeIntegers][Function[{Typed[j, NonNegativeIntegers]}, B], f[0], Function[{Typed[k, NonNegativeIntegers], Typed[r, B]}, f[k + 1]], n]
+	]],
+	TypeTheoryTheorem["naturalStrictApply",
+		ForAll[{TypedImplicit[B, TypeUniverse[u + 1]], Typed[f, NonNegativeIntegers -> B], Typed[n, NonNegativeIntegers]}, "naturalStrict"[f, n] == f[n]],
+		Function[{TypedImplicit[B, TypeUniverse[u + 1]], Typed[f, NonNegativeIntegers -> B], Typed[n, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[m, NonNegativeIntegers]}, "naturalStrict"[f, m] == f[m]],
+				"equalityReflexivity"[f[0]],
+				Function[{Typed[k, NonNegativeIntegers], Typed[h, "naturalStrict"[f, k] == f[k]]}, "equalityReflexivity"[f[k + 1]]],
+				n
+			]
+		]
+	],
+	TypeTheoryDefinition["integerStrict", Function[{TypedImplicit[B, TypeUniverse[u + 1]], Typed[f, Integers -> B], Typed[x, Integers]},
+		"naturalStrict"[
+			Function[{Typed[a, NonNegativeIntegers]}, "naturalStrict"[Function[{Typed[b, NonNegativeIntegers]}, f["integerOfPair"["pair"[a, b]]]], "integerNormalPair"[x][[2]]]],
+			"integerNormalPair"[x][[1]]
+		]
+	]],
+	TypeTheoryTheorem["integerStrictApply",
+		ForAll[{TypedImplicit[B, TypeUniverse[u + 1]], Typed[f, Integers -> B], Typed[x, Integers]}, "integerStrict"[f, x] == f[x]],
+		Function[{TypedImplicit[B, TypeUniverse[u + 1]], Typed[f, Integers -> B], Typed[x, Integers]},
+			Construct[QuotientInduction, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], "integerRelation",
+				Function[{Typed[z, Integers]}, "integerStrict"[f, z] == f[z]],
+				Function[{Typed[s, CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]},
+					"equalityTransitivity"[
+						"naturalStrictApply"[
+							Function[{Typed[a, NonNegativeIntegers]}, "naturalStrict"[Function[{Typed[b, NonNegativeIntegers]}, f["integerOfPair"["pair"[a, b]]]], Subtract[s[[2]], s[[1]]]]],
+							Subtract[s[[1]], s[[2]]]
+						],
+						"equalityTransitivity"[
+							"naturalStrictApply"[Function[{Typed[b, NonNegativeIntegers]}, f["integerOfPair"["pair"[Subtract[s[[1]], s[[2]]], b]]]], Subtract[s[[2]], s[[1]]]],
+							"equalityCongruence"[f, "quotientSoundness"[
+								Typed["subtractionBalance"[s[[1]], s[[2]]], "integerRelation"["pair"[Subtract[s[[1]], s[[2]]], Subtract[s[[2]], s[[1]]]], s]]
+							]]
+						]
+					]
+				],
+				x
+			]
+		]
+	],
+	(* the machine integer of an integer in range, and the leave where it is out of range, of the integer as it is given *)
+	TypeTheoryDefinition["machineResultOfCanonical", Typed[
 		Typed[x, Integers] |-> InductiveRecursor[Decidable][
 			Typed[d, Decidable["integer64Range"[x]]] |-> "Integer64" | Failure,
 			Typed[h, Not["integer64Range"[x]]] |-> Typed["right"[Failure["IntegerOverflow", <||>]], "Integer64" | Failure],
@@ -81,10 +166,10 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 		],
 		Integers -> ("Integer64" | Failure)
 	]],
-	(* an exact result in range is the machine value, with no overflow: the decision of the range, whatever the instance,
+	(* an integer in range is the machine value, with no overflow: the decision of the range, whatever the instance,
 	   takes its true case, and any two proofs of the range are one *)
-	TypeTheoryTheorem["machineResultInRange",
-		ForAll[{Typed[x, Integers], Typed[h, "integer64Range"[x]]}, "machineResult"[x] == Typed["left"["subtype"[x, h]], "Integer64" | Failure]],
+	TypeTheoryTheorem["machineResultOfCanonicalInRange",
+		ForAll[{Typed[x, Integers], Typed[h, "integer64Range"[x]]}, "machineResultOfCanonical"[x] == Typed["left"["subtype"[x, h]], "Integer64" | Failure]],
 		Function[{Typed[x, Integers], Typed[h, "integer64Range"[x]]}, InductiveRecursor[Decidable][
 			Typed[d, Decidable["integer64Range"[x]]] |-> InductiveRecursor[Decidable][
 				Typed[e, Decidable["integer64Range"[x]]] |-> "Integer64" | Failure,
@@ -96,6 +181,16 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 			Typed[k, "integer64Range"[x]] |-> "equalityReflexivity"[Typed["left"["subtype"[x, h]], "Integer64" | Failure]],
 			"machineDecision"["integer64Range"[x]]
 		]]
+	],
+	(* the machine result of an integer: of the integer computed first, so that the value holds the class of one pair of
+	   literals *)
+	TypeTheoryDefinition["machineResult", Typed[Function[{Typed[x, Integers]}, "integerStrict"["machineResultOfCanonical", x]], Integers -> ("Integer64" | Failure)]],
+	(* an exact result in range is the machine value, with no overflow: computing the integer first changes no value *)
+	TypeTheoryTheorem["machineResultInRange",
+		ForAll[{Typed[x, Integers], Typed[h, "integer64Range"[x]]}, "machineResult"[x] == Typed["left"["subtype"[x, h]], "Integer64" | Failure]],
+		Function[{Typed[x, Integers], Typed[h, "integer64Range"[x]]},
+			"equalityTransitivity"["integerStrictApply"["machineResultOfCanonical", x], "machineResultOfCanonicalInRange"[x, h]]
+		]
 	],
 	(* the compiler's If of a Boolean test, the first value where it is true and the second where it is false *)
 	TypeTheoryDefinition["machineIf", Function[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[b, "Boolean"], Typed[x, A], Typed[y, A]},

@@ -453,8 +453,8 @@ VerificationTest[
    recursion as an argument, after the fuel: the function at the level below, of the function's own type. Four shapes: a
    While and a Do whose bodies call the function, a loop in a loop that does, and a While whose test does. Each agrees
    with the Wolfram Language given levels and fuel enough, leaves with Failure["RecursionLimit", <||>] with a level too
-   few, and is out of fuel with a round too few. The arguments are small: the functions call themselves 2^n times, and
-   the kernel computes a machine integer's sum anew wherever it reads it. *)
+   few, and is out of fuel with a round too few. The functions call themselves 2^n times, which the model computes
+   within the time the test gives it: a machine value holds its integer computed, not the sum it came from. *)
 selfLoop[n_Integer] := Module[{s = 0, i = 1}, While[i < n, s = s + selfLoop[i]; i = i + 1]; s + 1]
 selfDo[n_Integer] := Module[{s = 1}, Do[s = s + selfDo[i - 1], {i, n}]; s]
 selfNested[n_Integer] := Module[{s = 1, i = 1, j = 1}, While[i <= n, j = 1; While[j < i, s = s + selfNested[j - 1]; j = j + 1]; i = i + 1]; s]
@@ -476,10 +476,10 @@ VerificationTest[
 					environment
 				]
 			],
-			Map[Function[k, model[selfLoop, 20, 20, k] === selfLoop[k]], {-1, 0, 1, 2, 4, 5}],
-			Map[Function[k, model[selfDo, 20, 20, k] === selfDo[k]], {-1, 0, 1, 3, 4}],
-			Map[Function[k, model[selfNested, 20, 20, k] === selfNested[k]], {0, 1, 3, 4, 5}],
-			Map[Function[k, model[selfTested, 20, 20, k] === selfTested[k]], {-2, 0, 1, 3, 4}],
+			Map[Function[k, model[selfLoop, 20, 20, k] === selfLoop[k]], {-1, 0, 1, 2, 5, 9}],
+			Map[Function[k, model[selfDo, 20, 20, k] === selfDo[k]], {-1, 0, 1, 4, 8}],
+			Map[Function[k, model[selfNested, 20, 20, k] === selfNested[k]], {0, 1, 4, 5, 7}],
+			Map[Function[k, model[selfTested, 20, 20, k] === selfTested[k]], {-2, 0, 1, 4, 7}],
 			(* selfLoop at 5 calls itself to a depth of 5, and its loop takes 4 rounds and a last test *)
 			{model[selfLoop, 5, 5, 5], model[selfLoop, 4, 5, 5], model[selfLoop, 5, 4, 5]},
 			(* selfDo at 4 calls itself down to 0, and its Do takes 4 rounds and a last test *)
@@ -499,7 +499,27 @@ VerificationTest[
 		{selfTested[4], Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]},
 		{1, Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]}
 	},
+	TimeConstraint -> 120,
 	TestID -> "A-loop-that-calls-its-function-takes-the-functions-recursion"
+]
+
+(* a machine value holds its integer as the class of one pair of literals, whatever computed it: the head normal form of
+   a loop's sum is the same size after 2 rounds and after 16 *)
+VerificationTest[
+	With[{environment = TypeTheoryEnvironment[machine, TypeTheoryFormalize[compiledWhileSum, machine]]},
+		{
+			Map[
+				Apply[Function[{fuel, k}, LeafCount[WeakHeadNormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> compiledWhileSum[fuel, m]], environment]]]]],
+				{{3, 2}, {5, 4}, {9, 8}, {17, 16}}
+			],
+			MatchQ[
+				WeakHeadNormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[4, Integers]], Typed[m, "Integer64"] |-> compiledWhileSum[5, m]], environment]],
+				TypeTheoryTerm[Typed["left"["subtype"["integerOfPair"["pair"[10, 0]], _]], _], _]
+			]
+		}
+	],
+	{{52, 52, 52, 52}, True},
+	TestID -> "A-machine-value-holds-one-pair-of-literals-whatever-computed-it"
 ]
 
 (* And and Or of tests are the Ifs the compiler writes for them, with True or False outright in a branch, so the second
