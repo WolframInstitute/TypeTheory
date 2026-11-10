@@ -87,12 +87,12 @@ VerificationTest[
 	TestID -> "The-inverse-and-the-order"
 ]
 
-(* a natural number among the rationals is cast to an integer and then to a rational, which a goal shows as
-   Lean does, ↑↑n *)
+(* a natural number among the rationals is cast to an integer and then to a rational, which a goal shows with
+   an arrow for each cast, ↑↑n *)
 VerificationTest[
 	Cases[ToBoxes[TypeTheoryProof[ForAll[{Typed[n, Naturals]}, Typed[n, Rationals] + 0 == n], rationals]] //. (StyleBox | TooltipBox)[boxes_, ___] :> boxes, TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, _], Infinity],
 	{TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, "RowDefault"], TemplateBox[{"\"\[UpArrow]\[UpArrow]\"", "n"}, "RowDefault"]},
-	TestID -> "A-natural-number-among-the-rationals-shows-as-Lean-shows-it"
+	TestID -> "A-natural-number-among-the-rationals-shows-an-arrow-for-each-cast"
 ]
 
 (* a literal fraction among the factors of a product shows as the fraction, 1/2 (x + y) and 1/2 1, which keeps its

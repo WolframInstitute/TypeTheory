@@ -239,8 +239,8 @@ VerificationTest[
 	TestID -> "The-order-of-the-integers-is-decided"
 ]
 
-(* the quotient and the remainder of natural numbers compute on literals as Quotient and Mod, by a 0 divisor as Lean's
-   n / 0 and n % 0; their definitions are the role equations, so the registration is checked and trusts nothing *)
+(* the quotient and the remainder of natural numbers compute on literals as Quotient and Mod, and by a 0 divisor give 0
+   and the dividend; their definitions are the role equations, so the registration is checked and trusts nothing *)
 VerificationTest[
 	With[{integers = TypeTheoryEnvironment["Integers"]},
 		{
@@ -255,7 +255,7 @@ VerificationTest[
 ]
 
 (* Quotient and Mod of integers are the Wolfram Language's, rounded down and of the divisor's sign, at every sign of the
-   dividend and the divisor; by 0 they give 0 and the dividend, as Lean's Int.fdiv and Int.fmod. Quotient of natural
+   dividend and the divisor; by 0 they give 0 and the dividend. Quotient of natural
    numbers stays the natural numbers' *)
 VerificationTest[
 	With[{integers = TypeTheoryEnvironment["Integers"], grid = Flatten[Table[{x, y}, {x, -5, 5}, {y, -3, 3}], 1]},

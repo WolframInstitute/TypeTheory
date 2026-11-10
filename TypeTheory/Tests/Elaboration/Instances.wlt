@@ -70,7 +70,7 @@ VerificationTest[
 	TestID -> "No-instance-is-a-failure"
 ]
 
-(* inside a function, its instance-implicit variable is the instance of its type, as Lean's local instances *)
+(* inside a function, its instance-implicit variable is the instance of its type *)
 VerificationTest[
 	With[
 		{

@@ -192,7 +192,7 @@ VerificationTest[
 		{! FreeQ[boxes, "&&"], ! FreeQ[boxes, "||"], ! FreeQ[boxes, RowBox[{"!", _}]], FreeQ[boxes, "\[And]" | "\[Or]" | "\[Not]"], ! FreeQ[boxes, "\"\[DoubleStruckCapitalB]\""]}
 	],
 	{True, True, True, True, True},
-	TestID -> "The-Booleans-show-as-Lean-shows-them"
+	TestID -> "The-Booleans-show-as-And-Or-and-Not-are-written"
 ]
 
 VerificationTest[
@@ -297,7 +297,7 @@ VerificationTest[
 		Infinity
 	] =!= {},
 	True,
-	TestID -> "A-subtype-shows-as-Lean-shows-it"
+	TestID -> "A-subtype-shows-its-variable-and-its-property"
 ]
 
 VerificationTest[
@@ -437,7 +437,7 @@ VerificationTest[
 	TestID -> "A-sequence-and-its-type-show-in-brackets"
 ]
 
-(* every part with a type shows it on mouseover, as Lean's infoview does: an operator the type of the constant it is,
+(* every part with a type shows it on mouseover: an operator the type of the constant it is,
    which elaboration decides, ℕ → ℕ → ℕ for + of natural numbers and Expressions for an operator of an expression, as
    - in n x^(n - 1), a number its type, a constant of System, as Replace and AtomQ, on its name and brackets, and ↦ the
    type of its function; successor[k], shown as k + 1, shows the successor's type, beside the sum k + 1 *)

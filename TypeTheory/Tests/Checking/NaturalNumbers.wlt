@@ -419,7 +419,7 @@ VerificationTest[
 (* a quotient and a remainder by recursion on the dividend, the remainder counted up to the divisor and back to zero and
    decided by the registered equality, satisfy their equations by computation: they are checked, and a theorem that
    computes with them on literals rests on nothing trusted; 7 = 3 * 2 + 1, and with the divisor 0 the quotient is 0
-   and the remainder the dividend, as in Lean *)
+   and the remainder the dividend *)
 VerificationTest[
 	With[
 		{
@@ -456,7 +456,7 @@ VerificationTest[
 	TestID -> "A-quotient-and-a-remainder-that-meet-their-equations-are-checked"
 ]
 
-(* a quotient that does not meet its equations, as a projection, is accepted and trusted, as Lean's Nat.div, defined by
+(* a quotient that does not meet its equations, as a projection, is accepted and trusted, as any function defined by
    well-founded recursion, which does not compute on a variable, has to be: it computes the quotient on literals, 0 for
    2 / 3, and unfolds to 2, so 0 == 2, a proof of False, and the axiom closure names the registration it rests on;
    an operation of a role the kernel reads terms through is refused instead, as a multiplication *)

@@ -223,8 +223,8 @@ VerificationTest[
 	TestID -> "A-forged-binder-whose-domain-is-no-type-is-caught"
 ]
 
-(* Inside a check, proof irrelevance compares two proofs by propositions inferred without checking the proofs, as
-   in Lean's kernel. h of ForAll[{Typed[m, NonNegativeIntegers]}, True] applied to a proof is ill typed, yet
+(* Inside a check, proof irrelevance compares two proofs by propositions inferred without checking the proofs.
+   h of ForAll[{Typed[m, NonNegativeIntegers]}, True] applied to a proof is ill typed, yet
    inferred so it is a proof of True, which irrelevance finds equal to h[0]. Each forged proof of "additionZeroLeft"
    below is its own proof under a redex that binds such an h and reaches h["trueIntroduction"] only through that
    comparison: as an argument, as a function's domain, and as a local definition's value. The statement is kept,
@@ -312,7 +312,7 @@ VerificationTest[
 		TypeTheoryAxiomClosure[TypeTheoryTerm[True]]
 	},
 	{<|"choice" -> "Signature", "quotientSoundness" -> "Proposition", "propositionalExtensionality" -> "Proposition"|>, <||>, <||>},
-	TestID -> "The-axiom-closure-of-excluded-middle-is-Lean's-three-axioms"
+	TestID -> "The-axiom-closure-of-excluded-middle-is-the-three-classical-axioms"
 ]
 
 (* a proof's term reads back without the implicit arguments elaboration can find from its statement, and not without it:
@@ -351,7 +351,7 @@ VerificationTest[
 		Union @@ Map[Function[name, Keys[TypeTheoryAxiomClosure[TypeTheoryTerm[name, rationals]]]], Keys[rationals]]
 	],
 	{"choice", "propositionalExtensionality", "quotientSoundness", ExpressionEvaluate},
-	TestID -> "Every-constant-of-the-rationals-rests-on-Lean's-three-axioms-at-most"
+	TestID -> "Every-constant-of-the-rationals-rests-on-the-three-classical-axioms-at-most"
 ]
 
 VerificationTest[

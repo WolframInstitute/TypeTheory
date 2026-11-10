@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-(* Tests for holes: TypeTheoryHole and TypeTheoryTactic["Hole"] leave a proof to give, as Lean's sorry, and the theorem
+(* Tests for holes: TypeTheoryHole and TypeTheoryTactic["Hole"] leave a proof to give, and the theorem
    declares a constant of the kind "Hole" for each, which the queries report apart from the axioms.
    Run with: TestReport["TypeTheory/Tests/Proofs/Holes.wlt"] from the repository root. *)
 

@@ -1,6 +1,6 @@
 (* ::Package:: *)
 
-(* Tests for Checking/Quotients.wl: the quotient types of Lean's kernel, which the prelude declares with
+(* Tests for Checking/Quotients.wl: the quotient types, which the prelude declares with
    TypeTheoryQuotients[]; their lift and induction compute on a class, a lift needs its proof, the rules
    and the equality they need are checked, and a forged quotient record is caught. *)
 
@@ -29,7 +29,7 @@ VerificationTest[
 		MatchQ[prelude["functionExtensionality"], TypeTheoryTheorem[__]]
 	},
 	{4, 1, {"propositionalExtensionality", "quotientSoundness", "choice", ExpressionEvaluate}, True},
-	TestID -> "The-prelude-has-Lean's-quotients-and-axioms"
+	TestID -> "The-prelude-has-the-quotients-and-the-three-axioms"
 ]
 
 VerificationTest[

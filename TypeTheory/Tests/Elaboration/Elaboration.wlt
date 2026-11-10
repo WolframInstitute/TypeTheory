@@ -314,7 +314,7 @@ VerificationTest[
 	TestID -> "A-solution-out-of-scope-only-inside-a-redex-is-beta-reduced"
 ]
 
-(* a variable written without a type takes the type its body gives it, as Lean leaves a binder's type to unification *)
+(* a variable written without a type takes the type its body gives it, found by unification *)
 VerificationTest[
 	{
 		First[WeakHeadNormalForm[TypeTheoryTerm[ForAll[{n}, n + 0 == n]]]],
@@ -363,7 +363,7 @@ VerificationTest[
 ]
 
 (* A variable written without a type whose sort nothing decides: a theorem's statement is a proposition where it can be,
-   so p is a proposition; a level left over becomes a universe parameter u_1 of the declaration, as Lean binds one; a
+   so p is a proposition; a level left over becomes a universe parameter u_1 of the declaration; a
    term on its own, which has no parameters, takes Type; a variable whose type nothing decides is still asked for. A
    declaration reads back without the option "UniverseParameters" where Automatic gives the same list. *)
 VerificationTest[

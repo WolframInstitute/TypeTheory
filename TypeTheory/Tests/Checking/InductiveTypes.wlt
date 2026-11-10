@@ -287,7 +287,7 @@ VerificationTest[
 	TestID -> "A-nested-type-computes-through-its-container"
 ]
 
-(* Chain[Chain[Deep]] is the first container and Chain[Deep], inside it, the second, as Lean numbers them *)
+(* Chain[Chain[Deep]] is the first container and Chain[Deep], inside it, the second *)
 VerificationTest[
 	With[{deep = TypeTheoryEnvironment[chains, {TypeTheoryInductiveType[Deep, TypeUniverse[1], {DeepNode -> ForAll[{Typed[children, Chain[Chain[Deep]]]}, Deep]}]}]},
 		{

@@ -634,7 +634,7 @@ VerificationTest[
 	TestID -> "Rewrite-takes-an-instance-equal-to-the-side-by-computation"
 ]
 
-(* Rewrite compares its candidates without unfolding a definition, as Lean's kabstract at instances transparency:
+(* Rewrite compares its candidates without unfolding a definition:
    (2 + 2) + 1 is an instance of 4 + 1 by arithmetic on literals, but Doubled[2] + 1 is none, equal to it only once
    Doubled unfolds *)
 VerificationTest[

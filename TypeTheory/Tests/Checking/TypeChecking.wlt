@@ -201,7 +201,7 @@ VerificationTest[
 	TestID -> "Of-two-definitions-the-higher-unfolds-first"
 ]
 
-(* FirstOfPair reads a field of a pair, so it is an abbreviation, as Lean's projections are, and unfolds before a regular
+(* FirstOfPair reads a field of a pair, so it is an abbreviation, and unfolds before a regular
    definition: FirstOfPair["pair"[ParityAgain[100000], "false"]] is ParityAgain[100000] at once, where unfolding the higher
    ParityAgain first would run Parity's recursion 100000 deep *)
 VerificationTest[
@@ -469,7 +469,7 @@ VerificationTest[
 	TestID -> "Simple-types-of-chapter-2-and-self-application"
 ]
 
-(* vectors of the Lean tutorial's chapter 2: a literal in an index, 1 + 1 against 2, is equal by computation *)
+(* vectors indexed by their length: a literal in an index, 1 + 1 against 2, is equal by computation *)
 VerificationTest[
 	Head[TypeTheoryType[{
 		Typed[Vector, TypeUniverse[1] -> NonNegativeIntegers -> TypeUniverse[1]],
