@@ -84,3 +84,5 @@ MapThread[
 	{cases, expected}
 ];
 Print["system: ", $System, "  ", $ProcessorType];
+
+Exit[]
