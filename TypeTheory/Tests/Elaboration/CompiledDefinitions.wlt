@@ -872,3 +872,60 @@ VerificationTest[
 	},
 	TestID -> "An-If-whose-branch-sets-a-local-gives-the-locals-back"
 ]
+
+(* Typed code on machine reals, in TypeTheoryEnvironment["MachineReals"]. An argument x_Real is a machine real, a
+   rational that binary64 represents, and each step is the compiler's: a sum, a product and a difference are the results
+   of the exact ones; a quotient is x times the rounded 1/y, as the compiler writes it, Power[y, -1] and a product; a
+   machine integer in an operation with a real is made a real first; an order of reals is the rationals', Equal within
+   its tolerance; Round, Floor, Abs, Sqrt and N are the library's. Each function gives the Wolfram Language's own
+   machine real, to the last bit, with the rounding computed by NormalForm's "Implementations", and leaves where compiled
+   code declines. In "Machine", which has no reals, such code is a Failure that names the environment. *)
+realHalf[x_Real] := x / 2.
+realMix[x_Real, n_Integer] := (x + n) 2.5 - x / 3.
+realWhole[x_Real, y_Real] := If[x < y && x != 0., Round[x], Floor[y]]
+realRoot[x_Real] := Sqrt[Abs[x]] + N[2]
+realNewton[x_Real] := Module[{y = 1., i = 0}, While[i < 5, y = (y + x / y) / 2.; i = i + 1]; y]
+
+VerificationTest[
+	Module[{reals, environment, exact, value, one, two, mixed, fueled},
+		reals = TypeTheoryEnvironment["MachineReals"];
+		environment = TypeTheoryEnvironment[reals, Join[
+			TypeTheoryFormalize[realHalf, reals], TypeTheoryFormalize[realMix, reals], TypeTheoryFormalize[realWhole, reals],
+			TypeTheoryFormalize[realRoot, reals], TypeTheoryFormalize[realNewton, reals]
+		]];
+		exact[x_] := SetPrecision[x, Infinity];
+		value[term_] := TypeTheoryExpression[NormalForm[term, "Implementations" -> True]];
+		one[f_, x_] := With[{q = exact[x]}, value[TypeTheoryTerm["confirmBind"["real64Result"[Typed[q, Rationals]], f], environment]]];
+		two[f_, x_, y_] := With[{p = exact[x], q = exact[y]},
+			value[TypeTheoryTerm["confirmBind"["real64Result"[Typed[p, Rationals]], Function[{Typed[u, "Real64"]}, "confirmBind"["real64Result"[Typed[q, Rationals]], f[u]]]], environment]]];
+		mixed[f_, x_, n_] := With[{p = exact[x]},
+			value[TypeTheoryTerm["confirmBind"["real64Result"[Typed[p, Rationals]], Function[{Typed[u, "Real64"]}, "confirmBind"["machineResult"[n], f[u]]]], environment]]];
+		fueled[f_, fuel_, x_] := With[{q = exact[x]}, value[TypeTheoryTerm["confirmBind"["real64Result"[Typed[q, Rationals]], f[fuel]], environment]]];
+		{
+			Head[environment],
+			TypeTheoryFormalize[realHalf, reals],
+			Map[Function[x, one[realHalf, x] === exact[realHalf[x]]], {0.3, -7.25, 1.*^300}],
+			Map[Apply[Function[{x, n}, mixed[realMix, x, n] === exact[realMix[x, n]]]], {{0.1, 3}, {-2.5, -4}, {0.1, 9007199254740993}}],
+			Map[Apply[Function[{x, y}, two[realWhole, x, y] === realWhole[x, y]]], {{2.5, 7.9}, {8.5, 7.9}, {0., 7.9}, {-3.5, -2.2}}],
+			Map[Function[x, one[realRoot, x] === exact[realRoot[x]]], {-2., 0.2, 9.}],
+			{fueled[realNewton, 6, 2.] === exact[realNewton[2.]], fueled[realNewton, 5, 2.]},
+			(* half of a subnormal is below the smallest normal real; a whole number from 9*10^18 on *)
+			{one[realHalf, 1.*^-320], two[realWhole, 9.5*^18, 9.9*^18]},
+			TypeTheoryFormalize[realHalf, machine]["Tag"]
+		}
+	],
+	{
+		TypeTheoryEnvironment,
+		{TypeTheoryDefinition[realHalf, Typed[
+			Function[{Typed[x, "Real64"]}, "confirmBind"["real64Reciprocal"[Typed[2, Rationals]],
+				Function[{Typed[WolframInstitute`TypeTheory`Compiled`t2, "Real64"]}, "real64Times"[x[["rational"]], WolframInstitute`TypeTheory`Compiled`t2[["rational"]]]]]],
+			"Real64" -> ("Real64" | Failure)
+		]]},
+		ConstantArray[True, 3], ConstantArray[True, 3], ConstantArray[True, 4], ConstantArray[True, 3],
+		{True, Failure["OutOfFuel", <||>]},
+		{Failure["Underflow", <||>], Failure["IntegerOverflow", <||>]},
+		"NoMachineReals"
+	},
+	TimeConstraint -> 300,
+	TestID -> "Typed-code-on-machine-reals-gives-the-Wolfram-Languages-reals"
+]

@@ -40,7 +40,10 @@ RelatedTutorials: [Elaboration, TheWolframLanguage, PatternsAndRewriting]
 - Functions that call each other are one recursion on the levels: the constant `"Recursion[f, g]"`, named by the functions in the order of their names, is the tuple of them, and each function is its part of it. With no level each leaves with `Failure["RecursionLimit", <||>]`, and with one more each is its body, whose call of a function of the group is that function's part of the tuple at the level below. So every call of one of them is a level, as compiled code counts them: recursion of one function and of two that call each other decline at the same depth, past 4096 levels. A call of the function itself as its last step is the exception in compiled code, where it uses no level and never declines, while such calls between two functions do; the meaning counts a level for every call, and the levels are a variable of a theorem, which holds of both.
 - A loop that calls its function, in its test or its body, takes one more argument after the fuel: the function at the level below, of the function's own type, or the tuple at the level below where functions call each other, which the function passes to it from its recursion on the levels. A call of the function in the loop is a call of that argument, so a theorem about the loop says what it takes the argument to compute, and the induction on the levels gives it.
 - A [Do]() with an iterator is the [While]() the compiler writes for it: the end and the step of its range are locals it reads, and its counter is the last local it sets. The compiler keeps the iterator's symbol, which the `Do` localizes, in step with the counter, and the meaning reads the symbol as a local that each round sets from the counter. The counter's step is the machine's sum, so a `Do` whose range ends at the largest machine integer leaves after its last round, where the Wolfram Language's finishes: a theorem about a `Do` carries that the end and the step add up below 2^63. A range over the elements of a list is not read, and a body that sets its iterator gives `"UnmodeledOperation"`.
-- The compiled meaning needs one definition whose arguments are each `x_Integer`, and gives a [Failure]() tagged `"NoTypedEntry"` otherwise, or where the compiler gives no typed entry. a type other than the machine integers and the Booleans `"UnmodeledType"`, a step the model does not have yet, as a loop in a branch of an [If](), `"UnmodeledOperation"`, and `"Meaning" -> "Compiled"` in an environment without the machine integers `"NoMachineIntegers"`.
+- Typed code on machine reals is read in [TypeTheoryEnvironment]()`["MachineReals"]`, the rationals with the machine integers and the reals. An argument `x_Real` is a `"Real64"`, a rational that binary64 represents, and `x["rational"]` is its value. A sum, a difference and a product are `"real64Plus"`, `"real64Subtract"` and `"real64Times"` of the values: the result of the exact one, the machine real nearest it, ties to even. A quotient is the two steps the compiler writes for it, `"real64Reciprocal"` of the divisor and a product, as the Wolfram Language divides machine reals. A machine integer in an operation with a real is first made a real, `"real64OfInteger"`, which rounds past 2^53. An order of reals is the rationals', a Boolean, and [Equal]() is `"real64EqualQ"`, within 2^-46 of the larger; an order of a machine integer with a real leaves with `Failure["Range", <||>]` past 2^53. [Round](), [Floor](), [Ceiling]() and [IntegerPart]() give a machine integer, `Round` half to even; [Abs](), [Minus](), [N]() and [Sqrt]() are read too.
+- A real operation leaves where compiled code declines: `Failure["NotFinite", <||>]` for a result past the largest real or a division by 0., `Failure["Underflow", <||>]` for a product or a reciprocal whose result is not 0 and below 2^-1022, `Failure["Domain", <||>]` for the square root of a negative number, and `Failure["IntegerOverflow", <||>]` for a whole number from 9*10^18 on. These edges were run as compiled code against the evaluator on arm64 (`scripts/machine_real_checks.wl`); x86-64 has not been run.
+- The rounding `"real64Result"`, the whole number below a rational and the square root are axioms with an `"Implementation"`: the Wolfram Language computes them, with <code>[NormalForm]()[*term*, "Implementations" -> True]</code>, and the kernel never does, so [TypeTheoryAxiomClosure]() of a theorem about real code names them. Until the rounding is defined, a computed value of real code tests the reading of the code, the order of its steps, its leaves and its control flow, not the arithmetic. The model has no NaN and no infinity, since typed code leaves before it holds one, and it takes -0. for 0: a theorem states the equality of numbers.
+- The compiled meaning needs one definition whose arguments are each `x_Integer` or `x_Real`, and gives a [Failure]() tagged `"NoTypedEntry"` otherwise, or where the compiler gives no typed entry. Typed code with a machine real in an environment without the reals gives `"NoMachineReals"`. a type other than the machine integers and the Booleans `"UnmodeledType"`, a step the model does not have yet, as a loop in a branch of an [If](), `"UnmodeledOperation"`, and `"Meaning" -> "Compiled"` in an environment without the machine integers `"NoMachineIntegers"`.
 - The option `"Meaning"` is `"Function"`, the default outside the machine environment, for a constant that is the function *symbol* computes, `"Compiled"` for what its compiled code computes, or `"Rules"` for its rules, its [DownValues](), as a rewriting of expressions: the definition named `"DownValues[symbol]"` gives the expression that an expression rewrites to by the first rule that matches it, and `"none"` where none does and the expression stays as it is. The rules are terms of an environment with the Wolfram Language's expressions and matches, the prelude or one that extends it, as the integers do; another, such as the constructive environment, gives a [Failure]() tagged `"RulesEnvironment"`.
 - The rules are [MatchFirst]() of the [MatchSum]() of the matches of the rules, in the order the Wolfram Language tries them. The left side of each rule is translated from its pattern: the lengths and parts of the expression by [Length](), [Arguments]() and [MatchPart](), its heads and literals by [SameQ](), sequences by every split, an [Orderless]() head by every order, alternatives by [MatchSum](), exceptions by [MatchQ](), and conditions by [SameQ]() of their [ExpressionEvaluate]() and `True`. The right side is quoted as it is, its pattern variables the parts they match, whatever it calls: the rules give one step of evaluation. The tutorial *Patterns and Rewriting* goes through every pattern.
 - The atoms of the rules are data of the type [Atoms](), which nothing declares, so the kernel computes every test but a condition or a pattern test, which only the Wolfram Language evaluates.
@@ -420,6 +423,35 @@ TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[303
 ```
 
 <!-- => Failure["IntegerOverflow", <||>] -->
+
+---
+
+Typed code on machine reals is read in the environment of the machine reals. A quotient is the two steps the compiler writes, the reciprocal of the divisor and a product:
+
+```wl
+reals = TypeTheoryEnvironment["MachineReals"];
+mean[a_Real, b_Real] := (a + b) / 2.;
+compiledMean = TypeTheoryFormalize[mean, reals]
+```
+
+<!-- => {definition mean : Real64 → Real64 → (Real64 | Failure) := (a∶Real64) (b∶Real64) ↦ confirmBind[real64Plus[a〚"rational"〛, b〚"rational"〛], (t3∶Real64) ↦ confirmBind[real64Reciprocal[2], (t4∶Real64) ↦ real64Times[t3〚"rational"〛, t4〚"rational"〛]]]} -->
+
+The rounding is an axiom that the Wolfram Language computes, so the value needs `"Implementations" -> True`. A machine real is the rational it is exactly: 0.1 is not 1/10, and the mean of 0.1 and 0.2 is the machine real 0.15000000000000002:
+
+```wl
+means = TypeTheoryEnvironment[reals, compiledMean];
+value = TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+    "confirmBind"["real64Result"[1/10], Typed[x, "Real64"] |-> "confirmBind"["real64Result"[2/10], mean[x]]],
+    means], "Implementations" -> True]]
+```
+
+<!-- => 1351079888211149/9007199254740992 -->
+
+```wl
+{N[value], value == SetPrecision[mean[0.1, 0.2], Infinity]}
+```
+
+<!-- => {0.15, True} -->
 
 ## Properties and Relations
 

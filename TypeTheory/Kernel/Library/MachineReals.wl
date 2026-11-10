@@ -90,10 +90,11 @@ real64ResultValue[q_?NumericQ] := With[{nearest = nearestReal64[q]},
 (* no square root of a machine real is half way between two, so 60 digits of it round as the root itself does *)
 real64SqrtValue[q_?NumericQ] := real64ResultValue[If[IntegerQ[Sqrt[q]] || Head[Sqrt[q]] === Rational, Sqrt[q], Rationalize[N[Sqrt[q], 60], 0]]]
 
-(* the term of a machine real: its rational with the witness, the odd m and the exponents of 2 above and below *)
+(* the term of a machine real: its rational with the witness, the m and the exponents of 2 above and below. The m is
+   odd, but for a real past 2^971 times an odd number, whose m takes the factors of 2 past 2^971 *)
 real64ValueTerm[0] := HoldComplete[Typed["left"["subtype"[Typed[0, Rationals], "real64RepresentableOfWitness"[Typed[0, Rationals], 0, 0, 0,
 	"equalityReflexivity"["true"], "equalityReflexivity"["true"], "equalityReflexivity"["true"], "equalityReflexivity"["true"], "equalityReflexivity"["true"]]]], "Real64" | Failure]]
-real64ValueTerm[q_] := With[{exponent = IntegerExponent[Numerator[q], 2] - IntegerExponent[Denominator[q], 2]},
+real64ValueTerm[q_] := With[{exponent = Min[IntegerExponent[Numerator[q], 2] - IntegerExponent[Denominator[q], 2], 971]},
 	With[{m = q / 2^exponent, above = Max[exponent, 0], below = Max[-exponent, 0]},
 		If[ IntegerQ[m] && Abs[m] < 2^53 && above <= 971 && below <= 1074,
 			HoldComplete[Typed["left"["subtype"[Typed[q, Rationals], "real64RepresentableOfWitness"[Typed[q, Rationals], m, above, below,

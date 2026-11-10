@@ -318,7 +318,7 @@ TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p["third"]
 
 <!-- => Failure["ElaborationFailed", ...] -->
 
-The element of a [Subtype]() has a second name, that of its predicate's variable. A machine integer is an integer in the range of 64 bits, and the range is declared as a predicate of `integer`, so the integer of a machine integer `n` is `n["integer"]`, and its proof is of the range of that integer:
+The element of a [Subtype]() has a second name, that of its predicate's variable. A machine integer is an integer in the range of 64 bits, and the range is declared as a predicate of `integer`, so the integer of a machine integer `n` is `n["integer"]`, and its proof is of the range of that integer: A machine real, of `"MachineReals"`, is likewise a rational that binary64 represents, and `x["rational"]` is its value.
 
 ```wl
 TypeTheoryType[Typed[n, "Integer64"] |-> n["proof"], "Machine"]

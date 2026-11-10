@@ -120,6 +120,36 @@ VerificationTest[
 	TestID -> "Whole-numbers-of-a-real-and-Equal-within-its-tolerance"
 ]
 
+(* A value that an implementation computed is no proof. The Wolfram Language computes 0.1 + 0.2, but the kernel does not
+   compute the axiom, so the sum and its value are not equal by computation: DefinitionallyEqualQ says no, reflexivity
+   is refused as the proof of their equation, and the tactic leaves the goal open *)
+VerificationTest[
+	With[{a = realExact[0.1], b = realExact[0.2]},
+		Replace[WolframInstitute`TypeTheory`PackageScope`real64ValueTerm[realExact[0.1 + 0.2]], HoldComplete[sum_] :> {
+			realValue["real64Plus"[Typed[a, Rationals], b]] === realExact[0.1 + 0.2],
+			DefinitionallyEqualQ[TypeTheoryTerm["real64Plus"[Typed[a, Rationals], b], reals], TypeTheoryTerm[sum, reals]],
+			FailureQ[TypeTheoryCheck[
+				TypeTheoryTerm["equalityReflexivity"["real64Plus"[Typed[a, Rationals], b]], reals],
+				TypeTheoryTerm["real64Plus"[Typed[a, Rationals], b] == sum, reals]
+			]],
+			Replace[TypeTheoryProof[TypeTheoryTerm["real64Plus"[Typed[a, Rationals], b] == sum, reals], {"Reflexivity"}], {proof_TypeTheoryProof :> proof["Goals"] =!= {}, _ :> True}]
+		}]
+	],
+	{True, False, True, True},
+	TimeConstraint -> 120,
+	TestID -> "A-value-an-implementation-computed-is-no-proof"
+]
+
+(* the largest reals are 2^971 times an m that is even: the witness takes the factors of 2 past 2^971 into m *)
+VerificationTest[
+	Map[
+		Function[x, Replace[WolframInstitute`TypeTheory`PackageScope`real64ValueTerm[realExact[x]], {HoldComplete[term_] :> Head[TypeTheoryType[TypeTheoryTerm[term, reals]]], other_ :> other}]],
+		{1.7*^308, 1.*^308, 8.98846567431158*^307}
+	],
+	{TypeTheoryTerm, TypeTheoryTerm, TypeTheoryTerm},
+	TestID -> "A-real-past-2-to-the-971-has-its-witness"
+]
+
 (* a theorem about a real operation rests on the axiom it uses, and says so in its closure: the rounding, a constant
    that is assumed, beside the soundness of quotients, which the rationals rest on *)
 VerificationTest[

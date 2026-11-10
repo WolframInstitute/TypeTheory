@@ -72,9 +72,19 @@ compiledDeclarations[environment_, held : HoldComplete[symbol_Symbol]] := Which[
 	True,
 		Replace[loadKernelCompiler[], {
 			failure_Failure :> failure,
-			True :> compiledProgramDeclarations[environment, held, typedSignaturesOf[held]]
+			True :> With[{signatures = typedSignaturesOf[held]},
+				If[ realSignaturesQ[signatures] && ! constantDeclaredQ[environment, HoldComplete["Real64"]],
+					kernelFailure["NoMachineReals", "The typed code of `1` computes on machine reals: formalize it in TypeTheoryEnvironment[\"MachineReals\"], the machine integers with the rationals and the reals.", {HoldForm[symbol]}],
+					compiledProgramDeclarations[environment, held, signatures]
+				]
+			]
 		}]
 ]
+
+(* typed code with a machine real among its parameters, its variables or its results *)
+realSignaturesQ[signatures_Association] := AnyTrue[signatures, Function[signature,
+	MemberQ[signature["Variables"], "Real64"] || signature["Result"] === "Real64" || MemberQ[signature["Parameters"], {_, _, "Real64"}]
+]]
 
 (* the compiler's typed signatures of the symbol and the functions it calls, for machine integers as the arguments' patterns
    say *)
@@ -185,10 +195,15 @@ standardTypeName["Int64"] := "Integer64"
 standardTypeName["Bool"] := "Boolean"
 standardTypeName[type_] := type
 
-(* "MachineInteger" for each argument x_Integer of the one definition, the patterns matched as written *)
+(* "MachineInteger" for each argument x_Integer and "MachineReal" for each x_Real of the one definition, the patterns
+   matched as written *)
 argumentTypes[HoldComplete[symbol_Symbol]] := Replace[Map[definitionArguments, definitionStatements[symbol]], {
-	{arguments : HoldComplete[Verbatim[Pattern][_Symbol, Verbatim[Blank][Integer]]...]} :> ConstantArray["MachineInteger", Length[arguments]],
-	_ :> kernelFailure["NoTypedEntry", "The compiled meaning of `1` needs one definition whose arguments are each x_Integer, as the compiler types it.", {HoldForm[symbol]}]
+	{arguments : HoldComplete[Verbatim[Pattern][_Symbol, Verbatim[Blank][Integer | Real]]...]} :> Replace[
+		List @@ Map[HoldComplete, arguments],
+		{HoldComplete[Verbatim[Pattern][_, Verbatim[Blank][Integer]]] :> "MachineInteger", HoldComplete[Verbatim[Pattern][_, Verbatim[Blank][Real]]] :> "MachineReal"},
+		{1}
+	],
+	_ :> kernelFailure["NoTypedEntry", "The compiled meaning of `1` needs one definition whose arguments are each x_Integer or x_Real, as the compiler types it.", {HoldForm[symbol]}]
 }]
 
 (* the definitions of the functions that the symbol reaches, each after the ones it calls, and the symbol's last *)
@@ -448,8 +463,8 @@ parameterScope[parameters_List, terms_List] := Association[MapThread[
 	{parameters, terms}
 ]]
 
-machineType[type : "Integer64" | "Boolean"] := HoldComplete[type]
-machineType[type_] := kernelFailure["UnmodeledType", "The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\" and \"Boolean\".", {type}]
+machineType[type : "Integer64" | "Boolean" | "Real64"] := HoldComplete[type]
+machineType[type_] := kernelFailure["UnmodeledType", "The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\", \"Real64\" and \"Boolean\".", {type}]
 
 resultType[type_String] := Replace[machineType[type], HoldComplete[machine_] :> HoldComplete[machine | Failure]]
 
@@ -493,6 +508,7 @@ statementsTerm[{coreForm["SetTemporary"][t_String, step_], rest___}, ending_, sc
 (* a local set to a value is that value from here on; set to a constant, the machine integer of it, a step of its own *)
 statementsTerm[{coreForm["SetLocal"][v_String, atom_], rest___}, ending_, scope_, signature_, signatures_] := Replace[atomTerm[atom, scope], {
 	{HoldComplete[constant_], "Integer"} :> boundTerm[HoldComplete["machineResult"[constant]], {"L", v}, localSymbol[v], "Integer64", {rest}, ending, scope, signature, signatures],
+	{HoldComplete[constant_], "Rational"} :> boundTerm[HoldComplete["real64Result"[constant]], {"L", v}, localSymbol[v], "Real64", {rest}, ending, scope, signature, signatures],
 	entry_ :> statementsTerm[{rest}, ending, Append[scope, {"L", v} -> entry], signature, signatures]
 }]
 (* An If whose branch sets a local gives the locals back, as a loop does: its value is the locals that a branch sets, of
@@ -565,6 +581,10 @@ branchValue[None, _, parts_List, HoldComplete[type_]] := Replace[tupleTerm[parts
 branchValue[{HoldComplete[constant_], "Integer"}, "Integer64", parts_List, type_HoldComplete] := With[{name = compiledSymbol["branchValue"]},
 	Replace[{name, branchValue[None, "Integer64", Prepend[parts, name], type]}, {HoldComplete[variable_], HoldComplete[body_]} :>
 		HoldComplete["confirmBind"["machineResult"[constant], Function[{Typed[variable, "Integer64"]}, body]]]]
+]
+branchValue[{HoldComplete[constant_], "Rational"}, "Real64", parts_List, type_HoldComplete] := With[{name = compiledSymbol["branchValue"]},
+	Replace[{name, branchValue[None, "Real64", Prepend[parts, name], type]}, {HoldComplete[variable_], HoldComplete[body_]} :>
+		HoldComplete["confirmBind"["real64Result"[constant], Function[{Typed[variable, "Real64"]}, body]]]]
 ]
 branchValue[{term_HoldComplete, kind_String}, kind_String, parts_List, type_HoldComplete] := branchValue[None, kind, Prepend[parts, term], type]
 branchValue[{_, other_}, kind_, _, _] := unmodeled[{other, kind}]
@@ -752,8 +772,8 @@ expandedStatement[coreForm["SetTemporary"][t_String, coreForm["Call"][operation 
 	expandedPairwise[t, operation, first, {second, more}]
 (* a constant argument of a call of another function is first a machine integer of its own, bound as a step *)
 expandedStatement[coreForm["SetTemporary"][t_String, coreForm["Call"][name_String, arguments_List]]] /;
-	! StringStartsQ[name, "System`"] && ! FreeQ[arguments, coreForm["Constant"][_Integer]] :=
-	With[{constants = MapIndexed[Function[{argument, position}, If[MatchQ[argument, coreForm["Constant"][_Integer]], {StringJoin[t, "c", ToString[First[position]]], argument}, None]], arguments]},
+	! StringStartsQ[name, "System`"] && ! FreeQ[arguments, coreForm["Constant"][_Integer | _Real]] :=
+	With[{constants = MapIndexed[Function[{argument, position}, If[MatchQ[argument, coreForm["Constant"][_Integer | _Real]], {StringJoin[t, "c", ToString[First[position]]], argument}, None]], arguments]},
 		Append[
 			Map[Function[constant, coreForm["SetTemporary"][First[constant], Last[constant]]], DeleteCases[constants, None]],
 			coreForm["SetTemporary"][t, coreForm["Call"][name, MapThread[Function[{argument, constant}, If[constant === None, argument, coreForm["Temporary"][First[constant]]]], {arguments, constants}]]]
@@ -771,6 +791,112 @@ expandedPairwise[t_String, operation_String, first_, rest_List] := With[
 ]
 
 (* a step's term, {"Pure", term, kind} for a value that never leaves, {"Result", term, kind} for a machine result *)
+
+(* The steps of machine reals, as the compiler's table of typed operations has them. An operation with a real among its
+   operands is the reals': each operand is its exact rational, a real's value, a real constant, or an integer constant;
+   a machine integer is made a real first, a step of its own that rounds past 2^53, as the Wolfram Language makes it.
+   A sum, a difference and a product are the results of the exact ones; Power[y, -1], which the compiler writes for a
+   quotient before its product, is the reciprocal. An order of reals is the rationals', and of a machine integer with a
+   real it leaves past 2^53, where the C's conversion is not exact; Equal is within its tolerance, the integer made a
+   real. The whole numbers, Abs, Minus, N and Sqrt are the library's. *)
+realEntryQ[{_, "Real64" | "Rational"}] := True
+realEntryQ[_] := False
+
+realOperandsQ[atoms_List, scope_] := AnyTrue[atoms, Function[atom, MatchQ[atom, coreForm["Constant"][_Real]] || realEntryQ[Replace[atom, {
+	coreForm["Local"][name_String] :> Lookup[scope, Key[{"L", name}], None],
+	coreForm["Temporary"][name_String] :> Lookup[scope, Key[{"T", name}], None],
+	_ :> None
+}]]]]
+
+(* the exact rational of an operand that is no machine integer *)
+rationalTerm[{HoldComplete[x_], "Real64"}] := HoldComplete[x[["rational"]]]
+rationalTerm[{term_HoldComplete, "Rational"}] := term
+rationalTerm[{HoldComplete[constant_Integer], "Integer"}] /; Abs[constant] <= 9007199254740992 := HoldComplete[Typed[constant, Rationals]]
+rationalTerm[{_, kind_}] := unmodeled[{"an operand of a real operation", kind}]
+
+(* a step on the rationals of its operands, each machine integer among them made a real before it *)
+realStep[entries_List, build_] := With[
+	{converted = MapIndexed[
+		Function[{entry, position}, If[MatchQ[entry, {_, "Integer64"}], {compiledSymbol["real" <> ToString[First[position]]], integerTerm[entry]}, None]],
+		entries
+	]},
+	Fold[
+		Function[{inner, binder}, Replace[{inner, binder}, {
+			{HoldComplete[body_], {HoldComplete[variable_], HoldComplete[integer_]}} :> HoldComplete["confirmBind"["real64OfInteger"[integer], Function[{Typed[variable, "Real64"]}, body]]]
+		}]],
+		build[MapThread[Function[{entry, binder}, If[binder === None, rationalTerm[entry], Replace[First[binder], HoldComplete[variable_] :> HoldComplete[variable[["rational"]]]]]], {entries, converted}]],
+		Reverse[DeleteCases[converted, None]]
+	]
+]
+
+$realOperations = <|"System`Plus" -> "real64Plus", "System`Times" -> "real64Times", "System`Subtract" -> "real64Subtract"|>
+
+stepTerm[coreForm["Call"][operation : "System`Plus" | "System`Times" | "System`Subtract", {a_, b_}], scope_, _, _] /; realOperandsQ[{a, b}, scope] :=
+	{"Result", realStep[{atomTerm[a, scope], atomTerm[b, scope]}, Function[rationals, With[{name = $realOperations[operation]},
+		Replace[rationals, {HoldComplete[x_], HoldComplete[y_]} :> HoldComplete[name[x, y]]]]]], "Real64"}
+stepTerm[coreForm["Call"]["System`Power", {a_, coreForm["Constant"][-1]}], scope_, _, _] /; realOperandsQ[{a}, scope] :=
+	{"Result", realStep[{atomTerm[a, scope]}, Function[rationals, Replace[rationals, {HoldComplete[x_]} :> HoldComplete["real64Reciprocal"[x]]]]], "Real64"}
+stepTerm[coreForm["Call"]["System`Divide", {a_, b_}], scope_, _, _] /; realOperandsQ[{a, b}, scope] :=
+	{"Result", realStep[{atomTerm[a, scope], atomTerm[b, scope]}, Function[rationals, With[{reciprocal = compiledSymbol["reciprocal"]},
+		Replace[{rationals, reciprocal}, {{HoldComplete[x_], HoldComplete[y_]}, HoldComplete[r_]} :>
+			HoldComplete["confirmBind"["real64Reciprocal"[y], Function[{Typed[r, "Real64"]}, "real64Times"[x, r[["rational"]]]]]]]]]], "Real64"}
+
+$realFunctions = <|
+	"System`Abs" -> {"real64Abs", "Real64"}, "System`Minus" -> {"real64Minus", "Real64"}, "System`Sqrt" -> {"real64Sqrt", "Real64"},
+	"System`Round" -> {"real64Round", "Integer64"}, "System`Floor" -> {"real64Floor", "Integer64"},
+	"System`Ceiling" -> {"real64Ceiling", "Integer64"}, "System`IntegerPart" -> {"real64IntegerPart", "Integer64"}
+|>
+
+stepTerm[coreForm["Call"][operation_String, {a_}], scope_, _, _] /; KeyExistsQ[$realFunctions, operation] && realOperandsQ[{a}, scope] :=
+	With[{name = First[$realFunctions[operation]]},
+		{"Result", Replace[rationalTerm[atomTerm[a, scope]], HoldComplete[x_] :> HoldComplete[name[x]]], Last[$realFunctions[operation]]}
+	]
+(* N of an integer is the real of it, and of a real the real itself *)
+stepTerm[coreForm["Call"]["System`N", {a_}], scope_, _, _] := Replace[atomTerm[a, scope], {
+	entry : {_, "Integer64" | "Integer"} :> {"Result", Replace[integerTerm[entry], HoldComplete[n_] :> HoldComplete["real64OfInteger"[n]]], "Real64"},
+	{term_HoldComplete, "Real64"} :> {"Pure", term, "Real64"},
+	{HoldComplete[q_], "Rational"} :> {"Result", HoldComplete["real64Result"[q]], "Real64"},
+	{_, kind_} :> unmodeled[{"System`N", kind}]
+}]
+stepTerm[coreForm["Constant"][value_Real], _, _, _] := With[{exact = SetPrecision[value, Infinity]}, {"Result", HoldComplete["real64Result"[Typed[exact, Rationals]]], "Real64"}]
+
+(* the comparisons of reals: of rationals where no machine integer is among them *)
+$realComparisons = <|
+	"System`Less" -> Function[{x, y}, Replace[{x, y}, {HoldComplete[a_], HoldComplete[b_]} :> HoldComplete["rationalLessQ"[a, b]]]],
+	"System`LessEqual" -> Function[{x, y}, Replace[{x, y}, {HoldComplete[a_], HoldComplete[b_]} :> HoldComplete["rationalLessEqualQ"[a, b]]]],
+	"System`Greater" -> Function[{x, y}, Replace[{x, y}, {HoldComplete[a_], HoldComplete[b_]} :> HoldComplete["rationalLessQ"[b, a]]]],
+	"System`GreaterEqual" -> Function[{x, y}, Replace[{x, y}, {HoldComplete[a_], HoldComplete[b_]} :> HoldComplete["rationalLessEqualQ"[b, a]]]],
+	"System`Equal" -> Function[{x, y}, Replace[{x, y}, {HoldComplete[a_], HoldComplete[b_]} :> HoldComplete["real64EqualQ"[a, b]]]],
+	"System`Unequal" -> Function[{x, y}, Replace[{x, y}, {HoldComplete[a_], HoldComplete[b_]} :> HoldComplete["not"["real64EqualQ"[a, b]]]]]
+|>
+
+stepTerm[coreForm["Call"][operation_String, {a_, b_}], scope_, _, _] /; KeyExistsQ[$realComparisons, operation] && realOperandsQ[{a, b}, scope] :=
+	With[{entries = {atomTerm[a, scope], atomTerm[b, scope]}},
+		Which[
+			FreeQ[entries, {_, "Integer64"}],
+				{"Pure", $realComparisons[operation] @@ Map[rationalTerm, entries], "Boolean"},
+			MatchQ[operation, "System`Equal" | "System`Unequal"],
+				{"Result", realStep[entries, Function[rationals, Replace[$realComparisons[operation] @@ rationals, HoldComplete[test_] :> HoldComplete[Typed["left"[test], "Boolean" | Failure]]]]], "Boolean"},
+			True,
+				{"Result", rangedComparison[operation, entries], "Boolean"}
+		]
+	]
+
+(* an order of a machine integer and a real: the rationals' where the integer is no more than 2^53 in size, and the leave
+   past it *)
+rangedComparison[operation_String, entries_List] := With[
+	{
+		integer = First[Cases[entries, entry : {_, "Integer64"} :> integerTerm[entry]]],
+		test = $realComparisons[operation] @@ Map[Function[entry, If[MatchQ[entry, {_, "Integer64"}], Replace[integerTerm[entry], HoldComplete[n_] :> HoldComplete["rationalOfInteger"[n]]], rationalTerm[entry]]], entries]
+	},
+	Replace[{integer, test}, {HoldComplete[n_], HoldComplete[compared_]} :> HoldComplete[
+		"machineIf"["integerLessEqualQ"[n, 9007199254740992],
+			"machineIf"["integerLessEqualQ"[-9007199254740992, n], Typed["left"[compared], "Boolean" | Failure], Typed["right"[Failure["Range", <||>]], "Boolean" | Failure]],
+			Typed["right"[Failure["Range", <||>]], "Boolean" | Failure]
+		]
+	]]
+]
+
 stepTerm[coreForm["Call"][operation : "System`Plus" | "System`Times", {a_, b_}], scope_, _, _] :=
 	Replace[{integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]}, {
 		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Plus" :> {"Result", HoldComplete["machinePlus"[x, y]], "Integer64"},
@@ -834,6 +960,8 @@ atomTerm[coreForm["Local"][name_String], scope_] := Lookup[scope, Key[{"L", name
 atomTerm[coreForm["Temporary"][name_String], scope_] := Lookup[scope, Key[{"T", name}], unmodeled[coreForm["Temporary"][name]]]
 (* a constant is written bare: where the machine takes it, an integer is expected *)
 atomTerm[coreForm["Constant"][value_Integer], _] := {HoldComplete[value], "Integer"}
+(* a real constant is the rational it is *)
+atomTerm[coreForm["Constant"][value_Real], _] := With[{exact = SetPrecision[value, Infinity]}, {HoldComplete[Typed[exact, Rationals]], "Rational"}]
 atomTerm[coreForm["Constant"][True], _] := {HoldComplete["true"], "Boolean"}
 atomTerm[coreForm["Constant"][False], _] := {HoldComplete["false"], "Boolean"}
 (* True and False as the code names them where a test gives one outright, as the And of two tests does *)
@@ -847,13 +975,15 @@ integerTerm[{term_HoldComplete, "Integer"}] := term
 integerTerm[{_, kind_}] := unmodeled[kind]
 
 (* a machine integer or a Boolean as a value; a constant was bound as a machine integer before the call *)
-machineTerm[{term_HoldComplete, "Integer64" | "Boolean"}] := term
+machineTerm[{term_HoldComplete, "Integer64" | "Boolean" | "Real64"}] := term
 machineTerm[{_, kind_}] := unmodeled[kind]
 
 (* the block's value as a result: a machine integer or a Boolean that never left, or a constant's machine result *)
 valueTerm[{HoldComplete[x_], "Integer64"}, "Integer64"] := HoldComplete[Typed["left"[x], "Integer64" | Failure]]
 valueTerm[{HoldComplete[x_], "Boolean"}, "Boolean"] := HoldComplete[Typed["left"[x], "Boolean" | Failure]]
 valueTerm[{HoldComplete[x_], "Integer"}, "Integer64"] := HoldComplete["machineResult"[x]]
+valueTerm[{HoldComplete[x_], "Real64"}, "Real64"] := HoldComplete[Typed["left"[x], "Real64" | Failure]]
+valueTerm[{HoldComplete[q_], "Rational"}, "Real64"] := HoldComplete["real64Result"[q]]
 valueTerm[{_, kind_}, result_] := unmodeled[{kind, result}]
 
 unmodeled[form_] := kernelFailure["UnmodeledOperation", "The typed code has `1`, which the machine model does not have yet.", {Short[form, 2]}]
