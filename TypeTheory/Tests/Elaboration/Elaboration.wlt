@@ -496,7 +496,7 @@ VerificationTest[
 
 
 (* Named parts. A field of a structure is read by the name of its binder in the constructor, s["element"] or
-   s[["element"]], as well as by its index, and shown by that name. The core term of a held term, and the term it reads
+   s[["element"]], as well as by its index, and shown by that name, as the part s[["element"]]. The core term of a held term, and the term it reads
    back as, are compared here: the name is how the term is written, never part of it. *)
 SetAttributes[namedPartCore, HoldFirst]
 namedPartCore[term_, environment_] := WolframInstitute`TypeTheory`PackageScope`catchKernelFailure[
@@ -540,7 +540,7 @@ VerificationTest[
 		True, True, True, True, True,
 		TypeTheoryTerm[4, prelude],
 		TypeTheoryTerm[7, prelude],
-		TypeTheoryTerm[ForAll[{Typed[s, Subtype[Function[{Typed[k, NonNegativeIntegers]}, k > 0]]]}, s["element"] > 0], prelude]
+		TypeTheoryTerm[ForAll[{Typed[s, Subtype[Function[{Typed[k, NonNegativeIntegers]}, k > 0]]]}, s[["element"]] > 0], prelude]
 	},
 	TestID -> "A-part-of-a-structure-is-read-and-shown-by-its-name"
 ]
@@ -565,14 +565,14 @@ VerificationTest[
 		{
 			namedPartCore[Function[{Typed[n, "Integer64"]}, n["integer"]], machine] === namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine],
 			namedPartCore[Function[{Typed[n, "Integer64"]}, n["element"]], machine] === namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine],
-			MatchQ[namedPartShown[namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine], machine], TypeTheoryTerm[Function[{Typed[_, "Integer64"]}, _["integer"]], _]],
-			MatchQ[namedPartShown[namedPartCore[Function[{Typed[n, "Integer64"]}, n[[2]]], machine], machine], TypeTheoryTerm[Function[{Typed[_, "Integer64"]}, _["proof"]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine], machine], TypeTheoryTerm[Function[{Typed[_, "Integer64"]}, _[["integer"]]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[n, "Integer64"]}, n[[2]]], machine], machine], TypeTheoryTerm[Function[{Typed[_, "Integer64"]}, _[["proof"]]], _]],
 			(* a predicate written in the type: its variable reads, and the element shows by the field's own name *)
 			namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["k"]], prelude] ===
 				namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[[1]]], prelude],
 			MatchQ[
 				namedPartShown[namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["k"]], prelude], prelude],
-				TypeTheoryTerm[Function[{Typed[_, _Subtype]}, _["element"]], _]
+				TypeTheoryTerm[Function[{Typed[_, _Subtype]}, _[["element"]]], _]
 			]
 		}
 	],
@@ -598,7 +598,7 @@ VerificationTest[
 			namedPartCore[Function[{Typed[s, "Twins"]}, s["other"]], structures] === namedPartCore[Function[{Typed[s, "Twins"]}, s[[3]]], structures],
 			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Unnamed"]}, s[[2]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Unnamed"]}, _[[2]]], _]],
 			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Twins"]}, s[[1]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Twins"]}, _[[1]]], _]],
-			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Twins"]}, s[[3]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Twins"]}, _["other"]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Twins"]}, s[[3]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Twins"]}, _[["other"]]], _]],
 			NormalForm[TypeTheoryTerm["twins"[1, 2, 3][[2]] + "twins"[1, 2, 3]["other"], structures]]
 		}
 	],
@@ -620,8 +620,8 @@ VerificationTest[
 		{
 			namedPartCore[Function[{Typed[s, "Positive"]}, s["proof"]], clash] === namedPartCore[Function[{Typed[s, "Positive"]}, s[[2]]], clash],
 			namedPartCore[Function[{Typed[s, "Positive"]}, s["element"]], clash] === namedPartCore[Function[{Typed[s, "Positive"]}, s[[1]]], clash],
-			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Positive"]}, s[[1]]], clash], clash], TypeTheoryTerm[Function[{Typed[_, "Positive"]}, _["element"]], _]],
-			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Positive"]}, s[[2]]], clash], clash], TypeTheoryTerm[Function[{Typed[_, "Positive"]}, _["proof"]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Positive"]}, s[[1]]], clash], clash], TypeTheoryTerm[Function[{Typed[_, "Positive"]}, _[["element"]]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Positive"]}, s[[2]]], clash], clash], TypeTheoryTerm[Function[{Typed[_, "Positive"]}, _[["proof"]]], _]],
 			WolframInstitute`TypeTheory`PackageScope`namedPartIndex[clash, <||>, HoldComplete[Subtype], First[WolframInstitute`TypeTheory`PackageScope`elaborateClosedTerm[clash, HoldComplete["Positive"], None, {}]], "proof"]
 		}
 	],
@@ -650,15 +650,15 @@ VerificationTest[
 			},
 			{
 				inBoxes === inRenamed,
-				MatchQ[namedPartShown[inBoxes, boxes], TypeTheoryTerm[Function[{Typed[_, "Box"]}, _["content"] + _["weight"]], _]],
-				MatchQ[namedPartShown[inRenamed, renamed], TypeTheoryTerm[Function[{Typed[_, "Box"]}, _["inside"] + _["mass"]], _]],
+				MatchQ[namedPartShown[inBoxes, boxes], TypeTheoryTerm[Function[{Typed[_, "Box"]}, _[["content"]] + _[["weight"]]], _]],
+				MatchQ[namedPartShown[inRenamed, renamed], TypeTheoryTerm[Function[{Typed[_, "Box"]}, _[["inside"]] + _[["mass"]]], _]],
 				namedPartReadBack[inBoxes, boxes] === inBoxes,
 				namedPartReadBack[inRenamed, renamed] === inRenamed,
 				(* a name of the other environment is no name here *)
 				Replace[namedPartCore[Function[{Typed[b, "Box"]}, b["content"]], renamed], failure_Failure :> failure["Tag"]],
 				namedPartReadBack[integer, machine] === integer,
 				namedPartReadBack[shadowed, prelude] =!= shadowed && namedPartNameless[namedPartReadBack[shadowed, prelude]] === namedPartNameless[shadowed],
-				MatchQ[namedPartShown[shadowed, prelude], TypeTheoryTerm[Function[{Typed[k_, _], Typed[s_, Subtype[Function[{Typed[k1_, _]}, _]]]}, s_["element"] + k_], _] /; HoldComplete[k] =!= HoldComplete[k1]],
+				MatchQ[namedPartShown[shadowed, prelude], TypeTheoryTerm[Function[{Typed[k_, _], Typed[s_, Subtype[Function[{Typed[k1_, _]}, _]]]}, s_[["element"]] + k_], _] /; HoldComplete[k] =!= HoldComplete[k1]],
 				namedPartReadBack[nested, prelude] === nested,
 				Block[{WolframInstitute`TypeTheory`PackageScope`$exactReadBack = True},
 					WolframInstitute`TypeTheory`PackageScope`heldFromSyntax[WolframInstitute`TypeTheory`PackageScope`delaborate[boxes, <||>, namedPartCore[Function[{Typed[b, "Box"]}, b["weight"]], boxes]]]

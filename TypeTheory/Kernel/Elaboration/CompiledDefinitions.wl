@@ -8,7 +8,7 @@ The compiler of the WolframKernel project, the paclet Wolfram/KernelCompiler, gi
 numbers a typed entry: its TypedSignatures gives the types of the parameters and the result, and the body in
 administrative normal form, one statement for each step the C takes. Each step is read as what the machine computes:
 
-	t = Plus[a, b], Times[a, b]     "machinePlus" and "machineTimes" of the integers of a and b, a["integer"] for a machine
+	t = Plus[a, b], Times[a, b]     "machinePlus" and "machineTimes" of the integers of a and b, a[["integer"]] for a machine
 	                                integer a: the machine result of the exact sum or product, the leave
 	                                Failure["IntegerOverflow", <||>] out of range; more arguments combine pairwise, in
 	                                order, each step a result of its own, as the C combines them
@@ -457,7 +457,7 @@ tupleType[{type_HoldComplete}] := type
 tupleType[{HoldComplete[first_], rest__}] := Replace[tupleType[{rest}], HoldComplete[others_] :> HoldComplete[CartesianProductType[first, others]]]
 
 projectionTerms[state_HoldComplete, 1] := {state}
-projectionTerms[HoldComplete[state_], count_Integer] := Prepend[projectionTerms[HoldComplete[state["second"]], count - 1], HoldComplete[state["first"]]]
+projectionTerms[HoldComplete[state_], count_Integer] := Prepend[projectionTerms[HoldComplete[state[["second"]]], count - 1], HoldComplete[state[["first"]]]]
 
 (* a call of more than two numbers is the pairwise steps the C takes, each a temporary of its own; a call of a function
    takes machine integers, so a constant argument is first made one *)
@@ -554,7 +554,7 @@ atomTerm[coreForm["Constant"][False], _] := {HoldComplete["false"], "Boolean"}
 atomTerm[other_, _] := unmodeled[other]
 
 (* the exact integer of a machine integer or a constant *)
-integerTerm[{HoldComplete[x_], "Integer64"}] := HoldComplete[x["integer"]]
+integerTerm[{HoldComplete[x_], "Integer64"}] := HoldComplete[x[["integer"]]]
 integerTerm[{term_HoldComplete, "Integer"}] := term
 integerTerm[{_, kind_}] := unmodeled[kind]
 

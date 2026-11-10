@@ -306,13 +306,14 @@ delaborate[environment_, context_, term_] := Replace[term, {
 	_ :> syntaxOther[HoldComplete[term]]
 }]
 
-(* A field of a structure reads back by its name, s["element"], where it has one of its own, and by its index, s[[1]],
-   where it has none or the term is read back exactly. *)
+(* A field of a structure reads back by its name, s[["element"]], where it has one of its own, and by its index, s[[1]],
+   where it has none or the term is read back exactly. It is written as a part and not as s["element"], which reads
+   too: an output shows a string without its quotes, and s[element] would look like s applied to a variable. *)
 partSyntax[environment_, context_, structure_, index_, structureTerm_] := With[{shown = delaborate[environment, context, structureTerm]},
 	Replace[
 		If[TrueQ[$exactReadBack], None, shownPartName[environment, context, structure, index, structureTerm]],
 		{
-			name_String :> syntaxApplication[shown, {syntaxString[name]}],
+			name_String :> syntaxHead[Part, {shown, syntaxString[name]}],
 			_ :> syntaxHead[Part, {shown, syntaxInteger[index + 1]}]
 		}
 	]

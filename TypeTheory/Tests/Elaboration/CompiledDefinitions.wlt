@@ -50,7 +50,7 @@ compiledEnvironment = TypeTheoryEnvironment[machine, Catenate[{
 VerificationTest[
 	TypeTheoryFormalize[compiledProduct, machine],
 	{TypeTheoryDefinition[compiledProduct, Typed[
-		Function[{Typed[n, "Integer64"]}, "confirmBind"["machinePlus"[n["integer"], 1], Function[{Typed[WolframInstitute`TypeTheory`Compiled`t3, "Integer64"]}, "machineTimes"[n["integer"], WolframInstitute`TypeTheory`Compiled`t3["integer"]]]]],
+		Function[{Typed[n, "Integer64"]}, "confirmBind"["machinePlus"[n[["integer"]], 1], Function[{Typed[WolframInstitute`TypeTheory`Compiled`t3, "Integer64"]}, "machineTimes"[n[["integer"]], WolframInstitute`TypeTheory`Compiled`t3[["integer"]]]]]],
 		"Integer64" -> ("Integer64" | Failure)
 	]]},
 	TestID -> "A-compiled-function-is-its-typed-code-step-by-step"

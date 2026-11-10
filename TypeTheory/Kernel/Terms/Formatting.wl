@@ -679,9 +679,13 @@ userNotationQ[_] := False
 
 (* a projection of a name shown in color, in bold or with its type on mouseover is x〚1〛, where the Wolfram Language
    would put the styled name in parentheses *)
-displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structure_, indices__}]] := With[{shown = displaySyntax[structure]},
-	If[decoratedQ[shown], syntaxHead[partDisplay, Prepend[displaySyntax /@ {indices}, shown]], syntaxApplication[syntaxSymbol[HoldComplete[Part]], Prepend[displaySyntax /@ {indices}, shown]]]
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structure_, indices__}]] := With[{shown = displaySyntax[structure], parts = partIndexDisplay /@ {indices}},
+	If[decoratedQ[shown], syntaxHead[partDisplay, Prepend[parts, shown]], syntaxApplication[syntaxSymbol[HoldComplete[Part]], Prepend[parts, shown]]]
 ]
+
+(* the name of a part is a name, shown plain, also where a constant has it, as "left" and "right" *)
+partIndexDisplay[name_syntaxString] := name
+partIndexDisplay[index_] := displaySyntax[index]
 
 (* in text, x〚1〛 as well *)
 partDisplay /: Format[partDisplay[structure_, indices___], OutputForm] :=
