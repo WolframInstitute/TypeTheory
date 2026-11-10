@@ -218,10 +218,103 @@ Counts[Cases[tree, TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
 
 <!-- => <|"equalityReflexivity" -> 1, "additionSubtractionCancellation" -> 2, "equalitySymmetry" -> 34, "additionCommutativity" -> 9, "equalityCongruence" -> 48, "equalityTransitivity" -> 61, ..., "Assumption" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
 
-Most of those steps are the tactic's bookkeeping: `"PolynomialReduce"` proves the algebra by a general method, which normalizes both sides. Written by hand, the algebra is four equations after the definition unfolds: 2 distributes over the sum, the hypothesis gives 2 triangular[k], the common factor k + 1 comes out, and the factors swap. As a term, with no tactic:
+The kernel checks the proof again when the theorem is declared:
 
 ```wl
-byHand = TypeTheoryTerm[
+proved = TypeTheoryEnvironment[programs, TypeTheoryTheorem[GaussFormula, proof]];
+proved[GaussFormula]
+```
+
+<!-- => theorem GaussFormula : ∀_n∶ℕ 2 triangular[n] == n (n + 1) -->
+
+So `compiledClosedForm`, which computes `Quotient[n (n + 1), 2]`, gives `triangular[n]` for every n: n (n + 1) is even, twice `triangular[n]`, and its quotient by 2 is exact.
+
+## The Algebra by Hand
+
+Most of the 210 rules are the tactic's bookkeeping: `"PolynomialReduce"` proves the algebra by a general method, which normalizes both sides. By hand, the algebra is five equations. The proof starts again, with its tactics as a list, and stops at the goal that `"PolynomialReduce"` closed:
+
+```wl
+byHand = TypeTheoryProof[gaussStatement, {"Introduce"[n], "Induction"[n], "RewriteRepeated"[triangular], "Introduce"[k, ih], "RewriteRepeated"[triangular]}]
+```
+
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1) -->
+
+First, 2 distributes over the sum. The law is a theorem of the prelude:
+
+```wl
+programs["multiplicationDistributivityLeft"]
+```
+
+<!-- => theorem multiplicationDistributivityLeft : ∀_a∶ℕ ∀_b∶ℕ ∀_c∶ℕ a (b + c) == a b + a c -->
+
+Applied to 2, k + 1 and `triangular[k]`, it is an equation with the left side of the goal on its left. `"Rewrite"` replaces the left side of an equation by its right side, wherever it is in the goal:
+
+```wl
+byHand = TypeTheoryTactic["Rewrite", "multiplicationDistributivityLeft"[2, k + 1, triangular[k]]][byHand]
+```
+
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1) + 2 triangular[k] == (k + 1) (k + 1 + 1) -->
+
+In the term, a rewrite is the recursor of equality, which carries a statement along an equation. Its motive, a function of y, says that the goal with y in place of the left side implies the goal as it was. Where y is the left side itself, that is the identity p ↦ p, and the equation takes y to its right side. So the recursor turns a proof of the new goal, the hole, into a proof of the old one:
+
+```wl
+byHand["Term"]
+```
+
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ Equal_rec[ℕ, 2 (k + 1 + triangular[k]), (y ∶ ℕ) (t ∶ 2 (k + 1 + triangular[k]) == y) ↦ (y == (k + 1) (k + 1 + 1) ⇒ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1)), (p ∶ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1)) ↦ p, 2 (k + 1) + 2 triangular[k], multiplicationDistributivityLeft[2, k + 1, triangular[k]], ?1], n] -->
+
+Second, the hypothesis is an equation too, with 2 triangular[k] on its left, and it rewrites the same way. After it `triangular` is gone, and what is left is arithmetic:
+
+```wl
+byHand = TypeTheoryTactic["Rewrite", ih][byHand]
+```
+
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1) + k (k + 1) == (k + 1) (k + 1 + 1) -->
+
+Third, the common factor k + 1 comes out. Distributivity on the other side, `"multiplicationDistributivityRight"[2, k, k + 1]`, is the equation (2 + k) (k + 1) == 2 (k + 1) + k (k + 1). The left side of the goal is on its right, so `"equalitySymmetry"` turns the equation round first:
+
+```wl
+byHand = TypeTheoryTactic["Rewrite", "equalitySymmetry"["multiplicationDistributivityRight"[2, k, k + 1]]][byHand]
+```
+
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (2 + k) (k + 1) == (k + 1) (k + 1 + 1) -->
+
+Fourth, the factors swap:
+
+```wl
+byHand = TypeTheoryTactic["Rewrite", "multiplicationCommutativity"[2 + k, k + 1]][byHand]
+```
+
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (k + 1) (2 + k) == (k + 1) (k + 1 + 1) -->
+
+Fifth, the terms of 2 + k swap:
+
+```wl
+byHand = TypeTheoryTactic["Rewrite", "additionCommutativity"[2, k]][byHand]
+```
+
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (k + 1) (k + 2) == (k + 1) (k + 1 + 1) -->
+
+The two sides are now one number written in two ways: k + 2 and k + 1 + 1 are both the second successor of k, since addition is defined by recursion on its second argument. No law is needed for that. `"Reflexivity"` proves an equation whose sides compute to the same term:
+
+```wl
+byHand = TypeTheoryTactic["Reflexivity"][byHand]
+```
+
+<!-- => Proof complete -->
+
+The derivation has 27 rules where the tactic's has 210: the five equations, each under one recursor of equality with its identity, an assumption under an implication, inside the same induction:
+
+```wl
+Counts[Cases[TypeTheoryProofTree[byHand], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
+```
+
+<!-- => <|"equalityReflexivity" -> 2, "Assumption" -> 6, "ImpliesIntro" -> 6, "multiplicationDistributivityLeft" -> 1, "multiplicationDistributivityRight" -> 1, "equalitySymmetry" -> 1, "multiplicationCommutativity" -> 1, "additionCommutativity" -> 1, InductiveRecursor[Equal] -> 5, "ForAllIntro" -> 2, "Induction" -> 1|> -->
+
+The five equations can also be joined directly, in a term with no tactic. `"equalityTransitivity"` joins two equations end to end, and `"equalityCongruence"` applies a function to both sides of one: that is how the hypothesis reaches the second term of 2 (k + 1) + x, and the last equation the second factor of (k + 1) x. Each of the five steps is one line of the chain:
+
+```wl
+chain = TypeTheoryTerm[
     Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
         Function[{Typed[m, NonNegativeIntegers]}, 2 triangular[m] == m (m + 1)],
         "equalityReflexivity"[0],
@@ -243,30 +336,28 @@ byHand = TypeTheoryTerm[
         n
     ]],
     programs
-];
-TypeTheoryCheck[byHand, gaussStatement]
+]
+```
+
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(m ∶ ℕ) ↦ 2 triangular[m] == m (m + 1), equalityReflexivity[0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ equalityTransitivity[multiplicationDistributivityLeft[2, k + 1, triangular[k]], equalityTransitivity[equalityCongruence[(x ∶ ℕ) ↦ 2 (k + 1) + x, ih], equalityTransitivity[equalitySymmetry[multiplicationDistributivityRight[2, k, k + 1]], equalityTransitivity[multiplicationCommutativity[2 + k, k + 1], equalityCongruence[(x ∶ ℕ) ↦ (k + 1) x, additionCommutativity[2, k]]]]]], n] -->
+
+The kernel computes what the chain leaves out: that `triangular[k + 1]` is k + 1 + triangular[k], and that k + 2 is k + 1 + 1. It accepts the chain as a proof of the statement:
+
+```wl
+TypeTheoryCheck[chain, gaussStatement]
 ```
 
 <!-- => Success["TypeChecked", ...] -->
 
-The kernel computes what the chain leaves out: that `triangular[k + 1]` is k + 1 + triangular[k], and that k + 2 is k + 1 + 1. Its derivation has 17 rules where the tactic's has 210:
+Its derivation has 17 rules:
 
 ```wl
-Counts[Cases[TypeTheoryProofTree[byHand], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
+Counts[Cases[TypeTheoryProofTree[chain], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
 ```
 
 <!-- => <|"equalityReflexivity" -> 1, "multiplicationDistributivityLeft" -> 1, "Assumption" -> 1, "equalityCongruence" -> 2, "multiplicationDistributivityRight" -> 1, "equalitySymmetry" -> 1, "multiplicationCommutativity" -> 1, "additionCommutativity" -> 1, "equalityTransitivity" -> 4, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
 
-The kernel checks the proof again when the theorem is declared:
-
-```wl
-proved = TypeTheoryEnvironment[programs, TypeTheoryTheorem[GaussFormula, proof]];
-proved[GaussFormula]
-```
-
-<!-- => theorem GaussFormula : ∀_n∶ℕ 2 triangular[n] == n (n + 1) -->
-
-So `compiledClosedForm`, which computes `Quotient[n (n + 1), 2]`, gives `triangular[n]` for every n: n (n + 1) is even, twice `triangular[n]`, and its quotient by 2 is exact.
+The three terms differ in length and in nothing else: each has the statement as its type, and the kernel takes any of them as the proof of the theorem.
 
 ## Nicomachus's Theorem
 
