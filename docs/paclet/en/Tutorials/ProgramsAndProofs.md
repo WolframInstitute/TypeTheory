@@ -535,5 +535,248 @@ TypeTheoryAxiomClosure[recursionComputes]
 
 <!-- => <|"quotientSoundness" -> "Proposition"|> -->
 
-The levels are a variable of the theorem, so it holds of a compiled definition's 4096 levels and of the deeper recursion of a program [FunctionCompile]() compiles alike: the compiled recursion computes `triangular[n]` for every n it has levels for, as long as the sum fits. The loop of `compiledTotal` is the next step: its typed code is not read yet.
+The levels are a variable of the theorem, so it holds of a compiled definition's 4096 levels and of the deeper recursion of a program [FunctionCompile]() compiles alike: the compiled recursion computes `triangular[n]` for every n it has levels for, as long as the sum fits.
 
+## The Loop on the Machine
+
+A loop has typed code too. A [While]() of typed code has no bound, and a definition must end, so the meaning of a function with a loop takes fuel, a natural number: the rounds its loop may take. The sum 1 + ... + n as a loop:
+
+```wl
+whileSum[n_Integer] := Module[{s = 0, i = 1}, While[i <= n, s = s + i; i = i + 1]; s];
+loops = TypeTheoryEnvironment[recursions, TypeTheoryFormalize[whileSum, recursions]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 386 constants -->
+
+The loop is a constant of its own, `"While[whileSum]"`, by recursion on the fuel: it takes the fuel, the local it reads, n, and the locals it sets, s and i, and gives the pair of s and i it ends with, or a [Failure]():
+
+```wl
+TypeTheoryType[TypeTheoryTerm["While[whileSum]", loops]]
+```
+
+<!-- => ℕ → Integer64 → Integer64 → Integer64 → (Integer64 × Integer64 | Failure) -->
+
+With fuel for 11 rounds the sum to 10 is 55; with 10 the loop is out of fuel, which is no value of the compiled code but the meaning given too little:
+
+```wl
+TypeTheoryExpression[NormalForm[TypeTheoryTerm[{"confirmBind"["machineResult"[10], Typed[m, "Integer64"] |-> whileSum[11, m]], "confirmBind"["machineResult"[10], Typed[m, "Integer64"] |-> whileSum[10, m]]}, loops]]]
+```
+
+<!-- => {55, Failure["OutOfFuel", <||>]} -->
+
+A theorem about a loop is therefore about all fuel from some on. `"RewriteRepeated"` unfolds the loop by one round where its fuel is a successor, with the loop itself in the place of the next round: the test, the two steps of the body, and the pair where the test fails:
+
+```wl
+TypeTheoryProof[
+    ForAll[{Typed[f, NonNegativeIntegers], Typed[n1, "Integer64"], Typed[s, "Integer64"], Typed[i, "Integer64"], Typed[b, NonNegativeIntegers], Typed[top, NonNegativeIntegers],
+            Typed[hn, n1[["integer"]] == "integerOfNatural"[top]], Typed[hi, i[["integer"]] == "integerOfNatural"[b]], Typed[hle, Not[b <= top]]},
+        "While[whileSum]"[f + 1, n1, s, i] == Typed["left"["pair"[s, i]], CartesianProductType["Integer64", "Integer64"] | Failure]],
+    loops,
+    {"Introduce"[f, n1, s, i, b, top, hn, hi, hle], "RewriteRepeated"["While[whileSum]"]}
+]
+```
+
+<!-- => Proof, 1 goal: f ∶ ℕ, n1 ∶ Integer64, s ∶ Integer64, i ∶ Integer64, b ∶ ℕ, top ∶ ℕ, hn ∶ n1〚"integer"〛 == ↑top, hi ∶ i〚"integer"〛 == ↑b, hle ∶ ¬b ≤ top ⊢ machineIf[integerLessEqualQ[i〚"integer"〛, n1〚"integer"〛], confirmBind[machinePlus[s〚"integer"〛, i〚"integer"〛], (t6∶Integer64) ↦ confirmBind[machinePlus[i〚"integer"〛, 1], (t8∶Integer64) ↦ While[whileSum][f, n1, t6, t8]]], left[(s, i)]] == left[(s, i)] -->
+
+The proof needs the order of the integers decided on natural numbers, both ways, and the machine's sum of two natural numbers whose sum fits:
+
+```wl
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["integerLessEqualQOfNatural",
+        ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]],
+        Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, m <= n]},
+            InductiveRecursor[Exists][
+                Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, n == m + k]] |-> "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true",
+                {Typed[k, NonNegativeIntegers], Typed[e, n == m + k]} |-> "equalitySubstitution"[
+                    P -> Function[{Typed[x, NonNegativeIntegers]}, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[x]] == "true"],
+                    "equalitySymmetry"[e],
+                    "equalitySubstitution"[
+                        P -> Function[{Typed[y, Integers]}, "integerLessEqualQ"["integerOfNatural"[m], y] == "true"],
+                        "equalitySymmetry"["integerOfNaturalAddition"[m, k]],
+                        "integerLessEqualQSelfAddition"["integerOfNatural"[m], k]
+                    ]
+                ],
+                "lessEqualWitness"[m, n, h]
+            ]
+        ]
+    ],
+    TypeTheoryTheorem["integerLessEqualQNotOfNatural",
+        ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[Not[m <= n], "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
+        Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, Not[m <= n]]},
+            InductiveRecursor[Booleans][
+                Function[{Typed[b, Booleans]}, Implies["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == b, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
+                Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]}, e],
+                Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]},
+                    "falseElimination"[h["integerOfNaturalLessEqual"[m, n, "integerLessEqualQTrue"["integerOfNatural"[m], "integerOfNatural"[n], e]]]]],
+                "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]
+            ]["equalityReflexivity"["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]]]
+        ]
+    ],
+    TypeTheoryTheorem["machinePlusOfNatural",
+        ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < 9223372036854775808]},
+            "machinePlus"["integerOfNatural"[a], "integerOfNatural"[b]] == Typed["left"["subtype"["integerOfNatural"[a + b], "naturalInteger64Range"[a + b, h]]], "Integer64" | Failure]],
+        Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < 9223372036854775808]},
+            "equalityTransitivity"[
+                "equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "equalitySymmetry"["integerOfNaturalAddition"[a, b]]],
+                "machineResultOfNatural"[a + b, h]
+            ]
+        ]
+    ]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 389 constants -->
+
+And facts of arithmetic about the rounds and the bounds, each by a tactic:
+
+```wl
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["roundContinues", TypeTheoryProof[ForAll[{Typed[j, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + (d + 1), j + 1 <= k]], loops, {"Introduce"[j, d, k, e], "LinearArithmetic"}]],
+    TypeTheoryTheorem["roundStops", TypeTheoryProof[ForAll[{Typed[j, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j, Not[j + 1 <= k]]], loops, {"Introduce"[j, k, e, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["roundsLeft", TypeTheoryProof[ForAll[{Typed[j, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + (d + 1), k == (j + 1) + d]], loops, {"Introduce"[j, d, k, e], "LinearArithmetic"}]],
+    TypeTheoryTheorem["counterBound", TypeTheoryProof[ForAll[{Typed[j, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + (d + 1), Implies[k + 1 < 9223372036854775808, (j + 1) + 1 < 9223372036854775808]]], loops, {"Introduce"[j, d, k, e, b], "LinearArithmetic"}]],
+    TypeTheoryTheorem["commutedBound", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[t, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[(a + 1) + t < u, t + (a + 1) < u]], loops, {"Introduce"[a, t, u, h], "LinearArithmetic"}]],
+    TypeTheoryTheorem["zeroPlus", TypeTheoryProof[ForAll[{Typed[t, NonNegativeIntegers]}, t == 0 + t], loops, {"Introduce"[t], "LinearArithmetic"}]],
+    TypeTheoryTheorem["zeroBound", TypeTheoryProof[0 < 9223372036854775808, loops, {"Decide"}]],
+    TypeTheoryTheorem["oneBound", TypeTheoryProof[1 < 9223372036854775808, loops, {"Decide"}]],
+    TypeTheoryTheorem["triangularStep", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers]}, triangular[a] <= triangular[a + 1]], loops, {"Introduce"[a], "RewriteRepeated"[triangular], "LinearArithmetic"}]]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 398 constants -->
+
+The triangular numbers grow, so each one on the way is below the last, which fits:
+
+```wl
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["triangularMonotone", TypeTheoryProof[ForAll[{Typed[b, NonNegativeIntegers], Typed[a, NonNegativeIntegers]}, triangular[a] <= triangular[a + b]], loops, {"Introduce"[b], "Induction"[b], "Introduce"[a], "Exact"["lessEqualReflexivity"], "Introduce"[c, ih, a], "Exact"["lessEqualTransitivity"[ih[a], "triangularStep"[a + c]]]}]]
+}];
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["triangularBoundAt", TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == a + d, Implies[triangular[k] < 9223372036854775808, triangular[a] < 9223372036854775808]]], loops, {"Introduce"[a, d, k, e, b], "Rewrite"[e, "At" -> b], "Exact"["lessEqualTransitivity"["lessEqualSuccessor"["triangularMonotone"[d, a]], b]]}]]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 400 constants -->
+
+One round. Where the counter b is at most n, the loop with a unit of fuel more is the loop at the machine integers of a + b and b + 1: the round unfolds, the hypotheses rewrite the locals to the natural numbers they are, the test is true, and the two sums are machine integers. Where b is past n, the test is false and the loop gives the pair as it is:
+
+```wl
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["whileRound", TypeTheoryProof[ForAll[{Typed[f, NonNegativeIntegers], Typed[n1, "Integer64"], Typed[s, "Integer64"], Typed[i, "Integer64"], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[top, NonNegativeIntegers],
+            Typed[hn, n1[["integer"]] == "integerOfNatural"[top]], Typed[hs, s[["integer"]] == "integerOfNatural"[a]], Typed[hi, i[["integer"]] == "integerOfNatural"[b]],
+            Typed[hle, b <= top], Typed[h1, a + b < 9223372036854775808], Typed[h2, b + 1 < 9223372036854775808]},
+        "While[whileSum]"[f + 1, n1, s, i] == "While[whileSum]"[f, n1,
+            "subtype"["integerOfNatural"[a + b], "naturalInteger64Range"[a + b, h1]],
+            "subtype"["integerOfNatural"[b + 1], "naturalInteger64Range"[b + 1, h2]]]], loops, {"Introduce"[f, n1, s, i, a, b, top, hn, hs, hi, hle, h1, h2], "RewriteRepeated"["While[whileSum]"], "Rewrite"[hi], "Rewrite"[hn], "Rewrite"[hs],
+        "Rewrite"["integerLessEqualQOfNatural"[b, top, hle]], "Rewrite"["machinePlusOfNatural"[a, b, h1]], "Rewrite"["machinePlusOfNatural"[b, 1, h2]], "Reflexivity"}]],
+    TypeTheoryTheorem["whileStop", TypeTheoryProof[ForAll[{Typed[f, NonNegativeIntegers], Typed[n1, "Integer64"], Typed[s, "Integer64"], Typed[i, "Integer64"], Typed[b, NonNegativeIntegers], Typed[top, NonNegativeIntegers],
+            Typed[hn, n1[["integer"]] == "integerOfNatural"[top]], Typed[hi, i[["integer"]] == "integerOfNatural"[b]], Typed[hle, Not[b <= top]]},
+        "While[whileSum]"[f + 1, n1, s, i] == Typed["left"["pair"[s, i]], CartesianProductType["Integer64", "Integer64"] | Failure]], loops, {"Introduce"[f, n1, s, i, b, top, hn, hi, hle], "RewriteRepeated"["While[whileSum]"], "Rewrite"[hi], "Rewrite"[hn],
+        "Rewrite"["integerLessEqualQNotOfNatural"[b, top, hle]], "Reflexivity"}]]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 402 constants -->
+
+The invariant: after j rounds the sum is `triangular[j]` and the counter j + 1. With d rounds left, n == j + d, and fuel above d, the loop ends with the sum `triangular[n]`. The proof is by induction on the rounds left, and in each case by cases on the fuel: without fuel its bound is absurd; with none left to do, the loop stops; with a round left, `"whileRound"` rewrites the loop to the next round, where the hypothesis of the induction applies at the counter j + 1 with a unit of fuel less:
+
+```wl
+invariant = TypeTheoryProof[
+    ForAll[{Typed[top, NonNegativeIntegers], Typed[n1, "Integer64"]},
+        Implies[n1[["integer"]] == "integerOfNatural"[top], Implies[triangular[top] < 9223372036854775808, Implies[top + 1 < 9223372036854775808,
+            ForAll[{Typed[d, NonNegativeIntegers], Typed[j, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[s, "Integer64"], Typed[i, "Integer64"]},
+                Implies[top == j + d, Implies[d < fuel, Implies[s[["integer"]] == "integerOfNatural"[triangular[j]], Implies[i[["integer"]] == "integerOfNatural"[j + 1],
+                    Exists[{Typed[v, "Integer64"], Typed[w, "Integer64"]},
+                        "While[whileSum]"[fuel, n1, s, i] == Typed["left"["pair"[v, w]], CartesianProductType["Integer64", "Integer64"] | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]]]]]]]]]],
+    loops,
+    {
+        "Introduce"[top, n1, hn, bT, bN, d], "Induction"[d],
+        (* no round left: without fuel the bound on it is absurd; with fuel the loop stops with s *)
+        "Introduce"[j, fuel], "Induction"[fuel],
+        "Introduce"[s, i, e, h], "Exact"["falseElimination"["notLessZero"[0, h]]],
+        "Introduce"[f, ihf, s, i, e, h, hs, hi],
+        "Exact"["existsIntroduction"[s, "existsIntroduction"[i, "andIntroduction"[
+            "whileStop"[f, n1, s, i, j + 1, top, hn, hi, "roundStops"[j, top, e]],
+            "equalitySubstitution"[P -> Function[{Typed[x, NonNegativeIntegers]}, s[["integer"]] == "integerOfNatural"[triangular[x]]], "equalitySymmetry"[e], hs]
+        ]]]],
+        (* a round left: one round, then the hypothesis of the induction at the next counter and a unit of fuel less *)
+        "Introduce"[d1, ihd, j, fuel], "Induction"[fuel],
+        "Introduce"[s, i, e, h], "Exact"["falseElimination"["notLessZero"[d1 + 1, h]]],
+        "Introduce"[f, ihf, s, i, e, h, hs, hi],
+        "Rewrite"["whileRound"[f, n1, s, i, triangular[j], j + 1, top, hn, hs, hi, "roundContinues"[j, d1, top, e],
+            "commutedBound"[j, triangular[j], 9223372036854775808, "triangularBoundAt"[j + 1, d1, top, "roundsLeft"[j, d1, top, e], bT]],
+            "counterBound"[j, d1, top, e, bN]]],
+        "Apply"[ihd[j + 1]],
+        "Exact"["roundsLeft"[j, d1, top, e]],
+        "Exact"["lessOfSuccessors"[d1, f, h]],
+        "Exact"["equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, "integerOfNatural"[x]], "additionCommutativity"[triangular[j], j + 1]]],
+        "Reflexivity"
+    }
+]
+```
+
+<!-- => Proof complete -->
+
+```wl
+loops = TypeTheoryEnvironment[loops, {TypeTheoryTheorem["whileInvariant", invariant]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 403 constants -->
+
+The function starts the loop at 0 and 1 and gives the first of the pair. So for every fuel above n, wherever `triangular[n]` and n + 1 fit a machine integer, the compiled loop at a machine integer whose integer is n gives a machine integer whose integer is `triangular[n]`:
+
+```wl
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["whileSumOfLoop", TypeTheoryProof[ForAll[{Typed[fuel, NonNegativeIntegers], Typed[n, "Integer64"], Typed[v, "Integer64"], Typed[w, "Integer64"]},
+        Implies[
+            "While[whileSum]"[fuel, n, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]]] ==
+                Typed["left"["pair"[v, w]], CartesianProductType["Integer64", "Integer64"] | Failure],
+            whileSum[fuel, n] == Typed["left"[v], "Integer64" | Failure]]], loops, {"Introduce"[fuel, n, v, w, h], "Exact"["equalityCongruence"[
+        Function[{Typed[r, CartesianProductType["Integer64", "Integer64"] | Failure]},
+            "confirmBind"[r, Function[{Typed[state, CartesianProductType["Integer64", "Integer64"]]}, Typed["left"[state[["first"]]], "Integer64" | Failure]]]],
+        h]]}]]
+}];
+loops = TypeTheoryEnvironment[loops, {
+    TypeTheoryTheorem["whileSumComputes",
+    ForAll[{Typed[top, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[n, "Integer64"]},
+        Implies[n[["integer"]] == "integerOfNatural"[top], Implies[triangular[top] < 9223372036854775808, Implies[top + 1 < 9223372036854775808, Implies[top < fuel,
+            Exists[{Typed[v, "Integer64"]}, whileSum[fuel, n] == Typed["left"[v], "Integer64" | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]]]]]],
+    Function[{Typed[top, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[n, "Integer64"], Typed[hn, n[["integer"]] == "integerOfNatural"[top]],
+            Typed[bT, triangular[top] < 9223372036854775808], Typed[bN, top + 1 < 9223372036854775808], Typed[hf, top < fuel]},
+        InductiveRecursor[Exists][
+            Function[{Typed[t, Exists[{Typed[v, "Integer64"]}, Exists[{Typed[w, "Integer64"]},
+                "While[whileSum]"[fuel, n, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]]] ==
+                    Typed["left"["pair"[v, w]], CartesianProductType["Integer64", "Integer64"] | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]]]},
+                Exists[{Typed[v, "Integer64"]}, whileSum[fuel, n] == Typed["left"[v], "Integer64" | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]],
+            Function[{Typed[v, "Integer64"], Typed[hv, Exists[{Typed[w, "Integer64"]},
+                "While[whileSum]"[fuel, n, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]]] ==
+                    Typed["left"["pair"[v, w]], CartesianProductType["Integer64", "Integer64"] | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]]},
+                InductiveRecursor[Exists][
+                    Function[{Typed[t, Exists[{Typed[w, "Integer64"]},
+                        "While[whileSum]"[fuel, n, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]]] ==
+                            Typed["left"["pair"[v, w]], CartesianProductType["Integer64", "Integer64"] | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]]},
+                        Exists[{Typed[v1, "Integer64"]}, whileSum[fuel, n] == Typed["left"[v1], "Integer64" | Failure] && v1[["integer"]] == "integerOfNatural"[triangular[top]]]],
+                    Function[{Typed[w, "Integer64"], Typed[hw,
+                        "While[whileSum]"[fuel, n, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]]] ==
+                            Typed["left"["pair"[v, w]], CartesianProductType["Integer64", "Integer64"] | Failure] && v[["integer"]] == "integerOfNatural"[triangular[top]]]},
+                        "existsIntroduction"[v, "andIntroduction"["whileSumOfLoop"[fuel, n, v, w, hw[["left"]]], hw[["right"]]]]],
+                    hv
+                ]],
+            "whileInvariant"[top, n, hn, bT, bN, top, 0, fuel,
+                "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]],
+                "zeroPlus"[top], hf, "equalityReflexivity"["integerOfNatural"[0]], "equalityReflexivity"["integerOfNatural"[1]]]
+        ]
+    ]
+]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 405 constants -->
+
+```wl
+TypeTheoryAxiomClosure[TypeTheoryTerm["whileSumComputes", loops]]
+```
+
+<!-- => <|"quotientSoundness" -> "Proposition"|> -->
+
+The fuel is a variable of the theorem with only a lower bound, so more fuel changes nothing: the compiled loop, which takes as many rounds as it needs, computes the sum. The recursion and the loop compute the same number, the one the program was proved to compute.
