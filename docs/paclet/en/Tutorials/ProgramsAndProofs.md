@@ -910,3 +910,28 @@ TypeTheoryAxiomClosure[TypeTheoryTerm["whileSumComputes", loops]]
 <!-- => <|"quotientSoundness" -> "Proposition"|> -->
 
 The fuel is a variable of the theorem with only a lower bound, so more fuel changes nothing: the compiled loop, which takes as many rounds as it needs, computes the sum. The recursion and the loop compute the same number, the one the program was proved to compute.
+
+A [Do]() is a loop of the same kind. The compiler keeps its counter in a local and the iterator's symbol in step with it, and the meaning reads the iterator as that counter. So the `Do` is the [While]() the compiler wrote for it:
+
+```wl
+doSum[n_Integer] := Module[{s = 0}, Do[s += i, {i, n}]; s];
+counted = TypeTheoryEnvironment[loops, TypeTheoryFormalize[doSum, loops]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 388 constants -->
+
+Its arguments are the fuel, the end and the step of the range, which it reads, and s and the counter, which it sets:
+
+```wl
+TypeTheoryType[TypeTheoryTerm["While[doSum]", counted]]
+```
+
+<!-- => ℕ → Integer64 → Integer64 → Integer64 → Integer64 → (Integer64 × Integer64 | Failure) -->
+
+```wl
+TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[10], Typed[m, "Integer64"] |-> doSum[11, m]], counted]]]
+```
+
+<!-- => 55 -->
+
+The counter's step is a sum of the machine like any other. A `Do` whose range ends at 2^63 - 1 leaves after its last round, where the Wolfram Language's `Do` finishes, so a theorem about a `Do` carries, as `"whileSumComputes"` does for the loop above, that the end and the step add up below 2^63.

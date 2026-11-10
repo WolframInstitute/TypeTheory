@@ -367,11 +367,86 @@ VerificationTest[
 	TestID -> "A-loops-state-nested-loops-and-fuel-passed-on"
 ]
 
-(* a Do, whose iterator is a global the code localizes, is not read yet *)
+(* A Do with an iterator. The code keeps the counter in a local and the iterator's symbol, a global it localizes, in step
+   with it; the meaning reads the symbol as a local that each round sets from the counter, so the Do is the While the
+   compiler wrote, of the end, the step, and the locals it sets with the counter last. A sum to n takes n rounds and a
+   last test, and a bound below the start takes none. *)
 VerificationTest[
-	TypeTheoryFormalize[compiledDoSum, machine]["Tag"],
-	"UnmodeledOperation",
-	TestID -> "A-Do-is-not-read-yet"
+	With[{declarations = TypeTheoryFormalize[compiledDoSum, machine]},
+		With[{environment = TypeTheoryEnvironment[machine, declarations]},
+			{
+				Map[Function[declaration, HoldForm @@ Take[declaration, 1]], declarations],
+				DefinitionallyEqualQ[
+					TypeTheoryType[TypeTheoryTerm["While[compiledDoSum]", environment]],
+					TypeTheoryTerm[NonNegativeIntegers -> "Integer64" -> "Integer64" -> "Integer64" -> "Integer64" -> (CartesianProductType["Integer64", "Integer64"] | Failure), environment]
+				],
+				Map[
+					Apply[Function[{fuel, k}, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> compiledDoSum[fuel, m]], environment]]]]],
+					{{50, 0}, {50, 5}, {6, 5}, {5, 5}, {50, 20}, {50, -3}}
+				]
+			}
+		]
+	],
+	{
+		{HoldForm["While[compiledDoSum]"], HoldForm[compiledDoSum]},
+		True,
+		{compiledDoSum[0], compiledDoSum[5], compiledDoSum[5], Failure["OutOfFuel", <||>], compiledDoSum[20], compiledDoSum[-3]}
+	},
+	TestID -> "A-Do-is-the-While-of-its-counter-with-the-iterator-a-local"
+]
+
+(* A range with a start and a step, two Dos in turn over one iterator, and a Do in a Do, whose loop takes the iterator of
+   the one around it as an argument. Each agrees with the Wolfram Language where the typed code does not leave. The
+   counter's step is the machine's sum: a range that ends at the largest machine integer leaves after its last round,
+   and a body that overflows midway leaves there. Compiled code on the kernel declines at both with IntegerOverflow,
+   gives the Wolfram Language's value by its generic code, and leaves the iterator's symbol as it was before the call.
+   Refused is a body that sets its iterator. *)
+iteratorRange[n_Integer] := Module[{s = 0}, Do[s = s + i i, {i, 2, n, 3}]; s]
+iteratorEdge[a_Integer, b_Integer] := Module[{s = 0}, Do[s = i, {i, a, b}]; s]
+iteratorTwice[n_Integer] := Module[{s = 0}, Do[s = s + i, {i, n}]; Do[s = s + 2 i, {i, n}]; s]
+iteratorNested[n_Integer] := Module[{s = 0}, Do[Do[s = s + i j, {j, i}], {i, n}]; s]
+iteratorOverflows[n_Integer] := Module[{s = 1}, Do[s = s 1000000 i, {i, n}]; s]
+iteratorSet[n_Integer] := Module[{s = 0}, Do[i = i + 1; s = s + i, {i, n}]; s]
+
+VerificationTest[
+	Module[{environment, model, model2},
+		environment = TypeTheoryEnvironment[machine, Join[
+			TypeTheoryFormalize[iteratorRange, machine], TypeTheoryFormalize[iteratorEdge, machine], TypeTheoryFormalize[iteratorTwice, machine],
+			TypeTheoryFormalize[iteratorNested, machine], TypeTheoryFormalize[iteratorOverflows, machine]
+		]];
+		model[f_, fuel_, k_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], f[fuel]], environment]]];
+		model2[f_, fuel_, a_, b_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			"confirmBind"["machineResult"[Typed[a, Integers]], Typed[x, "Integer64"] |-> "confirmBind"["machineResult"[Typed[b, Integers]], f[fuel, x]]],
+			environment
+		]]];
+		{
+			Head[environment],
+			Map[Function[k, model[iteratorRange, 50, k] === iteratorRange[k]], {-4, 1, 2, 4, 5, 11, 12}],
+			Map[Apply[Function[{a, b}, model2[iteratorEdge, 50, a, b] === iteratorEdge[a, b]]], {{3, 5}, {5, 3}, {-2, 2}, {9223372036854775804, 9223372036854775806}}],
+			(* the end and the step add up past 2^63 - 1 *)
+			{model2[iteratorEdge, 50, 9223372036854775805, 9223372036854775807], iteratorEdge[9223372036854775805, 9223372036854775807]},
+			Map[Function[k, model[iteratorTwice, 50, k] === iteratorTwice[k]], {0, 1, 4, 9}],
+			Map[Function[declaration, HoldForm @@ Take[declaration, 1]], TypeTheoryFormalize[iteratorNested, machine]],
+			Map[Function[k, model[iteratorNested, 50, k] === iteratorNested[k]], {0, 1, 4, 6}],
+			model[iteratorNested, 4, 4],
+			(* the fourth round's product is past 2^63 - 1 *)
+			{model[iteratorOverflows, 50, 3] === iteratorOverflows[3], model[iteratorOverflows, 50, 6], iteratorOverflows[6]},
+			Replace[TypeTheoryFormalize[iteratorSet, machine], failure_Failure :> {failure["Tag"], StringContainsQ[ToString[failure["MessageParameters"]], "a Do whose body sets its iterator"]}]
+		}
+	],
+	{
+		TypeTheoryEnvironment,
+		ConstantArray[True, 7],
+		ConstantArray[True, 4],
+		{Failure["IntegerOverflow", <||>], 9223372036854775807},
+		ConstantArray[True, 4],
+		{HoldForm["While[iteratorNested, 2]"], HoldForm["While[iteratorNested]"], HoldForm[iteratorNested]},
+		ConstantArray[True, 4],
+		Failure["OutOfFuel", <||>],
+		{True, Failure["IntegerOverflow", <||>], 720000000000000000000000000000000000000},
+		{"UnmodeledOperation", True}
+	},
+	TestID -> "Ranges-nested-Dos-and-where-a-Do-leaves"
 ]
 
 (* an If whose branch sets a local, in the body of a loop: the steps to 1 of the Collatz map, counted, as the Wolfram

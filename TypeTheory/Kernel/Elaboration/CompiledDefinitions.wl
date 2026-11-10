@@ -92,12 +92,14 @@ typedSignaturesOf[held : HoldComplete[symbol_Symbol]] := With[
 (* The compiler writes its types "Int64" and "Bool". From here on they go by their standard names, "Integer64" and
    "Boolean", the names of the environment's types: the type of each parameter, of each variable and of the result. *)
 standardTypeNames[signatures_Association] := Map[
-	Function[signature, Join[signature, <|
-		"Parameters" -> Replace[signature["Parameters"], {position_, middle_, type_String} :> {position, middle, standardTypeName[type]}, {1}],
-		"Variables" -> Map[standardTypeName, signature["Variables"]],
-		"Result" -> standardTypeName[signature["Result"]],
-		"Body" -> plainLocals[signature["Body"]]
-	|>]],
+	Function[signature, With[{variables = Map[standardTypeName, signature["Variables"]]},
+		Join[signature, <|
+			"Parameters" -> Replace[signature["Parameters"], {position_, middle_, type_String} :> {position, middle, standardTypeName[type]}, {1}],
+			"Variables" -> variables,
+			"Result" -> standardTypeName[signature["Result"]],
+			"Body" -> plainIterators[plainLocals[signature["Body"]], variables]
+		|>]
+	]],
 	signatures
 ]
 
@@ -112,6 +114,72 @@ plainLocals[body_] := ReplaceRepeated[
 	}],
 	coreForm["StatementBlock"][{before___, coreForm["LazyReset"][_], after___}, value_] :> coreForm["StatementBlock"][{before, after}, value]
 ]
+
+(* A Do with an iterator. The code keeps the counter in a local and the iterator's symbol, a global, in step with it:
+   Localize saves the symbol's value, each round's SetGlobal sets the symbol from the counter before the body, whose
+   reads of the iterator are reads of the global, and Restore puts the saved value back. Between the two nothing else
+   reads or sets the symbol, which is the compiler's rule for a global, so there it is a local like any other: Localize
+   and Restore are dropped, SetGlobal sets that local, and a read of the global reads it. A round sets it before its
+   body, so the loop does not carry it. Compiled code that leaves midway puts the symbol back as well, and the generic
+   code then computes the call from the session as it was.
+   Before the loop the code asks whether the bound is a list, to go over its elements. A machine integer is none, so of
+   that If the loop over the range alone is kept, the While the compiler wrote: its counter's step is the machine's
+   sum, and so the loop leaves after its last round where the end and the step add up past the machine integers.
+   Refused: a bound or an iterator that is no machine integer, a body that sets its iterator, and a Do over the iterator
+   of a Do around it. A global that is left after this, read or set outside a Do of its own, the statements refuse. *)
+plainIterators[body_, variables_Association] := ReplaceRepeated[
+	body,
+	coreForm["StatementBlock"][
+		{
+			before___,
+			coreForm["SetTemporary"][token_String, coreForm["Localize"][symbol_String]],
+			coreForm["SetLocal"][saved_String, coreForm["Temporary"][token_String]],
+			region___,
+			coreForm["SetTemporary"][restored_String, coreForm["Copy"][coreForm["Local"][saved_String]]],
+			coreForm["Restore"][symbol_String, coreForm["Temporary"][restored_String]],
+			after___
+		},
+		value_
+	] :> coreForm["StatementBlock"][Join[{before}, iteratorRegion[symbol, {region}, variables], {after}], value]
+]
+
+(* the statements between a Localize and its Restore, with the iterator as a local *)
+iteratorRegion[symbol_String, statements_List, variables_Association] := With[
+	{
+		local = iteratorLocal[symbol],
+		ranged = Replace[statements, {
+			{
+				before___,
+				coreForm["SetTemporary"][listed_String, coreForm["Call"]["System`ListQ", {bound_}]],
+				coreForm["If"][_, coreForm["Temporary"][listed_String], _, coreForm["StatementBlock"][{range___}, _], ___],
+				after___
+			} :> If[ variableType[bound, variables] === "Integer64",
+				{before, range, after},
+				unmodeled["a Do whose bound is no machine integer"]
+			]
+		}]
+	},
+	Which[
+		Lookup[variables, Key[{"G", symbol}], None] =!= "Integer64",
+			unmodeled["a Do whose iterator is no machine integer"],
+		! FreeQ[ranged, coreForm["Localize"][symbol]],
+			unmodeled["a Do over the iterator of a Do around it"],
+		Count[ranged, coreForm["SetGlobal"][symbol, _], {0, Infinity}] =!= 1,
+			unmodeled["a Do whose body sets its iterator"],
+		True,
+			ReplaceAll[ranged, {
+				coreForm["SetGlobal"][symbol, value_] :> coreForm["SetLocal"][local, value],
+				coreForm["Global"][symbol] :> coreForm["Local"][local]
+			}]
+	]
+]
+
+(* the local that stands for the iterator, named so that its variable is the iterator's own name: i for Global`i *)
+iteratorLocal[symbol_String] := "v" <> Last[StringSplit[symbol, "`"]] <> "_"
+
+variableType[coreForm["Temporary"][t_String], variables_Association] := Lookup[variables, Key[{"T", t}], None]
+variableType[coreForm["Local"][v_String], variables_Association] := Lookup[variables, Key[{"L", v}], None]
+variableType[_, _] := None
 
 standardTypeName["Int64"] := "Integer64"
 standardTypeName["Bool"] := "Boolean"
