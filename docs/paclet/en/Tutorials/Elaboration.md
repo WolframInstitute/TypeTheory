@@ -253,6 +253,42 @@ TypeTheoryType[Failure["NotFound", <|"Key" -> "plums", "Reason" -> Missing["KeyA
 
 <!-- => Failure -->
 
+## The Parts of a Structure
+
+A structure is an inductive type with one constructor, as a pair, a conjunction or a [Subtype](), and a value of it has a part for each field of the constructor. A part is written by the name of its field, which is the name of the field's binder in the constructor's type, or by its index:
+
+```wl
+TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p["second"]]
+```
+
+<!-- => ℕ × 𝔹 → 𝔹 -->
+
+A structure is no function, so where the head of an application is of a structure and its argument a string, elaboration reads the string as the name of a part. `p["second"]`, `p[["second"]]` and `p[[2]]` are one term, the part by its index. A term shows its parts by their names, in the brackets of a part, `h〚right〛`: an output shows a string without its quotes, and `h[right]` would look like an application:
+
+```wl
+NormalForm[TypeTheoryTerm[Typed[h, 2 == 2 && 3 == 3] |-> "andIntroduction"[h[[2]], h[[1]]]]]
+```
+
+<!-- => (h ∶ 2 == 2 ∧ 3 == 3) ↦ andIntroduction[h〚"right"〛, h〚"left"〛] -->
+
+The names are how a term is written and shown, and no part of it: two environments whose constructors name their fields differently hold the same terms. A field whose binder has no name, as those of a constructor written with arrows, or whose name another field has too, is read and shown by its index. A name no part has is a [Failure]() that lists the names there are:
+
+```wl
+TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p["third"]]
+```
+
+<!-- => Failure["ElaborationFailed", ...] -->
+
+The element of a [Subtype]() has a second name, that of its predicate's variable. A machine integer is an integer in the range of 64 bits, and the range is declared as a predicate of `integer`, so the integer of a machine integer `n` is `n["integer"]`, and its proof is of the range of that integer:
+
+```wl
+TypeTheoryType[Typed[n, "Integer64"] |-> n["proof"], "Machine"]
+```
+
+<!-- => ∀_n∶Integer64 integer64Range[n〚"integer"〛] -->
+
+A field's own name comes first: where a predicate's variable is called as a field is, the name is the field's.
+
 ## Holes
 
 A proof can leave a part for later with [TypeTheoryHole](). The kernel checks the rest, and the hole is recorded, never taken for a proof:
@@ -404,7 +440,7 @@ pronic[n_Integer] := n (n + 1);
 TypeTheoryFormalize[pronic, "Machine"]
 ```
 
-<!-- => {definition pronic : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machineResult[n〚1〛 + 1], (t3∶Integer64) ↦ machineResult[n〚1〛 t3〚1〛]]} -->
+<!-- => {definition pronic : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machinePlus[n〚"integer"〛, 1], (t3∶Integer64) ↦ machineTimes[n〚"integer"〛, t3〚"integer"〛]]} -->
 
 The mathematical meaning of the same definition, in the integers, has no leave:
 

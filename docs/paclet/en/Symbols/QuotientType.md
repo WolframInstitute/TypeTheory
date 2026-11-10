@@ -78,7 +78,7 @@ The relation: (a, b) and (c, d), standing for a - b and c - d, are related when 
 TypeTheoryEnvironment["Integers"]["integerRelation"]
 ```
 
-<!-- => definition integerRelation : ℕ × ℕ → ℕ × ℕ → Prop := (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) ↦ p〚1〛 + q〚2〛 == q〚1〛 + p〚2〛 -->
+<!-- => definition integerRelation : ℕ × ℕ → ℕ × ℕ → Prop := (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) ↦ p〚"first"〛 + q〚"second"〛 == q〚"first"〛 + p〚"second"〛 -->
 
 ## Scope
 

@@ -17,7 +17,7 @@ RelatedTutorials: [CubicalTypeTheory]
 ## Details & Options
 
 - *B* is a family of types over *A*, a function from *A* to a universe, so the type of the second field depends on the first. A type that does not depend on the first field is written as a [Function]() whose body does not mention its variable.
-- It is a structure: <code>*p*[[1]]</code> and <code>*p*[[2]]</code> are the fields of a pair *p*, and they compute on a pair.
+- It is a structure: <code>*p*["first"]</code> and <code>*p*["second"]</code> are the parts of a pair *p*, also <code>*p*[[1]]</code> and <code>*p*[[2]]</code> by their indices, and they compute on a pair.
 - For *A* in `Type u` and *B* into `Type v`, <code>[DependentSum]()[*A*, *B*]</code> is in `Type (max u v)`.
 - It is a constant of <code>[TypeTheoryEnvironment]()["Cubical"]</code>, which has no Prop: a property there is a type of paths, so a pair of an element and a path, as an element of a [Fiber](), is an element with a proof of its property. [TypeTheoryCubical]() names it, and the kernel writes the equivalences of Glue types with it, as the cubical library writes [Fiber](), [IsContractible]() and [Equivalence]().
 - In the prelude, [Subtype]() pairs an element with a proof of a proposition about it, and [CartesianProductType]() is the sum of a family that does not depend.
@@ -91,7 +91,7 @@ The second field of a pointed type is in the first:
 TypeTheoryType[Typed[s, DependentSum[TypeUniverse[1], A |-> A]] |-> s[[2]], "Cubical"]
 ```
 
-<!-- => ∀_s∶Σ_A∶Type A s[[1]] -->
+<!-- => ∀_s∶Σ_A∶Type A s〚"first"〛 -->
 
 ---
 
@@ -169,7 +169,7 @@ Its declaration, an inductive type with the one constructor `"dependentPair"`:
 TypeTheoryEnvironment["Cubical"][DependentSum]
 ```
 
-<!-- => inductive DependentSum : ∀_A∶Type u (A → Type v) → Type (max u v) | dependentPair : ∀_{A ∶ Type u} ∀_{B ∶ A → Type v} ∀_a∶A B[a] → DependentSum[A, B] -->
+<!-- => inductive DependentSum : ∀_A∶Type u (A → Type v) → Type (max u v) | dependentPair : ∀_{A ∶ Type u} ∀_{B ∶ A → Type v} ∀_first∶A B[first] → DependentSum[A, B] -->
 
 ---
 
@@ -179,7 +179,7 @@ Its recursor takes a function of the two fields:
 TypeTheoryType[InductiveRecursor[DependentSum], "Cubical"]
 ```
 
-<!-- => ∀_{A ∶ Type u} ∀_{B ∶ A → Type v} ∀_m∶DependentSum[A, B] → Type w (∀_a∶A ∀_b∶B[a] m[〈a, b〉]) → ∀_t∶DependentSum[A, B] m[t] -->
+<!-- => ∀_{A ∶ Type u} ∀_{B ∶ A → Type v} ∀_m∶DependentSum[A, B] → Type w (∀_first∶A ∀_second∶B[first] m[〈first, second〉]) → ∀_t∶DependentSum[A, B] m[t] -->
 
 ---
 

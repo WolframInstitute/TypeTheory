@@ -16,7 +16,7 @@ RelatedTutorials: [CubicalTypeTheory]
 
 ## Details & Options
 
-- [IsContractible]() is a definition, <code>[DependentSum]()[*X*, [Function]()[{*c*}, [ForAll]()[{[Typed]()[*z*, *X*]}, Path[*X*, *c*, *z*]]]]</code>; for a proof *k*, <code>*k*[[1]]</code> is the center and <code>*k*[[2]]</code> the function that gives the path from it to each element.
+- [IsContractible]() is a definition, <code>[DependentSum]()[*X*, [Function]()[{*c*}, [ForAll]()[{[Typed]()[*z*, *X*]}, Path[*X*, *c*, *z*]]]]</code>; for a proof *k*, <code>*k*["first"]</code>, or <code>*k*[[1]]</code>, is the center and <code>*k*["second"]</code>, or <code>*k*[[2]]</code>, the function that gives the path from it to each element.
 - A contractible type has one element up to paths: any two of its elements are joined by a path, through the center.
 - In the cubical environment, [IsEquivalence]() asks every fiber of a function to be contractible. The kernel writes the same type for the fibers of the equivalences of Glue types, and transport in a Glue type uses their centers.
 - It is a definition of <code>[TypeTheoryEnvironment]()["Cubical"]</code>; terms that use it name that environment.
@@ -74,7 +74,7 @@ The center of the fiber of the identity over `"true"` is `"true"` with the const
 WeakHeadNormalForm[TypeTheoryTerm["identityEquivalence"[Booleans][[2]]["true"][[1]], "Cubical"]]
 ```
 
-<!-- => 〈true, (j ∶ Interval) ↦ true〉 ∶ Fiber[identityEquivalence[𝔹]〚1〛, true] -->
+<!-- => 〈true, (j ∶ Interval) ↦ true〉 ∶ Fiber[identityEquivalence[𝔹]〚"first"〛, true] -->
 
 ---
 
@@ -84,7 +84,7 @@ The proof that negation is an equivalence gives, over `"true"`, a proof that its
 TypeTheoryType["negationEquivalence"[[2]]["true"], "Cubical"]
 ```
 
-<!-- => IsContractible[Fiber[negationEquivalence〚1〛, true]] -->
+<!-- => IsContractible[Fiber[negationEquivalence〚"first"〛, true]] -->
 
 ## Properties and Relations
 

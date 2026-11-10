@@ -135,7 +135,7 @@ The definition of [ChosenWitness](): the first field, `[[1]]`, of the element of
 $TypeTheoryEnvironment[ChosenWitness]
 ```
 
-<!-- => definition ChosenWitness : ∀_{α∶Sort u} ∀_{P∶α → Prop} Exists[P] → α := {α∶Sort u} {P∶α → Prop} (h∶Exists[P]) ↦ choice[Exists_rec[(t∶Exists[P]) ↦ Nonempty[Subtype[P]], (w∶α) (k∶P[w]) ↦ nonempty[subtype[w, k]], h]][[1]] -->
+<!-- => definition ChosenWitness : ∀_{α∶Sort u} ∀_{P∶α → Prop} Exists[P] → α := {α∶Sort u} {P∶α → Prop} (h∶Exists[P]) ↦ choice[Exists_rec[(t∶Exists[P]) ↦ Nonempty[Subtype[P]], (w∶α) (k∶P[w]) ↦ nonempty[subtype[w, k]], h]]〚"element"〛 -->
 
 ---
 
@@ -165,7 +165,7 @@ Computation stops at `"choice"`, an axiom:
 WeakHeadNormalForm[TypeTheoryTerm[ChosenWitness[Typed["existsIntroduction"[3, "equalityReflexivity"[6]], Exists[n |-> n + n == 6]]]]]
 ```
 
-<!-- => choice[Exists_rec[(t ∶ ∃_n∶ℕ n + n == 6) ↦ Nonempty[{n ∶ ℕ // n + n == 6}], (w ∶ ℕ) (k ∶ ((n ∶ ℕ) ↦ n + n == 6)[w]) ↦ nonempty[subtype[w, k]], existsIntroduction[3, equalityReflexivity[6]]]][[1]] -->
+<!-- => choice[Exists_rec[(t ∶ ∃_n∶ℕ n + n == 6) ↦ Nonempty[{n ∶ ℕ // n + n == 6}], (w ∶ ℕ) (k ∶ ((n ∶ ℕ) ↦ n + n == 6)[w]) ↦ nonempty[subtype[w, k]], existsIntroduction[3, equalityReflexivity[6]]]]〚"element"〛 -->
 
 ---
 

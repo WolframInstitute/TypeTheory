@@ -41,7 +41,7 @@ The negation of the integers is lifted from swapping a pair, with the proof that
 TypeTheoryEnvironment["Integers"]["integerNegation"]
 ```
 
-<!-- => definition integerNegation : ℤ → ℤ := (x ∶ ℤ) ↦ QuotientLift[(p ∶ ℕ × ℕ) ↦ integerOfPair[(p〚2〛, p〚1〛)], (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) (e ∶ integerRelation[p, q]) ↦ quotientSoundness[integerNegationRespects[p, q, e]], x] -->
+<!-- => definition integerNegation : ℤ → ℤ := (x ∶ ℤ) ↦ QuotientLift[(p ∶ ℕ × ℕ) ↦ integerOfPair[(p〚"second"〛, p〚"first"〛)], (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) (e ∶ integerRelation[p, q]) ↦ quotientSoundness[integerNegationRespects[p, q, e]], x] -->
 
 On a class it computes to the class of the swapped pair:
 
@@ -113,7 +113,7 @@ A lift into the Booleans: the equality test of the integers, which compares a + 
 TypeTheoryEnvironment["Integers"]["integerEqual"]
 ```
 
-<!-- => definition integerEqual : ℤ → ℤ → 𝔹 := (x ∶ ℤ) (y ∶ ℤ) ↦ QuotientLift[(p ∶ ℕ × ℕ) ↦ integerEqualOfPair[p, y], (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) (e ∶ integerRelation[p, q]) ↦ QuotientInduction[(s ∶ ℕ × ℕ) ↦ equalOfEquivalent[p〚1〛 + s〚2〛, s〚1〛 + p〚2〛, q〚1〛 + s〚2〛, s〚1〛 + q〚2〛, integerEqualRespectsLeft[p, q, s, e]], y], x] -->
+<!-- => definition integerEqual : ℤ → ℤ → 𝔹 := (x ∶ ℤ) (y ∶ ℤ) ↦ QuotientLift[(p ∶ ℕ × ℕ) ↦ integerEqualOfPair[p, y], (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) (e ∶ integerRelation[p, q]) ↦ QuotientInduction[(s ∶ ℕ × ℕ) ↦ equalOfEquivalent[p〚"first"〛 + s〚"second"〛, s〚"first"〛 + p〚"second"〛, q〚"first"〛 + s〚"second"〛, s〚"first"〛 + q〚"second"〛, integerEqualRespectsLeft[p, q, s, e]], y], x] -->
 
 So deciding whether -3 + 3 is 0 computes through the lifts to a Boolean:
 

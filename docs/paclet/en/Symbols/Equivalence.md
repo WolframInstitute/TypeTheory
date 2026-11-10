@@ -16,7 +16,7 @@ RelatedTutorials: [HomotopyTypeTheory, CubicalTypeTheory]
 
 ## Details & Options
 
-- In <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>, [Equivalence]() is a structure with the one constructor `"equivalenceIntroduction"`, which takes the function *f* and a proof of <code>[IsEquivalence]()[*f*]</code>; `e[[1]]` is the function of an equivalence *e* and `e[[2]]` the proof, whose fields are the inverses.
+- In <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>, [Equivalence]() is a structure with the one constructor `"equivalenceIntroduction"`, which takes the function *f* and a proof of <code>[IsEquivalence]()[*f*]</code>; `e["function"]`, or `e[[1]]`, is the function of an equivalence *e* and `e["proof"]`, or `e[[2]]`, the proof, whose parts are the inverses.
 - `"identityEquivalence"[A]` is the identity of *A*, and `"negationEquivalence"` is negation, from the Booleans to themselves.
 - Univalence identifies the equivalences from *A* to *B* with the paths <code>*A* == *B*</code>. `"equalityToEquivalence"` takes a path to an equivalence, the identity for reflexivity; the axiom `"univalence"` says that this map is an equivalence, `"equivalenceToEquality"`, its right inverse, gives the path of an equivalence, and `"univalenceComputation"` says that the path gives the equivalence back. Since univalence is an axiom there, carrying an element along its path does not compute.
 - In <code>[TypeTheoryEnvironment]()["Cubical"]</code>, [Equivalence]() is a definition: the dependent sum of a function and the proof that its fibers are contractible. `"isomorphismEquivalence"` makes one from an inverse, and `"equivalenceToPath"` is univalence, a path of [GlueType]() along which [CubicalTransport]() applies the equivalence by computation.
@@ -150,7 +150,7 @@ In the HoTT environment, [Equivalence]() is an inductive type with one construct
 TypeTheoryEnvironment["HomotopyTypeTheory"][Equivalence]
 ```
 
-<!-- => inductive Equivalence : Type u → Type v → Type (max u v) | equivalenceIntroduction : ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_f∶A → B IsEquivalence[f] → Equivalence[A, B] -->
+<!-- => inductive Equivalence : Type u → Type v → Type (max u v) | equivalenceIntroduction : ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_function∶A → B IsEquivalence[function] → Equivalence[A, B] -->
 
 ---
 

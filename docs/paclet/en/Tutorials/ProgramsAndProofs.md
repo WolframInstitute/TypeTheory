@@ -159,7 +159,7 @@ The tactics build one term, the proof, and each goal still open is a hole in it.
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), ?1, ?2, n], the two holes numbered as the session numbers them -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), ?1, ?2, n] -->
 
 At 0, the definition computes, and both sides are 0:
 
@@ -175,7 +175,7 @@ The first hole is now a proof by reflexivity:
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], ?2, n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], ?1, n] -->
 
 At k + 1, the definition unfolds once, triangular[k + 1] is k + 1 + triangular[k], and the induction hypothesis `ih` gives 2 triangular[k]:
 
@@ -191,7 +191,7 @@ The second case is now a function of k and of the hypothesis, with the hole insi
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ ?3, n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ ?1, n] -->
 
 What is left is algebra with the hypothesis: twice the left side is 2 (k + 1) + k (k + 1), which is (k + 1) (k + 2). `"PolynomialReduce"` finds the combination of the hypothesis that proves it:
 
@@ -304,7 +304,7 @@ The theorem does not say that the compiled code is fast or that it does not over
 
 ## The Machine's Theorem
 
-In the environment of the machine integers, [TypeTheoryFormalize]() reads the compiler's typed code of a definition: its steps, each the machine result of the exact one, which leaves the typed code with a [Failure]() where the machine would overflow. The closed form is a step for n + 1, one for the product and one for the quotient:
+In the environment of the machine integers, [TypeTheoryFormalize]() reads the compiler's typed code of a definition: its steps, each an operation of the machine, which leaves the typed code with a [Failure]() where the machine would overflow. The closed form is a step for n + 1, one for the product and one for the quotient:
 
 ```wl
 closedForm[n_Integer] := Quotient[n (n + 1), 2];
@@ -312,7 +312,9 @@ machine = TypeTheoryEnvironment["Machine"];
 compiled = TypeTheoryFormalize[closedForm, machine]
 ```
 
-<!-- => {definition closedForm : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machineResult[n〚1〛 + 1], (t3∶Integer64) ↦ confirmBind[machineResult[n〚1〛 t3〚1〛], (t4∶Integer64) ↦ machineQuotient[t4〚1〛, 2]]]} -->
+<!-- => {definition closedForm : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machinePlus[n〚"integer"〛, 1], (t3∶Integer64) ↦ confirmBind[machineTimes[n〚"integer"〛, t3〚"integer"〛], (t4∶Integer64) ↦ machineQuotient[t4〚"integer"〛, 2]]]} -->
+
+A machine integer is an integer with a proof that it is in the range of 64 bits, and `n["integer"]` is the integer of the machine integer `n`. The machine's operations take integers: `"machinePlus"[x, y]` is the machine integer of the exact sum x + y where that is in range, and the leave `Failure["IntegerOverflow", <||>]` where it is not, the type `"Integer64" | Failure`; `"confirmBind"` gives the next step the machine integer, or passes the leave on. The machine result of an exact integer is `"machineResult"`, of which `"machinePlus"[x, y]` is `"machineResult"[x + y]`.
 
 At 3037000500 it leaves, as the compiled code does:
 
@@ -358,17 +360,17 @@ neverDeclines = TypeTheoryProof[
             "equalityCongruence"[Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, closedForm]], "machineResultOfNatural"[n, "argumentBound"[n, h]]],
             "equalityTransitivity"[
                 "equalityCongruence"[
-                    Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t3, "Integer64"]}, "confirmBind"["machineResult"["integerOfNatural"[n] t3[[1]]], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]]]],
+                    Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t3, "Integer64"]}, "confirmBind"["machineTimes"["integerOfNatural"[n], t3["integer"]], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4["integer"], 2]]]]]],
                     "machineResultInRange"["integerOfNatural"[n] + 1, "naturalInteger64Range"[n + 1, "successorBound"[n, h]]]
                 ],
                 "equalityTransitivity"[
                     "equalityCongruence"[
-                        Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]],
+                        Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4["integer"], 2]]]],
                         "equalitySymmetry"["integerOfNaturalMultiplication"[n, n + 1]]
                     ],
                     "equalityTransitivity"[
                         "equalityCongruence"[
-                            Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4[[1]], 2]]]],
+                            Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t4, "Integer64"]}, "machineQuotient"[t4["integer"], 2]]]],
                             "machineResultOfNatural"[n (n + 1), "pronicBound"[n, h]]
                         ],
                         "equalityTransitivity"[
@@ -445,8 +447,8 @@ The proof is by induction on n, and in each case by cases on the levels. With no
 ```wl
 recursionComputes = TypeTheoryProof[
     ForAll[{Typed[n, NonNegativeIntegers], Typed[levels, NonNegativeIntegers], Typed[m, "Integer64"]},
-        Implies[n < levels, Implies[triangular[n] < 9223372036854775808, Implies[m[[1]] == "integerOfNatural"[n],
-            Exists[{Typed[v, "Integer64"]}, machineTriangular[levels, m] == Typed["left"[v], "Integer64" | Failure] && v[[1]] == "integerOfNatural"[triangular[n]]]]]]],
+        Implies[n < levels, Implies[triangular[n] < 9223372036854775808, Implies[m["integer"] == "integerOfNatural"[n],
+            Exists[{Typed[v, "Integer64"]}, machineTriangular[levels, m] == Typed["left"[v], "Integer64" | Failure] && v["integer"] == "integerOfNatural"[triangular[n]]]]]]],
     recursions,
     {
         "Introduce"[n], "Induction"[n], "Introduce"[levels], "Induction"[levels],
@@ -457,7 +459,7 @@ recursionComputes = TypeTheoryProof[
             "andIntroduction"[
                 "equalityTransitivity"[
                     "equalityCongruence"[
-                        Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machineResult"[x - 1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"[x + t10[[1]]]]]]]]],
+                        Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machinePlus"[x, -1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machinePlus"[x, t10["integer"]]]]]]]],
                         e
                     ],
                     "machineResultOfNatural"[triangular[0], b]
@@ -469,37 +471,37 @@ recursionComputes = TypeTheoryProof[
         "Introduce"[m, h], "Exact"["falseElimination"["notLessZero"[k + 1, h]]],
         "Introduce"[l, ihl, m, h, b, e],
         "Exact"[InductiveRecursor[Exists][
-            Function[{w0}, Exists[{Typed[w, "Integer64"]}, machineTriangular[l + 1, m] == Typed["left"[w], "Integer64" | Failure] && w[[1]] == "integerOfNatural"[triangular[k + 1]]]],
+            Function[{w0}, Exists[{Typed[w, "Integer64"]}, machineTriangular[l + 1, m] == Typed["left"[w], "Integer64" | Failure] && w["integer"] == "integerOfNatural"[triangular[k + 1]]]],
             Function[
                 {
                     Typed[v, "Integer64"],
-                    Typed[hv, machineTriangular[l, "subtype"["integerOfNatural"[k], "naturalInteger64Range"[k, "sumBoundsIndex"[k, triangular[k], 9223372036854775808, b]]]] == Typed["left"[v], "Integer64" | Failure] && v[[1]] == "integerOfNatural"[triangular[k]]]
+                    Typed[hv, machineTriangular[l, "subtype"["integerOfNatural"[k], "naturalInteger64Range"[k, "sumBoundsIndex"[k, triangular[k], 9223372036854775808, b]]]] == Typed["left"[v], "Integer64" | Failure] && v["integer"] == "integerOfNatural"[triangular[k]]]
                 },
                 "existsIntroduction"[
                     "subtype"["integerOfNatural"[triangular[k + 1]], "naturalInteger64Range"[triangular[k + 1], b]],
                     "andIntroduction"[
                         "equalityTransitivity"[
                             "equalityCongruence"[
-                                Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machineResult"[x - 1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"[x + t10[[1]]]]]]]]],
+                                Function[{Typed[x, Integers]}, "machineIf"["integerEqual"[x, 0], "machineResult"[0], "confirmBind"["machinePlus"[x, -1], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machinePlus"[x, t10["integer"]]]]]]]],
                                 e
                             ],
                             "equalityTransitivity"[
                                 "equalityCongruence"[
-                                    Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]]]],
+                                    Function[{Typed[x, Integers]}, "confirmBind"["machineResult"[x], Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machinePlus"["integerOfNatural"[k + 1], t10["integer"]]]]]]],
                                     "integerOfNaturalPredecessor"[k]
                                 ],
                                 "equalityTransitivity"[
                                     "equalityCongruence"[
-                                        Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]]]],
+                                        Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t9, "Integer64"]}, "confirmBind"[machineTriangular[l, t9], Function[{Typed[t10, "Integer64"]}, "machinePlus"["integerOfNatural"[k + 1], t10["integer"]]]]]]],
                                         "machineResultOfNatural"[k, "sumBoundsIndex"[k, triangular[k], 9223372036854775808, b]]
                                     ],
                                     "equalityTransitivity"[
                                         "equalityCongruence"[
-                                            Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t10, "Integer64"]}, "machineResult"["integerOfNatural"[k + 1] + t10[[1]]]]]],
+                                            Function[{Typed[r, "Integer64" | Failure]}, "confirmBind"[r, Function[{Typed[t10, "Integer64"]}, "machinePlus"["integerOfNatural"[k + 1], t10["integer"]]]]],
                                             "andEliminationLeft"[hv]
                                         ],
                                         "equalityTransitivity"[
-                                            "equalityCongruence"[Function[{Typed[y, Integers]}, "machineResult"["integerOfNatural"[k + 1] + y]], "andEliminationRight"[hv]],
+                                            "equalityCongruence"[Function[{Typed[y, Integers]}, "machinePlus"["integerOfNatural"[k + 1], y]], "andEliminationRight"[hv]],
                                             "equalityTransitivity"[
                                                 "equalityCongruence"[Function[{Typed[y, Integers]}, "machineResult"[y]], "equalitySymmetry"["integerOfNaturalAddition"[k + 1, triangular[k]]]],
                                                 "machineResultOfNatural"[triangular[k + 1], b]

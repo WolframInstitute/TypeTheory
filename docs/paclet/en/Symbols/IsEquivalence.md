@@ -16,7 +16,7 @@ RelatedTutorials: [HomotopyTypeTheory, CubicalTypeTheory]
 
 ## Details & Options
 
-- In <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>, [IsEquivalence]() is an inductive type with the one constructor [EquivalenceProof](); <code>*e*[[1]]</code> to <code>*e*[[4]]</code> are the left inverse, its path, the right inverse and its path.
+- In <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>, [IsEquivalence]() is an inductive type with the one constructor [EquivalenceProof](); <code>*e*["leftInverse"]</code>, <code>*e*["retraction"]</code>, <code>*e*["rightInverse"]</code> and <code>*e*["section"]</code> are the left inverse, its path, the right inverse and its path, also <code>*e*[[1]]</code> to <code>*e*[[4]]</code> by their indices.
 - This bi-invertible definition is the one under which being an equivalence is a proposition, as univalence requires.
 - The types of *f* are implicit: for *f* from `Type u` to `Type v`, <code>[IsEquivalence]()[*f*]</code> is in `Type (max u v)`.
 - The axiom `"univalence"` is a statement of this type: that the map `"equalityToEquivalence"` from paths between types to equivalences is an equivalence.
@@ -86,7 +86,7 @@ The second field of an equivalence is the proof that its function is one:
 TypeTheoryType["negationEquivalence"[[2]], "HomotopyTypeTheory"]
 ```
 
-<!-- => IsEquivalence[negationEquivalence〚1〛] -->
+<!-- => IsEquivalence[negationEquivalence〚"function"〛] -->
 
 ---
 
@@ -106,7 +106,7 @@ The cubical proof for negation gives, over `"true"`, the center of its fiber, wh
 WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], "Cubical"]]
 ```
 
-<!-- => 〈!true, negationInvolution[true]〉 ∶ Fiber[negationEquivalence〚1〛, true] -->
+<!-- => 〈!true, negationInvolution[true]〉 ∶ Fiber[negationEquivalence〚"first"〛, true] -->
 
 ## Properties and Relations
 
@@ -116,7 +116,7 @@ In the HoTT environment, [IsEquivalence]() is an inductive type with [Equivalenc
 TypeTheoryEnvironment["HomotopyTypeTheory"][IsEquivalence]
 ```
 
-<!-- => inductive IsEquivalence : ∀_{A ∶ Type u} ∀_{B ∶ Type v} (A → B) → Type (max u v) | EquivalenceProof : ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_g∶B → A (∀_x∶A g[f[x]] == x) → ∀_h∶B → A (∀_y∶B f[h[y]] == y) → IsEquivalence[f] -->
+<!-- => inductive IsEquivalence : ∀_{A ∶ Type u} ∀_{B ∶ Type v} (A → B) → Type (max u v) | EquivalenceProof : ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_leftInverse∶B → A (∀_x∶A leftInverse[f[x]] == x) → ∀_rightInverse∶B → A (∀_y∶B f[rightInverse[y]] == y) → IsEquivalence[f] -->
 
 ---
 
@@ -126,7 +126,7 @@ Its recursor takes a function of the four fields:
 TypeTheoryType[InductiveRecursor[IsEquivalence], "HomotopyTypeTheory"]
 ```
 
-<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_m∶IsEquivalence[f] → Type w (∀_g∶B → A ∀_retraction∶∀_x∶A g[f[x]] == x ∀_h∶B → A ∀_section∶∀_y∶B f[h[y]] == y m[EquivalenceProof[g, retraction, h, section]]) → ∀_t∶IsEquivalence[f] m[t] -->
+<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_m∶IsEquivalence[f] → Type w (∀_leftInverse∶B → A ∀_retraction∶∀_x∶A leftInverse[f[x]] == x ∀_rightInverse∶B → A ∀_section∶∀_y∶B f[rightInverse[y]] == y m[EquivalenceProof[leftInverse, retraction, rightInverse, section]]) → ∀_t∶IsEquivalence[f] m[t] -->
 
 ---
 

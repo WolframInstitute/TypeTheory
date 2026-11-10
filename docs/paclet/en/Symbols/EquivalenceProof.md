@@ -18,7 +18,7 @@ RelatedTutorials: [HomotopyTypeTheory]
 
 - [EquivalenceProof]() is the constructor of [IsEquivalence]() in <code>[TypeTheoryEnvironment]()["HomotopyTypeTheory"]</code>; terms that use it name that environment.
 - *f* and its types are implicit, found from the types of the paths, or from the type [Typed]() gives.
-- *g* is a left inverse and *h* a right inverse, each with its path for every element; they need not be the same function. <code>*e*[[1]]</code> to <code>*e*[[4]]</code> are the four fields of a proof *e*.
+- *g* is a left inverse and *h* a right inverse, each with its path for every element; they need not be the same function. <code>*e*["leftInverse"]</code>, <code>*e*["retraction"]</code>, <code>*e*["rightInverse"]</code> and <code>*e*["section"]</code> are the four parts of a proof *e*, also <code>*e*[[1]]</code> to <code>*e*[[4]]</code>.
 - The paths are functions that give a path for every element. Where the composite does not compute to the element, as `"not"["not"[b]]` for a variable `b`, a proof by cases gives each path.
 - With `"equivalenceIntroduction"` it makes an [Equivalence]().
 - The cubical environment has no [EquivalenceProof](): there an equivalence has contractible fibers, and `"isomorphismEquivalence"` builds one from the same data, an inverse with a path on each side.
@@ -31,7 +31,7 @@ The statement of [EquivalenceProof](), in the HoTT environment:
 TypeTheoryType[EquivalenceProof, "HomotopyTypeTheory"]
 ```
 
-<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_g∶B → A (∀_x∶A g[f[x]] == x) → ∀_h∶B → A (∀_y∶B f[h[y]] == y) → IsEquivalence[f] -->
+<!-- => ∀_{A ∶ Type u} ∀_{B ∶ Type v} ∀_{f ∶ A → B} ∀_leftInverse∶B → A (∀_x∶A leftInverse[f[x]] == x) → ∀_rightInverse∶B → A (∀_y∶B f[rightInverse[y]] == y) → IsEquivalence[f] -->
 
 ---
 
@@ -99,7 +99,7 @@ The fourth field of any proof is the path that makes the third a right inverse:
 TypeTheoryType[{Typed[f, TypeSpecifier[{Booleans} -> Booleans]], Typed[e, IsEquivalence[f]]} |-> e[[4]], "HomotopyTypeTheory"]
 ```
 
-<!-- => ∀_f∶𝔹 → 𝔹 ∀_e∶IsEquivalence[f] ∀_y∶𝔹 f[e〚3〛[y]] == y -->
+<!-- => ∀_f∶𝔹 → 𝔹 ∀_e∶IsEquivalence[f] ∀_y∶𝔹 f[e〚"rightInverse"〛[y]] == y -->
 
 ## Applications
 

@@ -16,7 +16,7 @@ RelatedTutorials: [CubicalTypeTheory]
 
 ## Details & Options
 
-- An element of a fiber is a pair `"dependentPair"[x, p]` of an element *x* and a path *p* from *f*[*x*] to *y*; <code>*w*[[1]]</code> and <code>*w*[[2]]</code> are the two fields of an element *w*.
+- An element of a fiber is a pair `"dependentPair"[x, p]` of an element *x* and a path *p* from *f*[*x*] to *y*; <code>*w*["first"]</code> and <code>*w*["second"]</code> are the two parts of an element *w*, also <code>*w*[[1]]</code> and <code>*w*[[2]]</code>.
 - It is the preimage of *y* up to paths. An equivalence is a function whose fibers are all contractible, [IsContractible](): over each point there is one element, up to paths.
 - *A* and *B*, the types of *f*, are implicit, and in the same universe.
 - It is a definition of <code>[TypeTheoryEnvironment]()["Cubical"]</code>; terms that use it name that environment.
@@ -59,7 +59,7 @@ The second field of an element is its path:
 TypeTheoryType[Typed[w, Fiber["not", "true"]] |-> w[[2]], "Cubical"]
 ```
 
-<!-- => ∀_w∶Fiber[not, true] !w〚1〛 ≡ true -->
+<!-- => ∀_w∶Fiber[not, true] !w〚"first"〛 ≡ true -->
 
 ---
 
@@ -79,7 +79,7 @@ The equivalence of negation has contractible fibers, and the center of the fiber
 WeakHeadNormalForm[TypeTheoryTerm["negationEquivalence"[[2]]["true"][[1]], "Cubical"]]
 ```
 
-<!-- => 〈!true, negationInvolution[true]〉 ∶ Fiber[negationEquivalence〚1〛, true] -->
+<!-- => 〈!true, negationInvolution[true]〉 ∶ Fiber[negationEquivalence〚"first"〛, true] -->
 
 Its element computes to `"false"`:
 

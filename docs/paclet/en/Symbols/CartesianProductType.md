@@ -17,7 +17,8 @@ RelatedTutorials: [ThePrelude]
 ## Details & Options
 
 - [CartesianProductType]() is an inductive type of the prelude, with the one constructor `"pair"`. `"pair"` takes the types of its fields implicitly, from the fields.
-- It is a structure: a pair `p` has the fields `p[[1]]` and `p[[2]]`, which compute on a pair: `"pair"[a, b][[1]]` is `a`. A pair is its fields: `p` and `"pair"[p[[1]], p[[2]]]` are equal by computation, the eta rule of a structure.
+- It is a structure: a pair `p` has the parts `p["first"]` and `p["second"]`, also written by their indices, `p[[1]]` and `p[[2]]`. They compute on a pair: `"pair"[a, b]["first"]` is `a`. A pair is its parts: `p` and `"pair"[p["first"], p["second"]]` are equal by computation, the eta rule of a structure.
+- The parts of any structure are named by the binders of its constructor, as those of `"pair"` are `first` and `second`; a name is how a part is written and shown, and the term is the part by its index.
 - Its recursor, <code>[InductiveRecursor]()[[CartesianProductType]()]</code>, takes a function of the two fields.
 - For *α* in `Type u` and *β* in `Type v`, <code>[CartesianProductType]()[*α*, *β*]</code> is in `Type (max u v)`. The fields are data: for propositions, [And]() is the conjunction, a structure too.
 - <code>[CartesianProductType]()[*α*, *β*]</code> displays as *α* × *β*, and a product nested to the right, <code>[CartesianProductType]()[*α*, [CartesianProductType]()[*β*, *γ*]]</code>, as *α* × *β* × *γ*. A pair displays as `(a, b)`, and a pair nested to the right as `(a, b, c)`.
@@ -65,7 +66,7 @@ TypeTheoryType["pair"[1, "pair"["true", 3]]]
 The fields of a pair compute:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[2]]]]
+WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3]["second"]]]
 ```
 
 <!-- => 3 -->
@@ -75,7 +76,7 @@ WeakHeadNormalForm[TypeTheoryTerm["pair"[2, 3][[2]]]]
 The middle of a triple is the first field of its second:
 
 ```wl
-WeakHeadNormalForm[TypeTheoryTerm["pair"[1, "pair"["true", 3]][[2]][[1]]]]
+WeakHeadNormalForm[TypeTheoryTerm["pair"[1, "pair"["true", 3]]["second"]["first"]]]
 ```
 
 <!-- => true -->
@@ -85,7 +86,7 @@ WeakHeadNormalForm[TypeTheoryTerm["pair"[1, "pair"["true", 3]][[2]][[1]]]]
 A function takes the second field of any pair:
 
 ```wl
-TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p[[2]]]
+TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p["second"]]
 ```
 
 <!-- => ℕ × 𝔹 → 𝔹 -->
@@ -95,7 +96,7 @@ TypeTheoryType[Typed[p, CartesianProductType[Naturals, Booleans]] |-> p[[2]]]
 Swapping the fields, applied to a pair:
 
 ```wl
-NormalForm[TypeTheoryTerm[(Typed[p, CartesianProductType[Naturals, Booleans]] |-> "pair"[p[[2]], p[[1]]])["pair"[2, "true"]]]]
+NormalForm[TypeTheoryTerm[(Typed[p, CartesianProductType[Naturals, Booleans]] |-> "pair"[p["second"], p["first"]])["pair"[2, "true"]]]]
 ```
 
 <!-- => (true, 2) -->
@@ -136,7 +137,7 @@ The Fibonacci numbers, by a recursion that carries two consecutive numbers in a 
 
 ```wl
 fibonacci = TypeTheoryEnvironment[{TypeTheoryDefinition[Fibonacci,
-    n |-> InductiveRecursor[Naturals][CartesianProductType[Naturals, Naturals] &, "pair"[0, 1], {k, r} |-> "pair"[r[[2]], r[[1]] + r[[2]]], n][[1]]
+    n |-> InductiveRecursor[Naturals][CartesianProductType[Naturals, Naturals] &, "pair"[0, 1], {k, r} |-> "pair"[r["second"], r["first"] + r["second"]], n]["first"]
 ]}]
 ```
 
@@ -163,7 +164,7 @@ TypeTheoryProof[Fibonacci[10] == 55, fibonacci, {"Reflexivity"}]
 A pair is its fields, by computation:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[p, CartesianProductType[Naturals, Naturals]]}, p == "pair"[p[[1]], p[[2]]]], {"Introduce"[p], "Reflexivity"}]
+TypeTheoryProof[ForAll[{Typed[p, CartesianProductType[Naturals, Naturals]]}, p == "pair"[p["first"], p["second"]]], {"Introduce"[p], "Reflexivity"}]
 ```
 
 <!-- => Proof complete -->
@@ -175,7 +176,7 @@ Equal pairs have equal first fields, by congruence with the first field:
 ```wl
 TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals], Typed[c, Naturals], Typed[d, Naturals], Typed[h, "pair"[a, b] == "pair"[c, d]]}, a == c], {
     "Introduce"[a, b, c, d, h],
-    "Exact"["equalityCongruence"[Typed[q, CartesianProductType[Naturals, Naturals]] |-> q[[1]], h]]
+    "Exact"["equalityCongruence"[Typed[q, CartesianProductType[Naturals, Naturals]] |-> q["first"], h]]
 }]
 ```
 
@@ -186,17 +187,17 @@ TypeTheoryProof[ForAll[{Typed[a, Naturals], Typed[b, Naturals], Typed[c, Natural
 A theorem about numbers applies to the fields of a pair:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[p, CartesianProductType[Naturals, Naturals]]}, p[[1]] + p[[2]] == p[[2]] + p[[1]]], {"Introduce"[p], "Exact"["additionCommutativity"[p[[1]], p[[2]]]]}]
+TypeTheoryProof[ForAll[{Typed[p, CartesianProductType[Naturals, Naturals]]}, p["first"] + p["second"] == p["second"] + p["first"]], {"Introduce"[p], "Exact"["additionCommutativity"[p["first"], p["second"]]]}]
 ```
 
 <!-- => Proof complete -->
 
 ---
 
-For propositions, a proof of a conjunction has two fields as a pair does:
+For propositions, a proof of a conjunction has two parts as a pair does, `"left"` and `"right"`:
 
 ```wl
-TypeTheoryType[Typed[h, 2 == 2 && 3 == 3] |-> h[[2]]]
+TypeTheoryType[Typed[h, 2 == 2 && 3 == 3] |-> h["right"]]
 ```
 
 <!-- => (2 == 2 ∧ 3 == 3) ⇒ 3 == 3 -->
@@ -223,7 +224,7 @@ TypeTheoryType[CartesianProductType[True, False]]
 
 ---
 
-A pair has two fields:
+A pair has two parts:
 
 ```wl
 TypeTheoryType["pair"[2, 3][[3]]]
@@ -233,7 +234,7 @@ TypeTheoryType["pair"[2, 3][[3]]]
 
 ---
 
-A field of a field is written as two parts, `p[[2]][[1]]`, not `p[[2, 1]]`:
+A part of a part is written as two, `p["second"]["first"]` or `p[[2]][[1]]`, not `p[[2, 1]]`:
 
 ```wl
 TypeTheoryType["pair"[1, "pair"["true", 3]][[2, 1]]]

@@ -287,7 +287,7 @@ The recursor of [And]() has a motive into any universe, `Sort u`, since a conjun
 TypeTheoryType[InductiveRecursor[And]]
 ```
 
-<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} ∀_m∶(a ∧ b) → Sort u (∀_p∶a ∀_q∶b m[andIntroduction[p, q]]) → ∀_t∶a ∧ b m[t] -->
+<!-- => ∀_{a ∶ Prop} ∀_{b ∶ Prop} ∀_m∶(a ∧ b) → Sort u (∀_left∶a ∀_right∶b m[andIntroduction[left, right]]) → ∀_t∶a ∧ b m[t] -->
 
 ## Possible Issues
 

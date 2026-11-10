@@ -36,7 +36,7 @@ The relation:
 integers["integerRelation"]
 ```
 
-<!-- => definition integerRelation : ℕ × ℕ → ℕ × ℕ → Prop := (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) ↦ p〚1〛 + q〚2〛 == q〚1〛 + p〚2〛 -->
+<!-- => definition integerRelation : ℕ × ℕ → ℕ × ℕ → Prop := (p ∶ ℕ × ℕ) (q ∶ ℕ × ℕ) ↦ p〚"first"〛 + q〚"second"〛 == q〚"first"〛 + p〚"second"〛 -->
 
 A natural number n is the class of (n, 0), and the function that takes it there is a coercion, inserted where a natural number stands for an integer:
 
@@ -139,7 +139,7 @@ TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, x y == y x], in
 }]
 ```
 
-<!-- => Proof, 1 goal: p ∶ ℕ × ℕ, q ∶ ℕ × ℕ ⊢ integerRelation[(p〚1〛 q〚1〛 + p〚2〛 q〚2〛, p〚1〛 q〚2〛 + p〚2〛 q〚1〛), (q〚1〛 p〚1〛 + q〚2〛 p〚2〛, q〚1〛 p〚2〛 + q〚2〛 p〚1〛)] -->
+<!-- => Proof, 1 goal: p ∶ ℕ × ℕ, q ∶ ℕ × ℕ ⊢ integerRelation[(p〚"first"〛 q〚"first"〛 + p〚"second"〛 q〚"second"〛, p〚"first"〛 q〚"second"〛 + p〚"second"〛 q〚"first"〛), (q〚"first"〛 p〚"first"〛 + q〚"second"〛 p〚"second"〛, q〚"first"〛 p〚"second"〛 + q〚"second"〛 p〚"first"〛)] -->
 
 `"Ring"` proves it, taking the fields of the pairs as atoms:
 
