@@ -740,15 +740,16 @@ applyArguments[head : {_, functionType_}, arguments_List, headSyntax_, expected_
 
 (* The readings of an application, the usual one first. An argument name -> value or name :> value, where name is the
    name of a binder of the function's type, gives that binder its value by name, implicit or not, as an option is
-   given, and the other arguments fill the explicit binders in order. name :> value always names an argument;
-   name -> value names one where it can be nothing else: where name is a variable or a constant, the rule is first read
-   as an argument of its own, a function type or a rule, and names an argument only if that reading fails, so that
-   List[A -> B] stays the lists of functions. Where an application so read fails and an implicit binder is among the
+   given, and the other arguments fill the explicit binders in order. A rule names an argument where it can be nothing
+   else: it is first read as an argument of its own, a function type, or a rule where an expression is expected, and
+   names an argument only if that reading fails, so that List[A -> B] stays the lists of functions and the details of a
+   failure stay rules. name :> value is no type, so it names the argument where name -> value would be a function type. Where an application so read fails and an implicit binder is among the
    first binders, the arguments are read once more as filling every binder in order, the implicit ones too, as Construct
    gives them: "push"[Naturals, 2, 0, rest]. The first reading that elaborates is the application. Where none does, the
    failure says what was most likely meant: a rule whose left side is no term and no binder's name names an argument the
-   function does not have; more arguments than the type has explicit binders were meant for every binder, and the failure
-   is that reading's; otherwise it is the usual reading's. *)
+   function does not have; a rule whose left side is a binder's name was meant to name it, and the failure is that
+   reading's; more arguments than the type has explicit binders were meant for every binder, and the failure is that
+   reading's; otherwise it is the usual reading's. *)
 applicationReadings[arguments_List, certain_List, possible_List, implicitQ_] := DeleteDuplicates[Join[
 	{{certain, False}},
 	If[possible === {}, {}, {{Join[certain, possible], False}}],
@@ -759,7 +760,7 @@ applicationReadings[arguments_List, certain_List, possible_List, implicitQ_] := 
 tryReadings[head_, {{positional_, named_, all_}}, {}, _, headSyntax_, expected_] := applyReading[head, positional, named, all, headSyntax, expected]
 tryReadings[head_, {{positional_, named_, all_}, more___}, failures_List, written_, headSyntax_, expected_] := Replace[
 	tried[applyReading[head, positional, named, all, headSyntax, expected]],
-	failure_Failure :> tryReadings[head, {more}, Append[failures, {all, failure}], written, headSyntax, expected]
+	failure_Failure :> tryReadings[head, {more}, Append[failures, {all, named =!= {}, failure}], written, headSyntax, expected]
 ]
 tryReadings[_, {}, failures_List, {arguments_List, names_List, functionType_}, headSyntax_, _] := With[
 	{unknown = SelectFirst[arguments, Function[argument, unknownNameQ[names, argument]], None]},
@@ -770,7 +771,10 @@ tryReadings[_, {}, failures_List, {arguments_List, names_List, functionType_}, h
 				"`1` has no argument named `2`: its arguments are named `3`.",
 				{HoldForm @@ heldFromSyntax[headSyntax], namedArgumentName[First[Last[unknown]]], DeleteCases[names, None]}
 			],
-		Count[arguments, Except[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]] > explicitBinderCount[functionType] && MemberQ[failures, {True, _}],
+		(* a rule whose left side is a binder's name, which is no argument of its own, was meant to name it *)
+		MemberQ[failures, {False, True, _}],
+			throwFailure[Last[SelectFirst[failures, Function[entry, MatchQ[entry, {False, True, _}]]]]],
+		Count[arguments, Except[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]] > explicitBinderCount[functionType] && MemberQ[failures, {True, _, _}],
 			throwFailure[Last[SelectFirst[failures, First]]],
 		True,
 			throwFailure[Last[First[failures]]]
@@ -831,14 +835,11 @@ namedArgumentName[syntaxSymbol[name_HoldComplete]] := binderNameText[name]
 namedArgumentName[syntaxString[name_String]] := name
 namedArgumentName[_] := None
 
-(* True for a rule that names an argument, Automatic for one that does where it is nothing else, False for any other *)
-namingRuleQ[names_List, syntaxApplication[syntaxSymbol[HoldComplete[head : Rule | RuleDelayed]], {name_, _}]] := With[{text = namedArgumentName[name]},
-	Which[
-		! StringQ[text] || ! MemberQ[names, text], False,
-		head === RuleDelayed, True,
-		termNameQ[name], Automatic,
-		True, True
-	]
+(* Automatic for a rule that names an argument where it is nothing else, one whose left side is the name of a binder, and
+   False for any other. No rule is taken for a named argument before the usual reading has failed: a rule is data where
+   an expression is expected, as "x" -> 1 in the details of a failure, whatever the binders are called. *)
+namingRuleQ[names_List, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {name_, _}]] := With[{text = namedArgumentName[name]},
+	If[StringQ[text] && MemberQ[names, text], Automatic, False]
 ]
 namingRuleQ[_, _] := False
 

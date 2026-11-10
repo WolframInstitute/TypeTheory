@@ -733,10 +733,12 @@ VerificationTest[
 			namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[a -> b]]}, o], boxes] ===
 				namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[TypeSpecifier[{a} -> b]]]}, o], boxes],
 			namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[a :> b]]}, o], boxes] ===
-				namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[b]]}, o], boxes]
+				namedPartCore[Function[{Typed[a, TypeUniverse[1]], Typed[b, TypeUniverse[1]], Typed[o, Boxed[b]]}, o], boxes],
+			(* a rule where an expression is expected is data, though a binder of the function is called as its key is *)
+			TypeTheoryExpression[TypeTheoryTerm[Failure["Tag", <|"x" -> 1|>]]] === TypeTheoryExpression[NormalForm[TypeTheoryTerm[Failure["Tag", <|"x" -> 1|>]]]]
 		}
 	],
-	{"TypeMismatch", {"TypeMismatch", True}, {"ElaborationFailed", True}, "UnsolvedImplicitArgument", True, True},
+	{"TypeMismatch", {"TypeMismatch", True}, {"ElaborationFailed", True}, "UnsolvedImplicitArgument", True, True, True},
 	TestID -> "A-named-argument-is-checked-and-a-rule-that-is-an-argument-stays-one"
 ]
 

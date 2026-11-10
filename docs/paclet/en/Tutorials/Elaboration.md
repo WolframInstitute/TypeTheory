@@ -132,7 +132,7 @@ TypeTheoryType[TypeTheoryTerm["push"[n -> 5, 7, "empty"], vectors]]
 
 <!-- => Failure["TypeMismatch", ...] -->
 
-The usual reading comes first, so nothing that elaborates without these changes its meaning. A rule that is an argument of its own stays one: for a type constructor whose binder is called `a`, `Boxed[a -> b]` is still the boxes of functions from `a` to `b`. `name :> value` always names an argument, and is the form to write where the two could be confused. `Construct[f, a, ...]` gives every argument in order and nothing else, the exact form that `Normal` writes an environment's declarations in.
+The usual reading comes first, so nothing that elaborates without these changes its meaning. A rule that is an argument of its own stays one: for a type constructor whose binder is called `a`, `Boxed[a -> b]` is still the boxes of functions from `a` to `b`. `name :> value` is no type, so it names the argument there, and is the form to write where the two could be confused. A rule where an expression is expected, as in the details of a [Failure](), stays a rule. `Construct[f, a, ...]` gives every argument in order and nothing else, the exact form that `Normal` writes an environment's declarations in.
 
 ## Lists, Sequences and Their Types
 
