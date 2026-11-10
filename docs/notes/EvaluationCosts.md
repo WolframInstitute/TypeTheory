@@ -110,3 +110,30 @@ lookup costs a pointer's comparison). With both:
 A map of the universe instantiation over the distinct subterms alone, in place of the cache,
 measured from 1% faster to 2% slower on the cones (`balanceL` 15.87 s against 16.23 s), whose
 types are small.
+
+## 5. Closed arithmetic that shared its parts
+
+A product of integers uses each factor twice: an integer is a class of pairs of natural numbers, and
+(a, b) (c, d) is (a c + b d, a d + b c). A product of k integer literals nested to the left kept each
+field as the sum of products it was built as, over the fields of the level before, unreduced. The
+reductions were shared, 8 entries of the cache of weak head normal forms for each factor, but the term
+was not small: at k = 14 its largest field had 118 distinct nodes and 98,290 as a tree. Two readers of
+`Checking/NaturalNumbers.wl` that read a term without reducing it, `stuckQ` and `naturalOffset`, visit
+a term as a tree, and took the time: 0.51 of 0.57 s at k = 14 in the first, and 0.95 of 1.01 s at
+k = 20 in the second once the first remembered its answers. The check that the product is its literal
+took 0.15 s at k = 12, 1.7 s at 16 and 6.6 s at 18, on Wolfram 15.0 and on WolframKernel 0.0.6 alike
+(`scripts/product_chain_timing.wls`).
+
+Remembering the answers of the two readers within a query moved the wall by 8 factors and left it:
+0.07 s at k = 16, 11 s at 24.
+
+The remedy removes the terms: a beta reduction computes each registered operation on two literals as
+its substitution builds it (`TypeChecking.wl`, `literalFolded`; `CoreTerms.wl`, `foldedApplication`),
+by the kernel's own `literalOperationResult`, the step a weak head normal form takes at a head. A
+field is then a literal as soon as it exists. The check takes 0.06 s at k = 16, 0.23 s at 64 and
+1.07 s at 256, and a machine chain of 56 products 0.58 s, where 14 took 1.63 s.
+
+What is left as it was: `stuckQ` and `naturalOffset` still read a shared term as a tree. Closed
+arithmetic no longer builds such terms. A symbolic part used twice, which no reduction can make
+small, is still read once for each place it stands; no blow-up of that kind has been measured, and a
+traversal that visits each shared subterm once, or terms kept unique, would be the remedy if one is.

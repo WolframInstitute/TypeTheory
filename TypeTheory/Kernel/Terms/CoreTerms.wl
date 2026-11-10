@@ -131,7 +131,8 @@ looseBoundRange::usage = "looseBoundRange[term] gives one more than the largest 
 $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loose bound ranges remembered while the kernel checks a declaration, or None."
 instantiateBoundVariable::usage = "instantiateBoundVariable[body, value] replaces the variable bound just outside body by value."
 instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ..., valuek}] replaces the k variables bound just outside body by the values at once, the innermost by valuek."
-instantiateBoundVariablesProjecting::usage = "instantiateBoundVariablesProjecting[body, values, fields] replaces the variables as instantiateBoundVariables[body, values] does, and each projection of a replaced variable whose entry of fields, aligned with values, is {HoldComplete[structure], {field1, ...}} by its field: the entry None leaves the variable's projections to be replaced as any other occurrence."
+instantiateBoundVariablesProjecting::usage = "instantiateBoundVariablesProjecting[body, values, fields] replaces the variables as instantiateBoundVariables[body, values] does, and each projection of a replaced variable whose entry of fields, aligned with values, is {HoldComplete[structure], {field1, ...}} by its field: the entry None leaves the variable's projections to be replaced as any other occurrence.\n\
+instantiateBoundVariablesProjecting[body, values, fields, fold] gives fold of each application of a constant to two literals that the substitution builds, in its place."
 abstractFreeVariable::usage = "abstractFreeVariable[term, id] replaces freeVariable[id] by a bound variable, ready to be wrapped in a binder."
 abstractFreeVariables::usage = "abstractFreeVariables[term, {id, ...}] replaces each freeVariable[id] by the bound variable of a binder for it, the last id the innermost, \
 ready to be wrapped in those binders: what abstracting the ids one at a time, the last first, gives, in one walk of the term."
@@ -269,9 +270,20 @@ instantiateBoundVariables[body_, values_List] := withRangeCache[
    each shared subterm once is the general remedy. *)
 $substitutedFields = {}
 
-instantiateBoundVariablesProjecting[body_, values_List, fields_List] := withRangeCache[
-	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>, $substitutedFields = Reverse[fields]}, substituteShared[body, Reverse[values], 0]]]
+instantiateBoundVariablesProjecting[body_, values_List, fields_List] := instantiateBoundVariablesProjecting[body, values, fields, None]
+instantiateBoundVariablesProjecting[body_, values_List, fields_List, fold_] := withRangeCache[
+	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>, $substitutedFields = Reverse[fields], $literalFold = fold}, substituteShared[body, Reverse[values], 0]]]
 ]
+
+(* An application of a constant to two literals that this substitution builds is what fold gives of it, where the caller
+   gives a fold: beta reduction gives the kernel's computation of a registered operation on literals, so a sum of
+   products of literals in a field is a literal as soon as the field exists, and no later reduction carries it unreduced,
+   shared, to be read again at each use. $literalFold is the fold of the substitution in progress, set here from the
+   argument and nowhere else, as $substitutedFields is; with None, as every other substitution has it, substitution is
+   purely syntactic. *)
+$literalFold = None
+foldedApplication[node : application[application[_constantReference, _naturalLiteral], _naturalLiteral]] /; $literalFold =!= None := $literalFold[node]
+foldedApplication[node_] := node
 
 (* values innermost first: boundVariable[depth + j] is the value at j + 1 *)
 substituteShared[term_, values_, depth_] := If[ looseBoundRange[term] <= depth,
@@ -288,7 +300,7 @@ substituteNode[boundVariable[index_], values_, depth_] := Which[
 		boundVariable[index - Length[values]]
 ]
 substituteNode[application[function_, argument_], values_, depth_] :=
-	Construct[application, substituteShared[function, values, depth], substituteShared[argument, values, depth]]
+	foldedApplication[Construct[application, substituteShared[function, values, depth], substituteShared[argument, values, depth]]]
 substituteNode[lambdaAbstraction[name_, domain_, body_, binder_], values_, depth_] :=
 	Construct[lambdaAbstraction, name, substituteShared[domain, values, depth], substituteShared[body, values, depth + 1], binder]
 substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], values_, depth_] :=

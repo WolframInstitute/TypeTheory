@@ -455,7 +455,12 @@ naturalOffset[_, term_] := {term, 0}
 offsetAdded[{base_, offset_Integer}, more_Integer] := {base, offset + more}
 
 (* a term no literal can be, read without reducing: a variable of the context without a value, a successor of one, or a
-   sum by the registered addition with one, as a sum is a literal only where both its sides are *)
+   sum by the registered addition with one, as a sum is a literal only where both its sides are.
+   This reading and naturalOffset's visit a term as a tree, a shared subterm once for each place it stands, so on sums and
+   products that share their parts level after level they cost the size of the tree, which doubles where the shared
+   graph grows by a few nodes. Closed arithmetic no longer builds such terms: a beta reduction computes each operation on
+   literals as its substitution builds it (TypeChecking.wl, literalFolded). A symbolic part used twice is still read so;
+   no blow-up of that kind has been measured (docs/notes/EvaluationCosts.md). *)
 stuckQ[context_, _, freeVariable[id_]] := ! KeyExistsQ[Lookup[context, id, <||>], "Value"]
 stuckQ[context_, settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] := stuckQ[context, settings, argument]
 stuckQ[context_, settings_, application[application[constantReference[addition_, {}], left_], right_]] /; addition === Lookup[settings["Operations"], "Addition"] :=

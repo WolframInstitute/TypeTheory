@@ -491,8 +491,19 @@ reduceSpine[_, _, term_, _, _] := term
 (* each projection of a value that is a structure's constructor applied in full is its field at once (CoreTerms.wl,
    instantiateBoundVariablesProjecting) *)
 betaReduced[environment_, {body_, count_}, arguments_] := With[{values = Take[arguments, count]},
-	makeApplication[instantiateBoundVariablesProjecting[body, values, Map[Function[value, constructedFields[environment, value]], values]], Drop[arguments, count]]
+	makeApplication[
+		instantiateBoundVariablesProjecting[body, values, Map[Function[value, constructedFields[environment, value]], values], Function[node, literalFolded[environment, node]]],
+		Drop[arguments, count]
+	]
 ]
+
+(* A registered operation of the natural numbers applied to two literals is the literal the kernel computes for it
+   (NaturalNumbers.wl, literalOperationResult): the step a weak head normal form takes at a head, taken where a beta
+   reduction builds the application, so the reduct is definitionally equal to the one without it. Any other application
+   of a constant to two literals is left as it is. *)
+literalFolded[environment_, node : application[application[constantReference[name_, {}], left_], right_]] :=
+	Replace[literalOperationResult[environment, <||>, name, {left, right}], None :> node]
+literalFolded[_, node_] := node
 
 (* {HoldComplete[structure], fields} of a value that is, as it is written and not reduced, the one constructor of a
    structure applied to all its parameters and fields; None of any other value *)

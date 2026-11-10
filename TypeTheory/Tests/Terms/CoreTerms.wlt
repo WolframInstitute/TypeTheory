@@ -174,3 +174,30 @@ VerificationTest[
 	{True, False, True, False},
 	TestID -> "Level-comparison-holds-for-every-value-of-the-parameters"
 ]
+
+
+(* A substitution folds nothing by itself: an application of a constant to two literals that it builds stays as it is
+   built, with instantiateBoundVariables and with instantiateBoundVariablesProjecting given no fold. Given a fold, as beta
+   reduction gives one, such an application is what the fold makes of it, and no other node is shown to the fold. *)
+VerificationTest[
+	With[
+		{
+			plus = scoped["constantReference"][HoldComplete[Plus], {}],
+			two = scoped["naturalLiteral"][2]
+		},
+		With[{body = application[application[plus, boundVariable[0]], two], sum = application[application[plus, two], two]},
+			{
+				instantiateBoundVariables[body, {two}] === sum,
+				instantiateBoundVariablesProjecting[body, {two}, {None}] === sum,
+				instantiateBoundVariablesProjecting[body, {two}, {None}, Function[node, foldedForTheTest[node]]] === foldedForTheTest[sum],
+				(* with a variable for the literal there is nothing to fold, and an application to one literal is none *)
+				instantiateBoundVariablesProjecting[body, {freeVariable[7]}, {None}, Function[node, foldedForTheTest[node]]] === application[application[plus, freeVariable[7]], two],
+				instantiateBoundVariablesProjecting[application[plus, boundVariable[0]], {two}, {None}, Function[node, foldedForTheTest[node]]] === application[plus, two],
+				(* the fold of one substitution is gone when it ends *)
+				instantiateBoundVariables[body, {two}] === sum
+			}
+		]
+	],
+	{True, True, True, True, True, True},
+	TestID -> "A-substitution-folds-only-where-it-is-given-a-fold"
+]

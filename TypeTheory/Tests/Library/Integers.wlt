@@ -295,3 +295,18 @@ VerificationTest[
 	True,
 	TestID -> "Quotient-and-Mod-of-integers-at-the-machine-edges-and-large-random-values"
 ]
+
+
+(* A product of integers uses each factor twice, a class of pairs: (a, b) (c, d) is (a c + b d, a d + b c). The kernel's
+   check that a product of 64 literals nested to the left is its literal takes a fraction of a second, where each factor
+   once doubled it (scripts/product_chain_timing.wls). *)
+VerificationTest[
+	With[{integers = TypeTheoryEnvironment["Integers"]},
+		Replace[
+			ToExpression["{" <> StringJoin[Table["(", {63}], "Typed[1, Integers]", Table[" * " <> ToString[j] <> ")", {j, 2, 64}]] <> ", Typed[" <> ToString[64!] <> ", Integers]}", InputForm, HoldComplete],
+			HoldComplete[{product_, literal_}] :> TimeConstrained[DefinitionallyEqualQ[TypeTheoryTerm[product, integers], TypeTheoryTerm[literal, integers]], 30, "slow"]
+		]
+	],
+	True,
+	TestID -> "A-product-of-64-integer-literals-is-its-literal-in-a-fraction-of-a-second"
+]

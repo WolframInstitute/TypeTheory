@@ -495,3 +495,34 @@ VerificationTest[
 	{True, True, True, True, False, True},
 	TestID -> "Products-powers-and-differences-compute-to-literals-where-their-equations-give-them"
 ]
+
+
+(* A beta reduction computes each registered operation on literals that its substitution builds: the pair of 2 + 2 and 2
+   is the pair of 4 and 2 as soon as it exists. What it computes is what the kernel computes of the operation at a head,
+   so a proof by it is a proof of 2 + 2 == 4 and of nothing else: the forged 2 + 2 == 5 is refused, written out or
+   through the reduction. An operation that is not registered is left as it is built. *)
+VerificationTest[
+	With[
+		{
+			literals = Function[{environment, held},
+				Cases[
+					WolframInstitute`TypeTheory`PackageScope`weakHeadNormalForm[environment, <||>, First[WolframInstitute`TypeTheory`PackageScope`elaborateClosedTerm[environment, held, None, {}]]],
+					WolframInstitute`TypeTheory`PackageScope`naturalLiteral[n_] :> n,
+					{0, Infinity}
+				]
+			],
+			unregistered = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom["otherPlus", Naturals -> Naturals -> Naturals]}]
+		},
+		{
+			literals[prelude, HoldComplete[(Typed[x, Naturals] |-> "pair"[x + 2, x])[2]]],
+			literals[prelude, HoldComplete[(Typed[x, Naturals] |-> "pair"[x 3 + x, x])[2]]],
+			literals[unregistered, HoldComplete[(Typed[x, Naturals] |-> "pair"["otherPlus"[x, 2], x])[2]]],
+			Head[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["sumIsFour", 2 + 2 == 4, (Typed[x, Naturals] |-> "equalityReflexivity"[x + 2])[2]]}]],
+			FailureQ[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["forgedSum", 2 + 2 == 5, (Typed[x, Naturals] |-> "equalityReflexivity"[x + 2])[2]]}]],
+			FailureQ[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["forgedSumWritten", 2 + 2 == 5, "equalityReflexivity"[4]]}]],
+			FailureQ[TypeTheoryEnvironment[unregistered, {TypeTheoryTheorem["forgedOther", "otherPlus"[2, 2] == 4, (Typed[x, Naturals] |-> "equalityReflexivity"["otherPlus"[x, 2]])[2]]}]]
+		}
+	],
+	{{4, 2}, {8, 2}, {2, 2, 2}, TypeTheoryEnvironment, True, True, True},
+	TestID -> "A-beta-reduction-computes-the-registered-operations-on-literals-it-builds-and-no-forged-sum"
+]
