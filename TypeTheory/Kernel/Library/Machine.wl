@@ -8,15 +8,16 @@ integer it computes where that integer is in range, and a failure, Failure["Inte
 not: a typed entry of the compiler leaves its machine code for the generic code of the Wolfram Language where a
 value is out of its type, and the failure is that leave.
 
-	"Integer64"                      Subtype["integer64Range"], an integer x with -2^63 <= x < 2^63, as the
-	                                 compiler and NumericArray name the type
+	"Integer64"                      Subtype["integer64Range"], an integer with -2^63 <= integer < 2^63, as the
+	                                 compiler and NumericArray name the type; n["integer"] is the integer of a
+	                                 machine integer n, and n["proof"] the proof that it is in range
 	"MachineInteger", "Boolean"      the compiler's other names: "Integer64" on a 64-bit machine, and the Booleans
 	"machineResult"[x]               the machine integer of x where x is in range, "left", and the failure where it
 	                                 is not, "right": Integer64 | Failure
-	"machinePlus", "machineTimes"    the sum and the product of machine integers, as machine results
+	"machinePlus", "machineTimes"    the machine's sum and product of two integers: the machine result of the exact one
 	"machineIf"[b, x, y]             the compiler's If of a Boolean test
-	"machineQuotient", "machineMod"  the quotient rounded down and the remainder of two machine integers' values, as
-	                                 machine results, leaving with Failure["DivideByZero", <||>] by 0
+	"machineQuotient", "machineMod"  the machine's quotient, rounded down, and remainder of two integers, leaving with
+	                                 Failure["DivideByZero", <||>] by 0
 
 The range is decided by the order of the integers, "integerLessEqualDecidable", so a machine result of literals
 computes: "machineResult"[5] is the machine integer 5, and "machineResult"[2^63] the failure. Where an exact result is
@@ -65,7 +66,8 @@ addMachineDeclaration[environment_, declaration_] := TypeTheoryEnvironment[envir
 (* the bounds written as literals, never as powers, which the integers would compute one factor at a time *)
 $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854775808}, {
 	TypeTheoryDefinition["machineDecision", Function[{Typed[q, TypeUniverse[0]], Annotation[Typed[d, Decidable[q]], "InstanceImplicit"]}, d]],
-	TypeTheoryDefinition["integer64Range", Typed[Typed[x, Integers] |-> Typed[lower, Integers] <= x && x < Typed[upper, Integers], Integers -> TypeUniverse[0]]],
+	(* the variable of the range names the element of the subtype: n["integer"] is the integer of a machine integer n *)
+	TypeTheoryDefinition["integer64Range", Typed[Typed[integer, Integers] |-> Typed[lower, Integers] <= integer && integer < Typed[upper, Integers], Integers -> TypeUniverse[0]]],
 	TypeTheoryDefinition["Integer64", Subtype["integer64Range"]],
 	(* the compiler's names: "MachineInteger" is "Integer64" on a 64-bit machine, and "Boolean" the Booleans *)
 	TypeTheoryDefinition["MachineInteger", "Integer64"],
@@ -110,8 +112,10 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 		Function[{Typed[x, Integers], Typed[y, Integers]}, "machineIf"["integerEqual"[y, 0], Typed["right"[Failure["DivideByZero", <||>]], "Integer64" | Failure], "machineResult"[Mod[x, y]]]],
 		Integers -> Integers -> ("Integer64" | Failure)
 	]],
-	TypeTheoryDefinition["machinePlus", Typed[{a, b} |-> "machineResult"[a[[1]] + b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
-	TypeTheoryDefinition["machineTimes", Typed[{a, b} |-> "machineResult"[a[[1]] b[[1]]], "Integer64" -> "Integer64" -> ("Integer64" | Failure)]],
+	(* the machine's sum and product of two integers, the values of machine integers or literals: the machine result of
+	   the exact one, so each leaves with Failure["IntegerOverflow", <||>] where the exact value is out of range *)
+	TypeTheoryDefinition["machinePlus", Typed[Function[{Typed[x, Integers], Typed[y, Integers]}, "machineResult"[x + y]], Integers -> Integers -> ("Integer64" | Failure)]],
+	TypeTheoryDefinition["machineTimes", Typed[Function[{Typed[x, Integers], Typed[y, Integers]}, "machineResult"[x y]], Integers -> Integers -> ("Integer64" | Failure)]],
 	(* the natural numbers below 2^63 are machine integers: the relations of the pairs, stated as the integers' order
 	   unfolds them, proved by terms that reduce no sum that holds the bound, only sums of literals, so that a kernel
 	   that unfolds a literal one unit at a time checks them too: x + 0 == x of such a

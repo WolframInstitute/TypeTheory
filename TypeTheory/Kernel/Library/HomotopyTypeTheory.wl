@@ -170,8 +170,8 @@ $univalentDeclarations = {
 				{
 					TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
 					TypedImplicit[f, TypeSpecifier[{A} -> B]],
-					Typed[g, TypeSpecifier[{B} -> A]], Typed[retraction, ForAll[{Typed[x, A]}, g[f[x]] == x]],
-					Typed[h, TypeSpecifier[{B} -> A]], Typed[section, ForAll[{Typed[y, B]}, f[h[y]] == y]]
+					Typed[leftInverse, TypeSpecifier[{B} -> A]], Typed[retraction, ForAll[{Typed[x, A]}, leftInverse[f[x]] == x]],
+					Typed[rightInverse, TypeSpecifier[{B} -> A]], Typed[section, ForAll[{Typed[y, B]}, f[rightInverse[y]] == y]]
 				},
 				IsEquivalence[f]
 			]
@@ -184,7 +184,7 @@ $univalentDeclarations = {
 			"equivalenceIntroduction" -> ForAll[
 				{
 					TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]],
-					Typed[f, TypeSpecifier[{A} -> B]], Typed[e, IsEquivalence[f]]
+					Typed[function, TypeSpecifier[{A} -> B]], Typed[proof, IsEquivalence[function]]
 				},
 				Equivalence[A, B]
 			]

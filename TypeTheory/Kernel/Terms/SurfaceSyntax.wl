@@ -35,6 +35,12 @@ Two more forms make a term exact, as LeanLink and Normal[environment] need:
 	Construct[f, a, b]                                f applied to a and b with no implicit arguments filled in
 	t[[i]]                                            field i of t, of a structure type
 
+A field is also read by its name, t["name"] or t[["name"]], the name of its binder in the structure's constructor:
+s["element"] and s["proof"] of a subtype. The element of a subtype has a second name, that of its predicate's
+variable: n["integer"] where n is of the type Subtype[integer |-> ...]. Names are how a term is written and shown,
+never part of it: the term is the field by its index, and a field whose binder has no name, or shares its name with
+another field, is read and shown by its index. A field's own name comes before a predicate's variable of that name.
+
 Held terms are turned into syntax trees first, so the rest of the code never risks evaluating them:
 
 	syntaxSymbol[HoldComplete[symbol]]
@@ -81,6 +87,8 @@ PackageScoped[slotFunctions]
 PackageScoped[$exactReadBack]
 PackageScoped[nameSyntax]
 PackageScoped[displayedName]
+PackageScoped[structurePartNames]
+PackageScoped[namedPartIndex]
 
 
 (* ::Section:: *)
@@ -117,6 +125,8 @@ coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] 
 $exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
 nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
 displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbol or string shows as, without its context."
+structurePartNames::usage = "structurePartNames[environment, HoldComplete[structure]] gives the names of the fields of a structure in order, each the name of its binder in the constructor, or None for a field whose binder has no name or shares it with another field."
+namedPartIndex::usage = "namedPartIndex[environment, context, HoldComplete[structure], type, name] gives the index, from 1, of the field of the structure that name names for a term of the type, or None: a field of that name, or else the element of a subtype whose predicate's variable has that name."
 
 
 (* ::Section:: *)
@@ -282,7 +292,7 @@ delaborate[environment_, context_, term_] := Replace[term, {
 	metavariable[id_] :> syntaxHead[Placeholder, {syntaxString["?" <> ToString[id]]}],
 	universeSort[level_] :> syntaxHead[TypeUniverse, {levelSyntax[level]}],
 	naturalLiteral[n_] :> syntaxInteger[n],
-	projection[_, index_, structureTerm_] :> syntaxHead[Part, {delaborate[environment, context, structureTerm], syntaxInteger[index + 1]}],
+	projection[structure_, index_, structureTerm_] :> partSyntax[environment, context, structure, index, structureTerm],
 	localDefinition[name_, type_, value_, body_] :> delaborate[environment, context, instantiateBoundVariable[body, value]],
 	lambdaAbstraction[___] :> delaborateBinders[environment, context, term, lambdaAbstraction, Function],
 	dependentFunctionType[_, domain_, codomain_, "Explicit"] /; ! boundVariableOccursQ[codomain, 0] :>
@@ -295,6 +305,82 @@ delaborate[environment_, context_, term_] := Replace[term, {
 	intervalUniverse[] :> syntaxString["IntervalUniverse"],
 	_ :> syntaxOther[HoldComplete[term]]
 }]
+
+(* A field of a structure reads back by its name, s["element"], where it has one of its own, and by its index, s[[1]],
+   where it has none or the term is read back exactly. *)
+partSyntax[environment_, context_, structure_, index_, structureTerm_] := With[{shown = delaborate[environment, context, structureTerm]},
+	Replace[
+		If[TrueQ[$exactReadBack], None, shownPartName[environment, context, structure, index, structureTerm]],
+		{
+			name_String :> syntaxApplication[shown, {syntaxString[name]}],
+			_ :> syntaxHead[Part, {shown, syntaxInteger[index + 1]}]
+		}
+	]
+]
+
+(* The names of the fields of a structure in order: the name of each field's binder in the constructor's type, after
+   the structure's parameters, or None where the binder has no name or two fields share one. Binder names are no part
+   of a term, so a field without a name of its own is read and shown by its index, never by a name that is guessed. *)
+structurePartNames[environment_, structure_HoldComplete] := With[
+	{constructor = constantRecord[environment, First[constantRecord[environment, structure]["Constructors"]]]},
+	With[{names = partName /@ Take[Drop[telescopeNames[constructor["Type"]], constructor["NumberOfParameters"]], UpTo[constructor["NumberOfFields"]]]},
+		Replace[names, name_String /; Count[names, name] > 1 :> None, {1}]
+	]
+]
+
+telescopeNames[dependentFunctionType[name_, _, codomain_, _]] := Prepend[telescopeNames[codomain], name]
+telescopeNames[_] := {}
+
+partName[HoldComplete[Null]] := None
+partName[HoldComplete[name_String]] /; name =!= "" := name
+partName[HoldComplete[symbol_Symbol]] := SymbolName[Unevaluated[symbol]]
+partName[_] := None
+
+(* The element of a subtype has a second name, the name of its predicate's variable: n["integer"] where the type of n
+   is Subtype[integer |-> ...], also behind a definition, as "Integer64" is. None where the type is no subtype, or its
+   predicate, unfolded, is no function of a named variable. *)
+subtypeElementName[environment_, context_, type_] := Replace[
+	applicationSpine[weakHeadNormalForm[environment, context, type]],
+	{
+		{constantReference[HoldComplete[Subtype], _], {_, predicate_}} :> Replace[
+			weakHeadNormalForm[environment, context, predicate],
+			{lambdaAbstraction[name_, _, _, _] :> partName[name], _ :> None}
+		],
+		_ :> None
+	}
+]
+
+(* The index, from 1, of the field that a name names for a term of a type that is the structure: a field of that name
+   or, where there is none, the element of a subtype by the name of its predicate's variable. A field's own name comes
+   first, so a predicate's variable named as a field is that field. *)
+namedPartIndex[environment_, context_, structure_HoldComplete, type_, name_String] := Replace[
+	FirstPosition[structurePartNames[environment, structure], name, None, {1}, Heads -> False],
+	{
+		{index_Integer} :> index,
+		_ :> If[structure === HoldComplete[Subtype] && subtypeElementName[environment, context, type] === name, 1, None]
+	}
+]
+
+(* The name a field shows by, or None, which shows its index: the field's own or, for the element of a subtype, the name
+   of its predicate's variable where no field has that name. What is shown must read back to the same field, and a
+   variable of a function written in the term's type may show under another name, as x1 beside an x in scope; so the
+   predicate's variable names the element only where the type is written with no function, behind definitions, as
+   "Integer64" is, whose variables are the environment's and show as they are. *)
+shownPartName[environment_, context_, structure_HoldComplete, index_Integer, structureTerm_] := With[
+	{names = structurePartNames[environment, structure]},
+	Replace[
+		If[index === 0 && structure === HoldComplete[Subtype], Quiet @ catchKernelFailure[shownElementName[environment, context, structureTerm]], None],
+		{
+			name_String /; ! MemberQ[names, name] :> name,
+			_ :> If[0 <= index < Length[names], Extract[names, index + 1], None]
+		}
+	]
+]
+shownPartName[_, _, _, _, _] := None
+
+shownElementName[environment_, context_, structureTerm_] := With[{type = inferType[environment, context, structureTerm]},
+	If[FreeQ[type, _lambdaAbstraction], subtypeElementName[environment, context, type], None]
+]
 
 (* the type of the sequences of the types of a list literal reads back as it is written, Sequence[A, B], and at a list
    of types that is no literal, As, as Sequence @@ As, the sequence of its elements *)

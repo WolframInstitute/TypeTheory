@@ -207,7 +207,7 @@ $wolframLanguageDeclarations = {
 	TypeTheoryInductiveType[
 		"IsString",
 		ForAll[{Typed[A, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]],
-		{"isString" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[f, Strings -> A]}, "IsString"[A]]}
+		{"isString" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Typed[fromString, Strings -> A]}, "IsString"[A]]}
 	],
 	TypeTheoryDefinition[FromString, Typed[
 		Function[{TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[c, "IsString"[A]], "InstanceImplicit"], Typed[s, Strings]},

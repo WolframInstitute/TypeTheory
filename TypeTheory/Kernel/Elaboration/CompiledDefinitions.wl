@@ -8,7 +8,8 @@ The compiler of the WolframKernel project, the paclet Wolfram/KernelCompiler, gi
 numbers a typed entry: its TypedSignatures gives the types of the parameters and the result, and the body in
 administrative normal form, one statement for each step the C takes. Each step is read as what the machine computes:
 
-	t = Plus[a, b], Times[a, b]     the machine result of the exact sum or product, "machineResult"[a + b], the leave
+	t = Plus[a, b], Times[a, b]     "machinePlus" and "machineTimes" of the integers of a and b, a["integer"] for a machine
+	                                integer a: the machine result of the exact sum or product, the leave
 	                                Failure["IntegerOverflow", <||>] out of range; more arguments combine pairwise, in
 	                                order, each step a result of its own, as the C combines them
 	t = Quotient[a, b], Mod[a, b]   "machineQuotient" and "machineMod", rounded down as the integers' and leaving
@@ -81,11 +82,26 @@ typedSignaturesOf[held : HoldComplete[symbol_Symbol]] := With[
 	Replace[
 		Quiet[kernelCompilerSymbol["TypedSignatures"][Language`ExtendedFullDefinition[symbol], <|name -> types|>]],
 		{
-			signatures_Association /; KeyExistsQ[signatures, name] :> coreNormal[signatures],
+			signatures_Association /; KeyExistsQ[signatures, name] :> standardTypeNames[coreNormal[signatures]],
 			_ :> kernelFailure["NoTypedEntry", "The compiler gives `1` no typed entry: it computes on more than machine integers, or its definitions are more than one.", {HoldForm[symbol]}]
 		}
 	]
 ]
+
+(* The compiler writes its types "Int64" and "Bool". From here on they go by their standard names, "Integer64" and
+   "Boolean", the names of the environment's types: the type of each parameter, of each variable and of the result. *)
+standardTypeNames[signatures_Association] := Map[
+	Function[signature, Join[signature, <|
+		"Parameters" -> Replace[signature["Parameters"], {position_, middle_, type_String} :> {position, middle, standardTypeName[type]}, {1}],
+		"Variables" -> Map[standardTypeName, signature["Variables"]],
+		"Result" -> standardTypeName[signature["Result"]]
+	|>]],
+	signatures
+]
+
+standardTypeName["Int64"] := "Integer64"
+standardTypeName["Bool"] := "Boolean"
+standardTypeName[type_] := type
 
 (* "MachineInteger" for each argument x_Integer of the one definition, the patterns matched as written *)
 argumentTypes[HoldComplete[symbol_Symbol]] := Replace[Map[definitionArguments, definitionStatements[symbol]], {
@@ -230,9 +246,8 @@ parameterScope[parameters_List, terms_List] := Association[MapThread[
 	{parameters, terms}
 ]]
 
-machineType["Int64"] := HoldComplete["Integer64"]
-machineType["Bool"] := HoldComplete["Boolean"]
-machineType[type_] := kernelFailure["UnmodeledType", "The typed code computes on `1`, which the machine model does not have yet: it has \"Int64\" and \"Bool\".", {type}]
+machineType[type : "Integer64" | "Boolean"] := HoldComplete[type]
+machineType[type_] := kernelFailure["UnmodeledType", "The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\" and \"Boolean\".", {type}]
 
 resultType[type_String] := Replace[machineType[type], HoldComplete[machine_] :> HoldComplete[machine | Failure]]
 
@@ -253,8 +268,8 @@ functionType[domains_List, HoldComplete[codomain_]] := Fold[
 (*Blocks and steps*)
 
 
-(* a block's statements in turn, then its ending; the scope gives each variable so far its term and its kind: "Int64" a
-   machine integer, "Bool" a Boolean, "Integer" an exact integer the code has as a constant. A block ends with its value,
+(* a block's statements in turn, then its ending; the scope gives each variable so far its term and its kind: "Integer64" a
+   machine integer, "Boolean" a Boolean, "Integer" an exact integer the code has as a constant. A block ends with its value,
    valueEnding[atom], a term of the result type, or goes on as continuationEnding[f] says of the scope it ends with, as
    the test and the body of a loop do *)
 blockTerm[coreForm["StatementBlock"][statements_List, value_], scope_Association, signature_Association, signatures_Association] :=
@@ -275,7 +290,7 @@ statementsTerm[{coreForm["SetTemporary"][t_String, step_], rest___}, ending_, sc
 }]
 (* a local set to a value is that value from here on; set to a constant, the machine integer of it, a step of its own *)
 statementsTerm[{coreForm["SetLocal"][v_String, atom_], rest___}, ending_, scope_, signature_, signatures_] := Replace[atomTerm[atom, scope], {
-	{HoldComplete[constant_], "Integer"} :> boundTerm[HoldComplete["machineResult"[constant]], {"L", v}, localSymbol[v], "Int64", {rest}, ending, scope, signature, signatures],
+	{HoldComplete[constant_], "Integer"} :> boundTerm[HoldComplete["machineResult"[constant]], {"L", v}, localSymbol[v], "Integer64", {rest}, ending, scope, signature, signatures],
 	entry_ :> statementsTerm[{rest}, ending, Append[scope, {"L", v} -> entry], signature, signatures]
 }]
 (* a branch that sets a local would have to give the local back with its value: not yet *)
@@ -289,7 +304,7 @@ statementsTerm[{coreForm["If"][t_String, test_, then_, else_, ___], rest___}, en
 			{HoldComplete[b_], HoldComplete[x_], HoldComplete[y_]} :> HoldComplete["machineIf"[b, x, y]]
 		],
 		{"T", t}, compiledSymbol[t], kind, {rest}, ending, scope, signature, signatures
-	] /; Last[condition] === "Bool"
+	] /; Last[condition] === "Boolean"
 ]
 statementsTerm[{coreForm["While"][test_, body_], rest___}, ending_, scope_, signature_, signatures_] :=
 	loopTerm[test, body, {rest}, ending, scope, signature, signatures, ++$loopCount]
@@ -405,7 +420,7 @@ loopDeclaration[name_String, assigned_List, kinds_List, read_List, coreForm["Sta
 							stateType
 						},
 						{
-							{{HoldComplete[b_], "Bool"}, HoldComplete[continue_], HoldComplete[tuple_], HoldComplete[type_]} :> HoldComplete["machineIf"[b, continue, Typed["left"[tuple], type | Failure]]],
+							{{HoldComplete[b_], "Boolean"}, HoldComplete[continue_], HoldComplete[tuple_], HoldComplete[type_]} :> HoldComplete["machineIf"[b, continue, Typed["left"[tuple], type | Failure]]],
 							_ :> unmodeled["a While whose test is no Boolean"]
 						}
 					]]],
@@ -442,7 +457,7 @@ tupleType[{type_HoldComplete}] := type
 tupleType[{HoldComplete[first_], rest__}] := Replace[tupleType[{rest}], HoldComplete[others_] :> HoldComplete[CartesianProductType[first, others]]]
 
 projectionTerms[state_HoldComplete, 1] := {state}
-projectionTerms[HoldComplete[state_], count_Integer] := Prepend[projectionTerms[HoldComplete[state[[2]]], count - 1], HoldComplete[state[[1]]]]
+projectionTerms[HoldComplete[state_], count_Integer] := Prepend[projectionTerms[HoldComplete[state["second"]], count - 1], HoldComplete[state["first"]]]
 
 (* a call of more than two numbers is the pairwise steps the C takes, each a temporary of its own; a call of a function
    takes machine integers, so a constant argument is first made one *)
@@ -473,19 +488,19 @@ expandedPairwise[t_String, operation_String, first_, rest_List] := With[
 (* a step's term, {"Pure", term, kind} for a value that never leaves, {"Result", term, kind} for a machine result *)
 stepTerm[coreForm["Call"][operation : "System`Plus" | "System`Times", {a_, b_}], scope_, _, _] :=
 	Replace[{integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]}, {
-		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Plus" :> {"Result", HoldComplete["machineResult"[x + y]], "Int64"},
-		{HoldComplete[x_], HoldComplete[y_]} :> {"Result", HoldComplete["machineResult"[x y]], "Int64"}
+		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Plus" :> {"Result", HoldComplete["machinePlus"[x, y]], "Integer64"},
+		{HoldComplete[x_], HoldComplete[y_]} :> {"Result", HoldComplete["machineTimes"[x, y]], "Integer64"}
 	}]
 stepTerm[coreForm["Call"][operation : "System`Quotient" | "System`Mod", {a_, b_}], scope_, _, _] :=
 	Replace[{integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]}, {
-		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Quotient" :> {"Result", HoldComplete["machineQuotient"[x, y]], "Int64"},
-		{HoldComplete[x_], HoldComplete[y_]} :> {"Result", HoldComplete["machineMod"[x, y]], "Int64"}
+		{HoldComplete[x_], HoldComplete[y_]} /; operation === "System`Quotient" :> {"Result", HoldComplete["machineQuotient"[x, y]], "Integer64"},
+		{HoldComplete[x_], HoldComplete[y_]} :> {"Result", HoldComplete["machineMod"[x, y]], "Integer64"}
 	}]
-stepTerm[coreForm["Constant"][value_Integer], _, _, _] := {"Result", HoldComplete["machineResult"[value]], "Int64"}
+stepTerm[coreForm["Constant"][value_Integer], _, _, _] := {"Result", HoldComplete["machineResult"[value]], "Integer64"}
 stepTerm[coreForm["Call"][operation_String, {a_, b_}], scope_, _, _] /; KeyExistsQ[$machineComparisons, operation] :=
-	{"Pure", $machineComparisons[operation][integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]], "Bool"}
+	{"Pure", $machineComparisons[operation][integerTerm[atomTerm[a, scope]], integerTerm[atomTerm[b, scope]]], "Boolean"}
 stepTerm[coreForm["Call"]["System`Not", {a_}], scope_, _, _] :=
-	Replace[atomTerm[a, scope], {{HoldComplete[b_], "Bool"} :> {"Pure", HoldComplete["not"[b]], "Bool"}, _ :> unmodeled["System`Not"]}]
+	Replace[atomTerm[a, scope], {{HoldComplete[b_], "Boolean"} :> {"Pure", HoldComplete["not"[b]], "Boolean"}, _ :> unmodeled["System`Not"]}]
 (* a call of the function itself is its recursion, at a level less; a call of another function gives it this function's
    levels and fuel, where it takes them *)
 stepTerm[coreForm["Call"][name_String, arguments_List], scope_, signature_, signatures_] /; KeyExistsQ[signatures, name] := With[
@@ -534,23 +549,23 @@ atomTerm[coreForm["Local"][name_String], scope_] := Lookup[scope, Key[{"L", name
 atomTerm[coreForm["Temporary"][name_String], scope_] := Lookup[scope, Key[{"T", name}], unmodeled[coreForm["Temporary"][name]]]
 (* a constant is written bare: where the machine takes it, an integer is expected *)
 atomTerm[coreForm["Constant"][value_Integer], _] := {HoldComplete[value], "Integer"}
-atomTerm[coreForm["Constant"][True], _] := {HoldComplete["true"], "Bool"}
-atomTerm[coreForm["Constant"][False], _] := {HoldComplete["false"], "Bool"}
+atomTerm[coreForm["Constant"][True], _] := {HoldComplete["true"], "Boolean"}
+atomTerm[coreForm["Constant"][False], _] := {HoldComplete["false"], "Boolean"}
 atomTerm[other_, _] := unmodeled[other]
 
 (* the exact integer of a machine integer or a constant *)
-integerTerm[{HoldComplete[x_], "Int64"}] := HoldComplete[x[[1]]]
+integerTerm[{HoldComplete[x_], "Integer64"}] := HoldComplete[x["integer"]]
 integerTerm[{term_HoldComplete, "Integer"}] := term
 integerTerm[{_, kind_}] := unmodeled[kind]
 
 (* a machine integer or a Boolean as a value; a constant was bound as a machine integer before the call *)
-machineTerm[{term_HoldComplete, "Int64" | "Bool"}] := term
+machineTerm[{term_HoldComplete, "Integer64" | "Boolean"}] := term
 machineTerm[{_, kind_}] := unmodeled[kind]
 
 (* the block's value as a result: a machine integer or a Boolean that never left, or a constant's machine result *)
-valueTerm[{HoldComplete[x_], "Int64"}, "Int64"] := HoldComplete[Typed["left"[x], "Integer64" | Failure]]
-valueTerm[{HoldComplete[x_], "Bool"}, "Bool"] := HoldComplete[Typed["left"[x], "Boolean" | Failure]]
-valueTerm[{HoldComplete[x_], "Integer"}, "Int64"] := HoldComplete["machineResult"[x]]
+valueTerm[{HoldComplete[x_], "Integer64"}, "Integer64"] := HoldComplete[Typed["left"[x], "Integer64" | Failure]]
+valueTerm[{HoldComplete[x_], "Boolean"}, "Boolean"] := HoldComplete[Typed["left"[x], "Boolean" | Failure]]
+valueTerm[{HoldComplete[x_], "Integer"}, "Integer64"] := HoldComplete["machineResult"[x]]
 valueTerm[{_, kind_}, result_] := unmodeled[{kind, result}]
 
 unmodeled[form_] := kernelFailure["UnmodeledOperation", "The typed code has `1`, which the machine model does not have yet.", {Short[form, 2]}]

@@ -60,7 +60,7 @@ VerificationTest[
    ascribed its type, and elaborates again *)
 VerificationTest[
 	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[NonNegativeIntegers, {Booleans}]], environment]],
-	TypeTheoryTerm[Typed["pair"[NaturalsInhabited[[1]], ListsInhabited[[1]]], CartesianProductType[NonNegativeIntegers, {Booleans}]], environment],
+	TypeTheoryTerm[Typed["pair"[NaturalsInhabited["x"], ListsInhabited["x"]], CartesianProductType[NonNegativeIntegers, {Booleans}]], environment],
 	TestID -> "An-instance-finds-its-own-instance-arguments"
 ]
 

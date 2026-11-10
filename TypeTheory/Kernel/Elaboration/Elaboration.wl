@@ -475,6 +475,7 @@ elaborateSyntaxCases[syntax_, expected_] := Replace[syntax, {
 	syntaxSymbol[HoldComplete[Construct]] /; expressionsDeclaredQ[] :> elaborateSyntax[syntaxString["Construct"], expected],
 	syntaxApplication[syntaxSymbol[HoldComplete[Construct]], {head_, arguments___}] :> applyExplicitly[elaborateHead[head], {arguments}, head],
 	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxInteger[index_Integer?Positive]}] :> elaborateProjection[structureTerm, index],
+	syntaxApplication[syntaxSymbol[HoldComplete[Part]], {structureTerm_, syntaxString[name_String]}] :> elaborateProjection[structureTerm, name],
 	(* a hole stands for a term of the type expected, closed over the variables in scope when elaboration finishes *)
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeTheoryHole]], arguments_List] /; Length[arguments] <= 1 :> elaborateHole[arguments, expected, syntax],
 	(* a list written as a term is the list of its elements, Prepend over {}, as such a list shows *)
@@ -775,6 +776,12 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 		(* a function whose type nothing has decided yet, as a variable written without one *)
 		metavariable[id_] /; unassignedMetavariableQ[metavariable[id]] :>
 			elaborationFailure["The type of `1` is needed to apply it to arguments: write Typed[x, type] for a variable x.", headSyntax],
+		(* a structure applied to the name of one of its parts is that part, s["element"], as s[["element"]] is: a
+		   structure is no function, so the name can stand for nothing else *)
+		structureType_ /; namedPartApplicationQ[structureType, arguments] :> With[
+			{part = projectedPart[structureOfType[structureType], partIndex[structureOfType[structureType], structureType, First[First[arguments]], headSyntax], term]},
+			collectArguments[First[part], Last[part], Rest[arguments], postponed, headSyntax, expected]
+		],
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
@@ -1210,23 +1217,44 @@ applyExplicitly[{function_, functionType_}, {argument_, rest___}, headSyntax_] :
 	}
 ]
 
-(* t[[i]]: the field i of t, whose type must be a structure *)
-elaborateProjection[structureSyntax_, index_Integer] := With[{elaborated = elaborateSyntax[structureSyntax, None]},
+(* t[[i]]: the field i of t, whose type must be a structure; t[["name"]] and t["name"]: the field that the structure's
+   constructor names name, or the element of a subtype by the name of its predicate's variable *)
+elaborateProjection[structureSyntax_, part_] := With[{elaborated = elaborateSyntax[structureSyntax, None]},
 	With[
 		{
 			structure = Replace[
-				First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[Last[elaborated]]]],
-				{
-					constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name,
-					_ :> elaborationFailure["The type of `1` is not a structure, so it has no fields.", structureSyntax]
-				}
+				structureOfType[Last[elaborated]],
+				None :> elaborationFailure["The type of `1` is not a structure, so it has no fields.", structureSyntax]
 			]
 		},
-		(* the solutions found so far go in first: the kernel infers the projection's type, and would see a
-		   solved universe level metavariable as an unknown *)
-		{projected = Construct[projection, structure, index - 1, instantiateMetavariables[First[elaborated]]]},
-		{projected, inferType[$elaborationEnvironment, $elaborationContext, projected]}
+		projectedPart[structure, partIndex[structure, Last[elaborated], part, structureSyntax], First[elaborated]]
 	]
+]
+
+(* the structure a type is an instance of, the name of an inductive type with one constructor, or None *)
+structureOfType[type_] := Replace[
+	First @ applicationSpine[weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]]],
+	{constantReference[name_, _] /; structureLikeQ[$elaborationEnvironment, name] :> name, _ :> None}
+]
+
+(* the index of a part written by its index or by its name; a name no part has is a failure that lists the names *)
+partIndex[_, _, index_Integer, _] := index
+partIndex[structure_, type_, name_String, structureSyntax_] := Replace[
+	namedPartIndex[$elaborationEnvironment, $elaborationContext, structure, instantiateMetavariables[type], name],
+	None :> kernelFailure[
+		"ElaborationFailed",
+		"`1` has no part named `2`: the parts of `3` with a name are `4`, and any part is read by its index, as `1`[[1]].",
+		{HoldForm @@ heldFromSyntax[structureSyntax], name, HoldForm @@ structure, DeleteCases[structurePartNames[$elaborationEnvironment, structure], None]}
+	]
+]
+
+namedPartApplicationQ[type_, {syntaxString[_String], ___}] := structureOfType[type] =!= None
+namedPartApplicationQ[_, _] := False
+
+(* the solutions found so far go in first: the kernel infers the projection's type, and would see a
+   solved universe level metavariable as an unknown *)
+projectedPart[structure_, index_Integer, term_] := With[{projected = Construct[projection, structure, index - 1, instantiateMetavariables[term]]},
+	{projected, inferType[$elaborationEnvironment, $elaborationContext, projected]}
 ]
 
 

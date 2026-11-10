@@ -493,3 +493,179 @@ VerificationTest[
 	{True, True, True, True, True, True},
 	TestID -> "Premises-first-implicit-binders-and-recursors-read-their-major-premise-first"
 ]
+
+
+(* Named parts. A field of a structure is read by the name of its binder in the constructor, s["element"] or
+   s[["element"]], as well as by its index, and shown by that name. The core term of a held term, and the term it reads
+   back as, are compared here: the name is how the term is written, never part of it. *)
+SetAttributes[namedPartCore, HoldFirst]
+namedPartCore[term_, environment_] := WolframInstitute`TypeTheory`PackageScope`catchKernelFailure[
+	First[WolframInstitute`TypeTheory`PackageScope`elaborateClosedTerm[environment, HoldComplete[term], None, {}]]
+]
+namedPartShown[core_, environment_] := WolframInstitute`TypeTheory`PackageScope`coreToTypeTheoryTerm[environment, <||>, core]
+(* a core term with its binders' names left out, which are no part of what the term is: a variable may show under another
+   name, as k1 beside a k in scope, and reads back under that one *)
+namedPartNameless[core_] := Replace[
+	core,
+	(head : WolframInstitute`TypeTheory`PackageScope`lambdaAbstraction | WolframInstitute`TypeTheory`PackageScope`dependentFunctionType)[_, rest__] :> head[None, rest],
+	{0, Infinity}
+]
+(* the core term that the shown form of a core term reads back as *)
+namedPartReadBack[core_, environment_] := Replace[
+	namedPartShown[core, environment],
+	TypeTheoryTerm[shown_, _] :> WolframInstitute`TypeTheory`PackageScope`catchKernelFailure[
+		First[WolframInstitute`TypeTheory`PackageScope`elaborateClosedTerm[environment, HoldComplete[shown], None, {}]]
+	]
+]
+
+VerificationTest[
+	{
+		namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["element"]], prelude] ===
+			namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[[1]]], prelude],
+		namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["proof"]], prelude] ===
+			namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[[2]]], prelude],
+		namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[["proof"]]], prelude] ===
+			namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[[2]]], prelude],
+		namedPartCore[Function[{Typed[p, CartesianProductType[Naturals, Naturals]]}, p["first"] + p["second"]], prelude] ===
+			namedPartCore[Function[{Typed[p, CartesianProductType[Naturals, Naturals]]}, p[[1]] + p[[2]]], prelude],
+		namedPartCore[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, a && b]}, "andIntroduction"[h["right"], h["left"]]], prelude] ===
+			namedPartCore[Function[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[h, a && b]}, "andIntroduction"[h[[2]], h[[1]]]], prelude],
+		(* a part of a part, and a part that is a function, applied *)
+		NormalForm[TypeTheoryTerm["pair"[3, "pair"[4, 5]]["second"]["first"], prelude]],
+		NormalForm[TypeTheoryTerm["pair"[Function[{Typed[k, Naturals]}, k + 1], 5]["first"][6], prelude]],
+		(* the type of the proof of a subtype mentions its element by name *)
+		TypeTheoryType[TypeTheoryTerm[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["proof"]], prelude]]
+	},
+	{
+		True, True, True, True, True,
+		TypeTheoryTerm[4, prelude],
+		TypeTheoryTerm[7, prelude],
+		TypeTheoryTerm[ForAll[{Typed[s, Subtype[Function[{Typed[k, NonNegativeIntegers]}, k > 0]]]}, s["element"] > 0], prelude]
+	},
+	TestID -> "A-part-of-a-structure-is-read-and-shown-by-its-name"
+]
+
+(* a name no part has is a failure that lists the names there are, and only a structure has parts *)
+VerificationTest[
+	{
+		Replace[namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["value"]], prelude], failure_Failure :> {failure["Tag"], StringContainsQ[ToString[failure["Message"]], "element"]}],
+		Replace[namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[["value"]]], prelude], failure_Failure :> failure["Tag"]],
+		Replace[namedPartCore[Function[{Typed[n, Naturals]}, n["element"]], prelude], failure_Failure :> failure["Tag"]],
+		Replace[namedPartCore[Function[{Typed[n, Naturals]}, n[["element"]]], prelude], failure_Failure :> failure["Tag"]]
+	},
+	{{"ElaborationFailed", True}, "ElaborationFailed", "ElaborationFailed", "ElaborationFailed"},
+	TestID -> "A-name-no-part-has-is-a-failure-that-lists-the-names"
+]
+
+(* The element of a subtype has a second name, that of its predicate's variable. It reads wherever the predicate has
+   one; it shows where the type is written with no function, behind a definition, as a machine integer's is, since a
+   variable of a function written in the type may show under another name. *)
+VerificationTest[
+	With[{machine = TypeTheoryEnvironment["Machine"]},
+		{
+			namedPartCore[Function[{Typed[n, "Integer64"]}, n["integer"]], machine] === namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine],
+			namedPartCore[Function[{Typed[n, "Integer64"]}, n["element"]], machine] === namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[n, "Integer64"]}, n[[1]]], machine], machine], TypeTheoryTerm[Function[{Typed[_, "Integer64"]}, _["integer"]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[n, "Integer64"]}, n[[2]]], machine], machine], TypeTheoryTerm[Function[{Typed[_, "Integer64"]}, _["proof"]], _]],
+			(* a predicate written in the type: its variable reads, and the element shows by the field's own name *)
+			namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["k"]], prelude] ===
+				namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[[1]]], prelude],
+			MatchQ[
+				namedPartShown[namedPartCore[Function[{Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s["k"]], prelude], prelude],
+				TypeTheoryTerm[Function[{Typed[_, _Subtype]}, _["element"]], _]
+			]
+		}
+	],
+	{True, True, True, True, True, True},
+	TestID -> "The-element-of-a-subtype-is-also-named-by-its-predicate's-variable"
+]
+
+(* A part without a name of its own is read and shown by its index, never by a name that is guessed: a field whose
+   binder has no name, as those of a constructor written with arrows, and fields that share a name. *)
+VerificationTest[
+	With[
+		{
+			structures = TypeTheoryEnvironment[{
+				TypeTheoryInductiveType["Unnamed", TypeUniverse[1], {"unnamed" -> (Naturals -> Naturals -> "Unnamed")}],
+				TypeTheoryInductiveType["Twins", TypeUniverse[1], {"twins" -> ForAll[{Typed[twin, Naturals], Typed[twin, Naturals], Typed[other, Naturals]}, "Twins"]}]
+			}]
+		},
+		{
+			WolframInstitute`TypeTheory`PackageScope`structurePartNames[structures, HoldComplete["Unnamed"]],
+			WolframInstitute`TypeTheory`PackageScope`structurePartNames[structures, HoldComplete["Twins"]],
+			Replace[namedPartCore[Function[{Typed[s, "Unnamed"]}, s["x"]], structures], failure_Failure :> failure["Tag"]],
+			Replace[namedPartCore[Function[{Typed[s, "Twins"]}, s["twin"]], structures], failure_Failure :> failure["Tag"]],
+			namedPartCore[Function[{Typed[s, "Twins"]}, s["other"]], structures] === namedPartCore[Function[{Typed[s, "Twins"]}, s[[3]]], structures],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Unnamed"]}, s[[2]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Unnamed"]}, _[[2]]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Twins"]}, s[[1]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Twins"]}, _[[1]]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Twins"]}, s[[3]]], structures], structures], TypeTheoryTerm[Function[{Typed[_, "Twins"]}, _["other"]], _]],
+			NormalForm[TypeTheoryTerm["twins"[1, 2, 3][[2]] + "twins"[1, 2, 3]["other"], structures]]
+		}
+	],
+	{{None, None}, {None, None, "other"}, "ElaborationFailed", "ElaborationFailed", True, True, True, True, TypeTheoryTerm[5, _]},
+	SameTest -> MatchQ,
+	TestID -> "A-part-without-a-name-of-its-own-is-read-and-shown-by-its-index"
+]
+
+(* A field's own name comes before a predicate's variable of that name: where the variable of a subtype's predicate is
+   called proof, s["proof"] is the proof, and the element reads and shows as s["element"]. *)
+VerificationTest[
+	With[
+		{
+			clash = TypeTheoryEnvironment[{
+				TypeTheoryDefinition["positiveRange", Typed[Function[{Typed[proof, Naturals]}, proof > 0], Naturals -> TypeUniverse[0]]],
+				TypeTheoryDefinition["Positive", Subtype["positiveRange"]]
+			}]
+		},
+		{
+			namedPartCore[Function[{Typed[s, "Positive"]}, s["proof"]], clash] === namedPartCore[Function[{Typed[s, "Positive"]}, s[[2]]], clash],
+			namedPartCore[Function[{Typed[s, "Positive"]}, s["element"]], clash] === namedPartCore[Function[{Typed[s, "Positive"]}, s[[1]]], clash],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Positive"]}, s[[1]]], clash], clash], TypeTheoryTerm[Function[{Typed[_, "Positive"]}, _["element"]], _]],
+			MatchQ[namedPartShown[namedPartCore[Function[{Typed[s, "Positive"]}, s[[2]]], clash], clash], TypeTheoryTerm[Function[{Typed[_, "Positive"]}, _["proof"]], _]],
+			WolframInstitute`TypeTheory`PackageScope`namedPartIndex[clash, <||>, HoldComplete[Subtype], First[WolframInstitute`TypeTheory`PackageScope`elaborateClosedTerm[clash, HoldComplete["Positive"], None, {}]], "proof"]
+		}
+	],
+	{True, True, True, True, 2},
+	TestID -> "A-field's-own-name-comes-before-a-predicate's-variable-of-that-name"
+]
+
+(* What a term shows reads back to the same term, in an environment and in one whose constructor names its fields
+   otherwise: the two environments show the part under different names and hold the same term. Read back exactly, as
+   Normal[environment] writes a declaration, a part is its index. *)
+VerificationTest[
+	With[
+		{
+			boxes = TypeTheoryEnvironment[{TypeTheoryInductiveType["Box", TypeUniverse[1], {"box" -> ForAll[{Typed[content, Naturals], Typed[weight, Naturals]}, "Box"]}]}],
+			renamed = TypeTheoryEnvironment[{TypeTheoryInductiveType["Box", TypeUniverse[1], {"box" -> ForAll[{Typed[inside, Naturals], Typed[mass, Naturals]}, "Box"]}]}],
+			machine = TypeTheoryEnvironment["Machine"]
+		},
+		With[
+			{
+				inBoxes = namedPartCore[Function[{Typed[b, "Box"]}, b[[1]] + b[[2]]], boxes],
+				inRenamed = namedPartCore[Function[{Typed[b, "Box"]}, b[[1]] + b[[2]]], renamed],
+				integer = namedPartCore[Function[{Typed[n, "Integer64"], Typed[m, "Integer64"]}, "machinePlus"[n[[1]], m[[1]]]], machine],
+				(* the predicate's variable k shows as k1 beside the k in scope, and the element as the field it is *)
+				shadowed = namedPartCore[Function[{Typed[k, Naturals], Typed[s, Subtype[Function[{Typed[k, Naturals]}, k > 0]]]}, s[[1]] + k], prelude],
+				nested = namedPartCore[Function[{Typed[p, CartesianProductType[Naturals, CartesianProductType[Naturals, Naturals]]]}, p[[2]][[1]] + p[[1]]], prelude]
+			},
+			{
+				inBoxes === inRenamed,
+				MatchQ[namedPartShown[inBoxes, boxes], TypeTheoryTerm[Function[{Typed[_, "Box"]}, _["content"] + _["weight"]], _]],
+				MatchQ[namedPartShown[inRenamed, renamed], TypeTheoryTerm[Function[{Typed[_, "Box"]}, _["inside"] + _["mass"]], _]],
+				namedPartReadBack[inBoxes, boxes] === inBoxes,
+				namedPartReadBack[inRenamed, renamed] === inRenamed,
+				(* a name of the other environment is no name here *)
+				Replace[namedPartCore[Function[{Typed[b, "Box"]}, b["content"]], renamed], failure_Failure :> failure["Tag"]],
+				namedPartReadBack[integer, machine] === integer,
+				namedPartReadBack[shadowed, prelude] =!= shadowed && namedPartNameless[namedPartReadBack[shadowed, prelude]] === namedPartNameless[shadowed],
+				MatchQ[namedPartShown[shadowed, prelude], TypeTheoryTerm[Function[{Typed[k_, _], Typed[s_, Subtype[Function[{Typed[k1_, _]}, _]]]}, s_["element"] + k_], _] /; HoldComplete[k] =!= HoldComplete[k1]],
+				namedPartReadBack[nested, prelude] === nested,
+				Block[{WolframInstitute`TypeTheory`PackageScope`$exactReadBack = True},
+					WolframInstitute`TypeTheory`PackageScope`heldFromSyntax[WolframInstitute`TypeTheory`PackageScope`delaborate[boxes, <||>, namedPartCore[Function[{Typed[b, "Box"]}, b["weight"]], boxes]]]
+				]
+			}
+		]
+	],
+	{True, True, True, True, True, "ElaborationFailed", True, True, True, True, HoldComplete[Function[{Typed[b, "Box"]}, b[[2]]]]},
+	TestID -> "What-a-term-shows-reads-back-to-the-same-term-whatever-the-constructor-names-its-fields"
+]

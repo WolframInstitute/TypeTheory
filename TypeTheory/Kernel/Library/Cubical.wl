@@ -62,7 +62,7 @@ cubicalEnvironment[] := cubicalEnvironment[] = withoutStoreTracking[With[{empty 
 
 $cubicalDeclarations = {
 	TypeTheoryInductiveType[DependentSum, ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]]}, TypeUniverse[Max[u + 1, v + 1]]], {
-		"dependentPair" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], Typed[a, A], Typed[b, B[a]]}, DependentSum[A, B]]
+		"dependentPair" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], Typed[first, A], Typed[second, B[first]]}, DependentSum[A, B]]
 	}],
 	TypeTheoryCubical[DependentSum],
 	TypeTheoryInductiveType[Booleans, TypeUniverse[1], {"false" -> Booleans, "true" -> Booleans}],

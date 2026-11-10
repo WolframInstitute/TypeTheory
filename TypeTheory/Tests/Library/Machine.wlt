@@ -15,7 +15,7 @@ machine = TypeTheoryEnvironment["Machine"]
 VerificationTest[
 	{
 		Length[Information[machine, "Constants"]] - Length[Information[TypeTheoryEnvironment["Integers"], "Constants"]],
-		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", machine]], TypeTheoryTerm[TypeSpecifier[{"Integer64", "Integer64"} -> ("Integer64" | Failure)], machine]],
+		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", machine]], TypeTheoryTerm[Integers -> Integers -> ("Integer64" | Failure), machine]],
 		TypeTheoryAxiomClosure[TypeTheoryTerm["naturalInteger64Range", machine]],
 		(* the compiler's names for the types *)
 		DefinitionallyEqualQ[TypeTheoryTerm["MachineInteger", machine], TypeTheoryTerm["Integer64", machine]],
@@ -36,19 +36,19 @@ VerificationTest[
 	TestID -> "A-machine-result-is-the-integer-in-range-and-a-leave-out-of-it"
 ]
 
-(* machine integers made of integers in range, the range decided; their sum and product are machine results: 3 + 3 and
-   3 3, and 2^62 + 2^62, which overflows *)
+(* the machine's sum and product of integers are machine results: 3 + 3 and 3 3, and 2^62 + 2^62, which overflows; a
+   machine integer made of an integer in range, the range decided, has that integer as its part "integer" *)
 VerificationTest[
-	Module[{three, half},
+	Module[{three},
 		(* a symbol whose value is a finished proof stands for its proof in a term *)
 		three = TypeTheoryProof[TypeTheoryTerm["integer64Range"[Typed[3, Integers]], machine], {"Decide"}];
-		half = TypeTheoryProof[TypeTheoryTerm["integer64Range"[Typed[4611686018427387904, Integers]], machine], {"Decide"}];
 		{
-			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machinePlus"["subtype"[Typed[3, Integers], three], "subtype"[Typed[3, Integers], three]], machine]]],
-			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machineTimes"["subtype"[Typed[3, Integers], three], "subtype"[Typed[3, Integers], three]], machine]]],
-			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machinePlus"["subtype"[Typed[4611686018427387904, Integers], half], "subtype"[Typed[4611686018427387904, Integers], half]], machine]]]
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machinePlus"[3, 3], machine]]],
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machineTimes"[3, 3], machine]]],
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machinePlus"[4611686018427387904, 4611686018427387904], machine]]],
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm["machinePlus"[Typed["subtype"[Typed[3, Integers], three], "Integer64"]["integer"], 4], machine]]]
 		}
 	],
-	{6, 9, Failure["IntegerOverflow", <||>]},
+	{6, 9, Failure["IntegerOverflow", <||>], 7},
 	TestID -> "Machine-sums-and-products-overflow-as-a-leave"
 ]

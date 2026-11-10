@@ -88,12 +88,12 @@ Naturals::usage = "Naturals is NonNegativeIntegers, the natural numbers of the p
 value is a declared constant stands for that constant."
 NaturalNumberPredecessor::usage = "NaturalNumberPredecessor[n] is the natural number before n, and 0 before 0."
 Nonempty::usage = "Nonempty[a] is the proposition that the type a has an element."
-Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]."
+Subtype::usage = "Subtype[P] is the type of the elements x of a type with a proof of P[x]; s[\"element\"] and s[\"proof\"] are the parts of one, s."
 ChosenWitness::usage = "ChosenWitness[h] is an element x with P[x], chosen from a proof h of Exists[P]."
 Decidable::usage = "Decidable[p] is the type of decisions of the proposition p: \"decidableFalse\" with a proof of Not[p], or \"decidableTrue\" with a proof of p."
 Decide::usage = "Decide[p] is the Boolean that the decision of the proposition p computes, False for \"decidableFalse\" and True for \"decidableTrue\", \
 the decision being the instance of Decidable[p] that elaboration finds."
-CartesianProductType::usage = "CartesianProductType[a, b] is the type of the pairs of an element of the type a and one of the type b; p[[1]] and p[[2]] project a pair p."
+CartesianProductType::usage = "CartesianProductType[a, b] is the type of the pairs of an element of the type a and one of the type b; p[\"first\"] and p[\"second\"] are the parts of a pair p, also p[[1]] and p[[2]]."
 DisjointUnionType::usage = "DisjointUnionType[a, b] is the type of the elements of the type a or of the type b, each tagged with its side."
 Option::usage = "Option[a] is the type of optional elements of the type a: \"none\", or \"some\"[x] with x of type a."
 
@@ -123,8 +123,8 @@ $constructiveDeclarations = {
 				{
 					TypedImplicit[a, TypeUniverse[0]],
 					TypedImplicit[b, TypeUniverse[0]],
-					Typed[p, a],
-					Typed[q, b]
+					Typed[left, a],
+					Typed[right, b]
 				},
 				And[a, b]
 			]
@@ -149,7 +149,7 @@ $constructiveDeclarations = {
 		ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, TypeUniverse[0]],
 		{
 			"equivalentIntroduction" -> ForAll[
-				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[f, Implies[a, b]], Typed[g, Implies[b, a]]},
+				{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], Typed[forward, Implies[a, b]], Typed[backward, Implies[b, a]]},
 				Equivalent[a, b]
 			]
 		}
@@ -175,8 +175,8 @@ $constructiveDeclarations = {
 				{
 					TypedImplicit[\[Alpha], TypeUniverse[u]],
 					TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]],
-					Typed[w, \[Alpha]],
-					Typed[h, P[w]]
+					Typed[witness, \[Alpha]],
+					Typed[proof, P[witness]]
 				},
 				Exists[P]
 			]
@@ -1011,7 +1011,7 @@ $constructiveDeclarations = {
 		ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]], Typed[\[Beta], TypeUniverse[v + 1]]}, TypeUniverse[Max[u, v] + 1]],
 		{
 			"pair" -> ForAll[
-				{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[x, \[Alpha]], Typed[y, \[Beta]]},
+				{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], TypedImplicit[\[Beta], TypeUniverse[v + 1]], Typed[first, \[Alpha]], Typed[second, \[Beta]]},
 				CartesianProductType[\[Alpha], \[Beta]]
 			]
 		}
@@ -1227,12 +1227,12 @@ $classicalDeclarations = {
 	TypeTheoryInductiveType[
 		Nonempty,
 		ForAll[{Typed[\[Alpha], TypeUniverse[u]]}, TypeUniverse[0]],
-		{"nonempty" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]}, Nonempty[\[Alpha]]]}
+		{"nonempty" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[element, \[Alpha]]}, Nonempty[\[Alpha]]]}
 	],
 	TypeTheoryInductiveType[
 		Subtype,
 		ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]]}, TypeUniverse[Max[1, u]]],
-		{"subtype" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[x, \[Alpha]], Typed[h, P[x]]}, Subtype[P]]}
+		{"subtype" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], TypedImplicit[P, TypeSpecifier[{\[Alpha]} -> TypeUniverse[0]]], Typed[element, \[Alpha]], Typed[proof, P[element]]}, Subtype[P]]}
 	],
 	TypeTheoryAxiom[
 		"propositionalExtensionality",
