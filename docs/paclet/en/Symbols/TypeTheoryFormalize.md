@@ -434,7 +434,7 @@ mean[a_Real, b_Real] := (a + b) / 2.;
 compiledMean = TypeTheoryFormalize[mean, reals]
 ```
 
-<!-- => {definition mean : Real64 → Real64 → (Real64 | Failure) := (a∶Real64) (b∶Real64) ↦ confirmBind[real64Plus[a〚"rational"〛, b〚"rational"〛], (t3∶Real64) ↦ confirmBind[real64Reciprocal[2], (t4∶Real64) ↦ real64Times[t3〚"rational"〛, t4〚"rational"〛]]]} -->
+<!-- => {definition mean : Real64 → Real64 → (Real64 | Failure) := (a∶Real64) (b∶Real64) ↦ confirmBind[real64Plus[a〚"rational"〛, b〚"rational"〛], (t3∶Real64) ↦ confirmBind[real64Reciprocal[2 ∶ ℚ], (t4∶Real64) ↦ real64Times[t3〚"rational"〛, t4〚"rational"〛]]]} -->
 
 The rounding is an axiom that the Wolfram Language computes, so the value needs `"Implementations" -> True`. A machine real is the rational it is exactly: 0.1 is not 1/10, and the mean of 0.1 and 0.2 is the machine real 0.15000000000000002:
 
