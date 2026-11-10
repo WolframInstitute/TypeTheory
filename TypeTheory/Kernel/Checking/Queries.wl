@@ -90,7 +90,8 @@ types, as propositional extensionality does not; the option \"Axioms\" -> True k
 DefinitionallyEqualQ::usage = "DefinitionallyEqualQ[term1, term2] gives True if the TypeTheoryTerm expressions term1 and term2 are equal by computation \
 in their environment, and False otherwise."
 WeakHeadNormalForm::usage = "WeakHeadNormalForm[term] reduces the TypeTheoryTerm term until its head can no longer reduce."
-NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every part of it, under its binders too, until nothing can reduce: its normal form."
+NormalForm::usage = "NormalForm[term] reduces the TypeTheoryTerm term and every part of it, under its binders too, until nothing can reduce: its normal form. \
+NormalForm[term, \"Implementations\" -> True] lets the Wolfram Language compute an axiom that has an \"Implementation\" where the reduction of the head stops at it applied to values."
 TypeTheoryProofTree::usage = "TypeTheoryProofTree[proof] gives the natural-deduction derivation of proof, a TypeTheoryTerm that is a proof or a finished TypeTheoryProof. TypeTheoryProofTree[rule, claim, {premise, ...}] is such a derivation of the TypeTheoryTerm claim by rule from the premises, each a TypeTheoryProofTree: rule is \"Assumption\", \"ImpliesIntro\", \"ImpliesElim\", \"ForAllIntro\", \"ForAllElim\", \"AndIntro\", \"AndElim\", \"OrIntro\", \"OrElim\", \"FalseElim\", \"ExistsElim\", \"EqualElim\", \"Induction\", or the name of a theorem, an axiom or a constructor applied, whose premises are the proofs among its arguments."
 
 withNormalFormCheck::usage = "withNormalFormCheck[expr] gives {result, redexes}: the result of expr, and the normal forms NormalForm computed while it ran that hold a beta-redex, a function applied to an argument, which no normal form may."
@@ -320,11 +321,137 @@ WeakHeadNormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environmen
 ]
 
 (* the normal form: the head reduced, then each part, a binder's body with its variable free *)
-NormalForm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
+Options[NormalForm] = {"Implementations" -> False}
+
+NormalForm[term_TypeTheoryTerm, OptionsPattern[]] := catchKernelFailure @ With[{environment = termEnvironment[term], implemented = TrueQ[OptionValue["Implementations"]]},
 	With[{elaborated = elaborateQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]},
-		valueTerm[environment, noted[withKernelCaches[normalForm[environment, <||>, First[elaborated]]]], Last[elaborated]]
+		valueTerm[
+			environment,
+			noted[withKernelCaches[normalForm[environment, <||>, If[implemented, implementedForm[environment, First[elaborated]], First[elaborated]]]]],
+			Last[elaborated]
+		]
 	]
 ]
+
+(* The term with the axioms that have an "Implementation" computed by it, as far as its head needs. The kernel never runs
+   an implementation, so a term that needs one stops at the axiom applied to its arguments, in a part the head waits
+   for, and the kernel leaves that part as it was written, a definition not yet unfolded. So each step takes the closed
+   applications of the term, the smallest first, and does the first of three that changes the term: an implemented
+   axiom applied to values, numbers, strings or Booleans as TypeTheoryExpression reads them, is replaced by what the
+   implementation gives for them; an application that mentions an implemented axiom, or a constant defined by way of
+   one, has its head reduced, which lays the axiom open; and the head of the whole term is reduced. The implementation
+   gives a value, read as a literal of the
+   axiom's result type, or HoldComplete of a term, as it must where the result is no literal: that term is elaborated
+   in the environment, so the kernel checks what the Wolfram Language computed. A part that holds a bound variable
+   waits until the head has given the variable its value, so a recursion on fuel unfolds a round at a time. This is no
+   part of checking: a theorem never rests on it. *)
+implementedForm[environment_, term_] := Block[{$implementedInert = <||>, $implementationDependent = <||>},
+	First[NestWhile[
+		Function[state, Replace[implementedStep[environment, First[state]], {None :> {First[state], False}, stepped_ :> {stepped, True}}]],
+		{term, True},
+		Last
+	]]
+]
+
+(* the terms whose head does not reduce, and the constants that rest or do not rest on an implemented axiom, as one
+   NormalForm has found them *)
+$implementedInert = <||>
+$implementationDependent = <||>
+
+implementedStep[environment_, term_] := With[
+	{candidates = SortBy[DeleteDuplicates[Select[Cases[term, _application, {0, Infinity}], closedTermQ]], LeafCount]},
+	Replace[
+		Replace[firstChange[candidates, Function[candidate, implementedValue[environment, candidate]]], None :> Replace[
+			firstChange[Select[candidates, Function[candidate, implementationMentionedQ[environment, candidate]]], Function[candidate, headReduced[environment, candidate]]],
+			None :> Replace[headReduced[environment, term], reduced : Except[None] :> {term, reduced}]
+		]],
+		{candidate_, value_} :> ReplaceAll[term, candidate -> value]
+	]
+]
+
+(* the first of the candidates that change gives something other than None for, with what it gives *)
+firstChange[candidates_List, change_] := Replace[
+	SelectFirst[Map[Function[candidate, {candidate, change[candidate]}], candidates], Function[pair, Last[pair] =!= None], None],
+	None :> None
+]
+
+(* a term with its head reduced, or None where it does not reduce or the reduction fails, which is remembered *)
+headReduced[environment_, term_] := If[ KeyExistsQ[$implementedInert, term],
+	None,
+	Replace[Quiet[catchKernelFailure[weakHeadNormalForm[environment, <||>, term]]], {
+		reduced_ /; ! FailureQ[reduced] && reduced =!= term :> reduced,
+		_ :> (AssociateTo[$implementedInert, term -> True]; None)
+	}]
+]
+
+(* a term that mentions an implemented axiom or a constant defined by way of one *)
+implementationMentionedQ[environment_, candidate_] := AnyTrue[
+	DeleteDuplicates[Cases[candidate, constantReference[name_, _] :> name, {0, Infinity}]],
+	Function[name, implementationDependentQ[environment, name]]
+]
+
+implementationDependentQ[environment_, name_] := Lookup[$implementationDependent, Key[name],
+	With[{record = constantRecord[environment, name]},
+		AssociateTo[$implementationDependent, name -> False];
+		With[
+			{dependent = Which[
+				Lookup[record, "Implementation", None] =!= None, True,
+				record["Kind"] === "Definition", AnyTrue[
+					DeleteDuplicates[Cases[record["Value"], constantReference[inner_, _] :> inner, {0, Infinity}]],
+					Function[inner, implementationDependentQ[environment, inner]]
+				],
+				True, False
+			]},
+			AssociateTo[$implementationDependent, name -> dependent];
+			dependent
+		]
+	]
+]
+
+(* the core term an implemented axiom applied to values computes to, or None for any other term *)
+implementedValue[environment_, term_application] := Replace[applicationSpine[term], {
+	{constantReference[name_, _], arguments_List} :> With[{implementation = Lookup[constantRecord[environment, name], "Implementation", None]},
+		If[ implementation === None || Length[arguments] =!= implementationArity[constantRecord[environment, name]["Type"]] || ! AllTrue[arguments, closedTermQ],
+			None,
+			With[{readings = Map[Function[argument, valueReading[environment, argument]], arguments]},
+				If[ MemberQ[readings, None],
+					None,
+					implementationTerm[environment, constantRecord[environment, name]["Type"], Replace[implementation, HoldComplete[function_] :> function @@ readings]]
+				]
+			]
+		]
+	],
+	_ :> None
+}]
+
+(* the arguments an axiom takes: the binders its type begins with *)
+implementationArity[dependentFunctionType[_, _, codomain_, ___]] := 1 + implementationArity[codomain]
+implementationArity[_] := 0
+
+implementationResultType[dependentFunctionType[_, _, codomain_, ___]] := implementationResultType[codomain]
+implementationResultType[type_] := type
+
+closedTermQ[term_] := looseBoundRange[term] == 0 && FreeQ[term, _freeVariable | _metavariable]
+
+(* a closed term's value as the Wolfram Language has it, or None where its normal form is no number, string or Boolean *)
+valueReading[environment_, term_] := Replace[
+	Quiet[TypeTheoryExpression[coreToTypeTheoryTerm[environment, <||>, normalForm[environment, <||>, term]]]],
+	{value : (_Integer | _Rational | _String | True | False) :> value, _ :> None}
+]
+
+(* what an implementation gave, as a core term: a held term elaborated, or a value as a literal of the result type *)
+implementationTerm[environment_, _, HoldComplete[surface_]] := Replace[
+	Quiet[catchKernelFailure[elaborateQueryTerm[environment, TypeTheoryTerm[surface, environment], None, {}]]],
+	{{core_, _} :> core, _ :> None}
+]
+implementationTerm[environment_, type_, value : (_Integer | _Rational | _String | True | False)] := Replace[
+	coreToTypeTheoryTerm[environment, <||>, implementationResultType[type]],
+	{
+		TypeTheoryTerm[typeSurface_, ___] :> implementationTerm[environment, type, HoldComplete[Typed[value, typeSurface]]],
+		_ :> None
+	}
+]
+implementationTerm[_, _, _] := None
 
 (* the normal forms with a beta-redex, which none may hold, collected while withNormalFormCheck runs *)
 $normalFormRedexes = None

@@ -655,3 +655,26 @@ VerificationTest[
 	{{True, True, True}, {True, True, True}, {True, True, True}, {True, True, True}, {True, True, False}, {True, True, False}},
 	TestID -> "A-normal-form-read-back-elaborates-again-to-its-type"
 ]
+
+(* NormalForm computes an axiom that has an "Implementation" only where it is asked to: the kernel never runs one, so the
+   normal form keeps the axiom applied, and with "Implementations" -> True the Wolfram Language computes it where its
+   arguments are values, under a definition and in the middle of a term too, and the kernel goes on from the value. An
+   axiom applied to a variable waits, as does one with no implementation *)
+VerificationTest[
+	With[{environment = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom["primeCount", NonNegativeIntegers -> NonNegativeIntegers, "Implementation" -> PrimePi],
+			TypeTheoryAxiom["unknownCount", NonNegativeIntegers -> NonNegativeIntegers],
+			TypeTheoryDefinition["primesToTwice", Function[{Typed[n, NonNegativeIntegers]}, "primeCount"[n + n] + 1]]
+		}]},
+		{
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm["primeCount"[10], environment], "Implementations" -> True]],
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm["primesToTwice"[50] + "primeCount"["primeCount"[100]], environment], "Implementations" -> True]],
+			NormalForm[TypeTheoryTerm["primeCount"[10], environment]] === NormalForm[TypeTheoryTerm["primeCount"[4 + 6], environment]],
+			FreeQ[NormalForm[TypeTheoryTerm["primeCount"[10], environment]], 4],
+			FreeQ[NormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, "primeCount"[n] + "primeCount"[10]], environment], "Implementations" -> True], "primeCount"[_Integer]],
+			FreeQ[NormalForm[TypeTheoryTerm["unknownCount"[10] + 1, environment], "Implementations" -> True], "unknownCount"]
+		}
+	],
+	{PrimePi[10], PrimePi[100] + 1 + PrimePi[PrimePi[100]], True, True, True, False},
+	TestID -> "NormalForm-computes-implemented-axioms-where-it-is-asked-to"
+]

@@ -14,6 +14,8 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 
 <code>[NormalForm]()[*term*]</code> reduces the [TypeTheoryTerm]() *term* and every part of it, under its binders too, until nothing can reduce: its normal form.
 
+<code>[NormalForm]()[*term*, "Implementations" -> True]</code> lets the Wolfram Language compute the axioms that have an `"Implementation"`, where the reduction needs their values.
+
 ## Details & Options
 
 - [NormalForm]() is [WeakHeadNormalForm]() applied to the term, then to each of its parts: a function's body is reduced with its variable free, and the arguments of an application that is stuck are reduced.
@@ -21,6 +23,7 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 - A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
 - An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [Unevaluated]() that quotes it.
 - A value whose reading alone does not elaborate again, as a lone string, which on its own names a constant, the empty list, a value of a sum or `"none"`, comes back ascribed its type, <code>[Typed]()[*value*, *type*]</code>, so that the result elaborates to a term of the same type; its reading in the Wolfram Language, [TypeTheoryExpression](), is the same.
+- With `"Implementations" -> True` an axiom declared with <code>"Implementation" -> *f*</code> is computed by *f* where it is applied to values: numbers, strings and Booleans, as [TypeTheoryExpression]() reads them. The kernel never runs an implementation, so a term that needs one stops at the axiom; this option takes the closed parts of the term that do, computes them, and lets the kernel go on from the values, a part with a bound variable waiting until the reduction has given the variable its value. What *f* gives is read as a literal of the axiom's result type, or, given as <code>[HoldComplete]()[*term*]</code>, elaborated as that term, so the kernel checks the value it is handed. The result is a value as the Wolfram Language computes it, not a fact the kernel proved: no theorem rests on it.
 - Two terms are equal by computation when their normal forms are the same, which [DefinitionallyEqualQ]() decides without computing them in full, and `"Reflexivity"` proves an equation whose two sides are.
 
 ## Basic Examples
@@ -90,6 +93,25 @@ NormalForm[TypeTheoryTerm[ExpressionEvaluate[1 + 2]]]
 ```
 
 <!-- => ExpressionEvaluate[3] -->
+
+---
+
+An axiom with an `"Implementation"` stays applied in a normal form, since the kernel never runs it:
+
+```wl
+counting = TypeTheoryEnvironment[{TypeTheoryAxiom["primeCount", Naturals -> Naturals, "Implementation" -> PrimePi]}];
+NormalForm[TypeTheoryTerm["primeCount"[6 + 4] + 1, counting]]
+```
+
+<!-- => primeCount[10] + 1 -->
+
+With `"Implementations" -> True` the Wolfram Language computes it, and the kernel goes on from its value:
+
+```wl
+NormalForm[TypeTheoryTerm["primeCount"[6 + 4] + 1, counting], "Implementations" -> True]
+```
+
+<!-- => 5 -->
 
 ## Applications
 

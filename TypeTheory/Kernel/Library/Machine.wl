@@ -39,6 +39,9 @@ TypeTheoryFormalize[f, "Machine"] is to state of a compiled function.
 
 
 PackageScoped[machineEnvironment]
+PackageScoped[$machineDeclarations]
+PackageScoped[addMachineDeclaration]
+PackageScoped[machineTheorem]
 
 
 (* ::Section:: *)
@@ -46,6 +49,9 @@ PackageScoped[machineEnvironment]
 
 
 machineEnvironment::usage = "machineEnvironment[] gives the environment of the integers with the 64-bit integers of the compiler's typed entries, built and checked the first time it is asked for."
+$machineDeclarations::usage = "$machineDeclarations is the list of the declarations of the machine integers, in order, which need the integers alone."
+addMachineDeclaration::usage = "addMachineDeclaration[environment, declaration] gives environment with declaration, a machineTheorem proved by its tactics in environment; a Failure stays one."
+machineTheorem::usage = "machineTheorem[name, statement, tactics] is a theorem of a machine library to prove by tactics in the environment so far."
 
 
 (* ::Section:: *)
