@@ -181,10 +181,29 @@ VerificationTest[
 	TestID -> "A-binder-showing-a-taken-name-gets-a-numbered-one"
 ]
 
+(* a sum is of two, and a sum in a sum shows its parentheses on either side: (a + b) + c and a + (b + c) are different
+   terms. So the successor of a successor is (k + 1) + 1 *)
 VerificationTest[
-	FreeQ[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"["successor"[k]] == k + 2]]] //. (StyleBox | TooltipBox)[name_, ___] :> name, RowBox[{"k", "+", "1", "+", "1"}]],
-	False,
-	TestID -> "Successors-of-successors-add-up-from-the-left"
+	{
+		FreeQ[
+			ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"["successor"[k]] == k + 2]]] //. (StyleBox | TooltipBox)[name_, ___] :> name,
+			RowBox[{RowBox[{"(", RowBox[{"k", "+", "1"}], ")"}], "+", "1"}]
+		],
+		FreeQ[
+			ToBoxes[TypeTheoryType[TypeTheoryTerm["additionAssociativity", prelude]]] //. (StyleBox | TooltipBox)[name_, ___] :> name,
+			RowBox[{RowBox[{"(", RowBox[{"\"a\"", "+", "\"b\""}], ")"}], "+", "\"c\""}]
+		],
+		FreeQ[
+			ToBoxes[TypeTheoryType[TypeTheoryTerm["additionAssociativity", prelude]]] //. (StyleBox | TooltipBox)[name_, ___] :> name,
+			RowBox[{"\"a\"", "+", RowBox[{"(", RowBox[{"\"b\"", "+", "\"c\""}], ")"}]}]
+		],
+		FreeQ[
+			ToBoxes[TypeTheoryType[TypeTheoryTerm["additionAssociativity", prelude]]] //. (StyleBox | TooltipBox)[name_, ___] :> name,
+			RowBox[{"\"a\"", "+", "\"b\"", "+", "\"c\""}]
+		]
+	},
+	{False, False, False, True},
+	TestID -> "A-sum-in-a-sum-shows-its-parentheses"
 ]
 
 VerificationTest[

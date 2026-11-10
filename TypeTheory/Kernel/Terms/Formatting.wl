@@ -640,15 +640,14 @@ fractionDisplay[numerator_, denominator_Integer] := syntaxHead[Divide, {numerato
    ↑(m + n) its sum *)
 prefixed[sign_String, argument_] /; atomicDisplayQ[argument] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign], argument}]}]
 prefixed[sign_String, argument_] := syntaxHead[Row, {syntaxHead[List, {syntaxString[sign <> "("], argument, syntaxString[")"]}]}]
-(* (a + b) + c shows as a + b + c, and (a b) c as a b c, the way they are read *)
-displayApplication[syntaxSymbol[HoldComplete[head : Plus | Times]], {syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List], last_}] :=
-	syntaxHead[head, Append[rest, last]]
+(* (a b) c shows as a b c, the way it is read. A sum is of two: (a + b) + c and a + (b + c) are different terms, equal
+   only by a theorem, and each shows its parentheses *)
+displayApplication[syntaxSymbol[HoldComplete[Times]], {syntaxApplication[syntaxSymbol[HoldComplete[Times]], rest_List], last_}] :=
+	syntaxHead[Times, Append[rest, last]]
 (* a ∧ (b ∧ c) shows as a ∧ b ∧ c, the way it is read *)
 displayApplication[syntaxSymbol[HoldComplete[head_]], {first_, syntaxApplication[syntaxSymbol[HoldComplete[head_]], rest_List]}] /; MatchQ[head, And | Or] :=
 	syntaxHead[head, Prepend[rest, first]]
-(* successors of successors add up from the left, n + 1 + 1 *)
-displayApplication[head_, {syntaxApplication[syntaxSymbol[HoldComplete[Plus]], summands_List]}] /; naturalNumberConstantQ[head, "Successor"] :=
-	syntaxHead[Plus, Append[summands, syntaxInteger[1]]]
+(* a successor is the sum with 1, and the successor of a sum that sum in parentheses: (n + 1) + 1 *)
 displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successor"] := syntaxHead[Plus, {argument, syntaxInteger[1]}]
 (* a constant declared with "Overloads" -> operation shows as the operation, as the integers' operations do *)
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), arguments : {_, _}] /; overloadedDisplayQ[head, 2] :=
