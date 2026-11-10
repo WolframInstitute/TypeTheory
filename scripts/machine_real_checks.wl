@@ -1,6 +1,8 @@
 (* Compiled real arithmetic against the evaluator, on the kernel that compiles definitions:
 
-       wl -f scripts/machine_real_checks.wl
+       wl -f scripts/machine_real_checks.wl < /dev/null
+
+   with its standard input closed: the kernel reads its input to the end before it exits.
 
    The machine model of TypeTheoryFormalize[f, "Machine"] reads a machine real as the rational it is and each
    operation as the compiler's table of typed operations says. This script runs the edges that reading rests on:
@@ -26,6 +28,8 @@ absR[x_Real] := Abs[x];
 nOfI[n_Integer] := N[n];
 eqR[x_Real, y_Real] := x == y;
 atanR[x_Real, y_Real] := ArcTan[x, y];
+mulIR[n_Integer, x_Real] := n x;
+addIR[n_Integer, x_Real] := n + x;
 text[x_] := ToString[x, InputForm];
 quotients = Select[
 	Flatten[Table[{N[p], N[q], text[N[p]/N[q]], text[N[p] (1/N[q])], text[N[p/q]]}, {p, 1, 60}, {q, 1, 60}], 1],
@@ -70,13 +74,19 @@ cases = Join[
 		{"1. == 1. + 2^-47", Hold[eqR[1., 1.0000000000000071]]},
 		{"1. == 1. + 2^-45", Hold[eqR[1., 1.0000000000000284]]},
 		{"ArcTan[-1., Minus[0.]]", Hold[atanR[-1., minusR[0.]]]},
-		{"ArcTan[-1., 0.]", Hold[atanR[-1., 0.]]}
+		{"ArcTan[-1., 0.]", Hold[atanR[-1., 0.]]},
+		{"(2^53 + 1) * 3., the integer made a real first (...976) or the product rounded once (...980)", Hold[mulIR[9007199254740993, 3.]]},
+		{"(2^53 + 1) + 2., the integer made a real first (...994) or the sum rounded once (...996)", Hold[addIR[9007199254740993, 2.]]},
+		{"Round[8.999999999999999*^18]", Hold[roundR[8.999999999999999*^18]]},
+		{"Round[9.*^18]", Hold[roundR[9.*^18]]},
+		{"Round[-9.*^18]", Hold[roundR[-9.*^18]]},
+		{"Round[9.000000000000001*^18]", Hold[roundR[9.000000000000001*^18]]}
 	},
 	Map[Function[t, {"x / y not the nearest: " <> text[t[[1]]] <> " / " <> text[t[[2]]] <> " (nearest " <> t[[5]] <> ")", Hold[divR[#1, #2]] & @@ Take[t, 2]}], Take[quotients, UpTo[4]]]
 ];
 expected = Map[Function[c, text[Quiet[ReleaseHold[c[[2]]]]]], cases];
-Print["compile: ", Head[Kernel`CompileDefinitions[addR, subR, mulR, divR, fmaR, fmaLeftR, fmaMinusR, ltIR, roundR, floorR, signR, zeroQR, minusR, timesNegR, sqrtR, absR, nOfI, eqR, atanR]]];
-declines[] := Total[{Kernel`CompiledInformation[addR]["Declines"], Kernel`CompiledInformation[subR]["Declines"], Kernel`CompiledInformation[mulR]["Declines"], Kernel`CompiledInformation[divR]["Declines"], Kernel`CompiledInformation[fmaR]["Declines"], Kernel`CompiledInformation[fmaLeftR]["Declines"], Kernel`CompiledInformation[fmaMinusR]["Declines"], Kernel`CompiledInformation[ltIR]["Declines"], Kernel`CompiledInformation[roundR]["Declines"], Kernel`CompiledInformation[floorR]["Declines"], Kernel`CompiledInformation[signR]["Declines"], Kernel`CompiledInformation[zeroQR]["Declines"], Kernel`CompiledInformation[minusR]["Declines"], Kernel`CompiledInformation[timesNegR]["Declines"], Kernel`CompiledInformation[sqrtR]["Declines"], Kernel`CompiledInformation[absR]["Declines"], Kernel`CompiledInformation[nOfI]["Declines"], Kernel`CompiledInformation[eqR]["Declines"], Kernel`CompiledInformation[atanR]["Declines"]}];
+Print["compile: ", Head[Kernel`CompileDefinitions[addR, subR, mulR, divR, fmaR, fmaLeftR, fmaMinusR, ltIR, roundR, floorR, signR, zeroQR, minusR, timesNegR, sqrtR, absR, nOfI, eqR, atanR, mulIR, addIR]]];
+declines[] := Total[{Kernel`CompiledInformation[addR]["Declines"], Kernel`CompiledInformation[subR]["Declines"], Kernel`CompiledInformation[mulR]["Declines"], Kernel`CompiledInformation[divR]["Declines"], Kernel`CompiledInformation[fmaR]["Declines"], Kernel`CompiledInformation[fmaLeftR]["Declines"], Kernel`CompiledInformation[fmaMinusR]["Declines"], Kernel`CompiledInformation[ltIR]["Declines"], Kernel`CompiledInformation[roundR]["Declines"], Kernel`CompiledInformation[floorR]["Declines"], Kernel`CompiledInformation[signR]["Declines"], Kernel`CompiledInformation[zeroQR]["Declines"], Kernel`CompiledInformation[minusR]["Declines"], Kernel`CompiledInformation[timesNegR]["Declines"], Kernel`CompiledInformation[sqrtR]["Declines"], Kernel`CompiledInformation[absR]["Declines"], Kernel`CompiledInformation[nOfI]["Declines"], Kernel`CompiledInformation[eqR]["Declines"], Kernel`CompiledInformation[atanR]["Declines"], Kernel`CompiledInformation[mulIR]["Declines"], Kernel`CompiledInformation[addIR]["Declines"]}];
 compiledQ = Map[Function[info, {info["Compiled"], info["Parameters"], info["Result"]}], {Kernel`CompiledInformation[minusR], Kernel`CompiledInformation[sqrtR], Kernel`CompiledInformation[nOfI], Kernel`CompiledInformation[eqR], Kernel`CompiledInformation[absR]}];
 Print["typed entries (Minus, Sqrt, N, Equal, Abs): ", compiledQ];
 MapThread[
