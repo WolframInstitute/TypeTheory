@@ -206,6 +206,44 @@ VerificationTest[
 	TestID -> "A-sum-in-a-sum-shows-its-parentheses"
 ]
 
+(* TraditionalForm shows a recursor applied to all its arguments as its cases: the recursor beside the term it recurses
+   on, then a row for the motive and a row for each constructor, labelled by the constructor applied to the variables
+   the case binds for its fields. An application is f(x) and an equation a = b, and a sum keeps the order it has: the
+   boxes are StandardForm's, since the Wolfram Language's TraditionalForm would put the terms of a sum in its own order.
+   StandardForm shows the recursor as before. *)
+VerificationTest[
+	Module[{term, traditional, standard},
+		term = TypeTheoryTerm[
+			Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[m, NonNegativeIntegers]}, NonNegativeIntegers],
+				0,
+				Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, (r + 2) + k],
+				n
+			]],
+			prelude
+		];
+		traditional = ToBoxes[term, TraditionalForm] //. (StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown;
+		standard = ToBoxes[term, StandardForm] //. (StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown;
+		{
+			Cases[traditional, GridBox[{{RowBox[{_SubscriptBox, _, "n"}], __}, rows__}, ___] :> Cases[{rows}, {_, label_, _} :> label], Infinity],
+			FreeQ[traditional, RowBox[{RowBox[{"(", RowBox[{"r", "+", "2"}], ")"}], "+", "k"}]],
+			FreeQ[standard, _GridBox],
+			FreeQ[
+				ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "successor"[k] == k + 1 && "equalitySymmetry"["equalityReflexivity"[k]] == "equalityReflexivity"[k]], prelude], TraditionalForm] //.
+					(StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown,
+				"==" | "["
+			],
+			FreeQ[
+				ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, "equalitySymmetry"["equalityReflexivity"[k]] == "equalityReflexivity"[k]], prelude], TraditionalForm] //.
+					(StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown,
+				RowBox[{"\"equalityReflexivity\"", "(", "k", ")"}]
+			]
+		}
+	],
+	{{{"\"motive\"", "0", RowBox[{"k", "+", "1"}]}}, False, True, True, False},
+	TestID -> "TraditionalForm-shows-a-recursor-as-its-cases"
+]
+
 VerificationTest[
 	With[{boxes = shownBoxes[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, Not[a && b] || (a && b && a)]]]]},
 		{! FreeQ[boxes, "&&"], ! FreeQ[boxes, "||"], ! FreeQ[boxes, RowBox[{"!", _}]], FreeQ[boxes, "\[And]" | "\[Or]" | "\[Not]"], ! FreeQ[boxes, "\"\[DoubleStruckCapitalB]\""]}

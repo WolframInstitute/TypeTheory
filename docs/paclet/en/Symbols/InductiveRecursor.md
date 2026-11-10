@@ -26,6 +26,7 @@ RelatedTutorials: [ThePrelude, ProgramsAndProofs]
 - The recursor is how definitions recurse and how proofs go by induction: the tactics `"Induction"` and `"Cases"` build an application of it.
 - The kernel reduces a recursion on a literal *n* one step at a time, *n* steps deep, and near a thousand nested steps it reports that the computation goes deeper than it can recurse, a [Failure]() tagged `"RecursionLimit"`; the arithmetic that [TypeTheoryNaturalNumbers]() registers, [Plus]() and the others, computes on literals with Wolfram integers instead. The kernel does not share results either, so a step that uses the result before it twice, as a Fibonacci step does, computes it twice, and the time grows exponentially with *n*.
 - <code>[InductiveRecursor]()[*type*]</code> shows as *type*_rec, and <code>[InductiveRecursor]()[*type*, *k*]</code> as *type*_rec_*k*.
+- In [TraditionalForm]() a recursor applied to all its arguments shows as its cases, not as a call of many arguments: the recursor beside the term it recurses on, then a row for the motive and a row for each constructor, labelled by the constructor applied to the variables the case binds for its fields, with the rest of the case beside it, its induction hypotheses and its value. The parameters and the indices, which the motive and the term recursed on determine, are not shown, and arguments past the recursor's own are a last row. A recursor of types declared together, or one applied to fewer arguments, shows as in [StandardForm]().
 
 ## Basic Examples
 
@@ -282,6 +283,14 @@ proof["Term"]
 ```
 
 <!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 0 + n1 == n1, equalityReflexivity[0 + 0], (k ∶ ℕ) (ih ∶ 0 + k == k) ↦ equalityCongruence[successor, ih], n] -->
+
+[TraditionalForm]() shows the recursor as its cases: the recursor beside the term it recurses on, a row for the motive, and a row for each constructor, labelled by the constructor applied to the variables of the case:
+
+```wl
+TraditionalForm[proof["Term"]]
+```
+
+<!-- => (n ∶ ℕ) ↦ over the cases of ℕ_rec n: motive (n1 ∶ ℕ) ↦ 0 + n1 = n1; 0: equalityReflexivity(0 + 0); k + 1: (ih ∶ 0 + k = k) ↦ equalityCongruence(successor, ih) -->
 
 ---
 

@@ -62,6 +62,12 @@ The display rewrites the syntax tree of the term with these operators, rebuilds 
 boxes with MakeBoxes; InterpretationBox keeps the term itself behind the display. The bound variables of
 the prelude and of generated recursors are symbols of the paclet's private contexts, shown by their names.
 
+TraditionalForm shows a term for reading. An application is f(x), an equation a = b, and a recursor applied to all its
+arguments is its cases: the recursor beside the term it recurses on, a row for its motive and a row for each
+constructor, labelled by the constructor applied to the variables of the case; a function whose value is such cases
+stands over them. The boxes are StandardForm's all the same, so that a sum and a product keep the order the term has,
+and the types on mouseover, which follow the standard layout part by part, are left out.
+
 A TypeTheoryProofTree shows drawn, as natural deduction is written: each conclusion under a line over its premises, the
 rule named at the line's right, →I, →E, ∧I, ∧E, ∨I, ∨E or ⊥E, and an assumption bare.
 A TypeTheoryProof shows its open goals as a list of hypotheses over the goal, as in a proof assistant's
@@ -107,9 +113,16 @@ $displayColors::usage = "$displayColors is the Association of the colors a displ
 
 (* Naturals, written for the natural numbers, shows as they do, unless the term binds a variable of that name *)
 typeTheoryBoxes[syntax_, form_] := displayed[syntax, form,
-	inspectableBoxes @ quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @
-		Replace[heldFromSyntax[inspectable[displaySyntax[syntax]]], HoldComplete[display_] :> MakeBoxes[display, form]]
+	traditionalBoxes[form] @ inspectableBoxes @ quantifiedOperandBoxes @ typeOperatorBoxes @ logicalOperatorBoxes @
+		Replace[heldFromSyntax[inspectable[displaySyntax[syntax]]], HoldComplete[display_] :> MakeBoxes[display, StandardForm]]
 ]
+
+(* The boxes are those of StandardForm in TraditionalForm too. The Wolfram Language's TraditionalForm puts the terms of a
+   sum and the factors of a product in an order of its own, also in boxes that a rule of MakeBoxes gave it, and a term
+   shows its sums as they are. What TraditionalForm shows differently the display decides, by $displayForm: f(x) for an
+   application, a recursor as its cases, and = for an equation, which is put in here. *)
+traditionalBoxes[TraditionalForm][boxes_] := ReplaceAll[boxes, "==" -> "="]
+traditionalBoxes[_][boxes_] := boxes
 
 (* the state a display of the syntax of a term reads while it is built, in a notebook and in text alike *)
 SetAttributes[displayed, HoldRest]
@@ -121,7 +134,8 @@ displayed[syntax_, form_, body_] := Block[
 		$boundTypes = Join[$goalTypes, boundTypes[syntax]],
 		$symbolConstants = <||>,
 		$constantTypes = <||>,
-		$tooltipsShown = tooltipsWanted[] && form =!= OutputForm && LeafCount[syntax] <= $tooltipLeafLimit,
+		(* the types on mouseover follow the standard layout, part by part, left to right, which TraditionalForm rearranges *)
+		$tooltipsShown = tooltipsWanted[] && form === StandardForm && LeafCount[syntax] <= $tooltipLeafLimit,
 		$displayForm = form,
 		$notationHeads = notationHeads[]
 	},
@@ -304,6 +318,141 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Placeholder]], {name : syntaxString[text_String], goal_}]] /; StringStartsQ[text, "?"] :=
 	typeTooltip[styled[name, "Unsolved"], goal]
 displaySyntax[node : syntaxApplication[head_, arguments_List]] := registered[node, displayApplication[head, displaySyntax /@ arguments]]
+(* In TraditionalForm a recursor applied to all its arguments shows as its cases, not as a call of many arguments: the
+   recursor beside the term it recurses on, a row for its motive, and a row for each constructor, labelled by the
+   constructor applied to the variables the case binds for its fields, with the rest of the case beside it, its induction
+   hypotheses and its value. The parameters and the indices, which the motive and the term recursed on determine, are
+   not shown, and arguments past the recursor's own are a last row. A recursor of a block of several types, or one
+   applied to fewer arguments, shows as in StandardForm. *)
+displaySyntax[syntaxApplication[recursor : syntaxApplication[syntaxSymbol[HoldComplete[InductiveRecursor]], {type_}], arguments_List]] /; $displayForm === TraditionalForm :=
+	With[{shape = recursorShape[type, arguments]},
+		recursorCases[recursor, shape, arguments] /; shape =!= None
+	]
+
+(* How the arguments fill the recursor's binders, where the type is an inductive type of the displayed environment on
+   its own: the number of arguments before the motive, the constructors, each with the number of its fields, and the
+   number of arguments between the cases and the term recursed on. The parameters and the indices are implicit, so a
+   term gives them or leaves them out: with as many arguments as the explicit binders, or with the motive, a function,
+   first, they are left out; with a function where the motive stands after the parameters, they are given, as a term
+   read back from the kernel gives them. Fewer arguments, or a motive that is no function, show as in StandardForm. *)
+recursorShape[type_, arguments_List] := With[{name = recursorTypeName[type]},
+	If[ name === None,
+		None,
+		With[{record = constantRecord[$displayEnvironment, name]},
+			If[ record["Kind"] === "InductiveType" && Length[record["Block"]] == 1,
+				With[
+					{
+						parameters = record["NumberOfParameters"],
+						indices = record["NumberOfIndices"],
+						constructors = Map[Function[constructor, {constructor, constantRecord[$displayEnvironment, constructor]["NumberOfFields"]}], record["Constructors"]]
+					},
+					Which[
+						Length[arguments] >= Length[constructors] + 2 && functionSyntaxQ[First[arguments]],
+							<|"Before" -> 0, "Between" -> 0, "Constructors" -> constructors|>,
+						Length[arguments] >= parameters + Length[constructors] + indices + 2 && functionSyntaxQ[First[Drop[arguments, parameters]]],
+							<|"Before" -> parameters, "Between" -> indices, "Constructors" -> constructors|>,
+						True,
+							None
+					]
+				],
+				None
+			]
+		]
+	]
+]
+
+functionSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_, _}]] := True
+functionSyntaxQ[_] := False
+
+recursorTypeName[syntaxSymbol[name_HoldComplete]] := declaredTypeName[name]
+recursorTypeName[syntaxString[text_String]] := declaredTypeName[HoldComplete[text]]
+recursorTypeName[_] := None
+
+declaredTypeName[name_HoldComplete] := If[ environmentQ[$displayEnvironment],
+	With[{resolved = aliasResolvedName[$displayEnvironment, name]}, If[constantDeclaredQ[$displayEnvironment, resolved], resolved, None]],
+	None
+]
+
+recursorCases[recursor_, shape_Association, arguments_List] := With[
+	{own = shape["Before"] + Length[shape["Constructors"]] + shape["Between"] + 2},
+	With[
+		{
+			motive = First[Drop[arguments, shape["Before"]]],
+			minors = Take[Drop[arguments, shape["Before"] + 1], Length[shape["Constructors"]]],
+			major = Last[Take[arguments, own]],
+			extras = Drop[arguments, own]
+		},
+		syntaxHead[recursorTable, Join[
+			{displaySyntax[recursor], displaySyntax[major]},
+			{syntaxHead[List, {caseLabel["motive"], displaySyntax[motive]}]},
+			MapThread[Function[{constructor, minor}, syntaxHead[List, caseRow[constructor, minor]]], {shape["Constructors"], minors}],
+			If[extras === {}, {}, {syntaxHead[List, {caseLabel["applied to"], tupleRow[displaySyntax /@ extras]}]}]
+		]]
+	]
+]
+
+(* a word that names a row, in the gray of what is no part of the term *)
+caseLabel[word_String] := styled[syntaxString[word], "Level"]
+
+tupleRow[{one_}] := one
+tupleRow[several_List] := syntaxHead[Row, {syntaxHead[List, several], syntaxString[", "]}]
+
+(* a case's label and what it gives: the constructor applied to the variables the case binds for its fields, and the
+   rest of the case; a case that is no function of that many variables shows whole beside the constructor's name *)
+caseRow[{constructor_HoldComplete, fields_Integer}, minor_] := Replace[caseBinders[minor, fields], {
+	None :> {displaySyntax[toSyntax @@ constructor], displaySyntax[minor]},
+	{{}, rest_} :> {displaySyntax[toSyntax @@ constructor], displaySyntax[rest]},
+	{variables_List, rest_} :> {displaySyntax[syntaxApplication[toSyntax @@ constructor, variables]], displaySyntax[rest]}
+}]
+
+(* the variables of the first count binders of a function, and the function of the binders left or its body *)
+caseBinders[minor_, 0] := {{}, minor}
+caseBinders[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}], count_Integer] := With[
+	{all = listElements[binders]},
+	Which[
+		Length[all] == count,
+			{Map[binderVariable, all], body},
+		Length[all] > count,
+			{Map[binderVariable, Take[all, count]], syntaxApplication[syntaxSymbol[HoldComplete[Function]], {syntaxHead[List, Drop[all, count]], body}]},
+		True,
+			Replace[caseBinders[body, count - Length[all]], {variables_List, rest_} :> {Join[Map[binderVariable, all], variables], rest}]
+	]
+]
+caseBinders[_, _] := None
+
+binderVariable[syntaxApplication[syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {variable_, __}]] := variable
+binderVariable[syntaxApplication[syntaxSymbol[HoldComplete[Annotation]], {binder_, _}]] := binderVariable[binder]
+binderVariable[variable_] := variable
+
+(* the boxes: the recursor and the term it recurses on in a first row, on the line of what is around it, and the rows
+   of the cases under it, indented, each label beside its value *)
+recursorTable /: MakeBoxes[recursorTable[head_, major_, rows___], form_] := GridBox[
+	Prepend[
+		List @@ Map[Function[row, Prepend[caseRowBoxes[row, form], ""], HoldAllComplete], Hold[rows]],
+		{RowBox[{MakeBoxes[head, form], "\[MediumSpace]", MakeBoxes[major, form]}], "\[SpanFromLeft]", "\[SpanFromLeft]"}
+	],
+	GridBoxAlignment -> {"Columns" -> {{Left}}, "Rows" -> {{Baseline}}},
+	GridBoxItemSize -> {"Columns" -> {Automatic, Automatic, Fit}},
+	GridBoxSpacings -> {"Columns" -> {Offset[0], Offset[0.8], Offset[1.2], Offset[0]}, "Rows" -> {{Offset[0.25]}}},
+	BaselinePosition -> {1, 1}
+]
+
+(* one binder alone is in parentheses, as the arrow of a function puts it: (x : A) ↦ *)
+overBinders[{binder_}] := delimited["(", binder, ")"]
+overBinders[binders_List] := binderRow[binders]
+
+(* binders over the cases of their value: the binders and the arrow on a line, the cases under them *)
+overDisplay /: MakeBoxes[overDisplay[binders_, body_], form_] := GridBox[
+	{{RowBox[{MakeBoxes[binders, form], "\[MediumSpace]", "\[RightTeeArrow]"}]}, {MakeBoxes[body, form]}},
+	GridBoxAlignment -> {"Columns" -> {{Left}}, "Rows" -> {{Baseline}}},
+	GridBoxItemSize -> {"Columns" -> {{Fit}}},
+	GridBoxSpacings -> {"Columns" -> {{Offset[0]}}, "Rows" -> {{Offset[0.25]}}},
+	BaselinePosition -> {1, 1}
+]
+
+SetAttributes[caseRowBoxes, HoldAllComplete]
+caseRowBoxes[{label_, value_}, form_] := {MakeBoxes[label, form], MakeBoxes[value, form]}
+
 (* with types on mouseover, a - 3 and a - b, written Plus[a, -3] and Plus[a, Times[-1, b]], show as Subtract[a, 3] and
    Subtract[a, b], which look the same, so that 3 and b are parts of their own, with their own types, where the sign
    would take them in *)
@@ -512,6 +661,8 @@ displayApplication[syntaxSymbol[HoldComplete[head : ForAll | Exists]], {binders_
 	body,
 	Reverse[listElements[binders]]
 ]
+displayApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body : syntaxApplication[syntaxSymbol[HoldComplete[recursorTable]], _]}] :=
+	syntaxHead[overDisplay, {overBinders[listElements[binders]], body}]
 displayApplication[syntaxSymbol[HoldComplete[Function]], {binders_, body_}] := syntaxHead[RightTeeArrow, {binderRow[listElements[binders]], body}]
 displayApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] := arrowChain[DoubleRightArrow, {domain}, codomain]
 (* TypeSpecifier[{A, B} -> C] reads A → B → C; its rule is read before the arguments are shown, as the arrow of a rule
@@ -658,8 +809,15 @@ displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]),
 displayApplication[head_syntaxSymbol, arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
 displayApplication[head_syntaxString, arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
 displayApplication[head_, arguments_List] := With[{shownHead = displaySyntax[head]},
-	If[decoratedQ[shownHead], syntaxHead[appliedDisplay, Prepend[arguments, shownHead]], syntaxApplication[shownHead, arguments]]
+	If[ decoratedQ[shownHead] || ($displayForm === TraditionalForm && ! systemHeadQ[shownHead]),
+		syntaxHead[appliedDisplay, Prepend[arguments, shownHead]],
+		syntaxApplication[shownHead, arguments]
+	]
 ]
+
+(* a symbol of the Wolfram Language itself, which shows an application of it its own way *)
+systemHeadQ[syntaxSymbol[HoldComplete[symbol_Symbol]]] := Context[symbol] === "System`"
+systemHeadQ[_] := False
 
 (* a head shown in bold or with its type on mouseover is applied as f[x], where the Wolfram Language would put a head
    that is not a symbol in parentheses, (f)[x] *)
@@ -668,9 +826,9 @@ decoratedQ[_] := False
 
 appliedDisplay /: MakeBoxes[appliedDisplay[head_, arguments___], form_] := RowBox[{
 	MakeBoxes[head, form],
-	"[",
+	If[$displayForm === TraditionalForm, "(", "["],
 	Replace[List @@ Map[Function[argument, MakeBoxes[argument, form], HoldAllComplete], Hold[arguments]], {{one_} :> one, several_ :> RowBox[Riffle[several, ","]]}],
-	"]"
+	If[$displayForm === TraditionalForm, ")", "]"]
 }]
 
 (* in text, f[x] with its parts unevaluated *)
