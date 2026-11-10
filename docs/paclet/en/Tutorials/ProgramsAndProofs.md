@@ -218,6 +218,45 @@ Counts[Cases[tree, TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
 
 <!-- => <|"equalityReflexivity" -> 1, "additionSubtractionCancellation" -> 2, "equalitySymmetry" -> 34, "additionCommutativity" -> 9, "equalityCongruence" -> 48, "equalityTransitivity" -> 61, ..., "Assumption" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
 
+Most of those steps are the tactic's bookkeeping: `"PolynomialReduce"` proves the algebra by a general method, which normalizes both sides. Written by hand, the algebra is four equations after the definition unfolds: 2 distributes over the sum, the hypothesis gives 2 triangular[k], the common factor k + 1 comes out, and the factors swap. As a term, with no tactic:
+
+```wl
+byHand = TypeTheoryTerm[
+    Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+        Function[{Typed[m, NonNegativeIntegers]}, 2 triangular[m] == m (m + 1)],
+        "equalityReflexivity"[0],
+        Function[{Typed[k, NonNegativeIntegers], Typed[ih, 2 triangular[k] == k (k + 1)]},
+            "equalityTransitivity"[
+                "multiplicationDistributivityLeft"[2, k + 1, triangular[k]],
+                "equalityTransitivity"[
+                    "equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, 2 (k + 1) + x], ih],
+                    "equalityTransitivity"[
+                        "equalitySymmetry"["multiplicationDistributivityRight"[2, k, k + 1]],
+                        "equalityTransitivity"[
+                            "multiplicationCommutativity"[2 + k, k + 1],
+                            "equalityCongruence"[Function[{Typed[x, NonNegativeIntegers]}, (k + 1) x], "additionCommutativity"[2, k]]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+        n
+    ]],
+    programs
+];
+TypeTheoryCheck[byHand, gaussStatement]
+```
+
+<!-- => Success["TypeChecked", ...] -->
+
+The kernel computes what the chain leaves out: that `triangular[k + 1]` is k + 1 + triangular[k], and that k + 2 is k + 1 + 1. Its derivation has 17 rules where the tactic's has 210:
+
+```wl
+Counts[Cases[TypeTheoryProofTree[byHand], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
+```
+
+<!-- => <|"equalityReflexivity" -> 1, "multiplicationDistributivityLeft" -> 1, "Assumption" -> 1, "equalityCongruence" -> 2, "multiplicationDistributivityRight" -> 1, "equalitySymmetry" -> 1, "multiplicationCommutativity" -> 1, "additionCommutativity" -> 1, "equalityTransitivity" -> 4, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
+
 The kernel checks the proof again when the theorem is declared:
 
 ```wl
