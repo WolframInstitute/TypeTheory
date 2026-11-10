@@ -47,6 +47,11 @@ change in behavior updates the examples it touches. `wolframscript -f build_docs
 outputs back and compare them with the `<!-- => ... -->` hints, which nothing checks automatically.
 `release.wls` publishes the site and the paclet resource as wolframinstitute.
 
+[CHANGELOG.md](CHANGELOG.md) gathers the changes by ISO week, newest first. A release adds what it changes
+to its week's entry, under Added, Changed, Fixed, Performance or Documentation, as a summary of the feature
+and not a line per commit, and extends the entry's range of versions; the first release of a week opens
+the entry.
+
 ## Testing
 
 ```bash

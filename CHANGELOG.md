@@ -1,0 +1,201 @@
+# Changelog
+
+Changes to TypeTheory, gathered by week. A week runs Monday to Sunday (ISO 8601) and the newest comes first.
+Each entry names the versions released in that week; releases are tagged `v<version>` from 0.15.0 on, and
+`git log v0.38.0..v0.39.0` gives the commits of one. An entry is a summary, not a list of commits: several
+commits and releases that build one feature are one line.
+
+## 2026-W46 (November 9 to 15), in progress
+
+Versions 0.35.0 to 0.39.0. Not yet released: the machine reals.
+
+### Added
+
+- **Compiled code as mathematics.** `TypeTheoryFormalize[f, "Machine"]` reads more of what the compiler
+  produces: a recursion, which is proved to compute the mathematical recursion; `While` loops, each a
+  constant by recursion on fuel; an `If` whose branch sets a local; a `Do` with an iterator; a loop that
+  calls its function; functions that call each other. A compiled loop is proved to compute the triangular
+  number.
+- A machine result computes its integer first, so a stored value is a literal and stays small.
+- The tactic `"RewriteRepeated"`, which replaces `"Simplify"`, and a proof tree for every proof, not only
+  those of propositional logic.
+- The holes of a proof's term are numbered as its goals and show their goal on mouseover.
+- The parts of a structure by name, `s["element"]`, shown `s〚element〛`.
+- Arguments by name, `f[x, n -> 2]`, after the positional ones; implicit arguments by plain application.
+- A recursion unfolds at `k + 1` and where it gives a function.
+- `TraditionalForm` of a term shows it for reading: `f(x)`, `=`, and a recursor as a table of its cases.
+- Not yet released: `TypeTheoryEnvironment["MachineReals"]`, the 64-bit reals as rationals with a witness
+  the kernel checks, with typed code on machine reals read from compiled code;
+  `NormalForm[term, "Implementations" -> True]` computes implemented axioms.
+
+### Changed
+
+- A sum in a sum shows its parentheses: `(k + 1) + 1` and `k + (1 + 1)` are different terms.
+- Pages, usage messages and comments describe each feature on its own terms; comparisons with Lean remain
+  only where Lean is the subject.
+
+### Fixed
+
+- A rule is data before it names an argument; arguments by name come last.
+- A bound variable that another symbol shadows shows by its name.
+- `TraditionalForm` writes `=` also where a notebook writes the equation's sign as one character.
+
+### Performance
+
+- A beta reduction computes the operations on literals that it builds.
+
+### Documentation
+
+- Programs and Proofs: the recursion on the machine, Gauss's formula by tactics with the term at each
+  step and by hand one rewrite at a time, and a recursion whose result's type depends on the number.
+
+## 2026-W45 (November 2 to 8)
+
+Versions 0.18.0 to 0.34.0. Version 0.17.1 was not published.
+
+### Added
+
+- **Display.** Constants named by symbols show in bold; bound variables, universe levels and unsolved
+  metavariables in colors; every part of a term shows its type on mouseover. Function types read back as
+  bare arrows, and a level that nothing decides is `Prop`, a universe parameter or `Type`.
+- **Wolfram Language functions as constants.** An axiom names the function that computes it
+  (`"Implementation"`). `TypeTheoryFormalize` makes a function's definitions a constant: structural
+  recursion on lists and on natural numbers, also with other arguments, and conditions and `If` by the
+  decision of the condition.
+- **The Wolfram Language in the prelude.** Expressions as data, with atoms and strings that `SameQ` and
+  rewriting compute on in the kernel; the rules of a symbol as matches (`Match`, `MatchValue`, `MatchSum`,
+  `MatchPart`), translated from every pattern; `List` and `Sequence`, each a type and its elements; lists
+  built from `{}` by `Prepend`; sequences of any length, `A...`, with `Construct` and `Arguments`.
+- Sums of types, `A | B`; computations that may fail, `A | Failure`, with `Enclose` and `Confirm`;
+  associations, `Association[K, V]`, with `Missing`.
+- `TypeTheoryType` gives the type of a term and holds its expression. Tactics are written
+  `"Name"[arguments]`. Constructors, theorems and axioms are named by strings; a lone string names a
+  constant, with `FromString` and `TypeHint` for the other readings. `Unevaluated` is the one head that
+  quotes. Pure functions of slots, and more types that elaboration infers.
+- `NormalForm` reduces a term in every part; `ExpressionEvaluate`; `TypeTheoryExpression`, the Wolfram
+  Language reading of a term as it is written.
+- `TypeTheoryProofTree[proof]`; the tactic `"NonlinearArithmetic"`; a rejected proof says why.
+- A library environment is given by its name wherever an environment is.
+- **Kernel.** The offset rule compares `x + k` with `y + k'` without counting; addition reduces by its
+  equations; a registered operation is checked by its equations or named in the axiom closure; the order
+  of the integers is decided.
+- `Quotient` and `Mod` of natural numbers and of integers, rounded as the Wolfram Language rounds them.
+- **The machine.** `TypeTheoryEnvironment["Machine"]`, the 64-bit integers of the compiler's typed code,
+  and `TypeTheoryFormalize[f, "Machine"]`, a function as its compiled code computes it, with `Quotient`,
+  `Mod` and recursion.
+
+### Fixed
+
+- With no front end a term's boxes are those a terminal prints as text, and a failure's message prints
+  as text.
+- A normal form holds no beta-redex and elaborates again to its type.
+- Definitional equality never walks a literal, and running out of recursion is no answer.
+- Checks and definitions coerce their values; an ascription has the type it is given; unknown methods and
+  rules fail.
+- A term read in another environment keeps the meaning of its constants.
+- A proof's display holds a handle to the proof, not its term.
+
+### Documentation
+
+- New tutorials: Elaboration, The Wolfram Language, Patterns and Rewriting, Programs and Proofs, and
+  Paradoxes, from unsound environments.
+- Every symbol page expanded to all its sections, by real uses, and reread against its outputs.
+
+## 2026-W44 (October 26 to November 1)
+
+Versions 0.15.0 to 0.17.0.
+
+### Added
+
+- Environments save to WXF files, and the libraries load from them.
+- **A compiled kernel** checks environments about a hundred times faster; a list of declarations is
+  checked at once with `Method -> "Compiled"`.
+- `TypeTheoryAxiomClosure` gives the axioms a term rests on.
+- Theorems with holes, proofs left to give, which a theorem keeps with the annotation it is declared with.
+- A declaration overloads an arithmetic operation.
+- `CartesianProductType` and `DisjointUnionType`; products, sums, pairs, lists, dependent sums and subtypes
+  display in notation; a list written as a term is the list of its elements; a type shows in bold.
+- A binder without a type takes the type its body gives it.
+- A proof of propositional logic gives its natural-deduction tree, and the tactic `"Classical"` proves
+  classical propositional logic.
+
+### Fixed
+
+- `"Rewrite"` and `"Induction"` pass the right motive universe under rules without `Prop`; `"Rewrite"`
+  takes an instance equal by computation and compares candidates without unfolding a definition.
+- A saved environment is checked before anything in it evaluates, and reading one runs nothing an
+  annotation holds.
+- A recursion too deep for the Wolfram Language's stack is a failure, not a crash.
+- The axiom closure of a finished proof is of its own term.
+
+### Performance
+
+- Definitional equality decides in a fixed order and infers types only inside checks; an application's
+  type is inferred along its spine at once; a check remembers its universe instantiations.
+- The compiled kernel's input is built as packed tables, a kind of row at a time.
+- The paclet loads without loading `TypeOf`'s own implementation.
+
+### Documentation
+
+- Design notes on definitional equality and on the costs of evaluation; more examples on 127 symbol
+  pages, every output read against its hint.
+
+## 2026-W43 (October 19 to 25)
+
+Versions 0.8.0 to 0.14.0.
+
+### Added
+
+- **Tactics.** `"Rewrite"`, also in a hypothesis, `"Cases"`, `"Generalize"`, `"Change"`, `"Simplify"` and
+  `"Decide"`; and tactics that ask the Wolfram Language for what the kernel then checks: `"FindInstance"`,
+  `"Ring"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`.
+- **The prelude** decides propositions (`Decidable`, `Decide`) and has pairs, sums, options and lists.
+- Instances and coercions in elaboration; decisions are found as instances.
+- **Quotient types** in the kernel, with induction on the classes of a quotient.
+- **The integers**, a quotient of pairs of natural numbers, with their equations decided and `"Ring"` over
+  them; **the rationals**, a quotient over the integers, with their inverse.
+- Mutual and nested inductive types.
+- Registered operations on natural numbers compute on literals with integers.
+- **Quantities**: erased and affine binders, checked by the kernel.
+- **Cubical type theory**: the interval, paths, transport, composition, and Glue types with univalence
+  that computes.
+- `TypeTheoryTranslate` moves declarations between the rules of two type theories.
+- Opaque definitions; definitional heights, and lazy unfolding of definitions in the kernel.
+- `SetTypeTheoryEnvironment` and `$TypeTheoryEnvironment`; a declaration takes a core term as it is.
+
+### Changed
+
+- The Booleans' constants are named by strings.
+
+### Performance
+
+- A term given in full skips elaboration; the kernel remembers what it computed in a check; substitution
+  keeps the sharing of a term; an environment shares the records of the one it extends.
+
+### Documentation
+
+- New tutorials: Mathlib in TypeTheory, with 147 modules of Mathlib checked; Rules and Computation;
+  Instances and Coercions; The Integers; The Rationals; Quantities; Cubical Type Theory. Notation for
+  constants with `MakeBoxes` and `Format`.
+
+## 2026-W42 (October 12 to 18)
+
+Versions 0.1.0 to 0.7.0, all on October 18.
+
+### Added
+
+- **The engine**: a kernel for the Calculus of Inductive Constructions in pure Wolfram Language, with
+  elaboration, tactics and proof states.
+- Environments are explicit values built from declarations (`TypeTheoryAxiom`, `TypeTheoryDefinition`,
+  `TypeTheoryTheorem`, `TypeTheoryInductiveType`), and the prelude is the environment that is not given.
+- A classical prelude, and a constructive environment without it.
+- The Booleans, with `True`, `And` and the other connectives overloaded by type.
+- The rules of a type theory are a value every environment carries (`TypeTheoryRules`); rewrite rules;
+  the homotopy type theory environment, with univalence and the circle.
+- `TypedImplicit`, `Naturals`, and symbols whose value is a constant stand for it.
+- A check that passes gives a `Success`, and a proof displays as itself.
+
+### Documentation
+
+- The README, the kernel design notes and the design document; reference pages, a guide and the first
+  tutorials (an introduction, The Prelude, Homotopy Type Theory), published with PacletPage.
