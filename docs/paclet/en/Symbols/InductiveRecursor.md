@@ -107,6 +107,38 @@ WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor[Booleans][TypeUniverse[1] &,
 
 <!-- => ℕ -->
 
+---
+
+A motive that depends on the term makes the type of the result depend on it. Vectors are lists indexed by their length, and the vector of n zeros is by recursion on n with the motive `Vector[Naturals, #] &`: at 0 the result is a vector of length 0, and at k + 1 one of length k + 1 made of the result at k:
+
+```wl
+vectors = TypeTheoryEnvironment[{
+    TypeTheoryInductiveType[Vector, ForAll[{Typed[A, TypeUniverse[1]], Typed[n, Naturals]}, TypeUniverse[1]], {
+        "empty" -> ForAll[{TypedImplicit[A, TypeUniverse[1]]}, Vector[A, 0]],
+        "push" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, Naturals], Typed[x, A], Typed[rest, Vector[A, n]]}, Vector[A, n + 1]]
+    }],
+    TypeTheoryDefinition[zeros, n |-> InductiveRecursor[Naturals][Vector[Naturals, #] &, "empty", {k, rest} |-> "push"[0, rest], n]]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 262 constants -->
+
+The type of the function says the length of its result:
+
+```wl
+TypeTheoryType[TypeTheoryTerm[zeros, vectors]]
+```
+
+<!-- => ∀_n∶ℕ Vector[ℕ, n] -->
+
+At 3 it computes to a vector of the type `Vector[Naturals, 3]`:
+
+```wl
+NormalForm[TypeTheoryTerm[zeros[3], vectors]]
+```
+
+<!-- => push[0, push[0, push[0, empty]]] -->
+
 ### Induction
 
 A proof by induction, written with the recursor: the motive is the statement, the minor premise for 0 proves it at 0, and the one for successors takes the induction hypothesis `ih`:
