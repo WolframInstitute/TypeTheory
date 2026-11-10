@@ -6,8 +6,7 @@ Declaring inductive types: checking them and generating their recursors.
 The types I_1, ..., I_n of a block are declared together, and are mutually inductive when there are
 several: each constructor ends in one of them, and its fields may mention any of them. They share their
 parameters and their universe: each I_j has type (parameters) -> (indices_j) -> Sort level, and each
-constructor has type (parameters) -> (fields) -> I_j parameters indices'. The checks are those of Lean 4's
-kernel:
+constructor has type (parameters) -> (fields) -> I_j parameters indices'. The checks:
 
 	- the type of each I_j, and of each constructor, is a type, and the I_j agree on parameters and level;
 	- each constructor takes exactly the parameters first and ends in a type of the block applied to them;
@@ -16,12 +15,12 @@ kernel:
 	- unless the block is a proposition, each field lives in a universe no larger than the block's.
 
 A field may also mention the block nested in the parameters of another inductive type J, as a tree whose
-children are a list of trees. As Lean's kernel does, each such occurrence J ps becomes an auxiliary type
+children are a list of trees. Each such occurrence J ps becomes an auxiliary type
 of the block, whose constructors are J's for the parameters ps, so the block is checked as a mutual one.
 Its recursors are generated with the auxiliary types, and then J ps takes each one's place again.
 
 Each I_j gets the recursor InductiveRecursor[I_j], and each auxiliary type the recursor
-InductiveRecursor[I_1, k], as Lean names it I_1.rec_k. A recursor's arguments are the parameters
+InductiveRecursor[I_1, k]. A recursor's arguments are the parameters
 (implicit), one motive per type of the block, auxiliary ones included, one minor premise per constructor
 of all of them, the indices (implicit) and the major premise. It eliminates into any Sort u (large
 elimination) unless the block may be a proposition and has more than one type, more than one
@@ -352,8 +351,8 @@ checkFieldUniverses[environment_, fieldContext_, fieldIds_, resultLevel_, constr
 
 (* Each occurrence J ps of the block nested in the parameters ps of an inductive type J becomes an
    auxiliary type, the same one for the same J ps. The original constructors are taken first, then the
-   constructors of each auxiliary type in turn, which may nest further: Lean's kernel numbers the
-   auxiliary types in this order. *)
+   constructors of each auxiliary type in turn, which may nest further: the
+   auxiliary types are numbered in this order. *)
 (* a type of the block nests in another inductive type only through a field or an index that mentions it: a block whose
    constructors mention none of its types there, as a structure's do, has nothing nested, and its constructors go on as
    the replacement below would rebuild them *)
@@ -475,7 +474,7 @@ restoredContext[restore_, context_Association] := Map[Function[entry, Append[ent
 (*Recursors*)
 
 
-(* Lean's rule: a block that may be a proposition eliminates into any universe only if it is a single type
+(* Large elimination: a block that may be a proposition eliminates into any universe only if it is a single type
    with at most one constructor, whose fields are proofs or indices of its result *)
 largeEliminationQ[environment_, resultLevel_, blockTypes_, checkedConstructors_List] := Which[
 	levelNeverZeroQ[resultLevel],

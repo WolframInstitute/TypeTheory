@@ -21,7 +21,7 @@ evaluates, and it means nothing until it is added to an environment:
 	                                                            and the operations compute on literals
 	TypeTheoryNaturalNumbers[type, zero, successor, addition]   the same, with addition the only operation
 	TypeTheoryRewriteRule[name, ForAll[binders, lhs -> rhs]]    lhs, an axiom applied to arguments, computes to rhs
-	TypeTheoryQuotients[]                                       the quotient types of Lean's kernel (Quotients.wl)
+	TypeTheoryQuotients[]                                       the quotient types (Quotients.wl)
 	TypeTheoryQuotients[equality, {type, introduction, lift, induction}]
 	                                                            the same under other names, with another equality
 	TypeTheoryCubical[sum]                                      the interval, paths, transport and composition of cubical
@@ -89,8 +89,8 @@ TypeTheoryDefinition[name, Typed[value, type]] gives the definition the given ty
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear. \
 The option \"Instance\" -> True makes the definition an instance of its type's class, the constant its type applies at the end, which elaboration finds \
 for an argument of an instance-implicit binder. The option \"Coercion\" -> True makes a function of one explicit argument a coercion, which elaboration \
-applies to a term whose type is the function's domain where its codomain is expected. The option \"Opaque\" -> True makes the definition opaque, \
-as Lean's opaque constants are: its value is checked against its type, but it never unfolds, so it equals only itself."
+applies to a term whose type is the function's domain where its codomain is expected. The option \"Opaque\" -> True makes the definition opaque: \
+its value is checked against its type, but it never unfolds, so it equals only itself."
 TypeTheoryTheorem::usage = "TypeTheoryTheorem[name, statement, proof] declares name as a theorem: proof must prove statement when it is added to a TypeTheoryEnvironment. \
 statement must be a proposition, or under rules without Prop any type; a theorem is never unfolded.\n\
 TypeTheoryTheorem[name, proof] declares the statement of the finished TypeTheoryProof proof.\n\
@@ -103,7 +103,7 @@ TypeTheoryRewriteRule::usage = "TypeTheoryRewriteRule[name, ForAll[{Typed[x, typ
 x, ..., when added to a TypeTheoryEnvironment whose rules allow rewrite rules.\n\
 lhs must be an axiom applied to arguments in which each variable occurs, and rhs must have the type of lhs. Like an axiom, a rewrite rule is \
 trusted: it may make the theory inconsistent, or computation endless. The option \"UniverseParameters\" -> {u, ...} lists the universe parameters."
-TypeTheoryQuotients::usage = "TypeTheoryQuotients[] declares the quotient types of Lean's kernel, QuotientType, QuotientIntroduction, QuotientLift and \
+TypeTheoryQuotients::usage = "TypeTheoryQuotients[] declares the quotient types, QuotientType, QuotientIntroduction, QuotientLift and \
 QuotientInduction, when added to a TypeTheoryEnvironment whose rules have quotients and whose Equal is the equality of the prelude: \
 QuotientLift[f, h, QuotientIntroduction[r, a]] computes to f[a].\n\
 TypeTheoryQuotients[equality, {type, introduction, lift, induction}] declares them under the given names, with the inductive type equality as the equality."
@@ -322,7 +322,7 @@ annotationField[None] := <||>
 annotationField[annotation_] := <|"Annotation" -> annotation|>
 
 (* a definition keeps the type it is given, implicit binders included, and its value only has to have
-   that type: Lean's projections, for one, take their parameters explicitly in the value *)
+   that type: an imported projection, for one, takes its parameters explicitly in the value *)
 addDeclaration[environment_, TypeTheoryDefinition[name_, Typed[value_, type_], options : OptionsPattern[]]] := With[
 	{universeParameters = declarationUniverseParameters[TypeTheoryDefinition, Hold[options], {toSyntax[Typed[value, type]]}]},
 	Replace[generalizedType[environment, HoldComplete[type], universeParameters], {typeCore_, parameters_} :>
@@ -619,7 +619,7 @@ declareAxiom[environment_, name_HoldComplete, universeParameters_List, type_, an
    nothing unfolds: like an axiom it equals only itself, and unlike one its type has an element. A
    definition that unfolds has a height, which decides which of two definitions unfolds first when the
    kernel compares them (TypeChecking.wl), and a projection function is an abbreviation, which unfolds
-   before the others, as Lean's hints have it. *)
+   before the others. *)
 declareDefinition[environment_, name_HoldComplete, universeParameters_List, type_, value_, roles_Association : <||>] := withCheckedTerms[
 	If[ ! $deferKernelChecks,
 		checkUniverseParameters[name, universeParameters, {type, value}];
@@ -636,7 +636,7 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 	]|>]
 ]
 
-(* a definition's height, as Lean's: one more than the greatest height of the definitions its value
+(* a definition's height: one more than the greatest height of the definitions its value
    mentions, so a definition is higher than each definition it is defined by *)
 definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[constantRecord[environment, constant], "Height", 0]] /@
 	DeleteDuplicates[Cases[value, constantReference[name_, _] :> name, {0, Infinity}]]

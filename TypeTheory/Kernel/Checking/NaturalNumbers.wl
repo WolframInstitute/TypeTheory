@@ -17,13 +17,13 @@ successor : type -> type. Then the literal 2 means successor[successor[zero]].
 An operation is registered for one of the roles of $naturalNumberOperations, and must have the type the
 role asks for: type -> type -> type, type -> type for "Log2", and type -> type -> B for "Equal" and
 "LessEqual", where B is an inductive type with two constructors without fields, false and true in that
-order, as Lean's Bool and the prelude's Booleans. An operation whose role has defining equations is
+order, as the prelude's Booleans. An operation whose role has defining equations is
 checked against them by computation, for variables. The kernel reads terms through addition, so an
 operation of the roles of $refusedRoles that fails them is refused; one of quotient or remainder that
-fails them, as Lean's Nat.div and Nat.mod defined by well-founded recursion, which does not compute on a
+fails them, as any function defined by well-founded recursion, which does not compute on a
 variable, is accepted and trusted, as is an operation of a role without equations. The kernel trusts
-that a trusted operation computes on literals what the role's function computes on integers, as Lean's
-kernel trusts GMP for its Nat operations, and TypeTheoryAxiomClosure names it wherever a term rests on
+that a trusted operation computes on literals what the role's function computes on integers,
+and TypeTheoryAxiomClosure names it wherever a term rests on
 it. A constant trusted for a role it does not compute makes the environment inconsistent.
 
 The natural numbers are registered once. A later registration with the same type, zero and successor
@@ -57,7 +57,7 @@ literalOperationResult::usage = "literalOperationResult[environment, context, Ho
 from arguments that reduce to literals, or None."
 naturalNumberOperationRoles::usage = "naturalNumberOperationRoles[] gives the roles an operation on natural numbers can be registered for."
 naturalOffsetsEqualQ::usage = "naturalOffsetsEqualQ[environment, context, a, b] decides whether a and b are definitionally equal by their offsets, the successors \
-read off each without reducing, as Lean's kernel does: True or False, or None where the offsets do not decide it."
+read off each without reducing: True or False, or None where the offsets do not decide it."
 uncheckedRegistrationQ::usage = "uncheckedRegistrationQ[environment, HoldComplete[name]] gives True if name is registered for an operation on natural numbers that has no defining equations to check, which the kernel trusts as it trusts an axiom."
 registeredAdditionQ::usage = "registeredAdditionQ[environment, HoldComplete[name]] gives True if name is the registered addition of the natural numbers of environment."
 additionReduct::usage = "additionReduct[environment, context, term, HoldComplete[name], t, s] reduces the registered addition t + s by its defining equations: t where s reduces to zero, the successor of t + s' where s reduces to a successor of s' or a positive literal, and term where s is stuck."
@@ -70,7 +70,8 @@ $naturalOffsetRule::usage = "$naturalOffsetRule is True where definitional equal
 
 
 (* the arity of each role and the function it computes on integers, or None where the kernel unfolds the
-   operation instead; Lean's kernel does not compute powers and shifts by 2^24 or more either *)
+   operation instead: a power or a shift by 2^24 or more is not computed, since its result would
+   have millions of digits *)
 $naturalNumberOperations = <|
 	"Addition" -> {2, Function[{m, n}, m + n]},
 	"Subtraction" -> {2, Function[{m, n}, Max[m - n, 0]]},
@@ -208,7 +209,7 @@ $roleEquations = <|
 		{terms["Operation"][terms["Successor"][terms["t"]], terms["Zero"]], terms["False"], "lessEqual[successor[t], zero] == false"},
 		{terms["Operation"][terms["Successor"][terms["t"]], terms["Successor"][terms["s"]]], terms["Operation"][terms["t"], terms["s"]], "lessEqual[successor[t], successor[s]] == lessEqual[t, s]"}
 	}],
-	(* by recursion on the dividend with the divisor s fixed, the remainder counted up to s and back to zero, as Lean's
+	(* by recursion on the dividend with the divisor s fixed, the remainder counted up to s and back to zero, so that
 	   n % 0 = n and n / 0 = 0: with s zero, the remainder plus one is never s *)
 	"Remainder" -> Function[terms, {
 		{terms["Operation"][terms["Zero"], terms["s"]], terms["Zero"], "remainder[zero, s] == zero"},
@@ -239,7 +240,8 @@ checkRoleEquations[environment_, settings_, operations_, role_, name_] := Replac
 }]
 
 (* the roles the kernel reads terms through, or whose equations any definition of them by recursion meets, refused where
-   their equations fail; quotient and remainder are trusted then, as Lean's are defined by well-founded recursion *)
+   their equations fail; quotient and remainder are trusted then, as functions defined by
+   well-founded recursion have to be *)
 $refusedRoles = {"Addition", "Multiplication", "Power", "Subtraction", "Equal", "LessEqual"}
 
 (* None, or the message and parameters of what fails: an operation the equations use not registered, or an equation
@@ -414,7 +416,7 @@ literalValue[environment_, context_, settings_, term_] := Block[{literalBase, li
 (*Offsets*)
 
 
-(* The offset rule, as Lean's kernel compares x + k with y + k' (is_def_eq_offset_nat), without k steps of unfolding.
+(* The offset rule: x + k is compared with y + k' without k steps of unfolding.
    A term of the natural numbers is read as {base, k}, k successors of base, without reducing: a literal n is
    {zero, n}; successor[t] is t's offset with one more; the registered addition t + s, where s is k successors of a
    base b, is {t + b, k} for k > 0, and t's offset with k more where b is zero; anything else is {term, 0}. Each reading

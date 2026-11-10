@@ -1,7 +1,7 @@
 (* ::Package:: *)
 
 (*
-Quotients: the quotient types of Lean's kernel, which the declaration TypeTheoryQuotients[] adds.
+Quotients: the quotient types, which the declaration TypeTheoryQuotients[] adds.
 
 	QuotientType[r]                  the type of the classes of the relation r on a type α
 	QuotientIntroduction[r, a]       the class of a
@@ -13,11 +13,11 @@ Quotients: the quotient types of Lean's kernel, which the declaration TypeTheory
 	QuotientInduction[premise, QuotientIntroduction[r, a]]  computes to premise[a]
 
 These two rules are all the kernel adds. That the classes of two related elements are equal is an axiom,
-Lean's Quot.sound, which the prelude declares as "quotientSoundness". TypeTheoryQuotients[equality, {type,
+which the prelude declares as "quotientSoundness". TypeTheoryQuotients[equality, {type,
 introduction, lift, induction}] declares the four constants under other names, with another equality,
-as LeanLink declares Lean's own: TypeTheoryQuotients["Eq", {"Quot", "Quot.mk", "Quot.lift", "Quot.ind"}].
+as LeanLink declares those of a library it imports: TypeTheoryQuotients["Eq", {"Quot", "Quot.mk", "Quot.lift", "Quot.ind"}].
 
-declareQuotients is part of the trusted kernel. It writes the four types itself, as Lean's kernel does,
+declareQuotients is part of the trusted kernel. It writes the four types itself,
 after checking that the rules have quotients and that the equality is the identity type: an inductive
 type with one universe parameter of the type ForAll[{TypedImplicit[α, TypeUniverse[u]]}, α -> α -> Prop]
 and one constructor of the type ForAll[{TypedImplicit[α, TypeUniverse[u]], Typed[x, α]}, equality[x, x]].
@@ -48,12 +48,11 @@ PackageScoped[reduceQuotient]
 (*Usage Messages*)
 
 
-QuotientType::usage = "QuotientType[r] is the type of the classes of the relation r on a type, Lean's Quot; TypeTheoryQuotients[] declares it."
-QuotientIntroduction::usage = "QuotientIntroduction[r, a] is the class of a in QuotientType[r], Lean's Quot.mk."
-QuotientLift::usage = "QuotientLift[f, h, q] applies the function f to the class q, given a proof h that f[a] == f[b] whenever r[a, b], as Lean's Quot.lift; \
+QuotientType::usage = "QuotientType[r] is the type of the classes of the relation r on a type; TypeTheoryQuotients[] declares it."
+QuotientIntroduction::usage = "QuotientIntroduction[r, a] is the class of a in QuotientType[r]."
+QuotientLift::usage = "QuotientLift[f, h, q] applies the function f to the class q, given a proof h that f[a] == f[b] whenever r[a, b]; \
 QuotientLift[f, h, QuotientIntroduction[r, a]] computes to f[a]."
-QuotientInduction::usage = "QuotientInduction[premise, q] proves P[q] for every class q from a proof premise of P[QuotientIntroduction[r, a]] for every a, \
-as Lean's Quot.ind."
+QuotientInduction::usage = "QuotientInduction[premise, q] proves P[q] for every class q from a proof premise of P[QuotientIntroduction[r, a]] for every a."
 
 declareQuotients::usage = "declareQuotients[environment, HoldComplete[equality], {HoldComplete[type], HoldComplete[introduction], HoldComplete[lift], HoldComplete[induction]}] \
 checks that the rules of environment have quotient types and that equality is the identity type, and gives environment with the four quotient constants \
@@ -123,8 +122,8 @@ reflexivityType[equality_, level_] := With[{equal = makeApplication[constantRefe
 (*The four constants*)
 
 
-(* The types are written with bound variables counted from the innermost binder, as Lean's kernel writes
-   them; each comment gives the type as a term would write it, with the prelude's names. Every record
+(* The types are written with bound variables counted from the innermost binder;
+   each comment gives the type as a term would write it, with the prelude's names. Every record
    holds the names of all four and of the equality, which declare them again. *)
 quotientRecords[equality_, names : {type_, introduction_, lift_, induction_}] := With[
 	{
@@ -232,7 +231,7 @@ inductionType[type_, introduction_, u_] := With[
 (*Reduction*)
 
 
-(* a lift or an induction applied to a class takes the class's element, as Lean's kernel reduces them *)
+(* a lift or an induction applied to a class takes the class's element *)
 reduceQuotient[environment_, context_, term_, record_, arguments_List] := quotientReduct[environment, context, term, record, record["QuotientRole"], arguments]
 
 (* by the patterns of definitions, not of rules: a rule that matches puts its variables into its right side by

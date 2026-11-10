@@ -416,7 +416,7 @@ levelComponents[levelMaximum[levels___]] := mergeComponents[Join @@ (levelCompon
 levelComponents[levelImpredicativeMaximum[a_, b_]] := impredicativeComponents[levelComponents[a], levelComponents[b]]
 
 (* imax a b is max a b when b is never 0, and b when b is 0 or a <= max 1 b, as for a = 0, a = 1 or a = b:
-   then b = 0 gives 0, and b >= 1 gives max a b = b. Lean's kernel reads imax 1 u as u the same way. *)
+   then b = 0 gives 0, and b >= 1 gives max a b = b. So imax 1 u is u. *)
 impredicativeComponents[a_, b_] := Which[
 	b === {0},
 		{0},

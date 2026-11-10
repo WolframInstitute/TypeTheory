@@ -13,7 +13,7 @@ fresh free variable, so the kernel never manipulates loose bound variables.
 inferType checks: an application checks its argument against the domain, a binder checks that its
 domain is a type. Definitional equality and reduction ask the types of the terms they compare, and
 inside a declaration's check, where those terms are checked or reducts of checked terms, they infer
-them without checking, as Lean's kernel does in its infer-only mode.
+them without checking: the infer-only mode.
 
 Reduction implements beta, zeta (local definitions), delta (unfolding definitions; theorems are never
 unfolded), iota (a recursor applied to a constructor, natural literals read as constructors, and
@@ -21,7 +21,7 @@ K-like recursors such as that of Equal), a quotient's lift or induction applied 
 (Quotients.wl), and addition of natural literals on Wolfram Language integers when the environment
 registers an addition, and the rewrite rules of an axiom where the environment's rules allow them.
 Definitional equality adds eta for functions and proof irrelevance: two proofs of the same proposition
-are equal. It decides in the order of Lean's kernel: each side reduced without unfolding a definition,
+are equal. It decides in this order: each side reduced without unfolding a definition,
 then proof irrelevance, then lazy delta, which compares the arguments of one definition at both heads
 before unfolding it.
 
@@ -141,7 +141,7 @@ withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
 	]
 ]
 
-(* Lean's kernel infers the types that definitional equality and reduction ask in infer-only mode: an
+(* The types that definitional equality and reduction ask are inferred in infer-only mode: an
    application's arguments are not checked against their binders, nor a function's domain as a type, nor a
    local definition's value against its type. That is sound where every term compared is checked, or a reduct
    of a checked term. A declaration's check is such a place: it checks the declaration's type before its
@@ -269,7 +269,7 @@ naturalNumberType[environment_] := Replace[naturalNumberSettings[environment], {
 	_ :> kernelFailure["NoNaturalNumbers", "A natural number literal needs an environment with natural numbers registered.", {}]
 }]
 
-(* An application's arguments are checked in one pass along its spine, as Lean's kernel infers a spine: each argument
+(* An application's arguments are checked in one pass along its spine: each argument
    against its binder's domain, instantiated with the arguments before it, and the codomain instantiated with all of
    them once at the end. Taking one argument at a time instead, each argument instantiated the whole rest of the
    function's type, so a spine of n arguments cost n substitutions of its telescope. In infer-only mode the arguments
@@ -343,7 +343,7 @@ functionTypeSort[environment_, context_, name_, domain_, codomain_, binder_] := 
 ]
 
 (* The body is inferred with the variable in the context, its value beside it for computation to unfold,
-   as in Lean's kernel: putting the value in the body would infer its type again at every use. *)
+   since putting the value in the body would infer its type again at every use. *)
 localDefinitionType[environment_, context_, name_, type_, value_, body_] := (
 	If[ ! $inferOnly,
 		sortLevel[environment, context, type];
@@ -387,7 +387,7 @@ structureLikeQ[environment_, name_HoldComplete] := And[
 (* The type of field index of a term of a structure: the constructor's type with the structure's
    parameters and the earlier fields, as projections of the term, filled in. A proof of a proposition
    only yields proofs, nor a proof whose type depends on a field that is data: projecting data out of a
-   proof would contradict proof irrelevance. These are the rules of Lean 4's kernel. *)
+   proof would contradict proof irrelevance. *)
 projectionType[environment_, context_, structure_, index_, structureTerm_] := Block[
 	{projectedType, projectedHead, projectedParameters, projectedRecord, projectedFieldsType, projectedFieldType, projectedFromProofQ},
 	projectedType = weakHeadNormalForm[environment, context, inferType[environment, context, structureTerm]];
@@ -452,7 +452,7 @@ weakHeadNormalForm[environment_, context_, term_] := If[ AssociationQ[$weakHeadN
 
 reducedHead[environment_, context_, term_] := Block[{$unfoldDefinitions = True}, FixedPoint[Function[current, reduceHead[environment, context, current]], term]]
 
-(* reduced as far as it reduces without unfolding a definition, as Lean's whnf_core: an equation is
+(* reduced as far as it reduces without unfolding a definition: an equation is
    compared at this point before its definitions unfold, by proof irrelevance and then by the arguments of
    one definition at both heads, as two applications of the same constant often are equal by their
    arguments, and unfolding first can mean a long computation, as Nat.sub on a variable and a large
@@ -475,8 +475,8 @@ endpointOrReduced[environment_, context_, term_, head_, arguments_, reduced_] :=
 	reduced
 ]
 
-(* a function of several variables applied to arguments for them takes them all in one substitution, as in
-   Lean's kernel, not one substitution each *)
+(* a function of several variables applied to arguments for them takes them all in one substitution,
+   not one substitution each *)
 reduceSpine[environment_, _, _, function_lambdaAbstraction, arguments : {__}] := betaReduced[environment, peelFunctions[function, Length[arguments]], arguments]
 reduceSpine[_, _, _, localDefinition[_, _, value_, body_], arguments_List] := makeApplication[instantiateBoundVariable[body, value], arguments]
 reduceSpine[_, _, _, metavariable[id_] /; KeyExistsQ[$metavariableAssignments, id], arguments_List] :=
@@ -676,7 +676,7 @@ recursorReduct[environment_, context_, term_, record_, levels_, parameters_, mot
 structureReduct[_, record_, levels_, parameters_, motives_, minors_, rest_, fields_List] := applyRecursorRule[record, levels, parameters, motives, minors, First[Keys[record["Rules"]]], fields, rest]
 structureReduct[term_, _, _, _, _, _, _, None] := term
 
-(* Eta for structures, as Lean's kernel reduces a recursor: a major premise of a structure type that is
+(* Eta for structures, where a recursor reduces: a major premise of a structure type that is
    not a constructor application is the constructor applied to its projections, so a match on a pair p
    computes with p.1 and p.2. A proposition is left alone, since data cannot be projected out of a proof. *)
 structureFields[environment_, context_, record_, major_] := If[ ! structureLikeQ[environment, record["InductiveType"]],
@@ -759,7 +759,7 @@ definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 	reducedEqualQ[environment, context, a, b]
 ]
 
-(* Lean's order: each side reduced as far as it reduces without unfolding a definition, then, where neither
+(* The order: each side reduced as far as it reduces without unfolding a definition, then, where neither
    reduces, the offsets of natural numbers, then proof irrelevance, which decides two proofs by their propositions,
    then lazy delta. The offset rule and proof irrelevance are asked once for the two sides as they reduce no further,
    never of the sides on the way: a beta-redex compared with its reduct, (x |-> x + 0)[t 2082] and t 2082 + 0, is
@@ -783,11 +783,11 @@ sameHeadSpinesEqualQ[environment_, context_, {headA_, argumentsA_}, {headB_, arg
 	argumentsEqualQ[environment, context, argumentsA, argumentsB]
 ]
 
-(* Lean's lazy delta reduction. Where neither side reduces further without unfolding a definition, the
+(* Lazy delta reduction. Where neither side reduces further without unfolding a definition, the
    side whose definition at its head is higher, defined in terms of the other's, unfolds one step, or
    both do at the same height, until the sides are the same or neither has a definition at its head: an
    application of a definition defined by another meets an application of that other before either
-   unfolds into what may be a long computation. As in Lean's kernel the steps are a loop, and between
+   unfolds into what may be a long computation. The steps are a loop, and between
    them the sides are compared only by identity, and by their arguments where one definition is at both
    heads, from the first pair on; unfolding leaves a proof a proof of the same proposition, so proof
    irrelevance, asked of the first pair, is not asked again. The last pair is compared in full, or by
@@ -809,7 +809,7 @@ lazyDeltaEqualQ[environment_, context_, a_, b_] := Block[{lazyDeltaPair = {a, b}
 ]
 
 (* The next pair, True for one definition at both heads applied to equal arguments, or None where
-   neither side has a definition at its head. As Lean's compare of hints, an abbreviation, as a projection
+   neither side has a definition at its head. An abbreviation, as a projection
    function is, unfolds before a regular definition, and two abbreviations unfold together without their
    arguments compared: x.toRingHom against a long composition reads the field before the composition
    unfolds. Of two regular definitions the higher unfolds first, or both at one height. *)
@@ -848,8 +848,8 @@ headDefinition[environment_, term_] := Replace[First[applicationSpine[term]], {
 	_ -> None
 }]
 
-(* a projection function: a value that takes arguments and projects a field out of the last, as Lean's structure
-   projections do, which Lean gives abbreviation hints *)
+(* a projection function: a value that takes arguments and projects a field out of the last; it is an
+   abbreviation, which unfolds before a regular definition *)
 projectionFunctionQ[value_] := MatchQ[value, _lambdaAbstraction] &&
 	MatchQ[NestWhile[Function[term, term[[3]]], value, MatchQ[#, _lambdaAbstraction]&], projection[_, _, boundVariable[0]]]
 
@@ -946,7 +946,7 @@ headsEqualQ[environment_, context_, projection[structure_, index_, first_], proj
 	definitionallyEqualQ[environment, context, first, second]
 headsEqualQ[_, _, _, _] := False
 
-(* As Lean's is_def_eq_proof_irrel: True for proofs of one proposition, False for proofs of two, since equal terms
+(* Proof irrelevance: True for proofs of one proposition, False for proofs of two, since equal terms
    have equal types, and None where the first term is no proof, as no type and no literal is *)
 proofIrrelevance[_, _, _universeSort | _dependentFunctionType | _naturalLiteral, _] := None
 proofIrrelevance[environment_, _, _, _] /; ! rulesSetting[environment, "Prop"] := None
