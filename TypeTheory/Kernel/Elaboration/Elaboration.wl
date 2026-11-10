@@ -729,18 +729,155 @@ elaborateHead[syntax_] := elaborateSyntax[syntax, None]
    Wolfram Language gives a function no arguments *)
 applyArguments[{function_, functionType_}, {}, headSyntax_, expected_] /; emptySequenceTakenQ[functionType] :=
 	applyArguments[{function, functionType}, {syntaxHead[Unevaluated, {}]}, headSyntax, expected]
-applyArguments[{function_, functionType_}, arguments_List, headSyntax_, expected_] :=
-	finishApplication[collectArguments[function, functionType, arguments, {}, headSyntax, expected], expected]
+applyArguments[head : {_, functionType_}, arguments_List, headSyntax_, expected_] := With[
+	{names = If[FreeQ[arguments, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}], {1}], {}, binderNames[functionType]]},
+	{certain = Select[arguments, Function[argument, namingRuleQ[names, argument] === True]], possible = Select[arguments, Function[argument, namingRuleQ[names, argument] === Automatic]]},
+	If[ certain === {} && possible === {} && ! implicitBinderWithinQ[functionType, Length[arguments]],
+		applyReading[head, arguments, {}, False, headSyntax, expected],
+		tryReadings[head, applicationReadings[arguments, certain, possible, implicitBinderWithinQ[functionType, Length[arguments]]], {}, {arguments, names, functionType}, headSyntax, expected]
+	]
+]
+
+(* The readings of an application, the usual one first. An argument name -> value or name :> value, where name is the
+   name of a binder of the function's type, gives that binder its value by name, implicit or not, as an option is
+   given, and the other arguments fill the explicit binders in order. name :> value always names an argument;
+   name -> value names one where it can be nothing else: where name is a variable or a constant, the rule is first read
+   as an argument of its own, a function type or a rule, and names an argument only if that reading fails, so that
+   List[A -> B] stays the lists of functions. Where an application so read fails and an implicit binder is among the
+   first binders, the arguments are read once more as filling every binder in order, the implicit ones too, as Construct
+   gives them: "push"[Naturals, 2, 0, rest]. The first reading that elaborates is the application. Where none does, the
+   failure says what was most likely meant: a rule whose left side is no term and no binder's name names an argument the
+   function does not have; more arguments than the type has explicit binders were meant for every binder, and the failure
+   is that reading's; otherwise it is the usual reading's. *)
+applicationReadings[arguments_List, certain_List, possible_List, implicitQ_] := DeleteDuplicates[Join[
+	{{certain, False}},
+	If[possible === {}, {}, {{Join[certain, possible], False}}],
+	If[implicitQ, {{certain, True}}, {}],
+	If[implicitQ && possible =!= {}, {{Join[certain, possible], True}}, {}]
+]] /. {named_List, all : True | False} :> {DeleteCases[arguments, Alternatives @@ named], named, all}
+
+tryReadings[head_, {{positional_, named_, all_}}, {}, _, headSyntax_, expected_] := applyReading[head, positional, named, all, headSyntax, expected]
+tryReadings[head_, {{positional_, named_, all_}, more___}, failures_List, written_, headSyntax_, expected_] := Replace[
+	tried[applyReading[head, positional, named, all, headSyntax, expected]],
+	failure_Failure :> tryReadings[head, {more}, Append[failures, {all, failure}], written, headSyntax, expected]
+]
+tryReadings[_, {}, failures_List, {arguments_List, names_List, functionType_}, headSyntax_, _] := With[
+	{unknown = SelectFirst[arguments, Function[argument, unknownNameQ[names, argument]], None]},
+	Which[
+		unknown =!= None,
+			kernelFailure[
+				"ElaborationFailed",
+				"`1` has no argument named `2`: its arguments are named `3`.",
+				{HoldForm @@ heldFromSyntax[headSyntax], namedArgumentName[First[Last[unknown]]], DeleteCases[names, None]}
+			],
+		Count[arguments, Except[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]]] > explicitBinderCount[functionType] && MemberQ[failures, {True, _}],
+			throwFailure[Last[SelectFirst[failures, First]]],
+		True,
+			throwFailure[Last[First[failures]]]
+	]
+]
+
+(* a rule whose left side is a bare name that is no term here and no binder's name: an argument named so was meant *)
+unknownNameQ[names_List, syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {name_, _}]] := With[{text = namedArgumentName[name]},
+	StringQ[text] && ! MemberQ[names, text] && ! termNameQ[name]
+]
+unknownNameQ[_, _] := False
+
+explicitBinderCount[dependentFunctionType[_, _, codomain_, binder_]] := If[explicitBinderQ[binder], 1, 0] + explicitBinderCount[codomain]
+explicitBinderCount[_] := 0
+
+(* an elaboration tried: its value, or the failure it threw, with the solutions and the pending work it recorded undone *)
+SetAttributes[tried, HoldFirst]
+tried[attempt_] := With[
+	{assignments = $metavariableAssignments, levels = $levelAssignments, trace = $elaborationTrace, instances = $pendingInstances, overloads = $pendingOverloads},
+	Replace[
+		Catch[attempt, $kernelFailureTag, Function[{failure, tag}, triedFailure[failure]]],
+		triedFailure[failure_] :> (
+			$metavariableAssignments = assignments;
+			$levelAssignments = levels;
+			$elaborationTrace = trace;
+			$pendingInstances = instances;
+			$pendingOverloads = overloads;
+			failure
+		)
+	]
+]
+
+(* one reading: the arguments given by name wait in $namedArguments for their binders, and with $allBinders the others
+   fill every binder in order; the type expected is left to the caller where a reading is not the usual one, which
+   counts the explicit binders its arguments fill *)
+$namedArguments = <||>
+$allBinders = False
+applyReading[{function_, functionType_}, positional_List, named_List, all_, headSyntax_, expected_] := Block[
+	{$namedArguments = Association[Function[rule, namedArgumentName[First[Last[rule]]] -> Last[Last[rule]]] /@ named], $allBinders = all},
+	With[{collected = collectArguments[function, functionType, positional, {}, headSyntax, If[named === {} && ! all, expected, None]]},
+		If[ $namedArguments =!= <||>,
+			kernelFailure["ElaborationFailed", "`1` takes no argument named `2` after the arguments given.", {HoldForm @@ heldFromSyntax[headSyntax], First[Keys[$namedArguments]]}]
+		];
+		finishApplication[collected, expected]
+	]
+]
+
+(* the names of the binders at the front of a type, as they are written, without reducing *)
+binderNames[dependentFunctionType[name_, _, codomain_, _]] := Prepend[binderNames[codomain], binderNameText[name]]
+binderNames[_] := {}
+
+binderNameText[HoldComplete[Null]] := None
+binderNameText[HoldComplete[name_String]] := name
+binderNameText[HoldComplete[symbol_Symbol]] := SymbolName[Unevaluated[symbol]]
+binderNameText[_] := None
+
+namedArgumentName[syntaxSymbol[name_HoldComplete]] := binderNameText[name]
+namedArgumentName[syntaxString[name_String]] := name
+namedArgumentName[_] := None
+
+(* True for a rule that names an argument, Automatic for one that does where it is nothing else, False for any other *)
+namingRuleQ[names_List, syntaxApplication[syntaxSymbol[HoldComplete[head : Rule | RuleDelayed]], {name_, _}]] := With[{text = namedArgumentName[name]},
+	Which[
+		! StringQ[text] || ! MemberQ[names, text], False,
+		head === RuleDelayed, True,
+		termNameQ[name], Automatic,
+		True, True
+	]
+]
+namingRuleQ[_, _] := False
+
+(* a name that stands for a term here, a variable in scope or a declared constant *)
+termNameQ[syntax : syntaxSymbol[name_HoldComplete]] := KeyExistsQ[$elaborationScope, name] || declaredConstantSyntaxQ[syntax]
+termNameQ[syntax : syntaxString[name_String]] := KeyExistsQ[$elaborationScope, HoldComplete[name]] || declaredConstantSyntaxQ[syntax]
+termNameQ[_] := False
+
+(* an implicit binder among the first count + 1 binders of a type as it is written: one that arguments in order could fill *)
+implicitBinderWithinQ[dependentFunctionType[_, _, codomain_, binder_], count_Integer] := ! explicitBinderQ[binder] || (count > 0 && implicitBinderWithinQ[codomain, count - 1])
+implicitBinderWithinQ[_, _] := False
 
 (* the arguments used up where the next binder is the last explicit one, of a type A..., which takes the empty
    sequence, as Missing["NotAvailable"] gives the details of a Missing none, and f[x_, rest___] matches f[a] *)
+(* the arguments used up while some given by name still wait: each goes to its binder, past the implicit binders before
+   it, which elaboration fills; an explicit binder before it that no argument fills is a failure *)
+collectArguments[term_, type_, {}, postponed_List, headSyntax_, expected_] /; $namedArguments =!= <||> := Replace[
+	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
+	{
+		dependentFunctionType[binderName_, domain_, codomain_, _] /; namedArgumentGivenQ[binderName] :> With[{argument = checkAgainst[takeNamedArgument[binderName], domain]},
+			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], {}, postponed, headSyntax, expected]
+		],
+		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] :> With[{implicit = implicitArgument[domain, binder]},
+			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], {}, postponed, headSyntax, expected]
+		],
+		_ :> kernelFailure["ElaborationFailed", "The argument of `1` named `2` comes after one that is not given.", {HoldForm @@ heldFromSyntax[headSyntax], First[Keys[$namedArguments]]}]
+	}
+]
 collectArguments[term_, type_, {}, postponed_List, headSyntax_, expected_] /; emptySequenceTakenQ[type] :=
 	collectArguments[term, type, {syntaxHead[Unevaluated, {}]}, postponed, headSyntax, expected]
 collectArguments[term_, type_, {}, postponed_List, _, _] := Append[insertImplicitArguments[{term, type}], postponed]
 collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expected_] := Replace[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],
 	{
-		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] :> With[{implicit = implicitArgument[domain, binder]},
+		(* a binder whose name an argument gives takes that argument, implicit or not *)
+		dependentFunctionType[binderName_, domain_, codomain_, _] /; namedArgumentGivenQ[binderName] :> With[{argument = checkAgainst[takeNamedArgument[binderName], domain]},
+			collectArguments[application[term, argument], instantiateBoundVariable[codomain, argument], arguments, postponed, headSyntax, expected]
+		],
+		dependentFunctionType[_, domain_, codomain_, binder_] /; ! explicitBinderQ[binder] && ! TrueQ[$allBinders] :> With[{implicit = implicitArgument[domain, binder]},
 			collectArguments[application[term, implicit], instantiateBoundVariable[codomain, implicit], arguments, postponed, headSyntax, expected]
 		],
 		(* the last explicit binder of a type A... takes the arguments that are left as one sequence, each an A
@@ -785,6 +922,9 @@ collectArguments[term_, type_, arguments_List, postponed_List, headSyntax_, expe
 		_ :> elaborationFailure["`1` is applied to more arguments than its type takes.", headSyntax]
 	}
 ]
+
+namedArgumentGivenQ[binderName_] := $namedArguments =!= <||> && KeyExistsQ[$namedArguments, binderNameText[binderName]]
+takeNamedArgument[binderName_] := With[{name = binderNameText[binderName]}, With[{value = $namedArguments[name]}, $namedArguments = KeyDrop[$namedArguments, name]; value]]
 
 sequenceTypeQ[type_] := sequencesDeclaredQ[] && MatchQ[
 	weakHeadNormalForm[$elaborationEnvironment, $elaborationContext, instantiateMetavariables[type]],

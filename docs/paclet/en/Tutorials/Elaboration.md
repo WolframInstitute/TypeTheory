@@ -95,6 +95,45 @@ WeakHeadNormalForm[TypeTheoryTerm[Length[{1, 2, 3}]]]
 
 <!-- => 3 -->
 
+An implicit argument can be given all the same, by its name or in its place. Vectors are lists indexed by their length, and `"push"` takes the type of the elements and the length of the rest implicitly:
+
+```wl
+vectors = TypeTheoryEnvironment[{
+    TypeTheoryInductiveType[Vector, ForAll[{Typed[A, TypeUniverse[1]], Typed[n, Naturals]}, TypeUniverse[1]], {
+        "empty" -> ForAll[{TypedImplicit[A, TypeUniverse[1]]}, Vector[A, 0]],
+        "push" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, Naturals], Typed[x, A], Typed[rest, Vector[A, n]]}, Vector[A, n + 1]]
+    }]
+}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+
+A rule gives the argument of that name, as an option is given, wherever it stands among the arguments; the others fill the explicit binders in order:
+
+```wl
+TypeTheoryType[TypeTheoryTerm["push"[n -> 0, 7, "empty"], vectors]]
+```
+
+<!-- => Vector[ℕ, 0 + 1] -->
+
+Where the arguments are more than the explicit binders take, they fill every binder in order, the implicit ones too:
+
+```wl
+TypeTheoryType[TypeTheoryTerm["push"[Naturals, 0, 7, "empty"], vectors]]
+```
+
+<!-- => Vector[ℕ, 0 + 1] -->
+
+What is given is checked like any argument: the empty vector has length 0, not 5:
+
+```wl
+TypeTheoryType[TypeTheoryTerm["push"[n -> 5, 7, "empty"], vectors]]
+```
+
+<!-- => Failure["TypeMismatch", ...] -->
+
+The usual reading comes first, so nothing that elaborates without these changes its meaning. A rule that is an argument of its own stays one: for a type constructor whose binder is called `a`, `Boxed[a -> b]` is still the boxes of functions from `a` to `b`. `name :> value` always names an argument, and is the form to write where the two could be confused. `Construct[f, a, ...]` gives every argument in order and nothing else, the exact form that `Normal` writes an environment's declarations in.
+
 ## Lists, Sequences and Their Types
 
 `List` and `Sequence` are each a type and its elements, as the Wolfram Language writes both with one head. Where a type is expected, as the type of a binder, `{A}` is the type of the lists of `A`, and `Sequence[A, B]` the type of the sequences of an `A` and a `B`; elsewhere `{a, b}` is a list and `Sequence[a, b]` a sequence. In a term on its own, where nothing decides, the elements do, elaborated once: types make the type, so a type that [TypeTheoryType]() gives reads back as itself:
