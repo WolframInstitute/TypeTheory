@@ -100,7 +100,7 @@ The constructors show as numbers:
 TypeTheoryTerm[UnarySuccessor[UnarySuccessor[UnaryZero]], unary]
 ```
 
-<!-- => 0 + 1 + 1 -->
+<!-- => (0 + 1) + 1 -->
 
 ## Scope
 
@@ -122,7 +122,7 @@ The addition computes by its recursor, one successor at a time:
 NormalForm[TypeTheoryTerm[UnaryAddition[2, 3], adding]]
 ```
 
-<!-- => 2 + 1 + 1 + 1 -->
+<!-- => ((2 + 1) + 1) + 1 -->
 
 A later registration adds the addition as an operation, given alone:
 

@@ -118,7 +118,7 @@ The theorem it declares:
 squares[SquareOfSum]
 ```
 
-<!-- => theorem SquareOfSum : ∀_x∶ℤ ∀_y∶ℤ (x + y)^2 == x^2 + 2 x y + y^2 -->
+<!-- => theorem SquareOfSum : ∀_x∶ℤ ∀_y∶ℤ (x + y)^2 == (x^2 + 2 x y) + y^2 -->
 
 ---
 

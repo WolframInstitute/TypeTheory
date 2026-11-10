@@ -151,7 +151,7 @@ The proof is by induction on n, so the proof introduces n and splits it into its
 proof = TypeTheoryProof[gaussStatement, {"Introduce"[n], "Induction"[n]}]
 ```
 
-<!-- => Proof, 2 goals: case zero ⊢ 2 triangular[0] == 0 (0 + 1); case successor ⊢ ∀_n∶ℕ 2 triangular[n] == n (n + 1) ⇒ 2 triangular[n + 1] == (n + 1) (n + 1 + 1) -->
+<!-- => Proof, 2 goals: case zero ⊢ 2 triangular[0] == 0 (0 + 1); case successor ⊢ ∀_n∶ℕ 2 triangular[n] == n (n + 1) ⇒ 2 triangular[n + 1] == (n + 1) ((n + 1) + 1) -->
 
 The tactics build one term, the proof, and each goal still open is a hole in it. So far the term is a function of n that applies the recursor of the natural numbers, with the statement as its motive and a hole for each case:
 
@@ -167,7 +167,7 @@ At 0, the definition computes, and both sides are 0:
 proof = TypeTheoryTactic["RewriteRepeated", triangular][proof]
 ```
 
-<!-- => Proof, 1 goal: case successor ⊢ ∀_n∶ℕ 2 triangular[n] == n (n + 1) ⇒ 2 triangular[n + 1] == (n + 1) (n + 1 + 1) -->
+<!-- => Proof, 1 goal: case successor ⊢ ∀_n∶ℕ 2 triangular[n] == n (n + 1) ⇒ 2 triangular[n + 1] == (n + 1) ((n + 1) + 1) -->
 
 The first hole is now a proof by reflexivity:
 
@@ -177,13 +177,13 @@ proof["Term"]
 
 <!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], ?1, n] -->
 
-At k + 1, the definition unfolds once, triangular[k + 1] is k + 1 + triangular[k], and the induction hypothesis `ih` gives 2 triangular[k]:
+At k + 1, the definition unfolds once, triangular[k + 1] is (k + 1) + triangular[k], and the induction hypothesis `ih` gives 2 triangular[k]:
 
 ```wl
 proof = TypeTheoryTactic["RewriteRepeated", triangular][TypeTheoryTactic["Introduce", k, ih][proof]]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 ((k + 1) + triangular[k]) == (k + 1) ((k + 1) + 1) -->
 
 The second case is now a function of k and of the hypothesis, with the hole inside:
 
@@ -207,7 +207,7 @@ The term is whole. `"PolynomialReduce"` filled the last hole with the algebra wr
 proof["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ equalityTransitivity[equalityTransitivity[equalitySymmetry[additionSubtractionCancellation[2 (k + 1 + triangular[k]), 1 (k (k + 1))]], equalityCongruence[…, ih], …], …], n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ equalityTransitivity[equalityTransitivity[equalitySymmetry[additionSubtractionCancellation[2 ((k + 1) + triangular[k]), 1 (k (k + 1))]], equalityCongruence[(…, ih], …], …], n] -->
 
 That term is all there is to the proof: the tactics are only how it was written. [TypeTheoryProofTree]() reads it as a derivation, each part of the term a rule: the induction over its two cases, and under the second the 200 steps of the algebra:
 
@@ -237,7 +237,7 @@ Most of the 210 rules are the tactic's bookkeeping: `"PolynomialReduce"` proves 
 byHand = TypeTheoryProof[gaussStatement, {"Introduce"[n], "Induction"[n], "RewriteRepeated"[triangular], "Introduce"[k, ih], "RewriteRepeated"[triangular]}]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 ((k + 1) + triangular[k]) == (k + 1) ((k + 1) + 1) -->
 
 First, 2 distributes over the sum. The law is a theorem of the prelude:
 
@@ -253,7 +253,7 @@ Applied to 2, k + 1 and `triangular[k]`, it is an equation with the left side of
 byHand = TypeTheoryTactic["Rewrite", "multiplicationDistributivityLeft"[2, k + 1, triangular[k]]][byHand]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1) + 2 triangular[k] == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1) + 2 triangular[k] == (k + 1) ((k + 1) + 1) -->
 
 In the term, a rewrite is the recursor of equality, which carries a statement along an equation. Its motive, a function of y, says that the goal with y in place of the left side implies the goal as it was. Where y is the left side itself, that is the identity p ↦ p, and the equation takes y to its right side. So the recursor turns a proof of the new goal, the hole, into a proof of the old one:
 
@@ -261,7 +261,7 @@ In the term, a rewrite is the recursor of equality, which carries a statement al
 byHand["Term"]
 ```
 
-<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ Equal_rec[ℕ, 2 (k + 1 + triangular[k]), (y ∶ ℕ) (t ∶ 2 (k + 1 + triangular[k]) == y) ↦ (y == (k + 1) (k + 1 + 1) ⇒ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1)), (p ∶ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1)) ↦ p, 2 (k + 1) + 2 triangular[k], multiplicationDistributivityLeft[2, k + 1, triangular[k]], ?1], n] -->
+<!-- => (n ∶ ℕ) ↦ ℕ_rec[(n1 ∶ ℕ) ↦ 2 triangular[n1] == n1 (n1 + 1), equalityReflexivity[2 0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ Equal_rec[ℕ, 2 ((k + 1) + triangular[k]), (y ∶ ℕ) (t ∶ 2 ((k + 1) + triangular[k]) == y) ↦ (y == (k + 1) ((k + 1) + 1) ⇒ 2 ((k + 1) + triangular[k]) == (k + 1) ((k + 1) + 1)), (p ∶ 2 ((k + 1) + triangular[k]) == (k + 1) ((k + 1) + 1)) ↦ p, 2 (k + 1) + 2 triangular[k], multiplicationDistributivityLeft[2, k + 1, triangular[k]], ?1], n] -->
 
 Second, the hypothesis is an equation too, with 2 triangular[k] on its left, and it rewrites the same way. After it `triangular` is gone, and what is left is arithmetic:
 
@@ -269,7 +269,7 @@ Second, the hypothesis is an equation too, with 2 triangular[k] on its left, and
 byHand = TypeTheoryTactic["Rewrite", ih][byHand]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1) + k (k + 1) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1) + k (k + 1) == (k + 1) ((k + 1) + 1) -->
 
 Third, the common factor k + 1 comes out. Distributivity on the other side, `"multiplicationDistributivityRight"[2, k, k + 1]`, is the equation (2 + k) (k + 1) == 2 (k + 1) + k (k + 1). The left side of the goal is on its right, so `"equalitySymmetry"` turns the equation round first:
 
@@ -277,7 +277,7 @@ Third, the common factor k + 1 comes out. Distributivity on the other side, `"mu
 byHand = TypeTheoryTactic["Rewrite", "equalitySymmetry"["multiplicationDistributivityRight"[2, k, k + 1]]][byHand]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (2 + k) (k + 1) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (2 + k) (k + 1) == (k + 1) ((k + 1) + 1) -->
 
 Fourth, the factors swap:
 
@@ -285,7 +285,7 @@ Fourth, the factors swap:
 byHand = TypeTheoryTactic["Rewrite", "multiplicationCommutativity"[2 + k, k + 1]][byHand]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (k + 1) (2 + k) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (k + 1) (2 + k) == (k + 1) ((k + 1) + 1) -->
 
 Fifth, the terms of 2 + k swap:
 
@@ -293,9 +293,9 @@ Fifth, the terms of 2 + k swap:
 byHand = TypeTheoryTactic["Rewrite", "additionCommutativity"[2, k]][byHand]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (k + 1) (k + 2) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ (k + 1) (k + 2) == (k + 1) ((k + 1) + 1) -->
 
-The two sides are now one number written in two ways: k + 2 and k + 1 + 1 are both the second successor of k, since addition is defined by recursion on its second argument. No law is needed for that. `"Reflexivity"` proves an equation whose sides compute to the same term:
+The two sides are now one number written in two ways: k + 2 and (k + 1) + 1 are both the second successor of k, since addition is defined by recursion on its second argument. No law is needed for that. `"Reflexivity"` proves an equation whose sides compute to the same term:
 
 ```wl
 byHand = TypeTheoryTactic["Reflexivity"][byHand]
@@ -341,7 +341,7 @@ chain = TypeTheoryTerm[
 
 <!-- => (n ∶ ℕ) ↦ ℕ_rec[(m ∶ ℕ) ↦ 2 triangular[m] == m (m + 1), equalityReflexivity[0], (k ∶ ℕ) (ih ∶ 2 triangular[k] == k (k + 1)) ↦ equalityTransitivity[multiplicationDistributivityLeft[2, k + 1, triangular[k]], equalityTransitivity[equalityCongruence[(x ∶ ℕ) ↦ 2 (k + 1) + x, ih], equalityTransitivity[equalitySymmetry[multiplicationDistributivityRight[2, k, k + 1]], equalityTransitivity[multiplicationCommutativity[2 + k, k + 1], equalityCongruence[(x ∶ ℕ) ↦ (k + 1) x, additionCommutativity[2, k]]]]]], n] -->
 
-The kernel computes what the chain leaves out: that `triangular[k + 1]` is k + 1 + triangular[k], and that k + 2 is k + 1 + 1. It accepts the chain as a proof of the statement:
+The kernel computes what the chain leaves out: that `triangular[k + 1]` is (k + 1) + triangular[k], and that k + 2 is (k + 1) + 1. It accepts the chain as a proof of the statement:
 
 ```wl
 TypeTheoryCheck[chain, gaussStatement]

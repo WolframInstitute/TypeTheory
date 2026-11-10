@@ -355,7 +355,7 @@ proof = TypeTheoryProof[ForAll[{n}, 2 triangular[n] == n (n + 1)], programs, {
 }]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 (k + 1 + triangular[k]) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 triangular[k] == k (k + 1) ⊢ 2 ((k + 1) + triangular[k]) == (k + 1) ((k + 1) + 1) -->
 
 `"PolynomialReduce"` finds how the hypothesis gives the goal:
 
@@ -394,7 +394,7 @@ proof = TypeTheoryProof[ForAll[{a, b}, total[Join[a, b]] == total[a] + total[b]]
 proof = TypeTheoryTactic["RewriteRepeated", total, Join, ih][proof]
 ```
 
-<!-- => Proof, 1 goal: b ∶ {ℕ}, x ∶ ℕ, rest ∶ {ℕ}, ih ∶ total[Join[rest, b]] == total[rest] + total[b] ⊢ x + (total[rest] + total[b]) == x + total[rest] + total[b] -->
+<!-- => Proof, 1 goal: b ∶ {ℕ}, x ∶ ℕ, rest ∶ {ℕ}, ih ∶ total[Join[rest, b]] == total[rest] + total[b] ⊢ x + (total[rest] + total[b]) == (x + total[rest]) + total[b] -->
 
 What is left is the associativity of addition:
 

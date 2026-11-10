@@ -362,7 +362,7 @@ TypeTheoryProof[ForAll[{a, b}, Implies[a <= b, a + 1 <= b + 1]], {
 }]
 ```
 
-<!-- => Proof, 2 goals: case lessEqualReflexivity a ∶ ℕ ⊢ a + 1 <= a + 1; case lessEqualStep a ∶ ℕ ⊢ ∀_{m∶ℕ} a <= m ⇒ a + 1 <= m + 1 ⇒ a + 1 <= m + 1 + 1 -->
+<!-- => Proof, 2 goals: case lessEqualReflexivity a ∶ ℕ ⊢ a + 1 <= a + 1; case lessEqualStep a ∶ ℕ ⊢ ∀_{m∶ℕ} a <= m ⇒ a + 1 <= m + 1 ⇒ a + 1 <= (m + 1) + 1 -->
 
 Each is a constructor of [LessEqual]() applied:
 
@@ -389,7 +389,7 @@ TypeTheoryProof[ForAll[{n, m}, Implies[n == m, n + 0 == m]], {
 }]
 ```
 
-<!-- => Proof, 2 goals: case zero m ∶ ℕ ⊢ 0 == m ⇒ 0 + 0 == m; case successor m ∶ ℕ ⊢ ∀_n∶ℕ (n == m ⇒ n + 0 == m) ⇒ n + 1 == m ⇒ n + 1 + 0 == m -->
+<!-- => Proof, 2 goals: case zero m ∶ ℕ ⊢ 0 == m ⇒ 0 + 0 == m; case successor m ∶ ℕ ⊢ ∀_n∶ℕ (n == m ⇒ n + 0 == m) ⇒ n + 1 == m ⇒ (n + 1) + 0 == m -->
 
 ---
 
@@ -473,7 +473,7 @@ The witness is `k + 1`:
 proof = TypeTheoryTactic["Apply", "existsIntroduction"[k + 1]][proof]
 ```
 
-<!-- => Proof, 1 goal: n ∶ ℕ, k ∶ ℕ, hk ∶ n == k + k ⊢ n + 2 == k + 1 + (k + 1) -->
+<!-- => Proof, 1 goal: n ∶ ℕ, k ∶ ℕ, hk ∶ n == k + k ⊢ n + 2 == (k + 1) + (k + 1) -->
 
 `hk` replaces `n`:
 
@@ -481,7 +481,7 @@ proof = TypeTheoryTactic["Apply", "existsIntroduction"[k + 1]][proof]
 proof = TypeTheoryTactic["Rewrite", hk][proof]
 ```
 
-<!-- => Proof, 1 goal: n ∶ ℕ, k ∶ ℕ, hk ∶ n == k + k ⊢ k + k + 2 == k + 1 + (k + 1) -->
+<!-- => Proof, 1 goal: n ∶ ℕ, k ∶ ℕ, hk ∶ n == k + k ⊢ (k + k) + 2 == (k + 1) + (k + 1) -->
 
 The rest is algebra:
 

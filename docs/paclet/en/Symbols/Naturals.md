@@ -61,7 +61,7 @@ Two successors of zero, written with the constructors:
 TypeTheoryTerm["successor"["successor"["zero"]]]
 ```
 
-<!-- => 0 + 1 + 1 -->
+<!-- => (0 + 1) + 1 -->
 
 They are the literal 2:
 

@@ -156,7 +156,7 @@ That the classes of related elements are equal is an axiom, `"quotientSoundness"
 TypeTheoryTerm["successor"["successor"["zero"]]]
 ```
 
-<!-- => 0 + 1 + 1 -->
+<!-- => (0 + 1) + 1 -->
 
 [NaturalNumberPredecessor]() is the number before, shown as `n - 1`; the number before `0` is `0`:
 

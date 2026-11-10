@@ -249,7 +249,7 @@ gauss = TypeTheoryProof[ForAll[{n}, 2 * SumTo[n] == n * (n + 1)], sums, {
 }]
 ```
 
-<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 SumTo[k] == k (k + 1) ⊢ 2 (SumTo[k] + (k + 1)) == (k + 1) (k + 1 + 1) -->
+<!-- => Proof, 1 goal: k ∶ ℕ, ih ∶ 2 SumTo[k] == k (k + 1) ⊢ 2 (SumTo[k] + (k + 1)) == (k + 1) ((k + 1) + 1) -->
 
 The induction hypothesis finishes it, as a polynomial combination:
 

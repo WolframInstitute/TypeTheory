@@ -414,7 +414,7 @@ An axiom of the same type has no value, so it never computes: `Answer + 1` takes
 WeakHeadNormalForm[TypeTheoryTerm[Answer + 1, TypeTheoryEnvironment[TypeTheoryAxiom[Answer, Naturals]]]]
 ```
 
-<!-- => Answer + 0 + 1 -->
+<!-- => (Answer + 0) + 1 -->
 
 ## Possible Issues
 
