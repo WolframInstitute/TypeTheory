@@ -295,6 +295,10 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
 
 
 (* the arguments are rewritten first, so each rule sees displayed arguments *)
+(* a hole of an unfinished proof's term carries its goal, the hypotheses and what is left to prove: the type of the
+   hole, which it shows on mouseover; the goal is read as it is written, before any of it is displayed *)
+displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Placeholder]], {name : syntaxString[text_String], goal_}]] /; StringStartsQ[text, "?"] :=
+	typeTooltip[styled[name, "Unsolved"], goal]
 displaySyntax[node : syntaxApplication[head_, arguments_List]] := registered[node, displayApplication[head, displaySyntax /@ arguments]]
 (* with types on mouseover, a - 3 and a - b, written Plus[a, -3] and Plus[a, Times[-1, b]], show as Subtract[a, 3] and
    Subtract[a, b], which look the same, so that 3 and b are parts of their own, with their own types, where the sign

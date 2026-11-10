@@ -757,10 +757,18 @@ VerificationTest[
 VerificationTest[
 	With[{proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]},
 		{
-			Cases[proof["Term"], Placeholder[hole_String] :> hole, {0, Infinity}, Heads -> True],
-			Cases[TypeTheoryTactic["Reflexivity"][proof]["Term"], Placeholder[hole_String] :> hole, {0, Infinity}, Heads -> True]
+			Cases[proof["Term"], Placeholder[hole_String, ___] :> hole, {0, Infinity}, Heads -> True],
+			Cases[TypeTheoryTactic["Reflexivity"][proof]["Term"], Placeholder[hole_String, ___] :> hole, {0, Infinity}, Heads -> True],
+			(* each hole carries its goal, which it shows on mouseover: the base case, and the step under its hypothesis *)
+			Cases[proof["Term"], Placeholder[_String, goal_] :> HoldComplete[goal], {0, Infinity}, Heads -> True] === Map[Function[goal, Replace[goal, TypeTheoryTerm[sequent_, ___] :> HoldComplete[sequent]]], proof["Goals"]],
+			With[{boxes = Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True}, ToBoxes[proof["Term"]]]},
+				Map[
+					Function[hole, Count[boxes, TooltipBox[box_ /; ! FreeQ[box, text_String /; StringContainsQ[text, hole]] && FreeQ[box, _TooltipBox], tip_ /; tip =!= "", ___], {0, Infinity}]],
+					{"?1", "?2"}
+				]
+			]
 		}
 	],
-	{{"?1", "?2"}, {"?1"}},
+	{{"?1", "?2"}, {"?1"}, True, {1, 1}},
 	TestID -> "The-holes-of-an-unfinished-proof's-term-are-numbered-as-its-goals"
 ]

@@ -243,8 +243,14 @@ newProofState[environment_, statement_, universeParameters_List] := With[{root =
 TypeTheoryProof[data_Association]["Goals"] := Function[goal, goalTerm[data, goal]] /@ data["Goals"]
 TypeTheoryProof[data_Association]["Statement"] := coreToTypeTheoryTerm[data["Environment"], <||>, data["Statement"]]
 (* the term built so far: each open goal is a hole in it, numbered as the goals are listed, ?1 the first; the ids the
-   proof keeps count across a session and say nothing to a reader *)
-TypeTheoryProof[data_Association]["Term"] := coreToTypeTheoryTerm[data["Environment"], <||>, numberedGoals[data, instantiateProofTerm[data, metavariable[data["Root"]]]]]
+   proof keeps count across a session and say nothing to a reader. A hole carries its goal, the hypotheses and what is
+   left to prove, which it shows on mouseover as every other piece of a term shows its type *)
+TypeTheoryProof[data_Association]["Term"] := holesWithGoals[data, coreToTypeTheoryTerm[data["Environment"], <||>, numberedGoals[data, instantiateProofTerm[data, metavariable[data["Root"]]]]]]
+
+holesWithGoals[data_, term_] := ReplaceAll[term, MapIndexed[Function[{goal, position}, holeRule["?" <> ToString[First[position]], goalTerm[data, goal]]], data["Goals"]]]
+
+holeRule[name_String, TypeTheoryTerm[goal_, ___]] := HoldPattern[Placeholder[name]] :> Placeholder[name, goal]
+holeRule[name_String, _] := HoldPattern[Placeholder[name]] :> Placeholder[name]
 TypeTheoryProof[data_Association]["Environment"] := data["Environment"]
 
 (* each rule's two sides are built before any is used: a core term holds its parts, so nothing left to compute may go
