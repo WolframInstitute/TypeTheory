@@ -15,7 +15,8 @@ administrative normal form, one statement for each step the C takes. Each step i
 	t = Quotient[a, b], Mod[a, b]   "machineQuotient" and "machineMod", rounded down as the integers' and leaving
 	                                with Failure["DivideByZero", <||>] by 0, as the C does
 	t = Less[a, b], Equal[a, b]     the Boolean of the integers' order or equality, which never leaves
-	If[test, then, else]            "machineIf" of the test, each branch a block of its own
+	If[test, then, else]            "machineIf" of the test, each branch a block of its own; where a branch sets a
+	                                local, the If gives the locals the branches set, each branch as it leaves them
 	t = g[a, ...]                   a call of another function with a typed entry, formalized first
 
 A step that may leave continues by "confirmBind", so that the function leaves where any step does: its value is of
@@ -94,9 +95,22 @@ standardTypeNames[signatures_Association] := Map[
 	Function[signature, Join[signature, <|
 		"Parameters" -> Replace[signature["Parameters"], {position_, middle_, type_String} :> {position, middle, standardTypeName[type]}, {1}],
 		"Variables" -> Map[standardTypeName, signature["Variables"]],
-		"Result" -> standardTypeName[signature["Result"]]
+		"Result" -> standardTypeName[signature["Result"]],
+		"Body" -> plainLocals[signature["Body"]]
 	|>]],
 	signatures
+]
+
+(* A Module local that a branch sets is lazy to the compiler: its value is in the C local, and its symbol is made only
+   where generic code needs it. Typed code that does not leave has the value of the C local, so here such a local is a
+   local like any other: LazyAssign sets it, LazyValue reads it, and LazyReset, which forgets the symbol where a Module
+   starts, does nothing to the value. *)
+plainLocals[body_] := ReplaceRepeated[
+	ReplaceAll[body, {
+		coreForm["LazyAssign"][local_, value_] :> coreForm["SetLocal"][local, value],
+		coreForm["LazyValue"][local_] :> coreForm["Copy"][coreForm["Local"][local]]
+	}],
+	coreForm["StatementBlock"][{before___, coreForm["LazyReset"][_], after___}, value_] :> coreForm["StatementBlock"][{before, after}, value]
 ]
 
 standardTypeName["Int64"] := "Integer64"
@@ -293,9 +307,44 @@ statementsTerm[{coreForm["SetLocal"][v_String, atom_], rest___}, ending_, scope_
 	{HoldComplete[constant_], "Integer"} :> boundTerm[HoldComplete["machineResult"[constant]], {"L", v}, localSymbol[v], "Integer64", {rest}, ending, scope, signature, signatures],
 	entry_ :> statementsTerm[{rest}, ending, Append[scope, {"L", v} -> entry], signature, signatures]
 }]
-(* a branch that sets a local would have to give the local back with its value: not yet *)
-statementsTerm[{coreForm["If"][_, _, then_, else_, ___], ___}, _, _, _, _] /; ! FreeQ[{then, else}, coreForm["SetLocal"] | coreForm["While"]] :=
-	unmodeled["an If whose branch sets a local"]
+(* An If whose branch sets a local gives the locals back, as a loop does: its value is the locals that a branch sets, of
+   those set before it, in the order they are first set, after the If's own value where the code reads it. Each branch
+   gives them as it leaves them, a local it does not set as it was, and the function goes on with them. A step of a
+   branch that leaves is the function's leave. *)
+statementsTerm[{coreForm["If"][_, _, then_, else_, ___], ___}, _, _, _, _] /; ! FreeQ[{then, else}, coreForm["While"]] :=
+	unmodeled["an If with a loop in a branch"]
+statementsTerm[{coreForm["If"][t_String, test_, then : coreForm["StatementBlock"][_List, _], else : coreForm["StatementBlock"][_List, _], ___], rest___}, ending_, scope_, signature_, signatures_] /;
+	! FreeQ[{then, else}, coreForm["SetLocal"]] := With[
+	{
+		assigned = Select[DeleteDuplicates[Cases[{then, else}, coreForm["SetLocal"][v_String, _] :> v, Infinity]], Function[v, KeyExistsQ[scope, {"L", v}]]],
+		kind = Lookup[signature["Variables"], Key[{"T", t}], "Unread"],
+		condition = atomTerm[test, scope],
+		out = compiledSymbol["branch" <> t]
+	},
+	With[
+		{
+			(* the If's own value is given back only where the code after it reads it *)
+			valued = MatchQ[kind, "Integer64" | "Boolean"] && ! FreeQ[{rest, ending}, coreForm["Temporary"][t]],
+			kinds = Map[Function[v, Last[scope[{"L", v}]]], assigned]
+		},
+		{type = If[assigned === {}, None, tupleType[Map[machineType, Join[If[valued, {kind}, {}], kinds]]]]},
+		Which[
+			Last[condition] =!= "Boolean",
+				unmodeled["an If whose test is no Boolean"],
+			assigned === {},
+				unmodeled["an If whose branch sets a local of its own"],
+			True,
+				branchBound[
+					First[condition],
+					branchTerm[then, valued, kind, assigned, type, scope, signature, signatures],
+					branchTerm[else, valued, kind, assigned, type, scope, signature, signatures],
+					out,
+					type,
+					statementsTerm[{rest}, ending, Join[scope, branchScope[t, valued, kind, assigned, kinds, out]], signature, signatures]
+				]
+		]
+	]
+]
 statementsTerm[{coreForm["If"][t_String, test_, then_, else_, ___], rest___}, ending_, scope_, signature_, signatures_] := With[
 	{kind = Lookup[signature["Variables"], Key[{"T", t}], "Fail"], condition = atomTerm[test, scope]},
 	boundTerm[
@@ -309,6 +358,38 @@ statementsTerm[{coreForm["If"][t_String, test_, then_, else_, ___], rest___}, en
 statementsTerm[{coreForm["While"][test_, body_], rest___}, ending_, scope_, signature_, signatures_] :=
 	loopTerm[test, body, {rest}, ending, scope, signature, signatures, ++$loopCount]
 statementsTerm[{other_, ___}, _, _, _, _] := unmodeled[other]
+
+branchBound[HoldComplete[test_], HoldComplete[then_], HoldComplete[else_], HoldComplete[out_], HoldComplete[type_], HoldComplete[after_]] :=
+	HoldComplete["confirmBind"["machineIf"[test, then, else], Function[{Typed[out, type]}, after]]]
+
+(* a branch: its statements, then the If's value where it is read and the locals as the branch leaves them *)
+branchTerm[coreForm["StatementBlock"][statements_List, value_], valued_, kind_, assigned_List, type_HoldComplete, scope_, signature_, signatures_] :=
+	statementsTerm[
+		expandedStatements[statements],
+		continuationEnding[Function[final,
+			branchValue[If[valued, atomTerm[value, final], None], kind, Map[Function[v, First[final[{"L", v}]]], assigned], type]
+		]],
+		scope, signature, signatures
+	]
+
+branchValue[None, _, parts_List, HoldComplete[type_]] := Replace[tupleTerm[parts], HoldComplete[tuple_] :> HoldComplete[Typed["left"[tuple], type | Failure]]]
+(* a constant for the value is first its machine integer, a step of its own *)
+branchValue[{HoldComplete[constant_], "Integer"}, "Integer64", parts_List, type_HoldComplete] := With[{name = compiledSymbol["branchValue"]},
+	Replace[{name, branchValue[None, "Integer64", Prepend[parts, name], type]}, {HoldComplete[variable_], HoldComplete[body_]} :>
+		HoldComplete["confirmBind"["machineResult"[constant], Function[{Typed[variable, "Integer64"]}, body]]]]
+]
+branchValue[{term_HoldComplete, kind_String}, kind_String, parts_List, type_HoldComplete] := branchValue[None, kind, Prepend[parts, term], type]
+branchValue[{_, other_}, kind_, _, _] := unmodeled[{other, kind}]
+
+(* after the If, its value where it is read and each local it set are the parts of what it gave *)
+branchScope[t_String, valued_, kind_, assigned_List, kinds_List, out_HoldComplete] := Association[MapThread[
+	Function[{key, entryKind, part}, key -> {part, entryKind}],
+	{
+		Join[If[valued, {{"T", t}}, {}], Map[Function[v, {"L", v}], assigned]],
+		Join[If[valued, {kind}, {}], kinds],
+		projectionTerms[out, Length[assigned] + If[valued, 1, 0]]
+	}
+]]
 
 (* the rest of the block continues with the value of a step that may leave, by "confirmBind", the value bound to a
    variable under the key of the scope; the step itself where the block's value is the step's *)

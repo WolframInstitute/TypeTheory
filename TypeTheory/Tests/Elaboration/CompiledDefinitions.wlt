@@ -367,11 +367,24 @@ VerificationTest[
 	TestID -> "A-loops-state-nested-loops-and-fuel-passed-on"
 ]
 
-(* a Do, whose iterator is a global the code localizes, and an If whose branch sets a local are not read yet *)
+(* a Do, whose iterator is a global the code localizes, is not read yet *)
 VerificationTest[
-	{TypeTheoryFormalize[compiledDoSum, machine]["Tag"], TypeTheoryFormalize[compiledCollatz, machine]["Tag"]},
-	{"UnmodeledOperation", "UnmodeledOperation"},
-	TestID -> "A-Do-and-a-branch-that-sets-a-local-are-not-read-yet"
+	TypeTheoryFormalize[compiledDoSum, machine]["Tag"],
+	"UnmodeledOperation",
+	TestID -> "A-Do-is-not-read-yet"
+]
+
+(* an If whose branch sets a local, in the body of a loop: the steps to 1 of the Collatz map, counted, as the Wolfram
+   Language counts them, and out of fuel with one round too few *)
+VerificationTest[
+	With[{environment = TypeTheoryEnvironment[machine, TypeTheoryFormalize[compiledCollatz, machine]]},
+		Map[
+			Apply[Function[{fuel, k}, TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], Typed[m, "Integer64"] |-> compiledCollatz[fuel, m]], environment]]]]],
+			{{1, 1}, {9, 6}, {8, 6}, {17, 7}, {112, 27}}
+		]
+	],
+	{compiledCollatz[1], compiledCollatz[6], Failure["OutOfFuel", <||>], compiledCollatz[7], compiledCollatz[27]},
+	TestID -> "A-branch-that-sets-a-local-in-a-loop-counts-the-Collatz-steps"
 ]
 
 (* The loop's theorem. A While of typed code is a constant by recursion on fuel, "While[loopSum]", and the compiled sum
@@ -568,4 +581,51 @@ VerificationTest[
 	},
 	{{}, {"loopSumComputes", "loopSumOfLoop", "whileInvariant", "whileRound", "whileStop"}, <|"quotientSoundness" -> "Proposition"|>, True, {55, Failure["OutOfFuel", <||>]}},
 	TestID -> "The-compiled-loop-computes-the-triangular-number-for-all-fuel-above-its-rounds"
+]
+
+
+(* An If whose branch sets a local. The compiler keeps such a local lazily, its value in the C local; the meaning reads
+   it as a local, and the If gives back the locals its branches set, each branch as it leaves them. Four shapes: both
+   branches set the local; one branch sets it and the other leaves it; a branch sets two, one from the other; and an If
+   that is read for its value and sets a local too. Each agrees with the Wolfram Language wherever the typed code does
+   not leave, and leaves where a step overflows. *)
+branchCollatz[n_Integer] := Module[{r = n}, If[Mod[n, 2] == 0, r = Quotient[n, 2], r = 3 n + 1]; r]
+branchClamp[n_Integer] := Module[{r = n}, If[n < 0, r = 0]; r]
+branchBoth[n_Integer] := Module[{a = 0, b = 1}, If[n < 5, a = n; b = a + 1, b = n]; a + b]
+branchValued[n_Integer] := Module[{r = 0, q = 0}, q = If[n < 0, r = 1; -n, n]; q + r]
+
+VerificationTest[
+	Module[{environment, model},
+		environment = TypeTheoryEnvironment[machine, Join[
+			TypeTheoryFormalize[branchCollatz, machine], TypeTheoryFormalize[branchClamp, machine], TypeTheoryFormalize[branchBoth, machine], TypeTheoryFormalize[branchValued, machine]
+		]];
+		model[f_, k_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], f], environment]]];
+		{
+			Head[environment],
+			Map[Function[k, model[branchCollatz, k] === branchCollatz[k]], {0, 1, 6, 7, 27, -8, -7, 3074457345618258602}],
+			(* 3 n + 1 past 2^63 - 1: the typed code leaves, and the Wolfram Language computes the number exactly *)
+			{model[branchCollatz, 3074457345618258603], branchCollatz[3074457345618258603]},
+			Map[Function[k, model[branchClamp, k] === branchClamp[k]], {-9223372036854775808, -5, -1, 0, 1, 9223372036854775807}],
+			Map[Function[k, model[branchBoth, k] === branchBoth[k]], {-3, 0, 3, 4, 5, 9}],
+			Map[Function[k, model[branchValued, k] === branchValued[k]], {-4, -1, 0, 4}],
+			(* the one branch that sets the local gives it, and the other the local as it was *)
+			TypeTheoryFormalize[branchClamp, machine]
+		}
+	],
+	{
+		TypeTheoryEnvironment,
+		ConstantArray[True, 8],
+		{Failure["IntegerOverflow", <||>], 9223372036854775810},
+		ConstantArray[True, 6], ConstantArray[True, 6], ConstantArray[True, 4],
+		{TypeTheoryDefinition[branchClamp, Typed[
+			Function[{Typed[n, "Integer64"]}, "confirmBind"[
+				"machineIf"["not"["integerLessEqualQ"[0, n[["integer"]]]],
+					"confirmBind"["machineResult"[0], Function[{Typed[WolframInstitute`TypeTheory`Compiled`r2, "Integer64"]}, Typed["left"[WolframInstitute`TypeTheory`Compiled`r2], "Integer64" | Failure]]],
+					Typed["left"[n], "Integer64" | Failure]],
+				Function[{Typed[WolframInstitute`TypeTheory`Compiled`brancht4, "Integer64"]}, Typed["left"[WolframInstitute`TypeTheory`Compiled`brancht4], "Integer64" | Failure]]
+			]],
+			"Integer64" -> ("Integer64" | Failure)
+		]]}
+	},
+	TestID -> "An-If-whose-branch-sets-a-local-gives-the-locals-back"
 ]
