@@ -103,12 +103,11 @@ VerificationTest[
 (* what the machine model does not have yet is a Failure, not a meaning *)
 VerificationTest[
 	{
-		TypeTheoryFormalize[compiledEvenQ, machine]["Tag"],
 		TypeTheoryFormalize[compiledUntyped, machine]["Tag"],
 		TypeTheoryFormalize[compiledProduct, TypeTheoryEnvironment["Integers"], "Meaning" -> "Compiled"]["Tag"]
 	},
-	{"Recursive", "NoTypedEntry", "NoMachineIntegers"},
-	TestID -> "Recursion-untyped-code-and-a-missing-machine-are-failures"
+	{"NoTypedEntry", "NoMachineIntegers"},
+	TestID -> "Untyped-code-and-a-missing-machine-are-failures"
 ]
 
 (* in the machine environment, "Meaning" -> "Function" is still the mathematical function *)
@@ -520,6 +519,70 @@ VerificationTest[
 	],
 	{{52, 52, 52, 52}, True},
 	TestID -> "A-machine-value-holds-one-pair-of-literals-whatever-computed-it"
+]
+
+(* Functions that call each other are one recursion on the levels: the constant "Recursion[f, g]" is the functions
+   together, a tuple in the order of their names, each function its part, and every call of one of them a level. Three
+   groups: two tests of parity; three functions in a ring that call one outside it, called from outside; and two of
+   which one calls the other in a loop, whose While takes the tuple at the level below. Each agrees with the Wolfram
+   Language given levels and fuel enough, leaves with Failure["RecursionLimit", <||>] with a level too few, and is
+   out of fuel with a round too few. Compiled code on the kernel counts the levels the same way: recursion of one
+   function and of two that call each other both decline first at the argument 4096. *)
+groupA[n_Integer] := If[n <= 0, 0, 1 + groupB[n - 1]]
+groupB[n_Integer] := If[n <= 0, 0, 2 + groupC[n - 1]]
+groupC[n_Integer] := If[n <= 0, 0, 3 + groupA[n - 1] + groupOutside[n]]
+groupOutside[n_Integer] := n + 1
+groupCaller[n_Integer] := groupA[n] + 1
+groupLoop[n_Integer] := Module[{s = 0, i = 0}, While[i < n, s = s + groupStep[i]; i = i + 1]; s + 1]
+groupStep[n_Integer] := If[n == 0, 1, groupLoop[n - 1] + 1]
+
+VerificationTest[
+	Module[{environment, leveled, fueled},
+		environment = TypeTheoryEnvironment[machine, Join[TypeTheoryFormalize[compiledEvenQ, machine], TypeTheoryFormalize[groupCaller, machine], TypeTheoryFormalize[groupLoop, machine]]];
+		leveled[f_, levels_, k_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], f[levels]], environment]]];
+		fueled[f_, levels_, fuel_, k_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"["machineResult"[Typed[k, Integers]], f[levels, fuel]], environment]]];
+		{
+			Head[environment],
+			Map[
+				Function[declarations, Map[Function[declaration, HoldForm @@ Take[declaration, 1]], declarations]],
+				{TypeTheoryFormalize[compiledOddQ, machine], TypeTheoryFormalize[groupCaller, machine], TypeTheoryFormalize[groupStep, machine]}
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["Recursion[compiledEvenQ, compiledOddQ]", environment]],
+				TypeTheoryTerm[NonNegativeIntegers -> CartesianProductType["Integer64" -> ("Boolean" | Failure), "Integer64" -> ("Boolean" | Failure)], environment]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["While[groupLoop]", environment]],
+				TypeTheoryTerm[
+					NonNegativeIntegers -> NonNegativeIntegers -> CartesianProductType["Integer64" -> ("Integer64" | Failure), "Integer64" -> ("Integer64" | Failure)] ->
+						"Integer64" -> "Integer64" -> "Integer64" -> (CartesianProductType["Integer64", "Integer64"] | Failure),
+					environment
+				]
+			],
+			Map[Function[k, {leveled[compiledEvenQ, 20, k], leveled[compiledOddQ, 20, k]} === {compiledEvenQ[k], compiledOddQ[k]}], {0, 1, 2, 7, 12}],
+			Map[Function[k, {leveled[groupA, 20, k], leveled[groupB, 20, k], leveled[groupC, 20, k], leveled[groupCaller, 20, k]} === {groupA[k], groupB[k], groupC[k], groupCaller[k]}], {-3, 0, 1, 5, 9}],
+			Map[Function[k, {fueled[groupLoop, 20, 20, k], fueled[groupStep, 20, 20, k]} === {groupLoop[k], groupStep[k]}], {0, 1, 4, 7}],
+			(* the parity of 7 calls down to 0, 8 levels; the ring from 6, 7 levels *)
+			{leveled[compiledEvenQ, 8, 7], leveled[compiledEvenQ, 7, 7], leveled[groupA, 7, 6], leveled[groupA, 6, 6]},
+			(* groupLoop at 4 calls to a depth of 5, and its loop takes 4 rounds and a last test *)
+			{fueled[groupLoop, 5, 5, 4], fueled[groupLoop, 4, 5, 4], fueled[groupLoop, 5, 4, 4]}
+		}
+	],
+	{
+		TypeTheoryEnvironment,
+		{
+			{HoldForm["Recursion[compiledEvenQ, compiledOddQ]"], HoldForm[compiledEvenQ], HoldForm[compiledOddQ]},
+			{HoldForm[groupOutside], HoldForm["Recursion[groupA, groupB, groupC]"], HoldForm[groupA], HoldForm[groupB], HoldForm[groupC], HoldForm[groupCaller]},
+			{HoldForm["While[groupLoop]"], HoldForm["Recursion[groupLoop, groupStep]"], HoldForm[groupLoop], HoldForm[groupStep]}
+		},
+		True,
+		True,
+		ConstantArray[True, 5], ConstantArray[True, 5], ConstantArray[True, 4],
+		{compiledEvenQ[7], Failure["RecursionLimit", <||>], groupA[6], Failure["RecursionLimit", <||>]},
+		{groupLoop[4], Failure["RecursionLimit", <||>], Failure["OutOfFuel", <||>]}
+	},
+	TimeConstraint -> 120,
+	TestID -> "Functions-that-call-each-other-are-one-recursion-on-the-levels"
 ]
 
 (* And and Or of tests are the Ifs the compiler writes for them, with True or False outright in a branch, so the second

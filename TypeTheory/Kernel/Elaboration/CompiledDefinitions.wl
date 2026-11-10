@@ -198,38 +198,67 @@ compiledProgramDeclarations[environment_, HoldComplete[symbol_Symbol], signature
 	callOrder[fullName[symbol], signatures, {}]
 ]
 
-(* the names in the order they are declared: each function after those it calls *)
-callOrder[name_String, signatures_Association, seen_List] := Which[
-	mutuallyRecursiveQ[name, signatures],
-		kernelFailure["Recursive", "The typed code of `1` calls itself through another function: mutual recursion is not formalized for the machine yet.", {ToExpression[name, InputForm, HoldForm]}],
-	True,
-		DeleteDuplicates[Append[
-			Catenate[Map[Function[callee, callOrder[callee, signatures, Append[seen, name]]], Select[signatures[name]["Calls"], Function[callee, ! MemberQ[Append[seen, name], callee]]]]],
-			name
-		]]
+(* the names in the order they are declared: each function after those it calls, and functions that call each other
+   together, in the order of their names *)
+callOrder[name_String, signatures_Association, seen_List] := With[
+	{group = recursionGroup[name, signatures]},
+	DeleteDuplicates[Join[
+		Catenate[Map[
+			Function[callee, callOrder[callee, signatures, Join[seen, group]]],
+			Select[
+				DeleteDuplicates[Catenate[Map[Function[member, signatures[member]["Calls"]], group]]],
+				Function[callee, ! MemberQ[Join[seen, group], callee]]
+			]
+		]],
+		group
+	]]
 ]
+
+(* the functions a function reaches by its calls and theirs, itself among them where it calls itself *)
+reachedBy[name_String, signatures_Association] := If[ KeyExistsQ[signatures, name],
+	DeleteDuplicates[Join[signatures[name]["Calls"], signatures[name]["Reached"]]],
+	{}
+]
+
+(* the functions that call each other with a function, itself among them, in the order of their names: the function
+   alone where none that it reaches reaches it *)
+recursionGroup[name_String, signatures_Association] := Sort[Append[
+	Select[DeleteCases[reachedBy[name, signatures], name], Function[callee, MemberQ[reachedBy[callee, signatures], name]]],
+	name
+]]
 
 (* a function that calls itself, directly *)
 selfRecursiveQ[name_String, signatures_Association] := MemberQ[signatures[name]["Calls"], name]
 
-(* a function that a function it calls reaches back to *)
-mutuallyRecursiveQ[name_String, signatures_Association] := AnyTrue[
-	DeleteCases[signatures[name]["Calls"], name],
-	Function[callee, MemberQ[Join[signatures[callee]["Calls"], signatures[callee]["Reached"]], name]]
+(* a function that a function it reaches reaches back to *)
+mutuallyRecursiveQ[name_String, signatures_Association] := Length[recursionGroup[name, signatures]] > 1
+
+(* a function whose meaning takes the levels its recursion may use: one that calls itself, directly or through another,
+   or reaches one that does *)
+leveledQ[name_String, signatures_Association] := AnyTrue[
+	DeleteDuplicates[Append[reachedBy[name, signatures], name]],
+	Function[reached, selfRecursiveQ[reached, signatures] || mutuallyRecursiveQ[reached, signatures]]
 ]
 
-(* a function whose meaning takes the levels its recursion may use: one that calls itself, or calls one that does *)
-leveledQ[name_String, signatures_Association] := selfRecursiveQ[name, signatures] || AnyTrue[DeleteCases[signatures[name]["Calls"], name], Function[callee, leveledQ[callee, signatures]]]
-
-(* a function whose meaning takes fuel, the iterations its loops may take: one with a While, or one that calls one with
-   fuel *)
-fueledQ[name_String, signatures_Association] := ! FreeQ[signatures[name]["Body"], coreForm["While"]] || AnyTrue[DeleteCases[signatures[name]["Calls"], name], Function[callee, fueledQ[callee, signatures]]]
+(* a function whose meaning takes fuel, the iterations its loops may take: one with a While, or one that reaches one
+   with a While *)
+fueledQ[name_String, signatures_Association] := AnyTrue[
+	DeleteDuplicates[Append[reachedBy[name, signatures], name]],
+	Function[reached, ! FreeQ[signatures[reached]["Body"], coreForm["While"]]]
+]
 
 compiledSymbol[name_String] := ToExpression[$compiledContext <> name, InputForm, HoldComplete]
 
 compiledFunctionDeclarations[environment_, name_String, signatures_Association] := With[
-	{held = ToExpression[name, InputForm, HoldComplete]},
-	If[constantDeclaredQ[environment, held], {}, compiledDefinitions[held, signatures[name], signatures]]
+	{held = ToExpression[name, InputForm, HoldComplete], group = recursionGroup[name, signatures]},
+	Which[
+		constantDeclaredQ[environment, held],
+			{},
+		Length[group] > 1,
+			groupDefinitions[group, signatures],
+		True,
+			compiledDefinitions[held, signatures[name], signatures]
+	]
 ]
 
 (* the function's definition after those of its loops, which its translation sows as it meets them *)
@@ -274,8 +303,9 @@ compiledDefinition[held : HoldComplete[symbol_Symbol], signature_Association, si
 				"Recursion" -> If[selfRecursiveQ[name, signatures], recursion, None]
 			|>]
 		},
-		(* a loop that calls the function takes its recursion, of the function's own type *)
-		With[{body = blockTerm[signature["Body"], scope, Append[context, "OwnType" -> ownType], signatures]},
+		(* the function's calls of itself are its recursion, which a loop that calls the function takes, of the function's
+		   own type *)
+		With[{body = blockTerm[signature["Body"], scope, Join[context, <|"RecursionType" -> ownType, "Members" -> If[selfRecursiveQ[name, signatures], <|name -> recursion|>, <||>]|>], signatures]},
 			definitionDeclaration[
 				held,
 				functionTerm[
@@ -301,6 +331,95 @@ recursionTerm[HoldComplete[levels_], HoldComplete[levelsLeft_], HoldComplete[rec
 		][arguments]]
 	]
 ]
+
+(* Functions that call each other are one recursion on the levels. The constant "Recursion[f, g]", named by the functions
+   in the order of their names, is the functions together, a tuple of them: with no level each leaves with
+   Failure["RecursionLimit", <||>], and with one more than levelsLeft each is its body, whose calls of a function of the
+   group are that function's part of recursion, the tuple at levelsLeft. So every call of a function of the group is a
+   level, as the compiler counts them: its code declines at one depth whichever of the functions it calls. Each
+   function is then its part of the constant. The loops of the functions are declared first, and one that calls a
+   function of the group takes the tuple at the level below as its argument after the fuel. *)
+groupDefinitions[group_List, signatures_Association] := With[
+	{
+		levels = compiledSymbol["levels"],
+		levelsLeft = compiledSymbol["levelsLeft"],
+		fuel = compiledSymbol["fuel"],
+		recursion = compiledSymbol["recursion"],
+		members = Map[Function[name, groupMember[name, signatures]], group],
+		fueled = fueledQ[First[group], signatures]
+	},
+	With[
+		{
+			groupType = tupleType[Map[Function[member, member["Type"]], members]],
+			budgets = Join[{{levels, HoldComplete[NonNegativeIntegers]}}, If[fueled, {{fuel, HoldComplete[NonNegativeIntegers]}}, {}]],
+			constant = "Recursion[" <> StringRiffle[Map[Function[member, member["Symbol"]], members], ", "] <> "]",
+			calls = AssociationThread[group, projectionTerms[recursion, Length[group]]]
+		},
+		With[
+			{
+				(* each body with the loops it sows, numbered from 1 for each function *)
+				bodies = Map[
+					Function[member, Block[{$loopCount = 0}, Reap[
+						blockTerm[
+							member["Signature"]["Body"],
+							member["Scope"],
+							Join[member["Signature"], <|
+								"Name" -> member["Name"], "Symbol" -> member["Symbol"], "Levels" -> levelsLeft, "Fuel" -> If[fueled, fuel, None],
+								"Recursion" -> recursion, "RecursionType" -> groupType, "Members" -> calls
+							|>],
+							signatures
+						],
+						$loopTag
+					]]],
+					members
+				],
+				parts = projectionTerms[callTerm[HoldComplete[constant], Map[First, budgets]], Length[group]]
+			},
+			Join[
+				Catenate[Map[Function[body, Catenate[Last[body]]], bodies]],
+				{definitionDeclaration[
+					HoldComplete[constant],
+					functionTerm[budgets, groupRecursionTerm[
+						levels, levelsLeft, recursion, groupType,
+						tupleTerm[Map[Function[member, functionTerm[member["Binders"], member["Leave"]]], members]],
+						tupleTerm[MapThread[Function[{member, body}, functionTerm[member["Binders"], First[body]]], {members, bodies}]]
+					]],
+					functionType[Map[Last, budgets], groupType]
+				]},
+				MapThread[
+					Function[{member, part}, definitionDeclaration[member["Held"], functionTerm[budgets, part], functionType[Map[Last, budgets], member["Type"]]]],
+					{members, parts}
+				]
+			]
+		]
+	]
+]
+
+(* a function of a group: its symbol, its binders and their scope, its own type and its leave *)
+groupMember[name_String, signatures_Association] := With[
+	{held = ToExpression[name, InputForm, HoldComplete], signature = signatures[name]},
+	With[{parameters = parameterTerms[held, signature["Parameters"]]},
+		<|
+			"Name" -> name,
+			"Held" -> held,
+			"Symbol" -> Replace[held, HoldComplete[symbol_] :> SymbolName[Unevaluated[symbol]]],
+			"Signature" -> signature,
+			"Binders" -> Map[Function[parameter, {First[parameter], machineType[Last[parameter]]}], parameters],
+			"Scope" -> parameterScope[signature["Parameters"], parameters],
+			"Type" -> functionType[Map[Function[parameter, machineType[Last[parameter]]], parameters], resultType[signature["Result"]]],
+			"Leave" -> Replace[resultType[signature["Result"]], HoldComplete[result_] :> HoldComplete[Typed["right"[Failure["RecursionLimit", <||>]], result]]]
+		|>
+	]
+]
+
+(* the recursion on the levels of the tuple: the leaves with none, and with one more than levelsLeft the bodies *)
+groupRecursionTerm[HoldComplete[levels_], HoldComplete[levelsLeft_], HoldComplete[recursion_], HoldComplete[type_], HoldComplete[leaves_], HoldComplete[steps_]] :=
+	HoldComplete[InductiveRecursor[NonNegativeIntegers][
+		Function[{Typed[WolframInstitute`TypeTheory`Compiled`j, NonNegativeIntegers]}, type],
+		Typed[leaves, type],
+		Function[{Typed[levelsLeft, NonNegativeIntegers], Typed[recursion, type]}, Typed[steps, type]],
+		levels
+	]]
 
 definitionDeclaration[HoldComplete[symbol_], HoldComplete[value_], HoldComplete[type_]] := TypeTheoryDefinition[symbol, Typed[value, type]]
 
@@ -526,8 +645,9 @@ loopTerm[test_, _, _, _, _, _, _, _] := unmodeled[test]
 
 loopBound[_, HoldComplete[call_], HoldComplete[out_], HoldComplete[type_], HoldComplete[after_]] := HoldComplete["confirmBind"[call, Function[{Typed[out, type]}, after]]]
 
-(* a loop whose test or body calls the function itself, in a loop of its own too *)
-selfCallingQ[code_, signature_Association] := signature["Recursion"] =!= None && ! FreeQ[code, coreForm["Call"][signature["Name"], _]]
+(* a loop whose test or body calls a function of the recursion, the function itself or one that calls it back, in a
+   loop of its own too *)
+selfCallingQ[code_, signature_Association] := AnyTrue[Keys[signature["Members"]], Function[member, ! FreeQ[code, coreForm["Call"][member, _]]]]
 
 loopName[symbol_String, 1] := "While[" <> symbol <> "]"
 loopName[symbol_String, index_Integer] := "While[" <> symbol <> ", " <> ToString[index] <> "]"
@@ -560,12 +680,12 @@ loopDeclaration[name_String, assigned_List, kinds_List, read_List, coreForm["Sta
 			]],
 			(* the levels and the fuel are the loop's own arguments, and so is the function's recursion where the loop calls
 			   the function itself: the function at the level below, which the function passes on *)
-			context = Join[signature, <|"Levels" -> If[signature["Levels"] === None, None, levels], "Fuel" -> fuel, "Recursion" -> If[selfCalling, recursion, None]|>],
+			context = Join[signature, <|"Levels" -> If[signature["Levels"] === None, None, levels], "Fuel" -> fuel, "Recursion" -> If[selfCalling, recursion, None], "Members" -> If[selfCalling, signature["Members"], <||>]|>],
 			stateTerms = Function[ended, Map[Function[v, First[ended[{"L", v}]]], assigned]],
 			budgets = Join[
 				If[signature["Levels"] === None, {}, {{levels, HoldComplete[NonNegativeIntegers]}}],
 				{{fuel, HoldComplete[NonNegativeIntegers]}},
-				If[selfCalling, {{recursion, signature["OwnType"]}}, {}]
+				If[selfCalling, {{recursion, signature["RecursionType"]}}, {}]
 			],
 			roundType = functionType[Map[Last, stateBinders], Replace[stateType, HoldComplete[type_] :> HoldComplete[type | Failure]]]
 		},
@@ -673,10 +793,10 @@ stepTerm[coreForm["Call"][name_String, arguments_List], scope_, signature_, sign
 	{
 		"Result",
 		Which[
-			name === signature["Name"] && signature["Recursion"] === None,
-				unmodeled["a call of the function itself in its loop"],
-			name === signature["Name"],
-				callTerm[signature["Recursion"], values],
+			KeyExistsQ[signature["Members"], name],
+				callTerm[signature["Members"][name], values],
+			MemberQ[recursionGroup[signature["Name"], signatures], name],
+				unmodeled["a call of the function's recursion out of its reach"],
 			True,
 				callTerm[ToExpression[name, InputForm, HoldComplete], Join[
 					If[leveledQ[name, signatures], {budgetTerm[signature, "Levels"]}, {}],
