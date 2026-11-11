@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.39.0. Not yet released: the machine reals.
+Versions 0.35.0 to 0.40.0.
 
 ### Added
 
@@ -23,10 +23,17 @@ Versions 0.35.0 to 0.39.0. Not yet released: the machine reals.
 - The parts of a structure by name, `s["element"]`, shown `s〚element〛`.
 - Arguments by name, `f[x, n -> 2]`, after the positional ones; implicit arguments by plain application.
 - A recursion unfolds at `k + 1` and where it gives a function.
-- `TraditionalForm` of a term shows it for reading: `f(x)`, `=`, and a recursor as a table of its cases.
-- Not yet released: `TypeTheoryEnvironment["MachineReals"]`, the 64-bit reals as rationals with a witness
-  the kernel checks, with typed code on machine reals read from compiled code;
-  `NormalForm[term, "Implementations" -> True]` computes implemented axioms.
+- `TraditionalForm` of a term shows it for reading: `f(x)`, `=`, and a recursor as a table of its cases. A
+  constant shows by the notation `TraditionalForm` has for it, the Wolfram Language's own for one of its
+  symbols, `r_d(n)` for `SquaresR[d, n]` and `a mod b` for `Mod[a, b]`, or a rule of `MakeBoxes` given for
+  `TraditionalForm`; its arguments keep the order they are written in.
+- **The machine reals.** `TypeTheoryEnvironment["MachineReals"]`, the 64-bit reals as rationals with a
+  witness the kernel checks, with typed code on machine reals read from compiled code, which
+  `TypeTheoryFormalize[f, "Machine"]` reads there by itself; `NormalForm[term, "Implementations" -> True]`
+  computes implemented axioms. The edges of real arithmetic were run against compiled code on arm64 and
+  x86-64.
+- `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
+  of the term in the goal becomes a variable, and each case is stated with its recursors computed.
 
 ### Changed
 
@@ -39,6 +46,8 @@ Versions 0.35.0 to 0.39.0. Not yet released: the machine reals.
 - A rule is data before it names an argument; arguments by name come last.
 - A bound variable that another symbol shadows shows by its name.
 - `TraditionalForm` writes `=` also where a notebook writes the equation's sign as one character.
+- A term shows the names that are strings without quotes in an input cell too, where a document typesets
+  a term as written.
 
 ### Performance
 
