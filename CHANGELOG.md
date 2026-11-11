@@ -32,6 +32,11 @@ Versions 0.35.0 to 0.40.2.
   `TypeTheoryFormalize[f, "Machine"]` reads there by itself; `NormalForm[term, "Implementations" -> True]`
   computes implemented axioms. The edges of real arithmetic were run against compiled code on arm64 and
   x86-64.
+- The rounding of the machine reals has its specification, the axiom `"real64ResultNearest"`: the nearest machine
+  real, the even one of two as near, and the leave from 2^1024 - 2^970 on. Sums and products of machine reals are
+  proved commutative. `"real64NearestQ"` is the Boolean the kernel computes for a rational and a machine real,
+  whether the real is the rounding of the rational; `scripts/real64_nearest_grid.wl` holds it to the machine. The
+  implementation of the rounding computes by integers.
 - `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
   of the term in the goal becomes a variable, and each case is stated with its recursors computed.
 

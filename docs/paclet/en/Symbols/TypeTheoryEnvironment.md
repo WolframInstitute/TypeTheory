@@ -32,7 +32,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 
 <code>[TypeTheoryEnvironment]()["Machine"]</code> gives the integers with the 64-bit integers of the compiler's typed entries, `"Integer64"`, as the compiler and [NumericArray]() name them, or `"MachineInteger"`, a subtype of the integers in [-2^63, 2^63), whose operations give `Failure["IntegerOverflow", <||>]`, the leave of a typed entry, where a result is out of range.
 
-<code>[TypeTheoryEnvironment]()["MachineReals"]</code> gives the rationals with the machine integers and the 64-bit reals of the compiler's typed entries, `"Real64"` or `"MachineReal"`: the rationals that binary64 represents, whose operations round the exact result and leave where compiled code does. The rounding, the whole number below a rational and the square root are axioms that the Wolfram Language computes.
+<code>[TypeTheoryEnvironment]()["MachineReals"]</code> gives the rationals with the machine integers and the 64-bit reals of the compiler's typed entries, `"Real64"` or `"MachineReal"`: the rationals that binary64 represents, whose operations round the exact result and leave where compiled code does. The rounding, the whole number below a rational and the square root are axioms that the Wolfram Language computes, and the specification of the rounding, `"real64ResultNearest"`, is an axiom that is a proposition.
 
 <code>[TypeTheoryEnvironment]()["Cubical"]</code> gives cubical type theory, with paths as functions of an interval and univalence that computes, under rules without Prop.
 

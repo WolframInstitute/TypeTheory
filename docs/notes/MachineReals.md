@@ -33,6 +33,7 @@ Each operation is the rounding of an exact rational result:
 
 Three constants are axioms with an `"Implementation"`, which the Wolfram Language computes and the kernel never does:
 `"real64Result"`, the rounding to the nearest real with ties to even; `"rationalFloor"`; and `"real64SqrtResult"`.
+A fourth axiom is a proposition, `"real64ResultNearest"`, the specification of the rounding (below).
 Everything else is a definition over a Boolean order of the rationals. A theorem about real code names the axioms
 it uses in its closure: `"real64Plus"[x, y] == "real64Result"[x + y]` has
 `<|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature"|>`.
@@ -50,13 +51,20 @@ JIT on) the 47 rows give the same text. The rows cover each operation, each leav
 cases. They test that the model reads the code as the machine runs it; they are no proof of the arithmetic, which
 rests on the three axioms.
 
-## The second slice: what is proposed, before any code
+## The second slice
+
+The slice is in two parts. The first is in the library: the specification of the rounding as an axiom, the two
+theorems of commutativity, the implementation by integers, and the Boolean of nearness with its grid. The second is
+to come: the order of the rationals as far as the proofs need it, the spacing of the machine reals, the three
+properties of the rounding and the lemma that turns the Boolean into an equation.
 
 ### Theorems with content
 
-`"real64Plus"[x, y] == "real64Plus"[y, x]` and the same for `"real64Times"`, each by the commutativity of the
-rationals under the rounding. They use the rounding only as a function, so their closure is that of the theorem
-above, and they are the first statements about real code that are not true by unfolding.
+`"real64PlusCommutativity"`, `"real64Plus"[x, y] == "real64Plus"[y, x]`, and `"real64TimesCommutativity"`, the same
+for `"real64Times"`, each by the commutativity of the rationals under the rounding. They use the rounding only as a
+function, so their closure is that of the theorem above,
+`<|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature"|>`, and they are the first statements about
+real code that are not true by unfolding.
 
 ### The properties of the rounding
 
@@ -67,7 +75,7 @@ Three properties are wanted, each a statement over the rationals:
 - **The half-ulp bound.** The rounding of q is within half a unit in the last place of q: |r - q| <= 2^(e - 1) for
   the exponent e of r, and at most 2^-1075 in the subnormal range.
 
-The proposal is one further axiom, not three: the specification of the rounding. With B = 2^1024 - 2^970, the middle
+They follow from one further axiom, not three: the specification of the rounding. With B = 2^1024 - 2^970, the middle
 of the largest real and 2^1024:
 
 ```wl
@@ -100,8 +108,8 @@ TypeTheoryAxiom["real64ResultNearest",
 In words: from B on, the leave; below B, a machine real r that no machine real is nearer to q than, and where another
 machine real s is as near, r is an even multiple of their distance. The tie clause says "even" without a significand:
 m 2^e is not unique, 2 being 1 * 2^1 and 2 * 2^0, but two machine reals as near to q as each other are neighbours, and
-neighbours are consecutive multiples of their distance. The statement elaborates to a proposition in the environment
-as it is (checked, not declared).
+neighbours are consecutive multiples of their distance. A theorem that uses the axiom has it in its closure, kind
+`"Proposition"`.
 
 Such a function exists and is the only one:
 
@@ -128,21 +136,46 @@ grid test below, u being the spacing at the tie:
 | 2^1024 - 2^970 | no tie: from here on the leave | | the leave |
 | 2^1024 - 2^970 less any positive amount | the largest real, 2^1024 - 2^971, alone | | the largest real |
 
-The three properties are then theorems, by arithmetic of the rationals and this uniqueness. The same specification
-gives certified values: for given literals q and r the kernel computes a Boolean check, that r is a machine real
-with canonical m and e, that |q - r| is at most half the distance to each neighbour of r, and the tie rule, and a
-lemma turns the check into `"real64Result"[q] == r`. Its proof needs one fact about the predicate, the spacing of
-the machine reals around a canonical m 2^e, proved once. A value the Wolfram Language computed then enters a proof
-once the kernel has checked its certificate, where today it cannot enter one at all.
+The three properties are then theorems, by arithmetic of the rationals and this uniqueness; they are the second
+part of the slice, and need more of the order of the rationals than the library has, which proves it reflexive and
+no more.
 
-The `"Implementation"` of the rounding is trusted for nothing. It is to compute by exact integer arithmetic, the
+### The Boolean of nearness
+
+The same specification gives certified values. `"real64NearestQ"[q, m, a, b]` is a Boolean that the kernel computes
+for literals: whether the machine real m 2^a / 2^b is the rounding of the rational q. It asks that
+
+- the real is in the range of a machine real, |m| < 2^53, a <= 971 and b <= 1074, and in its form of the largest m:
+  |m| >= 2^52, or the exponent is the lowest, a = 0 and b = 1074. That form fixes the spacing: above |r| it is
+  u = 2^a / 2^b, and below |r| it is u, or u / 2 where |m| = 2^52 and the exponent is not the lowest;
+- q is within half the spacing of r on each side;
+- where q is exactly half way, m is even. An odd m takes q strictly within half, and at |m| = 2^52 the half-way
+  point toward 0 goes to r, 2^53 half-spacings being even.
+
+The largest real has an odd m, so the check refuses 2^1024 - 2^970 for it, and with it everything from the bound on.
+A lemma is to turn the check into `"real64Result"[q] == r`, the second part of the slice. Its proof needs one fact
+about the predicate, the spacing of the machine reals around m 2^e in that form, proved once. A value the Wolfram
+Language computed then enters a proof once the kernel has checked its certificate, where today it cannot enter one
+at all.
+
+The `"Implementation"` of the rounding is trusted for nothing. It computes by exact integer arithmetic, the
 exponent from the bit lengths of the numerator and the denominator and the significand by an integer quotient with
-its remainder compared to a half, and not by `N` of a rational, whose rounding is not known to be correct on every
-kernel. Whatever it computes, a wrong value only fails to certify: the kernel's nearness check refuses it, and no
-equation comes of it. The grid test holds the check itself to the machine: on exact ties in the normal and the
-subnormal range, the bound 2^1024 - 2^970 and one unit in the last place to each side of it, 2^-1074 and its half,
-2^53 + 1, and a few hundred random rationals with numerators and denominators past 2^64, the check accepts the value
-the machine gives and refuses that value's two neighbours.
+its remainder compared to a half, and not by `N` of a rational. Whatever it computes, a wrong value only fails to
+certify: the kernel's nearness check refuses it, and no equation comes of it.
+
+`scripts/real64_nearest_grid.wl` holds the check itself to the machine, on 453 rows: the ties and bounds of the table
+above and their negatives; 60 products, 60 sums and 40 reciprocals of machine reals, whose exact results IEEE 754
+has the machine round to the nearest, the value expected being the machine's own; 40 exact ties (2 m + 1) 2^e, the
+sum of two neighbouring reals; 20 ties among the subnormal reals; and 200 rationals whose numerator and denominator
+are past 2^64. On every row the value the integers give is the one expected, the check accepts it, and the check
+refuses the machine real next to it on each side; from the bound on the check refuses the largest real. The rows
+come from a generator written out in the script, the same on every kernel. Run on Wolfram 15.0 and on the
+WolframKernel project's kernel (cb26279f), arm64: no row fails on either.
+
+`N` is not what the grid measures against, and for a reason it found. On Wolfram 15.0, `N` of a rational whose
+numerator and denominator are past 2^64 is not the nearest machine real for a third of them: of 2000, a last place
+off for 663 and two for 7. The WolframKernel project's `N` gives the nearest for all 2000, and `N` of an integer is
+the nearest on both.
 
 The alternative, defining the rounding by its algorithm and proving the specification, removes the axiom and is the
 later stage: it needs the floor defined from the integers' quotient, which needs laws of `Quotient` the integers'
@@ -160,10 +193,12 @@ The model fixes a value only where every conforming machine computes the same va
 | Functions | What the model states | On what evidence |
 |---|---|---|
 | sum, difference, product, reciprocal, square root, the conversions and the whole-number functions | the value | IEEE 754 requires correct rounding; the 47 rows on two platforms |
-| `Power` with an integer exponent | the value, if typed code multiplies; otherwise as the next row | to be read from the typed code of `x^n`, and run on both platforms |
+| `Power` with an integer exponent | no value yet, only its leaves | typed code computes it by the compiler's built-in power, a chain of products in the order of the exponent's binary digits; Wolfram 15's own power is another rule, a last place off the chain at 6, 7, 10 and 15 on some bases and further at 1000. The WolframKernel project is to put its evaluator and typed code on Wolfram 15's rule; the model takes the rule from it then. The rows of `scripts/machine_real_checks.wl`, a variable and a constant exponent each, are the regression test, and whatever value the model gives will be tied to that kernel's C compiler and runtime library |
 | `Exp`, `Log`, `Sin`, `Cos`, `Tan`, `ArcTan`, `Power` with a real exponent, and the rest of the library | no value: a constant per function with its domain and its leaves, and nothing about its last bit | these are not correctly rounded, and two libraries may differ in the last place; one witness per function, a point where arm64 and x86-64 differ, is to be found by a grid run on both |
 
-A function of the last row is an axiom whose `"Implementation"` is this machine's library. `NormalForm` with
+A function of the last row is an axiom whose `"Implementation"` is the library of the machine it runs on, so a
+normal form computed with it is not portable; the lemma that certifies a value covers the rounding and the square
+root only. `NormalForm` with
 implementations computes with it and the result holds for this machine; a theorem that mentions the function says
 so in its closure, by the function's name, and can use nothing about it but that it is a function. A bound in units
 of the last place against the exact function is not stated: the library has no real analysis to state the exact

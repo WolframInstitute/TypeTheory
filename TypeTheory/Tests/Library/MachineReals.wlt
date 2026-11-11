@@ -19,18 +19,19 @@ SetAttributes[realValue, HoldFirst]
 realValue[term_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm[term, reals], "Implementations" -> True]]
 
 (* the environment by its name, over the rationals, with the machine integers; its axioms past the rationals' are the
-   three the Wolfram Language computes; a name that is none is refused as before *)
+   three the Wolfram Language computes and the specification of the rounding, a proposition that nothing computes; a
+   name that is none is refused as before *)
 VerificationTest[
 	{
 		Head[reals],
 		Length[Information[reals, "Constants"]] - Length[Information[TypeTheoryEnvironment["Rationals"], "Constants"]],
 		Complement[Information[reals, "Axioms"], Information[TypeTheoryEnvironment["Rationals"], "Axioms"]],
-		Map[Function[name, Information[TypeTheoryTerm @@ {name, reals}, "Implementation"] =!= None], {"real64Result", "rationalFloor", "real64SqrtResult"}],
+		Map[Function[name, Information[TypeTheoryTerm @@ {name, reals}, "Implementation"] =!= None], {"real64Result", "rationalFloor", "real64SqrtResult", "real64ResultNearest"}],
 		DefinitionallyEqualQ[TypeTheoryTerm["MachineReal", reals], TypeTheoryTerm["Real64", reals]],
 		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", reals]], TypeTheoryTerm[Integers -> Integers -> ("Integer64" | Failure), reals]],
 		TypeTheoryEnvironment["MachineReal"]["Tag"]
 	},
-	{TypeTheoryEnvironment, 55, {"rationalFloor", "real64Result", "real64SqrtResult"}, {True, True, True}, True, True, "UnknownEnvironment"},
+	{TypeTheoryEnvironment, 59, {"rationalFloor", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
 	TestID -> "The-machine-reals-are-over-the-rationals-with-three-computed-axioms"
 ]
 
@@ -161,4 +162,80 @@ VerificationTest[
 	],
 	{TypeTheoryEnvironment, <|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature"|>},
 	TestID -> "A-real-theorem-names-the-axioms-it-rests-on"
+]
+
+(* The sum and the product of machine reals do not depend on the order of their arguments: theorems with content, which
+   rest on the rounding as a function and not on its specification. The specification is an axiom, a proposition, and
+   a theorem that uses it would say so. *)
+VerificationTest[
+	{
+		Map[Function[name, TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, reals}]], {"real64PlusCommutativity", "real64TimesCommutativity"}],
+		With[{statement = TypeTheoryType[TypeTheoryTerm["real64ResultNearest", reals]]}, TypeTheoryType[statement]],
+		(* the first half of the specification, at 2^1024: a theorem that uses the axiom names it *)
+		With[{bound = 2^1024 - 2^970, top = 2^1024},
+			With[{environment = TypeTheoryEnvironment[reals, TypeTheoryTheorem["theLeaveFromTheBound",
+					Implies[Typed[bound, Rationals] <= "rationalAbsolute"[Typed[top, Rationals]], "real64Result"[Typed[top, Rationals]] == Typed["right"[Failure["NotFinite", <||>]], "Real64" | Failure]],
+					"andEliminationLeft"["real64ResultNearest"[Typed[top, Rationals]]]
+				]]},
+				{Head[environment], KeySort[TypeTheoryAxiomClosure[TypeTheoryTerm["theLeaveFromTheBound", environment]]]}
+			]
+		]
+	},
+	{
+		{<|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature"|>, <|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature"|>},
+		TypeTheoryTerm[TypeUniverse[0], _],
+		{TypeTheoryEnvironment, <|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature", "real64ResultNearest" -> "Proposition"|>}
+	},
+	SameTest -> MatchQ,
+	TestID -> "The-roundings-specification-is-an-axiom-and-sums-and-products-commute"
+]
+
+(* The kernel computes whether a machine real is the rounding of a rational: "real64NearestQ" of the rational and the
+   real in its form of the largest m. On the ties and the bounds worked by hand, and on products, sums and ties that
+   the machine rounds itself, the value that nearestReal64 computes by integers is the one expected, the check accepts
+   it, and the check refuses the machine real next to it on each side; from 2^1024 - 2^970 on there is no value, and
+   the check refuses the largest real. scripts/real64_nearest_grid.wl runs the whole grid, on any kernel. *)
+VerificationTest[
+	Module[{nearest, form, next, largest, bound, nearestQ, tie, rows, judge},
+		nearest = WolframInstitute`TypeTheory`PackageScope`nearestReal64;
+		form = WolframInstitute`TypeTheory`PackageScope`real64CanonicalForm;
+		next = WolframInstitute`TypeTheory`PackageScope`real64Neighbours;
+		largest = (2^53 - 1) 2^971;
+		bound = 2^1024 - 2^970;
+		nearestQ[q_, r_] := Replace[form[r], {m_, a_, b_} :> Replace[
+			WeakHeadNormalForm[TypeTheoryTerm["real64NearestQ"[Typed[q, Rationals], Typed[m, Integers], a, b], reals]],
+			{TypeTheoryTerm["true", ___] -> True, TypeTheoryTerm["false", ___] -> False}
+		]];
+		tie[m_, e_] := {(2 m + 1) 2^e, realExact[N[m] 2.^e + N[m + 1] 2.^e]};
+		rows = Join[
+			{
+				{2^-1075, 0}, {3 2^-1075, 2 2^-1074}, {2^-1074, 2^-1074}, {2^53 - 1/2, 2^53}, {(2^53 - 1/2) 2^-1074, 2^-1021}, {2^53 + 1, 2^53}, {2^53 + 3, 2^53 + 4},
+				{bound, "leave"}, {bound + 2^971, "leave"}, {bound - 2^971, (2^53 - 2) 2^971}, {bound - 1, largest}, {largest, largest}, {0, 0},
+				{1/10, 3602879701896397/36028797018963968}
+			},
+			{
+				{-2^-1075, 0}, {-3 2^-1075, -2 2^-1074}, {-(2^53 - 1/2), -2^53}, {-(2^53 + 1), -2^53}, {-bound, "leave"}, {-(bound - 1), -largest}
+			},
+			{
+				{realExact[0.1] realExact[0.2], realExact[0.1 0.2]},
+				{realExact[1.7*^300] realExact[1.9*^-200], realExact[1.7*^300 1.9*^-200]},
+				{realExact[0.1] + realExact[0.2], realExact[0.1 + 0.2]},
+				{1 / realExact[3.], realExact[1 / 3.]},
+				tie[2^52 + 12345, 0], tie[2^52 + 12346, -700], tie[2^53 - 2, 300]
+			},
+			(* rationals whose numerator and denominator are past 2^64, the value by the check alone *)
+			{{(3^70 + 2) / (5^40 + 1), None}, {-(7^50 + 4) / (11^30 + 6) / 2^900, None}}
+		];
+		judge[{q_, expected_}] := With[{value = If[Abs[q] >= bound, "leave", nearest[q]]},
+			{
+				expected === None || expected === value,
+				If[value === "leave", nearestQ[q, Sign[q] largest] === False, nearestQ[q, value]],
+				value === "leave" || AllTrue[Select[next[value], Function[r, Abs[r] < 2^1024]], Function[r, nearestQ[q, r] === False]]
+			}
+		];
+		{Length[rows], DeleteDuplicates[Map[judge, rows]]}
+	],
+	{29, {{True, True, True}}},
+	TimeConstraint -> 300,
+	TestID -> "The-kernel-computes-whether-a-machine-real-is-the-rounding-of-a-rational"
 ]
