@@ -1781,6 +1781,135 @@ compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer]
 	compiledCheckWith[function, input, 1]
 ]
 
+(* The program trusts its input. It reads a node, a level or a constant by the number a row gives, and it takes 0 for
+   "nothing": arenaInferType gives 0 for a node below 1 without a failure, and everywhere a 0 from it stands for a
+   failure already recorded, so arenaCheckHasType and arenaCheckDeclaration return on it, and the loop over the
+   declarations, which reads the status and finds none, declares the constant. A theorem whose row has no value was so
+   declared without a proof, and a term with a part 0, a row with an unknown tag or a rule with no right-hand side goes
+   the same way. So the program is not run on an input it could skip in: programInputQ reads the arrays that are given
+   to it, whatever made them, and compiledCheckWith, the one place that calls the program, answers None without it,
+   for which the kernel of TypeChecking.wl checks the environment. What it asks:
+
+	nodes        a tag from 1 to 9; the parts of an application, a function, a function type, a local definition and a
+	             projection are rows before their own, so none is 0, past the end or itself; a constant's number and a
+	             projection's structure are constants, a level's and a list of levels' are level rows; a bound
+	             variable's index, a literal's number and a projection's index are not negative
+	levels       a tag from 1 to 7; the parts are rows before their own; numbers are not negative
+	constants    a kind from 1 to 9; the type is a node, the universe parameters a level row; the value is a node or 0,
+	             and never 0 for a definition, which unfolding reads, nor for a theorem or an opaque constant that the
+	             order has checked; an inductive type's constructors, a constructor's type, a recursor's type and the
+	             constructor of each of its rules are constants, within the flat table, and a rule's right-hand side is
+	             a node; the Booleans of a comparison are constants or 0
+	flat table   minus a node where an entry is negative
+	order        each entry a constant, with a sign
+	settings     the natural numbers' type, zero and successor are constants or 0
+
+   Only a theorem or an opaque constant that the order takes as given may have no value. *)
+programInputQ[input_] := TrueQ[Quiet[Check[programInputCheck[input], False]]]
+
+programInputCheck[input_] := Block[
+	{
+		inputNodes = input["Nodes"], inputLevels = input["Levels"], inputConstants = input["Constants"], inputFlat = input["Flat"], inputOrder = input["Order"], inputSettings = input["Settings"],
+		inputNodeCount, inputLevelCount, inputConstantCount, inputFlatCount
+	},
+	And[
+		Developer`PackedArrayQ[inputNodes, Integer, 2] && Last[Dimensions[inputNodes]] == 4,
+		Developer`PackedArrayQ[inputLevels, Integer, 2] && Last[Dimensions[inputLevels]] == 3,
+		Developer`PackedArrayQ[inputConstants, Integer, 2] && Last[Dimensions[inputConstants]] == 20,
+		Developer`PackedArrayQ[inputFlat, Integer, 1],
+		Developer`PackedArrayQ[inputOrder, Integer, 1],
+		Developer`PackedArrayQ[inputSettings, Integer, 1] && Length[inputSettings] >= 12,
+		(
+			inputNodeCount = Length[inputNodes]; inputLevelCount = Length[inputLevels]; inputConstantCount = Length[inputConstants]; inputFlatCount = Length[inputFlat];
+			True
+		),
+		nodeRowsQ[inputNodes, inputNodeCount, inputLevelCount, inputConstantCount],
+		levelRowsQ[inputLevels, inputLevelCount],
+		constantRowsQ[inputConstants, inputFlat, inputOrder, inputNodeCount, inputLevelCount, inputConstantCount, inputFlatCount],
+		With[{negativeEntries = Select[inputFlat, Negative]}, negativeEntries === {} || Min[negativeEntries] >= -inputNodeCount],
+		inputOrder === {} || (Min[Abs[inputOrder]] >= 1 && Max[Abs[inputOrder]] <= inputConstantCount),
+		rowsWithinQ[inputSettings[[{4, 5, 6}]], 0, inputConstantCount]
+	]
+]
+
+(* every number from low to high, and every row a row before its own *)
+rowsWithinQ[{}, _, _] := True
+rowsWithinQ[values_List, low_, high_] := Min[values] >= low && Max[values] <= high
+
+rowsBeforeQ[{}, _] := True
+rowsBeforeQ[parts_List, rows_List] := Min[parts] >= 1 && Max[parts - rows] < 0
+
+(* the rows whose tag is one of tags *)
+rowsTagged[tags_List, wanted_List] := Pick[Range[Length[tags]], Unitize[Times @@ (Function[tag, tags - tag] /@ wanted)], 0]
+
+nodeRowsQ[nodes_, nodeCount_, levelCount_, constantCount_] := Block[
+	{
+		nodeTags = nodes[[All, 1]], nodeFirst = nodes[[All, 2]], nodeSecond = nodes[[All, 3]], nodeThird = nodes[[All, 4]],
+		numberRows, sortRows, namedRows, binaryRows, localRows, projectedRows
+	},
+	And[
+		rowsWithinQ[nodeTags, 1, 9],
+		(
+			numberRows = rowsTagged[nodeTags, {1, 8}]; sortRows = rowsTagged[nodeTags, {2}]; namedRows = rowsTagged[nodeTags, {3}];
+			binaryRows = rowsTagged[nodeTags, {4, 5, 6}]; localRows = rowsTagged[nodeTags, {7}]; projectedRows = rowsTagged[nodeTags, {9}];
+			True
+		),
+		rowsWithinQ[nodeFirst[[numberRows]], 0, 2^62 - 1],
+		rowsWithinQ[nodeFirst[[sortRows]], 1, levelCount],
+		rowsWithinQ[nodeFirst[[namedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[namedRows]], 1, levelCount],
+		rowsBeforeQ[nodeFirst[[binaryRows]], binaryRows] && rowsBeforeQ[nodeSecond[[binaryRows]], binaryRows],
+		rowsBeforeQ[nodeFirst[[localRows]], localRows] && rowsBeforeQ[nodeSecond[[localRows]], localRows] && rowsBeforeQ[nodeThird[[localRows]], localRows],
+		rowsWithinQ[nodeFirst[[projectedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[projectedRows]], 0, 2^62 - 1] && rowsBeforeQ[nodeThird[[projectedRows]], projectedRows]
+	]
+]
+
+levelRowsQ[levels_, levelCount_] := Block[
+	{levelTags = levels[[All, 1]], levelFirst = levels[[All, 2]], levelSecond = levels[[All, 3]], levelNumberRows, successorRows, pairRows},
+	And[
+		rowsWithinQ[levelTags, 1, 7],
+		(
+			levelNumberRows = rowsTagged[levelTags, {1, 2}]; successorRows = rowsTagged[levelTags, {3}]; pairRows = rowsTagged[levelTags, {4, 5, 6}];
+			True
+		),
+		rowsWithinQ[levelFirst[[levelNumberRows]], 0, 2^62 - 1],
+		rowsBeforeQ[levelFirst[[successorRows]], successorRows] && rowsWithinQ[levelSecond[[successorRows]], 0, 2^62 - 1],
+		rowsBeforeQ[levelFirst[[pairRows]], pairRows] && rowsBeforeQ[levelSecond[[pairRows]], pairRows]
+	]
+]
+
+constantRowsQ[constants_, flat_, order_, nodeCount_, levelCount_, constantCount_, flatCount_] := Block[
+	{rowKinds = constants[[All, 1]], rowValues = constants[[All, 3]], checkedRows = Select[order, Positive]},
+	And[
+		rowsWithinQ[rowKinds, 1, 9],
+		rowsWithinQ[constants[[All, 2]], 1, nodeCount],
+		rowsWithinQ[rowValues, 0, nodeCount],
+		rowsWithinQ[constants[[All, 4]], 1, levelCount],
+		rowsWithinQ[Flatten[constants[[All, 5 ;; 17]]], 0, 2^62 - 1],
+		rowsWithinQ[Flatten[constants[[All, {18, 19}]]], 0, constantCount],
+		rowsWithinQ[rowValues[[rowsTagged[rowKinds, {2}]]], 1, nodeCount],
+		rowsWithinQ[checkedRows, 1, constantCount],
+		rowsWithinQ[Pick[rowValues[[checkedRows]], Unitize[(rowKinds[[checkedRows]] - 3) (rowKinds[[checkedRows]] - 4)], 0], 1, nodeCount],
+		AllTrue[constants[[rowsTagged[rowKinds, {5}]]], Function[row, inductiveRowQ[row, flat, constantCount, flatCount]]],
+		rowsWithinQ[constants[[rowsTagged[rowKinds, {6, 7}], 8]], 1, constantCount],
+		AllTrue[constants[[rowsTagged[rowKinds, {7}]]], Function[row, recursorRowQ[row, flat, constantCount, flatCount]]]
+	]
+]
+
+(* columns 10 and 11 of an inductive type's row: the number of its constructors and where the flat table lists them *)
+inductiveRowQ[row_, flat_, constantCount_, flatCount_] := With[{count = row[[10]], start = row[[11]]},
+	count == 0 || (start >= 1 && start + count - 1 <= flatCount && rowsWithinQ[flat[[start ;; start + count - 1]], 1, constantCount])
+]
+
+(* columns 15 and 16 of a recursor's row: the number of its rules and where the flat table has them, four entries a
+   rule: the constructor, its parameters and fields, and minus the row of the right-hand side *)
+recursorRowQ[row_, flat_, constantCount_, flatCount_] := With[{count = row[[15]], start = row[[16]]},
+	count == 0 || (start >= 1 && start + 4 count - 1 <= flatCount && With[{rules = Partition[flat[[start ;; start + 4 count - 1]], 4]},
+		rowsWithinQ[rules[[All, 1]], 1, constantCount] && rowsWithinQ[Flatten[rules[[All, {2, 3}]]], 0, 2^62 - 1] && Max[rules[[All, 4]]] < 0
+	])
+]
+
+compiledCheckWith[_, input_, _] /; ! programInputQ[input] := None
+
 compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 	result = function[input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], input["Settings"]];
 	Which[

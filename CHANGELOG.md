@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.42.1.
+Versions 0.35.0 to 0.42.2.
 
 ### Added
 
@@ -59,6 +59,14 @@ Versions 0.35.0 to 0.42.1.
 
 ### Fixed
 
+- **`TypeTheoryCheck` accepted a record without its value (0.16.0 to 0.42.1).** Where the compiled kernel has its
+  library, the check of an environment passed a record of a theorem, an opaque constant or a definition that had no
+  value: a theorem of any statement, with no proof, was reported as checked. Measured on 0.42.1; the code that makes
+  it is in every release from 0.16.0. It takes a store or a saved file changed by hand; no declaration, import or
+  saved environment of TypeTheory writes such a record, so an environment built from declarations was not affected.
+  The compiled program is now run only on an input in which every reference is one and every constant it checks has
+  what it checks; otherwise the other kernel, which always refused such a record, answers.
+  `TypeTheoryCheck[environment, Method -> "Symbolic"]` was never affected.
 - `Normal` writes the fields of a constructor with their names, `Typed["fst", "α"]`, where it wrote an arrow and the
   name was lost: an environment rebuilt from `Normal` read a projection by its index and showed it so, or showed
   the name of an arrow's own binder, a blank. The binder of an arrow names no field now.
