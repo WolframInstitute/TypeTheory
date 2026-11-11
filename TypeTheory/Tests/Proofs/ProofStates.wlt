@@ -751,13 +751,15 @@ VerificationTest[
 	TestID -> "NonlinearArithmetic-proves-bounds-with-large-literals"
 ]
 
-(* The term of a proof by "LinearArithmetic", read back, checks against the statement, as the term of any finished
-   proof does. Its certificate carries a proof along an equation, large + c == small, by the recursor of equations,
-   whose motive is an argument the term shows; by the theorem "equalitySubstitution", whose predicate is an implicit
-   argument, the term read back left the predicate out, and no elaboration finds it again. An equation among the
-   hypotheses, an equation as the goal, False as the goal and a product of inequalities go the same way. *)
+(* The term of a proof by "LinearArithmetic", written out and read again, checks against the statement, as the term of
+   any finished proof does. Its certificate carries a proof along an equation, large + c == small, by the recursor of
+   equations, whose motive is an argument the term shows; by the theorem "equalitySubstitution", whose predicate is an
+   implicit argument, the term read back left the predicate out, and no elaboration finds it again. An equation among
+   the hypotheses, an equation as the goal, False as the goal and products of inequalities go the same way. The three
+   proofs with large literals of the test before this one are not among them: elaborating their terms again has the
+   kernel compare t 2082 + 0 with t 2082, which it does a unit of the literal at a time, past its recursion limit. *)
 VerificationTest[
-	Function[proof, {proof["Goals"], Head[TypeTheoryCheck[proof["Term"], proof["Statement"]]]}] /@ {
+	Function[proof, {proof["Goals"], MatchQ[TypeTheoryCheck[ToExpression[ToString[proof["Term"], InputForm]], proof["Statement"]], _Success]}] /@ {
 		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n >= 1, 2 n >= 2]], {"Introduce"[n, "h1"], "LinearArithmetic"}],
 		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n == m, n <= m + 1]], {"Introduce"[n, m, h], "LinearArithmetic"}],
 		TypeTheoryProof[
@@ -765,9 +767,13 @@ VerificationTest[
 			{"Introduce"[n, m, h, k], "LinearArithmetic"}
 		],
 		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n + 1 <= n, False]], {"Introduce"[n, h], "LinearArithmetic"}],
-		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n <= m, n n <= m m]], {"Introduce"[n, m, h], "NonlinearArithmetic"}]
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n <= m, n n <= m m]], {"Introduce"[n, m, h], "NonlinearArithmetic"}],
+		TypeTheoryProof[
+			ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, Implies[a <= b, Implies[c <= d, a c <= b d]]],
+			{"Introduce"[a, b, c, d, h1, h2], "NonlinearArithmetic"}
+		]
 	},
-	ConstantArray[{{}, Success}, 5],
+	ConstantArray[{{}, True}, 6],
 	TestID -> "The-term-of-a-proof-by-linear-arithmetic-checks-against-its-statement"
 ]
 

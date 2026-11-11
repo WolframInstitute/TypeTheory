@@ -105,6 +105,10 @@ VerificationTest[
 	TestID -> "PolynomialReduce-fails-where-no-combination-gives-the-goal"
 ]
 
+(* the term of a finished proof written out and read again checks against the statement: an implicit argument that the
+   term read back has lost, and that no elaboration finds, fails here and not where the term is used *)
+readBackChecks[proof_] := MatchQ[TypeTheoryCheck[ToExpression[ToString[proof["Term"], InputForm]], proof["Statement"]], _Success]
+
 VerificationTest[
 	With[
 		{
@@ -138,10 +142,11 @@ VerificationTest[
 					TypeTheoryTheorem[DroppedTerm, nonnegative]
 				}]],
 				_Success
-			]
+			],
+			readBackChecks /@ {bound, equation, contradiction, nonnegative}
 		}
 	],
-	{{}, {}, {}, {}, True},
+	{{}, {}, {}, {}, True, {True, True, True, True}},
 	TestID -> "LinearArithmetic-combines-inequalities-with-multipliers-the-kernel-checks"
 ]
 

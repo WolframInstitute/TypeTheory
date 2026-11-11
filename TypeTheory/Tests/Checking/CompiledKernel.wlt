@@ -164,8 +164,12 @@ literalBase = TypeTheoryEnvironment[prelude, {
 
 (* the statement is an axiom's type and the proof an honest theorem's value, taken from their records *)
 SetAttributes[claim, HoldRest]
-claim[name_String, left_, right_] := With[
-	{records = First[TypeTheoryEnvironment[literalBase, {
+claim[name_String, left_, right_] := claimOver[literalBase, name, left, right]
+
+(* the same over an environment that declares what the statement names *)
+SetAttributes[claimOver, HoldRest]
+claimOver[base_, name_String, left_, right_] := With[
+	{records = First[TypeTheoryEnvironment[base, {
 		TypeTheoryAxiom["claimed", left == right],
 		TypeTheoryTheorem["honest", right == right, "equalityReflexivity"[right]]
 	}, Method -> "Symbolic"]]["Records"]},
@@ -223,6 +227,34 @@ VerificationTest[
 		{"TypeMismatch", rechecked["t"], "TypeMismatch"}
 	},
 	TestID -> "A-record-that-needs-the-value-of-a-large-literal-is-checked-by-the-other-kernel"
+]
+
+(* A forged proof about a made-up constant past the limit is refused alike on both paths: the constant is 2^63, and the
+   theorem says it is 2^63 + 1, with the reflexivity of 2^63 + 1 for its proof. The compiled kernel leaves the record
+   undecided, the kernel of TypeChecking.wl refuses it, and the failure a batch reports is the one the declarations give
+   one at a time, by its tag and by its message. *)
+VerificationTest[
+	With[{made = 2^63, wrong = 2^63 + 1},
+		With[{withMade = TypeTheoryEnvironment[literalBase, {namedNumber["madeUp", made]}, Method -> "Symbolic"]},
+			With[{declarations = {namedNumber["madeUp", made], claimOver[withMade, "forged", "madeUp", wrong]}},
+				With[{compiled = TypeTheoryEnvironment[literalBase, declarations, Method -> compiledMethod]},
+					With[{left = If[available, Function[name, First[name]] /@ WolframInstitute`TypeTheory`PackageScope`$recheckedConstants, "no library"]},
+						With[{single = TypeTheoryEnvironment[literalBase, declarations, Method -> "Symbolic"]},
+							{
+								Head[withMade],
+								literalVerdict[compiled],
+								left,
+								literalVerdict[single],
+								FailureQ[compiled] && FailureQ[single] && ToString[compiled["Message"]] === ToString[single["Message"]]
+							}
+						]
+					]
+				]
+			]
+		]
+	],
+	{TypeTheoryEnvironment, "TypeMismatch", rechecked["forged"], "TypeMismatch", True},
+	TestID -> "A-forged-proof-about-a-made-up-large-constant-is-refused-alike-on-both-paths"
 ]
 
 (* The compiled kernel computes no literal past 2^62 and never wraps: 2^61 + 2^61, 2^31 2^31 and 2^62 are computed and
