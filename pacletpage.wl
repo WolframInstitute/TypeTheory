@@ -119,13 +119,35 @@ checkBuild[result_] := Module[{unevaluated},
 
 (* The function is named in full: this file is read before PacletPage is loaded. *)
 
+(* A whole build evaluates every page in parallel kernels and takes over 4 GB. On a machine short of memory, --chunk i/n
+   builds every n-th page from the i-th alone, in this kernel: eight chunks, each in a kernel of its own, stay near 1 GB
+   each, and the whole build that follows finds their pages in the cache. The tutorial that runs LeanLink over Mathlib
+   takes 3 GB by itself: it is in no chunk, and the whole build evaluates it alone. A chunk prunes nothing. *)
+$heavyPages = {"MathlibInTypeTheory.md"}
+
+chunkOption[] := Replace[SequenceCases[$ScriptCommandLine, {"--chunk", chunk_String} :> chunk, 1], {
+	{chunk_} /; StringMatchQ[chunk, DigitCharacter .. ~~ "/" ~~ DigitCharacter ..] :> chunkFiles @@ (FromDigits /@ StringSplit[chunk, "/"]),
+	{chunk_} :> (Print["FATAL: --chunk takes i/n, the i-th of n chunks, not ", chunk]; Exit[1]),
+	_ -> None
+}]
+
+chunkFiles[index_Integer, count_Integer] := With[
+	{pages = Select[Sort[FileNames["*.md", $docsDirectory, Infinity]], Function[file, ! MemberQ[$heavyPages, FileNameTake[file]]]]},
+	If[ ! (1 <= index <= count <= Length[pages]),
+		Print["FATAL: chunk ", index, " of ", count, " is none of ", Length[pages], " pages"];
+		Exit[1]
+	];
+	Take[pages, {index, -1, count}]
+]
+
 (* the notebooks show terms as a front end does, with the types of constants on mouseover, in this kernel and the ones
-   it starts *)
+   it starts; the options of a chunk come first, since the first of two settings of an option is the one taken *)
 buildDocumentation[] := (
 	SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"];
 	loadLeanLink[];
 	checkBuild[WolframInstitute`PacletPage`BuildPacletDocumentation[
 		$pacletDirectory,
+		Sequence @@ Replace[chunkOption[], {None -> {}, files_List :> {"Files" -> files, "Parallel" -> 1}}],
 		Sequence @@ $buildOptions,
 		Sequence @@ If[MemberQ[$ScriptCommandLine, "--no-cache"], {"UseCache" -> False}, {}]
 	]]

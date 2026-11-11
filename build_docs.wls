@@ -9,9 +9,12 @@
    section gave a value (see checkBuild in pacletpage.wl). A page is converted again only when its
    source or the paclet's code has changed; --no-cache evaluates every example again.
 
-   Run with the `wl` CLI, not wolframscript, whose init can wedge the kernel mid-build:
+       wolframscript -f build_docs.wls [--no-cache] [--chunk i/n]
 
-       wolframscript -f build_docs.wls [--no-cache]
+   A whole build takes over 4 GB. Where memory is short, build in chunks first, each in a kernel of its own that stays
+   near 1 GB, and then whole, which finds the pages in the cache and evaluates only the tutorial that runs LeanLink:
+
+       for i in 1 2 3 4 5 6 7 8; do wolframscript -f build_docs.wls --chunk $i/8; done; wolframscript -f build_docs.wls
 *)
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "pacletpage.wl"}]]

@@ -44,7 +44,9 @@ umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and e
 Every exported symbol has a page in `docs/paclet/en/Symbols/`, written to
 [docs/paclet/en/DOC_GUIDE.md](docs/paclet/en/DOC_GUIDE.md). A new exported symbol gets its page, and a
 change in behavior updates the examples it touches. `wolframscript -f build_docs.wls` evaluates every page; read the
-outputs back and compare them with the `<!-- => ... -->` hints, which nothing checks automatically.
+outputs back and compare them with the `<!-- => ... -->` hints, which nothing checks automatically. A whole build takes
+over 4 GB; where memory is short, `--chunk i/n` builds every n-th page in a kernel near 1 GB, and a whole build after
+the chunks finds their pages in the cache (the header of `build_docs.wls` has the loop).
 `release.wls` publishes the site and the paclet resource as wolframinstitute.
 
 [CHANGELOG.md](CHANGELOG.md) gathers the changes by ISO week, newest first. A release adds what it changes
