@@ -165,6 +165,28 @@ The addition's equations are what the kernel reads terms through:
 [KernelLiterals.md](KernelLiterals.md) has the design, the measurements and the agreement test,
 `scripts/offset_agreement.wls`.
 
+The compiled kernel holds a natural number literal below 2^62. A larger one is no row of its input: `environmentInput`
+writes it as a reference to a constant made for its value, one for each distinct value, declared as an axiom of the
+natural numbers' type right after the natural numbers, their zero and their successor, under a name no constant of an
+environment has (`largeLiteral[n]`); a literal the compiled kernel holds is never made a constant. What is trusted in
+this: that a judgement about a constant with no rule holds of any closed term of its type put in its place, so that a
+record the compiled kernel accepts with the constant is one the kernel of TypeChecking.wl accepts with the literal.
+The compiled kernel can then only accept less. Where a record needs the value of such a literal, or a registered
+operation's result on literals passes 2^62, which ends the check with `eLiteralOverflow` and never wraps, the record
+is undecided, and only in an environment that has a large literal: `compiledDeclarations` has the kernel of
+TypeChecking.wl check that record's declaration in the environment of the declarations before it, added as the batch
+added them, and its verdict is the batch's; the compiled kernel then goes on with the record taken as it is. The
+rules of a recursor are checked at the end of a pass, which a pass that ends at an undecided record does not reach, so
+recursors stay checked from pass to pass. Elsewhere a record the compiled kernel refuses is refused by that, as
+before. `TypeTheoryCheck` gives the compiled kernel no recheck yet, and leaves an environment with an undecided
+record to the kernel of TypeChecking.wl whole: a cone of 207 constants around `USize.size` takes it 3.1 s, as long as
+its declarations one at a time, where the batch takes 1.2 s (at background priority). Giving `TypeTheoryCheck` the
+recheck of one record is the next step. The guards are tests, in Tests/Checking/CompiledKernel.wlt: the two
+kernels give one verdict on batches with large literals, true and false; no literal wraps past the limit; the other
+kernel is asked only where a large literal is present; and a recursor with a forged rule before an undecided record
+is caught. The end state is big numbers in the compiled kernel itself, which goes with its next recompile, beside
+the role that is active only from its registration's place.
+
 ## Environments
 
 An environment is a value. Declaring returns a new environment; `$TypeTheoryEnvironment` is just the

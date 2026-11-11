@@ -63,9 +63,12 @@ PackageScoped[$compiledKernelSeed]
 (*Usage Messages*)
 
 
-compiledKernelCheck::usage = "compiledKernelCheck[environment] or compiledKernelCheck[environment, trusted, registrations], its first trusted constants and registrations of the natural numbers taken as they are, checks the declarations of environment with the compiled kernel, taking inductive types, \
+compiledKernelCheck::usage = "compiledKernelCheck[environment], compiledKernelCheck[environment, trusted, registrations] or compiledKernelCheck[environment, trusted, registrations, recheck], its first trusted constants and registrations of the natural numbers taken as they are, checks the declarations of environment with the compiled kernel, taking inductive types, \
 their constructors and recursors, and quotient types as the records their kernels generate, and the equations of the other registrations that have a variable in every application of an operation, and gives a Success, the Failure of the first declaration that does not check, whose \"Position\" \
-is that declaration's, or one past the last for an equation of a registration, or None where the compiled kernel does not handle the environment or no library is available."
+is that declaration's, or one past the last for an equation of a registration, or None where the compiled kernel does not handle the environment or no library is available. Where the environment has a natural number literal that the compiled kernel does not hold, \
+
+a record that it does not accept is checked again by recheck[position], which gives the position through which the constants are then taken as they are, or a Failure, which is the verdict; \
+without a recheck, and where the recheck gives anything else, the result is None."
 compiledKernelAvailableQ::usage = "compiledKernelAvailableQ[] gives True if the compiled kernel's library for this platform and version is available."
 compileKernelLibrary::usage = "compileKernelLibrary[] compiles the kernel's library for this engine and version into LibraryResources/<$SystemID> of the paclet and gives its File."
 $compiledKernelSeed::usage = "$compiledKernelSeed is None, or <|\"Terms\" -> terms, \"Codes\" -> codes, \"Parts\" -> parts, \"Starts\" -> starts, \"Roots\" -> roots|>: distinct core terms that \
@@ -1526,6 +1529,7 @@ termRowOf[boundVariable[index_Integer?NonNegative]] := {1, index, 0, 0}
 termRowOf[universeSort[level_]] := {2, levelRow[level], 0, 0}
 termRowOf[constantReference[name_, levels_List]] := {3, Lookup[$constantIndex, Key[name], notHandled[]], levelListRow[levels], 0}
 termRowOf[naturalLiteral[n_Integer]] /; 0 <= n < 2^62 := {8, n, 0, 0}
+termRowOf[naturalLiteral[n_Integer]] /; n >= 2^62 := largeLiteralRow[n]
 termRowOf[_] := notHandled[]
 
 (* The rows of the seed's terms, the first rows, and the terms put in the index, where the walk of the records finds them.
@@ -1584,9 +1588,27 @@ leafKindRows[universeSort, leaves_List] := Transpose[{
 	ConstantArray[0, Length[leaves]]
 }]
 leafKindRows[naturalLiteral, leaves_List] := With[{numbers = leaves[[All, 1]]},
-	If[! VectorQ[numbers, IntegerQ] || Min[numbers] < 0 || Max[numbers] >= 2^62, notHandled[]];
-	Transpose[{ConstantArray[8, Length[leaves]], numbers, ConstantArray[0, Length[leaves]], ConstantArray[0, Length[leaves]]}]
+	If[! VectorQ[numbers, IntegerQ] || Min[numbers] < 0, notHandled[]];
+	If[ Max[numbers] < 2^62,
+		Transpose[{ConstantArray[8, Length[leaves]], numbers, ConstantArray[0, Length[leaves]], ConstantArray[0, Length[leaves]]}],
+		Function[n, If[n < 2^62, {8, n, 0, 0}, largeLiteralRow[n]]] /@ numbers
+	]
 ]
+
+(* A natural number literal of 2^62 or more is no row the arena holds. It is written as a reference to a constant made
+   for its value, one for each distinct value, which environmentInput declares as an axiom of the natural numbers' type:
+   a natural number with no value and no rule. A judgement that holds of a constant with no rule holds of any closed
+   term of its type put in its place, so a record the arena accepts with the constant is one the kernel of
+   TypeChecking.wl accepts with the literal: the arena can only accept less. What needs the literal's value it does not
+   accept, and that record is checked again by the kernel of TypeChecking.wl (compiledKernelCheck). A literal below
+   2^62 is never made a constant. The arena computes no literal past 2^62 either: a registered operation whose result
+   would be larger ends the check with eLiteralOverflow, and never wraps. *)
+largeLiteralRow[n_Integer] := {3, largeLiteralIndex[n], $nilRow, 0}
+
+largeLiteralIndex[n_Integer] := Lookup[$largeLiterals, n, If[! IntegerQ[$largeLiteralBase], notHandled[]]; $largeLiterals[n] = $largeLiteralBase + Length[$largeLiterals] + 1]
+
+(* the record of the constant of a large literal *)
+largeLiteralRecord[natural_] := <|"Kind" -> "Axiom", "Type" -> constantReference[natural["Type"], {}], "UniverseParameters" -> {}|>
 
 (* the row of each of values, each distinct one made once *)
 distinctRows[row_, values_List] := With[{distinct = DeleteDuplicates[values]}, Lookup[AssociationThread[distinct, row /@ distinct], values]]
@@ -1687,20 +1709,37 @@ functionBody[other_] := other
    theorem, and a registration then need not compare them again. *)
 environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, capacityFactor_] := Catch[Block[
 	{
-		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flatCount = 0,
-		constantNames = environmentNames[environment], natural = naturalNumberSettings[environment], equations, names, records, seeded, constants, nodes, flat, capacity
+		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flatCount = 0, $largeLiterals = <||>, $largeLiteralBase = None,
+		constantNames = environmentNames[environment], natural = naturalNumberSettings[environment], equations, names, records, seeded, constants, nodes, flat, capacity, large, order
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];
 	equations = registrationEquationRecords[environment, trustedRegistrations + 1];
 	names = Join[constantNames, MapIndexed[Function[{equation, index}, HoldComplete @@ {registrationEquation[First[index]]}], equations]];
 	$constantIndex = AssociationThread[names -> Range[Length[names]]];
+	(* the constants of the large literals come after the names, where the natural numbers are declared to give them a type *)
+	If[AssociationQ[natural], $largeLiteralBase = Length[names]];
 	$nilRow = addLevelRow["Nil", {7, 0, 0}];
 	records = Join[
 		AssociationMap[Function[name, constantRecord[environment, name]], constantNames],
 		AssociationThread[Drop[names, Length[constantNames]] -> Map[Last, equations]]
 	];
 	seeded = seedRows[$compiledKernelSeed];
-	{constants, {nodes, flat}} = Reap[constantRows[Values[records]], {compiledKernelInput, compiledKernelFlat}];
+	{constants, {nodes, flat}} = Reap[
+		With[{rows = constantRows[Values[records]]},
+			If[Length[$largeLiterals] == 0, rows, Join[rows, constantRows[ConstantArray[largeLiteralRecord[natural], Length[$largeLiterals]]]]]
+		],
+		{compiledKernelInput, compiledKernelFlat}
+	];
+	large = Function[n, HoldComplete @@ {largeLiteral[n]}] /@ Keys[$largeLiterals];
+	(* each is declared after the natural numbers, their zero and successor, before any record a literal can be in *)
+	order = Function[index, If[index <= trusted, -index, index]] /@ Range[Length[names]];
+	If[ large =!= {},
+		With[{position = Max[Lookup[$constantIndex, {natural["Type"], natural["Zero"], natural["Successor"]}]]},
+			order = Join[Take[order, position], Length[names] + Range[Length[large]], Drop[order, position]]
+		];
+		records = Join[records, AssociationThread[large -> ConstantArray[largeLiteralRecord[natural], Length[large]]]];
+		names = Join[names, large]
+	];
 	nodes = Replace[Join[seeded, Replace[nodes, {{rows_List} :> rows, {} -> {}}]], {} -> {{8, 0, 0, 0}}];
 	flat = Catenate[Replace[flat, {{chunks_List} :> chunks, {} -> {}}]];
 	If[ AssociationQ[natural],
@@ -1720,7 +1759,7 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 		"Levels" -> Developer`ToPackedArray[Values[$levelRows]],
 		"Constants" -> Developer`ToPackedArray[constants],
 		"Flat" -> Developer`ToPackedArray[Append[flat, 0]],
-		"Order" -> Developer`ToPackedArray[Function[index, If[index <= trusted, -index, index]] /@ Range[Length[names]]],
+		"Order" -> Developer`ToPackedArray[order],
 		"Settings" -> Developer`ToPackedArray[{
 			capacity, 65536, 20000,
 			If[AssociationQ[natural], $constantIndex[natural["Type"]], 0],
@@ -1731,7 +1770,8 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 		"Names" -> names,
 		"Records" -> records,
 		"EnvironmentConstants" -> Length[constantNames],
-		"Equations" -> Map[Most, equations]
+		"Equations" -> Map[Most, equations],
+		"LargeLiterals" -> Length[large]
 	|>
 ], compiledKernelInput]
 
@@ -1762,11 +1802,16 @@ $failureMessages = <|
    and terms it does not handle, for which TypeChecking.wl's kernel checks the environment *)
 $capacityStatuses = {22, 23, 24, 25}
 
-compiledKernelCheck[environment_] := compiledKernelCheck[environment, 0, 0]
+(* a registered operation on literals whose result the arena does not hold *)
+$literalOverflowStatus = 26
+
+compiledKernelCheck[environment_] := compiledKernelCheck[environment, 0, 0, None]
 
 (* the first trusted constants and registrations are taken as they are, as those of the environment a list of
    declarations extends *)
-compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer] := Block[{function = compiledKernelFunction[], input, duplicate},
+compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer] := compiledKernelCheck[environment, trusted, trustedRegistrations, None]
+
+compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer, recheck_] := Block[{function = compiledKernelFunction[], input, duplicate},
 	If[! MatchQ[function, _CompiledCodeFunction], Return[None]];
 	input = environmentInput[environment, trusted, trustedRegistrations, 1];
 	If[input === None, Return[None]];
@@ -1778,8 +1823,41 @@ compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer]
 			"Position" -> First[duplicate]
 		|>]]
 	];
-	compiledCheckWith[function, input, 1]
+	checkedWithRechecks[function, input, recheck]
 ]
+
+(* The arena's verdict where it may leave records undecided: in an environment with a literal it does not hold, a record
+   it does not accept is not refused by that. recheck[position] checks the record with the kernel of TypeChecking.wl
+   and gives the position through which the constants are then taken as they are, and the arena goes on after it; or
+   a Failure, which is the verdict; anything else, and no recheck, give None, for which that kernel checks the whole
+   environment. Each pass takes at least one more constant as it is, so the passes end. *)
+checkedWithRechecks[function_, input_, recheck_] := Module[{current = input, verdict = compiledCheckWith[function, input, 1], through},
+	While[MatchQ[verdict, _undecided],
+		through = If[recheck === None, None, recheck[First[verdict]]];
+		verdict = Which[
+			IntegerQ[through] && through >= First[verdict], current = trustedThrough[current, through]; compiledCheckWith[function, current, 1],
+			FailureQ[through], through,
+			True, None
+		]
+	];
+	verdict
+]
+
+(* The input with the constants in order up to the one at position through taken as they are, but for the recursors
+   among them: the rules of a recursor are checked after every declaration, which a pass that ends at an undecided
+   record does not reach, so a recursor stays checked until a pass ends. The constant at through itself, a recursor or
+   not, has been checked by the recheck. *)
+trustedThrough[input_, through_Integer] := With[{order = Normal[input["Order"]], recursors = recursorPositions[input]},
+	With[{count = First[FirstPosition[Abs[order], through, {Length[order]}, {1}, Heads -> False]]},
+		Append[input, "Order" -> Developer`ToPackedArray[Join[
+			Function[index, If[index > 0 && index =!= through && KeyExistsQ[recursors, index], index, -Abs[index]]] /@ Take[order, count],
+			Drop[order, count]
+		]]]
+	]
+]
+
+(* the positions of the recursors among the names of an input *)
+recursorPositions[input_] := Association[Function[position, position -> True] /@ Flatten[Position[Lookup[Values[input["Records"]], "Kind"], "Recursor", {1}, Heads -> False]]]
 
 compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 	result = function[input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], input["Settings"]];
@@ -1794,6 +1872,17 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 			|>],
 		MemberQ[$capacityStatuses, result[[1]]] && capacityFactor < 16,
 			compiledCheckWith[function, MapAt[Function[settings, ReplacePart[settings, Thread[{1, 2, 10, 11} -> 4 settings[[{1, 2, 10, 11}]]]]], input, "Settings"], 4 capacityFactor],
+		(* in an environment with a literal the arena does not hold, a record of the environment that it does not accept,
+		   or on which a literal passes its limit, is undecided: it may need the value of such a literal *)
+		And[
+			Lookup[input, "LargeLiterals", 0] > 0,
+			KeyExistsQ[$failureMessages, result[[1]]] || result[[1]] == $literalOverflowStatus,
+			1 <= result[[2]] <= input["EnvironmentConstants"]
+		],
+			undecided[result[[2]]],
+		(* a constant made for a large literal is an axiom of a type declared before it, and does not fail *)
+		result[[2]] > input["EnvironmentConstants"] + Length[input["Equations"]],
+			None,
 		(* an equation of a registration that does not check: the failure the registration's own comparison gives,
 		   placed after every constant, so that what is declared again before it is all of them *)
 		KeyExistsQ[$failureMessages, result[[1]]] && result[[2]] > input["EnvironmentConstants"],

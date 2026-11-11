@@ -64,6 +64,7 @@ PackageExported[TypeTheoryQuotients]
 (*PackageScoped*)
 
 
+PackageScoped[$recheckedConstants]
 PackageScoped[declareAxiom]
 PackageScoped[declareDefinition]
 PackageScoped[declareTheorem]
@@ -82,6 +83,7 @@ PackageScoped[$deferKernelChecks]
 (*Usage Messages*)
 
 
+$recheckedConstants::usage = "$recheckedConstants is the list of the constants of the last batch of declarations checked by the compiled kernel that the compiled kernel left undecided and the kernel of TypeChecking.wl checked."
 TypeTheoryAxiom::usage = "TypeTheoryAxiom[name, type] declares name as an axiom of the given type, when added to a TypeTheoryEnvironment.\n\
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
 TypeTheoryDefinition::usage = "TypeTheoryDefinition[name, value] declares name as a definition with the given value, when added to a TypeTheoryEnvironment.\n\
@@ -204,10 +206,10 @@ compiledDeclarations[environment_, declarations_List] := Replace[
 	(* a registration among the declarations leaves to the compiled kernel the equations it checks: the declarations are
 	   kept only where its check succeeds, and where it refuses an equation they are added again one at a time, the
 	   registration comparing its equations itself and naming the one that fails *)
-	catchKernelFailure[Block[{$deferKernelChecks = True, $deferRegistrationEquations = True}, deferredDeclarations[environment, declarations]]],
+	catchKernelFailure[Block[{$deferKernelChecks = True, $deferRegistrationEquations = True}, $recheckedConstants = {}; deferredDeclarations[environment, declarations]]],
 	{
 		_Failure :> Fold[addDeclaration, environment, declarations],
-		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]], registrationCount[environment]], {
+		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]], registrationCount[environment], declarationRecheck[environment, declarations, extended]], {
 			failure_Failure /; TrueQ[failure["RegistrationEquation"]] :> Fold[addDeclaration, environment, declarations],
 			failure_Failure :> throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]],
 			None :> Fold[addDeclaration, environment, declarations],
@@ -215,6 +217,56 @@ compiledDeclarations[environment_, declarations_List] := Replace[
 		}]
 	}
 ]
+
+(* The recheck of a record that the compiled kernel leaves undecided, in an environment with a literal it does not hold:
+   the declaration of the record's constant is added by addDeclaration, which checks it with the kernel of
+   TypeChecking.wl, to the environment of the declarations before it, as it would be with the declarations added one at
+   a time. Those before it are added unchecked, as the batch was: the compiled kernel has accepted their records, or
+   they were checked here; a registration among them compares its equations itself, the compiled kernel not having
+   reached them yet, so $deferRegistrationEquations is not bound here. It gives the record's position, through which
+   the compiled kernel then takes the constants as they are; the Failure of the declaration, which is the batch's; or
+   None, for which the declarations are added one at a time, where the constant is no declaration's of the batch, the
+   declarations are not met in order, or the record checked is not the record the batch has. $recheckedConstants lists
+   the constants given to this check in the last batch. *)
+declarationRecheck[environment_, declarations_List, extended_] := Module[
+	(* the declarations are kept in a variable: written into the function, their list would be walked at each call *)
+	{batch = declarations, names = environmentNames[extended], owners = declarationOwners[declarations], prefix = environment, added = 0, done = <||>},
+	Function[position, With[{name = Extract[names, position]},
+		{index = Lookup[owners, Key[Lookup[constantRecord[extended, name], "InductiveType", name]], None]},
+		Which[
+			! IntegerQ[index], None,
+			KeyExistsQ[done, index], position,
+			index <= added, None,
+			True,
+				AppendTo[$recheckedConstants, name];
+				prefix = Block[{$deferKernelChecks = True}, deferredDeclarations[prefix, Take[batch, {added + 1, index - 1}]]];
+				Replace[catchKernelFailure[addDeclaration[prefix, Extract[batch, index]]], {
+					failure_Failure :> failure,
+					checked_ :> (
+						prefix = checked;
+						added = index;
+						done[index] = True;
+						If[constantRecord[checked, name] === constantRecord[extended, name], position, None]
+					)
+				}]
+		]
+	]]
+]
+
+$recheckedConstants = {}
+
+(* the declaration, by its place in the list, of each name the declarations give: a constructor or a recursor is its
+   inductive type's *)
+declarationOwners[declarations_List] := Association[MapIndexed[
+	Function[{declaration, index}, Function[name, name -> First[index]] /@ declaredNames[declaration]],
+	declarations
+]]
+
+declaredNames[declaration : (_TypeTheoryAxiom | _TypeTheoryDefinition | _TypeTheoryTheorem)] := {HoldComplete @@ Take[declaration, 1]}
+declaredNames[TypeTheoryInductiveType[types : {(_Rule | _RuleDelayed) ..}, ___]] := Cases[Unevaluated[types], (Rule | RuleDelayed)[type_, _] :> HoldComplete[type]]
+declaredNames[declaration_TypeTheoryInductiveType] := {HoldComplete @@ Take[declaration, 1]}
+declaredNames[TypeTheoryQuotients[_, constants_List]] := Cases[Unevaluated[constants], constant_ :> HoldComplete[constant]]
+declaredNames[_] := {}
 
 $deferKernelChecks = False
 

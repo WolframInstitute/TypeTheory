@@ -146,3 +146,166 @@ VerificationTest[
 	{"UniverseTooLarge", "UniverseTooLarge"},
 	TestID -> "Both-kernels-catch-a-forged-universe-of-an-inductive-type"
 ]
+
+(* A natural number literal of 2^62 or more is no row of the compiled kernel's. It is an opaque constant there, one for
+   each distinct value, and a record that the compiled kernel then does not accept is checked by the kernel of
+   TypeChecking.wl. Each case is a batch of declarations given as core terms, as an import gives them: a theorem
+   left == right proved by the reflexivity of right, which holds where left computes to right. A case gives what the
+   batch gives with the compiled kernel, the constants it left to the other kernel, and what the declarations give one
+   at a time, which is the same verdict in every case. *)
+application = Symbol["WolframInstitute`TypeTheory`PackageScope`application"]
+
+literalBase = TypeTheoryEnvironment[prelude, {
+	TypeTheoryDefinition["doubled", Function[{Typed[n, NonNegativeIntegers]}, n + n]],
+	TypeTheoryDefinition["squared", Function[{Typed[n, NonNegativeIntegers]}, n n]],
+	TypeTheoryDefinition["powerOfTwo", Function[{Typed[n, NonNegativeIntegers]}, 2^n]],
+	TypeTheoryDefinition["difference", Function[{Typed[n, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, n - k]]
+}, Method -> "Symbolic"]
+
+(* the statement is an axiom's type and the proof an honest theorem's value, taken from their records *)
+SetAttributes[claim, HoldRest]
+claim[name_String, left_, right_] := With[
+	{records = First[TypeTheoryEnvironment[literalBase, {
+		TypeTheoryAxiom["claimed", left == right],
+		TypeTheoryTheorem["honest", right == right, "equalityReflexivity"[right]]
+	}, Method -> "Symbolic"]]["Records"]},
+	TypeTheoryTheorem[name, #1, #2, "UniverseParameters" -> {}] &[records[HoldComplete["claimed"]]["Type"], records[HoldComplete["honest"]]["Value"]]
+]
+
+SetAttributes[namedNumber, HoldRest]
+namedNumber[name_String, value_] := With[
+	{record = First[TypeTheoryEnvironment[literalBase, {TypeTheoryDefinition["defined", Typed[value, NonNegativeIntegers]]}, Method -> "Symbolic"]]["Records"][HoldComplete["defined"]]},
+	TypeTheoryDefinition[name, Typed[#1, #2], "UniverseParameters" -> {}] &[record["Value"], record["Type"]]
+]
+
+literalVerdict[result_] := Which[FailureQ[result], First[result], Head[result] === TypeTheoryEnvironment, "accepted", True, result]
+
+(* without a library for this platform the other kernel answers the batch, and no record is left to it *)
+literalBatch[declarations_List] := With[{compiled = TypeTheoryEnvironment[literalBase, declarations, Method -> compiledMethod]},
+	{
+		literalVerdict[compiled],
+		If[available, Function[name, First[name]] /@ WolframInstitute`TypeTheory`PackageScope`$recheckedConstants, "no library"],
+		literalVerdict[TypeTheoryEnvironment[literalBase, declarations, Method -> "Symbolic"]]
+	}
+]
+
+rechecked[names___String] := If[available, {names}, "no library"]
+
+VerificationTest[
+	With[{big = 2^64, other = 2^64 + 1},
+		{
+			literalBatch[{namedNumber["big", big], claim["t", "big", "big"]}],
+			literalBatch[{claim["t", big, big]}],
+			literalBatch[{claim["t", big, other]}]
+		}
+	],
+	{{"accepted", rechecked[], "accepted"}, {"accepted", rechecked[], "accepted"}, {"TypeMismatch", rechecked["t"], "TypeMismatch"}},
+	TestID -> "A-large-literal-is-an-opaque-constant-of-the-compiled-kernel-one-for-each-value"
+]
+
+VerificationTest[
+	With[{big = 2^64, other = 2^64 + 1, limit = 2^62, half = 2^61, root = 2^32},
+		{
+			literalBatch[{claim["t", "squared"[root], big]}],
+			literalBatch[{claim["t", "squared"[root], other]}],
+			literalBatch[{claim["t", "doubled"[half], limit]}],
+			literalBatch[{claim["t", "powerOfTwo"[64], big]}],
+			literalBatch[{claim["t", "difference"[big, big], 0]}],
+			literalBatch[{claim["t", "difference"[big, other], 1]}]
+		}
+	],
+	{
+		{"accepted", rechecked["t"], "accepted"},
+		{"TypeMismatch", rechecked["t"], "TypeMismatch"},
+		{"accepted", rechecked["t"], "accepted"},
+		{"accepted", rechecked["t"], "accepted"},
+		{"accepted", rechecked["t"], "accepted"},
+		{"TypeMismatch", rechecked["t"], "TypeMismatch"}
+	},
+	TestID -> "A-record-that-needs-the-value-of-a-large-literal-is-checked-by-the-other-kernel"
+]
+
+(* The compiled kernel computes no literal past 2^62 and never wraps: 2^61 + 2^61, 2^31 2^31 and 2^62 are computed and
+   are not 0; 2^62 - 1 doubled, 2^32 squared and 2^64 are past the limit, where 64 bits would give 0 or a small number.
+   With a large literal in the batch such a record goes to the other kernel, and without one the whole batch does. *)
+VerificationTest[
+	With[{big = 2^64, half = 2^61, most = 2^62 - 1, root = 2^31, larger = 2^32},
+		{
+			literalBatch[{namedNumber["big", big], claim["t", "doubled"[half], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "doubled"[most], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "squared"[root], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "squared"[larger], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[62], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[64], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "difference"[3, 5], 1]}],
+			literalBatch[{claim["t", "doubled"[half], 0]}],
+			literalBatch[{claim["t", "squared"[larger], 0]}],
+			literalBatch[{claim["t", "powerOfTwo"[64], 0]}],
+			literalBatch[{claim["t", "difference"[3, 5], 1]}]
+		}
+	],
+	Join[ConstantArray[{"TypeMismatch", rechecked["t"], "TypeMismatch"}, 7], ConstantArray[{"TypeMismatch", rechecked[], "TypeMismatch"}, 4]],
+	TestID -> "The-compiled-kernel-does-not-wrap-a-literal-past-its-limit"
+]
+
+(* The other kernel is asked about a record only in an environment with a large literal: without one, a record the
+   compiled kernel does not accept is refused by that, and a batch on which a literal passes the limit goes to the other
+   kernel whole, as before. With one, the compiled kernel goes on after a record checked by the other kernel: a later
+   theorem is accepted or refused on its own, and two records may be checked. *)
+VerificationTest[
+	With[{big = 2^64, root = 2^32, over = 2^61 + 1},
+		{
+			literalBatch[{claim["t", "doubled"[3], 6]}],
+			literalBatch[{claim["t", "doubled"[3], 7]}],
+			literalBatch[{claim["t", "difference"["doubled"[over], "doubled"[over]], 0]}],
+			literalBatch[{claim["t", "squared"[root], big], claim["u", "doubled"[2], 4]}],
+			literalBatch[{claim["t", "squared"[root], big], claim["u", "doubled"[2], 5]}],
+			literalBatch[{claim["t", "squared"[root], big], claim["u", "powerOfTwo"[64], big], claim["v", "doubled"[2], 4]}]
+		}
+	],
+	{
+		{"accepted", rechecked[], "accepted"},
+		{"TypeMismatch", rechecked[], "TypeMismatch"},
+		{"accepted", rechecked[], "accepted"},
+		{"accepted", rechecked["t"], "accepted"},
+		{"TypeMismatch", rechecked["t", "u"], "TypeMismatch"},
+		{"accepted", rechecked["t", "u"], "accepted"}
+	},
+	TestID -> "Only-an-environment-with-a-large-literal-has-records-checked-by-the-other-kernel"
+]
+
+(* Without a recheck the compiled kernel answers None where it leaves a record undecided, and the other kernel checks
+   the environment. The rules of a recursor are checked after every declaration, which a pass that ends at an undecided
+   record does not reach: with a recheck that accepts that record alone, a recursor before it whose rule is forged is
+   still caught, where taking every constant before the record as it is would have let it pass. *)
+VerificationTest[
+	If[ ! available,
+		{True, None, True},
+		With[{big = 2^64, root = 2^32},
+			{
+				named = TypeTheoryEnvironment[literalBase, {namedNumber["big", big], claim["t", "big", "big"]}, Method -> "Symbolic"],
+				valued = TypeTheoryEnvironment[literalBase, {claim["t", "squared"[root], big]}, Method -> "Symbolic"]
+			},
+			With[
+				{
+					check = WolframInstitute`TypeTheory`PackageScope`compiledKernelCheck,
+					position = Length[valued],
+					forged = forge[valued, HoldComplete[InductiveRecursor[Or]], Function[record,
+						ReplacePart[record, {Key["Rules"], 1, Key["RightHandSide"]} -> application[naturalLiteral[0], naturalLiteral[0]]]
+					]]
+				},
+				{
+					MatchQ[check[named], _Success],
+					check[valued],
+					And[
+						MatchQ[check[valued, 0, 0, Function[at, If[at === position, at, Failure["NotTheRecord", <|"Position" -> at|>]]]], _Success],
+						FailureQ[check[forged, 0, 0, Function[at, If[at === position, at, Failure["NotTheRecord", <|"Position" -> at|>]]]]]
+					]
+				}
+			]
+		]
+	],
+	{True, None, True},
+	TestID -> "An-undecided-record-without-a-recheck-is-None-and-a-recursor-before-it-stays-checked"
+]
+

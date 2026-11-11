@@ -78,6 +78,10 @@ Versions 0.35.0 to 0.42.1.
 ### Performance
 
 - A beta reduction computes the operations on literals that it builds.
+- The compiled kernel takes an environment with a natural number literal of 2^62 or more, which it declined whole: the
+  literal is an opaque constant there, and the few records that need its value are checked by the other kernel. A
+  batch of 11,899 constants of Mathlib's lowest modules, six of them with such a literal (`UInt64.size` among them),
+  imports in 10 s where it took 569 s.
 - The compiled kernel checks the defining equations of the registered operations of the natural numbers, as theorems
   in its one pass, and a check does not compare them a second time: 80 ms less in every check of a cone of Mathlib on
   Wolfram 15. The compiled program is unchanged.
