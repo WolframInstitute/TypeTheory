@@ -800,3 +800,46 @@ VerificationTest[
 	TestID -> "A-recursion-unfolds-at-a-sum-with-a-literal-and-where-it-gives-a-function"
 ]
 
+(* "Cases" and "Induction" split on a term that is no hypothesis: every copy of it in the goal becomes a variable, which
+   is split, and each case is stated with the recursors that meet a constructor computed. The proof they give is checked
+   by the kernel as any other. A term the goal does not have is refused, and a hypothesis is still split by its name. *)
+VerificationTest[
+	Module[{statement, split, finished, sum},
+		split = TypeTheoryProof[
+			ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]},
+				InductiveRecursor[Booleans][Function[{Typed[b, Booleans]}, NonNegativeIntegers], n, n + 1, Decide[m == 0]] <= n + 1
+			],
+			prelude,
+			{"Introduce"[n, m], "Cases"[Decide[m == 0]]}
+		];
+		finished = TypeTheoryTactic["LinearArithmetic"][TypeTheoryTactic["LinearArithmetic"][split]];
+		sum = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, 0 + (n + m) == n + m], prelude,
+			{"Introduce"[n, m], "Induction"[n + m], "Reflexivity", "Introduce"[k, ih], "Exact"["equalityCongruence"["successor", ih]]}
+		];
+		{
+			split["Goals"],
+			finished["Goals"],
+			Head[TypeTheoryEnvironment[prelude, TypeTheoryTheorem["splitOnADecision", finished]]],
+			sum["Goals"],
+			Head[TypeTheoryEnvironment[prelude, TypeTheoryTheorem["inductionOnASum", sum]]],
+			TypeTheoryTactic["Cases", Decide[m == 1]][
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n + m == n + m], prelude, {"Introduce"[n, m]}]
+			],
+			Length[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n == n], prelude, {"Introduce"[n], "Cases"[n]}]["Goals"]]
+		}
+	],
+	{
+		{
+			TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n <= n + 1], _],
+			TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n + 1 <= n + 1], _]
+		},
+		{},
+		TypeTheoryEnvironment,
+		{},
+		TypeTheoryEnvironment,
+		Failure["NoInstance", _],
+		2
+	},
+	SameTest -> MatchQ,
+	TestID -> "Cases-and-Induction-split-on-a-term-of-the-goal"
+]

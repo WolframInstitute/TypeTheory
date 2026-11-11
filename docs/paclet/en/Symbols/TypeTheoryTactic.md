@@ -28,6 +28,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
 | `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized. On a class of a quotient, one goal for the class of an element |
 | `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
+| `"Induction", term` or `"Cases", term` | for a term that is no hypothesis, splits on a new variable in the place of every copy of the term in the goal; each goal states its case with the recursors that meet a constructor computed |
 | `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
 | `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
 | `"Assumption"` | solves the goal with a hypothesis of the same type |
@@ -490,6 +491,38 @@ TypeTheoryTactic["Ring"][proof]
 ```
 
 <!-- => Proof complete -->
+
+---
+
+A term that is no hypothesis is split where it stands in the goal. Either `n <= m` is decided true or it is decided false:
+
+```wl
+proof = TypeTheoryProof[
+    ForAll[{n, m}, "not"["not"[Decide[n <= m]]] == Decide[n <= m]],
+    {
+        "Introduce"[n, m],
+        "Cases"[Decide[n <= m]]
+    }
+]
+```
+
+<!-- => Proof, 2 goals: case false n ∶ ℕ, m ∶ ℕ ⊢ !!false == false; case true n ∶ ℕ, m ∶ ℕ ⊢ !!true == true -->
+
+Each case computes:
+
+```wl
+TypeTheoryTactic["Reflexivity"][TypeTheoryTactic["Reflexivity"][proof]]
+```
+
+<!-- => Proof complete -->
+
+The hypotheses keep the term as it is written. The goal has to mention the term:
+
+```wl
+TypeTheoryTactic["Cases", Decide[m <= n]][TypeTheoryProof[ForAll[{n, m}, n + m == n + m], {"Introduce"[n, m]}]]
+```
+
+<!-- => Failure["NoInstance", ...] -->
 
 ### Rewriting and Simplification
 

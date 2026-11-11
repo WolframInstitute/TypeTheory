@@ -35,6 +35,8 @@ The tactics:
 	                        indices of x's type must be variables, and hypotheses that depend on x or them
 	                        are generalized
 	"Cases", x              splits on x as "Induction" does, each goal taking the constructor's fields alone
+	"Induction", term       for a term that is no hypothesis, splits on a new variable that takes the place of
+	"Cases", term           every copy of the term in the goal
 	"Generalize", h, ...    moves the hypotheses h, ..., with those that depend on them, back into the goal
 	"Constructor"           applies the first constructor of the goal's inductive type that applies
 	"Assumption"            solves the goal with a hypothesis of the same type
@@ -370,8 +372,10 @@ runTactic["Introduce", Hold[names : (_Symbol | _String) ..], data_, goal_] := Fo
 runTactic["Exact", Hold[term_], data_, goal_] := exactTerm[data, goal, HoldComplete[term]]
 runTactic["Apply", Hold[term_], data_, goal_] := applyTerm[data, goal, HoldComplete[term]]
 runTactic["Reflexivity", Hold[], data_, goal_] := reflexivity[data, goal]
-runTactic["Induction", Hold[variable : _Symbol | _String], data_, goal_] := eliminate[data, goal, HoldComplete[variable], "Induction"]
-runTactic["Cases", Hold[variable : _Symbol | _String], data_, goal_] := eliminate[data, goal, HoldComplete[variable], "Cases"]
+(* a hypothesis by its name, and any other term by its copies in the goal *)
+runTactic[mode : "Induction" | "Cases", Hold[variable : _Symbol | _String], data_, goal_] /; hypothesisNamedQ[data, goal, HoldComplete[variable]] :=
+	eliminate[data, goal, HoldComplete[variable], mode]
+runTactic[mode : "Induction" | "Cases", Hold[term_], data_, goal_] := eliminateTerm[data, goal, HoldComplete[term], mode]
 runTactic["Generalize", Hold[names : (_Symbol | _String) ..], data_, goal_] := generalize[data, goal, HoldComplete /@ Unevaluated[{names}]]
 runTactic["Constructor", Hold[], data_, goal_] := constructorTactic[data, goal]
 runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldComplete[statement]]
@@ -1737,6 +1741,92 @@ eliminate[data_, goal_, variableName_HoldComplete, mode : "Induction" | "Cases"]
 ]
 
 quotientTypeQ[environment_, head_] := MatchQ[head, constantReference[name_, _] /; MatchQ[constantRecord[environment, name], KeyValuePattern[{"Kind" -> "Quotient", "QuotientRole" -> "Type"}]]]
+
+hypothesisNamedQ[data_, goal_, name_HoldComplete] := MemberQ[Lookup[Values[currentGoal[data, goal]["Context"]], "Name"], name]
+
+(* A term that is no hypothesis is split where it stands in the goal: every copy of it, and every subterm equal to it
+   without unfolding a definition, becomes a new variable, of the term's type, which is then eliminated as a hypothesis
+   is. The goal P[term] is solved by the function of the variable that the cases prove, applied to the term. The
+   hypotheses keep the term as it is written: one that the cases need is generalized first. *)
+eliminateTerm[data_, goal_, held_HoldComplete, mode : "Induction" | "Cases"] := With[
+	{current = currentGoal[data, goal], environment = data["Environment"], goalTypes = openGoalTypes[data], newGoal = freshMetavariableId[], id = freshFreeVariable[]},
+	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
+		With[{elaborated = finishElaboration[environment, current["Context"], elaborateSyntax[toSyntax @@ held, None], None]},
+			{term = First[elaborated], target = instantiateMetavariables[current["Type"]]},
+			{body = withKernelCaches[abstractInstances[target, term, instanceOfQ[environment, current["Context"], term]]]},
+			If[ ! boundVariableOccursQ[body, 0],
+				tacticFailure["NoInstance", "The goal `1` has no instance of `2`.", data, goal, {displayCoreTerm[environment, current["Context"], term]}]
+			];
+			With[{context = extendContext[current["Context"], id, $eliminatedTermName, Last[elaborated], "Explicit"]},
+				computedCases[
+					data,
+					eliminate[
+						solveGoal[
+							keepSolvedGoals[data, goalTypes],
+							goal,
+							Construct[application, pendingAbstraction[context, {id}, metavariable[newGoal]], term],
+							{newGoal -> <|"Context" -> context, "Type" -> betaNormalize[instantiateBoundVariable[body, freeVariable[id]]], "Case" -> None|>}
+						],
+						newGoal,
+						$eliminatedTermName,
+						mode
+					]
+				]
+			]
+		]
+	]
+]
+
+(* the variable that stands for the term until its elimination removes it *)
+$eliminatedTermName = HoldComplete["term"]
+
+(* A term is split so that what is defined by its cases computes: each new goal states its case with the recursors that
+   now meet a constructor computed, its branch for that constructor in its place. A definition by cases is left as it
+   is written, for "RewriteRepeated" to unfold. The statement is equal to the case by computation, so what proves it
+   proves the case. *)
+computedCases[before_, split_] := With[{cases = Select[split["Goals"], Function[goal, ! MemberQ[before["Goals"], goal]]]},
+	Join[split, <|"Metavariables" -> Join[split["Metavariables"], AssociationMap[Function[goal, computedCase[split, goal]], cases]]|>]
+]
+
+computedCase[data_, goal_] := With[{entry = data["Metavariables"][goal], current = currentGoal[data, goal]},
+	Append[entry, "Type" -> withKernelCaches[Block[{$computedMemo = <||>}, computedRecursors[data["Environment"], current["Context"], current["Type"]]]]]
+]
+
+(* term with every recursor in it that is applied to a constructor, outside the binders of term, replaced by what its
+   rule for the constructor gives, without unfolding a definition *)
+computedRecursors[environment_, context_, term_] := Lookup[
+	$computedMemo,
+	Key[term],
+	$computedMemo[term] = computedRecursor[environment, context, computedRecursorsBelow[environment, context, term]]
+]
+
+computedRecursorsBelow[environment_, context_, application[function_, argument_]] :=
+	Construct[application, computedRecursors[environment, context, function], computedRecursors[environment, context, argument]]
+computedRecursorsBelow[environment_, context_, (head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] :=
+	Construct[head, name, computedRecursors[environment, context, domain], computedRecursors[environment, context, body], binder]
+computedRecursorsBelow[environment_, context_, localDefinition[name_, type_, value_, body_]] :=
+	Construct[localDefinition, name, computedRecursors[environment, context, type], computedRecursors[environment, context, value], computedRecursors[environment, context, body]]
+computedRecursorsBelow[environment_, context_, projection[structure_, index_, inner_]] := Construct[projection, structure, index, computedRecursors[environment, context, inner]]
+computedRecursorsBelow[_, _, term_] := term
+
+computedRecursor[environment_, context_, term_application] /; looseBoundRange[term] == 0 && recursorOnConstructorQ[environment, term] :=
+	With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
+		If[reduced === term, term, computedRecursors[environment, context, reduced]]
+	]
+computedRecursor[_, _, term_] := term
+
+(* a recursor applied as far as its major premise, which is a constructor applied as it is written: a number is none, so
+   that a recursion on 1000000 is not walked *)
+recursorOnConstructorQ[environment_, term_] := Replace[applicationSpine[term], {
+	{constantReference[name_, _], arguments_List} /; constantRecord[environment, name]["Kind"] === "Recursor" :> With[
+		{before = Total[Lookup[constantRecord[environment, name], {"NumberOfParameters", "NumberOfMotives", "NumberOfMinors", "NumberOfIndices"}]]},
+		Length[arguments] > before && MatchQ[
+			First[applicationSpine[First[Drop[arguments, before]]]],
+			constantReference[constructor_, _] /; constantRecord[environment, constructor]["Kind"] === "Constructor"
+		]
+	],
+	_ :> False
+}]
 
 (* A class q of the quotient of α by r: the goal, with the hypotheses that mention q, is a proposition P[q],
    and the quotient's induction proves it from the one goal ForAll[{Typed[a, α]}, P[class of a]].
