@@ -578,7 +578,8 @@ VerificationTest[
 
 (* a beta-redex is compared with its reduct in one step, however large a literal it holds: the sides are reduced
    without unfolding before their offsets are read, and a product of a variable by a positive literal is no literal at
-   once, where reading its value unfolded t 2082 to t 2081 + t once for each unit, past the kernel's recursion limit *)
+   once, where reading its value unfolded t 2082 to t 2081 + t once for each unit, past the kernel's recursion limit;
+   the bound on its time is loose, as a suite at background priority has taken over a second for the comparison *)
 VerificationTest[
 	Map[
 		Function[k, With[
@@ -586,7 +587,7 @@ VerificationTest[
 				TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> (Typed[x, NonNegativeIntegers] |-> x + n^2)[(32 n) k]],
 				TypeTheoryTerm[Typed[n, NonNegativeIntegers] |-> (32 n) k + n^2]
 			]]},
-			{Last[timed], First[timed] < 1}
+			{Last[timed], First[timed] < 10}
 		]],
 		{2082, 9223372036854775807}
 	],
