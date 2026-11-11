@@ -59,6 +59,9 @@ Versions 0.35.0 to 0.41.0.
   a term as written.
 - A notation that gives an `InterpretationBox` or a `TemplateBox` shows inside a term: the display's rewrites of
   boxes stayed unevaluated in boxes that hold their parts, a red box in a notebook.
+- A saved environment reads under another engine of the Wolfram Language than the one that saved it: the hash that
+  names the kernel's sources is of bytes, where it was of an expression, which each engine hashes its own way, and
+  the file was checked again in full.
 - A tactic that compares two terms answers in time: `"Reflexivity"` on
   `Quotient[k + 12, 12] == Quotient[k, 12] + 1` took half an hour to say no, and takes 23 ms.
 

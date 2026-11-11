@@ -216,3 +216,22 @@ VerificationTest[
 ]
 
 DeleteDirectory[directory, DeleteContents -> True]
+
+(* The hash that names the kernel which saved a file is of bytes, the version and a line for each source file, so every
+   engine gives the same string for the same sources, where the hash of an expression is each engine's own: the value
+   for a fixed input is pinned, whatever order the files are given in, and it is the SHA-256 of the text written out. *)
+VerificationTest[
+	{
+		WolframInstitute`TypeTheory`PackageScope`kernelSourcesHash["1.2.3", {{"C.wl", "aa11"}, {"A/b.wl", "00ff"}}],
+		WolframInstitute`TypeTheory`PackageScope`kernelSourcesHash["1.2.3", {{"A/b.wl", "00ff"}, {"C.wl", "aa11"}}],
+		Hash[ByteArray[ToCharacterCode["1.2.3\n00ff A/b.wl\naa11 C.wl", "UTF-8"]], "SHA256", "HexString"],
+		StringMatchQ[WolframInstitute`TypeTheory`PackageScope`$kernelHash, Repeated[HexadecimalCharacter, {64}]]
+	},
+	{
+		"bba502f332594f612197512b36f7413d8db656c2c2704ee6b8a0869ab447ec4c",
+		"bba502f332594f612197512b36f7413d8db656c2c2704ee6b8a0869ab447ec4c",
+		"bba502f332594f612197512b36f7413d8db656c2c2704ee6b8a0869ab447ec4c",
+		True
+	},
+	TestID -> "The-hash-of-the-kernels-sources-is-of-bytes-the-same-on-every-engine"
+]

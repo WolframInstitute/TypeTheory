@@ -60,6 +60,7 @@ PackageScoped[saveEnvironment]
 PackageScoped[environmentProvenance]
 PackageScoped[environmentContentHash]
 PackageScoped[$kernelHash]
+PackageScoped[kernelSourcesHash]
 PackageScoped[termRef]
 
 
@@ -73,6 +74,7 @@ environmentProvenance::usage = "environmentProvenance[environment] gives where e
 saveEnvironment::usage = "saveEnvironment[file, environment] writes environment to file and gives File[file]."
 environmentContentHash::usage = "environmentContentHash[environment] gives the content hash of environment, the same in every session."
 $kernelHash::usage = "$kernelHash is the SHA-256 of the paclet's version and kernel sources, which a saved environment records."
+kernelSourcesHash::usage = "kernelSourcesHash[version, {{path, hash}, ...}] gives the SHA-256, in hexadecimal digits, of the bytes of the version and a line for each source file, its hash and its path: the same string on every engine."
 termRef::usage = "termRef[row] stands in a saved environment for the term of a row of its table."
 
 
@@ -85,12 +87,21 @@ $formatVersion = 2
 $pacletDirectory = ParentDirectory[DirectoryName[$InputFileName], 2]
 
 (* FileHash reads each file itself: ReadByteArray would read FinalEvaluations.wl, which is being loaded when the prelude
-   is read, from where the loader's open stream has got to *)
-$kernelHash := $kernelHash = Hash[
-	{
-		PacletObject[File[$pacletDirectory]]["Version"],
-		Map[{FileNameDrop[#, FileNameDepth[$pacletDirectory]], FileHash[#, "SHA256", All, "HexString"]}&, Sort[FileNames["*.wl", FileNameJoin[{$pacletDirectory, "Kernel"}], Infinity]]]
-	},
+   is read, from where the loader's open stream has got to. A path is written with /, whatever the system's separator. *)
+$kernelHash := $kernelHash = kernelSourcesHash[
+	PacletObject[File[$pacletDirectory]]["Version"],
+	Map[
+		Function[file, {StringRiffle[FileNameSplit[FileNameDrop[file, FileNameDepth[$pacletDirectory]]], "/"], FileHash[file, "SHA256", All, "HexString"]}],
+		FileNames["*.wl", FileNameJoin[{$pacletDirectory, "Kernel"}], Infinity]
+	]
+]
+
+(* The hash is of bytes. The hash of an expression is each engine's own, and with it a file saved on one engine read on
+   another as saved by another kernel, to be checked again. The bytes are the version and a line for each file, its hash
+   and then its path, the lines in order: they begin with hexadecimal digits, as many in each, and on those every
+   ordering of strings agrees. *)
+kernelSourcesHash[version_String, files_List] := Hash[
+	ByteArray[ToCharacterCode[StringRiffle[Prepend[Sort[Map[Function[file, Last[file] <> " " <> First[file]], files]], version], "\n"], "UTF-8"]],
 	"SHA256",
 	"HexString"
 ]
