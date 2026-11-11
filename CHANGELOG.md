@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.40.0.
+Versions 0.35.0 to 0.40.1.
 
 ### Added
 
@@ -48,10 +48,14 @@ Versions 0.35.0 to 0.40.0.
 - `TraditionalForm` writes `=` also where a notebook writes the equation's sign as one character.
 - A term shows the names that are strings without quotes in an input cell too, where a document typesets
   a term as written.
+- A tactic that compares two terms answers in time: `"Reflexivity"` on
+  `Quotient[k + 12, 12] == Quotient[k, 12] + 1` took half an hour to say no, and takes 23 ms.
 
 ### Performance
 
 - A beta reduction computes the operations on literals that it builds.
+- A registration's defining equations are compared with the kernel's caches: 160 ms less in every check of
+  an environment that registers the natural numbers' operations, as a cone of Mathlib does.
 
 ### Documentation
 
