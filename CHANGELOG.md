@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.42.0.
+Versions 0.35.0 to 0.43.0.
 
 ### Added
 
@@ -41,6 +41,9 @@ Versions 0.35.0 to 0.42.0.
   sum or product is an atom, and an identity in four variables, which through the classes of pairs took gigabytes,
   takes hundredths of a second, and one that does not hold is refused at once. An equation that holds by the
   arithmetic of fractions is still left to the classes. The rationals' library has the twelve laws it lacked.
+- The tactic `"Have"` states a step on the way: `"Have"[e, statement]` makes the statement a goal to prove first, and
+  the goal goes on with it as the hypothesis `e`. `"Cases"` splits a proof though the goal has no copy of it, so a
+  fact is used for its cases, `"Cases"["lessEqualTotality"[m, n]]`.
 - `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
   of the term in the goal becomes a variable, and each case is stated with its recursors computed.
 

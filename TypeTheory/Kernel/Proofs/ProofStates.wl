@@ -36,7 +36,7 @@ The tactics:
 	                        are generalized
 	"Cases", x              splits on x as "Induction" does, each goal taking the constructor's fields alone
 	"Induction", term       for a term that is no hypothesis, splits on a new variable that takes the place of
-	"Cases", term           every copy of the term in the goal
+	"Cases", term           every copy of the term in the goal; a proof is split though the goal has no copy of it
 	"Generalize", h, ...    moves the hypotheses h, ..., with those that depend on them, back into the goal
 	"Constructor"           applies the first constructor of the goal's inductive type that applies
 	"Assumption"            solves the goal with a hypothesis of the same type
@@ -45,6 +45,8 @@ The tactics:
 	                        copy of it, by the right side; "Rewrite", h, "RightToLeft" replaces the right side;
 	                        with "At" -> k last, it rewrites the hypothesis k instead
 	"Change", statement     replaces the goal by a statement equal to it by computation
+	"Have", h, statement    makes the statement a goal of its own, to prove first, and the goal goes on with it as the
+	                        hypothesis h
 	"RewriteRepeated", h, ...
 	                        rewrites with the equations h, ... until none applies, as ReplaceRepeated does where
 	                        "Rewrite" is Replace, then closes an equation whose sides are equal by computation; a
@@ -129,6 +131,7 @@ TypeTheoryTactic[\"Rewrite\", h] replaces an instance of the left side of the eq
 TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\"] replaces the right side by the left.\n\
 TypeTheoryTactic[\"Rewrite\", h, \"At\" -> k] and TypeTheoryTactic[\"Rewrite\", h, \"RightToLeft\", \"At\" -> k] rewrite the hypothesis k instead of the goal.\n\
 TypeTheoryTactic[\"Change\", statement] replaces the goal by statement, which must be equal to it by computation.\n\
+TypeTheoryTactic[\"Have\", h, statement] makes statement a goal to prove first, and the goal goes on with it as the hypothesis h.\n\
 TypeTheoryTactic[\"RewriteRepeated\", h1, h2, ...] rewrites the goal with the equations until none applies, as ReplaceRepeated does where \"Rewrite\" is Replace, then closes it if its sides are equal by computation; \
 a definition among h1, h2, ... unfolds where it computes, as Join does on Prepend[l, x], with its recursive calls folded back; the equations may also be given as one list.\n\
 TypeTheoryTactic[\"Decide\"] proves a closed statement by computing its decision, the instance of Decidable that elaboration finds: \
@@ -379,6 +382,7 @@ runTactic[mode : "Induction" | "Cases", Hold[term_], data_, goal_] := eliminateT
 runTactic["Generalize", Hold[names : (_Symbol | _String) ..], data_, goal_] := generalize[data, goal, HoldComplete /@ Unevaluated[{names}]]
 runTactic["Constructor", Hold[], data_, goal_] := constructorTactic[data, goal]
 runTactic["Change", Hold[statement_], data_, goal_] := change[data, goal, HoldComplete[statement]]
+runTactic["Have", Hold[name : _Symbol | _String, statement_], data_, goal_] := have[data, goal, HoldComplete[name], HoldComplete[statement]]
 (* one equation, several, or a list of them *)
 runTactic["RewriteRepeated", Hold[{lemmas___}], data_, goal_] := rewriteRepeated[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
 runTactic["RewriteRepeated", Hold[lemmas__], data_, goal_] := rewriteRepeated[data, goal, HoldComplete /@ Unevaluated[{lemmas}]]
@@ -872,6 +876,35 @@ change[data_, goal_, held_HoldComplete] := With[
 				tacticFailure["NotDefinitionallyEqual", "The statement given is not equal by computation to the goal `1`.", data, goal]
 			];
 			solveGoal[keepSolvedGoals[data, goalTypes], goal, metavariable[newGoal], {newGoal -> <|"Context" -> current["Context"], "Type" -> statement, "Case" -> None|>}]
+		]
+	]
+]
+
+(* "Have", h, statement: the statement, a type in the context of the goal, becomes a goal of its own, the first, and the
+   goal goes on with it as the hypothesis h. The goal is solved by the function of h that solves it, applied to the
+   proof of the statement. *)
+have[data_, goal_, name_HoldComplete, held_HoldComplete] := With[
+	{
+		current = currentGoal[data, goal], environment = data["Environment"], goalTypes = openGoalTypes[data],
+		statementGoal = freshMetavariableId[], newGoal = freshMetavariableId[], id = freshFreeVariable[]
+	},
+	withElaborationState[{environment, current["Context"], contextScope[current["Context"]], data["UniverseParameters"]},
+		With[{elaborated = finishElaboration[environment, current["Context"], elaborateSyntax[toSyntax @@ held, None], None]},
+			{statement = First[elaborated]},
+			If[ ! MatchQ[weakHeadNormalForm[environment, current["Context"], Last[elaborated]], _universeSort],
+				tacticFailure["StatementExpected", "`2` is not a statement or a type in the goal `1`.", data, goal, {displayCoreTerm[environment, current["Context"], statement]}]
+			];
+			With[{context = extendContext[current["Context"], id, name, statement, "Explicit"]},
+				solveGoal[
+					keepSolvedGoals[data, goalTypes],
+					goal,
+					Construct[application, pendingAbstraction[context, {id}, metavariable[newGoal]], metavariable[statementGoal]],
+					{
+						statementGoal -> <|"Context" -> current["Context"], "Type" -> statement, "Case" -> None|>,
+						newGoal -> <|"Context" -> context, "Type" -> current["Type"], "Case" -> None|>
+					}
+				]
+			]
 		]
 	]
 ]
@@ -1797,7 +1830,8 @@ eliminateTerm[data_, goal_, held_HoldComplete, mode : "Induction" | "Cases"] := 
 		With[{elaborated = finishElaboration[environment, current["Context"], elaborateSyntax[toSyntax @@ held, None], None]},
 			{term = First[elaborated], target = instantiateMetavariables[current["Type"]]},
 			{body = withKernelCaches[abstractInstances[target, term, instanceOfQ[environment, current["Context"], term]]]},
-			If[ ! boundVariableOccursQ[body, 0],
+			(* a proof is split though the goal has no copy of it: a fact is used for its cases, and no goal mentions its proof *)
+			If[ ! boundVariableOccursQ[body, 0] && ! levelEquivalentQ[sortLevel[environment, current["Context"], Last[elaborated]], 0],
 				tacticFailure["NoInstance", "The goal `1` has no instance of `2`.", data, goal, {displayCoreTerm[environment, current["Context"], term]}]
 			];
 			With[{context = extendContext[current["Context"], id, $eliminatedTermName, Last[elaborated], "Explicit"]},

@@ -899,3 +899,65 @@ VerificationTest[
 	{True, {}},
 	TestID -> "Every-comparison-outside-the-kernel-runs-with-the-kernels-caches"
 ]
+
+(* "Have" makes a statement a goal of its own, the first, and the goal goes on with it as a hypothesis: the proof is the
+   function of the hypothesis applied to the proof of the statement, which the kernel checks when it is declared; what
+   is no statement is refused *)
+VerificationTest[
+	With[
+		{
+			stated = TypeTheoryProof[
+				ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, (m + n) + 0 == n + m],
+				prelude,
+				{"Introduce"[m, n], "Have"[e, (m + n) + 0 == m + n]}
+			],
+			proved = TypeTheoryProof[
+				ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, (m + n) + 0 == n + m],
+				prelude,
+				{"Introduce"[m, n], "Have"[e, (m + n) + 0 == m + n], "Ring", "Rewrite"[e], "Ring"}
+			]
+		},
+		{
+			Length[stated["Goals"]],
+			MatchQ[First[stated["Goals"]], TypeTheoryTerm[_ ⊢ (m + n) + 0 == m + n, _]],
+			MatchQ[Last[stated["Goals"]], TypeTheoryTerm[RightTee[{___, Typed[e, _]}, _], _]],
+			proved["Goals"],
+			Head[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["sumWithZero", proved]}]],
+			First @ TypeTheoryProof[ForAll[{Typed[m, NonNegativeIntegers]}, m == m], prelude, {"Introduce"[m], "Have"[e, m + 1]}]
+		}
+	],
+	{2, True, True, {}, TypeTheoryEnvironment, "StatementExpected"},
+	TestID -> "Have-proves-a-statement-first-and-the-goal-goes-on-with-it"
+]
+
+(* "Cases" splits a proof though the goal has no copy of it: a fact is used for its cases. A term that is no proof and
+   has no copy in the goal is refused as before *)
+VerificationTest[
+	With[
+		{
+			split = TypeTheoryProof[
+				ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Or[m <= n, n <= m]],
+				prelude,
+				{"Introduce"[m, n], "Cases"["lessEqualTotality"[m, n]]}
+			],
+			proved = TypeTheoryProof[
+				ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Or[m <= n, n <= m]],
+				prelude,
+				{
+					"Introduce"[m, n], "Cases"["lessEqualTotality"[m, n]],
+					"Introduce"[h], "Exact"["orIntroductionLeft"[h]],
+					"Introduce"[h], "Apply"["orIntroductionRight"], "LinearArithmetic"
+				}
+			]
+		},
+		{
+			Length[split["Goals"]],
+			proved["Goals"],
+			Head[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["eitherOrder", proved]}]],
+			First @ TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n == n], prelude, {"Introduce"[n], "Cases"[n + 1]}]
+		}
+	],
+	{2, {}, TypeTheoryEnvironment, "NoInstance"},
+	TestID -> "Cases-splits-a-fact-the-goal-has-no-copy-of"
+]
+

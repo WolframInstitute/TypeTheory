@@ -28,7 +28,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Reflexivity"` | solves `a == b` when the two sides are equal by computation |
 | `"Induction", x` | one goal per constructor of the type of `x`, with induction hypotheses; the indices of an inductive family must be variables, and the hypotheses that depend on `x` are generalized. On a class of a quotient, one goal for the class of an element |
 | `"Cases", x` | one goal per constructor of the type of `x`, without induction hypotheses |
-| `"Induction", term` or `"Cases", term` | for a term that is no hypothesis, splits on a new variable in the place of every copy of the term in the goal; each goal states its case with the recursors that meet a constructor computed |
+| `"Induction", term` or `"Cases", term` | for a term that is no hypothesis, splits on a new variable in the place of every copy of the term in the goal; each goal states its case with the recursors that meet a constructor computed; a proof, such as a fact that an order is total, is split though the goal has no copy of it |
 | `"Generalize", h, ...` | moves the hypotheses `h, ...`, with those that depend on them, back into the goal |
 | `"Constructor"` | applies the first constructor of the goal's inductive type that applies |
 | `"Assumption"` | solves the goal with a hypothesis of the same type |
@@ -37,6 +37,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Rewrite", h, "RightToLeft"` | replaces the right side by the left |
 | `"Rewrite", h, "At" -> k` | rewrites the hypothesis `k` instead of the goal; `"RightToLeft"` can come before `"At" -> k` |
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
+| `"Have", h, statement` | makes the statement a goal of its own, to prove first, and the goal goes on with it as the hypothesis `h` |
 | `"RewriteRepeated", h, ...` | rewrites with the equations `h, ...` until none applies, as [ReplaceRepeated]() does where `"Rewrite"` is [Replace](); unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation; the equations may also be one list |
 | `"Decide"` | proves a statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's instances decide `==` and `<=` of natural numbers, `==` of Booleans, [And](), [Or](), [Not](), [True]() and [False](). A closed statement always computes; one with variables computes only where its decision does not depend on them |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws, and in <code>[TypeTheoryEnvironment]()["Rationals"]</code> an equation of rationals likewise, from the rationals' laws, with numbers for coefficients; an equation that holds by the arithmetic of fractions, as *x*/2 + *x*/2 == *x*, is proved through the pairs the rationals are classes of |
@@ -283,6 +284,28 @@ TypeTheoryTactic["Exact", "lessEqualReflexivity"][proof]
 
 ---
 
+`"Have"` states a step on the way: the statement is the first goal, and the goal that was open goes on with it as a hypothesis:
+
+```wl
+proof = TypeTheoryProof[ForAll[{m, n}, (m + n) + 0 == n + m], {"Introduce"[m, n], "Have"[e, (m + n) + 0 == m + n]}]
+```
+
+<!-- => Proof, 2 goals: m ∶ ℕ, n ∶ ℕ ⊢ (m + n) + 0 == m + n; m ∶ ℕ, n ∶ ℕ, e ∶ (m + n) + 0 == m + n ⊢ (m + n) + 0 == n + m -->
+
+`"Ring"` proves the step, `"Rewrite"` uses it, and `"Ring"` finishes:
+
+```wl
+TypeTheoryProof[ForAll[{m, n}, (m + n) + 0 == n + m], {
+    "Introduce"[m, n],
+    "Have"[e, (m + n) + 0 == m + n], "Ring",
+    "Rewrite"[e], "Ring"
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
 `"Generalize"` moves `m` back into the goal, with `h`, which depends on it:
 
 ```wl
@@ -523,6 +546,17 @@ TypeTheoryTactic["Cases", Decide[m <= n]][TypeTheoryProof[ForAll[{n, m}, n + m =
 ```
 
 <!-- => Failure["NoInstance", ...] -->
+
+A proof is split though no goal mentions it: a fact is used for its cases. `"lessEqualTotality"[m, n]` proves that `m <= n` or `n < m`, and each case becomes a goal that assumes it:
+
+```wl
+TypeTheoryProof[ForAll[{m, n}, m <= n || n <= m], {
+    "Introduce"[m, n],
+    "Cases"["lessEqualTotality"[m, n]]
+}]
+```
+
+<!-- => Proof, 2 goals: m ∶ ℕ, n ∶ ℕ ⊢ m <= n ⇒ (m <= n || n <= m); m ∶ ℕ, n ∶ ℕ ⊢ n < m ⇒ (m <= n || n <= m) -->
 
 ### Rewriting and Simplification
 
