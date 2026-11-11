@@ -489,7 +489,9 @@ applyUntilUnified[data_, goal_, term_, type_, target_] := If[ attemptOrRestore[u
 reflexivity[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
 		application[application[application[constantReference[equality_, levels_], type_], left_], right_] /; equalityTypeQ[environment, equality] :> If[
-			definitionallyEqualQ[environment, current["Context"], left, right],
+			(* the comparison remembers its steps, as a kernel check does: without them it repeats the comparisons of the
+			   parts once for each way it reached them, three times as long for each successor in Quotient[k + d, d] *)
+			withKernelCaches[definitionallyEqualQ[environment, current["Context"], left, right]],
 			solveGoal[data, goal, makeApplication[constantReference[First[constantRecord[environment, equality]["Constructors"]], levels], {type, left}], {}],
 			tacticFailure["NotReflexive", "The two sides of the goal `1` are not equal by computation.", data, goal]
 		],
@@ -516,7 +518,7 @@ assumption[data_, goal_] := With[{current = currentGoal[data, goal], environment
 	Replace[
 		SelectFirst[
 			Reverse @ Keys[current["Context"]],
-			Function[id, definitionallyEqualQ[environment, current["Context"], current["Context"][id]["Type"], current["Type"]]],
+			Function[id, withKernelCaches[definitionallyEqualQ[environment, current["Context"], current["Context"][id]["Type"], current["Type"]]]],
 			None
 		],
 		{
@@ -866,7 +868,7 @@ change[data_, goal_, held_HoldComplete] := With[
 			elaborateSyntax[toSyntax @@ held, inferType[environment, current["Context"], current["Type"]]],
 			inferType[environment, current["Context"], current["Type"]]
 		]},
-			If[ ! definitionallyEqualQ[environment, current["Context"], statement, current["Type"]],
+			If[ ! withKernelCaches[definitionallyEqualQ[environment, current["Context"], statement, current["Type"]]],
 				tacticFailure["NotDefinitionallyEqual", "The statement given is not equal by computation to the goal `1`.", data, goal]
 			];
 			solveGoal[keepSolvedGoals[data, goalTypes], goal, metavariable[newGoal], {newGoal -> <|"Context" -> current["Context"], "Type" -> statement, "Case" -> None|>}]
@@ -1498,10 +1500,10 @@ equationalHypotheses[environment_, context_, type_] := KeyValueMap[
 ]
 
 universalEquationBinders[environment_, context_, statement_, type_, count_Integer] := Replace[statement, {
-	dependentFunctionType[name_, domain_, codomain_, binder_] /; definitionallyEqualQ[environment, context, domain, type] :> With[{id = freshFreeVariable[]},
+	dependentFunctionType[name_, domain_, codomain_, binder_] /; withKernelCaches[definitionallyEqualQ[environment, context, domain, type]] :> With[{id = freshFreeVariable[]},
 		universalEquationBinders[environment, extendContext[context, id, name, domain, binder], instantiateBoundVariable[codomain, freeVariable[id]], type, count + 1]
 	],
-	application[application[application[constantReference[HoldComplete[Equal], _], equalityType_], _], _] /; definitionallyEqualQ[environment, context, equalityType, type] :> count,
+	application[application[application[constantReference[HoldComplete[Equal], _], equalityType_], _], _] /; withKernelCaches[definitionallyEqualQ[environment, context, equalityType, type]] :> count,
 	_ :> None
 }]
 

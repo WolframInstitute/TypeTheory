@@ -843,3 +843,59 @@ VerificationTest[
 	SameTest -> MatchQ,
 	TestID -> "Cases-and-Induction-split-on-a-term-of-the-goal"
 ]
+
+(* A tactic's comparison remembers its steps, as a kernel check does. Quotient[k + 12, 12] and Quotient[k, 12] + 1 are
+   not equal by computation, and saying so took three times as long for each unit of the divisor, half an hour at 12,
+   while the comparison repeated its parts; "Change" and "Assumption" compare the same way. *)
+VerificationTest[
+	With[{integers = TypeTheoryEnvironment["Integers"]},
+		TimeConstrained[
+			{
+				TypeTheoryProof[ForAll[{Typed[k, NonNegativeIntegers]}, Quotient[k + 12, 12] == Quotient[k, 12] + 1], integers, {"Introduce"[k], "Reflexivity"}],
+				TypeTheoryProof[ForAll[{Typed[k, NonNegativeIntegers]}, Quotient[k + 12, 12] == Quotient[k, 12] + 1], integers,
+					{"Introduce"[k], "Change"[Quotient[k, 12] + 1 == Quotient[k + 12, 12]]}],
+				TypeTheoryProof[
+					ForAll[{Typed[k, NonNegativeIntegers]}, Implies[Quotient[k, 12] + 1 == Quotient[k + 12, 12], Quotient[k + 12, 12] == Quotient[k, 12] + 1]],
+					integers,
+					{"Introduce"[k, h], "Assumption"}
+				]
+			},
+			60,
+			"TimedOut"
+		]
+	],
+	{Failure["NotReflexive", _], Failure["NotDefinitionallyEqual", _], Failure["NoAssumption", _]},
+	SameTest -> MatchQ,
+	TestID -> "A-tactic-that-compares-two-terms-answers-in-time"
+]
+
+(* Outside the kernel's own files every comparison by definitionallyEqualQ runs with the kernel's caches: it is written
+   inside withKernelCaches, or inside withCheckedTerms, which has them. The sources are read held, in a context of their
+   own, and each call is looked for under one of the two; a caller that is under neither is listed, by its file. *)
+VerificationTest[
+	Module[{kernelFiles, files, named, uncachedCalls},
+		kernelFiles = {
+			"CoreTerms.wl", "TypeChecking.wl", "InductiveTypes.wl", "NaturalNumbers.wl", "Quotients.wl", "Quantities.wl", "Cubical.wl", "Environment.wl",
+			"Declarations.wl", "CompiledKernel.wl"
+		};
+		files = Select[FileNames["*.wl", FileNameJoin[{Directory[], "TypeTheory", "Kernel"}], Infinity], Function[file, ! MemberQ[kernelFiles, FileNameTake[file]]]];
+		named[held_, position_, names_] := Replace[
+			Extract[held, Append[position, 0], HoldComplete],
+			{HoldComplete[head_Symbol] :> MemberQ[names, SymbolName[Unevaluated[head]]], _ -> False}
+		];
+		uncachedCalls[file_] := Block[{$Context = "TypeTheoryCallerScan`", $ContextPath = {"System`"}},
+			With[{held = ReadList[file, HoldComplete[Expression]]},
+				Count[
+					Position[held, call_ /; named[HoldComplete[call], {1}, {"definitionallyEqualQ"}], {2, Infinity}],
+					position_ /; NoneTrue[Range[Length[position] - 1], Function[depth, named[held, Take[position, depth], {"withKernelCaches", "withCheckedTerms"}]]]
+				]
+			]
+		];
+		{
+			Length[files] > 20,
+			Select[Map[Function[file, {FileNameTake[file], uncachedCalls[file]}], files], Function[entry, Last[entry] > 0]]
+		}
+	],
+	{True, {}},
+	TestID -> "Every-comparison-outside-the-kernel-runs-with-the-kernels-caches"
+]

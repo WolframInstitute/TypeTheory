@@ -1747,7 +1747,7 @@ expectedMeaning[_, _, _] := None
 numberTypeQ[type_, name_HoldComplete] := And[
 	constantDeclaredQ[$elaborationEnvironment, name],
 	unassignedFreeQ[type],
-	definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, type, constantReference[name, {}]]
+	withKernelCaches[definitionallyEqualQ[$elaborationEnvironment, $elaborationContext, type, constantReference[name, {}]]]
 ]
 
 unassignedFreeQ[term_] := FreeQ[term, metavariable[id_] /; unassignedMetavariableQ[metavariable[id]]]
