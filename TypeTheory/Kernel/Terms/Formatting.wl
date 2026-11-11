@@ -122,7 +122,7 @@ typeTheoryBoxes[syntax_, form_] := displayed[syntax, form,
    shows its sums as they are. What TraditionalForm shows differently the display decides, by $displayForm: f(x) for an
    application, a recursor as its cases, and = for an equation, which is put in here. *)
 (* an equation's sign is "==" from a kernel on its own and the one character of a notebook's from a kernel with a front end *)
-traditionalBoxes[TraditionalForm][boxes_] := ReplaceAll[boxes, "==" | "\[Equal]" -> "="]
+traditionalBoxes[TraditionalForm][boxes_] := ReplaceAll[boxes, "==" | "\[Equal]" | "\[LongEqual]" -> "="]
 traditionalBoxes[_][boxes_] := boxes
 
 (* the state a display of the syntax of a term reads while it is built, in a notebook and in text alike *)
@@ -138,7 +138,8 @@ displayed[syntax_, form_, body_] := Block[
 		(* the types on mouseover follow the standard layout, part by part, left to right, which TraditionalForm rearranges *)
 		$tooltipsShown = tooltipsWanted[] && form === StandardForm && LeafCount[syntax] <= $tooltipLeafLimit,
 		$displayForm = form,
-		$notationHeads = notationHeads[]
+		$notationHeads = notationHeads[],
+		$displayBoxes = <||>
 	},
 	Block[{$displayTrace = displayTrace[syntax], $operatorTips = <||>, $leafTips = <||>, $tipKeys = <||>, $tipBoxes = <||>, $coreTypeSyntax = <||>}, body]
 ]
@@ -153,9 +154,11 @@ TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], Out
 textDisplay[syntax_] := displayed[syntax, OutputForm, shownForm[heldFromSyntax[displaySyntax[syntax]]]]
 shownForm[HoldComplete[shown_]] := HoldForm[shown]
 
+(* a name that is a string shows without its quotes in an input cell too, where a document shows a term as written in
+   this display *)
 TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ} | {_String}] := With[
 	{boxes = withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]},
-	InterpretationBox[boxes, term] /; notebookBoxesQ[]
+	InterpretationBox[StyleBox[boxes, ShowStringCharacters -> False], term] /; notebookBoxesQ[]
 ]
 (* with no front end to draw them, as in a terminal, which prints a failure's message from the boxes of its terms, the
    boxes are those a terminal prints as text: rows of their pieces, without styles, tooltips or tags *)
@@ -806,15 +809,95 @@ displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]),
 	displayApplication[syntaxSymbol[HoldComplete @@ {$displayedOverloads[displayedName[head]]}], arguments]
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; overloadedDisplayQ[head, 1] := prefixed["-", argument]
 (* a constant whose head has a notation of the user's, a rule of MakeBoxes or Format, is applied undecorated, so that
-   the rule shows it *)
-displayApplication[head_syntaxSymbol, arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
-displayApplication[head_syntaxString, arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
+   the rule shows it. In TraditionalForm the boxes tell which notation there is (notationDisplay): the user's, or the
+   Wolfram Language's own for one of its symbols, r_d(n) for SquaresR[d, n]. *)
+displayApplication[head : (_syntaxSymbol | _syntaxString), arguments_List] /; $displayForm === TraditionalForm && traditionalNotationQ[head] :=
+	syntaxHead[notationDisplay, Join[{displaySyntax[head], head}, arguments]]
+displayApplication[head : (_syntaxSymbol | _syntaxString), arguments_List] /; userNotationQ[head] := syntaxApplication[head, arguments]
 displayApplication[head_, arguments_List] := With[{shownHead = displaySyntax[head]},
 	If[ decoratedQ[shownHead] || ($displayForm === TraditionalForm && ! systemHeadQ[shownHead]),
 		syntaxHead[appliedDisplay, Prepend[arguments, shownHead]],
 		syntaxApplication[shownHead, arguments]
 	]
 ]
+
+(* the heads TraditionalForm may have a notation for: a constant with a notation of the user's, and a symbol of the
+   Wolfram Language other than the operators a term lays out as StandardForm does, in the order they are written; a
+   variable the term binds is no constant *)
+traditionalNotationQ[head : syntaxSymbol[name : HoldComplete[symbol_Symbol]]] :=
+	! KeyExistsQ[$boundSymbols, name] && ! MemberQ[$standardLayoutHeads, name] && (Context[symbol] === "System`" || userNotationQ[head])
+traditionalNotationQ[head_syntaxString] := userNotationQ[head]
+
+$standardLayoutHeads = HoldComplete /@ Unevaluated[{
+	Plus, Times, Power, Subtract, Divide, Minus, Equal, Unequal, Less, LessEqual, Greater, GreaterEqual, SameQ, UnsameQ, And, Or, Not, Implies, Equivalent, Xor,
+	List, Rule, RuleDelayed, Part, Function, Apply, Sequence, Unevaluated, Pattern, Blank, BlankSequence, BlankNullSequence, Condition, Alternatives, Repeated,
+	RepeatedNull, Association, Missing, Construct
+}]
+
+(* The boxes of an argument are those of the term in every form a notation asks for, in a TagBox: the Wolfram Language's
+   TraditionalForm puts in an order of its own the boxes of a sum or a product that a rule gave it, and leaves a TagBox
+   as it is. A display makes the boxes of a part once, however many notations ask for them. *)
+shownArgument /: MakeBoxes[shownArgument[argument_], _] := TagBox[rememberedBoxes[HoldComplete[argument]], $shownArgumentTag]
+
+$shownArgumentTag = "TypeTheoryArgument"
+
+rememberedBoxes[held : HoldComplete[display_]] := Lookup[$displayBoxes, Key[held], $displayBoxes[held] = MakeBoxes[display, StandardForm]]
+
+(* A constant that may have a notation, in TraditionalForm, kept as notationDisplay[head as shown, head, arguments]: the
+   boxes a rule for TraditionalForm gives, with the arguments as the term shows them; failing that those a rule for
+   StandardForm gives, as the user's rule for every form does; and where no rule takes this application, as a symbol's
+   rule for its evaluated objects does not, f(x) as any other constant. No rule took it where the boxes are the Wolfram
+   Language's own for an application of the head. *)
+notationDisplay /: MakeBoxes[node_notationDisplay, _] := Lookup[$displayBoxes, Key[HoldComplete[node]], $displayBoxes[HoldComplete[node]] = notationBoxes[node]]
+
+SetAttributes[notationBoxes, HoldAllComplete]
+notationBoxes[notationDisplay[shown_, head_, arguments___]] := Replace[
+	(* a number or a string stays as it is, which a rule may ask for; any other argument is wrapped *)
+	Replace[HoldComplete[head[arguments]], argument : Except[_Integer | _String] :> shownArgument[argument], {2}],
+	HoldComplete[shielded_] :> With[{traditional = MakeBoxes[shielded, TraditionalForm]},
+		Which[
+			(* f(x) from a kernel with a front end, and f[x] from a kernel on its own *)
+			! MatchQ[traditional, RowBox[{MakeBoxes[head, TraditionalForm], "(" | "[", ___, ")" | "]"}]],
+				parenthesizedOperands[traditional],
+			! MatchQ[MakeBoxes[shielded, StandardForm], RowBox[{MakeBoxes[head, StandardForm], "[", ___, "]"}]],
+				MakeBoxes[head[arguments], StandardForm],
+			True,
+				MakeBoxes[appliedDisplay[shown, arguments], StandardForm]
+		]
+	]
+]
+
+(* A notation that hands its arguments to an operator of the Wolfram Language, MakeBoxes[a == b, form], gets boxes whose
+   parentheses were chosen for the wrappers, which look like names. An argument that is itself a row of operands, placed
+   among operators and not between brackets or commas, is put in parentheses: more of them than a reader needs, never
+   fewer. *)
+parenthesizedOperands[boxes_] := Replace[
+	boxes,
+	RowBox[items_List] /; operatorRowQ[items] :> RowBox[Replace[items, argument : TagBox[_?operandRowQ, $shownArgumentTag] :> RowBox[{"(", argument, ")"}], {1}]],
+	{0, Infinity}
+]
+
+$delimiterBoxes = {
+	",", "(", ")", "[", "]", "{", "}", "\[LeftDoubleBracket]", "\[RightDoubleBracket]", "\[LeftAngleBracket]", "\[RightAngleBracket]", "\[LeftBracketingBar]",
+	"\[RightBracketingBar]", "\[LeftDoubleBracketingBar]", "\[RightDoubleBracketingBar]", "\[LeftFloor]", "\[RightFloor]", "\[LeftCeiling]", "\[RightCeiling]"
+}
+
+(* a row that sets its items beside operators: one with an argument of a notation in it, and not only brackets and commas
+   around its items *)
+operatorRowQ[items_List] := And[
+	MemberQ[items, TagBox[_, $shownArgumentTag]],
+	! MemberQ[items, ","],
+	! MatchQ[DeleteCases[items, Alternatives @@ $delimiterBoxes], {_}]
+]
+
+(* boxes that are a row of operands, a + b or a quantified statement, and not a name, an application f[x] or f(x), or a
+   row within brackets *)
+operandRowQ[(StyleBox | TagBox | TooltipBox | InterpretationBox)[inner_, ___]] := operandRowQ[inner]
+operandRowQ[RowBox[{_, "[" | "(" | "\[LeftDoubleBracket]", ___, "]" | ")" | "\[RightDoubleBracket]"}]] := False
+operandRowQ[RowBox[{"(" | "{" | "\[LeftAngleBracket]", ___, ")" | "}" | "\[RightAngleBracket]"}]] := False
+operandRowQ[RowBox[{_}]] := False
+operandRowQ[_RowBox] := True
+operandRowQ[_] := False
 
 (* a symbol of the Wolfram Language itself, which shows an application of it its own way *)
 systemHeadQ[syntaxSymbol[HoldComplete[symbol_Symbol]]] := Context[symbol] === "System`"

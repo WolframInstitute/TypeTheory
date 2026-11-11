@@ -48,7 +48,7 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 - [True](), [False](), [Not](), [And]() and [Or](), and so `!`, `&&` and `||`, stand for the propositions or, in an environment that declares the Booleans, for its constants `"true"`, `"false"`, `"not"`, `"and"` and `"or"`, as the type allows: a proposition where a type or Prop is expected, a Boolean where [Booleans]() is. Elsewhere the arguments decide, or how the term is used. A term that nothing decides is ambiguous, and <code>[Typed]()[*e*, [TypeUniverse]()[0]]</code> or <code>[Typed]()[*e*, [Booleans]()]</code> says which it is, as the string `"true"` or `"not"` does for a Boolean.
 - A term copied from a documentation page writes each symbol of the paclet as `PacletSymbol[paclet, name]`; the term stores the symbol it names.
 - In a notebook a term shows in mathematical notation, with the term itself behind the display.
-- [TraditionalForm]() shows a term for reading: an application as *f*(*x*), an equation as *a* = *b*, and a recursor applied to all its arguments as its cases, a row for its motive and a row for each constructor, as [InductiveRecursor]() describes. A sum or a product keeps the order the term has, which the Wolfram Language's own [TraditionalForm]() would change. The types on mouseover are [StandardForm]()'s alone.
+- [TraditionalForm]() shows a term for reading: an application as *f*(*x*), an equation as *a* = *b*, and a recursor applied to all its arguments as its cases, a row for its motive and a row for each constructor, as [InductiveRecursor]() describes. A sum or a product keeps the order the term has, which the Wolfram Language's own [TraditionalForm]() would change. The types on mouseover are [StandardForm]()'s alone. A constant shows in [TraditionalForm]() by the notation that form has for it: the Wolfram Language's own for one of its symbols, as *a* mod *b* for [Mod](), a rule of [MakeBoxes]() given for [TraditionalForm](), and otherwise *f*(*x*); its arguments show as the term shows them, in parentheses where the notation sets a sum beside an operator.
 - In a notebook every part of a term that has a type shows it on mouseover: a variable the type its binder gives, a constant its declared type, a number, a string or a symbol of an expression its own, and an operator the type of the constant it stands for, ℕ → ℕ → ℕ for `+` of natural numbers, and `Expressions` for `-` in `n x^(n - 1)` with *n* an expression. A function of System, as [Replace]() or [AtomQ](), shows its type on its name and brackets, and `↦` the type of its function. Elaboration decides what an operator stands for, so a term that does not elaborate on its own shows the types of its variables and constants only. The display is the same with the types or without them.
 - A constant shows as its symbol or string, applied to its arguments that are not implicit. TypeTheory builds that expression, with its parts already shown, and gives it to [MakeBoxes](), so [MakeBoxes]() definitions give a constant a notation and [Format]() definitions give its symbol a display, in terms, declarations and proofs alike.
 - <code>[Information]()[*term*, "AxiomClosure"]</code> gives the axioms *term* rests on, as [TypeTheoryAxiomClosure]() does, <code>[Information]()[*term*, "Holes"]</code> the holes it rests on, <code>[Information]()[*term*, "Constants"]</code> the constants its type and value mention, <code>[Information]()[*term*, "Annotation"]</code> the annotation of a hole, <code>[Information]()[*term*, "ProofTree"]</code> its derivation, as [TypeTheoryProofTree]() gives it, <code>[Information]()[*term*, "Implementation"]</code> the function that computes an axiom, and <code>[Information]()[*term*, "Expression"]</code> the expression of the Wolfram Language it is written as, as [TypeTheoryExpression]() gives it.
@@ -377,6 +377,38 @@ TraditionalForm[double]
 ```
 
 <!-- => (n ∶ ℕ) ↦ over the cases of ℕ_rec n: motive (m ∶ ℕ) ↦ ℕ; 0: 0; k + 1: (r ∶ ℕ) ↦ (r + 1) + 1 -->
+
+---
+
+In [TraditionalForm]() a symbol of the Wolfram Language shows by the Wolfram Language's own notation, with its arguments as the term has them, a sum in the order it is written:
+
+```wl
+remainder = TypeTheoryTerm[ForAll[{a, b}, Mod[1 + a, 4] <= Quotient[a + b, 4]], "Integers"]
+```
+
+<!-- => ∀_a ∀_b Mod[1 + a, 4] ≤ Quotient[a + b, 4] -->
+
+```wl
+TraditionalForm[remainder]
+```
+
+<!-- => ∀_a ∀_b (1 + a) mod 4 ≤ Quotient(a + b, 4) -->
+
+A rule of [MakeBoxes]() for [TraditionalForm]() gives a constant its notation there, and [StandardForm]() shows it applied:
+
+```wl
+MakeBoxes["halfOf"[a_], TraditionalForm] := FractionBox[MakeBoxes[a, TraditionalForm], "2"];
+halves = TypeTheoryEnvironment["Integers", {TypeTheoryDefinition["halfOf", n |-> Quotient[n, 2]]}];
+half = TypeTheoryTerm[ForAll[{n}, "halfOf"[n + n] == n], halves]
+```
+
+<!-- => ∀_n halfOf[n + n] == n -->
+
+```wl
+TraditionalForm[half]
+```
+
+<!-- => ∀_n (n + n)/2 = n, the sum over the 2 as a fraction -->
 
 ---
 

@@ -9,7 +9,9 @@ Needs["WolframInstitute`TypeTheory`"]
 
 (* the boxes of an expression as they show, each tooltip's type left out: a term shows the types of its parts on
    mouseover, which change nothing it shows *)
-shownBoxes[expression_] := ToBoxes[expression] //. TooltipBox[shown_, ___] :> shown
+(* the boxes of a display without its mouseovers and without the style a term sets around itself, which hides the quotes
+   of names that are strings *)
+shownBoxes[expression_] := ToBoxes[expression] //. {TooltipBox[shown_, ___] :> shown, StyleBox[shown_, ShowStringCharacters -> False] :> shown}
 
 toSyntax = Symbol["WolframInstitute`TypeTheory`PackageScope`toSyntax"]
 heldFromSyntax = Symbol["WolframInstitute`TypeTheory`PackageScope`heldFromSyntax"]
@@ -244,6 +246,85 @@ VerificationTest[
 	TestID -> "TraditionalForm-shows-a-recursor-as-its-cases"
 ]
 
+(* In TraditionalForm a constant shows by the notation TraditionalForm has for it: the Wolfram Language's own for one of its
+   symbols, a mod b, and f(x) for a symbol it has none for. An argument stays as the term shows it, a sum in the order it is
+   written, in a TagBox that the Wolfram Language's typesetting leaves alone, and in parentheses where the notation sets it
+   beside an operator. The operators a term lays out itself are not notations: an equation gets no parentheses from them.
+   StandardForm shows the same constants applied in brackets. *)
+VerificationTest[
+	Module[{integers = TypeTheoryEnvironment["Integers"], term, traditional, plain},
+		plain[boxes_] := boxes //. (StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown;
+		term = TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Mod[1 + a, 4] <= Quotient[a + b, 4]], integers];
+		traditional = ToBoxes[term, TraditionalForm];
+		{
+			MatchQ[Cases[traditional, TemplateBox[_, "Mod"], Infinity], {TemplateBox[{RowBox[{"(", TagBox[_, "TypeTheoryArgument"], ")"}], "4"}, "Mod"]}],
+			Cases[plain[traditional], TemplateBox[_, "Mod"] | RowBox[{"Quotient", __}], Infinity],
+			Cases[plain[ToBoxes[term, StandardForm]], RowBox[{"Mod" | "Quotient", __}], Infinity],
+			Cases[
+				plain[ToBoxes[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, 5 == Length[{k}] + 1], prelude], TraditionalForm]],
+				RowBox[{"5", __}],
+				Infinity
+			]
+		}
+	],
+	{
+		True,
+		{TemplateBox[{RowBox[{"(", RowBox[{"1", "+", "a"}], ")"}], "4"}, "Mod"], RowBox[{"Quotient", "(", RowBox[{RowBox[{"a", "+", "b"}], ",", "4"}], ")"}]},
+		{RowBox[{"Mod", "[", RowBox[{RowBox[{"1", "+", "a"}], ",", "4"}], "]"}], RowBox[{"Quotient", "[", RowBox[{RowBox[{"a", "+", "b"}], ",", "4"}], "]"}]},
+		{RowBox[{"5", "=", RowBox[{RowBox[{"Length", "(", RowBox[{"{", "k", "}"}], ")"}], "+", "1"}]}]}
+	},
+	TestID -> "TraditionalForm-shows-a-constant-by-its-traditional-notation"
+]
+
+(* a notation of the user's for TraditionalForm shows there and not in StandardForm, and one for every form shows in
+   both; twelve applications one in another take no longer to show than their count *)
+VerificationTest[
+	Module[{named, plain, nested},
+		plain[boxes_] := boxes //. (StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown;
+		MakeBoxes["traditionalScaled"[a_, b_], TraditionalForm] := RowBox[{MakeBoxes[a, TraditionalForm], "\[CircleDot]", MakeBoxes[b, TraditionalForm]}];
+		MakeBoxes["everyFormScaled"[a_, b_], form_] := MakeBoxes[CenterDot[a, b], form];
+		named = TypeTheoryEnvironment[prelude, {
+			TypeTheoryDefinition["traditionalScaled", Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n m]],
+			TypeTheoryDefinition["everyFormScaled", Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n m]]
+		}];
+		nested = TypeTheoryTerm[Join[Join[Join[Join[Join[Join[Join[Join[Join[Join[Join[Join[{1}, {2}], {3}], {4}], {5}], {6}], {7}], {8}], {9}], {10}], {11}], {12}], {13}], prelude];
+		{
+			Cases[
+				plain[ToBoxes[TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, "traditionalScaled"[1 + x, x] == x], named], TraditionalForm]],
+				RowBox[{__, "\[CircleDot]", __}],
+				Infinity
+			],
+			Cases[
+				plain[ToBoxes[TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, "traditionalScaled"[1 + x, x] == x], named], StandardForm]],
+				RowBox[{"\"traditionalScaled\"", __}],
+				Infinity
+			],
+			Cases[
+				plain[ToBoxes[TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, "everyFormScaled"[1 + x, x] == x], named], TraditionalForm]],
+				RowBox[{__, "\[CenterDot]", __}],
+				Infinity
+			],
+			Count[plain[ToBoxes[nested, TraditionalForm]], RowBox[{"Join", "(", __}], {0, Infinity}],
+			First[AbsoluteTiming[ToBoxes[nested, TraditionalForm]]] < 2
+		}
+	],
+	{
+		{RowBox[{RowBox[{"(", RowBox[{"1", "+", "x"}], ")"}], "\[CircleDot]", "x"}]},
+		{RowBox[{"\"traditionalScaled\"", "[", RowBox[{RowBox[{"1", "+", "x"}], ",", "x"}], "]"}]},
+		{RowBox[{RowBox[{"(", RowBox[{"1", "+", "x"}], ")"}], "\[CenterDot]", "x"}]},
+		12,
+		True
+	},
+	TestID -> "TraditionalForm-shows-a-notation-given-for-it"
+]
+
+(* a term sets a style around its boxes that hides the quotes of names that are strings, which an input cell would show *)
+VerificationTest[
+	MatchQ[ToBoxes[TypeTheoryTerm["true"]], InterpretationBox[StyleBox[_, ShowStringCharacters -> False], _TypeTheoryTerm]],
+	True,
+	TestID -> "A-term-shows-its-string-names-without-quotes-in-an-input-cell-too"
+]
+
 VerificationTest[
 	With[{boxes = shownBoxes[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[a, Booleans], Typed[b, Booleans]}, Not[a && b] || (a && b && a)]]]]},
 		{! FreeQ[boxes, "&&"], ! FreeQ[boxes, "||"], ! FreeQ[boxes, RowBox[{"!", _}]], FreeQ[boxes, "\[And]" | "\[Or]" | "\[Not]"], ! FreeQ[boxes, "\"\[DoubleStruckCapitalB]\""]}
@@ -343,7 +424,7 @@ VerificationTest[
 		ToBoxes[TypeTheoryTerm["rationalOfPair"["pair"[3, 0]]]],
 		Cases[ToBoxes[TypeTheoryTerm[QuotientIntroduction["rationalRelation", "pair"[5, 1]]]], FractionBox["5", "2"], Infinity, 1]
 	},
-	{InterpretationBox["3", TypeTheoryTerm["rationalOfPair"["pair"[3, 0]]]], {FractionBox["5", "2"]}},
+	{InterpretationBox[StyleBox["3", ShowStringCharacters -> False], TypeTheoryTerm["rationalOfPair"["pair"[3, 0]]]], {FractionBox["5", "2"]}},
 	TestID -> "A-class-of-a-pair-with-a-literal-denominator-still-shows-as-a-fraction"
 ]
 
@@ -433,7 +514,7 @@ VerificationTest[
 VerificationTest[
 	With[{spaces = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[ModularSpace, NonNegativeIntegers -> TypeUniverse[1]]}]},
 		{
-			First[ToBoxes[TypeTheoryTerm[ModularSpace[12], spaces]]] /. TooltipBox[shown_, ___] :> shown,
+			First[shownBoxes[TypeTheoryTerm[ModularSpace[12], spaces]]],
 			MatchQ[TypeTheoryType[TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude]], TypeTheoryTerm[Booleans, _]],
 			TypeTheoryTerm[PacletSymbol["WolframInstitute/TypeTheory", "Decide"][True], prelude] === TypeTheoryTerm[Decide[True], prelude],
 			Hold @@ {TypeTheoryTerm[PacletSymbol["Nowhere/Nothing", "x"]]}
@@ -531,7 +612,7 @@ VerificationTest[
 VerificationTest[
 	With[{integers = TypeTheoryEnvironment["Integers"], rationals = TypeTheoryEnvironment["Rationals"]},
 		Map[
-			Function[term, shownBoxes[term] === Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, ToBoxes[term]]],
+			Function[term, shownBoxes[term] === Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = False}, shownBoxes[term]]],
 			{
 				TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, k + 0 == k - 1]],
 				TypeTheoryTerm[ForAll[{Typed[n, Expressions]}, Replace[d[x^n], d[x^m_] :> m x^(m - 1)] == n x^(n - 1)]],
