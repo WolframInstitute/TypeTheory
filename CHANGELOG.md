@@ -59,6 +59,9 @@ Versions 0.35.0 to 0.42.1.
 
 ### Fixed
 
+- The term of a proof by `"LinearArithmetic"` or `"NonlinearArithmetic"` checks against its statement, as the term of
+  any finished proof does, and its axiom closure computes: the certificate left out a predicate that no elaboration
+  finds again.
 - `Normal` writes the fields of a constructor with their names, `Typed["fst", "α"]`, where it wrote an arrow and the
   name was lost: an environment rebuilt from `Normal` read a projection by its index and showed it so, or showed
   the name of an arrow's own binder, a blank. The binder of an arrow names no field now.

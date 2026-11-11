@@ -1484,7 +1484,7 @@ polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], envir
    from the inequalities and equations among the hypotheses, each monomial counted as a variable;
    Wolfram's FindInstance finds the multipliers, and "Ring" checks the sum (Ring.wl) *)
 linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
-	If[ ! AllTrue[Join[$ringConstants, $linearConstants], Function[name, constantDeclaredQ[environment, name]]],
+	If[ ! AllTrue[Join[$ringConstants, $linearConstants, recursorName /@ $linearEliminated], Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
 	];
 	With[{inequalities = withProducts[inequalityHypotheses[environment, current["Context"]]]},
@@ -1530,9 +1530,13 @@ productInequality[{a_, b_, proof_}, k_] := {
 }
 
 $linearConstants = HoldComplete /@ Unevaluated[{
-	LessEqual, Less, Or, "falseElimination", "equalitySubstitution", "lessEqualReflexivity", "lessEqualZero", "lessEqualTotality", "additionMonotonicity", "multiplicationMonotonicity",
+	LessEqual, Less, Or, "falseElimination", "lessEqualReflexivity", "lessEqualZero", "lessEqualTotality", "additionMonotonicity", "multiplicationMonotonicity",
 	"lessEqualTransitivity", "lessEqualAddition", "lessIrreflexivity", "lessEqualAntisymmetry"
 }]
+
+(* the types whose recursors the certificate applies: a case analysis of a <= b or b < a, and a proof carried along an
+   equation (Ring.wl) *)
+$linearEliminated = HoldComplete /@ Unevaluated[{Or, Equal}]
 
 (* {{a, b, proof}, ...} for the hypotheses that are inequalities a <= b of natural numbers, an equation
    giving two *)

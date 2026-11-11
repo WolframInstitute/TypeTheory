@@ -330,14 +330,11 @@ contradiction[inequalities_List, multipliers_List, constant_Integer] := With[
 	{sum = Fold[Function[{accumulated, inequality}, addedInequalities[inequality, accumulated]], Last[scaled], Reverse[Most[scaled]]]},
 	Replace[sum, {small_, large_, proof_} :> Replace[ringEquation[plus[large, literal[constant]], small], {
 		None -> None,
-		identity_ :> irreflexivityContradiction[large, constant, makeApplication[constantReference[HoldComplete["equalitySubstitution"], {1}], {
-			$naturals,
-			Construct[lambdaAbstraction, HoldComplete[t], $naturals, lessEqual[boundVariable[0], large], "Explicit"],
-			small,
-			plus[large, literal[constant]],
-			Last[symmetric[identity]],
-			proof
-		}]]
+		identity_ :> irreflexivityContradiction[
+			large,
+			constant,
+			transported[small, plus[large, literal[constant]], Last[symmetric[identity]], Function[side, lessEqual[side, large]], proof]
+		]
 	}]]
 ]
 
@@ -369,13 +366,32 @@ ringEquationInequalities[a_, b_, proof_] := {
 }
 
 (* predicate[b] from predicate[a], which is a <= a *)
-carriedReflexivity[a_, b_, proof_, predicate_] := makeApplication[constantReference[HoldComplete["equalitySubstitution"], {1}], {
+carriedReflexivity[a_, b_, proof_, predicate_] := transported[a, b, proof, predicate, application[constantReference[HoldComplete["lessEqualReflexivity"], {}], a]]
+
+(* predicate[b] from a proof of predicate[a], for natural numbers a and b and a proof of a == b. The recursor of
+   equations takes its motive, the function of y and a proof of a == y that gives predicate[y], as an argument, which
+   the proof term shows: the term read back elaborates again. The theorem "equalitySubstitution" takes the predicate as
+   an implicit argument, which a term read back leaves out and which no elaboration finds from predicate[b], a term
+   with no trace of the function. *)
+transported[a_, b_, equation_, predicate_, proof_] := makeApplication[constantReference[recursorName[HoldComplete[Equal]], {0, 1}], {
 	$naturals,
-	Construct[lambdaAbstraction, HoldComplete[t], $naturals, predicate[boundVariable[0]], "Explicit"],
 	a,
-	b,
+	Construct[
+		lambdaAbstraction,
+		HoldComplete[y],
+		$naturals,
+		Construct[
+			lambdaAbstraction,
+			HoldComplete[e],
+			makeApplication[constantReference[HoldComplete[Equal], {1}], {$naturals, a, boundVariable[0]}],
+			predicate[boundVariable[1]],
+			"Explicit"
+		],
+		"Explicit"
+	],
 	proof,
-	application[constantReference[HoldComplete["lessEqualReflexivity"], {}], a]
+	b,
+	equation
 }]
 
 
