@@ -67,13 +67,82 @@ Three properties are wanted, each a statement over the rationals:
 - **The half-ulp bound.** The rounding of q is within half a unit in the last place of q: |r - q| <= 2^(e - 1) for
   the exponent e of r, and at most 2^-1075 in the subnormal range.
 
-The proposal is one further axiom, not three: the specification of the rounding, that `"real64Result"[q]` is a
-representable r with no representable strictly nearer to q, and with an even m where two are equally near, or the
-leave where the nearest is past the largest. The three properties are then theorems, by arithmetic of the
-rationals and the uniqueness of such an r. The same specification gives certified values: the nearness of a given r
-to a given q is a Boolean check on two literals that the kernel computes, and a lemma turns that check into
-`"real64Result"[q] == r`. A value the Wolfram Language computed then enters a proof once the kernel has checked its
-certificate, where today it cannot enter one at all.
+The proposal is one further axiom, not three: the specification of the rounding. With B = 2^1024 - 2^970, the middle
+of the largest real and 2^1024:
+
+```wl
+TypeTheoryAxiom["real64ResultNearest",
+	ForAll[{Typed[q, Rationals]},
+		And[
+			Implies[Typed[B, Rationals] <= "rationalAbsolute"[q],
+				"real64Result"[q] == Typed["right"[Failure["NotFinite", <||>]], "Real64" | Failure]],
+			Implies["rationalAbsolute"[q] < Typed[B, Rationals],
+				Exists[{Typed[r, "Real64"]},
+					And[
+						"real64Result"[q] == Typed["left"[r], "Real64" | Failure],
+						And[
+							ForAll[{Typed[s, "Real64"]},
+								"rationalAbsolute"[q - r[["rational"]]] <= "rationalAbsolute"[q - s[["rational"]]]],
+							ForAll[{Typed[s, "Real64"]},
+								Implies[s[["rational"]] != r[["rational"]],
+									Implies["rationalAbsolute"[q - s[["rational"]]] == "rationalAbsolute"[q - r[["rational"]]],
+										Exists[{Typed[n, Integers]},
+											r[["rational"]] == 2 "rationalOfInteger"[n] (s[["rational"]] - r[["rational"]])]]]]
+						]
+					]
+				]
+			]
+		]
+	]
+]
+```
+
+In words: from B on, the leave; below B, a machine real r that no machine real is nearer to q than, and where another
+machine real s is as near, r is an even multiple of their distance. The tie clause says "even" without a significand:
+m 2^e is not unique, 2 being 1 * 2^1 and 2 * 2^0, but two machine reals as near to q as each other are neighbours, and
+neighbours are consecutive multiples of their distance. The statement elaborates to a proposition in the environment
+as it is (checked, not declared).
+
+Such a function exists and is the only one:
+
+1. The machine reals are finitely many, |m| < 2^53 with two bounded exponents, so some r is nearest to q, and at
+   most two are, one on each side of q.
+2. Two that are nearest, r < s, have no machine real between them, and then r = j u and s = (j + 1) u for u = s - r:
+   within a binade both are multiples of its spacing u, and at a binade's upper end 2^k the spacing below is u and
+   2^k is 2^53 u. Exactly one of j and j + 1 is even, so exactly one of the two satisfies the tie clause.
+3. From B on the first clause gives the leave and the second says nothing; below B it is the other way round. The
+   function is the roundTiesToEven of IEEE 754 with the leave for its infinities: IEEE overflows from B on, the
+   tie at B going to the infinity because 2^1024 would be the even neighbour.
+
+The cases where a statement of "even" could go wrong, checked by hand against the tie clause and each a row of the
+grid test below, u being the spacing at the tie:
+
+| q, an exact tie | The two nearest | r / (s - r) for each | The rounding |
+|---|---|---|---|
+| 2^-1075 | 0 and 2^-1074 | 0 and -1 | 0 |
+| 3 * 2^-1075 | 2^-1074 and 2 * 2^-1074 | 1 and -2 | 2 * 2^-1074 |
+| (2^53 - 1/2) u, below a power of two | (2^53 - 1) u and 2^53 u | 2^53 - 1 and -2^53 | 2^53 u |
+| (2^53 + 1) u, above it, where the spacing is 2u | 2^53 u and 2^53 u + 2u | 2^52 and -(2^52 + 1) | 2^53 u |
+| 2^53 + 1 | 2^53 and 2^53 + 2 | 2^52 and -(2^52 + 1) | 2^53 |
+| the negatives of these | the negatives | the same | the negatives |
+| 2^1024 - 2^970 | no tie: from here on the leave | | the leave |
+| 2^1024 - 2^970 less any positive amount | the largest real, 2^1024 - 2^971, alone | | the largest real |
+
+The three properties are then theorems, by arithmetic of the rationals and this uniqueness. The same specification
+gives certified values: for given literals q and r the kernel computes a Boolean check, that r is a machine real
+with canonical m and e, that |q - r| is at most half the distance to each neighbour of r, and the tie rule, and a
+lemma turns the check into `"real64Result"[q] == r`. Its proof needs one fact about the predicate, the spacing of
+the machine reals around a canonical m 2^e, proved once. A value the Wolfram Language computed then enters a proof
+once the kernel has checked its certificate, where today it cannot enter one at all.
+
+The `"Implementation"` of the rounding is trusted for nothing. It is to compute by exact integer arithmetic, the
+exponent from the bit lengths of the numerator and the denominator and the significand by an integer quotient with
+its remainder compared to a half, and not by `N` of a rational, whose rounding is not known to be correct on every
+kernel. Whatever it computes, a wrong value only fails to certify: the kernel's nearness check refuses it, and no
+equation comes of it. The grid test holds the check itself to the machine: on exact ties in the normal and the
+subnormal range, the bound 2^1024 - 2^970 and one unit in the last place to each side of it, 2^-1074 and its half,
+2^53 + 1, and a few hundred random rationals with numerators and denominators past 2^64, the check accepts the value
+the machine gives and refuses that value's two neighbours.
 
 The alternative, defining the rounding by its algorithm and proving the specification, removes the axiom and is the
 later stage: it needs the floor defined from the integers' quotient, which needs laws of `Quotient` the integers'
