@@ -53,10 +53,10 @@ rests on the three axioms.
 
 ## The second slice
 
-The slice is in two parts. The first is in the library: the specification of the rounding as an axiom, the two
-theorems of commutativity, the implementation by integers, and the Boolean of nearness with its grid. The second is
-to come: the order of the rationals as far as the proofs need it, the spacing of the machine reals, the three
-properties of the rounding and the lemma that turns the Boolean into an equation.
+The slice is in two parts. The first is in the library since 0.41.0: the specification of the rounding as an axiom,
+the two theorems of commutativity, the implementation by integers, and the Boolean of nearness with its grid. Of the
+second, 0.43.0 has the order of the rationals and the three properties of the rounding as theorems; the spacing of
+the machine reals and the lemma that turns the Boolean into an equation are to come.
 
 ### Theorems with content
 
@@ -68,12 +68,20 @@ real code that are not true by unfolding.
 
 ### The properties of the rounding
 
-Three properties are wanted, each a statement over the rationals:
+Three properties are theorems of the library, each a statement over the rationals:
 
-- **Identity on the representable.** If q is representable, the rounding of q is q.
-- **Monotone.** If q <= q' and both roundings are values, the rounding of q is at most that of q'.
-- **The half-ulp bound.** The rounding of q is within half a unit in the last place of q: |r - q| <= 2^(e - 1) for
-  the exponent e of r, and at most 2^-1075 in the subnormal range.
+- **Identity on the representable**, `"real64ResultOfReal64"`. The rounding of a machine real is that machine real:
+  `"real64Result"[x[["rational"]]] == "left"[x]` for every x of `"Real64"`.
+- **Monotone**, `"real64ResultMonotone"`. For p <= q, both below B in absolute value, with the results r and s, r is
+  at most s.
+- **The half-spacing bound**, `"real64ResultHalfSpacing"`. For q below B in absolute value with the result r, and
+  machine reals s <= q <= t, twice |q - r| is at most t - s: the result is within half the distance of any two
+  machine reals around q. With s and t the neighbours of q this is the half-ulp bound, |r - q| <= 2^(e - 1) for the
+  exponent e of r and at most 2^-1075 in the subnormal range, once the spacing of the machine reals is a theorem.
+
+With them comes `"real64BelowBound"`: a machine real is below B in absolute value, which no axiom of the reals
+enters. The first property gives theorems of real arithmetic that no computation gives, as that x + 0. is x for every
+machine real x: `"real64Plus"[x[["rational"]], 0]` is the rounding of x + 0, which is x by `"rationalAdditionZero"`.
 
 They follow from one further axiom, not three: the specification of the rounding. With B = 2^1024 - 2^970, the middle
 of the largest real and 2^1024:
@@ -136,9 +144,23 @@ grid test below, u being the spacing at the tie:
 | 2^1024 - 2^970 | no tie: from here on the leave | | the leave |
 | 2^1024 - 2^970 less any positive amount | the largest real, 2^1024 - 2^971, alone | | the largest real |
 
-The three properties are then theorems, by arithmetic of the rationals and this uniqueness; they are the second
-part of the slice, and need more of the order of the rationals than the library has, which proves it reflexive and
-no more.
+The three properties follow by the arithmetic and the order of the rationals. Their closure is
+`<|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature", "real64ResultNearest" -> "Proposition"|>`,
+and that of `"real64BelowBound"` is the soundness of quotients alone. The proofs go through the absolute value:
+|x| <= b is x <= b and -x <= b, two machine reals with the same rational are equal (a subtype's elements are equal
+where their values are, the witness being a proof), and of two machine reals as near to q as each other the one that
+q is not past the middle of is the lower.
+
+The order they need is in `Library/Rationals.wl` from 0.43.0. x <= y says that y - x is in the cone of the
+nonnegative rationals, the classes of a natural number over a positive one. The cone is closed under sums and
+products, a rational or its negation is in it, and only 0 is in it with its negation; so the order is reflexive,
+transitive, antisymmetric and total, sums keep it and products by a nonnegative rational do. The Booleans
+`"rationalLessEqualQ"` and `"rationalLessQ"`, which were this library's, are the rationals' now and decide the order:
+`"rationalLessEqualDecidable"` and `"rationalLessDecidable"` are instances, so `"Decide"` proves an inequality of
+numbers. The strict order x < y is the negation of y <= x, and each reading of it is a theorem. The rationals have
+536 constants where they had 447: 83 new ones and the 6 of the Boolean order that were this library's. The machine
+reals have 80 over the rationals where they had 59, 27 of them new. The hashes of `TypeTheoryEnvironment["Rationals"]`
+and `TypeTheoryEnvironment["MachineReals"]` move with them.
 
 ### The Boolean of nearness
 

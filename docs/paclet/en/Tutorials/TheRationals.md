@@ -20,7 +20,7 @@ The environment, the integers with the rationals:
 rationals = TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 447 constants -->
+<!-- => TypeTheoryEnvironment summary box: 536 constants -->
 
 [Rationals]() is the quotient of pairs by a relation, and shows as ℚ:
 
@@ -168,6 +168,54 @@ rationals["rationalSquareNonnegative"]
 
 <!-- => theorem rationalSquareNonnegative : ∀_x∶ℚ 0 ≤ x x -->
 
+The order is total, and transitive and antisymmetric with it:
+
+```wl
+rationals["rationalLessEqualTotality"]
+```
+
+<!-- => theorem rationalLessEqualTotality : ∀_x∶ℚ ∀_y∶ℚ x ≤ y ∨ y ≤ x -->
+
+Sums keep the order, `"rationalLessEqualAddition"`, and so do products by a rational that is at least 0, `"rationalLessEqualScaling"`. A proof names the law it uses:
+
+```wl
+TypeTheoryProof[
+	ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, x + 1 <= y + 1]],
+	rationals,
+	{"Introduce"[x, y, h], "Exact"["rationalLessEqualAddition"[x, y, 1, h]]}
+]
+```
+
+<!-- => Proof complete -->
+
+Totality gives a proof its two cases:
+
+```wl
+TypeTheoryProof[
+	ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[Not[x <= y], y <= x]],
+	rationals,
+	{"Introduce"[x, y, h], "Cases"["rationalLessEqualTotality"[x, y]], "Introduce"[g], "Exact"["falseElimination"[h[g]]], "Introduce"[g], "Exact"[g]}
+]
+```
+
+<!-- => Proof complete -->
+
+The order is decided by a Boolean the kernel computes, `"rationalLessEqualQ"`, and the strict order by `"rationalLessQ"`, so `"Decide"` proves an inequality of numbers:
+
+```wl
+TypeTheoryProof[Typed[1/3, Rationals] < 1/2, rationals, {"Decide"}]
+```
+
+<!-- => Proof complete -->
+
+The laws of the order rest on the soundness of quotients and on nothing classical:
+
+```wl
+TypeTheoryAxiomClosure[TypeTheoryTerm["rationalLessEqualTotality", rationals]]
+```
+
+<!-- => <|"quotientSoundness" -> "Proposition"|> -->
+
 ## Theorems
 
 The theorems of the rationals are constants named by strings. These are those the rationals add to the integers', each with its statement:
@@ -176,7 +224,7 @@ The theorems of the rationals are constants named by strings. These are those th
 KeyDrop[Information[TypeTheoryEnvironment["Rationals"], "Theorems"], Keys[Information[TypeTheoryEnvironment["Integers"], "Theorems"]]]
 ```
 
-<!-- => <|"integerOfDifference" -> ..., ..., "rationalAdditionCommutativity" -> ∀_x∶ℚ ∀_y∶ℚ x + y == y + x, ...|>, 57 theorems -->
+<!-- => <|"integerOfDifference" -> ..., ..., "rationalAdditionCommutativity" -> ∀_x∶ℚ ∀_y∶ℚ x + y == y + x, ...|>, 153 theorems -->
 
 Distributivity with a factor 1/2 halves a sum:
 

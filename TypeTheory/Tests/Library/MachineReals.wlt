@@ -31,11 +31,11 @@ VerificationTest[
 		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", reals]], TypeTheoryTerm[Integers -> Integers -> ("Integer64" | Failure), reals]],
 		TypeTheoryEnvironment["MachineReal"]["Tag"]
 	},
-	{TypeTheoryEnvironment, 59, {"rationalFloor", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
+	{TypeTheoryEnvironment, 80, {"rationalFloor", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
 	TestID -> "The-machine-reals-are-over-the-rationals-with-three-computed-axioms"
 ]
 
-(* the Boolean order of the rationals, which this library adds, computes in the kernel *)
+(* the Boolean order of the rationals, which the rationals bring, computes here as it does there *)
 VerificationTest[
 	TypeTheoryExpression[NormalForm[TypeTheoryTerm[
 		{
@@ -238,4 +238,69 @@ VerificationTest[
 	{29, {{True, True, True}}},
 	TimeConstraint -> 300,
 	TestID -> "The-kernel-computes-whether-a-machine-real-is-the-rounding-of-a-rational"
+]
+
+(* Three properties of the rounding, proved from its specification: a machine real is its own result; the rounding is
+   monotone; and a result is within half the distance of any two machine reals around the rational, twice its error
+   being at most their difference. A machine real is below the bound of the rounding, which no axiom of the reals
+   enters. The three rest on the specification, with the result it is of and the soundness of quotients. From the first
+   a theorem of real arithmetic follows that no computation gives, x + 0. being x for every machine real x. *)
+VerificationTest[
+	With[{bound = 2^1024 - 2^970},
+		{
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["real64ResultOfReal64", reals]],
+				TypeTheoryTerm[ForAll[{Typed[x, "Real64"]}, "real64Result"[x[["rational"]]] == Typed["left"[x], "Real64" | Failure]], reals]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["real64BelowBound", reals]],
+				TypeTheoryTerm[ForAll[{Typed[x, "Real64"]}, "rationalAbsolute"[x[["rational"]]] < Typed[bound, Rationals]], reals]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["real64ResultMonotone", reals]],
+				TypeTheoryTerm[
+					ForAll[
+						{Typed[p, Rationals], Typed[q, Rationals], Typed[r, "Real64"], Typed[s, "Real64"]},
+						Implies["rationalAbsolute"[p] < Typed[bound, Rationals], Implies["rationalAbsolute"[q] < Typed[bound, Rationals], Implies[p <= q,
+							Implies["real64Result"[p] == Typed["left"[r], "Real64" | Failure], Implies["real64Result"[q] == Typed["left"[s], "Real64" | Failure],
+								r[["rational"]] <= s[["rational"]]]]]]]
+					],
+					reals
+				]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryType[TypeTheoryTerm["real64ResultHalfSpacing", reals]],
+				TypeTheoryTerm[
+					ForAll[
+						{Typed[q, Rationals], Typed[r, "Real64"], Typed[s, "Real64"], Typed[t, "Real64"]},
+						Implies["rationalAbsolute"[q] < Typed[bound, Rationals], Implies["real64Result"[q] == Typed["left"[r], "Real64" | Failure],
+							Implies[s[["rational"]] <= q, Implies[q <= t[["rational"]],
+								"rationalAbsolute"[q - r[["rational"]]] + "rationalAbsolute"[q - r[["rational"]]] <= t[["rational"]] - s[["rational"]]]]]]
+					],
+					reals
+				]
+			],
+			Function[name, KeySort[TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, reals}]]] /@ {"real64ResultOfReal64", "real64ResultMonotone", "real64ResultHalfSpacing", "real64BelowBound"},
+			With[
+				{
+					plusZero = TypeTheoryProof[
+						ForAll[{Typed[x, "Real64"]}, "real64Plus"[x[["rational"]], 0] == Typed["left"[x], "Real64" | Failure]],
+						reals,
+						{
+							"Introduce"[x],
+							"Change"["real64Result"[x[["rational"]] + 0] == Typed["left"[x], "Real64" | Failure]],
+							"Rewrite"["rationalAdditionZero"[x[["rational"]]]],
+							"Exact"["real64ResultOfReal64"[x]]
+						}
+					]
+				},
+				{plusZero["Goals"], KeySort[TypeTheoryAxiomClosure[TypeTheoryTerm["real64PlusZero", TypeTheoryEnvironment[reals, {TypeTheoryTheorem["real64PlusZero", plusZero]}]]]]}
+			]
+		}
+	],
+	With[{specified = <|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature", "real64ResultNearest" -> "Proposition"|>},
+		{True, True, True, True, {specified, specified, specified, <|"quotientSoundness" -> "Proposition"|>}, {{}, specified}}
+	],
+	TimeConstraint -> 600,
+	TestID -> "A-machine-real-is-its-own-rounding-which-is-monotone-and-within-half-the-spacing"
 ]

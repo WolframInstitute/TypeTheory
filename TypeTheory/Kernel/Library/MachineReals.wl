@@ -157,65 +157,12 @@ $machineRealDeclarations = With[
 		(* the least significand of a normal real, 2^52, and the middle of the largest real and 2^1024, 2^1024 - 2^970 *)
 		power = 4503599627370496,
 		bound = 2^1024 - 2^970,
+		(* the largest power of 2 a machine real is a multiple of, 2^971 *)
+		top = 2^971,
 		tolerance = 1 / 70368744177664
 	},
 	{
-		(* a Boolean of the integers' order does not depend on which of two equivalent conditions it decides *)
-		TypeTheoryTheorem["integerLessEqualQOfEquivalent",
-			ForAll[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers], Typed[d, Integers]}, Implies[Equivalent[a <= b, c <= d], "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
-			Function[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers], Typed[d, Integers], Typed[h, Equivalent[a <= b, c <= d]]},
-				InductiveRecursor[Booleans][
-					Function[{Typed[x, Booleans]}, Implies["integerLessEqualQ"[a, b] == x, "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
-					Function[{Typed[e, "integerLessEqualQ"[a, b] == "false"]}, InductiveRecursor[Booleans][
-						Function[{Typed[y, Booleans]}, Implies["integerLessEqualQ"[c, d] == y, "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
-						Function[{Typed[f, "integerLessEqualQ"[c, d] == "false"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
-						Function[{Typed[f, "integerLessEqualQ"[c, d] == "true"]},
-							"falseElimination"["integerLessEqualQFalse"[a, b, e][h[["backward"]]["integerLessEqualQTrue"[c, d, f]]]]
-						],
-						"integerLessEqualQ"[c, d]
-					]["equalityReflexivity"["integerLessEqualQ"[c, d]]]],
-					Function[{Typed[e, "integerLessEqualQ"[a, b] == "true"]}, InductiveRecursor[Booleans][
-						Function[{Typed[y, Booleans]}, Implies["integerLessEqualQ"[c, d] == y, "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
-						Function[{Typed[f, "integerLessEqualQ"[c, d] == "false"]},
-							"falseElimination"["integerLessEqualQFalse"[c, d, f][h[["forward"]]["integerLessEqualQTrue"[a, b, e]]]]
-						],
-						Function[{Typed[f, "integerLessEqualQ"[c, d] == "true"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
-						"integerLessEqualQ"[c, d]
-					]["equalityReflexivity"["integerLessEqualQ"[c, d]]]],
-					"integerLessEqualQ"[a, b]
-				]["equalityReflexivity"["integerLessEqualQ"[a, b]]]
-			]
-		],
-		(* of two pairs of one rational, a (d + 1) == c (b + 1), the numerators are at least 0 together: a positive factor
-		   keeps the sign and cancels *)
-		machineTheorem["nonnegativeOfScaledEquation",
-			ForAll[{Typed[a, Integers], Typed[c, Integers], Typed[b, NonNegativeIntegers], Typed[d, NonNegativeIntegers]},
-				Implies[a "integerOfNatural"[d + 1] == c "integerOfNatural"[b + 1], Implies[0 <= a, 0 <= c]]],
-			{"Introduce"[a, c, b, d, h, ha], "Apply"["integerNonnegativeCancellation"[b]],
-				"Rewrite"["integerMultiplicationCommutativity"["integerOfNatural"[b + 1], c]], "Rewrite"[h, "RightToLeft"],
-				"Rewrite"["integerMultiplicationCommutativity"[a, "integerOfNatural"[d + 1]]], "Exact"["integerNonnegativeScaling"[d + 1, ha]]}
-		],
-		TypeTheoryTheorem["rationalNonNegativeRespects",
-			ForAll[{Typed[p, pairs], Typed[q, pairs]}, Implies["rationalRelation"[p, q], Equivalent[0 <= p[[1]], 0 <= q[[1]]]]],
-			Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]},
-				"equivalentIntroduction"[
-					"nonnegativeOfScaledEquation"[p[[1]], q[[1]], p[[2]], q[[2]], e],
-					"nonnegativeOfScaledEquation"[q[[1]], p[[1]], q[[2]], p[[2]], "equalitySymmetry"[e]]
-				]
-			]
-		],
-		(* the Boolean order of the rationals: x is at least 0 where the numerator of a pair of it is, x <= y where y - x
-		   is at least 0, and x < y where y <= x is false *)
-		TypeTheoryDefinition["rationalNonNegativeQ", Typed[
-			Function[{Typed[x, Rationals]}, QuotientLift[
-				Function[{Typed[p, pairs]}, "integerLessEqualQ"[0, p[[1]]]],
-				Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]}, "integerLessEqualQOfEquivalent"[0, p[[1]], 0, q[[1]], "rationalNonNegativeRespects"[p, q, e]]],
-				x
-			]],
-			Rationals -> Booleans
-		]],
-		TypeTheoryDefinition["rationalLessEqualQ", Typed[Function[{Typed[x, Rationals], Typed[y, Rationals]}, "rationalNonNegativeQ"[y - x]], Rationals -> Rationals -> Booleans]],
-		TypeTheoryDefinition["rationalLessQ", Typed[Function[{Typed[x, Rationals], Typed[y, Rationals]}, "not"["rationalLessEqualQ"[y, x]]], Rationals -> Rationals -> Booleans]],
+		(* the absolute value, by the Boolean order of the rationals (Rationals.wl) *)
 		TypeTheoryDefinition["rationalAbsolute", Typed[Function[{Typed[x, Rationals]}, "machineIf"["rationalNonNegativeQ"[x], x, -x]], Rationals -> Rationals]],
 
 		(* the rationals that binary64 represents: m 2^a / 2^b with |m| < 2^53, a <= 971 and b <= 1074. The variable of
@@ -408,6 +355,175 @@ $machineRealDeclarations = With[
 				Typed[tolerance, Rationals] "machineIf"["rationalLessEqualQ"["rationalAbsolute"[x], "rationalAbsolute"[y]], "rationalAbsolute"[y], "rationalAbsolute"[x]]
 			]],
 			Rationals -> Rationals -> Booleans
-		]]
+		]],
+
+		(* The order through the absolute value, equality of machine reals by their values, and three properties of the
+		   rounding from its specification: a machine real is its own result, the rounding is monotone, and a result is within
+		   half the distance of two machine reals that enclose the rational *)
+		machineTheorem["rationalAbsoluteOfNonNegativeQ", ForAll[{Typed[x, Rationals]}, Implies["rationalNonNegativeQ"[x] == "true", "rationalAbsolute"[x] == x]],
+			{"Introduce"[x, e], "Exact"["equalityCongruence"[Function[{Typed[b, Booleans]}, "machineIf"[b, x, -x]], e]]}],
+		machineTheorem["rationalAbsoluteOfNegativeQ", ForAll[{Typed[x, Rationals]}, Implies["rationalNonNegativeQ"[x] == "false", "rationalAbsolute"[x] == -x]],
+			{"Introduce"[x, e], "Exact"["equalityCongruence"[Function[{Typed[b, Booleans]}, "machineIf"[b, x, -x]], e]]}],
+		machineTheorem["rationalAbsoluteNonnegative", ForAll[{Typed[x, Rationals]}, 0 <= "rationalAbsolute"[x]],
+			{"Introduce"[x], "Cases"["booleanCases"["rationalNonNegativeQ"[x]]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNonNegativeQ"[x, e]], "Exact"["rationalNonNegativeQTrue"[x, e]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNegativeQ"[x, e]], "Exact"["rationalNonNegativeQTrue"[-x, "rationalNonNegativeQNegation"[x, e]]]}],
+		machineTheorem["rationalLessEqualAbsolute", ForAll[{Typed[x, Rationals]}, x <= "rationalAbsolute"[x]],
+			{"Introduce"[x], "Cases"["booleanCases"["rationalNonNegativeQ"[x]]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNonNegativeQ"[x, e]], "Exact"["rationalLessEqualReflexivity"[x]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNegativeQ"[x, e]],
+				"Exact"["rationalLessEqualTransitivity"[x, 0, -x,
+					"rationalNonpositiveOfNegation"[x, "rationalNonNegativeQTrue"[-x, "rationalNonNegativeQNegation"[x, e]]],
+					"rationalNonNegativeQTrue"[-x, "rationalNonNegativeQNegation"[x, e]]]]}],
+		machineTheorem["rationalNegationLessEqualAbsolute", ForAll[{Typed[x, Rationals]}, -x <= "rationalAbsolute"[x]],
+			{"Introduce"[x], "Cases"["booleanCases"["rationalNonNegativeQ"[x]]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNonNegativeQ"[x, e]],
+				"Exact"["rationalLessEqualTransitivity"[-x, 0, x, "rationalNegationNonpositive"[x, "rationalNonNegativeQTrue"[x, e]], "rationalNonNegativeQTrue"[x, e]]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNegativeQ"[x, e]], "Exact"["rationalLessEqualReflexivity"[-x]]}],
+		machineTheorem["rationalAbsoluteLessEqual", ForAll[{Typed[x, Rationals], Typed[b, Rationals]}, Implies[x <= b, Implies[-x <= b, "rationalAbsolute"[x] <= b]]],
+			{"Introduce"[x, b, h1, h2], "Cases"["booleanCases"["rationalNonNegativeQ"[x]]],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNonNegativeQ"[x, e]], "Exact"[h1],
+				"Introduce"[e], "Rewrite"["rationalAbsoluteOfNegativeQ"[x, e]], "Exact"[h2]}],
+		machineTheorem["rationalAbsoluteBounds", ForAll[{Typed[x, Rationals], Typed[b, Rationals]}, Implies["rationalAbsolute"[x] <= b, And[x <= b, -x <= b]]],
+			{"Introduce"[x, b, h], "Exact"["andIntroduction"[
+				"rationalLessEqualTransitivity"[x, "rationalAbsolute"[x], b, "rationalLessEqualAbsolute"[x], h],
+				"rationalLessEqualTransitivity"[-x, "rationalAbsolute"[x], b, "rationalNegationLessEqualAbsolute"[x], h]]]}],
+		machineTheorem["rationalAbsoluteOfNonnegative", ForAll[{Typed[x, Rationals]}, Implies[0 <= x, "rationalAbsolute"[x] == x]],
+			{"Introduce"[x, h], "Exact"["rationalAbsoluteOfNonNegativeQ"[x, "rationalNonNegativeQComplete"[x, h]]]}],
+		machineTheorem["rationalAbsoluteOfNonpositive", ForAll[{Typed[x, Rationals]}, Implies[0 <= -x, "rationalAbsolute"[x] == -x]],
+			{"Introduce"[x, h], "Apply"["rationalLessEqualAntisymmetry"],
+				"Exact"["rationalAbsoluteLessEqual"[x, -x, "rationalLessEqualTransitivity"[x, 0, -x, "rationalNonpositiveOfNegation"[x, h], h], "rationalLessEqualReflexivity"[-x]]],
+				"Exact"["rationalNegationLessEqualAbsolute"[x]]}],
+		machineTheorem["rationalHalfSpacingOfNearest",
+			ForAll[{Typed[q, Rationals], Typed[r, Rationals], Typed[s, Rationals], Typed[t, Rationals]},
+				Implies["rationalAbsolute"[q - r] <= "rationalAbsolute"[q - s], Implies["rationalAbsolute"[q - r] <= "rationalAbsolute"[q - t],
+					Implies[s <= q, Implies[q <= t, "rationalAbsolute"[q - r] + "rationalAbsolute"[q - r] <= t - s]]]]],
+			{"Introduce"[q, r, s, t, h1, h2, hs, ht], "Rewrite"["rationalSpacingSum"[q, s, t]], "Apply"["rationalLessEqualSum"],
+				"Rewrite"["rationalAbsoluteOfNonnegative"[q - s, "rationalDifferenceOfLessEqual"[s, q, hs]], "RightToLeft"], "Exact"[h1],
+				"Rewrite"["rationalAbsoluteOfNonpositive"[q - t, "rationalNegatedDifferenceOfLessEqual"[q, t, ht]], "RightToLeft"], "Exact"[h2]}],
+		machineTheorem["rationalZeroOfAbsolute", ForAll[{Typed[x, Rationals]}, Implies["rationalAbsolute"[x] <= 0, x == 0]],
+			{"Introduce"[x, h], "Apply"["rationalLessEqualAntisymmetry"],
+				"Exact"["rationalLessEqualTransitivity"[x, "rationalAbsolute"[x], 0, "rationalLessEqualAbsolute"[x], h]],
+				"Exact"["rationalNonnegativeOfNegation"[x, "rationalLessEqualTransitivity"[-x, "rationalAbsolute"[x], 0, "rationalNegationLessEqualAbsolute"[x], h]]]}],
+		machineTheorem["rationalNearestOfSelf", ForAll[{Typed[q, Rationals], Typed[r, Rationals]}, Implies["rationalAbsolute"[q - r] <= "rationalAbsolute"[q - q], r == q]],
+			{"Introduce"[q, r, h], "Rewrite"["rationalSelfDifference"[q], "At" -> h], "Apply"["rationalEqualOfDifference"], "Exact"["rationalZeroOfAbsolute"[q - r, h]]}],
+		machineTheorem["subtypeEquality",
+			ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[a, A], Typed[b, A], Typed[h, P[a]], Typed[k, P[b]]}, Implies[a == b, "subtype"[a, h] == "subtype"[b, k]]],
+			{"Introduce"[A, P, a, b, h, k, e], "Induction"[e], "Introduce"[k2], "Reflexivity"}],
+		machineTheorem["subtypeExtensionality",
+			ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[P, TypeSpecifier[{A} -> TypeUniverse[0]]], Typed[x, Subtype[P]], Typed[y, Subtype[P]]}, Implies[x[["element"]] == y[["element"]], x == y]],
+			{"Introduce"[A, P, x, y], "Cases"[x], "Introduce"[a, h], "Cases"[y], "Introduce"[b, k, e], "Exact"["subtypeEquality"[a, b, h, k, e]]}],
+		machineTheorem["real64Extensionality", ForAll[{Typed[x, "Real64"], Typed[y, "Real64"]}, Implies[x[["rational"]] == y[["rational"]], x == y]],
+			{"Introduce"[x, y, e], "Exact"["subtypeExtensionality"[x, y, e]]}],
+		machineTheorem["rationalNearerOfLeft", ForAll[{Typed[q, Rationals], Typed[a, Rationals], Typed[b, Rationals]},
+				Implies[a <= b, Implies["rationalAbsolute"[q - b] <= "rationalAbsolute"[q - a], Or[a + b <= q + q, b <= a]]]],
+			{"Introduce"[q, a, b, hab, h], "Cases"["rationalLessEqualTotality"[q, a]],
+				(* q <= a <= b: both distances are the negated differences, and b <= a *)
+				"Introduce"[hq], "Apply"["orIntroductionRight"],
+				"Rewrite"["rationalAbsoluteOfNonpositive"[q - b, "rationalNegatedDifferenceOfLessEqual"[q, b, "rationalLessEqualTransitivity"[q, a, b, hq, hab]]], "At" -> h],
+				"Rewrite"["rationalAbsoluteOfNonpositive"[q - a, "rationalNegatedDifferenceOfLessEqual"[q, a, hq]], "At" -> h],
+				"Apply"["rationalLessEqualOfEqualDifference"[-(q - b), -(q - a)]], "Ring", "Exact"[h],
+				(* a <= q: the distance to a is q - a, and b - q is at most the distance to b *)
+				"Introduce"[hq], "Apply"["orIntroductionLeft"],
+				"Rewrite"["rationalAbsoluteOfNonnegative"[q - a, "rationalDifferenceOfLessEqual"[a, q, hq]], "At" -> h],
+				"Apply"["rationalLessEqualOfEqualDifference"[-(q - b), q - a]], "Ring",
+				"Exact"["rationalLessEqualTransitivity"[-(q - b), "rationalAbsolute"[q - b], q - a, "rationalNegationLessEqualAbsolute"[q - b], h]]}],
+		machineTheorem["real64LeftInjective",
+			ForAll[{Typed[a, "Real64"], Typed[b, "Real64"]}, Implies[Typed["left"[a], "Real64" | Failure] == Typed["left"[b], "Real64" | Failure], a == b]],
+			{"Introduce"[a, b, e], "Exact"["equalityCongruence"[
+				Function[{Typed[z, "Real64" | Failure]}, InductiveRecursor[DisjointUnionType][
+					Function[{Typed[w, "Real64" | Failure]}, "Real64"], Function[{Typed[u, "Real64"]}, u], Function[{Typed[v, Failure]}, a], z]],
+				e]]}],
+		machineTheorem["real64ResultNearestOf",
+			ForAll[{Typed[q, Rationals], Typed[r, "Real64"]},
+				Implies["rationalAbsolute"[q] < Typed[bound, Rationals], Implies["real64Result"[q] == Typed["left"[r], "Real64" | Failure],
+					ForAll[{Typed[u, "Real64"]}, "rationalAbsolute"[q - r[["rational"]]] <= "rationalAbsolute"[q - u[["rational"]]]]]]],
+			{"Introduce"[q, r, hb, e, u], "Cases"["andEliminationRight"["real64ResultNearest"[q]][hb]], "Introduce"[r1, c],
+				"Rewrite"["real64LeftInjective"[r, r1, "equalityTransitivity"["equalitySymmetry"[e], "andEliminationLeft"[c]]]],
+				"Exact"["andEliminationLeft"["andEliminationRight"[c]][u]]}],
+		machineTheorem["real64ResultHalfSpacing",
+			ForAll[{Typed[q, Rationals], Typed[r, "Real64"], Typed[s, "Real64"], Typed[t, "Real64"]},
+				Implies["rationalAbsolute"[q] < Typed[bound, Rationals], Implies["real64Result"[q] == Typed["left"[r], "Real64" | Failure],
+					Implies[s[["rational"]] <= q, Implies[q <= t[["rational"]],
+						"rationalAbsolute"[q - r[["rational"]]] + "rationalAbsolute"[q - r[["rational"]]] <= t[["rational"]] - s[["rational"]]]]]]],
+			{"Introduce"[q, r, s, t, hb, e, hs, ht],
+				"Exact"["rationalHalfSpacingOfNearest"[q, r[["rational"]], s[["rational"]], t[["rational"]], "real64ResultNearestOf"[q, r, hb, e, s], "real64ResultNearestOf"[q, r, hb, e, t], hs, ht]]}],
+		machineTheorem["real64ResultOfRepresentable",
+			ForAll[{Typed[x, "Real64"]}, Implies["rationalAbsolute"[x[["rational"]]] < Typed[bound, Rationals], "real64Result"[x[["rational"]]] == Typed["left"[x], "Real64" | Failure]]],
+			{"Introduce"[x, hb], "Cases"["andEliminationRight"["real64ResultNearest"[x[["rational"]]]][hb]], "Introduce"[r, c],
+				"Rewrite"["andEliminationLeft"[c]],
+				"Rewrite"["real64Extensionality"[r, x, "rationalNearestOfSelf"[x[["rational"]], r[["rational"]], "andEliminationLeft"["andEliminationRight"[c]][x]]]]}],
+		(* the mirror of the lemma before: at least as near to the lower one, q is at most the middle *)
+		machineTheorem["rationalNearerOfRight", ForAll[{Typed[q, Rationals], Typed[a, Rationals], Typed[b, Rationals]},
+				Implies[a <= b, Implies["rationalAbsolute"[q - a] <= "rationalAbsolute"[q - b], Or[q + q <= a + b, b <= a]]]],
+			{"Introduce"[q, a, b, hab, h], "Cases"["rationalLessEqualTotality"[b, q]],
+				"Introduce"[hq], "Apply"["orIntroductionRight"],
+				"Rewrite"["rationalAbsoluteOfNonnegative"[q - a, "rationalDifferenceOfLessEqual"[a, q, "rationalLessEqualTransitivity"[a, b, q, hab, hq]]], "At" -> h],
+				"Rewrite"["rationalAbsoluteOfNonnegative"[q - b, "rationalDifferenceOfLessEqual"[b, q, hq]], "At" -> h],
+				"Apply"["rationalLessEqualOfEqualDifference"[q - a, q - b]], "Ring", "Exact"[h],
+				"Introduce"[hq], "Apply"["orIntroductionLeft"],
+				"Rewrite"["rationalAbsoluteOfNonpositive"[q - b, "rationalNegatedDifferenceOfLessEqual"[q, b, hq]], "At" -> h],
+				"Apply"["rationalLessEqualOfEqualDifference"[q - a, -(q - b)]], "Ring",
+				"Exact"["rationalLessEqualTransitivity"[q - a, "rationalAbsolute"[q - a], -(q - b), "rationalLessEqualAbsolute"[q - a], h]]}],
+		machineTheorem["rationalNearestMonotone", ForAll[{Typed[p, Rationals], Typed[q, Rationals], Typed[a, Rationals], Typed[b, Rationals]},
+				Implies[p <= q, Implies["rationalAbsolute"[p - b] <= "rationalAbsolute"[p - a], Implies["rationalAbsolute"[q - a] <= "rationalAbsolute"[q - b], Implies[a <= b, Or[b <= a, p == q]]]]]],
+			{"Introduce"[p, q, a, b, hpq, n1, n2, hab],
+				"Cases"["rationalNearerOfLeft"[p, a, b, hab, n1]],
+				"Introduce"[h1], "Cases"["rationalNearerOfRight"[q, a, b, hab, n2]],
+				"Introduce"[h2], "Apply"["orIntroductionRight"], "Apply"["rationalLessEqualAntisymmetry"], "Exact"[hpq],
+				"Exact"["rationalDoubleLessEqual"[q, p, "rationalLessEqualTransitivity"[q + q, a + b, p + p, h2, h1]]],
+				"Introduce"[h2], "Exact"["orIntroductionLeft"[h2]],
+				"Introduce"[h1], "Exact"["orIntroductionLeft"[h1]]}],
+		machineTheorem["real64ResultMonotone",
+			ForAll[{Typed[p, Rationals], Typed[q, Rationals], Typed[r, "Real64"], Typed[s, "Real64"]},
+				Implies["rationalAbsolute"[p] < Typed[bound, Rationals], Implies["rationalAbsolute"[q] < Typed[bound, Rationals], Implies[p <= q,
+					Implies["real64Result"[p] == Typed["left"[r], "Real64" | Failure], Implies["real64Result"[q] == Typed["left"[s], "Real64" | Failure],
+						r[["rational"]] <= s[["rational"]]]]]]]],
+			{"Introduce"[p, q, r, s, hp, hq, hpq, ep, eq],
+				"Cases"["rationalLessEqualTotality"[r[["rational"]], s[["rational"]]]],
+				"Introduce"[h], "Exact"[h],
+				"Introduce"[h], "Cases"["rationalNearestMonotone"[p, q, s[["rational"]], r[["rational"]], hpq,
+					"real64ResultNearestOf"[p, r, hp, ep, s], "real64ResultNearestOf"[q, s, hq, eq, r], h]],
+				"Introduce"[g], "Exact"[g],
+				"Introduce"[g],
+				"Rewrite"["real64LeftInjective"[r, s, "equalityTransitivity"["equalitySymmetry"[ep], "equalityTransitivity"["equalityCongruence"[Function[{Typed[z, Rationals]}, "real64Result"[z]], g], eq]]]],
+				"Exact"["rationalLessEqualReflexivity"[s[["rational"]]]]}],
+		machineTheorem["rationalScaledBound",
+			ForAll[{Typed[q, Rationals], Typed[c, Rationals], Typed[u, Rationals], Typed[v, Rationals], Typed[t, Rationals], Typed[w, Rationals]},
+				Implies[q c == u v, Implies[1 <= c, Implies[0 <= v, Implies[v <= t, Implies[u <= w, Implies[-w <= u, Implies[0 <= w, "rationalAbsolute"[q] <= w t]]]]]]]],
+			{"Introduce"[q, c, u, v, t, w, e, hc, hv, hvt, huw, hwu, hw], "Apply"["rationalAbsoluteLessEqual"],
+				"Exact"["rationalScaledUpperBound"[q, c, u, v, t, w, e, hc, hv, hvt, huw, hw]],
+				"Apply"["rationalScaledUpperBound"[-q, c, -u, v, t, w, "rationalNegatedScaled"[q, c, u, v, e], hc, hv, hvt]],
+				"Rewrite"["rationalNegationNegation"[w], "RightToLeft"], "Exact"["rationalLessEqualNegation"[-w, u, hwu]],
+				"Exact"[hw]}],
+		(* the witness of a machine real bounds its value: q 2^b == m 2^a with |m| <= 2^53 - 1 and a <= 971 *)
+		machineTheorem["real64RepresentableBound",
+			ForAll[{Typed[q, Rationals], Typed[m, Integers], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]},
+				Implies[q "rationalOfInteger"["integerOfNatural"[2^b]] == "rationalOfInteger"[m "integerOfNatural"[2^a]],
+					Implies[Typed[-mantissa, Integers] <= m, Implies[m <= Typed[mantissa, Integers], Implies[a <= 971,
+						"rationalAbsolute"[q] <= Typed[mantissa, Rationals] Typed[top, Rationals]]]]]],
+			{"Introduce"[q, m, a, b, e, h1, h2, ha],
+				"Apply"["rationalScaledBound"[q, "rationalOfInteger"["integerOfNatural"[2^b]], "rationalOfInteger"[m], "rationalOfInteger"["integerOfNatural"[2^a]], Typed[top, Rationals], Typed[mantissa, Rationals]]],
+				(* q 2^b == m 2^a, the rational of the product being the product of the rationals *)
+				"Exact"["equalityTransitivity"[e, "rationalOfIntegerMultiplication"[m, "integerOfNatural"[2^a]]]],
+				(* 1 <= 2^b *)
+				"Exact"["rationalOfIntegerMonotone"["integerOfNatural"[1], "integerOfNatural"[2^b], "integerOfNaturalMonotone"[1, 2^b, "powerOfTwoPositive"[b]]]],
+				(* 0 <= 2^a *)
+				"Exact"["rationalOfIntegerMonotone"["integerOfNatural"[0], "integerOfNatural"[2^a], "integerOfNaturalMonotone"[0, 2^a, "lessEqualZero"[2^a]]]],
+				(* 2^a <= 2^971 *)
+				"Exact"["rationalOfIntegerMonotone"["integerOfNatural"[2^a], "integerOfNatural"[2^971], "integerOfNaturalMonotone"[2^a, 2^971, "powerOfTwoMonotone"[a, 971, ha]]]],
+				(* m <= 2^53 - 1 and -(2^53 - 1) <= m *)
+				"Exact"["rationalOfIntegerMonotone"[m, Typed[mantissa, Integers], h2]],
+				"Exact"["rationalOfIntegerMonotone"[Typed[-mantissa, Integers], m, h1]],
+				"Decide"}],
+		machineTheorem["real64BelowBound", ForAll[{Typed[x, "Real64"]}, "rationalAbsolute"[x[["rational"]]] < Typed[bound, Rationals]],
+			{"Introduce"[x], "Cases"[x], "Introduce"[q, w], "Cases"[w], "Introduce"[m, w2], "Cases"[w2], "Introduce"[a, w3], "Cases"[w3], "Introduce"[b, c],
+				"Change"["rationalAbsolute"[q] < Typed[bound, Rationals]],
+				"Apply"["rationalLessOfLessEqualLess"["rationalAbsolute"[q], Typed[mantissa, Rationals] Typed[top, Rationals], Typed[bound, Rationals]]],
+				"Exact"["real64RepresentableBound"[q, m, a, b, "andEliminationLeft"[c], "andEliminationLeft"["andEliminationRight"[c]],
+					"andEliminationLeft"["andEliminationRight"["andEliminationRight"[c]]], "andEliminationLeft"["andEliminationRight"["andEliminationRight"["andEliminationRight"[c]]]]]],
+				"Decide"}],
+		machineTheorem["real64ResultOfReal64", ForAll[{Typed[x, "Real64"]}, "real64Result"[x[["rational"]]] == Typed["left"[x], "Real64" | Failure]],
+			{"Introduce"[x], "Exact"["real64ResultOfRepresentable"[x, "real64BelowBound"[x]]]}]
 	}
 ]

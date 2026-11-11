@@ -37,6 +37,10 @@ Versions 0.35.0 to 0.42.1.
   proved commutative. `"real64NearestQ"` is the Boolean the kernel computes for a rational and a machine real,
   whether the real is the rounding of the rational; `scripts/real64_nearest_grid.wl` holds it to the machine. The
   implementation of the rounding computes by integers.
+- **The order of the rationals.** It is total, transitive and antisymmetric, sums keep it and so do products by a
+  nonnegative rational, and its Booleans decide it, so `"Decide"` proves an inequality of numbers. From it, three
+  properties of the rounding of the machine reals are theorems: a machine real is its own rounding, the rounding is
+  monotone, and a result is within half the distance of any two machine reals around the rational.
 - `"Ring"` proves an equation of rationals from the rationals' own laws, as it does for integers: a term that is no
   sum or product is an atom, and an identity in four variables, which through the classes of pairs took gigabytes,
   takes hundredths of a second, and one that does not hold is refused at once. An equation that holds by the

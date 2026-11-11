@@ -1110,5 +1110,356 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 			]],
 			x
 		]]
-	]
+	],
+
+	(* a Boolean of the integers' order does not depend on which of two equivalent conditions it decides *)
+	TypeTheoryTheorem["integerLessEqualQOfEquivalent",
+		ForAll[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers], Typed[d, Integers]}, Implies[Equivalent[a <= b, c <= d], "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
+		Function[{Typed[a, Integers], Typed[b, Integers], Typed[c, Integers], Typed[d, Integers], Typed[h, Equivalent[a <= b, c <= d]]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[x, Booleans]}, Implies["integerLessEqualQ"[a, b] == x, "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
+				Function[{Typed[e, "integerLessEqualQ"[a, b] == "false"]}, InductiveRecursor[Booleans][
+					Function[{Typed[y, Booleans]}, Implies["integerLessEqualQ"[c, d] == y, "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
+					Function[{Typed[f, "integerLessEqualQ"[c, d] == "false"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
+					Function[{Typed[f, "integerLessEqualQ"[c, d] == "true"]},
+						"falseElimination"["integerLessEqualQFalse"[a, b, e][h[["backward"]]["integerLessEqualQTrue"[c, d, f]]]]
+					],
+					"integerLessEqualQ"[c, d]
+				]["equalityReflexivity"["integerLessEqualQ"[c, d]]]],
+				Function[{Typed[e, "integerLessEqualQ"[a, b] == "true"]}, InductiveRecursor[Booleans][
+					Function[{Typed[y, Booleans]}, Implies["integerLessEqualQ"[c, d] == y, "integerLessEqualQ"[a, b] == "integerLessEqualQ"[c, d]]],
+					Function[{Typed[f, "integerLessEqualQ"[c, d] == "false"]},
+						"falseElimination"["integerLessEqualQFalse"[c, d, f][h[["forward"]]["integerLessEqualQTrue"[a, b, e]]]]
+					],
+					Function[{Typed[f, "integerLessEqualQ"[c, d] == "true"]}, "equalityTransitivity"[e, "equalitySymmetry"[f]]],
+					"integerLessEqualQ"[c, d]
+				]["equalityReflexivity"["integerLessEqualQ"[c, d]]]],
+				"integerLessEqualQ"[a, b]
+			]["equalityReflexivity"["integerLessEqualQ"[a, b]]]
+		]
+	],
+	(* of two pairs of one rational, a (d + 1) == c (b + 1), the numerators are at least 0 together: a positive factor
+	   keeps the sign and cancels *)
+	rationalTheorem["nonnegativeOfScaledEquation",
+		ForAll[{Typed[a, Integers], Typed[c, Integers], Typed[b, NonNegativeIntegers], Typed[d, NonNegativeIntegers]},
+			Implies[a "integerOfNatural"[d + 1] == c "integerOfNatural"[b + 1], Implies[0 <= a, 0 <= c]]],
+		{"Introduce"[a, c, b, d, h, ha], "Apply"["integerNonnegativeCancellation"[b]],
+			"Rewrite"["integerMultiplicationCommutativity"["integerOfNatural"[b + 1], c]], "Rewrite"[h, "RightToLeft"],
+			"Rewrite"["integerMultiplicationCommutativity"[a, "integerOfNatural"[d + 1]]], "Exact"["integerNonnegativeScaling"[d + 1, ha]]}
+	],
+	TypeTheoryTheorem["rationalNonNegativeRespects",
+		ForAll[{Typed[p, pairs], Typed[q, pairs]}, Implies["rationalRelation"[p, q], Equivalent[0 <= p[[1]], 0 <= q[[1]]]]],
+		Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]},
+			"equivalentIntroduction"[
+				"nonnegativeOfScaledEquation"[p[[1]], q[[1]], p[[2]], q[[2]], e],
+				"nonnegativeOfScaledEquation"[q[[1]], p[[1]], q[[2]], p[[2]], "equalitySymmetry"[e]]
+			]
+		]
+	],
+	(* the Boolean order of the rationals: x is at least 0 where the numerator of a pair of it is, x <= y where y - x
+	   is at least 0, and x < y where y <= x is false *)
+	TypeTheoryDefinition["rationalNonNegativeQ", Typed[
+		Function[{Typed[x, Rationals]}, QuotientLift[
+			Function[{Typed[p, pairs]}, "integerLessEqualQ"[0, p[[1]]]],
+			Function[{Typed[p, pairs], Typed[q, pairs], Typed[e, "rationalRelation"[p, q]]}, "integerLessEqualQOfEquivalent"[0, p[[1]], 0, q[[1]], "rationalNonNegativeRespects"[p, q, e]]],
+			x
+		]],
+		Rationals -> Booleans
+	]],
+	TypeTheoryDefinition["rationalLessEqualQ", Typed[Function[{Typed[x, Rationals], Typed[y, Rationals]}, "rationalNonNegativeQ"[y - x]], Rationals -> Rationals -> Booleans]],
+	TypeTheoryDefinition["rationalLessQ", Typed[Function[{Typed[x, Rationals], Typed[y, Rationals]}, "not"["rationalLessEqualQ"[y, x]]], Rationals -> Rationals -> Booleans]],
+
+	(* The order: the nonnegative rationals are closed under sum and product, a rational or its negation is one, and
+	   only 0 is both; the Booleans decide it. The order is total and agrees with sum and product, and the strict order is
+	   its negation turned round. *)
+	TypeTheoryTheorem["integerLessEqualQComplete",
+		ForAll[{Typed[x, Integers], Typed[y, Integers]}, Implies[x <= y, "integerLessEqualQ"[x, y] == "true"]],
+		Function[{Typed[x, Integers], Typed[y, Integers], Typed[h, x <= y]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[b, Booleans]}, Implies["integerLessEqualQ"[x, y] == b, "integerLessEqualQ"[x, y] == "true"]],
+				Function[{Typed[e, "integerLessEqualQ"[x, y] == "false"]}, "falseElimination"["integerLessEqualQFalse"[x, y, e][h]]],
+				Function[{Typed[e, "integerLessEqualQ"[x, y] == "true"]}, e],
+				"integerLessEqualQ"[x, y]
+			]["equalityReflexivity"["integerLessEqualQ"[x, y]]]
+		]
+	],
+	rationalTheorem["rationalNonnegativeClass",
+		ForAll[{Typed[p, pairs], Typed[k, NonNegativeIntegers]}, Implies[p[[1]] == 0 + "integerOfNatural"[k], "rationalOfPair"[p] == 0 + "rationalOfPair"["pair"["integerOfNatural"[k], p[[2]]]]]],
+		{"Introduce"[p, k, h], "Apply"["quotientSoundness"], "PolynomialReduce"}],
+	rationalTheorem["rationalNonNegativeQTrue",
+		ForAll[{Typed[x, Rationals]}, Implies["rationalNonNegativeQ"[x] == "true", 0 <= x]],
+		{"Introduce"[x], "Induction"[x], "Introduce"[p, h],
+			"Exact"[InductiveRecursor[Exists][
+				Function[{Typed[o, 0 <= p[[1]]]}, 0 <= "rationalOfPair"[p]],
+				Function[{Typed[k, NonNegativeIntegers], Typed[e, p[[1]] == 0 + "integerOfNatural"[k]]},
+					"existsIntroduction"[k, "existsIntroduction"[p[[2]], "rationalNonnegativeClass"[p, k, e]]]
+				],
+				"integerLessEqualQTrue"[0, p[[1]], h]
+			]]}],
+	rationalTheorem["rationalConeNonNegativeQ",
+		ForAll[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, "rationalNonNegativeQ"["rationalOfPair"["pair"["integerOfNatural"[n], d]]] == "true"],
+		{"Introduce"[n, d], "Change"["integerLessEqualQ"[0, "integerOfNatural"[n]] == "true"], "Apply"["integerLessEqualQComplete"],
+			"Exact"["existsIntroduction"[n, "equalitySymmetry"["integerAdditionZeroLeft"["integerOfNatural"[n]]]]]}],
+	TypeTheoryTheorem["rationalNonNegativeQFalse",
+		ForAll[{Typed[x, Rationals]}, Implies["rationalNonNegativeQ"[x] == "false", Not[0 <= x]]],
+		Function[{Typed[x, Rationals], Typed[e, "rationalNonNegativeQ"[x] == "false"], Typed[le, 0 <= x]},
+			InductiveRecursor[Exists][
+				Function[{Typed[w, 0 <= x]}, False],
+				Function[{Typed[n, NonNegativeIntegers], Typed[hn, Exists[{Typed[d, NonNegativeIntegers]}, x == 0 + "rationalOfPair"["pair"["integerOfNatural"[n], d]]]]},
+					InductiveRecursor[Exists][
+						Function[{Typed[w, Exists[{Typed[d, NonNegativeIntegers]}, x == 0 + "rationalOfPair"["pair"["integerOfNatural"[n], d]]]]}, False],
+						Function[{Typed[d, NonNegativeIntegers], Typed[h, x == 0 + "rationalOfPair"["pair"["integerOfNatural"[n], d]]]},
+							"falseNotTrue"["equalityTransitivity"[
+								"equalitySymmetry"[e],
+								"equalityTransitivity"[
+									"equalityCongruence"[Function[{Typed[z, Rationals]}, "rationalNonNegativeQ"[z]], "equalityTransitivity"[h, "rationalAdditionZeroLeft"["rationalOfPair"["pair"["integerOfNatural"[n], d]]]]],
+									"rationalConeNonNegativeQ"[n, d]
+								]
+							]]
+						],
+						hn
+					]
+				],
+				le
+			]
+		]
+	],
+	rationalTheorem["rationalSubtractionAddition", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, y == (y - x) + x], {"Introduce"[x, y], "Ring"}],
+	rationalTheorem["rationalConeShift", ForAll[{Typed[x, Rationals], Typed[c, Rationals]}, (0 + c) + x == x + c], {"Introduce"[x, c], "Ring"}],
+	rationalTheorem["rationalConeDifference", ForAll[{Typed[x, Rationals], Typed[c, Rationals]}, (x + c) - x == 0 + c], {"Introduce"[x, c], "Ring"}],
+	rationalTheorem["rationalConeAddition",
+		ForAll[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[e, NonNegativeIntegers]},
+			"rationalOfPair"["pair"["integerOfNatural"[n], d]] + "rationalOfPair"["pair"["integerOfNatural"[m], e]] == "rationalOfPair"["pair"["integerOfNatural"[n (e + 1) + m (d + 1)], d e + d + e]]],
+		{"Introduce"[n, d, m, e], "Apply"["quotientSoundness"], "Ring"}],
+	rationalTheorem["rationalConeMultiplication",
+		ForAll[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[e, NonNegativeIntegers]},
+			"rationalOfPair"["pair"["integerOfNatural"[n], d]] "rationalOfPair"["pair"["integerOfNatural"[m], e]] == "rationalOfPair"["pair"["integerOfNatural"[n m], d e + d + e]]],
+		{"Introduce"[n, d, m, e], "Apply"["quotientSoundness"], "Ring"}],
+	rationalTheorem["rationalLessEqualOfDifference", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[0 <= y - x, x <= y]],
+		{"Introduce"[x, y, h], "Cases"[h], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, e],
+			"Exact"["existsIntroduction"[n, "existsIntroduction"[d, "equalityTransitivity"[
+				"rationalSubtractionAddition"[x, y],
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[w, Rationals]}, w + x], e], "rationalConeShift"[x, "rationalOfPair"["pair"["integerOfNatural"[n], d]]]]
+			]]]]}],
+	rationalTheorem["rationalDifferenceOfLessEqual", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, 0 <= y - x]],
+		{"Introduce"[x, y, h], "Cases"[h], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, e],
+			"Exact"["existsIntroduction"[n, "existsIntroduction"[d, "equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[w, Rationals]}, w - x], e],
+				"rationalConeDifference"[x, "rationalOfPair"["pair"["integerOfNatural"[n], d]]]
+			]]]]}],
+	rationalTheorem["rationalLessEqualQTrue", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies["rationalLessEqualQ"[x, y] == "true", x <= y]],
+		{"Introduce"[x, y, h], "Exact"["rationalLessEqualOfDifference"[x, y, "rationalNonNegativeQTrue"[y - x, h]]]}],
+	rationalTheorem["rationalLessEqualQFalse", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies["rationalLessEqualQ"[x, y] == "false", Not[x <= y]]],
+		{"Introduce"[x, y, e, le], "Exact"["rationalNonNegativeQFalse"[y - x, e, "rationalDifferenceOfLessEqual"[x, y, le]]]}],
+	TypeTheoryDefinition["rationalLessEqualDecidable",
+		Function[{Typed[x, Rationals], Typed[y, Rationals]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["rationalLessEqualQ"[x, y] == b, Decidable["rationalLessEqual"[x, y]]]],
+			Function[{Typed[e, "rationalLessEqualQ"[x, y] == "false"]}, "decidableFalse"["rationalLessEqualQFalse"[x, y, e]]],
+			Function[{Typed[e, "rationalLessEqualQ"[x, y] == "true"]}, "decidableTrue"["rationalLessEqualQTrue"[x, y, e]]],
+			"rationalLessEqualQ"[x, y]
+		]["equalityReflexivity"["rationalLessEqualQ"[x, y]]]],
+		"Instance" -> True
+	],
+	rationalTheorem["rationalConeSum", ForAll[{Typed[a, Rationals], Typed[b, Rationals]}, (0 + a) + (0 + b) == 0 + (a + b)], {"Introduce"[a, b], "Ring"}],
+	rationalTheorem["rationalConeProduct", ForAll[{Typed[a, Rationals], Typed[b, Rationals]}, (0 + a) (0 + b) == 0 + a b], {"Introduce"[a, b], "Ring"}],
+	rationalTheorem["rationalNonnegativeAddition", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[0 <= x, Implies[0 <= y, 0 <= x + y]]],
+		{"Introduce"[x, y, hx, hy], "Cases"[hx], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, ex], "Cases"[hy], "Introduce"[m, hm], "Cases"[hm], "Introduce"[e, ey],
+			"Rewrite"[ex], "Rewrite"[ey],
+			"Exact"["existsIntroduction"[n (e + 1) + m (d + 1), "existsIntroduction"[d e + d + e, "equalityTransitivity"[
+				"rationalConeSum"["rationalOfPair"["pair"["integerOfNatural"[n], d]], "rationalOfPair"["pair"["integerOfNatural"[m], e]]],
+				"equalityCongruence"[Function[{Typed[w, Rationals]}, 0 + w], "rationalConeAddition"[n, d, m, e]]
+			]]]]}],
+	rationalTheorem["rationalNonnegativeMultiplication", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[0 <= x, Implies[0 <= y, 0 <= x y]]],
+		{"Introduce"[x, y, hx, hy], "Cases"[hx], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, ex], "Cases"[hy], "Introduce"[m, hm], "Cases"[hm], "Introduce"[e, ey],
+			"Rewrite"[ex], "Rewrite"[ey],
+			"Exact"["existsIntroduction"[n m, "existsIntroduction"[d e + d + e, "equalityTransitivity"[
+				"rationalConeProduct"["rationalOfPair"["pair"["integerOfNatural"[n], d]], "rationalOfPair"["pair"["integerOfNatural"[m], e]]],
+				"equalityCongruence"[Function[{Typed[w, Rationals]}, 0 + w], "rationalConeMultiplication"[n, d, m, e]]
+			]]]]}],
+	rationalTheorem["rationalDifferenceSum", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, z - x == (y - x) + (z - y)], {"Introduce"[x, y, z], "Ring"}],
+	rationalTheorem["rationalDifferenceShift", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, (y + z) - (x + z) == y - x], {"Introduce"[x, y, z], "Ring"}],
+	rationalTheorem["rationalDifferenceNegation", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, (-x) - (-y) == y - x], {"Introduce"[x, y], "Ring"}],
+	rationalTheorem["rationalDifferenceScale", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, "rationalSubtraction"[y z, x z] == (y - x) z], {"Introduce"[x, y, z], "Ring"}],
+	rationalTheorem["rationalDifferenceReverse", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, x - y == -(y - x)], {"Introduce"[x, y], "Ring"}],
+	rationalTheorem["rationalLessEqualTransitivity", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x <= y, Implies[y <= z, x <= z]]],
+		{"Introduce"[x, y, z, hxy, hyz], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalDifferenceSum"[x, y, z]],
+			"Exact"["rationalNonnegativeAddition"[y - x, z - y, "rationalDifferenceOfLessEqual"[x, y, hxy], "rationalDifferenceOfLessEqual"[y, z, hyz]]]}],
+	rationalTheorem["rationalLessEqualAddition", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x <= y, x + z <= y + z]],
+		{"Introduce"[x, y, z, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalDifferenceShift"[x, y, z]], "Exact"["rationalDifferenceOfLessEqual"[x, y, h]]}],
+	rationalTheorem["rationalLessEqualNegation", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, -y <= -x]],
+		{"Introduce"[x, y, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalDifferenceNegation"[x, y]], "Exact"["rationalDifferenceOfLessEqual"[x, y, h]]}],
+	rationalTheorem["rationalLessEqualScaling", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[0 <= z, Implies[x <= y, x z <= y z]]],
+		{"Introduce"[x, y, z, hz, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalDifferenceScale"[x, y, z]],
+			"Exact"["rationalNonnegativeMultiplication"[y - x, z, "rationalDifferenceOfLessEqual"[x, y, h], hz]]}],
+	rationalTheorem["integerPairLessOrder", ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[m + 0 < 0 + k, 0 + m <= k + 0]], {"Introduce"[m, k, h], "LinearArithmetic"}],
+	rationalTheorem["integerNonNegativeQNegation", ForAll[{Typed[z, Integers]}, Implies["integerLessEqualQ"[0, z] == "false", "integerLessEqualQ"[0, -z] == "true"]],
+		{"Introduce"[z], "Induction"[z], "Introduce"[r, h], "Change"["lessEqual"[0 + r[[1]], r[[2]] + 0] == "true"], "Apply"["lessEqualComplete"],
+			"Exact"[InductiveRecursor[Or][
+				Function[{Typed[o, Or[0 + r[[2]] <= r[[1]] + 0, r[[1]] + 0 < 0 + r[[2]]]]}, 0 + r[[1]] <= r[[2]] + 0],
+				Function[{Typed[le, 0 + r[[2]] <= r[[1]] + 0]}, "falseElimination"["lessEqualFalse"[0 + r[[2]], r[[1]] + 0, h][le]]],
+				Function[{Typed[lt, r[[1]] + 0 < 0 + r[[2]]]}, "integerPairLessOrder"[r[[1]], r[[2]], lt]],
+				"lessEqualTotality"[0 + r[[2]], r[[1]] + 0]
+			]]}],
+	rationalTheorem["rationalNonNegativeQNegation", ForAll[{Typed[x, Rationals]}, Implies["rationalNonNegativeQ"[x] == "false", "rationalNonNegativeQ"[-x] == "true"]],
+		{"Introduce"[x], "Induction"[x], "Introduce"[p, h], "Exact"["integerNonNegativeQNegation"[p[[1]], h]]}],
+	TypeTheoryTheorem["rationalNonnegativeTotality",
+		ForAll[{Typed[x, Rationals]}, Or[0 <= x, 0 <= -x]],
+		Function[{Typed[x, Rationals]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["rationalNonNegativeQ"[x] == b, Or[0 <= x, 0 <= -x]]],
+			Function[{Typed[e, "rationalNonNegativeQ"[x] == "false"]}, "orIntroductionRight"["rationalNonNegativeQTrue"[-x, "rationalNonNegativeQNegation"[x, e]]]],
+			Function[{Typed[e, "rationalNonNegativeQ"[x] == "true"]}, "orIntroductionLeft"["rationalNonNegativeQTrue"[x, e]]],
+			"rationalNonNegativeQ"[x]
+		]["equalityReflexivity"["rationalNonNegativeQ"[x]]]]
+	],
+	rationalTheorem["rationalNegatedDifference", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[0 <= -(y - x), 0 <= x - y]], {"Introduce"[x, y, h], "Rewrite"["rationalDifferenceReverse"[x, y]], "Exact"[h]}],
+	TypeTheoryTheorem["rationalLessEqualTotality",
+		ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Or[x <= y, y <= x]],
+		Function[{Typed[x, Rationals], Typed[y, Rationals]}, InductiveRecursor[Or][
+			Function[{Typed[o, Or[0 <= y - x, 0 <= -(y - x)]]}, Or[x <= y, y <= x]],
+			Function[{Typed[h, 0 <= y - x]}, "orIntroductionLeft"["rationalLessEqualOfDifference"[x, y, h]]],
+			Function[{Typed[h, 0 <= -(y - x)]}, "orIntroductionRight"["rationalLessEqualOfDifference"[y, x, "rationalNegatedDifference"[x, y, h]]]],
+			"rationalNonnegativeTotality"[y - x]
+		]]
+	],
+	rationalTheorem["integerPairAntisymmetry", ForAll[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[0 + k <= m + 0, Implies[0 + m <= k + 0, m + 0 == 0 + k]]],
+		{"Introduce"[m, k, h1, h2], "LinearArithmetic"}],
+	rationalTheorem["integerZeroOfSigns", ForAll[{Typed[z, Integers]}, Implies["integerLessEqualQ"[0, z] == "true", Implies["integerLessEqualQ"[0, -z] == "true", z == 0]]],
+		{"Introduce"[z], "Induction"[z], "Introduce"[r, h1, h2], "Apply"["quotientSoundness"],
+			"Exact"["integerPairAntisymmetry"[r[[1]], r[[2]], "lessEqualTrue"[0 + r[[2]], r[[1]] + 0, h1], "lessEqualTrue"[0 + r[[1]], r[[2]] + 0, h2]]]}],
+	TypeTheoryTheorem["rationalNonNegativeQComplete",
+		ForAll[{Typed[x, Rationals]}, Implies[0 <= x, "rationalNonNegativeQ"[x] == "true"]],
+		Function[{Typed[x, Rationals], Typed[h, 0 <= x]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[b, Booleans]}, Implies["rationalNonNegativeQ"[x] == b, "rationalNonNegativeQ"[x] == "true"]],
+				Function[{Typed[e, "rationalNonNegativeQ"[x] == "false"]}, "falseElimination"["rationalNonNegativeQFalse"[x, e][h]]],
+				Function[{Typed[e, "rationalNonNegativeQ"[x] == "true"]}, e],
+				"rationalNonNegativeQ"[x]
+			]["equalityReflexivity"["rationalNonNegativeQ"[x]]]
+		]
+	],
+	rationalTheorem["rationalZeroOfSigns", ForAll[{Typed[x, Rationals]}, Implies["rationalNonNegativeQ"[x] == "true", Implies["rationalNonNegativeQ"[-x] == "true", x == 0]]],
+		{"Introduce"[x], "Induction"[x], "Introduce"[p, h1, h2], "Exact"["zeroClass"[p, "integerZeroOfSigns"[p[[1]], h1, h2]]]}],
+	rationalTheorem["rationalNonnegativeAntisymmetry", ForAll[{Typed[x, Rationals]}, Implies[0 <= x, Implies[0 <= -x, x == 0]]],
+		{"Introduce"[x, h1, h2], "Exact"["rationalZeroOfSigns"[x, "rationalNonNegativeQComplete"[x, h1], "rationalNonNegativeQComplete"[-x, h2]]]}],
+	rationalTheorem["rationalEqualOfDifference", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[y - x == 0, x == y]],
+		{"Introduce"[x, y, h], "Rewrite"["rationalSubtractionAddition"[x, y]], "Rewrite"[h], "Exact"["equalitySymmetry"["rationalAdditionZeroLeft"[x]]]}],
+	rationalTheorem["rationalLessEqualAntisymmetry", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, Implies[y <= x, x == y]]],
+		{"Introduce"[x, y, h1, h2], "Apply"["rationalEqualOfDifference"], "Apply"["rationalNonnegativeAntisymmetry"],
+			"Exact"["rationalDifferenceOfLessEqual"[x, y, h1]],
+			"Rewrite"["rationalDifferenceReverse"[x, y], "RightToLeft"], "Exact"["rationalDifferenceOfLessEqual"[y, x, h2]]}],
+	rationalTheorem["booleanCases", ForAll[{Typed[b, Booleans]}, Or[b == "true", b == "false"]],
+		{"Introduce"[b], "Cases"[b], "Exact"["orIntroductionRight"["equalityReflexivity"["false"]]], "Exact"["orIntroductionLeft"["equalityReflexivity"["true"]]]}],
+	rationalTheorem["rationalZeroDifference", ForAll[{Typed[x, Rationals]}, 0 - x == -x], {"Introduce"[x], "Ring"}],
+	rationalTheorem["rationalNegationDifference", ForAll[{Typed[x, Rationals]}, 0 - (-x) == x], {"Introduce"[x], "Ring"}],
+	rationalTheorem["rationalNonpositiveOfNegation", ForAll[{Typed[x, Rationals]}, Implies[0 <= -x, x <= 0]],
+		{"Introduce"[x, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalZeroDifference"[x]], "Exact"[h]}],
+	rationalTheorem["rationalNegationNonpositive", ForAll[{Typed[x, Rationals]}, Implies[0 <= x, -x <= 0]],
+		{"Introduce"[x, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalNegationDifference"[x]], "Exact"[h]}],
+	rationalTheorem["rationalDifferenceLeft", ForAll[{Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, (b + d) - (b + c) == d - c], {"Introduce"[b, c, d], "Ring"}],
+	rationalTheorem["rationalLessEqualAdditionLeft", ForAll[{Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, Implies[c <= d, b + c <= b + d]],
+		{"Introduce"[b, c, d, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalDifferenceLeft"[b, c, d]], "Exact"["rationalDifferenceOfLessEqual"[c, d, h]]}],
+	rationalTheorem["rationalLessEqualSum", ForAll[{Typed[a, Rationals], Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, Implies[a <= b, Implies[c <= d, a + c <= b + d]]],
+		{"Introduce"[a, b, c, d, h1, h2],
+			"Exact"["rationalLessEqualTransitivity"[a + c, b + c, b + d, "rationalLessEqualAddition"[a, b, c, h1], "rationalLessEqualAdditionLeft"[b, c, d, h2]]]}],
+	rationalTheorem["rationalNegatedDifferenceOfLessEqual", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, 0 <= -(x - y)]],
+		{"Introduce"[x, y, h], "Rewrite"["rationalDifferenceReverse"[y, x], "RightToLeft"], "Exact"["rationalDifferenceOfLessEqual"[x, y, h]]}],
+	rationalTheorem["rationalSpacingSum", ForAll[{Typed[q, Rationals], Typed[s, Rationals], Typed[t, Rationals]}, t - s == (q - s) + (-(q - t))], {"Introduce"[q, s, t], "Ring"}],
+	rationalTheorem["rationalNonnegativeOfNegation", ForAll[{Typed[x, Rationals]}, Implies[-x <= 0, 0 <= x]],
+		{"Introduce"[x, h], "Rewrite"["rationalNegationDifference"[x], "RightToLeft"], "Exact"["rationalDifferenceOfLessEqual"[-x, 0, h]]}],
+	rationalTheorem["rationalSelfDifference", ForAll[{Typed[q, Rationals]}, q - q == 0], {"Introduce"[q], "Ring"}],
+	(* the step of linear arithmetic by hand: an inequality from one whose difference is the same *)
+	rationalTheorem["rationalLessEqualOfEqualDifference", ForAll[{Typed[u, Rationals], Typed[v, Rationals], Typed[l, Rationals], Typed[r, Rationals]}, Implies[r - l == v - u, Implies[u <= v, l <= r]]],
+		{"Introduce"[u, v, l, r, e, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"[e], "Exact"["rationalDifferenceOfLessEqual"[u, v, h]]}],
+	rationalTheorem["rationalHalfOfDouble", ForAll[{Typed[x, Rationals]}, (x + x) Typed[1/2, Rationals] == x], {"Introduce"[x], "Ring"}],
+	rationalTheorem["rationalDoubleLessEqual", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x + x <= y + y, x <= y]],
+		{"Introduce"[x, y, h], "Rewrite"["rationalHalfOfDouble"[x], "RightToLeft"], "Rewrite"["rationalHalfOfDouble"[y], "RightToLeft"],
+			"Apply"["rationalLessEqualScaling"], "Decide", "Exact"[h]}],
+	rationalTheorem["rationalLessEqualOfLess", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x < y, x <= y]],
+		{"Introduce"[x, y, h], "Cases"[h], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, e], "Exact"["existsIntroduction"[n + 1, "existsIntroduction"[d, e]]]}],
+	rationalTheorem["rationalPositiveConeNegation", ForAll[{Typed[n, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, "rationalNonNegativeQ"[-"rationalOfPair"["pair"["integerOfNatural"[n + 1], d]]] == "false"],
+		{"Introduce"[n, d], "Reflexivity"}],
+	rationalTheorem["rationalNegatedConeDifference", ForAll[{Typed[x, Rationals], Typed[c, Rationals]}, x - (x + c) == -c], {"Introduce"[x, c], "Ring"}],
+	rationalTheorem["rationalNotLessEqualOfLess", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x < y, Not[y <= x]]],
+		{"Introduce"[x, y, h, le], "Cases"[h], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, e],
+			"Exact"["falseNotTrue"["equalityTransitivity"[
+				"equalitySymmetry"["rationalPositiveConeNegation"[n, d]],
+				"equalityTransitivity"[
+					"equalityCongruence"[Function[{Typed[z, Rationals]}, "rationalNonNegativeQ"[z]], "equalitySymmetry"["rationalNegatedConeDifference"[x, "rationalOfPair"["pair"["integerOfNatural"[n + 1], d]]]]],
+					"equalityTransitivity"[
+						"equalityCongruence"[Function[{Typed[z, Rationals]}, "rationalNonNegativeQ"[x - z]], "equalitySymmetry"[e]],
+						"rationalNonNegativeQComplete"[x - y, "rationalDifferenceOfLessEqual"[y, x, le]]
+					]
+				]
+			]]]}],
+	rationalTheorem["rationalZeroCone", ForAll[{Typed[d, NonNegativeIntegers]}, "rationalOfPair"["pair"["integerOfNatural"[0], d]] == 0],
+		{"Introduce"[d], "Exact"["zeroClass"["pair"["integerOfNatural"[0], d], "equalityReflexivity"["integerOfNatural"[0]]]]}],
+	rationalTheorem["rationalConeZeroLessEqual", ForAll[{Typed[x, Rationals], Typed[d, NonNegativeIntegers]}, x + "rationalOfPair"["pair"["integerOfNatural"[0], d]] <= x],
+		{"Introduce"[x, d], "Rewrite"["rationalZeroCone"[d]], "Rewrite"["rationalAdditionZero"[x]], "Exact"["rationalLessEqualReflexivity"[x]]}],
+	rationalTheorem["rationalLessOfNotLessEqual", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[Not[y <= x], x < y]],
+		{"Introduce"[x, y, h], "Cases"["rationalLessEqualTotality"[x, y]],
+			"Introduce"[le], "Cases"[le], "Introduce"[n, hn], "Cases"[hn], "Introduce"[d, e], "Cases"[n],
+			"Introduce"[e0], "Apply"["falseElimination"], "Apply"[h], "Rewrite"[e0], "Exact"["rationalConeZeroLessEqual"[x, d]],
+			"Introduce"[k, e1], "Exact"["existsIntroduction"[k, "existsIntroduction"[d, e1]]],
+			"Introduce"[le], "Exact"["falseElimination"[h[le]]]}],
+	rationalTheorem["rationalLessOfLessEqualLess", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x <= y, Implies[y < z, x < z]]],
+		{"Introduce"[x, y, z, hxy, hyz], "Apply"["rationalLessOfNotLessEqual"], "Introduce"[hzx],
+			"Exact"["rationalNotLessEqualOfLess"[y, z, hyz, "rationalLessEqualTransitivity"[z, x, y, hzx, hxy]]]}],
+	rationalTheorem["rationalLessOfLessLessEqual", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x < y, Implies[y <= z, x < z]]],
+		{"Introduce"[x, y, z, hxy, hyz], "Apply"["rationalLessOfNotLessEqual"], "Introduce"[hzx],
+			"Exact"["rationalNotLessEqualOfLess"[x, y, hxy, "rationalLessEqualTransitivity"[y, z, x, hyz, hzx]]]}],
+	rationalTheorem["booleanNotTrue", ForAll[{Typed[b, Booleans]}, Implies["not"[b] == "true", b == "false"]],
+		{"Introduce"[b], "Cases"[b], "Introduce"[e], "Reflexivity", "Introduce"[e], "Exact"["falseElimination"["falseNotTrue"[e]]]}],
+	rationalTheorem["booleanNotFalse", ForAll[{Typed[b, Booleans]}, Implies["not"[b] == "false", b == "true"]],
+		{"Introduce"[b], "Cases"[b], "Introduce"[e], "Exact"["falseElimination"["falseNotTrue"["equalitySymmetry"[e]]]], "Introduce"[e], "Reflexivity"}],
+	rationalTheorem["rationalLessQTrue", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies["rationalLessQ"[x, y] == "true", x < y]],
+		{"Introduce"[x, y, h], "Apply"["rationalLessOfNotLessEqual"], "Exact"["rationalLessEqualQFalse"[y, x, "booleanNotTrue"["rationalLessEqualQ"[y, x], h]]]}],
+	rationalTheorem["rationalLessQFalse", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies["rationalLessQ"[x, y] == "false", Not[x < y]]],
+		{"Introduce"[x, y, h, lt], "Exact"["rationalNotLessEqualOfLess"[x, y, lt, "rationalLessEqualQTrue"[y, x, "booleanNotFalse"["rationalLessEqualQ"[y, x], h]]]]}],
+	TypeTheoryDefinition["rationalLessDecidable",
+		Function[{Typed[x, Rationals], Typed[y, Rationals]}, InductiveRecursor[Booleans][
+			Function[{Typed[b, Booleans]}, Implies["rationalLessQ"[x, y] == b, Decidable["rationalLess"[x, y]]]],
+			Function[{Typed[e, "rationalLessQ"[x, y] == "false"]}, "decidableFalse"["rationalLessQFalse"[x, y, e]]],
+			Function[{Typed[e, "rationalLessQ"[x, y] == "true"]}, "decidableTrue"["rationalLessQTrue"[x, y, e]]],
+			"rationalLessQ"[x, y]
+		]["equalityReflexivity"["rationalLessQ"[x, y]]]],
+		"Instance" -> True
+	],
+	(* natural numbers: powers of 2 *)
+	rationalTheorem["powerOfTwoPositive", ForAll[{Typed[k, NonNegativeIntegers]}, 1 <= 2^k],
+		{"Introduce"[k], "Induction"[k], "Decide", "Introduce"[j, ih], "Change"[1 <= 2^j * 2], "LinearArithmetic"}],
+	rationalTheorem["scaleByAtLeastOne", ForAll[{Typed[u, NonNegativeIntegers], Typed[v, NonNegativeIntegers]}, Implies[1 <= v, u <= u * v]],
+		{"Introduce"[u, v, h], "Induction"[u], "LinearArithmetic", "Introduce"[j, ih], "Change"[j + 1 <= (j + 1) * v], "LinearArithmetic"}],
+	rationalTheorem["powerOfTwoMonotone", ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a <= b, 2^a <= 2^b]],
+		{"Introduce"[a, b, h], "Cases"["lessEqualWitness"[a, b, h]], "Introduce"[k, e], "Rewrite"[e], "Rewrite"["powerAddition"[2, a, k]],
+			"Exact"["scaleByAtLeastOne"[2^a, 2^k, "powerOfTwoPositive"[k]]]}],
+	(* the order through the casts *)
+	rationalTheorem["integerOfNaturalMonotone", ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, "integerOfNatural"[m] <= "integerOfNatural"[n]]],
+		{"Introduce"[m, n, h], "Cases"["lessEqualWitness"[m, n, h]], "Introduce"[k, e], "Rewrite"[e],
+			"Exact"["existsIntroduction"[k, "integerOfNaturalAddition"[m, k]]]}],
+	rationalTheorem["rationalOfIntegerMonotone", ForAll[{Typed[m, Integers], Typed[n, Integers]}, Implies[m <= n, "rationalOfInteger"[m] <= "rationalOfInteger"[n]]],
+		{"Introduce"[m, n, h], "Cases"[h], "Introduce"[k, e], "Rewrite"[e],
+			"Exact"["existsIntroduction"[k, "existsIntroduction"[0, "rationalOfIntegerAddition"[m, "integerOfNatural"[k]]]]]}],
+	(* a value below a bound once scaled by a factor of at least 1 is below it *)
+	rationalTheorem["rationalScaledDifference", ForAll[{Typed[x, Rationals], Typed[c, Rationals]}, "rationalSubtraction"[x c, x] == x (c - 1)], {"Introduce"[x, c], "Ring"}],
+	rationalTheorem["rationalBoundOfScaled", ForAll[{Typed[x, Rationals], Typed[c, Rationals], Typed[l, Rationals]}, Implies[1 <= c, Implies[x c <= l, Implies[0 <= l, x <= l]]]],
+		{"Introduce"[x, c, l, hc, h, hl], "Cases"["rationalNonnegativeTotality"[x]],
+			"Introduce"[hx], "Apply"["rationalLessEqualTransitivity"[x, x c, l]],
+			"Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalScaledDifference"[x, c]],
+			"Exact"["rationalNonnegativeMultiplication"[x, c - 1, hx, "rationalDifferenceOfLessEqual"[1, c, hc]]],
+			"Exact"[h],
+			"Introduce"[hx], "Exact"["rationalLessEqualTransitivity"[x, 0, l, "rationalNonpositiveOfNegation"[x, hx], hl]]}],
+	rationalTheorem["rationalDifferenceScaleLeft", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, "rationalSubtraction"[z y, z x] == z (y - x)], {"Introduce"[x, y, z], "Ring"}],
+	rationalTheorem["rationalLessEqualScalingLeft", ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[0 <= z, Implies[x <= y, z x <= z y]]],
+		{"Introduce"[x, y, z, hz, h], "Apply"["rationalLessEqualOfDifference"], "Rewrite"["rationalDifferenceScaleLeft"[x, y, z]],
+			"Exact"["rationalNonnegativeMultiplication"[z, y - x, hz, "rationalDifferenceOfLessEqual"[x, y, h]]]}],
+	rationalTheorem["rationalNegationNegation", ForAll[{Typed[x, Rationals]}, -(-x) == x], {"Introduce"[x], "Ring"}],
+	rationalTheorem["rationalNegationProductLeft", ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, (-x) y == -(x y)], {"Introduce"[x, y], "Ring"}],
+	rationalTheorem["rationalNegatedScaled", ForAll[{Typed[q, Rationals], Typed[c, Rationals], Typed[u, Rationals], Typed[v, Rationals]}, Implies[q c == u v, (-q) c == (-u) v]],
+		{"Introduce"[q, c, u, v, e], "Rewrite"["rationalNegationProductLeft"[q, c]], "Rewrite"[e], "Exact"["equalitySymmetry"["rationalNegationProductLeft"[u, v]]]}],
+	rationalTheorem["rationalScaledUpperBound",
+		ForAll[{Typed[q, Rationals], Typed[c, Rationals], Typed[u, Rationals], Typed[v, Rationals], Typed[t, Rationals], Typed[w, Rationals]},
+			Implies[q c == u v, Implies[1 <= c, Implies[0 <= v, Implies[v <= t, Implies[u <= w, Implies[0 <= w, q <= w t]]]]]]],
+		{"Introduce"[q, c, u, v, t, w, e, hc, hv, hvt, huw, hw], "Apply"["rationalBoundOfScaled"[q, c, w t, hc]],
+			"Rewrite"[e], "Exact"["rationalLessEqualTransitivity"[u v, w v, w t, "rationalLessEqualScaling"[u, w, v, hv, huw], "rationalLessEqualScalingLeft"[v, t, w, hw, hvt]]],
+			"Exact"["rationalNonnegativeMultiplication"[w, t, hw, "rationalLessEqualTransitivity"[0, v, t, hv, hvt]]]}]
 }]

@@ -113,3 +113,58 @@ VerificationTest[
 	{True, 1, True},
 	TestID -> "A-literal-fraction-among-the-factors-of-a-product-shows-bare-but-after-a-number"
 ]
+
+(* The order of the rationals: x <= y where y - x is a nonnegative rational, one with a natural number over a positive
+   one in its class. It is total, transitive and antisymmetric, sums keep it and so do products by a nonnegative
+   rational; the laws rest on the soundness of quotients and on nothing classical. The strict order is the negation of
+   the converse, and each way of that is a theorem. *)
+VerificationTest[
+	{
+		Function[statement, With[{theorem = TypeTheoryTerm @@ {First[statement], rationals}, stated = TypeTheoryTerm @@ Append[Last[statement], rationals]},
+			DefinitionallyEqualQ[TypeTheoryType[theorem], stated]
+		]] /@ {
+			{"rationalLessEqualTotality", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, x <= y || y <= x]]},
+			{"rationalLessEqualTransitivity", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x <= y, Implies[y <= z, x <= z]]]]},
+			{"rationalLessEqualAntisymmetry", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, Implies[y <= x, x == y]]]]},
+			{"rationalLessEqualAddition", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x <= y, x + z <= y + z]]]},
+			{"rationalLessEqualScaling", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[0 <= z, Implies[x <= y, x z <= y z]]]]},
+			{"rationalNonnegativeMultiplication", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[0 <= x, Implies[0 <= y, 0 <= x y]]]]},
+			{"rationalLessOfNotLessEqual", HoldComplete[ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[Not[y <= x], x < y]]]}
+		},
+		Function[name, KeySort[TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, rationals}]]] /@ {"rationalLessEqualTotality", "rationalLessEqualTransitivity", "rationalLessEqualScaling"},
+		TypeTheoryProof[
+			ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[x <= y, x + 1 <= y + 1]],
+			rationals,
+			{"Introduce"[x, y, h], "Exact"["rationalLessEqualAddition"[x, y, 1, h]]}
+		]["Goals"],
+		TypeTheoryProof[
+			ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, Implies[Not[x <= y], y <= x]],
+			rationals,
+			{"Introduce"[x, y, h], "Cases"["rationalLessEqualTotality"[x, y]], "Introduce"[g], "Exact"["falseElimination"[h[g]]], "Introduce"[g], "Exact"[g]}
+		]["Goals"]
+	},
+	{ConstantArray[True, 7], ConstantArray[<|"quotientSoundness" -> "Proposition"|>, 3], {}, {}},
+	TestID -> "The-order-of-the-rationals-is-total-and-sums-and-products-keep-it"
+]
+
+(* The order has its Booleans, which the kernel computes, and they decide it: "Decide" proves an inequality of literal
+   rationals, a strict one and the negation of one, and refuses a false one; the decision is a Boolean of the kernel. *)
+VerificationTest[
+	{
+		TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			{
+				"rationalLessEqualQ"[Typed[1/3, Rationals], 1/2], "rationalLessEqualQ"[Typed[1/2, Rationals], 1/3], "rationalLessEqualQ"[Typed[-1/2, Rationals], -1/3],
+				"rationalLessQ"[Typed[1/2, Rationals], 1/2], "rationalNonNegativeQ"[Typed[-1/1000000, Rationals]]
+			},
+			rationals
+		]]],
+		TypeTheoryProof[Typed[1/3, Rationals] <= 1/2, rationals, {"Decide"}]["Goals"],
+		TypeTheoryProof[Typed[1/3, Rationals] < 1/2, rationals, {"Decide"}]["Goals"],
+		TypeTheoryProof[Not[Typed[1/2, Rationals] <= 1/3], rationals, {"Decide"}]["Goals"],
+		TypeTheoryProof[Typed[1/2, Rationals] < 1/3, rationals, {"Decide"}]["Tag"],
+		MatchQ[rationals["rationalLessEqualDecidable"], TypeTheoryDefinition[__, "Instance" -> True]],
+		MatchQ[rationals["rationalLessDecidable"], TypeTheoryDefinition[__, "Instance" -> True]]
+	},
+	{{True, False, True, False, False}, {}, {}, {}, "DecidedFalse", True, True},
+	TestID -> "The-order-of-the-rationals-is-decided-by-its-Booleans"
+]
