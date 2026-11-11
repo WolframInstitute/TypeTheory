@@ -911,7 +911,9 @@ VerificationTest[
 			{fueled[realNewton, 6, 2.] === exact[realNewton[2.]], fueled[realNewton, 5, 2.]},
 			(* half of a subnormal is below the smallest normal real; a whole number from 9*10^18 on *)
 			{one[realHalf, 1.*^-320], two[realWhole, 9.5*^18, 9.9*^18]},
-			TypeTheoryFormalize[realHalf, machine]["Tag"]
+			TypeTheoryFormalize[realHalf, machine]["Tag"],
+			(* by its name, "Machine" is the environment of the machine reals for code on reals *)
+			TypeTheoryFormalize[realHalf, "Machine"] === TypeTheoryFormalize[realHalf, reals]
 		}
 	],
 	{
@@ -924,7 +926,8 @@ VerificationTest[
 		ConstantArray[True, 3], ConstantArray[True, 3], ConstantArray[True, 4], ConstantArray[True, 3],
 		{True, Failure["OutOfFuel", <||>]},
 		{Failure["Underflow", <||>], Failure["IntegerOverflow", <||>]},
-		"NoMachineReals"
+		"NoMachineReals",
+		True
 	},
 	TimeConstraint -> 300,
 	TestID -> "Typed-code-on-machine-reals-gives-the-Wolfram-Languages-reals"

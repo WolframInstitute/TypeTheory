@@ -481,6 +481,8 @@ TypeTheoryFormalize[pronic, "Machine"]
 
 <!-- => {definition pronic : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machinePlus[n〚"integer"〛, 1], (t3∶Integer64) ↦ machineTimes[n〚"integer"〛, t3〚"integer"〛]]} -->
 
+A function on machine reals, `x_Real`, is read the same way in <code>[TypeTheoryEnvironment]()["MachineReals"]</code>, the machine integers over the rationals with the 64-bit reals, and `"Machine"` stands for that environment where the typed code computes on reals.
+
 The mathematical meaning of the same definition, in the integers, has no leave:
 
 ```wl

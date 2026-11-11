@@ -126,8 +126,13 @@ SetAttributes[TypeTheoryFormalize, HoldAll]
 TypeTheoryFormalize[symbol_Symbol, options : OptionsPattern[]] := With[{environment = defaultEnvironment[]},
 	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
 ]
+(* "Machine" names the machine's environment for the code the function has: where its typed code computes on machine
+   reals, the environment of the machine reals, which holds the machine integers too *)
 TypeTheoryFormalize[symbol_Symbol, name_String, options : OptionsPattern[]] :=
-	Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryFormalize[symbol, environment, options]]
+	Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> Replace[
+		TypeTheoryFormalize[symbol, environment, options],
+		Failure["NoMachineReals", _] /; name === "Machine" :> TypeTheoryFormalize[symbol, "MachineReals", options]
+	]]
 TypeTheoryFormalize[symbol_Symbol, environment_, options : OptionsPattern[]] /; environmentQ[environment] :=
 	rememberDisplayEnvironment[catchKernelFailure[formalizeMeaning[environment, HoldComplete[symbol], Hold[options]]], environment]
 
