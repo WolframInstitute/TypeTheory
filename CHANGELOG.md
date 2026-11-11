@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.40.2.
+Versions 0.35.0 to 0.41.0.
 
 ### Added
 
@@ -42,6 +42,10 @@ Versions 0.35.0 to 0.40.2.
 
 ### Changed
 
+- `NormalForm` gives a natural number over a part that does not compute as that part and a number, one form however
+  it is written: `(k + 1) + 1` and the successor of the successor of `k` normalize to `k + 2`, where they gave two
+  successors. `k + 1000000` is its own normal form, where it was a failure of the recursion limit, as was the normal
+  form of a machine operation on an integer that does not compute.
 - A sum in a sum shows its parentheses: `(k + 1) + 1` and `k + (1 + 1)` are different terms.
 - Pages, usage messages and comments describe each feature on its own terms; comparisons with Lean remain
   only where Lean is the subject.

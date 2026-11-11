@@ -20,6 +20,7 @@ RelatedTutorials: [PatternsAndRewriting, RulesAndComputation]
 
 - [NormalForm]() is [WeakHeadNormalForm]() applied to the term, then to each of its parts: a function's body is reduced with its variable free, and the arguments of an application that is stuck are reduced.
 - It applies functions to their arguments, unfolds definitions and local definitions, computes recursors on constructors and natural numbers as literals, and takes the fields of a structure, so a closed term of data reduces to its value. Theorems and axioms never unfold.
+- A natural number over a part that does not compute has one normal form, that part and a number: `(k + 1) + 1`, the successor of the successor of `k` and `k + 2` all give `k + 2`. A sum with a number is not reduced a successor at a time, so `k + 1000000` is its own normal form. Where the environment registers no addition, a successor stays a successor.
 - A [TypeTheoryTerm]() without an environment is in the default environment, the prelude unless [SetTypeTheoryEnvironment]() set another.
 - An expression of the Wolfram Language, of the type [Expressions](), shows bare, without the [Unevaluated]() that quotes it.
 - A value whose reading alone does not elaborate again, as a lone string, which on its own names a constant, the empty list, a value of a sum or `"none"`, comes back ascribed its type, <code>[Typed]()[*value*, *type*]</code>, so that the result elaborates to a term of the same type; its reading in the Wolfram Language, [TypeTheoryExpression](), is the same.
@@ -112,6 +113,30 @@ NormalForm[TypeTheoryTerm["primeCount"[6 + 4] + 1, counting], "Implementations" 
 ```
 
 <!-- => 5 -->
+
+---
+
+A sum with a number is a normal form, and successors add to the number:
+
+```wl
+NormalForm[TypeTheoryTerm[k |-> k + 1000000]]
+```
+
+<!-- => (k ∶ ℕ) ↦ k + 1000000 -->
+
+```wl
+NormalForm[TypeTheoryTerm[k |-> "successor"["successor"[k]] + 3]]
+```
+
+<!-- => (k ∶ ℕ) ↦ k + 5 -->
+
+The number on the left stays where it is, since addition recurs on its second argument:
+
+```wl
+NormalForm[TypeTheoryTerm[k |-> 3 + k]]
+```
+
+<!-- => (k ∶ ℕ) ↦ 3 + k -->
 
 ## Applications
 

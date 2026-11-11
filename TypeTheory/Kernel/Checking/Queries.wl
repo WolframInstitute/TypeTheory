@@ -478,12 +478,49 @@ valueTerm[environment_, term_, type_] := With[{read = coreToTypeTheoryTerm[envir
 
 readBackQ[environment_, read_TypeTheoryTerm] := ListQ[Quiet[catchKernelFailure[elaborateQueryTerm[environment, read, None, universeParameterNames[{termSyntax[read]}]]]]]
 
-normalForm[environment_, context_, term_] := normalParts[environment, context, weakHeadNormalForm[environment, context, term]]
+(* A natural number over a base that does not compute is the base and an offset, base + n: a sum with a number is
+   normalized as its left side with the number for its offset, and is not reduced, since the head of k + 1000000 reduces
+   to the successor of k + 999999, a step for each unit and a call deep for each. A successor adds 1 to the offset of
+   what it is applied to, so a number has one normal form however it is written: (k + 1) + 1, the successor of the
+   successor of k and k + 2 all give k + 2. Where no addition is registered a successor stays a successor. *)
+normalForm[environment_, context_, term_] := Replace[offsetSum[environment, term], {
+	{left_, offset_Integer} :> offsetForm[environment, normalForm[environment, context, left], offset],
+	None :> normalParts[environment, context, weakHeadNormalForm[environment, context, term]]
+}]
+
+(* {left, n} for a sum by the registered addition that ends in a number n that is not 0: left + n, and with the sums on
+   the right gathered, x + (y + n) as (x + y) + n, which the addition's equations make it; None for any other term *)
+offsetSum[environment_, term : application[application[constantReference[addition_, {}], _], _]] /; registeredAddition[environment] === addition :=
+	Replace[endingNumber[constantReference[addition, {}], term], {None, _} -> None]
+offsetSum[_, _] := None
+
+(* {what is before the number, the number}, the first None where nothing is before it; None where the term does not end
+   in a number *)
+endingNumber[_, naturalLiteral[offset_Integer]] /; offset > 0 := {None, offset}
+endingNumber[addition_, application[application[addition_, left_], right_]] := Replace[endingNumber[addition, right], {
+	{None, offset_Integer} :> {left, offset},
+	{before_, offset_Integer} :> {makeApplication[addition, {left, before}], offset}
+}]
+endingNumber[_, _] := None
+
+registeredAddition[environment_] := Replace[naturalNumberSettings[environment], {settings_Association :> Lookup[settings["Operations"], "Addition", None], _ -> None}]
+
+(* the normal base with n more: a number is the sum, zero the number n, a base with an offset has the two added *)
+offsetForm[environment_, naturalLiteral[base_Integer], offset_Integer] := naturalLiteral[base + offset]
+offsetForm[environment_, base : constantReference[zero_, {}], offset_Integer] /; naturalNumberSettings[environment]["Zero"] === zero := naturalLiteral[offset]
+offsetForm[environment_, base_, offset_Integer] := With[{addition = constantReference[registeredAddition[environment], {}]},
+	Replace[base, {
+		application[application[addition, inner_], naturalLiteral[innerOffset_Integer]] :> makeApplication[addition, {inner, naturalLiteral[innerOffset + offset]}],
+		_ :> makeApplication[addition, {base, naturalLiteral[offset]}]
+	}]
+]
 
 (* an application in weak head normal form is a head that does not reduce applied to its arguments: the head, a
    constant, a variable or a stuck recursor, stays, and only the arguments are normalized. Normalizing the function of
    each application on its own unfolds a partial application, as Plus[0] of a sum 0 + n stuck on n, into a function
    applied to n, a redex *)
+normalParts[environment_, context_, application[constantReference[successor_, {}], argument_]] /; registeredSuccessorQ[environment, successor] :=
+	offsetForm[environment, normalForm[environment, context, argument], 1]
 normalParts[environment_, context_, term : application[_, _]] := With[{spine = applicationSpine[term]},
 	makeApplication[normalHead[environment, context, First[spine]], Map[Function[argument, normalForm[environment, context, argument]], Last[spine]]]
 ]
@@ -501,6 +538,12 @@ normalParts[environment_, context_, dependentFunctionType[name_, domain_, codoma
 ]
 normalParts[environment_, context_, projection[structure_, index_, structureTerm_]] := Construct[projection, structure, index, normalForm[environment, context, structureTerm]]
 normalParts[_, _, term_] := term
+
+(* the successor of natural numbers that have an addition registered, which an offset is written with *)
+registeredSuccessorQ[environment_, successor_] := Replace[naturalNumberSettings[environment], {
+	settings_Association :> settings["Successor"] === successor && KeyExistsQ[settings["Operations"], "Addition"],
+	_ -> False
+}]
 
 
 (* ::Subsection:: *)
