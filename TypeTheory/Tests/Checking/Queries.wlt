@@ -678,3 +678,35 @@ VerificationTest[
 	{PrimePi[10], PrimePi[100] + 1 + PrimePi[PrimePi[100]], True, True, True, False},
 	TestID -> "NormalForm-computes-implemented-axioms-where-it-is-asked-to"
 ]
+
+(* A field of a structure is read and shown by the name of its binder in the constructor's type, so Normal writes that
+   binder with its name though the rest of the type does not mention it, where an arrow would drop the name: every
+   constant of the environment rebuilt from Normal is the constant it was, a projection by name among them, and the
+   name reads in the rebuilt environment. A constructor declared with arrows has fields without names, which show by
+   their index: the binder of an arrow names nothing. *)
+VerificationTest[
+	With[
+		{
+			labelled = TypeTheoryEnvironment[prelude, {
+				TypeTheoryInductiveType[Labelled, TypeUniverse[1], {"labelled" -> ForAll[{Typed[count, NonNegativeIntegers], Typed[flag, Booleans]}, Labelled]}],
+				TypeTheoryDefinition["flagOf", Function[{Typed[x, Labelled]}, x[["flag"]]]],
+				TypeTheoryInductiveType[Bare, TypeUniverse[1], {"bare" -> (NonNegativeIntegers -> Booleans -> Bare)}],
+				TypeTheoryDefinition["secondOf", Function[{Typed[x, Bare]}, x[[2]]]]
+			}]
+		},
+		With[{rebuilt = TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[labelled]]},
+			{
+				Head[rebuilt],
+				Select[Keys[labelled], Function[name, labelled[name] =!= rebuilt[name]]],
+				! FreeQ[Normal[labelled], HoldPattern[Typed[flag, Booleans]]],
+				StringContainsQ[ToString[rebuilt["flagOf"], InputForm], "[[\"flag\"]]"],
+				Head[TypeTheoryType[TypeTheoryTerm[Function[{Typed[x, Labelled]}, x[["count"]]], rebuilt]]],
+				StringContainsQ[ToString[rebuilt["secondOf"], InputForm], "[[2]]"],
+				StringContainsQ[ToString[labelled["secondOf"], InputForm], "[[2]]"]
+			}
+		]
+	],
+	{TypeTheoryEnvironment, {}, True, True, TypeTheoryTerm, True, True},
+	TestID -> "Normal-keeps-the-names-of-a-constructors-fields-and-an-arrows-binder-names-none"
+]
+

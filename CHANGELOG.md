@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.43.0.
+Versions 0.35.0 to 0.42.1.
 
 ### Added
 
@@ -59,6 +59,9 @@ Versions 0.35.0 to 0.43.0.
 
 ### Fixed
 
+- `Normal` writes the fields of a constructor with their names, `Typed["fst", "α"]`, where it wrote an arrow and the
+  name was lost: an environment rebuilt from `Normal` read a projection by its index and showed it so, or showed
+  the name of an arrow's own binder, a blank. The binder of an arrow names no field now.
 - A rule is data before it names an argument; arguments by name come last.
 - A bound variable that another symbol shadows shows by its name.
 - `TraditionalForm` writes `=` also where a notebook writes the equation's sign as one character.

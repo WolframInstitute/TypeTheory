@@ -684,7 +684,8 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 					syntaxHead[Rule, {toSyntax @@ member, readBack[environment, constantRecord[environment, member]["Type"], mode]}]
 				] /@ record["Block"]],
 				syntaxHead[List, Function[constructor,
-					syntaxHead[Rule, {toSyntax @@ constructor, readBack[environment, constantRecord[environment, constructor]["Type"], mode]}]
+					(* read back exactly, a field keeps its name, which an arrow would not write; shown, a field no other mentions is an arrow *)
+					syntaxHead[Rule, {toSyntax @@ constructor, Block[{$fieldTelescope = mode === "Exact"}, readBack[environment, constantRecord[environment, constructor]["Type"], mode]]}]
 				] /@ Catenate[Function[member, constantRecord[environment, member]["Constructors"]] /@ record["Block"]]],
 				syntaxHead[Rule, {syntaxString["Parameters"], syntaxInteger[record["NumberOfParameters"]]}]
 			},
@@ -703,7 +704,8 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 				nameSyntax,
 				typeSyntax,
 				syntaxHead[List, Function[constructor,
-					syntaxHead[Rule, {toSyntax @@ constructor, readBack[environment, constantRecord[environment, constructor]["Type"], mode]}]
+					(* read back exactly, a field keeps its name, which an arrow would not write; shown, a field no other mentions is an arrow *)
+					syntaxHead[Rule, {toSyntax @@ constructor, Block[{$fieldTelescope = mode === "Exact"}, readBack[environment, constantRecord[environment, constructor]["Type"], mode]]}]
 				] /@ record["Constructors"]],
 				syntaxHead[Rule, {syntaxString["Parameters"], syntaxInteger[record["NumberOfParameters"]]}]
 			},

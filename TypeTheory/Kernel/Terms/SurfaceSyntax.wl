@@ -85,6 +85,7 @@ PackageScoped[displayCoreTerm]
 PackageScoped[coreToTypeTheoryTerm]
 PackageScoped[slotFunctions]
 PackageScoped[$exactReadBack]
+PackageScoped[$fieldTelescope]
 PackageScoped[nameSyntax]
 PackageScoped[displayedName]
 PackageScoped[structurePartNames]
@@ -123,6 +124,7 @@ delaborate::usage = "delaborate[environment, context, term] gives a syntax tree 
 displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the core term as a TypeTheoryTerm, or the core term itself if it cannot be displayed."
 coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm in environment."
 $exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
+$fieldTelescope::usage = "$fieldTelescope is True while the type of a constructor is read back exactly for its declaration, as Normal reads it, along its binders and not inside their types: a field that the rest of the type does not mention keeps its name, as a binder, where an arrow would drop it."
 nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
 displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbol or string shows as, without its context."
 structurePartNames::usage = "structurePartNames[environment, HoldComplete[structure]] gives the names of the fields of a structure in order, each the name of its binder in the constructor, or None for a field whose binder has no name or shares it with another field."
@@ -152,6 +154,8 @@ TypeTheoryTerm[term_, rest___] /; ! FreeQ[Unevaluated[term], HoldPattern[PacletS
 	Replace[withPacletSymbolsResolved[HoldComplete[term]], HoldComplete[resolved_] :> TypeTheoryTerm[resolved, rest]]
 
 $exactReadBack = False
+
+$fieldTelescope = False
 
 
 (* ::Subsection:: *)
@@ -295,7 +299,7 @@ delaborate[environment_, context_, term_] := Replace[term, {
 	projection[structure_, index_, structureTerm_] :> partSyntax[environment, context, structure, index, structureTerm],
 	localDefinition[name_, type_, value_, body_] :> delaborate[environment, context, instantiateBoundVariable[body, value]],
 	lambdaAbstraction[___] :> delaborateBinders[environment, context, term, lambdaAbstraction, Function],
-	dependentFunctionType[_, domain_, codomain_, "Explicit"] /; ! boundVariableOccursQ[codomain, 0] :>
+	dependentFunctionType[_, domain_, codomain_, "Explicit"] /; ! boundVariableOccursQ[codomain, 0] && ! namedFieldQ[term] :>
 		delaborateArrow[environment, context, domain, codomain],
 	dependentFunctionType[___] :> delaborateBinders[environment, context, term, dependentFunctionType, ForAll],
 	(* a hole of a theorem applied to the variables in scope reads back as the TypeTheoryHole it was written as *)
@@ -332,7 +336,8 @@ structurePartNames[environment_, structure_HoldComplete] := With[
 telescopeNames[dependentFunctionType[name_, _, codomain_, _]] := Prepend[telescopeNames[codomain], name]
 telescopeNames[_] := {}
 
-partName[HoldComplete[Null]] := None
+(* an arrow written without a variable has the formal x for its binder (Elaboration.wl), which names no field *)
+partName[HoldComplete[Null | \[FormalX]]] := None
 partName[HoldComplete[name_String]] /; name =!= "" := name
 partName[HoldComplete[symbol_Symbol]] := SymbolName[Unevaluated[symbol]]
 partName[_] := None
@@ -441,14 +446,20 @@ collectBinders[environment_, context_, current : head_[binderName_, domain_, bod
 		instantiateBoundVariable[body, freeVariable[id]],
 		head,
 		displayHead,
-		Append[binders, binderSyntax[name, delaborate[environment, context, domain], binder]]
+		Append[binders, binderSyntax[name, Block[{$fieldTelescope = False}, delaborate[environment, context, domain]], binder]]
 	]
 ]
 collectBinders[environment_, context_, current_, _, displayHead_, binders_List] :=
 	syntaxApplication[syntaxSymbol[HoldComplete[displayHead]], {syntaxHead[List, binders], delaborate[environment, context, current]}]
 
-arrowBinderQ[dependentFunctionType[_, _, codomain_, "Explicit"]] := ! boundVariableOccursQ[codomain, 0]
+arrowBinderQ[type : dependentFunctionType[_, _, codomain_, "Explicit"]] := ! boundVariableOccursQ[codomain, 0] && ! namedFieldQ[type]
 arrowBinderQ[_] := False
+
+(* A field of a constructor is read and shown by the name of its binder (structurePartNames), and an arrow writes no
+   name: where a constructor's type is read back for its declaration, a binder with a name of its own stays a binder
+   though the rest of the type does not mention it, so that the declaration read again names the field as before. *)
+namedFieldQ[dependentFunctionType[name_, _, _, _]] := TrueQ[$fieldTelescope] && partName[name] =!= None
+namedFieldQ[_] := False
 
 binderSyntax[name_, domainSyntax_, "Explicit"] := syntaxHead[Typed, {nameSyntax[name], domainSyntax}]
 binderSyntax[name_, domainSyntax_, "Implicit"] := syntaxHead[TypedImplicit, {nameSyntax[name], domainSyntax}]
@@ -488,10 +499,11 @@ numberedName[HoldComplete[symbol_Symbol], index_Integer] :=
 
 (* A -> B: Implies between propositions, a bare rule otherwise, as input takes it; TypeSpecifier[{A, ...} -> B], the
    compiler's form, is input only *)
-delaborateArrow[environment_, context_, domain_, codomain_] := With[{result = liftedCodomain[codomain]},
+delaborateArrow[environment_, context_, domain_, codomain_] := With[
+	{result = liftedCodomain[codomain], domainSyntax = Block[{$fieldTelescope = False}, delaborate[environment, context, domain]]},
 	If[ propositionTermQ[environment, context, domain] && propositionTermQ[environment, context, result],
-		syntaxHead[Implies, {delaborate[environment, context, domain], delaborate[environment, context, result]}],
-		syntaxHead[Rule, {delaborate[environment, context, domain], delaborate[environment, context, result]}]
+		syntaxHead[Implies, {domainSyntax, delaborate[environment, context, result]}],
+		syntaxHead[Rule, {domainSyntax, delaborate[environment, context, result]}]
 	]
 ]
 
