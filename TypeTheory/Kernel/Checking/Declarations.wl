@@ -201,10 +201,14 @@ TypeTheoryEnvironment[environment_?environmentQ, declarations_List, OptionsPatte
    does not handle the environment, the declarations are added again with each one checked, so that a failure is
    that of the first declaration in order that does not check. *)
 compiledDeclarations[environment_, declarations_List] := Replace[
-	catchKernelFailure[Block[{$deferKernelChecks = True}, deferredDeclarations[environment, declarations]]],
+	(* a registration among the declarations leaves to the compiled kernel the equations it checks: the declarations are
+	   kept only where its check succeeds, and where it refuses an equation they are added again one at a time, the
+	   registration comparing its equations itself and naming the one that fails *)
+	catchKernelFailure[Block[{$deferKernelChecks = True, $deferRegistrationEquations = True}, deferredDeclarations[environment, declarations]]],
 	{
 		_Failure :> Fold[addDeclaration, environment, declarations],
-		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]]], {
+		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]], registrationCount[environment]], {
+			failure_Failure /; TrueQ[failure["RegistrationEquation"]] :> Fold[addDeclaration, environment, declarations],
 			failure_Failure :> throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]],
 			None :> Fold[addDeclaration, environment, declarations],
 			_Success :> extended
@@ -213,6 +217,8 @@ compiledDeclarations[environment_, declarations_List] := Replace[
 ]
 
 $deferKernelChecks = False
+
+registrationCount[environment_] := Replace[naturalNumberSettings[environment], {settings_Association :> Length[settings["Registrations"]], _ -> 0}]
 
 (* With the checks deferred, a run of axioms, definitions and theorems given as core terms, with no option but their
    universe parameters as strings and a definition's "Opaque", as an import writes them, gives its records at once,

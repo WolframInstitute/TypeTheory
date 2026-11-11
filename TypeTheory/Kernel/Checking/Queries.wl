@@ -899,7 +899,10 @@ TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup
 			{}
 		],
 		None :> replayEnvironment[environment, Function[{partial, name, record}, replayDeclaration[environment, partial, name -> record]]],
-		_Success :> replayRuns[environment]
+		(* the compiled kernel has checked the registrations' equations it takes, so declaring the environment again does
+		   not compare them a second time; after a failure, or with the kernel of TypeChecking.wl, a registration compares
+		   them all *)
+		_Success :> Block[{$deferRegistrationEquations = True}, replayRuns[environment]]
 	}
 ]
 

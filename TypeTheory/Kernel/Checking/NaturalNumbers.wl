@@ -45,6 +45,8 @@ PackageScoped[uncheckedRegistrationQ]
 PackageScoped[additionReduct]
 PackageScoped[$foldedAddition]
 PackageScoped[$naturalOffsetRule]
+PackageScoped[$deferRegistrationEquations]
+PackageScoped[registrationEquationRecords]
 
 
 (* ::Section:: *)
@@ -63,6 +65,11 @@ registeredAdditionQ::usage = "registeredAdditionQ[environment, HoldComplete[name
 additionReduct::usage = "additionReduct[environment, context, term, HoldComplete[name], t, s] reduces the registered addition t + s by its defining equations: t where s reduces to zero, the successor of t + s' where s reduces to a successor of s' or a positive literal, and term where s is stuck."
 $foldedAddition::usage = "$foldedAddition is True where the registered addition reduces by its defining equations, its recursion folded; False unfolds its definition, for the agreement test."
 $naturalOffsetRule::usage = "$naturalOffsetRule is True where definitional equality compares natural numbers by their offsets; False compares them by unfolding alone."
+$deferRegistrationEquations::usage = "$deferRegistrationEquations is True where the compiled kernel checks the equations of the registrations that have a variable in every application of an \
+operation: while a list of declarations is added before the compiled kernel checks it, the list being kept only where the check succeeds, and while an environment is declared again after the \
+compiled kernel has checked it. A registration then compares only the equations left to it."
+registrationEquationRecords::usage = "registrationEquationRecords[environment, first] gives {{role, HoldComplete[name], statement, record}, ...} for the registrations of environment from the \
+first on: for each equation the compiled kernel checks, the record of a theorem whose check is the equation."
 
 
 (* ::Section:: *)
@@ -166,7 +173,9 @@ checkOperation[environment_, settings_, operations_, role_, name_] := Which[
 		kernelFailure["InvalidNaturalNumberOperation", "`1` must be a definition or an axiom without universe parameters to be registered as `2`.", {HoldForm @@ name, role}],
 	! operationTypeQ[environment, settings["Type"], role, constantRecord[environment, name]["Type"]],
 		kernelFailure["InvalidNaturalNumberOperation", "`1` does not have the type of `2` on `3`.", {HoldForm @@ name, role, HoldForm @@ settings["Type"]}],
-	KeyExistsQ[$roleEquations, role],
+	(* an operation whose equations do not refuse it, a quotient or a remainder, is not compared here: it is trusted
+	   where they fail, which is decided where it is asked (uncheckedRegistrationQ) *)
+	MemberQ[$refusedRoles, role],
 		checkRoleEquations[environment, settings, Join[settings["Operations"], operations], role, name],
 	True,
 		Null
@@ -246,7 +255,8 @@ $refusedRoles = {"Addition", "Multiplication", "Power", "Subtraction", "Equal", 
 
 (* None, or the message and parameters of what fails: an operation the equations use not registered, or an equation
    that does not hold by computation. The comparison of an equation's sides remembers its steps, as a check does:
-   without them it repeats the comparisons of the parts, 160 ms of each check of a cone of Mathlib *)
+   without them it repeats the comparisons of the parts, 160 ms of each check of a cone of Mathlib. Where the compiled
+   kernel checks the equations ($deferRegistrationEquations), those it checks are not compared here. *)
 roleEquationFailure[environment_, settings_, operations_, role_, name_] := Replace[
 	SelectFirst[Lookup[$roleRequirements, role, {}], Function[required, ! KeyExistsQ[operations, required]], None],
 	{
@@ -261,7 +271,10 @@ roleEquationFailure[environment_, settings_, operations_, role_, name_] := Repla
 				Replace[
 					SelectFirst[
 						$roleEquations[role][equationTerms[environment, settings, operations, name, freeVariable[first], freeVariable[second]]],
-						Apply[Function[{left, right, statement}, ! withKernelCaches[definitionallyEqualQ[environment, context, left, right]]]],
+						Apply[Function[{left, right, statement}, And[
+							! (TrueQ[$deferRegistrationEquations] && compiledEquationQ[operations, role, left, right]),
+							! withKernelCaches[definitionallyEqualQ[environment, context, left, right]]
+						]]],
 						None
 					],
 					{
@@ -272,6 +285,97 @@ roleEquationFailure[environment_, settings_, operations_, role_, name_] := Repla
 			]
 		]
 	}
+]
+
+$deferRegistrationEquations = False
+
+(* The equations the compiled kernel checks: those of a role that refuses, with a variable in every application of a
+   registered operation. The compiled kernel has the roles of an environment for its whole run, and computes a
+   registered operation where every argument is a literal: an equation with a closed application of an operation, as
+   equal[zero, zero] == true is, it would compute by the very registration the equation is to justify, so that one is
+   compared here, in an environment without the registration. An application with a variable in it the compiled kernel
+   reduces by unfolding the operation's definition alone, having no rule that reads a sum by its offset. Both facts
+   are held by tests that offer a different function for each role to the compiled kernel alone and ask that it
+   refuse (Tests/Checking/NaturalNumbers.wlt): a compiled kernel that computed a role on an open term, or read through
+   the registered addition, would accept one. *)
+compiledEquationQ[operations_, role_, left_, right_] := MemberQ[$refusedRoles, role] && With[{names = Values[operations]},
+	FreeQ[
+		{left, right},
+		closed : application[application[constantReference[operation_, {}], _], _] /; MemberQ[names, operation] && FreeQ[closed, _freeVariable],
+		{0, Infinity}
+	]
+]
+
+(* For each registration from the first on and each equation of it that the compiled kernel checks, a theorem's record
+   whose check is the equation: for sides l and r in the variables t and s of a type A, the natural numbers or the
+   Booleans of a comparison, the statement that every predicate P on A that holds of l holds of r,
+   ForAll[{t, s, P}, P[l] -> P[r]], proved by the function that gives its hypothesis back. That function has the type
+   P[l] -> P[l], so the record checks exactly where l and r are equal by computation. The operations an equation is
+   written with are those registered up to its registration, as the comparison here takes them. *)
+registrationEquationRecords[environment_, firstRegistration_Integer] := Replace[naturalNumberSettings[environment], {
+	settings_Association :> Catenate[Map[
+		Function[index, registrationRecords[
+			environment,
+			settings,
+			KeyTake[settings["Operations"], Catenate[Take[settings["Registrations"], index]]],
+			Last[Take[settings["Registrations"], index]]
+		]],
+		Range[firstRegistration, Length[settings["Registrations"]]]
+	]],
+	_ -> {}
+}]
+
+registrationRecords[environment_, settings_, operations_Association, roles_List] := Catenate[Map[
+	Function[role, With[
+		{
+			name = operations[role],
+			natural = constantReference[settings["Type"], {}],
+			first = freshFreeVariable[],
+			second = freshFreeVariable[]
+		},
+		If[ MemberQ[$refusedRoles, role] && AllTrue[Lookup[$roleRequirements, role, {}], Function[required, KeyExistsQ[operations, required]]],
+			Map[
+				Apply[Function[{left, right, statement}, {role, name, statement, equationRecord[environment, natural, name, role, first, second, left, right]}]],
+				Select[
+					$roleEquations[role][equationTerms[environment, settings, operations, name, freeVariable[first], freeVariable[second]]],
+					Apply[Function[{left, right, statement}, compiledEquationQ[operations, role, left, right]]]
+				]
+			],
+			{}
+		]
+	]],
+	roles
+]]
+
+equationRecord[environment_, natural_, name_, role_, first_, second_, left_, right_] := With[
+	{
+		sides = If[MemberQ[{"Equal", "LessEqual"}, role], constantReference[booleansOf[constantRecord[environment, name]["Type"]], {}], natural],
+		predicate = freshFreeVariable[],
+		hypothesis = freshFreeVariable[]
+	},
+	With[
+		{
+			context = extendContext[
+				extendContext[
+					extendContext[extendContext[<||>, first, HoldComplete["t"], natural, "Explicit"], second, HoldComplete["s"], natural, "Explicit"],
+					predicate,
+					HoldComplete["P"],
+					dependentFunctionType[HoldComplete["x"], sides, universeSort[0], "Explicit"],
+					"Explicit"
+				],
+				hypothesis,
+				HoldComplete["h"],
+				application[freeVariable[predicate], left],
+				"Explicit"
+			]
+		},
+		<|
+			"Kind" -> "Theorem",
+			"UniverseParameters" -> {},
+			"Type" -> makeDependentFunctionType[context, {first, second, predicate, hypothesis}, application[freeVariable[predicate], right]],
+			"Value" -> makeLambda[context, {first, second, predicate, hypothesis}, freeVariable[hypothesis]]
+		|>
+	]
 ]
 
 (* the terms the equations are written in: the constructors, the operation and those its equations use as functions of

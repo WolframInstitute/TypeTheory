@@ -63,9 +63,9 @@ PackageScoped[$compiledKernelSeed]
 (*Usage Messages*)
 
 
-compiledKernelCheck::usage = "compiledKernelCheck[environment] or compiledKernelCheck[environment, trusted], its first trusted constants taken as they are, checks the declarations of environment with the compiled kernel, taking inductive types, \
-their constructors and recursors, and quotient types as the records their kernels generate, and gives a Success, the Failure of the first declaration that does not check, whose \"Position\" \
-is that declaration's, or None where the compiled kernel does not handle the environment or no library is available."
+compiledKernelCheck::usage = "compiledKernelCheck[environment] or compiledKernelCheck[environment, trusted, registrations], its first trusted constants and registrations of the natural numbers taken as they are, checks the declarations of environment with the compiled kernel, taking inductive types, \
+their constructors and recursors, and quotient types as the records their kernels generate, and the equations of the other registrations that have a variable in every application of an operation, and gives a Success, the Failure of the first declaration that does not check, whose \"Position\" \
+is that declaration's, or one past the last for an equation of a registration, or None where the compiled kernel does not handle the environment or no library is available."
 compiledKernelAvailableQ::usage = "compiledKernelAvailableQ[] gives True if the compiled kernel's library for this platform and version is available."
 compileKernelLibrary::usage = "compileKernelLibrary[] compiles the kernel's library for this engine and version into LibraryResources/<$SystemID> of the paclet and gives its File."
 $compiledKernelSeed::usage = "$compiledKernelSeed is None, or <|\"Terms\" -> terms, \"Codes\" -> codes, \"Parts\" -> parts, \"Starts\" -> starts, \"Roots\" -> roots|>: distinct core terms that \
@@ -646,6 +646,12 @@ $program = Hold[{
 	]]],
 	kfn[arenaWhnf, Function[{m, e}, arenaWhnfCore[m, e, 1]]],
 	kfn[arenaReduceConstant, Function[{m, e, h, s, n, unfold}, Module[{c = arenaF1Of[m, h], ls = arenaF2Of[m, h], role = 0, kind = 0, lit = 0},
+		(* A role is used only where every argument is a literal (arenaLiteralOperation), and this kernel has no rule that
+		   reads a sum by its offset. The check of a registration rests on both: its equations with a variable in every
+		   application come here as theorems (registrationEquationRecords in NaturalNumbers.wl) and are checked with the role
+		   already set, which is sound only while an open application is reduced by unfolding its definition. A change
+		   that uses a role on an open term must first make a role active only from its registration's place in the order;
+		   the tests "The-compiled-kernel-alone-refuses-a-different-function-for-each-role" fail if it does not. *)
 		role = arenaConstCell[m, c, cNatRole];
 		If[role != 0,
 			lit = arenaLiteralOperation[m, c, role, s, n];
@@ -1676,15 +1682,23 @@ booleanConstructors[records_, type_] := Replace[functionBody[functionBody[type]]
 functionBody[dependentFunctionType[_, _, body_, _]] := body
 functionBody[other_] := other
 
-environmentInput[environment_, trusted_Integer, capacityFactor_] := Catch[Block[
+(* The equations of the registrations after the first trustedRegistrations go in as theorems after the environment's
+   constants, under names no constant has (registrationEquationRecords): the kernel checks them as it checks any
+   theorem, and a registration then need not compare them again. *)
+environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, capacityFactor_] := Catch[Block[
 	{
 		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flatCount = 0,
-		names = environmentNames[environment], natural = naturalNumberSettings[environment], records, seeded, constants, nodes, flat, capacity
+		constantNames = environmentNames[environment], natural = naturalNumberSettings[environment], equations, names, records, seeded, constants, nodes, flat, capacity
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];
+	equations = registrationEquationRecords[environment, trustedRegistrations + 1];
+	names = Join[constantNames, MapIndexed[Function[{equation, index}, HoldComplete @@ {registrationEquation[First[index]]}], equations]];
 	$constantIndex = AssociationThread[names -> Range[Length[names]]];
 	$nilRow = addLevelRow["Nil", {7, 0, 0}];
-	records = AssociationMap[Function[name, constantRecord[environment, name]], names];
+	records = Join[
+		AssociationMap[Function[name, constantRecord[environment, name]], constantNames],
+		AssociationThread[Drop[names, Length[constantNames]] -> Map[Last, equations]]
+	];
 	seeded = seedRows[$compiledKernelSeed];
 	{constants, {nodes, flat}} = Reap[constantRows[Values[records]], {compiledKernelInput, compiledKernelFlat}];
 	nodes = Replace[Join[seeded, Replace[nodes, {{rows_List} :> rows, {} -> {}}]], {} -> {{8, 0, 0, 0}}];
@@ -1715,7 +1729,9 @@ environmentInput[environment_, trusted_Integer, capacityFactor_] := Catch[Block[
 			20, 20, 18, 2^20, capacity, 0
 		}],
 		"Names" -> names,
-		"Records" -> records
+		"Records" -> records,
+		"EnvironmentConstants" -> Length[constantNames],
+		"Equations" -> Map[Most, equations]
 	|>
 ], compiledKernelInput]
 
@@ -1746,12 +1762,13 @@ $failureMessages = <|
    and terms it does not handle, for which TypeChecking.wl's kernel checks the environment *)
 $capacityStatuses = {22, 23, 24, 25}
 
-compiledKernelCheck[environment_] := compiledKernelCheck[environment, 0]
+compiledKernelCheck[environment_] := compiledKernelCheck[environment, 0, 0]
 
-(* the first trusted constants are taken as they are, as those of the environment a list of declarations extends *)
-compiledKernelCheck[environment_, trusted_Integer] := Block[{function = compiledKernelFunction[], input, duplicate},
+(* the first trusted constants and registrations are taken as they are, as those of the environment a list of
+   declarations extends *)
+compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer] := Block[{function = compiledKernelFunction[], input, duplicate},
 	If[! MatchQ[function, _CompiledCodeFunction], Return[None]];
-	input = environmentInput[environment, trusted, 1];
+	input = environmentInput[environment, trusted, trustedRegistrations, 1];
 	If[input === None, Return[None]];
 	duplicate = FirstPosition[input["Names"], name_ /; ! DuplicateFreeQ[input["Records"][name]["UniverseParameters"]], None, {1}, Heads -> False];
 	If[ duplicate =!= None,
@@ -1772,11 +1789,20 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 		result[[1]] == 0,
 			Success["EnvironmentChecked", <|
 				"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
-				"MessageParameters" -> {Length[input["Names"]]},
-				"Constants" -> Length[input["Names"]]
+				"MessageParameters" -> {input["EnvironmentConstants"]},
+				"Constants" -> input["EnvironmentConstants"]
 			|>],
 		MemberQ[$capacityStatuses, result[[1]]] && capacityFactor < 16,
 			compiledCheckWith[function, MapAt[Function[settings, ReplacePart[settings, Thread[{1, 2, 10, 11} -> 4 settings[[{1, 2, 10, 11}]]]]], input, "Settings"], 4 capacityFactor],
+		(* an equation of a registration that does not check: the failure the registration's own comparison gives,
+		   placed after every constant, so that what is declared again before it is all of them *)
+		KeyExistsQ[$failureMessages, result[[1]]] && result[[2]] > input["EnvironmentConstants"],
+			Replace[First[Drop[input["Equations"], result[[2]] - input["EnvironmentConstants"] - 1]], {role_, name_, statement_} :> Failure["InvalidNaturalNumberOperation", <|
+				"MessageTemplate" -> "`1` cannot be registered as `2`: `3` does not hold by computation.",
+				"MessageParameters" -> {HoldForm @@ name, role, statement},
+				"Position" -> input["EnvironmentConstants"] + 1,
+				"RegistrationEquation" -> True
+			|>]],
 		KeyExistsQ[$failureMessages, result[[1]]] && result[[2]] >= 1,
 			Failure[First[$failureMessages[result[[1]]]], <|
 				"MessageTemplate" -> "`1` does not check: `2`.",

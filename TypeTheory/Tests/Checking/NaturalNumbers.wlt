@@ -526,3 +526,204 @@ VerificationTest[
 	{{4, 2}, {8, 2}, {2, 2, 2}, TypeTheoryEnvironment, True, True, True},
 	TestID -> "A-beta-reduction-computes-the-registered-operations-on-literals-it-builds-and-no-forged-sum"
 ]
+
+
+(* ::Section:: *)
+(*Registrations checked by the compiled kernel*)
+
+
+(* natural numbers and Booleans of their own, with an operation for each role that has equations, by recursion *)
+countDeclarations = {
+	TypeTheoryInductiveType["Count", TypeUniverse[1], {"none" -> "Count", "more" -> ("Count" -> "Count")}],
+	TypeTheoryInductiveType["Flag", TypeUniverse[1], {"no" -> "Flag", "yes" -> "Flag"}],
+	TypeTheoryDefinition["sum", Typed[
+		Function[{Typed[t, "Count"], Typed[s, "Count"]}, InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Count"], t, Function[{Typed[k, "Count"], Typed[r, "Count"]}, "more"[r]], s]],
+		"Count" -> "Count" -> "Count"]],
+	TypeTheoryDefinition["product", Typed[
+		Function[{Typed[t, "Count"], Typed[s, "Count"]}, InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Count"], "none", Function[{Typed[k, "Count"], Typed[r, "Count"]}, "sum"[r, t]], s]],
+		"Count" -> "Count" -> "Count"]],
+	TypeTheoryDefinition["raised", Typed[
+		Function[{Typed[t, "Count"], Typed[s, "Count"]}, InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Count"], "more"["none"], Function[{Typed[k, "Count"], Typed[r, "Count"]}, "product"[r, t]], s]],
+		"Count" -> "Count" -> "Count"]],
+	TypeTheoryDefinition["before", Typed[
+		Function[{Typed[n, "Count"]}, InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Count"], "none", Function[{Typed[k, "Count"], Typed[r, "Count"]}, k], n]],
+		"Count" -> "Count"]],
+	TypeTheoryDefinition["less", Typed[
+		Function[{Typed[t, "Count"], Typed[s, "Count"]}, InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Count"], t, Function[{Typed[k, "Count"], Typed[r, "Count"]}, "before"[r]], s]],
+		"Count" -> "Count" -> "Count"]],
+	TypeTheoryDefinition["same", Typed[
+		Function[{Typed[a, "Count"]}, InductiveRecursor["Count"][
+			Function[{Typed[x, "Count"]}, "Count" -> "Flag"],
+			Function[{Typed[b, "Count"]}, InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Flag"], "yes", Function[{Typed[k, "Count"], Typed[r, "Flag"]}, "no"], b]],
+			Function[{Typed[k, "Count"], Typed[f, "Count" -> "Flag"]}, Function[{Typed[b, "Count"]},
+				InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Flag"], "no", Function[{Typed[j, "Count"], Typed[r, "Flag"]}, f[j]], b]]],
+			a
+		]],
+		"Count" -> "Count" -> "Flag"]],
+	TypeTheoryDefinition["atMost", Typed[
+		Function[{Typed[a, "Count"]}, InductiveRecursor["Count"][
+			Function[{Typed[x, "Count"]}, "Count" -> "Flag"],
+			Function[{Typed[b, "Count"]}, "yes"],
+			Function[{Typed[k, "Count"], Typed[f, "Count" -> "Flag"]}, Function[{Typed[b, "Count"]},
+				InductiveRecursor["Count"][Function[{Typed[x, "Count"]}, "Flag"], "no", Function[{Typed[j, "Count"], Typed[r, "Flag"]}, f[j]], b]]],
+			a
+		]],
+		"Count" -> "Count" -> "Flag"]]
+};
+(* {role, the registrations it needs first, an operation that has the role's equations, one of the same type that is another function} *)
+roleFixtures = {
+	{"Addition", <||>, "sum", "product"},
+	{"Multiplication", <|"Addition" -> "sum"|>, "product", "raised"},
+	{"Power", <|"Addition" -> "sum", "Multiplication" -> "product"|>, "raised", "less"},
+	{"Subtraction", <||>, "less", "sum"},
+	{"Equal", <||>, "same", "atMost"},
+	{"LessEqual", <||>, "atMost", "same"}
+};
+
+counted = TypeTheoryEnvironment[TypeTheoryEnvironment[], countDeclarations]
+
+countRegistered[base_, operations_] := TypeTheoryEnvironment[base, {TypeTheoryNaturalNumbers @@ {"Count", "none", "more", operations}}]
+
+(* the natural numbers of counted with the operations a role needs first *)
+countBase[needed_] := countRegistered[counted, needed]
+
+registrationsOf[environment_] := Replace[WolframInstitute`TypeTheory`PackageScope`naturalNumberSettings[environment], {settings_Association :> Length[settings["Registrations"]], _ -> 0}]
+
+(* the registration made with its equations left to the compiled kernel, as a list of declarations checked at once
+   makes it, and unchecked until the compiled kernel checks it *)
+countDeferred[base_, operations_] := Block[{WolframInstitute`TypeTheory`PackageScope`$deferRegistrationEquations = True}, countRegistered[base, operations]]
+
+(* the verdict of the comparison by the kernel of TypeChecking.wl, and of the compiled kernel alone on the same
+   registration: "accepted", or the registration, the role and the equation that fails *)
+comparisonVerdict[base_, operations_] := Replace[countRegistered[base, operations], {failure_Failure :> failure["MessageParameters"], _ -> "accepted"}]
+compiledVerdict[base_, operations_] := Replace[countDeferred[base, operations], {
+	failure_Failure :> failure["MessageParameters"],
+	deferred_ :> Replace[WolframInstitute`TypeTheory`PackageScope`compiledKernelCheck[deferred, Length[base], registrationsOf[base]], {
+		failure_Failure /; TrueQ[failure["RegistrationEquation"]] :> failure["MessageParameters"],
+		_Success -> "accepted",
+		other_ :> other
+	}]
+}]
+
+(* The compiled kernel checks the equations of a registration that have a variable in every application of an operation,
+   and the registration then does not compare them. This rests on the compiled kernel computing a registered operation
+   only where every argument is a literal, and reading no sum by its offset: if it did either on an open term, it
+   would take an equation for true by the registration the equation is to justify. So for each role that refuses, a
+   different function of the role's type is offered to the compiled kernel alone, the comparison left out, and it
+   must refuse it, with the equation that fails: a product for the sum, a power for the product, a difference for the
+   power, a sum for the difference, an order for the equality and an equality for the order. The function that has
+   the role's equations it accepts. *)
+VerificationTest[
+	If[ WolframInstitute`TypeTheory`PackageScope`compiledKernelAvailableQ[],
+		Map[Apply[Function[{role, needed, right, wrong}, {role, compiledVerdict[countBase[needed], <|role -> right|>], compiledVerdict[countBase[needed], <|role -> wrong|>]}]], roleFixtures],
+		"no compiled kernel"
+	],
+	{
+		{"Addition", "accepted", {HoldForm["product"], "Addition", "t + zero == t"}},
+		{"Multiplication", "accepted", {HoldForm["raised"], "Multiplication", "t * zero == zero"}},
+		{"Power", "accepted", {HoldForm["less"], "Power", "t ^ zero == successor[zero]"}},
+		{"Subtraction", "accepted", {HoldForm["sum"], "Subtraction", "t - successor[s] == predecessor[t - s]"}},
+		{"Equal", "accepted", {HoldForm["atMost"], "Equal", "equal[zero, successor[s]] == false"}},
+		{"LessEqual", "accepted", {HoldForm["same"], "LessEqual", "lessEqual[zero, s] == true"}}
+	} | "no compiled kernel",
+	SameTest -> MatchQ,
+	TimeConstraint -> 300,
+	TestID -> "The-compiled-kernel-alone-refuses-a-different-function-for-each-role"
+]
+
+(* the two verdicts are the same, role by role, on the functions above and on others that fail: a projection for each
+   operation of numbers, and a comparison that always says yes *)
+VerificationTest[
+	With[
+		{
+			more = TypeTheoryEnvironment[counted, {
+				TypeTheoryDefinition["firstOf", Typed[Function[{Typed[t, "Count"], Typed[s, "Count"]}, t], "Count" -> "Count" -> "Count"]],
+				TypeTheoryDefinition["alwaysYes", Typed[Function[{Typed[t, "Count"], Typed[s, "Count"]}, "yes"], "Count" -> "Count" -> "Flag"]]
+			}]
+		},
+		With[
+			{
+				cases = Join[
+					Catenate[Map[Apply[Function[{role, needed, right, wrong}, {{needed, role, right}, {needed, role, wrong}}]], roleFixtures]],
+					Map[Apply[Function[{role, needed, right, wrong}, {needed, role, If[MemberQ[{"Equal", "LessEqual"}, role], "alwaysYes", "firstOf"]}]], roleFixtures]
+				],
+				base = Function[needed, countRegistered[more, needed]]
+			},
+			If[ WolframInstitute`TypeTheory`PackageScope`compiledKernelAvailableQ[],
+				{
+					Length[cases],
+					Select[cases, Apply[Function[{needed, role, candidate}, comparisonVerdict[base[needed], <|role -> candidate|>] =!= compiledVerdict[base[needed], <|role -> candidate|>]]]],
+					Count[cases, case_ /; comparisonVerdict[base[First[case]], <|case[[2]] -> Last[case]|>] === "accepted"]
+				},
+				"no compiled kernel"
+			]
+		]
+	],
+	{18, {}, 6} | "no compiled kernel",
+	SameTest -> MatchQ,
+	TimeConstraint -> 300,
+	TestID -> "The-compiled-kernels-verdict-on-a-registration-is-the-comparisons"
+]
+
+(* A registration that fails keeps its report on the compiled path: a list of declarations checked at once is added
+   again one at a time, and the registration names the equation; an environment that holds such a registration, which
+   only one made with the comparison left out can, is refused by TypeTheoryCheck with every method, the compiled kernel
+   refusing the equation and the registration's own comparison naming it. The comparison is left out only after the
+   compiled kernel has accepted the equations: with the kernel of TypeChecking.wl it is made. *)
+VerificationTest[
+	With[{base = countBase[<||>], forged = countDeferred[countBase[<||>], <|"Addition" -> "product"|>]},
+		{
+			TypeTheoryEnvironment[base, {TypeTheoryNaturalNumbers["Count", "none", "more", <|"Addition" -> "product"|>]}, Method -> "Compiled"]["MessageParameters"],
+			Head[forged],
+			Map[
+				Function[method, Replace[TypeTheoryCheck[forged, Method -> method], {failure_Failure :> {failure["Tag"], failure["MessageParameters"]}, other_ :> Head[other]}]],
+				{Automatic, "Compiled", "Symbolic"}
+			],
+			Head[TypeTheoryEnvironment[base, {TypeTheoryNaturalNumbers["Count", "none", "more", <|"Addition" -> "sum"|>]}, Method -> "Compiled"]],
+			Map[
+				Function[method, Head[TypeTheoryCheck[countRegistered[base, <|"Addition" -> "sum"|>], Method -> method]]],
+				{Automatic, "Symbolic"}
+			]
+		}
+	],
+	{
+		{HoldForm["product"], "Addition", "t + zero == t"},
+		TypeTheoryEnvironment,
+		ConstantArray[{"InvalidNaturalNumberOperation", {HoldForm["product"], "Addition", "t + zero == t"}}, 3]
+			| {{"InvalidNaturalNumberOperation", {HoldForm["product"], "Addition", "t + zero == t"}}, {"CompiledKernelUnavailable", _}, {"InvalidNaturalNumberOperation", {HoldForm["product"], "Addition", "t + zero == t"}}},
+		TypeTheoryEnvironment,
+		{Success, Success}
+	},
+	SameTest -> MatchQ,
+	TimeConstraint -> 300,
+	TestID -> "A-registration-that-fails-keeps-its-report-on-the-compiled-path"
+]
+
+(* $deferRegistrationEquations switches a comparison of the kernel off, so it is set in three places and no other: its
+   value False where it is defined, and True in a Block in the two places where the compiled kernel's check stands for
+   the comparison, compiledDeclarations and TypeTheoryCheck. The Kernel's sources are read held, in a context of
+   their own, and every Set of the symbol is listed with the definition it is in. *)
+VerificationTest[
+	Module[{files, definedName, sets},
+		files = FileNames["*.wl", FileNameJoin[{Directory[], "TypeTheory", "Kernel"}], Infinity];
+		definedName[held_] := Replace[held, {
+			HoldComplete[(Set | SetDelayed)[Verbatim[Condition][left_, _], _]] :> definedName[HoldComplete[left := Null]],
+			HoldComplete[(Set | SetDelayed)[head_Symbol[___], _]] :> SymbolName[Unevaluated[head]],
+			HoldComplete[(Set | SetDelayed)[symbol_Symbol, _]] :> SymbolName[Unevaluated[symbol]],
+			_ -> "no definition"
+		}];
+		sets[file_] := Block[{$Context = "TypeTheoryFlagScan`", $ContextPath = {"System`"}},
+			Catenate[Map[
+				Function[held, ConstantArray[
+					{FileNameTake[file], definedName[held]},
+					Count[held, (Set | SetDelayed)[symbol_Symbol, _] /; SymbolName[Unevaluated[symbol]] === "$deferRegistrationEquations", {0, Infinity}, Heads -> True]
+				]],
+				ReadList[file, HoldComplete[Expression]]
+			]]
+		];
+		{Length[files] > 20, Sort[Catenate[Map[sets, files]]]}
+	],
+	{True, {{"Declarations.wl", "compiledDeclarations"}, {"NaturalNumbers.wl", "$deferRegistrationEquations"}, {"Queries.wl", "TypeTheoryCheck"}}},
+	TestID -> "The-comparison-of-a-registrations-equations-is-left-out-in-two-places-only"
+]
+

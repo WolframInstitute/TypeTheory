@@ -133,6 +133,30 @@ remainder are checked against theirs, by recursion on the dividend, and trusted 
 by well-founded recursion, do. An operation without equations, as the greatest common divisor, is trusted to compute on literals what its role's function computes on integers,
 as Lean's kernel trusts GMP, and `TypeTheoryAxiomClosure` names its registration as a trusted assumption wherever a proof
 rests on it: a projection registered as the greatest common divisor proves `False`, as the tutorial *Paradoxes* shows.
+Where the compiled kernel checks an environment or a list of declarations, it also checks these equations, and the
+registration does not compare them again. What is trusted now that was not: on success the comparison by the kernel of
+TypeChecking.wl no longer runs for these equations, so the compiled kernel's check of a record is the comparison, made
+once where it was made twice. An equation `l == r` in `t` and `s` goes to it as a theorem's record after
+the environment's constants: the statement that every predicate that holds of `l` holds of `r`,
+`ForAll[{t, s, P}, P[l] -> P[r]]`, with the function that gives its hypothesis back for a proof, which checks exactly
+where `l` and `r` are equal by computation. Only the equations with a variable in every application of a registered
+operation go: the compiled kernel has the roles of an environment for its whole run and computes a registered
+operation where every argument is a literal, so the one closed equation, `equal[zero, zero] == true`, it would compute
+by the registration the equation is to justify, and the registration compares that one itself, in an environment
+without the registration. This is sound while the compiled kernel reduces an open application by unfolding alone: it
+uses a role only on literals, and has no rule that reads a sum by its offset. The guard of those two facts is a test, not the comment that states them at the compiled kernel's role code:
+"The-compiled-kernel-alone-refuses-a-different-function-for-each-role" offers a different function for each role with
+the comparison left out, and the compiled kernel must refuse it; a compiled kernel that used a role on an open term
+would accept one, and the test would fail. The comparison is left
+out (`$deferRegistrationEquations`) in two places only, which a test of the sources holds
+("The-comparison-of-a-registrations-equations-is-left-out-in-two-places-only"): while a list of declarations is added before the compiled
+kernel checks it, the list being kept only where the check succeeds, and while an environment is declared again after
+the compiled kernel has checked it. Where the compiled kernel refuses an equation, the registration's own comparison
+runs and names it, so a failure reads as it did. The intended end state is a role that is active only from its
+registration's place in the order, which needs no such condition and also settles the declarations between an
+operation's definition and its registration, where the compiled kernel computes by the role and the kernel of
+TypeChecking.wl unfolds; it goes with the next change of the compiled program, when recursors are generated there.
+
 The addition's equations are what the kernel reads terms through:
 - definitional equality compares `x + k` with `y + k'` by their offsets, as Lean's kernel does, in a loop;
 - literal values are read by offsets, and a sum with a variable in it is no literal;
