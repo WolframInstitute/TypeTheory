@@ -318,6 +318,40 @@ VerificationTest[
 	TestID -> "TraditionalForm-shows-a-notation-given-for-it"
 ]
 
+(* A notation may give an InterpretationBox, which holds its parts: what a display rewrites inside it, the connectives,
+   the parentheses of an operand, the mouseovers of operators, is computed before it is put in, and the boxes hold
+   boxes alone, no rewrite left as it is written and no symbol of the display's own. *)
+VerificationTest[
+	Module[{named, shown, leftovers},
+		MakeBoxes["interpretedBoth"[a_, b_], form_] := With[{x = MakeBoxes[a, form], y = MakeBoxes[b, form]}, InterpretationBox[RowBox[{x, "&&", y}], "interpretedBoth"[a, b]]];
+		MakeBoxes["interpretedScaled"[a_, b_], TraditionalForm] := With[{x = MakeBoxes[a, TraditionalForm], y = MakeBoxes[b, TraditionalForm]},
+			InterpretationBox[RowBox[{x, "\[CircleDot]", y}], "interpretedScaled"[a, b]]];
+		named = TypeTheoryEnvironment[prelude, {
+			TypeTheoryDefinition["interpretedBoth", Function[{Typed[x, TypeUniverse[0]], Typed[y, TypeUniverse[0]]}, x && y]],
+			TypeTheoryDefinition["interpretedScaled", Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n m]]
+		}];
+		shown[term_, form_] := First[ToBoxes[term, form]] //. InterpretationBox[boxes_, _] :> boxes;
+		leftovers[boxes_] := Union[Cases[
+			boxes,
+			symbol_Symbol /; MemberQ[{Replace, MapIndexed, With, If, Condition}, Unevaluated[symbol]] || StringStartsQ[Context[symbol], "WolframInstitute`TypeTheory`"] :> SymbolName[Unevaluated[symbol]],
+			{0, Infinity},
+			Heads -> True
+		]];
+		{
+			leftovers[shown[TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies["interpretedBoth"[p, q && p], p]], named], StandardForm]],
+			leftovers[shown[TypeTheoryTerm[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies["interpretedBoth"[p, q && p], p]], named], TraditionalForm]],
+			leftovers[shown[TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, "interpretedScaled"[1 + x, x] == x], named], TraditionalForm]],
+			Cases[
+				shown[TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, "interpretedScaled"[1 + x, x] == x], named], TraditionalForm] //. (StyleBox | TooltipBox | TagBox)[boxes_, ___] :> boxes,
+				RowBox[{__, "\[CircleDot]", __}],
+				Infinity
+			]
+		}
+	],
+	{{}, {}, {}, {RowBox[{RowBox[{"(", RowBox[{"1", "+", "x"}], ")"}], "\[CircleDot]", "x"}]}},
+	TestID -> "A-notation-that-gives-an-InterpretationBox-holds-boxes-alone"
+]
+
 (* a term sets a style around its boxes that hides the quotes of names that are strings, which an input cell would show *)
 VerificationTest[
 	MatchQ[ToBoxes[TypeTheoryTerm["true"]], InterpretationBox[StyleBox[_, ShowStringCharacters -> False], _TypeTheoryTerm]],

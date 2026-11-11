@@ -208,6 +208,9 @@ naturalNumberConstantQ[syntaxSymbol[name_HoldComplete], key_String] := Lookup[di
 naturalNumberConstantQ[syntaxString[name_String], key_String] := Lookup[displayedNaturalNumbers[], key, None] === HoldComplete[name]
 naturalNumberConstantQ[_, _] := False
 
+(* The rewrites of boxes below compute what they put in before they put it in, With[{shown = ...}, RowBox[shown] /; True]:
+   a notation of the user's may give an InterpretationBox or a TemplateBox, which hold their parts, and a rewrite
+   written RowBox[Replace[...]] would stay there as it is written, a RowBox of no boxes. *)
 (* And, Or and Not show as ∧, ∨ and ¬, with the parentheses MakeBoxes chose for &&, || and !; deeper boxes
    are replaced first. The operations on Booleans are shown as Nand, Nor and PlusMinus, which have the
    precedences of && and || and bind tighter than !, and then take the symbols &&, || and !. *)
@@ -216,15 +219,15 @@ logicalOperatorBoxes[boxes_] := Replace[
 		boxes,
 		{
 			RowBox[{"!", operand_}] :> RowBox[{"\[Not]", operand}],
-			RowBox[operands : {_, "&&", __}] :> RowBox[Replace[operands, "&&" -> "\[And]", {1}]],
-			RowBox[operands : {_, "||", __}] :> RowBox[Replace[operands, "||" -> "\[Or]", {1}]]
+			RowBox[operands : {_, "&&", __}] :> With[{shown = Replace[operands, "&&" -> "\[And]", {1}]}, RowBox[shown] /; True],
+			RowBox[operands : {_, "||", __}] :> With[{shown = Replace[operands, "||" -> "\[Or]", {1}]}, RowBox[shown] /; True]
 		},
 		{0, Infinity}
 	],
 	{
 		RowBox[{"\[PlusMinus]", operand_}] :> RowBox[{"!", operand}],
-		RowBox[operands : {_, "\[Nand]", __}] :> RowBox[Replace[operands, "\[Nand]" -> "&&", {1}]],
-		RowBox[operands : {_, "\[Nor]", __}] :> RowBox[Replace[operands, "\[Nor]" -> "||", {1}]]
+		RowBox[operands : {_, "\[Nand]", __}] :> With[{shown = Replace[operands, "\[Nand]" -> "&&", {1}]}, RowBox[shown] /; True],
+		RowBox[operands : {_, "\[Nor]", __}] :> With[{shown = Replace[operands, "\[Nor]" -> "||", {1}]}, RowBox[shown] /; True]
 	},
 	{0, Infinity}
 ]
@@ -234,7 +237,7 @@ logicalOperatorBoxes[boxes_] := Replace[
 typeOperatorBoxes[boxes_] := Replace[
 	boxes,
 	{
-		RowBox[operands : {_, "\[Cross]", __}] :> RowBox[Replace[operands, "\[Cross]" -> "\[Times]", {1}]],
+		RowBox[operands : {_, "\[Cross]", __}] :> With[{shown = Replace[operands, "\[Cross]" -> "\[Times]", {1}]}, RowBox[shown] /; True],
 		SubscriptBox["\[NotExists]", binder_] :> SubscriptBox["\[CapitalSigma]", binder]
 	},
 	{0, Infinity}
@@ -246,10 +249,13 @@ typeOperatorBoxes[boxes_] := Replace[
    with MakeBoxes is parenthesized too. *)
 quantifiedOperandBoxes[boxes_] := Replace[
 	boxes,
-	RowBox[operands : {_, _String, __}] /; OddQ[Length[operands]] && SubsetQ[$looseOperators, operands[[2 ;; ;; 2]]] :> RowBox[MapIndexed[
-		Function[{operand, position}, If[OddQ[First[position]] && First[position] < Length[operands] && quantifierEndedQ[operand], RowBox[{"(", operand, ")"}], operand]],
-		operands
-	]],
+	RowBox[operands : {_, _String, __}] /; OddQ[Length[operands]] && SubsetQ[$looseOperators, operands[[2 ;; ;; 2]]] :> With[
+		{shown = MapIndexed[
+			Function[{operand, position}, If[OddQ[First[position]] && First[position] < Length[operands] && quantifierEndedQ[operand], RowBox[{"(", operand, ")"}], operand]],
+			operands
+		]},
+		RowBox[shown] /; True
+	],
 	{0, Infinity}
 ]
 
@@ -873,7 +879,10 @@ notationBoxes[notationDisplay[shown_, head_, arguments___]] := Replace[
    fewer. *)
 parenthesizedOperands[boxes_] := Replace[
 	boxes,
-	RowBox[items_List] /; operatorRowQ[items] :> RowBox[Replace[items, argument : TagBox[_?operandRowQ, $shownArgumentTag] :> RowBox[{"(", argument, ")"}], {1}]],
+	RowBox[items_List] /; operatorRowQ[items] :> With[
+		{shown = Replace[items, argument : TagBox[_?operandRowQ, $shownArgumentTag] :> RowBox[{"(", argument, ")"}], {1}]},
+		RowBox[shown] /; True
+	],
 	{0, Infinity}
 ]
 
@@ -1108,7 +1117,7 @@ operatorMarked[syntax : syntaxApplication[head_, arguments_List], tip_] := With[
    application whose boxes have another shape, as x^y, has it on the whole *)
 inspectableBoxes[boxes_] := If[ $tipKeys === <||>,
 	boxes,
-	Replace[boxes, StyleBox[content_, key_String, ___] /; KeyExistsQ[$tipKeys, key] :> operatorTooltips[content, $tipKeys[key]], {0, Infinity}]
+	Replace[boxes, StyleBox[content_, key_String, ___] /; KeyExistsQ[$tipKeys, key] :> With[{tipped = operatorTooltips[content, $tipKeys[key]]}, tipped /; True], {0, Infinity}]
 ]
 
 operatorTooltips[content_, {tip_, head_, arity_}] := Replace[{content, operatorTokenPositions[head, arity]}, {
