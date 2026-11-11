@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.41.0.
+Versions 0.35.0 to 0.42.0.
 
 ### Added
 
@@ -39,7 +39,8 @@ Versions 0.35.0 to 0.41.0.
   implementation of the rounding computes by integers.
 - `"Ring"` proves an equation of rationals from the rationals' own laws, as it does for integers: a term that is no
   sum or product is an atom, and an identity in four variables, which through the classes of pairs took gigabytes,
-  takes hundredths of a second. The rationals' library has the twelve laws it lacked.
+  takes hundredths of a second, and one that does not hold is refused at once. An equation that holds by the
+  arithmetic of fractions is still left to the classes. The rationals' library has the twelve laws it lacked.
 - `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
   of the term in the goal becomes a variable, and each case is stated with its recursors computed.
 
@@ -71,6 +72,9 @@ Versions 0.35.0 to 0.41.0.
 ### Performance
 
 - A beta reduction computes the operations on literals that it builds.
+- The compiled kernel checks the defining equations of the registered operations of the natural numbers, as theorems
+  in its one pass, and a check does not compare them a second time: 80 ms less in every check of a cone of Mathlib on
+  Wolfram 15. The compiled program is unchanged.
 - A registration's defining equations are compared with the kernel's caches: 160 ms less in every check of
   an environment that registers the natural numbers' operations, as a cone of Mathlib does.
 

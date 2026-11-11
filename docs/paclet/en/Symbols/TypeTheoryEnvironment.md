@@ -262,7 +262,7 @@ The rationals, which extend the integers:
 TypeTheoryEnvironment["Rationals"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 435 constants -->
+<!-- => TypeTheoryEnvironment summary box: 447 constants -->
 
 ---
 
