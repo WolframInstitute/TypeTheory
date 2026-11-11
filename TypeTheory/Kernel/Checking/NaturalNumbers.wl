@@ -245,7 +245,8 @@ checkRoleEquations[environment_, settings_, operations_, role_, name_] := Replac
 $refusedRoles = {"Addition", "Multiplication", "Power", "Subtraction", "Equal", "LessEqual"}
 
 (* None, or the message and parameters of what fails: an operation the equations use not registered, or an equation
-   that does not hold by computation *)
+   that does not hold by computation. The comparison of an equation's sides remembers its steps, as a check does:
+   without them it repeats the comparisons of the parts, 160 ms of each check of a cone of Mathlib *)
 roleEquationFailure[environment_, settings_, operations_, role_, name_] := Replace[
 	SelectFirst[Lookup[$roleRequirements, role, {}], Function[required, ! KeyExistsQ[operations, required]], None],
 	{
@@ -260,7 +261,7 @@ roleEquationFailure[environment_, settings_, operations_, role_, name_] := Repla
 				Replace[
 					SelectFirst[
 						$roleEquations[role][equationTerms[environment, settings, operations, name, freeVariable[first], freeVariable[second]]],
-						Apply[Function[{left, right, statement}, ! definitionallyEqualQ[environment, context, left, right]]],
+						Apply[Function[{left, right, statement}, ! withKernelCaches[definitionallyEqualQ[environment, context, left, right]]]],
 						None
 					],
 					{
