@@ -185,3 +185,32 @@ VerificationTest[
 	TimeConstraint -> 300,
 	TestID -> "Ring-proves-equations-of-rationals-from-the-rationals-laws"
 ]
+
+(* An equation of rationals written with the operations of the rings and variables alone, which the normal forms do not
+   prove, is refused at once: the classes of pairs of its four variables, twelve natural numbers, took 2.4 GB to refuse
+   it. One with a constant whose definition is a fraction is still left to the classes, which prove it. *)
+VerificationTest[
+	Module[{rationals = TypeTheoryEnvironment["Rationals"], extended},
+		extended = TypeTheoryEnvironment[rationals, {TypeTheoryDefinition["half", Typed[1/2, Rationals]]}];
+		{
+			MemoryConstrained[
+				TypeTheoryProof[
+					TypeTheoryTerm[ForAll[{Typed[a, Rationals], Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, 2 a + b + c + d == 3 a + b + c + d], rationals],
+					rationals,
+					Append[ConstantArray[TypeTheoryTactic["Introduce"], 4], TypeTheoryTactic["Ring"]]
+				]["Tag"],
+				200000000,
+				"more than 200 MB"
+			],
+			TypeTheoryProof[TypeTheoryTerm[ForAll[{Typed[a, Rationals]}, "half" a + "half" a == a], extended], extended, {TypeTheoryTactic["Introduce"], TypeTheoryTactic["Ring"]}]["Goals"],
+			TypeTheoryProof[
+				TypeTheoryTerm[ForAll[{Typed[a, Rationals]}, Typed[1/2, Rationals] a + Typed[1/3, Rationals] a == a], rationals],
+				rationals,
+				{TypeTheoryTactic["Introduce"], TypeTheoryTactic["Ring"]}
+			]["Tag"]
+		}
+	],
+	{"NotRingEquation", {}, "NotRingEquation"},
+	TestID -> "Ring-refuses-an-equation-of-rationals-without-a-fraction-at-once"
+]
+

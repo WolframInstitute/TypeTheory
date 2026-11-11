@@ -1149,16 +1149,36 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 			classRing[data, goal, current, integerTypeQ],
 		(* an equation of rationals by the rationals' own normal forms, which take any term that is no sum or product for
 		   an atom; one that holds only by the arithmetic of fractions, or while the rationals' library is built, is
-		   left to the classes of pairs *)
+		   left to the classes of pairs, and one without a fraction that the normal forms do not prove is refused *)
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; rationalTypeQ[environment, type] && rationalRingAvailableQ[environment] :>
 			Replace[rationalRingEquationProof[rationalArithmeticReduced[environment, current["Context"], left], rationalArithmeticReduced[environment, current["Context"], right]], {
-				None :> classRing[data, goal, current, rationalTypeQ],
+				None :> If[ polynomialSidesQ[current["Context"], {left, right}],
+					tacticFailure["NotRingEquation", "The two sides of the goal `1` are not equal in every commutative ring.", data, goal],
+					classRing[data, goal, current, rationalTypeQ]
+				],
 				proof_ :> solvedByCheckedProof[data, goal, current, proof]
 			}],
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; rationalTypeQ[environment, type] :>
 			classRing[data, goal, current, rationalTypeQ],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers, integers or rationals.", data, goal]
 	}]
+]
+
+(* The classes of pairs prove an equation of rationals that the normal forms do not where it holds by the arithmetic of
+   fractions: an inverse is an atom of a normal form, and computes on a pair. Sides written with the operations of the
+   three rings, the casts between them and variables alone are polynomials in variables that nothing relates, equal as
+   rationals only where their normal forms are the same, so the classes are not asked: they take four rationals for
+   twelve natural numbers, and gigabytes to refuse an equation of them. Any other constant, an inverse or one whose
+   definition may unfold to one, and a variable with a value, leave the equation to the classes. *)
+$polynomialConstants = HoldComplete /@ {
+	"rationalAddition", "rationalMultiplication", "rationalSubtraction", "rationalNegation", "rationalPower", "rationalOfInteger",
+	"integerAddition", "integerMultiplication", "integerSubtraction", "integerNegation", "integerPower", "integerOfNatural",
+	Plus, Times, Power
+}
+
+polynomialSidesQ[context_, terms_] := And[
+	SubsetQ[$polynomialConstants, Cases[terms, constantReference[name_, _] :> name, {0, Infinity}, Heads -> True]],
+	NoneTrue[mentionedFreeVariables[terms], Function[id, KeyExistsQ[Lookup[context, id, <||>], "Value"]]]
 ]
 
 (* a term of rationals with its atoms reduced as those of integers are, the integers it casts included *)
