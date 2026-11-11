@@ -8,7 +8,13 @@
    operation as the compiler's table of typed operations says. This script runs the edges that reading rests on:
    compiled code and the evaluator must give the same text, InputForm, never SameQ, which takes two reals a last bit
    apart as the same, and the column of declines says where the typed entry leaves. It prints a row for each case,
-   and the system it ran on: the fused multiply-add of x y + z depends on the platform's C compiler. *)
+   and the system it ran on: the fused multiply-add of x y + z depends on the platform's C compiler.
+
+   The rows of a real to an integer power are a regression test, not yet a part of the model: typed code computes
+   the power by powi, a chain of products in the order of the exponent's binary digits, where Wolfram 15's own power
+   is another rule at some exponents (6, 7, 10, 15 by a last place, 1000 by many). Each such row has a variable and a
+   constant exponent, on a base where the orders of the products round differently, and prints the chain's value,
+   computed by exact rationals, beside the compiled value and the evaluator's. *)
 addR[x_Real, y_Real] := x + y;
 subR[x_Real, y_Real] := x - y;
 mulR[x_Real, y_Real] := x y;
@@ -30,7 +36,44 @@ eqR[x_Real, y_Real] := x == y;
 atanR[x_Real, y_Real] := ArcTan[x, y];
 mulIR[n_Integer, x_Real] := n x;
 addIR[n_Integer, x_Real] := n + x;
+powR[x_Real, n_Integer] := x^n;
+pow3R[x_Real] := x^3;
+pow5R[x_Real] := x^5;
+pow6R[x_Real] := x^6;
+pow7R[x_Real] := x^7;
+pow10R[x_Real] := x^10;
+pow15R[x_Real] := x^15;
+powMinus3R[x_Real] := x^-3;
+pow1000R[x_Real] := x^1000;
 text[x_] := ToString[x, InputForm];
+(* The product chain of powi, by exact rationals: the base is squared and the result multiplied in the order of the
+   exponent's binary digits from the lowest, each product rounded to the nearest real with ties to even, and one
+   division for a negative exponent. The rounding is by integers: the exponent from the lengths in bits, the
+   significand by Round of an exact rational. A row of a power prints the chain's value beside the compiled value. *)
+binaryExponent[q_] := With[{estimate = BitLength[Numerator[q]] - BitLength[Denominator[q]]}, If[q < 2^estimate, estimate - 1, estimate]];
+nearest[0] := 0;
+nearest[q_] := With[{e = Max[binaryExponent[Abs[q]] - 52, -1074]}, Round[q/2^e] 2^e];
+chain[x_, n_] := Module[{a = x, b = Abs[n], r = 1},
+	While[True, If[OddQ[b], r = nearest[r a]]; b = Quotient[b, 2]; If[b == 0, Break[]]; a = nearest[a a]];
+	If[n < 0, nearest[1/r], r]];
+(* the exact rational of a machine real, from its digits in base 2 *)
+exactOf[x_Real] := With[{digits = RealDigits[x, 2]}, Sign[x] FromDigits[First[digits], 2] 2^(Last[digits] - Length[First[digits]])];
+chainText[x_Real, n_Integer] := text[N[chain[exactOf[x], n]]];
+powerCases = Flatten[
+	Map[
+		Function[row, With[{x = row[[1]], n = row[[2]], constant = row[[3]]},
+			{
+				{text[x] <> "^" <> text[n] <> ", the exponent a variable; the chain gives " <> chainText[x, n], Hold[powR[x, n]]},
+				{text[x] <> "^" <> text[n] <> ", the exponent a constant; the chain gives " <> chainText[x, n], Hold[constant[x]]}
+			}
+		]],
+		{
+			{1.8595758754054015, 3, pow3R}, {1.2382297205964, 5, pow5R}, {1.2382297205964, 6, pow6R}, {1.4487316298189261, 7, pow7R},
+			{1.2382297205964, 10, pow10R}, {1.3231998472169695, 15, pow15R}, {1.4487316298189261, -3, powMinus3R}, {1.3231998472169695, 1000, pow1000R}
+		}
+	],
+	1
+];
 quotients = Select[
 	Flatten[Table[{N[p], N[q], text[N[p]/N[q]], text[N[p] (1/N[q])], text[N[p/q]]}, {p, 1, 60}, {q, 1, 60}], 1],
 	Function[t, t[[3]] =!= t[[5]]]
@@ -85,11 +128,23 @@ cases = Join[
 		{"Round[-9.*^18]", Hold[roundR[-9.*^18]]},
 		{"Round[9.000000000000001*^18]", Hold[roundR[9.000000000000001*^18]]}
 	},
-	Map[Function[t, {"x / y not the nearest: " <> text[t[[1]]] <> " / " <> text[t[[2]]] <> " (nearest " <> t[[5]] <> ")", Hold[divR[#1, #2]] & @@ Take[t, 2]}], Take[quotients, UpTo[4]]]
+	Map[Function[t, {"x / y not the nearest: " <> text[t[[1]]] <> " / " <> text[t[[2]]] <> " (nearest " <> t[[5]] <> ")", Hold[divR[#1, #2]] & @@ Take[t, 2]}], Take[quotients, UpTo[4]]],
+	powerCases,
+	{
+		{"2.^0", Hold[powR[2., 0]]},
+		{"(-3.5)^0", Hold[powR[-3.5, 0]]},
+		{"0.^0", Hold[powR[0., 0]]},
+		{"0.^3", Hold[powR[0., 3]]},
+		{"2.^(2^40), an exponent past 32 bits", Hold[powR[2., 1099511627776]]},
+		{"(1.*^200)^2, past the largest real", Hold[powR[1.*^200, 2]]},
+		{"(1.*^-200)^2, below the smallest", Hold[powR[1.*^-200, 2]]},
+		{"(1.*^200)^-2, the square past the largest real and its reciprocal 0", Hold[powR[1.*^200, -2]]},
+		{"(1.*^-100)^3, in range", Hold[powR[1.*^-100, 3]]}
+	}
 ];
 expected = Map[Function[c, text[Quiet[ReleaseHold[c[[2]]]]]], cases];
-Print["compile: ", Head[Kernel`CompileDefinitions[addR, subR, mulR, divR, fmaR, fmaLeftR, fmaMinusR, ltIR, roundR, floorR, signR, zeroQR, minusR, timesNegR, sqrtR, absR, nOfI, eqR, atanR, mulIR, addIR]]];
-declines[] := Total[{Kernel`CompiledInformation[addR]["Declines"], Kernel`CompiledInformation[subR]["Declines"], Kernel`CompiledInformation[mulR]["Declines"], Kernel`CompiledInformation[divR]["Declines"], Kernel`CompiledInformation[fmaR]["Declines"], Kernel`CompiledInformation[fmaLeftR]["Declines"], Kernel`CompiledInformation[fmaMinusR]["Declines"], Kernel`CompiledInformation[ltIR]["Declines"], Kernel`CompiledInformation[roundR]["Declines"], Kernel`CompiledInformation[floorR]["Declines"], Kernel`CompiledInformation[signR]["Declines"], Kernel`CompiledInformation[zeroQR]["Declines"], Kernel`CompiledInformation[minusR]["Declines"], Kernel`CompiledInformation[timesNegR]["Declines"], Kernel`CompiledInformation[sqrtR]["Declines"], Kernel`CompiledInformation[absR]["Declines"], Kernel`CompiledInformation[nOfI]["Declines"], Kernel`CompiledInformation[eqR]["Declines"], Kernel`CompiledInformation[atanR]["Declines"], Kernel`CompiledInformation[mulIR]["Declines"], Kernel`CompiledInformation[addIR]["Declines"]}];
+Print["compile: ", Head[Kernel`CompileDefinitions[addR, subR, mulR, divR, fmaR, fmaLeftR, fmaMinusR, ltIR, roundR, floorR, signR, zeroQR, minusR, timesNegR, sqrtR, absR, nOfI, eqR, atanR, mulIR, addIR, powR, pow3R, pow5R, pow6R, pow7R, pow10R, pow15R, powMinus3R, pow1000R]]];
+declines[] := Total[{Kernel`CompiledInformation[addR]["Declines"], Kernel`CompiledInformation[subR]["Declines"], Kernel`CompiledInformation[mulR]["Declines"], Kernel`CompiledInformation[divR]["Declines"], Kernel`CompiledInformation[fmaR]["Declines"], Kernel`CompiledInformation[fmaLeftR]["Declines"], Kernel`CompiledInformation[fmaMinusR]["Declines"], Kernel`CompiledInformation[ltIR]["Declines"], Kernel`CompiledInformation[roundR]["Declines"], Kernel`CompiledInformation[floorR]["Declines"], Kernel`CompiledInformation[signR]["Declines"], Kernel`CompiledInformation[zeroQR]["Declines"], Kernel`CompiledInformation[minusR]["Declines"], Kernel`CompiledInformation[timesNegR]["Declines"], Kernel`CompiledInformation[sqrtR]["Declines"], Kernel`CompiledInformation[absR]["Declines"], Kernel`CompiledInformation[nOfI]["Declines"], Kernel`CompiledInformation[eqR]["Declines"], Kernel`CompiledInformation[atanR]["Declines"], Kernel`CompiledInformation[mulIR]["Declines"], Kernel`CompiledInformation[addIR]["Declines"], Kernel`CompiledInformation[powR]["Declines"], Kernel`CompiledInformation[pow3R]["Declines"], Kernel`CompiledInformation[pow5R]["Declines"], Kernel`CompiledInformation[pow6R]["Declines"], Kernel`CompiledInformation[pow7R]["Declines"], Kernel`CompiledInformation[pow10R]["Declines"], Kernel`CompiledInformation[pow15R]["Declines"], Kernel`CompiledInformation[powMinus3R]["Declines"], Kernel`CompiledInformation[pow1000R]["Declines"]}];
 compiledQ = Map[Function[info, {info["Compiled"], info["Parameters"], info["Result"]}], {Kernel`CompiledInformation[minusR], Kernel`CompiledInformation[sqrtR], Kernel`CompiledInformation[nOfI], Kernel`CompiledInformation[eqR], Kernel`CompiledInformation[absR]}];
 Print["typed entries (Minus, Sqrt, N, Equal, Abs): ", compiledQ];
 MapThread[
