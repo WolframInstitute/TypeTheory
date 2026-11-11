@@ -60,6 +60,8 @@ PackageScoped[ringEquationInequalities]
 PackageScoped[integerRingEquationProof]
 PackageScoped[integerRingAvailableQ]
 PackageScoped[integerCombinationProof]
+PackageScoped[rationalRingEquationProof]
+PackageScoped[rationalRingAvailableQ]
 
 
 (* ::Section:: *)
@@ -78,6 +80,9 @@ each other linearly, or None."
 integerRingEquationProof::usage = "integerRingEquationProof[left, right] gives a proof of left == right for core terms of the integers of TypeTheoryEnvironment[\"Integers\"] \
 with the same normal form, from the integers' laws, or None."
 integerRingAvailableQ::usage = "integerRingAvailableQ[environment] gives True if environment declares the integers and the laws their normal forms are built from."
+rationalRingEquationProof::usage = "rationalRingEquationProof[left, right] gives a proof of left == right for core terms of the rationals of TypeTheoryEnvironment[\"Rationals\"] \
+with the same normal form, from the rationals' laws, or None."
+rationalRingAvailableQ::usage = "rationalRingAvailableQ[environment] gives True if environment declares the rationals and the laws their normal forms are built from."
 integerCombinationProof::usage = "integerCombinationProof[left, right, {{a, b, proof}, ...}] gives a proof of left == right for core terms of the integers of \
 TypeTheoryEnvironment[\"Integers\"] from proofs of equations a == b of integers, by a polynomial combination of them with integer cofactors that Wolfram finds, or None."
 ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {{a, b, proof1}, {b, a, proof2}}, the inequalities a <= b and b <= a, from a proof of a == b."
@@ -90,6 +95,13 @@ ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {
 ringEquationProof[left_, right_] := Replace[ringEquation[left, right], equation_List :> Last[equation]]
 
 integerRingEquationProof[left_, right_] := Block[{$ring = $integerRing}, ringEquationProof[left, right]]
+
+rationalRingEquationProof[left_, right_] := Block[{$ring = $rationalRing}, ringEquationProof[left, right]]
+
+rationalRingAvailableQ[environment_] := AllTrue[
+	Join[Values[$rationalRing["Laws"]], Values[$rationalRing["Operations"]], $rationalNormalFormConstants],
+	Function[name, constantDeclaredQ[environment, name]]
+]
 
 integerRingAvailableQ[environment_] := AllTrue[
 	Join[Values[$integerRing["Laws"]], Values[$integerRing["Operations"]], $integerNormalFormConstants],
@@ -426,7 +438,42 @@ $integerRing = <|
 	|>
 |>
 
+(* The rationals of TypeTheoryEnvironment["Rationals"], a commutative ring whose coefficients are the integers: a
+   coefficient is the rational of an integer literal. A fraction is an atom here, so an equation that holds by the
+   arithmetic of fractions, as x / 2 + x / 2 == x, has no proof by these normal forms. *)
+$rationalRing = <|
+	"Type" -> constantReference[HoldComplete[Rationals], {}],
+	"Operations" -> <|"Plus" -> HoldComplete["rationalAddition"], "Times" -> HoldComplete["rationalMultiplication"], "Power" -> HoldComplete["rationalPower"]|>,
+	"Literal" -> rationalLiteral,
+	"NormalForm" -> rationalNormalForm,
+	"LiteralSum" -> rationalLiteralSum,
+	"Laws" -> <|
+		"additionAssociativity" -> HoldComplete["rationalAdditionAssociativity"],
+		"additionCommutativity" -> HoldComplete["rationalAdditionCommutativity"],
+		"additionZeroLeft" -> HoldComplete["rationalAdditionZeroLeft"],
+		"additionZeroRight" -> HoldComplete["rationalAdditionZero"],
+		"multiplicationAssociativity" -> HoldComplete["rationalMultiplicationAssociativity"],
+		"multiplicationCommutativity" -> HoldComplete["rationalMultiplicationCommutativity"],
+		"multiplicationZeroLeft" -> HoldComplete["rationalMultiplicationZeroLeft"],
+		"multiplicationZeroRight" -> HoldComplete["rationalMultiplicationZeroRight"],
+		"multiplicationOneLeft" -> HoldComplete["rationalMultiplicationOneLeft"],
+		"multiplicationDistributivityLeft" -> HoldComplete["rationalDistributivity"],
+		"multiplicationDistributivityRight" -> HoldComplete["rationalDistributivityRight"],
+		"powerZero" -> HoldComplete["rationalPowerZero"],
+		"powerOne" -> HoldComplete["rationalPowerOne"],
+		"powerSuccessor" -> HoldComplete["rationalPowerSuccessor"],
+		"powerAddition" -> HoldComplete["rationalPowerAddition"]
+	|>
+|>
+
 $ring = $naturalNumberRing
+
+(* the constants the rationals' normal forms are built from, beside the ring's laws and operations and the integers' *)
+$rationalNormalFormConstants = HoldComplete /@ Unevaluated[{
+	Rationals, "rationalOfInteger", "rationalNegation", "rationalSubtraction", "rationalNegationProduct", "rationalOfIntegerAddition",
+	"rationalOfIntegerMultiplication", "rationalOfIntegerPower", "integerLiteralDifferenceNonnegative", "integerLiteralDifferenceNegative",
+	"equalityReflexivity", "equalitySymmetry", "equalityTransitivity", "equalityCongruence"
+}]
 
 (* the constants the integers' normal forms are built from, beside the ring's laws and operations *)
 $integerNormalFormConstants = HoldComplete /@ Unevaluated[{
@@ -451,6 +498,9 @@ integerLiteral[n_Integer?NonNegative] := integerOfNatural[naturalLiteral[n]]
 integerLiteral[n_Integer] := negation[integerLiteral[-n]]
 integerOfNatural[term_] := application[constantReference[HoldComplete["integerOfNatural"], {}], term]
 negation[term_] := application[constantReference[HoldComplete["integerNegation"], {}], term]
+rationalLiteral[n_Integer] := rationalOfInteger[integerLiteral[n]]
+rationalOfInteger[term_] := application[constantReference[HoldComplete["rationalOfInteger"], {}], term]
+rationalNegation[term_] := application[constantReference[HoldComplete["rationalNegation"], {}], term]
 lessEqual[a_, b_] := application[application[constantReference[HoldComplete[LessEqual], {}], a], b]
 less[a_, b_] := application[application[constantReference[HoldComplete[Less], {}], a], b]
 or[p_, q_] := application[application[constantReference[HoldComplete[Or], {}], p], q]
@@ -547,6 +597,23 @@ integerLiteralSum[a_Integer, b_Integer] /; a + b >= 0 :=
 integerLiteralSum[a_Integer, b_Integer] :=
 	law["integerLiteralDifferenceNegative", {naturalLiteral[a], naturalLiteral[-a - b]}, plus[literal[a], literal[b]], literal[a + b]]
 
+(* two rational literals of one sign add by computation; of opposite signs their sum is the rational of the integers'
+   sum, which the integers' lemma gives, carried under the rational of an integer *)
+rationalLiteralSum[a_Integer, b_Integer] /; a b >= 0 := computedLiteralSum[a, b]
+rationalLiteralSum[a_Integer, b_Integer] := With[{integerSum = Block[{$ring = $integerRing}, integerLiteralSum[a, b]]},
+	transitive[
+		symmetric[law["rationalOfIntegerAddition", {integerLiteral[a], integerLiteral[b]}, rationalOfInteger[First[integerSum]], plus[literal[a], literal[b]]]],
+		{
+			rationalOfInteger[First[integerSum]],
+			literal[a + b],
+			makeApplication[
+				constantReference[HoldComplete["equalityCongruence"], {1, 1}],
+				{$integerRing["Type"], $rationalRing["Type"], First[integerSum], integerLiteral[a + b], constantReference[HoldComplete["rationalOfInteger"], {}], Last[integerSum]}
+			]
+		}
+	]
+]
+
 (* x op (y op z) == y op (x op z), from associativity and commutativity *)
 leftCommutativity[operation_, associativity_, commutativity_, x_, y_, z_] := chain[
 	symmetric[associativity[x, y, z]],
@@ -600,6 +667,55 @@ integerNormalForm[term_] := Replace[term, {
 	],
 	application[application[constantReference[HoldComplete["integerPower"], _], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :> powerNormalForm[a, k],
 	application[constantReference[HoldComplete["integerOfNatural"], _], n_] :> castNormalForm[term, n],
+	_ :> {{{1, {{term, 1}}}}, reflexive[term]}
+}]
+
+(* A term of rationals: the rational of an integer literal is a constant; sums, products and powers by literals carry
+   over; a difference is the sum with the negation by computation, and a negation the product with -1; the rational of
+   a sum, product, negation, difference or power of integers is that of the rationals, and any other term, a fraction
+   among them, is an atom. *)
+rationalNormalForm[term_] := With[{value = rationalLiteralValue[term]},
+	If[ IntegerQ[value],
+		{If[value == 0, {}, {{value, {}}}], computed[term, literal[value]]},
+		Replace[term, {
+			application[application[constantReference[HoldComplete["rationalAddition"], _], a_], b_] :> sumNormalForm[a, b],
+			application[application[constantReference[HoldComplete["rationalMultiplication"], _], a_], b_] :> productNormalForm[a, b],
+			application[application[constantReference[HoldComplete["rationalSubtraction"], _], a_], b_] :> With[{sum = sumNormalForm[a, rationalNegation[b]]},
+				{First[sum], transitive[computed[term, plus[a, rationalNegation[b]]], Last[sum]]}
+			],
+			application[constantReference[HoldComplete["rationalNegation"], _], a_] :> With[{product = productNormalForm[literal[-1], a]},
+				{First[product], transitive[law["rationalNegationProduct", {a}, term, times[literal[-1], a]], Last[product]]}
+			],
+			application[application[constantReference[HoldComplete["rationalPower"], _], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :> powerNormalForm[a, k],
+			application[constantReference[HoldComplete["rationalOfInteger"], _], integer_] :> rationalCastNormalForm[term, integer],
+			_ :> {{{1, {{term, 1}}}}, reflexive[term]}
+		}]
+	]
+]
+
+(* the whole number a term of rationals is written as, the rational of an integer literal, or None *)
+rationalLiteralValue[term_] := Replace[term, {
+	application[constantReference[HoldComplete["rationalOfInteger"], _], application[constantReference[HoldComplete["integerOfNatural"], _], naturalLiteral[n_Integer]]] :> n,
+	application[
+		constantReference[HoldComplete["rationalOfInteger"], _],
+		application[constantReference[HoldComplete["integerNegation"], _], application[constantReference[HoldComplete["integerOfNatural"], _], naturalLiteral[n_Integer]]]
+	] :> -n,
+	_ :> None
+}]
+
+(* the rational term of the integer *)
+rationalCastNormalForm[term_, integer_] := Replace[integer, {
+	application[application[constantReference[HoldComplete["integerAddition"], _], a_], b_] :>
+		castThrough[term, law["rationalOfIntegerAddition", {a, b}, term, plus[rationalOfInteger[a], rationalOfInteger[b]]]],
+	application[application[constantReference[HoldComplete["integerMultiplication"], _], a_], b_] :>
+		castThrough[term, law["rationalOfIntegerMultiplication", {a, b}, term, times[rationalOfInteger[a], rationalOfInteger[b]]]],
+	application[constantReference[HoldComplete["integerNegation"], _], a_] :> castThrough[term, computed[term, rationalNegation[rationalOfInteger[a]]]],
+	(* a difference of integers is the sum with the negation by computation; the rational of that sum is not the sum of
+	   the rationals by computation, and goes through the law *)
+	application[application[constantReference[HoldComplete["integerSubtraction"], _], a_], b_] :>
+		castThrough[term, computed[term, rationalOfInteger[makeApplication[constantReference[HoldComplete["integerAddition"], {}], {a, negation[b]}]]]],
+	application[application[constantReference[HoldComplete["integerPower"], _], a_], naturalLiteral[k_Integer]] /; k <= $largestRingExponent :>
+		castThrough[term, law["rationalOfIntegerPower", {a, naturalLiteral[k]}, term, power[rationalOfInteger[a], naturalLiteral[k]]]],
 	_ :> {{{1, {{term, 1}}}}, reflexive[term]}
 }]
 

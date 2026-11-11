@@ -156,3 +156,32 @@ VerificationTest[
 	{"NoLinearCombination", "NoLinearCombination"},
 	TestID -> "LinearArithmetic-fails-where-the-goal-does-not-follow-linearly"
 ]
+
+(* In the rationals "Ring" builds the normal forms of rationals from the rationals' own laws: an identity in four
+   variables, which by the classes of pairs is one of twelve natural numbers, is proved at once; a term that is no sum
+   or product is an atom, as an inverse is; numbers of opposite signs add; the rational of an integer's sum is the sum
+   of the rationals. The kernel checks each proof when it is declared. An equation that holds by the arithmetic of
+   fractions is left to the classes of pairs, and one that does not hold is refused. *)
+VerificationTest[
+	Module[{rationals = TypeTheoryEnvironment["Rationals"], prove, proofs},
+		prove[statement_, variables_Integer : 4] := TypeTheoryProof[statement, rationals, Append[ConstantArray[TypeTheoryTactic["Introduce"], variables], TypeTheoryTactic["Ring"]]];
+		proofs = {
+			prove[TypeTheoryTerm[ForAll[{Typed[a, Rationals], Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, (a + b) (c + d) == a c + a d + b c + b d], rationals]],
+			prove[TypeTheoryTerm[ForAll[{Typed[a, Rationals], Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, (a - b)^3 + c - c == a^3 - 3 a^2 b + 3 a b^2 - b^3 + 0 d], rationals]],
+			prove[TypeTheoryTerm[ForAll[{Typed[a, Rationals], Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, "rationalInverse"[a] + b + 2 c - 5 c == b - 3 c + "rationalInverse"[a] + 0 d], rationals]],
+			prove[TypeTheoryTerm[ForAll[{Typed[m, Integers], Typed[n, Integers], Typed[c, Rationals], Typed[d, Rationals]}, "rationalOfInteger"[m n - m] + c == "rationalOfInteger"[m] ("rationalOfInteger"[n] - 1) + c + 0 d], rationals]],
+			prove[TypeTheoryTerm[ForAll[{Typed[a, Rationals]}, Typed[1/2, Rationals] a + Typed[1/2, Rationals] a == a], rationals], 1],
+			prove[TypeTheoryTerm[ForAll[{Typed[a, Rationals], Typed[b, Rationals], Typed[c, Rationals], Typed[d, Rationals]}, 2 a + b + c + d == 3 a + b + c + d], rationals]]
+		};
+		{
+			Map[Function[proof, If[FailureQ[proof], proof["Tag"], proof["Goals"]]], proofs],
+			MatchQ[
+				TypeTheoryCheck[TypeTheoryEnvironment[rationals, MapIndexed[Function[{proof, index}, TypeTheoryTheorem @@ {"ringOfRationals" <> ToString[First[index]], proof}], Take[proofs, 5]]]],
+				_Success
+			]
+		}
+	],
+	{{{}, {}, {}, {}, {}, "NotRingEquation"}, True},
+	TimeConstraint -> 300,
+	TestID -> "Ring-proves-equations-of-rationals-from-the-rationals-laws"
+]

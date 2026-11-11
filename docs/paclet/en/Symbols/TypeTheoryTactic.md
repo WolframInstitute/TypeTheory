@@ -39,7 +39,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Change", statement` | replaces the goal by a statement equal to it by computation |
 | `"RewriteRepeated", h, ...` | rewrites with the equations `h, ...` until none applies, as [ReplaceRepeated]() does where `"Rewrite"` is [Replace](); unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation; the equations may also be one list |
 | `"Decide"` | proves a statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's instances decide `==` and `<=` of natural numbers, `==` of Booleans, [And](), [Or](), [Not](), [True]() and [False](). A closed statement always computes; one with variables computes only where its decision does not depend on them |
-| `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws |
+| `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws, and in <code>[TypeTheoryEnvironment]()["Rationals"]</code> an equation of rationals likewise, from the rationals' laws, with numbers for coefficients; an equation that holds by the arithmetic of fractions, as *x*/2 + *x*/2 == *x*, is proved through the pairs the rationals are classes of |
 | `"Classical"` | proves a statement of classical propositional logic from the hypotheses that are propositions, by a truth table: each atom, a proposition that no connective builds, is split by `"excludedMiddle"`, and the goal is built from the cases under every assignment that makes the hypotheses true |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers from the equations of integers |
@@ -660,6 +660,19 @@ In the integers, `"Ring"` proves what holds in every commutative ring, subtracti
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[x, Integers], Typed[y, Integers]}, (x - y) (x + y) == x^2 - y^2], "Integers", {
+    "Introduce"[x, y],
+    "Ring"
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+In the rationals too, where a term that is no sum or product, as an inverse, counts as a variable:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals], Typed[y, Rationals]}, (x - y) (x + y) + 1/x == 1/x + x^2 - y^2], "Rationals", {
     "Introduce"[x, y],
     "Ring"
 }]

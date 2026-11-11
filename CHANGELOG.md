@@ -37,6 +37,9 @@ Versions 0.35.0 to 0.41.0.
   proved commutative. `"real64NearestQ"` is the Boolean the kernel computes for a rational and a machine real,
   whether the real is the rounding of the rational; `scripts/real64_nearest_grid.wl` holds it to the machine. The
   implementation of the rounding computes by integers.
+- `"Ring"` proves an equation of rationals from the rationals' own laws, as it does for integers: a term that is no
+  sum or product is an atom, and an identity in four variables, which through the classes of pairs took gigabytes,
+  takes hundredths of a second. The rationals' library has the twelve laws it lacked.
 - `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
   of the term in the goal becomes a variable, and each case is stated with its recursors computed.
 

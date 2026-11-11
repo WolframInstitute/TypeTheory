@@ -493,6 +493,86 @@ $rationalDeclarations = With[{pairs = CartesianProductType[Integers, NonNegative
 		{TypeTheoryTactic["Introduce", a, b], TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]}
 	],
 
+	(* The rest of the laws of a commutative ring, as "Ring" names them, with which it builds the normal forms of
+	   rationals from the rationals' own laws: the laws on the other side, the products with 0, a negation as the
+	   product with -1, the powers, and the rational of a negation and of a power of integers. *)
+	rationalTheorem[
+		"rationalAdditionZeroLeft",
+		ForAll[{Typed[x, Rationals]}, 0 + x == x],
+		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Rewrite", "rationalAdditionCommutativity"], TypeTheoryTactic["Exact", "rationalAdditionZero"[x]]}
+	],
+	rationalTheorem[
+		"rationalMultiplicationOneLeft",
+		ForAll[{Typed[x, Rationals]}, 1 x == x],
+		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Rewrite", "rationalMultiplicationCommutativity"], TypeTheoryTactic["Exact", "rationalMultiplicationOne"[x]]}
+	],
+	rationalTheorem[
+		"rationalMultiplicationZeroRight",
+		ForAll[{Typed[x, Rationals]}, x 0 == 0],
+		{
+			TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", q],
+			TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]
+		}
+	],
+	rationalTheorem[
+		"rationalMultiplicationZeroLeft",
+		ForAll[{Typed[x, Rationals]}, 0 x == 0],
+		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Rewrite", "rationalMultiplicationCommutativity"], TypeTheoryTactic["Exact", "rationalMultiplicationZeroRight"[x]]}
+	],
+	rationalTheorem[
+		"rationalDistributivityRight",
+		ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, (x + y) z == x z + y z],
+		{
+			TypeTheoryTactic["Introduce", x, y, z],
+			TypeTheoryTactic["RewriteRepeated",
+				"rationalMultiplicationCommutativity"[x + y, z], "rationalDistributivity", "rationalMultiplicationCommutativity"[z, x], "rationalMultiplicationCommutativity"[z, y]
+			]
+		}
+	],
+	rationalTheorem[
+		"rationalNegationProduct",
+		ForAll[{Typed[x, Rationals]}, -x == Typed[-1, Rationals] x],
+		{
+			TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Induction", x], TypeTheoryTactic["Introduce", q],
+			TypeTheoryTactic["Apply", "quotientSoundness"], TypeTheoryTactic["Ring"]
+		}
+	],
+	rationalTheorem["rationalPowerZero", ForAll[{Typed[x, Rationals]}, x^0 == 1], {TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Reflexivity"]}],
+	rationalTheorem[
+		"rationalPowerSuccessor",
+		ForAll[{Typed[x, Rationals], Typed[n, NonNegativeIntegers]}, x^(n + 1) == x^n x],
+		{TypeTheoryTactic["Introduce", x, n], TypeTheoryTactic["Reflexivity"]}
+	],
+	rationalTheorem[
+		"rationalPowerOne",
+		ForAll[{Typed[x, Rationals]}, x^1 == x],
+		{TypeTheoryTactic["Introduce", x], TypeTheoryTactic["Change", 1 x == x], TypeTheoryTactic["Exact", "rationalMultiplicationOneLeft"[x]]}
+	],
+	rationalTheorem[
+		"rationalPowerAddition",
+		ForAll[{Typed[x, Rationals], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, x^(a + b) == x^a x^b],
+		{
+			TypeTheoryTactic["Introduce", x, a, b], TypeTheoryTactic["Induction", b],
+			TypeTheoryTactic["Change", x^a == x^a 1], TypeTheoryTactic["Exact", "equalitySymmetry"["rationalMultiplicationOne"[x^a]]],
+			TypeTheoryTactic["Introduce", k, ih], TypeTheoryTactic["Change", x^(a + k) x == x^a (x^k x)], TypeTheoryTactic["Rewrite", ih],
+			TypeTheoryTactic["Exact", "rationalMultiplicationAssociativity"[x^a, x^k, x]]
+		}
+	],
+	rationalTheorem[
+		"rationalOfIntegerNegation",
+		ForAll[{Typed[z, Integers]}, "rationalOfInteger"[-z] == -"rationalOfInteger"[z]],
+		{TypeTheoryTactic["Introduce", z], TypeTheoryTactic["Reflexivity"]}
+	],
+	rationalTheorem[
+		"rationalOfIntegerPower",
+		ForAll[{Typed[z, Integers], Typed[n, NonNegativeIntegers]}, "rationalOfInteger"[z^n] == "rationalOfInteger"[z]^n],
+		{
+			TypeTheoryTactic["Introduce", z, n], TypeTheoryTactic["Induction", n], TypeTheoryTactic["Reflexivity"],
+			TypeTheoryTactic["Introduce", k, ih], TypeTheoryTactic["Change", "rationalOfInteger"[z^k z] == "rationalOfInteger"[z]^k "rationalOfInteger"[z]],
+			TypeTheoryTactic["Rewrite", "rationalOfIntegerMultiplication"], TypeTheoryTactic["Rewrite", ih]
+		}
+	],
+
 	(* The inverse. (b + 1) / (m - n) is the class of (b + 1, m - n - 1) where m is larger, that of
 	   (-(b + 1), n - m - 1) where n is, and 0 where they are equal, by recursion on m and then on n. *)
 	TypeTheoryDefinition[

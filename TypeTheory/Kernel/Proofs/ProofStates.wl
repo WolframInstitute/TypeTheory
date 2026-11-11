@@ -1147,11 +1147,32 @@ ring[data_, goal_] := With[{current = currentGoal[data, goal], environment = dat
 			}],
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; integerTypeQ[environment, type] :>
 			classRing[data, goal, current, integerTypeQ],
+		(* an equation of rationals by the rationals' own normal forms, which take any term that is no sum or product for
+		   an atom; one that holds only by the arithmetic of fractions, or while the rationals' library is built, is
+		   left to the classes of pairs *)
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; rationalTypeQ[environment, type] && rationalRingAvailableQ[environment] :>
+			Replace[rationalRingEquationProof[rationalArithmeticReduced[environment, current["Context"], left], rationalArithmeticReduced[environment, current["Context"], right]], {
+				None :> classRing[data, goal, current, rationalTypeQ],
+				proof_ :> solvedByCheckedProof[data, goal, current, proof]
+			}],
 		application[application[application[constantReference[HoldComplete[Equal], _], type_], _], _] /; rationalTypeQ[environment, type] :>
 			classRing[data, goal, current, rationalTypeQ],
 		_ :> tacticFailure["EquationExpected", "The goal `1` is not an equation of natural numbers, integers or rationals.", data, goal]
 	}]
 ]
+
+(* a term of rationals with its atoms reduced as those of integers are, the integers it casts included *)
+rationalArithmeticReduced[environment_, context_, term_] := Replace[term, {
+	application[application[head : constantReference[HoldComplete["rationalAddition" | "rationalMultiplication" | "rationalSubtraction"], _], a_], b_] :>
+		makeApplication[head, {rationalArithmeticReduced[environment, context, a], rationalArithmeticReduced[environment, context, b]}],
+	application[application[head : constantReference[HoldComplete["rationalPower"], _], a_], b_] :>
+		makeApplication[head, {rationalArithmeticReduced[environment, context, a], arithmeticReduced[environment, context, b]}],
+	application[head : constantReference[HoldComplete["rationalNegation"], _], a_] :> Construct[application, head, rationalArithmeticReduced[environment, context, a]],
+	application[head : constantReference[HoldComplete["rationalOfInteger"], _], a_] :> Construct[application, head, integerArithmeticReduced[environment, context, a]],
+	_ :> With[{reduced = reducedHeadWithoutUnfolding[environment, context, term]},
+		If[reduced === term, term, rationalArithmeticReduced[environment, context, reduced]]
+	]
+}]
 
 (* A term of integers with its atoms reduced as those of natural numbers are, the natural numbers it casts
    included: a field of a pair written out is the term in it *)
