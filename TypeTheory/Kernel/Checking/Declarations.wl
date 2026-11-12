@@ -65,6 +65,7 @@ PackageExported[TypeTheoryQuotients]
 
 
 PackageScoped[$recheckedConstants]
+PackageScoped[coreRecordsOf]
 PackageScoped[declareAxiom]
 PackageScoped[declareDefinition]
 PackageScoped[declareTheorem]
@@ -83,6 +84,9 @@ PackageScoped[$deferKernelChecks]
 (*Usage Messages*)
 
 
+coreRecordsOf::usage = "coreRecordsOf[environment, <|HoldComplete[name] -> record, ...|>] gives the records that declaring each axiom, theorem, \
+opaque constant and definition again in environment gives, in order and with the checks deferred, from the kind, the type, the value and the \
+universe parameters of its record: the records a batch of such declarations gives."
 $recheckedConstants::usage = "$recheckedConstants is the list of the constants of the last batch of declarations checked by the compiled kernel that the compiled kernel left undecided and the kernel of TypeChecking.wl checked."
 TypeTheoryAxiom::usage = "TypeTheoryAxiom[name, type] declares name as an axiom of the given type, when added to a TypeTheoryEnvironment.\n\
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
@@ -277,7 +281,7 @@ registrationCount[environment_] := Replace[naturalNumberSettings[environment], {
    the records declareAxiom, declareDefinition and declareTheorem give, and they are added in one step: adding each
    would make a store of its own, and a declaration's options, elaboration and roles cost more than its record. Any
    failure, as a name declared twice, sends the batch to the declarations one at a time, which report it. *)
-deferredDeclarations[environment_, declarations_List] := Block[{heights = <||>}, Fold[deferredRun, environment, SplitBy[declarations, coreDeclarationQ]]]
+deferredDeclarations[environment_, declarations_List] := withRecordHeights[Fold[deferredRun, environment, SplitBy[declarations, coreDeclarationQ]]]
 
 deferredRun[environment_, run : {first_, ___}] /; coreDeclarationQ[first] := addConstantRecords[environment, coreRecords[environment, run]]
 deferredRun[environment_, run_List] := Fold[addDeclaration, environment, run]
@@ -299,27 +303,47 @@ coreRecords[environment_, run_List] := With[{names = Function[declaration, HoldC
 	AssociationThread[names, MapThread[coreRecord[environment], {names, run}]]
 ]
 
-coreRecord[environment_][name_, TypeTheoryAxiom[_, type_, "UniverseParameters" -> parameters_]] := (
+coreRecord[environment_][name_, TypeTheoryAxiom[_, type_, "UniverseParameters" -> parameters_]] := coreRecordOf[environment][name, "Axiom", type, None, HoldComplete /@ parameters]
+coreRecord[environment_][name_, TypeTheoryTheorem[_, statement_, proof_, "UniverseParameters" -> parameters_]] := coreRecordOf[environment][name, "Theorem", statement, proof, HoldComplete /@ parameters]
+coreRecord[environment_][name_, TypeTheoryDefinition[_, Typed[value_, type_], "UniverseParameters" -> parameters_, "Opaque" -> True]] := coreRecordOf[environment][name, "Opaque", type, value, HoldComplete /@ parameters]
+coreRecord[environment_][name_, TypeTheoryDefinition[_, Typed[value_, type_], "UniverseParameters" -> parameters_, ___]] := coreRecordOf[environment][name, "Definition", type, value, HoldComplete /@ parameters]
+
+(* the record of a core axiom, theorem, opaque constant or definition from its kind, type, value and universe
+   parameters, the record declareAxiom, declareTheorem and declareDefinition give with no option but "Opaque" *)
+coreRecordOf[environment_][name_, "Axiom", type_, _, parameters_] := (
 	heights[name] = 0;
-	<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> HoldComplete /@ parameters|>
+	<|"Kind" -> "Axiom", "Type" -> type, "UniverseParameters" -> parameters|>
 )
-coreRecord[environment_][name_, TypeTheoryTheorem[_, statement_, proof_, "UniverseParameters" -> parameters_]] := (
+coreRecordOf[environment_][name_, "Theorem", type_, value_, parameters_] := (
 	heights[name] = 0;
-	<|"Kind" -> "Theorem", "Type" -> statement, "UniverseParameters" -> HoldComplete /@ parameters, "Value" -> proof|>
+	<|"Kind" -> "Theorem", "Type" -> type, "UniverseParameters" -> parameters, "Value" -> value|>
 )
-coreRecord[environment_][name_, TypeTheoryDefinition[_, Typed[value_, type_], "UniverseParameters" -> parameters_, "Opaque" -> True]] := (
+coreRecordOf[environment_][name_, "Opaque", type_, value_, parameters_] := (
 	heights[name] = 0;
-	<|"Kind" -> "Opaque", "Type" -> type, "UniverseParameters" -> HoldComplete /@ parameters, "Value" -> value|>
+	<|"Kind" -> "Opaque", "Type" -> type, "UniverseParameters" -> parameters, "Value" -> value|>
 )
-coreRecord[environment_][name_, TypeTheoryDefinition[_, Typed[value_, type_], "UniverseParameters" -> parameters_, ___]] := With[
+coreRecordOf[environment_][name_, "Definition", type_, value_, parameters_] := With[
 	{height = 1 + Max[0, Function[constant, Lookup[heights, Key[constant], heights[constant] = Lookup[constantRecord[environment, constant], "Height", 0]]] /@
 		DeleteDuplicates[Cases[value, constantReference[constant_, _] :> constant, {0, Infinity}]]]},
 	heights[name] = height;
 	Join[
-		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> HoldComplete /@ parameters, "Value" -> value, "Height" -> height|>,
+		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> parameters, "Value" -> value, "Height" -> height|>,
 		If[projectionFunctionQ[value], <|"Hint" -> "Abbreviation"|>, <||>]
 	]
 ]
+
+(* the records of a run of records declared again, in order, so that a definition's height takes those of the
+   definitions made before it in the run *)
+coreRecordsOf[environment_, records_Association] := withRecordHeights[
+	Association[KeyValueMap[
+		Function[{name, record}, name -> coreRecordOf[environment][name, record["Kind"], record["Type"], Lookup[record, "Value", None], record["UniverseParameters"]]],
+		records
+	]]
+]
+
+(* the heights of the definitions a batch makes, which coreRecordOf reads and sets, kept for the batch alone *)
+SetAttributes[withRecordHeights, HoldAll]
+withRecordHeights[body_] := Block[{heights = <||>}, body]
 
 TypeTheoryEnvironment /: Append[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, declaration_] := TypeTheoryEnvironment[environment, {declaration}]
 

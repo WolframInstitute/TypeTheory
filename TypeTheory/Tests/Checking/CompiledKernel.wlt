@@ -52,10 +52,11 @@ VerificationTest[
    term, a loose bound variable, a constant that is not declared, and another term that is well formed. Every forgery
    is refused by Automatic, by "Compiled" and by "Symbolic", but one that is none: an axiom with another well-formed
    statement is another axiom. Where the compiled kernel does not take the environment, asked for it alone the check
-   says so, and Automatic gives the answer of the kernel of TypeChecking.wl. The two kernels name three refusals
-   differently, a loose bound variable in a constructor's type, in a recursor's type and in a recursor's rule: the
-   compiled kernel checks the terms of the records before the inductive types are declared again, and the other
-   kernel declares them again first.
+   says so, and Automatic gives the answer of the kernel of TypeChecking.wl. A record that an inductive type's
+   declaration makes and the compiled kernel refuses is compared with the one made first, as the kernel of
+   TypeChecking.wl compares it, so a recursor's type or rule with a loose bound variable is a mismatch to every method.
+   The two kernels name one refusal differently, a loose bound variable in a constructor's type, which the compiled
+   kernel refuses as a constructor whose parameters do not match.
 
    A value is replaced in its place: Append would move its key to the end, and records are compared with the order of
    their keys, so a record with nothing wrong but that order is a mismatch to the kernel of TypeChecking.wl. *)
@@ -114,13 +115,13 @@ refusals[wrong_String, looseCompiled_String, looseSymbolic_String] := With[{decl
 	}
 ]
 
-mismatches[loose_String] := With[{declined = "CompiledKernelUnavailable", mismatch = "DeclarationMismatch"},
+mismatches[] := With[{declined = "CompiledKernelUnavailable", mismatch = "DeclarationMismatch"},
 	{
 		{mismatch, declined, mismatch},
 		{mismatch, declined, mismatch},
 		{mismatch, declined, mismatch},
 		{mismatch, declined, mismatch},
-		{loose, loose, mismatch},
+		{mismatch, mismatch, mismatch},
 		{mismatch, declined, mismatch},
 		{mismatch, mismatch, mismatch}
 	}
@@ -161,8 +162,8 @@ VerificationTest[
 			refusals["TypeMismatch"],
 			refusals["InductiveParameters"],
 			refusals["ConstructorParameters", "ConstructorParameters", "LooseBoundVariable"],
-			mismatches["LooseBoundVariable"],
-			mismatches["LooseBoundVariable"]
+			mismatches[],
+			mismatches[]
 		}],
 		{"EnvironmentChecked", "EnvironmentChecked", "EnvironmentChecked"}
 	],

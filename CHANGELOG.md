@@ -73,6 +73,10 @@ Versions 0.35.0 to 0.42.2.
   `TypeTheoryCheck[environment, Method -> "Symbolic"]` was never affected. From 0.43.0 the compiled program refuses
   such an input itself as well: it reads every row as that check does, a field that a row's kind does not use is 0,
   the order names every constant once, and a constant is declared only on a success that its check returns.
+- **`TypeTheoryCheck` compares every record whole.** After the compiled kernel every record is declared again and
+  compared with the environment's, as `Method -> "Symbolic"` does: on 0.42.2 a definition whose `"Instance"` or
+  `"Coercion"` was turned by hand passed, since only inductive types and quotients were declared again.
+  `scripts/kernel_agreement_fuzz.wls` runs the two methods on records changed one at a time.
 - The term of a proof by `"LinearArithmetic"` or `"NonlinearArithmetic"` checks against its statement, as the term of
   any finished proof does, and its axiom closure computes: the certificate left out a predicate that no elaboration
   finds again.

@@ -574,7 +574,7 @@ primaryNames[environment_] := Select[
 
 generatedQ[record_, name_] := Or[
 	MatchQ[record["Kind"], "Constructor" | "Recursor"],
-	record["Kind"] === "InductiveType" && First[record["Block"]] =!= name,
+	record["Kind"] === "InductiveType" && ! MatchQ[record["Block"], {first_, ___} /; first === name],
 	record["Kind"] === "Quotient" && record["QuotientType"] =!= name,
 	record["Kind"] === "Cubical" && record["CubicalRole"] =!= "Interval"
 ]
@@ -877,11 +877,13 @@ constantsOf[_] := Null
 
 Options[TypeTheoryCheck] = {Method -> Automatic}
 
-(* The compiled kernel (CompiledKernel.wl) checks the declarations but inductive types, their constructors and
-   recursors, and quotient types, which are declared again after it, each after the records before it as they are.
-   Where it refuses a declaration, those before it are declared again first, so that the failure is that of the first
-   declaration in order that does not check. Where it does not handle the environment, or Method -> "Symbolic", every
-   declaration is replayed with the kernel of TypeChecking.wl. *)
+(* The compiled kernel (CompiledKernel.wl) checks the terms of every declaration. After it every declaration is made
+   again from its record, with the checks it has made deferred, and the record that gives must be the record of the
+   environment whole: inductive types and quotients generate their constructors, recursors and rules again, and every
+   other field, a definition's height and roles, a record's annotation, is compared as its terms are. Where it refuses
+   a declaration, those before it are made again first, so that the failure is that of the first declaration in order
+   that does not check. Where it does not handle the environment, or Method -> "Symbolic", every declaration is
+   replayed with the kernel of TypeChecking.wl. *)
 TypeTheoryCheck[name_String, options : OptionsPattern[]] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryCheck[environment, options]]
 TypeTheoryCheck[environment_?environmentQ, options : OptionsPattern[]] /; ! MemberQ[{Automatic, "Compiled", "Symbolic"}, OptionValue[TypeTheoryCheck, {options}, Method]] :=
 	Failure["UnknownMethod", <|
@@ -892,7 +894,7 @@ TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup
 	If[MemberQ[{Automatic, "Compiled"}, OptionValue[Method]], compiledKernelCheck[environment], None],
 	{
 		failure_Failure :> (
-			replayNames[environment, Take[environmentNames[environment], failure["Position"] - 1], replayGenerated[environment]];
+			replayNames[environment, Take[environmentNames[environment], replayedThrough[environment, failure["Position"]]], replayDeferred[environment]];
 			throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]]
 		),
 		None /; OptionValue[Method] === "Compiled" :> kernelFailure[
@@ -904,43 +906,54 @@ TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup
 		(* the compiled kernel has checked the registrations' equations it takes, so declaring the environment again does
 		   not compare them a second time; after a failure, or with the kernel of TypeChecking.wl, a registration compares
 		   them all *)
-		_Success :> Block[{$deferRegistrationEquations = True}, replayRuns[environment]]
+		_Success :> Block[{$deferRegistrationEquations = True}, environmentChecked[environment, replayChecked[environment]]]
 	}
 ]
 
-(* after the compiled kernel, each run of records between inductive types and quotients is added at once, as it is,
-   and the natural numbers registered as far as its constants allow, before the next inductive type is declared *)
-replayRuns[environment_] := With[
-	{
-		replayed = Fold[
-			Function[{partial, run}, If[ generatedKindQ[constantRecord[environment, First[run]]],
-				Fold[Function[{inner, name}, replayGenerated[environment][inner, name, constantRecord[environment, name]]], partial, run],
-				registerWhenDeclared[addConstantRecords[partial, AssociationMap[Function[name, constantRecord[environment, name]], run]], naturalNumberSettings[environment]]
+(* where the compiled kernel refuses a record, the records before it are declared again, and the record too where
+   the declaration of an inductive type or of the quotients makes it, the quotient type's own among them, which the
+   quotients make from their equality and their names alone: the kernel of TypeChecking.wl meets such a record where
+   it compares it with the one made, before any check of its own terms, so the failure is the one it gives *)
+replayedThrough[environment_, position_Integer] := With[{names = environmentNames[environment]},
+	If[ 1 <= position <= Length[names] && madeRecordQ[constantRecord[environment, Extract[names, position]], Extract[names, position]],
+		position,
+		Min[position - 1, Length[names]]
+	]
+]
+
+madeRecordQ[record_, name_] := generatedQ[record, name] || record["Kind"] === "Quotient"
+
+(* after the compiled kernel, a record is declared again as a batch declares it ($deferKernelChecks): the compiled
+   kernel has checked its terms, so the declaration makes the record and does not check them a second time, and the
+   record it makes is compared with the environment's whole *)
+replayDeferred[environment_][partial_, name_, record_] := Block[{$deferKernelChecks = True}, replayDeclaration[environment, partial, name -> record]]
+
+(* the replay after the compiled kernel: a run of axioms, theorems, opaque constants and definitions that have only the
+   fields such a declaration gives with no option but "Opaque" is made again at once, as a batch of declarations makes
+   it (coreRecordsOf), each record compared with the environment's whole and the run added in one step, where adding
+   each would make a store of its own; every other record is declared again one at a time *)
+replayChecked[environment_] := Fold[
+	Function[{partial, run}, If[ plainRecordQ[constantRecord[environment, First[run]]],
+		replayRun[environment, partial, run],
+		Fold[Function[{inner, name}, replayDeferred[environment][inner, name, constantRecord[environment, name]]], partial, run]
+	]],
+	emptyEnvironmentOf[environmentRules[environment]],
+	SplitBy[environmentNames[environment], Function[name, plainRecordQ[constantRecord[environment, name]]]]
+]
+
+replayRun[environment_, partial_, run_List] := With[{records = AssociationMap[Function[name, constantRecord[environment, name]], run]},
+	With[{made = coreRecordsOf[partial, records]},
+		Scan[
+			Function[name, If[ made[name] =!= records[name],
+				kernelFailure["DeclarationMismatch", "The record of `1` does not match the record that checking its declaration gives.", {HoldForm @@ name}]
 			]],
-			emptyEnvironmentOf[environmentRules[environment]],
-			SplitBy[environmentNames[environment], Function[name, generatedKindQ[constantRecord[environment, name]]]]
-		]
-	},
-	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],
-		kernelFailure["DeclarationMismatch", "The natural numbers of the environment do not match its declarations.", {}]
-	];
-	Success["EnvironmentChecked", <|
-		"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
-		"MessageParameters" -> {Length[environmentNames[environment]]},
-		"Constants" -> Length[environmentNames[environment]]
-	|>]
+			run
+		];
+		registerWhenDeclared[addConstantRecords[partial, made], naturalNumberSettings[environment]]
+	]
 ]
 
-generatedKindQ[record_] := MemberQ[{"InductiveType", "Constructor", "Recursor", "Quotient"}, record["Kind"]]
-
-(* after the compiled kernel, the inductive types and quotients are declared again, and the other records added as they
-   are; the compiled kernel has checked the types and rules the kernel generates, so declaring them again only compares
-   them with the records, as a batch declares them ($deferKernelChecks) *)
-replayGenerated[environment_][partial_, name_, record_] := If[
-	MemberQ[{"InductiveType", "Constructor", "Recursor", "Quotient"}, record["Kind"]],
-	Block[{$deferKernelChecks = True}, replayDeclaration[environment, partial, name -> record]],
-	registerWhenDeclared[addConstantRecords[partial, <|name -> record|>], naturalNumberSettings[environment]]
-]
+plainRecordQ[record_] := MemberQ[{"Axiom", "Theorem", "Opaque", "Definition"}, record["Kind"]] && SubsetQ[{"Kind", "Type", "UniverseParameters", "Value", "Height", "Hint"}, Keys[record]]
 
 replayNames[environment_, names_List, replay_] := Fold[
 	Function[{partial, name}, replay[partial, name, constantRecord[environment, name]]],
@@ -948,7 +961,10 @@ replayNames[environment_, names_List, replay_] := Fold[
 	names
 ]
 
-replayEnvironment[environment_, replay_] := With[{replayed = replayNames[environment, environmentNames[environment], replay]},
+replayEnvironment[environment_, replay_] := environmentChecked[environment, replayNames[environment, environmentNames[environment], replay]]
+
+(* an environment whose records are made again into replayed is checked where its natural numbers are those made again *)
+environmentChecked[environment_, replayed_] := (
 	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],
 		kernelFailure["DeclarationMismatch", "The natural numbers of the environment do not match its declarations.", {}]
 	];
@@ -957,7 +973,7 @@ replayEnvironment[environment_, replay_] := With[{replayed = replayNames[environ
 		"MessageParameters" -> {Length[environmentNames[environment]]},
 		"Constants" -> Length[environmentNames[environment]]
 	|>]
-]
+)
 
 (* Constructors and recursors are generated with their inductive type, which comes before them; every
    record must come out of the replay exactly as it is in the environment. *)

@@ -212,11 +212,11 @@ checked. Only a theorem or an opaque constant taken as given may have none. The 
 Tests/Checking/CompiledKernel.wlt: for each kind of record and each of its fields, the field absent, a number in its
 place, a part that is no term, a loose bound variable, an undeclared constant and a wrong term, by the three methods
 of `TypeTheoryCheck`; and the rows of an input forged one reference at a time. An axiom with another well-formed
-statement is accepted by both kernels: it is another axiom, not a forgery. The two kernels name three refusals
-differently, a loose bound variable in a constructor's type, in a recursor's type and in a recursor's rule: the
-compiled kernel types the terms of the generated records first, and the inductive types are declared again after it,
-where the kernel of TypeChecking.wl declares them again first and so meets the record that does not match before the
-term that is ill formed. The guard is a few passes over the arrays: on the input of 36 modules of Mathlib, 1,105,642
+statement is accepted by both kernels: it is another axiom, not a forgery. Where the compiled kernel refuses a record
+that the declaration of an inductive type or of the quotients makes, the replay compares that record with the one made
+before it reports the failure, as the kernel of TypeChecking.wl meets it (from 0.43.0), so a recursor's type or rule
+with a loose bound variable is a mismatch to both. The two kernels name one refusal differently, a loose bound
+variable in a constructor's type, which the compiled kernel refuses as a constructor whose parameters do not match. The guard is a few passes over the arrays: on the input of 36 modules of Mathlib, 1,105,642
 nodes and 11,936 constants, it takes 0.18 to 0.38 s where a whole pass of the program takes 19.1 s in the same
 process, 1 to 2 percent (measured at nice 19 with background priority, on the tree of main, which takes that cone).
 
@@ -250,9 +250,19 @@ change the input, none is a forgery of what the program checks:
 | a column of an inductive type, a constructor, a recursor or a quotient | 22 | the replay's |
 | a universe level, a theorem's universe parameters, the body of a function | 13 | another well-formed input |
 
-What is the replay's is checked by `TypeTheoryCheck` with Method Automatic for the inductive types it declares
-again; every other record it adds as it is, so it does not yet compare the fields of a record that are no terms, such
-as `"Instance"` or `"Coercion"`, with what the declaration makes, where Method `"Symbolic"` does. The program's own
+What is the replay's is checked by `TypeTheoryCheck` with Method Automatic, which after the program declares every
+record again, with the checks the program has made deferred, and compares the record that gives with the
+environment's whole, as Method `"Symbolic"` does. Before 0.43.0 it declared again only the inductive types and the
+quotients and added every other record as it was, so a field that is no term was compared by nothing: a definition
+whose `"Instance"` or `"Coercion"` was turned by hand passed it on 0.42.2. `scripts/kernel_agreement_fuzz.wls` found
+it; it changes one record at a time, a subterm, a number, a flag or a key, or the registration of the natural numbers,
+and asks both methods, which must accept or refuse each change alike. The tests turn every key of every kind of
+record in its place, drop it, or add a key a declaration may give, and ask the two methods
+(Tests/Checking/Queries.wlt). After the program it makes a run of axioms, theorems, opaque constants and definitions that have only the fields such a
+declaration gives at once, as a batch of declarations does, and every other record one at a time, and compares each
+record whole: on the libraries the compiled kernel takes this adds 0.001 s to the Prelude's 257 constants, 0.013 s to
+the Integers' 356, 0.150 s to the Rationals' 536 and 0.022 s to the Machine's 381, the medians of nine passes taken in
+turn with the replay before (at nice 19 with background priority). The program's own
 checks cost a few percent of a pass at most: on the 36 modules the median of six whole passes was 24.2 s before
 them and of three 24.8 s after, where single passes at nice 19 with background priority spread from 18 s to 34 s.
 

@@ -710,3 +710,118 @@ VerificationTest[
 	TestID -> "Normal-keeps-the-names-of-a-constructors-fields-and-an-arrows-binder-names-none"
 ]
 
+
+(* === every record compared whole === *)
+
+(* After the compiled kernel, TypeTheoryCheck declares every record again with the checks it has made deferred and
+   compares the record that gives with the environment's whole, as Method "Symbolic" does: a definition's roles, which
+   are no terms, are compared as its terms are. A small environment has a record of every kind: an inductive type, its
+   constructor and recursor, the quotients, axioms, definitions plain, opaque, an instance and a coercion, and a
+   theorem. *)
+keyedEnvironment = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+	TypeTheoryInductiveType[Equal, ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]], Typed[y, \[Alpha]]}, TypeUniverse[0]], {
+		"equalityReflexivity" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u]], Typed[x, \[Alpha]]}, x == x]
+	}],
+	TypeTheoryQuotients[],
+	TypeTheoryInductiveType["Inhabited", ForAll[{Typed[\[Alpha], TypeUniverse[u + 1]]}, TypeUniverse[u + 1]], {
+		"inhabitedIntroduction" -> ForAll[{TypedImplicit[\[Alpha], TypeUniverse[u + 1]], Typed[x, \[Alpha]]}, "Inhabited"[\[Alpha]]]
+	}],
+	TypeTheoryAxiom["Point", TypeUniverse[1]],
+	TypeTheoryAxiom["origin", "Point"],
+	TypeTheoryDefinition["again", Typed["origin", "Point"]],
+	TypeTheoryDefinition["hidden", Typed["origin", "Point"], "Opaque" -> True],
+	TypeTheoryDefinition["pointInhabited", Typed["inhabitedIntroduction"["origin"], "Inhabited"["Point"]], "Instance" -> True],
+	TypeTheoryDefinition["pointIdentity", Function[{Typed[p, "Point"]}, p], "Coercion" -> True],
+	TypeTheoryTheorem["originItself", "origin" == "origin", "equalityReflexivity"["origin"]]
+}]
+
+termHeads = Symbol["WolframInstitute`TypeTheory`PackageScope`" <> #] & /@ {"application", "lambdaAbstraction", "dependentFunctionType", "constantReference", "boundVariable", "universeSort", "naturalLiteral", "localDefinition", "projection"}
+pointType = constantReference[HoldComplete["Point"], {}]
+typeSort = Symbol["WolframInstitute`TypeTheory`PackageScope`universeSort"][1]
+
+(* the value of a key turned: a Boolean negated, a number one more, a type another type and any other term the
+   record's type, a kind another kind, a name another constant's, a list or an association with an entry less or one
+   more, a string another *)
+turnedKinds = <|"Axiom" -> "Theorem", "Definition" -> "Opaque", "Opaque" -> "Definition", "Theorem" -> "Axiom", "InductiveType" -> "Axiom", "Constructor" -> "Axiom", "Recursor" -> "Axiom", "Quotient" -> "Axiom"|>
+
+turnedValue[record_, key_, value_] := Which[
+	BooleanQ[value], ! value,
+	IntegerQ[value], value + 1,
+	MemberQ[termHeads, Head[value]], If[key === "Type", If[value === typeSort, pointType, typeSort], If[record["Type"] === value, typeSort, record["Type"]]],
+	key === "Kind", turnedKinds[value],
+	StringQ[value], value <> "s",
+	MatchQ[value, HoldComplete[_]], If[value === HoldComplete["Point"], HoldComplete["origin"], HoldComplete["Point"]],
+	ListQ[value], If[value === {}, {HoldComplete["v"]}, Rest[value]],
+	AssociationQ[value], If[value === <||>, <|"Turned" -> True|>, Rest[value]],
+	True, Missing["NotTurned"]
+]
+
+(* the keys a declaration may give a record, each with a value, added to a record that lacks it *)
+addedKeys = <|"Instance" -> True, "Coercion" -> True, "Hint" -> "Abbreviation", "Annotation" -> "added", "Overloads" -> HoldComplete[Plus], "Height" -> 1|>
+
+keyedChanges[environment_] := Catenate[KeyValueMap[
+	Function[{name, record}, Join[
+		Function[key, {name, "turned", key} -> Function[old, Association[old, key -> turnedValue[old, key, old[key]]]]] /@ Keys[record],
+		Function[key, {name, "dropped", key} -> Function[old, KeyDrop[old, key]]] /@ Keys[record],
+		Function[key, {name, "added", key} -> Function[old, Association[old, key -> addedKeys[key]]]] /@ Complement[Keys[addedKeys], Keys[record]]
+	]],
+	First[environment]["Records"]
+]]
+
+methodVerdict[result_] := If[MatchQ[result, _Success], "accepted", Replace[result, {failure_Failure :> failure["Tag"], other_ :> other}]]
+
+(* Each change gets one verdict, the same tag from both methods. The changes both take are the record of another
+   declaration, which declaring it gives back as it is: a universe parameter more, a role as an instance or a
+   coercion, an annotation, the operation a constant overloads. *)
+VerificationTest[
+	With[{available = Symbol["WolframInstitute`TypeTheory`PackageScope`compiledKernelAvailableQ"][]},
+		With[{verdicts = Function[change, With[{forgedEnvironment = forge[keyedEnvironment, First[First[change]], Last[change]]},
+				First[change] -> {methodVerdict[TypeTheoryCheck[forgedEnvironment]], methodVerdict[TypeTheoryCheck[forgedEnvironment, Method -> "Symbolic"]]}
+			]] /@ keyedChanges[keyedEnvironment]},
+			{
+				(* the compiled kernel takes the environment, so the verdicts of Automatic are its own and the replay's *)
+				If[available, MatchQ[Symbol["WolframInstitute`TypeTheory`PackageScope`compiledKernelCheck"][keyedEnvironment], _Success], True],
+				Union[Lookup[Values[First[keyedEnvironment]["Records"]], "Kind"]],
+				Length[verdicts],
+				Select[verdicts, Function[verdict, Apply[UnsameQ, Last[verdict]]]],
+				Keys[Select[Association[verdicts], Function[pair, pair === {"accepted", "accepted"}]]]
+			}
+		]
+	],
+	{True, {"Axiom", "Constructor", "Definition", "InductiveType", "Opaque", "Quotient", "Recursor", "Theorem"}, 331, {}, {{HoldComplete["Point"], "added", "Annotation"}, {HoldComplete["Point"], "added", "Overloads"}, {HoldComplete["origin"], "added", "Annotation"}, {HoldComplete["origin"], "added", "Overloads"}, {HoldComplete["again"], "turned", "UniverseParameters"}, {HoldComplete["again"], "added", "Coercion"}, {HoldComplete["again"], "added", "Instance"}, {HoldComplete["again"], "added", "Overloads"}, {HoldComplete["hidden"], "turned", "UniverseParameters"}, {HoldComplete["hidden"], "added", "Coercion"}, {HoldComplete["hidden"], "added", "Instance"}, {HoldComplete["hidden"], "added", "Overloads"}, {HoldComplete["pointInhabited"], "turned", "UniverseParameters"}, {HoldComplete["pointInhabited"], "dropped", "Instance"}, {HoldComplete["pointInhabited"], "added", "Coercion"}, {HoldComplete["pointInhabited"], "added", "Overloads"}, {HoldComplete["pointIdentity"], "turned", "UniverseParameters"}, {HoldComplete["pointIdentity"], "dropped", "Coercion"}, {HoldComplete["pointIdentity"], "added", "Overloads"}, {HoldComplete["originItself"], "turned", "UniverseParameters"}, {HoldComplete["originItself"], "added", "Annotation"}}},
+	TestID -> "Every-key-of-every-kind-of-record-changed-gets-one-verdict-from-both-methods"
+]
+
+(* The replay after the compiled kernel defers the checks it has made and leaves nothing else different: on library
+   environments it makes the store that the replay with the kernel of TypeChecking.wl makes. *)
+queriesPrivate[name_String] := Symbol["WolframInstitute`TypeTheory`Checking`Queries`Private`" <> name]
+
+storeContents[TypeTheoryEnvironment[store_Symbol]] := Function[key, store[key]] /@ {"Records", "Names", "Rules", "RewriteRuleIndex", "NaturalNumbers", "OverloadIndex", "Library"}
+
+replayedContents[replayed_] := Symbol["WolframInstitute`TypeTheory`PackageScope`withStoreCleanup"][storeContents[replayed]]
+SetAttributes[replayedContents, HoldFirst]
+
+VerificationTest[
+	Function[name, With[{environment = TypeTheoryEnvironment[name]},
+		name -> SameQ[
+			Block[{WolframInstitute`TypeTheory`PackageScope`$deferRegistrationEquations = True}, replayedContents[queriesPrivate["replayChecked"][environment]]],
+			replayedContents[queriesPrivate["replayNames"][
+				environment,
+				Symbol["WolframInstitute`TypeTheory`PackageScope`environmentNames"][environment],
+				Function[{partial, constant, record}, queriesPrivate["replayDeclaration"][environment, partial, constant -> record]]
+			]]
+		]
+	]] /@ {"Prelude", "Integers"},
+	{"Prelude" -> True, "Integers" -> True},
+	TestID -> "The-replay-after-the-compiled-kernel-makes-the-store-the-other-kernel-makes"
+]
+
+(* A sample of scripts/kernel_agreement_fuzz.wls: 150 changes of the small environment, a subterm, a number, a flag or
+   a key of a record, or a role of the registration, drawn with a seed; the two methods accept or refuse each alike. *)
+Get[FileNameJoin[{Directory[], "scripts", "kernel_agreement.wl"}]]
+
+VerificationTest[
+	KernelAgreement`agreementDisagreements[KernelAgreement`kernelAgreement[keyedEnvironment, 150, 20261112]],
+	{},
+	TestID -> "A-sample-of-the-agreement-run-finds-no-change-that-one-method-accepts-and-the-other-refuses"
+]
