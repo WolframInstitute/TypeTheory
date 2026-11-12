@@ -159,13 +159,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-	First @ TypeTheoryCheck[forge[prelude, HoldComplete["falseElimination"], Function[record, Append[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete["falseElimination"], Function[record, Association[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
 	"TypeMismatch",
 	TestID -> "A-forged-theorem-statement-is-caught"
 ]
 
 VerificationTest[
-	First @ TypeTheoryCheck[forge[prelude, HoldComplete[InductiveRecursor[Or]], Function[record, Append[record, "EliminationUniverse" -> True]]]],
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete[InductiveRecursor[Or]], Function[record, Association[record, "EliminationUniverse" -> True]]]],
 	"DeclarationMismatch",
 	TestID -> "A-forged-recursor-is-caught"
 ]
@@ -173,7 +173,7 @@ VerificationTest[
 (* addition forged as the first projection, with the height of that value: well typed, and trusted on
    literals, so a theorem about it catches it *)
 VerificationTest[
-	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {"Value" -> firstProjection, "Height" -> 1}]]]],
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Association[record, {"Value" -> firstProjection, "Height" -> 1}]]]],
 	"InvalidNaturalNumberOperation",
 	TestID -> "A-forged-addition-is-caught"
 ]
@@ -181,7 +181,7 @@ VerificationTest[
 (* the abbreviation hint is the kernel's to give, to projection functions: one forged on addition, which projects
    nothing, does not come out of checking its declaration again *)
 VerificationTest[
-	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, "Hint" -> "Abbreviation"]]]],
+	First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Association[record, "Hint" -> "Abbreviation"]]]],
 	"DeclarationMismatch",
 	TestID -> "A-forged-abbreviation-hint-is-caught"
 ]
@@ -192,13 +192,13 @@ VerificationTest[
    is no function. *)
 VerificationTest[
 	{
-		First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete["equalitySymmetry"], {1}], {
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Association[record, "Value" -> Fold[application, constantReference[HoldComplete["equalitySymmetry"], {1}], {
 			natural,
 			naturalLiteral[1],
 			naturalLiteral[2],
 			application[application[constantReference[HoldComplete["equalityReflexivity"], {1}], natural], naturalLiteral[1]]
 		}]]]]],
-		First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Append[record, "Value" -> Fold[application, constantReference[HoldComplete["successor"], {}], {naturalLiteral[1], naturalLiteral[2]}]]]]]
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Association[record, "Value" -> Fold[application, constantReference[HoldComplete["successor"], {}], {naturalLiteral[1], naturalLiteral[2]}]]]]]
 	},
 	{"TypeMismatch", "FunctionExpected"},
 	TestID -> "A-forged-argument-is-caught-against-the-domain-its-earlier-arguments-give"
@@ -210,11 +210,11 @@ VerificationTest[
 VerificationTest[
 	With[{zero = constantReference[HoldComplete["zero"], {}]},
 		{
-			First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Association[record, {
 				"Value" -> lambdaAbstraction[HoldComplete[m], natural, lambdaAbstraction[HoldComplete[n], natural, application[lambdaAbstraction[HoldComplete[x], zero, zero, "Explicit"], zero], "Explicit"], "Explicit"],
 				"Height" -> 1
 			}]]]],
-			First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Append[record, {
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[Plus], Function[record, Association[record, {
 				"Type" -> dependentFunctionType[HoldComplete[m], zero, dependentFunctionType[HoldComplete[n], natural, natural, "Explicit"], "Explicit"]
 			}]]]]
 		}
@@ -241,7 +241,7 @@ VerificationTest[
 		(* Function[{Typed[n, NonNegativeIntegers]}, Function[{Typed[h, family]}, inner][Function[{Typed[m, NonNegativeIntegers]}, "trueIntroduction"]] *)
 		With[
 			{
-				forgedProof = Function[inner, Function[record, Append[record, "Value" -> lambdaAbstraction[HoldComplete[n], natural, application[
+				forgedProof = Function[inner, Function[record, Association[record, "Value" -> lambdaAbstraction[HoldComplete[n], natural, application[
 					lambdaAbstraction[HoldComplete[h], family, inner[record["Value"]], "Explicit"],
 					lambdaAbstraction[HoldComplete[m], natural, trivial, "Explicit"]
 				], "Explicit"]]]]
@@ -278,7 +278,7 @@ VerificationTest[
 		{
 			Normal[secret][[-1]],
 			MatchQ[TypeTheoryCheck[TypeTheoryEnvironment[TypeTheoryEnvironment[], Normal[secret]]], _Success],
-			First @ TypeTheoryCheck[forge[secret, HoldComplete[Secret], Function[record, Append[record, "Value" -> constantReference[HoldComplete[Truth], {}]]]]]
+			First @ TypeTheoryCheck[forge[secret, HoldComplete[Secret], Function[record, Association[record, "Value" -> constantReference[HoldComplete[Truth], {}]]]]]
 		}
 	],
 	{TypeTheoryDefinition[Secret, Typed[Yes, Truth], "Opaque" -> True], True, "TypeMismatch"},
@@ -298,7 +298,7 @@ VerificationTest[
 		{
 			First[flips]["Records"][HoldComplete[Flip]]["Height"],
 			First[flips]["Records"][HoldComplete[FlipTwice]]["Height"],
-			First @ TypeTheoryCheck[forge[flips, HoldComplete[FlipTwice], Function[record, Append[record, "Height" -> 1]]]]
+			First @ TypeTheoryCheck[forge[flips, HoldComplete[FlipTwice], Function[record, Association[record, "Height" -> 1]]]]
 		}
 	],
 	{1, 2, "DeclarationMismatch"},

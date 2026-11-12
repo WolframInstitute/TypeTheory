@@ -141,11 +141,11 @@ VerificationTest[
 				First @ TypeTheoryCheck[forge[
 					TypeTheoryEnvironment[prelude, {TypeTheoryDefinition[g, Typed[Function[{Typed[x, NonNegativeIntegers, 1]}, x], ForAll[{Typed[x, NonNegativeIntegers, 1]}, NonNegativeIntegers]]]}],
 					HoldComplete[g],
-					Function[record, Append[record, "Value" -> Replace[duplicate, lambda_ :> ReplacePart[lambda, 4 -> {"Explicit", 1}]]]]
+					Function[record, Association[record, "Value" -> Replace[duplicate, lambda_ :> ReplacePart[lambda, 4 -> {"Explicit", 1}]]]]
 				]]
 			],
 			(* a recursion on an affine natural number *)
-			First @ TypeTheoryCheck[forge[prelude, HoldComplete[InductiveRecursor[NonNegativeIntegers]], Function[record, Append[record, "Type" -> ReplacePart[record["Type"], {3, 3, 3, 4} -> {"Explicit", 1}]]]]]
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[InductiveRecursor[NonNegativeIntegers]], Function[record, Association[record, "Type" -> ReplacePart[record["Type"], {3, 3, 3, 4} -> {"Explicit", 1}]]]]]
 		}
 	],
 	{"EnvironmentChecked", "QuantityExceeded", "DeclarationMismatch"},

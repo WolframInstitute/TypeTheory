@@ -178,8 +178,8 @@ VerificationTest[
 (* the line of the transport forged into the composition's place, and the endpoints of Path swapped *)
 VerificationTest[
 	{
-		First @ TypeTheoryCheck[forge[cubical, HoldComplete[Path], Function[record, Append[record, "Type" -> First[cubical]["Records"][HoldComplete[CubicalTransport]]["Type"]]]]],
-		First @ TypeTheoryCheck[forge[cubical, HoldComplete[CubicalTransport], Function[record, Append[record, "CubicalRole" -> "Composition"]]]]
+		First @ TypeTheoryCheck[forge[cubical, HoldComplete[Path], Function[record, Association[record, "Type" -> First[cubical]["Records"][HoldComplete[CubicalTransport]]["Type"]]]]],
+		First @ TypeTheoryCheck[forge[cubical, HoldComplete[CubicalTransport], Function[record, Association[record, "CubicalRole" -> "Composition"]]]]
 	},
 	{"DeclarationMismatch", "DeclarationMismatch"},
 	TestID -> "A-forged-cubical-record-is-caught"
@@ -217,7 +217,7 @@ VerificationTest[
 
 VerificationTest[
 	{
-		First @ TypeTheoryCheck[forge[library, HoldComplete[GlueType], Function[record, Append[record, "Sum"-> HoldComplete[Booleans]]]]],
+		First @ TypeTheoryCheck[forge[library, HoldComplete[GlueType], Function[record, Association[record, "Sum"-> HoldComplete[Booleans]]]]],
 		First @ TypeTheoryEnvironment[TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"]], {
 			TypeTheoryInductiveType[Pairs, ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeUniverse[v + 1]]}, TypeUniverse[Max[u + 1, v + 1]]], {
 				MakePair -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeUniverse[v + 1]], Typed[a, A], Typed[b, B]}, Pairs[A, B]]

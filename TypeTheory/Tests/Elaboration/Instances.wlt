@@ -117,7 +117,7 @@ VerificationTest[
 			TypeTheoryDefinition[WrongCoercion, Typed[Function[{Typed[b, Booleans]}, b], TypeSpecifier[{Booleans} -> NonNegativeIntegers]], "Coercion" -> True]
 		}],
 		With[{booleanValue = First[environment]["Records"][HoldComplete[BooleansInhabited]]["Value"]},
-			First @ TypeTheoryCheck[forge[environment, HoldComplete[NaturalsInhabited], Function[record, Append[record, "Value" -> booleanValue]]]]
+			First @ TypeTheoryCheck[forge[environment, HoldComplete[NaturalsInhabited], Function[record, Association[record, "Value" -> booleanValue]]]]
 		]
 	},
 	{"TypeMismatch", "TypeMismatch"},

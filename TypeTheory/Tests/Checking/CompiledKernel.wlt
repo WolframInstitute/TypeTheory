@@ -38,8 +38,8 @@ VerificationTest[
 
 VerificationTest[
 	{
-		bothKernels[forge[prelude, HoldComplete["falseElimination"], Function[record, Append[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
-		bothKernels[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Append[record, "Value" -> naturalLiteral[0]]]]]
+		bothKernels[forge[prelude, HoldComplete["falseElimination"], Function[record, Association[record, "Type" -> constantReference[HoldComplete[False], {}]]]]],
+		bothKernels[forge[prelude, HoldComplete["additionZeroLeft"], Function[record, Association[record, "Value" -> naturalLiteral[0]]]]]
 	},
 	{{"TypeMismatch", "TypeMismatch"}, {"TypeMismatch", "TypeMismatch"}},
 	TestID -> "Both-kernels-catch-a-forged-statement-and-a-forged-proof"
@@ -344,8 +344,8 @@ VerificationTest[
 (* a definition's height and hint are the kernel's to give: the compiled kernel works them out from the value too *)
 VerificationTest[
 	{
-		bothKernels[forge[prelude, HoldComplete[Plus], Function[record, Append[record, "Height" -> 7]]]],
-		bothKernels[forge[prelude, HoldComplete[Plus], Function[record, Append[record, "Hint" -> "Abbreviation"]]]]
+		bothKernels[forge[prelude, HoldComplete[Plus], Function[record, Association[record, "Height" -> 7]]]],
+		bothKernels[forge[prelude, HoldComplete[Plus], Function[record, Association[record, "Hint" -> "Abbreviation"]]]]
 	},
 	{{"DeclarationMismatch", "DeclarationMismatch"}, {"DeclarationMismatch", "DeclarationMismatch"}},
 	TestID -> "Both-kernels-catch-a-forged-height-and-hint"
@@ -353,7 +353,7 @@ VerificationTest[
 
 (* the compiled kernel takes a recursor as it is, and the inductive types are declared again after it *)
 VerificationTest[
-	bothKernels[forge[prelude, HoldComplete[InductiveRecursor[Or]], Function[record, Append[record, "EliminationUniverse" -> True]]]],
+	bothKernels[forge[prelude, HoldComplete[InductiveRecursor[Or]], Function[record, Association[record, "EliminationUniverse" -> True]]]],
 	{"DeclarationMismatch", "DeclarationMismatch"},
 	TestID -> "Both-kernels-catch-a-forged-recursor"
 ]

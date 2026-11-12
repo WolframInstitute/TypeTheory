@@ -85,9 +85,9 @@ VerificationTest[
 VerificationTest[
 	{
 		With[{introductionType = First[prelude]["Records"][HoldComplete[QuotientIntroduction]]["Type"]},
-			First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Append[record, "Type" -> introductionType]]]]
+			First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Association[record, "Type" -> introductionType]]]]
 		],
-		First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Append[record, "Introduction" -> HoldComplete["successor"]]]]]
+		First @ TypeTheoryCheck[forge[prelude, HoldComplete[QuotientLift], Function[record, Association[record, "Introduction" -> HoldComplete["successor"]]]]]
 	},
 	{"DeclarationMismatch", "DeclarationMismatch"},
 	TestID -> "A-forged-quotient-is-caught"
