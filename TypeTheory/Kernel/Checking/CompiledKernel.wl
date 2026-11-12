@@ -145,12 +145,12 @@ $program = Hold[{
 	(* Nodes *)
 
 	kfn[arenaNodeAt, Function[{m, id, j}, m["Part", m["Part", hNodeBase] + 6 id - 6 + j]]],
-	kfn[arenaTagOf, Function[{m, id}, If[id < 1, 0, arenaNodeAt[m, id, 1]]]],
-	kfn[arenaF1Of, Function[{m, id}, If[id < 1, 0, arenaNodeAt[m, id, 2]]]],
-	kfn[arenaF2Of, Function[{m, id}, If[id < 1, 0, arenaNodeAt[m, id, 3]]]],
-	kfn[arenaF3Of, Function[{m, id}, If[id < 1, 0, arenaNodeAt[m, id, 4]]]],
-	kfn[arenaRangeOf, Function[{m, id}, If[id < 1, 0, arenaNodeAt[m, id, 5]]]],
-	kfn[arenaFlagsOf, Function[{m, id}, If[id < 1, 0, arenaNodeAt[m, id, 6]]]],
+	kfn[arenaTagOf, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 1]]]],
+	kfn[arenaF1Of, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 2]]]],
+	kfn[arenaF2Of, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 3]]]],
+	kfn[arenaF3Of, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 4]]]],
+	kfn[arenaRangeOf, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 5]]]],
+	kfn[arenaFlagsOf, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 6]]]],
 	kfn[arenaMkNode, Function[{m, tag, a, b, c}, Module[
 		{mask = m["Part", hTableMask], base = m["Part", hTableBase], h = 0, id = 0, n = 0, range = 0, flags = 0, cell = 0},
 		h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
@@ -457,7 +457,7 @@ $program = Hold[{
 	(* The local context *)
 
 	kfn[arenaNewFVar, Function[{m, type, value}, Module[{k = m["Part", hLctx] + 1, cell = 0},
-		If[type < 1, Return[0]];
+		If[type < 1, Return[arenaFail[m, eIllFormed]]];
 		If[k > m["Part", hLctxCap], Return[arenaFail[m, eLctxCapacity]]];
 		m["SetPart", hLctx, k];
 		cell = m["Part", hLctxBase] + 2 k - 2;
@@ -517,8 +517,8 @@ $program = Hold[{
 	kfn[arenaLiftLoose, Function[{m, e, amount}, If[amount == 0 || arenaRangeOf[m, e] == 0, e, arenaLift[m, e, amount, 0, arenaNewGen[m]]]]],
 	kfn[arenaInstantiateValues, Function[{m, e, vs, k}, If[k == 0 || arenaRangeOf[m, e] == 0, e, arenaInst[m, e, 0, vs, k, arenaNewGen[m]]]]],
 	kfn[arenaInstantiate1, Function[{m, e, v}, Module[{s = 0, r = 0},
+		If[v < 1, Return[arenaFail[m, eIllFormed]]];
 		If[arenaRangeOf[m, e] == 0, Return[e]];
-		If[v < 1, Return[0]];
 		s = arenaReserve[m, 1];
 		If[s < 0, Return[0]];
 		arenaStackSet[m, s, v];
@@ -544,7 +544,7 @@ $program = Hold[{
 		arenaMemoStore[m, slot, e, depth, gen, r];
 		arenaLeave[m, r]
 	]]],
-	kfn[arenaAbstractFVar, Function[{m, e, fvNode}, If[e < 1, 0, arenaAbst[m, e, arenaF1Of[m, fvNode], 0, arenaNewGen[m]]]]],
+	kfn[arenaAbstractFVar, Function[{m, e, fvNode}, If[e < 1 || fvNode < 1, arenaFail[m, eIllFormed], arenaAbst[m, e, arenaF1Of[m, fvNode], 0, arenaNewGen[m]]]]],
 	kfn[arenaOcc, Function[{m, e, target, gen}, Module[{t = 0, slot = 0, r = 0},
 		If[arenaRangeOf[m, e] <= target, Return[0]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
@@ -632,7 +632,7 @@ $program = Hold[{
 		r
 	]]],
 	kfn[arenaWhnfCore, Function[{m, e, unfold}, Module[{cacheBase = 0, cached = 0, r = e, next = 0},
-		If[e < 1, Return[0]];
+		If[e < 1 || e > m["Part", hNodes], Return[arenaFail[m, eIllFormed]]];
 		cacheBase = If[unfold == 1, m["Part", hWhnfBase], m["Part", hCoreBase]];
 		cached = m["Part", cacheBase + e];
 		If[cached != 0, Return[cached]];
@@ -814,7 +814,7 @@ $program = Hold[{
 	(* Type inference *)
 
 	kfn[arenaInferType, Function[{m, e, inferOnly}, Module[{cached = 0, r = 0},
-		If[e < 1, Return[0]];
+		If[e < 1 || e > m["Part", hNodes], Return[arenaFail[m, eIllFormed]]];
 		cached = m["Part", m["Part", hInferBase] + e];
 		If[cached != 0, Return[cached]];
 		If[inferOnly == 1, cached = m["Part", m["Part", hInferOnlyBase] + e]; If[cached != 0, Return[cached]]];
@@ -871,7 +871,8 @@ $program = Hold[{
 		r
 	]]],
 	kfn[arenaCheckHasType, Function[{m, e, expected}, Module[{actual = arenaInferType[m, e, 0]},
-		If[actual == 0 || expected == 0, Return[0]];
+		If[actual == 0, Return[0]];
+		If[expected < 1, Return[arenaFail[m, eIllFormed]]];
 		If[arenaIsDefEq[m, actual, expected] == 1, 1, If[m["Part", hStatus] == 0, m["SetPart", hFailA, actual]; m["SetPart", hFailB, expected]; m["SetPart", hFailTerm, e]]; arenaFail[m, eMismatch]]
 	]]],
 	kfn[arenaSortLevel, Function[{m, t, inferOnly}, Module[{s = arenaInferType[m, t, inferOnly]},
@@ -949,8 +950,8 @@ $program = Hold[{
 	(* Definitional equality *)
 
 	kfn[arenaIsDefEq, Function[{m, a, b}, Module[{r = 0, x = 0, y = 0},
+		If[a < 1 || b < 1, Return[arenaFail[m, eIllFormed]]];
 		If[a == b, Return[1]];
-		If[a < 1 || b < 1, Return[0]];
 		If[arenaFindRoot[m, a] == arenaFindRoot[m, b], Return[1]];
 		If[a < b, x = a; y = b, x = b; y = a];
 		If[arenaFailSlot[m, x, y] > 0, Return[0]];
@@ -1129,6 +1130,7 @@ $program = Hold[{
 		]
 	]]],
 	kfn[arenaParamsWalk, Function[{m, e, params, gen}, Module[{t = 0, cell = 0},
+		If[e < 1, Return[arenaFail[m, eIllFormed]]];
 		If[BitAnd[arenaFlagsOf[m, e], 2] == 0, Return[1]];
 		cell = m["Part", hMarkBase] + e;
 		If[m["Part", cell] == gen, Return[1]];
@@ -1151,7 +1153,7 @@ $program = Hold[{
 	]]],
 	(* the greatest height of the definitions e mentions, each distinct subterm once in the walk gen *)
 	kfn[arenaHeightWalk, Function[{m, e, gen}, Module[{t = 0, cell = 0, c = 0, h = 0},
-		If[e < 1, Return[0]];
+		If[e < 1, Return[arenaFail[m, eIllFormed]]];
 		cell = m["Part", hMarkBase] + e;
 		If[m["Part", cell] == gen, Return[0]];
 		m["SetPart", cell, gen];
@@ -1228,6 +1230,8 @@ $program = Hold[{
 	]]],
 	kfn[arenaCheckDeclaration, Function[{m, c}, Module[{kind = arenaConstCell[m, c, cKind], type = arenaConstCell[m, c, cType], value = arenaConstCell[m, c, cValue], l = 0},
 		m["SetPart", hCurrent, c];
+		If[type < 1, Return[arenaFail[m, eIllFormed]]];
+		If[(kind == kDefinition || kind == kOpaque || kind == kTheorem) && value < 1, Return[arenaFail[m, eIllFormed]]];
 		If[arenaParamsDeclared[m, c] == 0, Return[arenaFail[m, eUndeclaredParam]]];
 		Which[
 			kind == kAxiom || kind == kHole || kind == kQuotient,
@@ -1305,6 +1309,8 @@ $program = Hold[{
 			Do[
 				tag = levels[[i, 1]]; a = levels[[i, 2]]; b = levels[[i, 3]];
 				levelMap[[i]] = Which[
+					! (((tag == lConst || tag == lParam) && a >= 0 && b == 0) || (tag == lNil && a == 0 && b == 0) || (tag == lSucc && a >= 1 && a < i && b >= 0) || ((tag == lMax || tag == lIMax || tag == lCons) && a >= 1 && a < i && b >= 1 && b < i)),
+						arenaFail[m, eIllFormed],
 					tag == lConst, arenaMkLevel[m, lConst, a, 0],
 					tag == lParam, arenaMkLevel[m, lParam, a, 0],
 					tag == lSucc, arenaLevelSucc[m, levelMap[[a]], b],
@@ -1319,6 +1325,15 @@ $program = Hold[{
 			Do[
 				tag = nodes[[i, 1]]; a = nodes[[i, 2]]; b = nodes[[i, 3]]; c = nodes[[i, 4]];
 				nodeMap[[i]] = Which[
+					! (
+						((tag == tBVar || tag == tLit) && a >= 0 && a < litLimit && b == 0 && c == 0)
+							|| (tag == tSort && a >= 1 && a <= numLevels && b == 0 && c == 0)
+							|| (tag == tConst && a >= 1 && a <= numConsts && b >= 1 && b <= numLevels && c == 0)
+							|| ((tag == tApp || tag == tLam || tag == tPi) && a >= 1 && a < i && b >= 1 && b < i && c == 0)
+							|| (tag == tLet && a >= 1 && a < i && b >= 1 && b < i && c >= 1 && c < i)
+							|| (tag == tProj && a >= 1 && a <= numConsts && b >= 0 && c >= 1 && c < i)
+					),
+						arenaFail[m, eIllFormed],
 					tag == tBVar || tag == tLit, arenaMkNode[m, tag, a, 0, 0],
 					tag == tSort, arenaMkNode[m, tSort, levelMap[[a]], 0, 0],
 					tag == tConst, arenaMkNode[m, tConst, a, levelMap[[b]], 0],
@@ -1333,14 +1348,59 @@ $program = Hold[{
 			Do[
 				cell = m["Part", hConstBase] + cWidth (i - 1);
 				Do[m["SetPart", cell + j, consts[[i, j]]], {j, cWidth}];
-				If[consts[[i, cType]] > 0, m["SetPart", cell + cType, nodeMap[[consts[[i, cType]]]]]];
-				If[consts[[i, cValue]] > 0, m["SetPart", cell + cValue, nodeMap[[consts[[i, cValue]]]]]];
-				m["SetPart", cell + cParams, levelMap[[consts[[i, cParams]]]]];
-				m["SetPart", cell + cDeclared, 0],
+				If[consts[[i, cType]] >= 1 && consts[[i, cType]] <= numNodes, m["SetPart", cell + cType, nodeMap[[consts[[i, cType]]]]], m["SetPart", cell + cType, 0]; arenaFail[m, eIllFormed]];
+				If[consts[[i, cValue]] != 0,
+					If[consts[[i, cValue]] >= 1 && consts[[i, cValue]] <= numNodes, m["SetPart", cell + cValue, nodeMap[[consts[[i, cValue]]]]], m["SetPart", cell + cValue, 0]; arenaFail[m, eIllFormed]]
+				];
+				If[consts[[i, cParams]] >= 1 && consts[[i, cParams]] <= numLevels, m["SetPart", cell + cParams, levelMap[[consts[[i, cParams]]]]], m["SetPart", cell + cParams, 0]; arenaFail[m, eIllFormed]];
+				m["SetPart", cell + cDeclared, 0];
+				tag = consts[[i, cKind]];
+				If[tag < kAxiom || tag > kHole, arenaFail[m, eIllFormed]];
+				(* what the kind does not use is 0, and a flag is 0 or 1 *)
+				If[consts[[i, cDeclared]] != 0, arenaFail[m, eIllFormed]];
+				If[tag != kDefinition && tag != kTheorem && tag != kOpaque && consts[[i, cValue]] != 0, arenaFail[m, eIllFormed]];
+				If[(tag != kDefinition && (consts[[i, cHeight]] != 0 || consts[[i, cHint]] != 0)) || consts[[i, cHint]] > 1, arenaFail[m, eIllFormed]];
+				If[tag <= kOpaque || tag == kHole, Do[If[consts[[i, j]] != 0, arenaFail[m, eIllFormed]], {j, cA, cI}]];
+				If[tag == kInductive && (consts[[i, cE]] > 1 || consts[[i, cF]] > 1 || consts[[i, cG]] != 0 || consts[[i, cH]] != 0 || consts[[i, cI]] != 0), arenaFail[m, eIllFormed]];
+				If[tag == kConstructor, Do[If[consts[[i, j]] != 0, arenaFail[m, eIllFormed]], {j, cE, cI}]];
+				If[tag == kRecursor && (consts[[i, cF]] > 1 || consts[[i, cG]] > 1), arenaFail[m, eIllFormed]];
+				If[tag == kQuotient, Do[If[consts[[i, j]] != 0, arenaFail[m, eIllFormed]], {j, cC, cI}]];
+				If[consts[[i, cNatRole]] > 15, arenaFail[m, eIllFormed]];
+				If[consts[[i, cNatRole]] == 14 || consts[[i, cNatRole]] == 15,
+					If[consts[[i, cBoolFalse]] < 1 || consts[[i, cBoolTrue]] < 1, arenaFail[m, eIllFormed]],
+					If[consts[[i, cBoolFalse]] != 0 || consts[[i, cBoolTrue]] != 0, arenaFail[m, eIllFormed]]
+				];
+				Do[If[consts[[i, j]] < 0, arenaFail[m, eIllFormed]], {j, cNumParams, cNatRole}];
+				If[consts[[i, cBoolFalse]] < 0 || consts[[i, cBoolFalse]] > numConsts || consts[[i, cBoolTrue]] < 0 || consts[[i, cBoolTrue]] > numConsts, arenaFail[m, eIllFormed]];
+				If[tag == kDefinition && consts[[i, cValue]] < 1, arenaFail[m, eIllFormed]];
+				If[(tag == kConstructor || tag == kRecursor) && (consts[[i, cA]] < 1 || consts[[i, cA]] > numConsts), arenaFail[m, eIllFormed]];
+				(* an inductive type's constructors: cC of them from cD in the flat table, each a constant *)
+				If[tag == kInductive && consts[[i, cC]] > 0,
+					a = consts[[i, cD]]; b = consts[[i, cC]];
+					If[a < 1 || b > numFlat || a > numFlat - b + 1,
+						arenaFail[m, eIllFormed],
+						Do[x = flat[[a + j]]; If[x < 1 || x > numConsts, arenaFail[m, eIllFormed]], {j, 0, b - 1}]
+					]
+				];
+				(* a recursor's rules: cH of them from cI, four entries each: the constructor, its parameters and fields, and
+				   minus the row of the right-hand side, which no positive number stands for *)
+				If[tag == kRecursor && consts[[i, cH]] > 0,
+					a = consts[[i, cI]]; b = consts[[i, cH]];
+					If[a < 1 || b > Quotient[numFlat, 4] || a > numFlat - 4 b + 1,
+						arenaFail[m, eIllFormed],
+						Do[
+							x = flat[[a + 4 j]];
+							If[x < 1 || x > numConsts || flat[[a + 4 j + 1]] < 0 || flat[[a + 4 j + 2]] < 0 || flat[[a + 4 j + 3]] >= 0, arenaFail[m, eIllFormed]],
+							{j, 0, b - 1}
+						]
+					]
+				],
 				{i, numConsts}
 			];
 			(* the flat table: a negative entry is minus a node row *)
-			Do[x = flat[[i]]; m["SetPart", m["Part", hFlatBase] + i, If[x < 0, nodeMap[[-x]], x]], {i, numFlat}];
+			Do[x = flat[[i]]; m["SetPart", m["Part", hFlatBase] + i, If[x < 0, If[-x <= numNodes, nodeMap[[-x]], arenaFail[m, eIllFormed]], x]], {i, numFlat}];
+			If[numFlat < 1 || flat[[numFlat]] != 0, arenaFail[m, eIllFormed]];
+			If[settings[[4]] < 0 || settings[[4]] > numConsts || settings[[5]] < 0 || settings[[5]] > numConsts || settings[[6]] < 0 || settings[[6]] > numConsts, arenaFail[m, eIllFormed]];
 			m["SetPart", hNatType, settings[[4]]];
 			m["SetPart", hNatZero, settings[[5]]];
 			m["SetPart", hNatSucc, settings[[6]]];
@@ -1353,20 +1413,25 @@ $program = Hold[{
 			Do[
 				x = order[[i]];
 				If[m["Part", hStatus] != 0, Break[]];
-				If[x > 0, arenaCheckDeclaration[m, x]];
+				If[x == 0 || x > numConsts || x < -numConsts, arenaFail[m, eIllFormed]; Break[]];
+				(* a constant is named once: one named again is declared already *)
+				If[m["Part", m["Part", hConstBase] + cWidth (Abs[x] - 1) + cDeclared] != 0, arenaFail[m, eIllFormed]; Break[]];
+				If[x > 0 && arenaCheckDeclaration[m, x] != 1 && m["Part", hStatus] == 0, m["SetPart", hCurrent, x]; arenaFail[m, eIllFormed]];
 				If[m["Part", hStatus] == 0,
 					m["SetPart", m["Part", hConstBase] + cWidth (Abs[x] - 1) + cDeclared, 1];
 					processed++
 				],
 				{i, Length[order]}
 			];
+			(* and every constant is named: with none named twice, as many entries as constants *)
+			If[m["Part", hStatus] == 0 && Length[order] != numConsts, arenaFail[m, eIllFormed]];
 			(* the rules of each recursor checked, once every constant of its block is declared *)
 			Do[
 				x = order[[i]];
 				If[m["Part", hStatus] != 0, Break[]];
 				If[ x > 0 && arenaConstCell[m, x, cKind] == kRecursor,
 					m["SetPart", hCurrent, x];
-					Do[If[arenaInferType[m, arenaFlatAt[m, arenaConstCell[m, x, cI] + 4 j + 3], 0] == 0, Break[]], {j, 0, arenaConstCell[m, x, cH] - 1}]
+					Do[If[arenaInferType[m, arenaFlatAt[m, arenaConstCell[m, x, cI] + 4 j + 3], 0] == 0, arenaFail[m, eIllFormed]; Break[]], {j, 0, arenaConstCell[m, x, cH] - 1}]
 				],
 				{i, Length[order]}
 			];
@@ -1725,7 +1790,9 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 	];
 	seeded = seedRows[$compiledKernelSeed];
 	{constants, {nodes, flat}} = Reap[
-		With[{rows = constantRows[Values[records]]},
+		With[{rows = Quiet[Check[constantRows[Values[records]], $Failed]]},
+			(* a record that lacks what its kind has, as a recursor without its rules, gives a message: not handled *)
+			If[rows === $Failed, notHandled[]];
 			If[Length[$largeLiterals] == 0, rows, Join[rows, constantRows[ConstantArray[largeLiteralRecord[natural], Length[$largeLiterals]]]]]
 		],
 		{compiledKernelInput, compiledKernelFlat}
@@ -1878,11 +1945,16 @@ recursorPositions[input_] := Association[Function[position, position -> True] /@
 	             order has checked; an inductive type's constructors, a constructor's type, a recursor's type and the
 	             constructor of each of its rules are constants, within the flat table, and a rule's right-hand side is
 	             a node; the Booleans of a comparison are constants or 0
-	flat table   minus a node where an entry is negative
-	order        each entry a constant, with a sign
+	flat table   minus a node where an entry is negative; its last entry the mark 0
+	order        every constant once, with a sign: a constant the order left out would be neither checked nor declared
 	settings     the natural numbers' type, zero and successor are constants or 0
 
-   Only a theorem or an opaque constant that the order takes as given may have no value. *)
+   Only a theorem or an opaque constant that the order takes as given may have no value.
+
+   A field that a kind does not use is 0, so that a term has one row and a constant one: the third number of an
+   application, the second and third of a variable, the value of an axiom, the height of a theorem, the columns of an
+   inductive type in the row of a definition. Such a field is not read today; were it given a meaning, the rows that
+   hold something there would be forgeries that pass already. *)
 programInputQ[input_] := TrueQ[Quiet[Check[programInputCheck[input], False]]]
 
 programInputCheck[input_] := Block[
@@ -1905,12 +1977,15 @@ programInputCheck[input_] := Block[
 		levelRowsQ[inputLevels, inputLevelCount],
 		constantRowsQ[inputConstants, inputFlat, inputOrder, inputNodeCount, inputLevelCount, inputConstantCount, inputFlatCount],
 		With[{negativeEntries = Select[inputFlat, Negative]}, negativeEntries === {} || Min[negativeEntries] >= -inputNodeCount],
-		inputOrder === {} || (Min[Abs[inputOrder]] >= 1 && Max[Abs[inputOrder]] <= inputConstantCount),
+		inputFlatCount >= 1 && Last[inputFlat] == 0,
+		Sort[Abs[inputOrder]] === Range[inputConstantCount],
 		rowsWithinQ[inputSettings[[{4, 5, 6}]], 0, inputConstantCount]
 	]
 ]
 
-(* every number from low to high, and every row a row before its own *)
+(* every number from low to high, every row a row before its own, and nothing where nothing is used *)
+rowsZeroQ[values_List] := rowsWithinQ[values, 0, 0]
+
 rowsWithinQ[{}, _, _] := True
 rowsWithinQ[values_List, low_, high_] := Min[values] >= low && Max[values] <= high
 
@@ -1932,10 +2007,10 @@ nodeRowsQ[nodes_, nodeCount_, levelCount_, constantCount_] := Block[
 			binaryRows = rowsTagged[nodeTags, {4, 5, 6}]; localRows = rowsTagged[nodeTags, {7}]; projectedRows = rowsTagged[nodeTags, {9}];
 			True
 		),
-		rowsWithinQ[nodeFirst[[numberRows]], 0, 2^62 - 1],
-		rowsWithinQ[nodeFirst[[sortRows]], 1, levelCount],
-		rowsWithinQ[nodeFirst[[namedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[namedRows]], 1, levelCount],
-		rowsBeforeQ[nodeFirst[[binaryRows]], binaryRows] && rowsBeforeQ[nodeSecond[[binaryRows]], binaryRows],
+		rowsWithinQ[nodeFirst[[numberRows]], 0, 2^62 - 1] && rowsZeroQ[nodeSecond[[numberRows]]] && rowsZeroQ[nodeThird[[numberRows]]],
+		rowsWithinQ[nodeFirst[[sortRows]], 1, levelCount] && rowsZeroQ[nodeSecond[[sortRows]]] && rowsZeroQ[nodeThird[[sortRows]]],
+		rowsWithinQ[nodeFirst[[namedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[namedRows]], 1, levelCount] && rowsZeroQ[nodeThird[[namedRows]]],
+		rowsBeforeQ[nodeFirst[[binaryRows]], binaryRows] && rowsBeforeQ[nodeSecond[[binaryRows]], binaryRows] && rowsZeroQ[nodeThird[[binaryRows]]],
 		rowsBeforeQ[nodeFirst[[localRows]], localRows] && rowsBeforeQ[nodeSecond[[localRows]], localRows] && rowsBeforeQ[nodeThird[[localRows]], localRows],
 		rowsWithinQ[nodeFirst[[projectedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[projectedRows]], 0, 2^62 - 1] && rowsBeforeQ[nodeThird[[projectedRows]], projectedRows]
 	]
@@ -1949,7 +2024,8 @@ levelRowsQ[levels_, levelCount_] := Block[
 			levelNumberRows = rowsTagged[levelTags, {1, 2}]; successorRows = rowsTagged[levelTags, {3}]; pairRows = rowsTagged[levelTags, {4, 5, 6}];
 			True
 		),
-		rowsWithinQ[levelFirst[[levelNumberRows]], 0, 2^62 - 1],
+		rowsWithinQ[levelFirst[[levelNumberRows]], 0, 2^62 - 1] && rowsZeroQ[levelSecond[[levelNumberRows]]],
+		With[{emptyRows = rowsTagged[levelTags, {7}]}, rowsZeroQ[levelFirst[[emptyRows]]] && rowsZeroQ[levelSecond[[emptyRows]]]],
 		rowsBeforeQ[levelFirst[[successorRows]], successorRows] && rowsWithinQ[levelSecond[[successorRows]], 0, 2^62 - 1],
 		rowsBeforeQ[levelFirst[[pairRows]], pairRows] && rowsBeforeQ[levelSecond[[pairRows]], pairRows]
 	]
@@ -1964,12 +2040,35 @@ constantRowsQ[constants_, flat_, order_, nodeCount_, levelCount_, constantCount_
 		rowsWithinQ[constants[[All, 4]], 1, levelCount],
 		rowsWithinQ[Flatten[constants[[All, 5 ;; 17]]], 0, 2^62 - 1],
 		rowsWithinQ[Flatten[constants[[All, {18, 19}]]], 0, constantCount],
+		unusedColumnsQ[constants, rowKinds, constantCount],
 		rowsWithinQ[rowValues[[rowsTagged[rowKinds, {2}]]], 1, nodeCount],
 		rowsWithinQ[checkedRows, 1, constantCount],
 		rowsWithinQ[Pick[rowValues[[checkedRows]], Unitize[(rowKinds[[checkedRows]] - 3) (rowKinds[[checkedRows]] - 4)], 0], 1, nodeCount],
 		AllTrue[constants[[rowsTagged[rowKinds, {5}]]], Function[row, inductiveRowQ[row, flat, constantCount, flatCount]]],
 		rowsWithinQ[constants[[rowsTagged[rowKinds, {6, 7}], 8]], 1, constantCount],
 		AllTrue[constants[[rowsTagged[rowKinds, {7}]]], Function[row, recursorRowQ[row, flat, constantCount, flatCount]]]
+	]
+]
+
+(* the columns a constant's kind does not use, and the flags, which are 0 or 1: the value of a constant that has none;
+   the height and the hint, which a definition has; columns 8 to 16, which an inductive type uses to 13, a constructor
+   to 11, a recursor all of and a quotient to 9; the Booleans, which a comparison of natural numbers has; and the
+   mark of a declared constant, which the program sets *)
+unusedColumnsQ[constants_, kinds_List, constantCount_] := With[
+	{compared = rowsTagged[constants[[All, 17]], {14, 15}]},
+	And[
+		rowsZeroQ[constants[[rowsTagged[kinds, {1, 5, 6, 7, 8, 9}], 3]]],
+		rowsZeroQ[Flatten[constants[[rowsTagged[kinds, {1, 3, 4, 5, 6, 7, 8, 9}], {6, 7}]]]],
+		rowsWithinQ[constants[[All, 7]], 0, 1],
+		rowsZeroQ[Flatten[constants[[rowsTagged[kinds, {1, 2, 3, 4, 9}], 8 ;; 16]]]],
+		rowsZeroQ[Flatten[constants[[rowsTagged[kinds, {5}], 14 ;; 16]]]] && rowsWithinQ[Flatten[constants[[rowsTagged[kinds, {5}], {12, 13}]]], 0, 1],
+		rowsZeroQ[Flatten[constants[[rowsTagged[kinds, {6}], 12 ;; 16]]]],
+		rowsWithinQ[Flatten[constants[[rowsTagged[kinds, {7}], {13, 14}]]], 0, 1],
+		rowsZeroQ[Flatten[constants[[rowsTagged[kinds, {8}], 10 ;; 16]]]],
+		rowsWithinQ[constants[[All, 17]], 0, 15],
+		rowsWithinQ[Flatten[constants[[compared, {18, 19}]]], 1, constantCount],
+		rowsZeroQ[Flatten[constants[[Complement[Range[Length[kinds]], compared], {18, 19}]]]],
+		rowsZeroQ[constants[[All, 20]]]
 	]
 ]
 

@@ -70,7 +70,9 @@ Versions 0.35.0 to 0.42.2.
   saved environment of TypeTheory writes such a record, so an environment built from declarations was not affected.
   The compiled program is now run only on an input in which every reference is one and every constant it checks has
   what it checks; otherwise the other kernel, which always refused such a record, answers.
-  `TypeTheoryCheck[environment, Method -> "Symbolic"]` was never affected.
+  `TypeTheoryCheck[environment, Method -> "Symbolic"]` was never affected. From 0.43.0 the compiled program refuses
+  such an input itself as well: it reads every row as that check does, a field that a row's kind does not use is 0,
+  the order names every constant once, and a constant is declared only on a success that its check returns.
 - The term of a proof by `"LinearArithmetic"` or `"NonlinearArithmetic"` checks against its statement, as the term of
   any finished proof does, and its axiom closure computes: the certificate left out a predicate that no elaboration
   finds again.

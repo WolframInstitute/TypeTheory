@@ -210,7 +210,7 @@ forgedInputs[input_] := Module[
 		Function[value, {"a theorem's type", value} -> with["Constants", ReplacePart[constants, {theorem, 2} -> value]]] /@ {0, -1, nodeCount + 1},
 		Function[value, {"a theorem's value", value} -> with["Constants", ReplacePart[constants, {theorem, 3} -> value]]] /@ {0, -1, nodeCount + 1},
 		Function[value, {"a definition's value", value} -> with["Constants", ReplacePart[constants, {definition, 3} -> value]]] /@ {0, -1, nodeCount + 1},
-		Function[value, {"an axiom's value", value} -> with["Constants", ReplacePart[constants, {axiom, 3} -> value]]] /@ {-1, nodeCount + 1},
+		Function[value, {"an axiom's value", value} -> with["Constants", ReplacePart[constants, {axiom, 3} -> value]]] /@ {-1, 1, nodeCount + 1},
 		{{"a given definition's value", 0} -> Append[with["Constants", ReplacePart[constants, {definition, 3} -> 0]], "Order" -> Developer`ToPackedArray[order /. definition -> -definition]]},
 		Function[value, {"a constant's universe parameters", value} -> with["Constants", ReplacePart[constants, {theorem, 4} -> value]]] /@ {0, levelCount + 1},
 		Function[value, {"a constant's kind", value} -> with["Constants", ReplacePart[constants, {theorem, 1} -> value]]] /@ {0, 10},
@@ -220,11 +220,30 @@ forgedInputs[input_] := Module[
 		Function[value, {"a recursor's type", value} -> with["Constants", ReplacePart[constants, {recursor, 8} -> value]]] /@ {0, constantCount + 1},
 		Function[value, {"an inductive type's constructor", value} -> with["Flat", ReplacePart[flat, constructorStart -> value]]] /@ {0, constantCount + 1},
 		Function[value, {"an entry of the order", value} -> with["Order", ReplacePart[order, 5 -> value]]] /@ {0, constantCount + 1, -(constantCount + 1)},
+		(* a constant named twice, and so another left out, which would be neither checked nor declared *)
+		{{"an entry of the order", "the entry after it"} -> with["Order", ReplacePart[order, 5 -> Extract[order, 6]]]},
+		{{"the mark at the end of the flat table", 1} -> with["Flat", ReplacePart[flat, flatCount -> 1]]},
 		{{"the natural numbers' type", constantCount + 1} -> with["Settings", ReplacePart[settings, 4 -> constantCount + 1]]},
 		{{"a negative entry of the flat table", -(nodeCount + 1)} -> with["Flat", ReplacePart[flat, flatCount -> -(nodeCount + 1)]]},
-		{{"the nodes", "no packed array"} -> Append[input, "Nodes" -> Developer`FromPackedArray[input["Nodes"]]]}
+		(* a field that the kind of a row does not use *)
+		{
+			{"an application's third number", 1} -> with["Nodes", ReplacePart[nodes, {applied, 4} -> 1]],
+			{"a constant's third number", 1} -> with["Nodes", ReplacePart[nodes, {named, 4} -> 1]],
+			{"a bound variable's second number", 1} -> with["Nodes", ReplacePart[nodes, {variable, 3} -> 1]],
+			{"a sort's second number", 1} -> with["Nodes", ReplacePart[nodes, {sort, 3} -> 1]],
+			{"a level number's second number", 1} -> with["Levels", ReplacePart[levels, {first[levels, 1], 3} -> 1]],
+			{"a theorem's height", 1} -> with["Constants", ReplacePart[constants, {theorem, 6} -> 1]],
+			{"a theorem's column of an inductive type", 1} -> with["Constants", ReplacePart[constants, {theorem, 9} -> 1]],
+			{"a theorem's mark as declared", 1} -> with["Constants", ReplacePart[constants, {theorem, 20} -> 1]],
+			{"a Boolean of a constant that compares nothing", 1} -> with["Constants", ReplacePart[constants, {theorem, 18} -> 1]],
+			{"a recursor's flag", 2} -> with["Constants", ReplacePart[constants, {recursor, 13} -> 2]]
+		}
 	]
 ]
+
+(* the nodes as a list that is no packed array: the guard does not take it, and the compiled function packs it, so it
+   is no forgery of what the program reads *)
+unpackedInput[input_] := Append[input, "Nodes" -> Developer`FromPackedArray[input["Nodes"]]]
 
 givenWithoutValue[input_, name_HoldComplete] := With[{position = First[FirstPosition[input["Names"], name]]},
 	Append[input, {
@@ -246,11 +265,79 @@ VerificationTest[
 			Length[forgedInputs[input]],
 			DeleteCases[KeyValueMap[Function[{label, forged}, {label, guard[forged], check[forged]}], Association[forgedInputs[input]]], {_, False, None}],
 			guard[givenWithoutValue[input, HoldComplete["honest"]]],
-			If[available, check[givenWithoutValue[input, HoldComplete["honest"]]], "accepted"]
+			If[available, check[givenWithoutValue[input, HoldComplete["honest"]]], "accepted"],
+			{guard[unpackedInput[input]], check[unpackedInput[input]]}
 		}
 	],
-	{True, "accepted", 64, {}, True, "accepted"},
+	{True, "accepted", 76, {}, True, "accepted", {False, None}},
 	TestID -> "The-compiled-program-is-not-run-on-an-input-with-a-reference-that-is-none"
+]
+
+(* The program's own refusals: the compiled function called with the six arrays, with no guard before it. Where the
+   paclet has no library for this platform there is no program to call, and the tests say so by their values.
+
+   Every forged input ends with a status: no node is a failure where it is first met, a declaration is refused where
+   a column it needs is absent, a constant is declared only on a success that its check returns, and the loader reads
+   every row as the guard does. So the guard is a second line, and the program does not rest on it. *)
+programStatus[input_] := Replace[
+	compiledPrivate["compiledKernelFunction"][][input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], input["Settings"]],
+	{{status_Integer, ___} :> status, _ -> "declined"}
+]
+
+VerificationTest[
+	If[ available,
+		With[{input = compiledPrivate["environmentInput"][matrixEnvironment, 0, 0, 1]},
+			{
+				programStatus[input],
+				programStatus[givenWithoutValue[input, HoldComplete["honest"]]],
+				Keys[Select[Association[Function[case, First[case] -> programStatus[Last[case]]] /@ forgedInputs[input]], Function[status, status === 0]]]
+			}
+		],
+		{0, 0, {}}
+	],
+	{0, 0, {}},
+	TestID -> "The-compiled-program-itself-refuses-each-forged-input"
+]
+
+(* Capacities too small for the pass, the nodes', the levels', the depth, the stack and the contexts', at 0 and at 1:
+   each ends with a status and the kernel goes on. Settings 1, 2, 3, 10 and 11 hold them. *)
+VerificationTest[
+	If[ available,
+		With[{input = compiledPrivate["environmentInput"][matrixEnvironment, 0, 0, 1]},
+			Function[setting, Function[value, programStatus[Append[input, "Settings" -> Developer`ToPackedArray[ReplacePart[Normal[input["Settings"]], setting -> value]]]] =!= 0] /@ {0, 1}] /@ {1, 2, 3, 10, 11}
+		],
+		ConstantArray[True, {5, 2}]
+	],
+	ConstantArray[True, {5, 2}],
+	TestID -> "A-capacity-too-small-ends-the-pass-with-a-status"
+]
+
+(* Single cells changed, 150 of them drawn with a seed from the nodes, the levels, the constants, the flat table and
+   the order: the program accepts none that the guard refuses. What both take is another input and not a forgery of
+   this one: an entry of the order made "given", which is the caller's statement, and a column of a generated record,
+   which the replay of the inductive types refuses (the test of the two kernels on records, below). *)
+cellChanged[input_] := With[{key = RandomChoice[{4, 1, 3, 1, 1} -> {"Nodes", "Levels", "Constants", "Flat", "Order"}]},
+	With[{array = Normal[input[key]]},
+		With[{position = If[ArrayDepth[array] == 2, {RandomInteger[{1, Length[array]}], RandomInteger[{1, Last[Dimensions[array]]}]}, {RandomInteger[{1, Length[array]}]}]},
+			With[{old = Extract[array, position]},
+				{key, position, old} -> Append[input, key -> Developer`ToPackedArray[ReplacePart[array, position -> RandomChoice[{0, -1, old + 1, old - 1, RandomInteger[{1, 300}], RandomInteger[{1, 6000}], 10^6, -old}]]]]
+			]
+		]
+	]
+]
+
+VerificationTest[
+	If[ available,
+		With[{input = compiledPrivate["environmentInput"][matrixEnvironment, 0, 0, 1], guard = compiledPrivate["programInputQ"]},
+			BlockRandom[
+				SeedRandom[20261112];
+				Cases[Table[cellChanged[input], {150}], (label_ -> changed_) /; ! guard[changed] && programStatus[changed] === 0 :> label]
+			]
+		],
+		{}
+	],
+	{},
+	TestID -> "The-compiled-program-accepts-no-changed-cell-that-the-guard-refuses"
 ]
 
 (* a definition's height and hint are the kernel's to give: the compiled kernel works them out from the value too *)

@@ -219,9 +219,42 @@ where the kernel of TypeChecking.wl declares them again first and so meets the r
 term that is ill formed. The guard is a few passes over the arrays: on the input of 36 modules of Mathlib, 1,105,642
 nodes and 11,936 constants, it takes 0.18 to 0.38 s where a whole pass of the program takes 19.1 s in the same
 process, 1 to 2 percent (measured at nice 19 with background priority, on the tree of main, which takes that cone).
-The program's own refusal, a failure
-of `arenaInferType` on no node, a failure where a column it needs is absent, and a constant declared only on a
-success that the check returns, is its own change, with its own hash.
+
+**The program's own refusals.** From 0.43.0 the compiled program refuses such an input itself, and `programInputQ` is
+a second line in front of it, not the only one. A reading of the program found 159 early returns in its 122
+functions. Eight places answered "no node" without a failure, and one of them, the comparison of two terms, answered
+yes for two nodes that are both absent; most of the others passed such a 0 on as it was; and the two loops, over the
+declarations and over the recursors' rules, read no answer but the status, so a 0 that reached them without one was a
+pass. Each class has its remedy. Every accessor of a node, a level or a constant fails on a row that is none, and
+the walks over terms, from instantiation and abstraction to weak head normal form, inference and comparison, fail
+on no node where they first meet it. `arenaCheckDeclaration` refuses a declaration where a column it needs is
+absent. Both loops declare a constant only on a success that its check returns. The loader reads every row as
+`programInputQ` reads it: the tags, every part a row before its own, the rows of the constants, a rule's right-hand
+side, a literal under the limit, a field that the kind of its row does not use 0, and an order that names every
+constant once. The last two are new on both sides, so a term and a constant have one encoding each; an order that
+named one constant twice skipped another, which the changed cells below found. The library's hash goes from
+db6164af…0584af to 6b3a6469…5823.
+
+There is no switch to turn the guard off. The tests call the compiled function itself, with no guard before it, in
+Tests/Checking/CompiledKernel.wlt: each of the 74 forged inputs of the matrix ends with a status; a capacity too
+small for the pass, the nodes, the levels, the depth, the stack or the contexts ends with a status; and of 150
+single cells changed with a seed the program accepts none that the guard refuses. A run of 2,000 cells changed with
+the seed 20261112 in the environment of those tests found the same. Of its 131 changes that both take and that
+change the input, none is a forgery of what the program checks:
+
+| What changed | Changes | Whose it is |
+|---|---:|---|
+| an entry of the order, made given or checked | 22 | the caller's statement |
+| a constant's role among the natural numbers | 4 | the caller's statement, a registration |
+| the flat table: a rule's parameters, fields, constructor or right-hand side, an inductive type's constructors | 70 | the replay's, which declares the inductive types again |
+| a column of an inductive type, a constructor, a recursor or a quotient | 22 | the replay's |
+| a universe level, a theorem's universe parameters, the body of a function | 13 | another well-formed input |
+
+What is the replay's is checked by `TypeTheoryCheck` with Method Automatic for the inductive types it declares
+again; every other record it adds as it is, so it does not yet compare the fields of a record that are no terms, such
+as `"Instance"` or `"Coercion"`, with what the declaration makes, where Method `"Symbolic"` does. The program's own
+checks cost a few percent of a pass at most: on the 36 modules the median of six whole passes was 24.2 s before
+them and of three 24.8 s after, where single passes at nice 19 with background priority spread from 18 s to 34 s.
 
 ## Environments
 
