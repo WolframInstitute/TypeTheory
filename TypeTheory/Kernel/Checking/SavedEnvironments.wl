@@ -59,6 +59,7 @@ PackageScoped[libraryEnvironment]
 PackageScoped[saveEnvironment]
 PackageScoped[environmentProvenance]
 PackageScoped[environmentContentHash]
+PackageScoped[contentHashOf]
 PackageScoped[$kernelHash]
 PackageScoped[kernelSourcesHash]
 PackageScoped[termRef]
@@ -72,6 +73,7 @@ libraryEnvironment::usage = "libraryEnvironment[name, base, build] gives the lib
 directory over the environment base if this kernel wrote the file there, and otherwise the value of build, marked as the library name."
 environmentProvenance::usage = "environmentProvenance[environment] gives where environment came from: its declarations, checked, or a file."
 saveEnvironment::usage = "saveEnvironment[file, environment] writes environment to file and gives File[file]."
+contentHashOf::usage = "contentHashOf[environment] gives the content hash of environment made again, which environmentContentHash keeps once made."
 environmentContentHash::usage = "environmentContentHash[environment] gives the content hash of environment, the same in every session."
 $kernelHash::usage = "$kernelHash is the SHA-256 of the paclet's version and kernel sources, which a saved environment records."
 kernelSourcesHash::usage = "kernelSourcesHash[version, {{path, hash}, ...}] gives the SHA-256, in hexadecimal digits, of the bytes of the version and a line for each source file, its hash and its path: the same string on every engine."
@@ -165,8 +167,10 @@ environmentContents[environment : TypeTheoryEnvironment[store_Symbol], base_] :=
 (* the hash of all of an environment's contents, the same in every session for an environment built the same way *)
 environmentContentHash[environment : TypeTheoryEnvironment[store_Symbol]] := Replace[
 	store["ContentHash"],
-	_store :> (store["ContentHash"] = Hash[BinarySerialize[environmentContents[environment, None]], "SHA256", "HexString"])
+	_store :> (store["ContentHash"] = contentHashOf[environment])
 ]
+
+contentHashOf[environment_] := Hash[BinarySerialize[environmentContents[environment, None]], "SHA256", "HexString"]
 
 rememberContentHash[TypeTheoryEnvironment[store_Symbol], contents_Association] :=
 	If[! StringQ[store["ContentHash"]], store["ContentHash"] = Hash[BinarySerialize[contents], "SHA256", "HexString"]]
@@ -462,8 +466,8 @@ environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Ass
 	loadedRecords = Map[termsFromRefs, data["Records"]];
 	loadedEnvironment = addConstantRecords[base, loadedRecords];
 	With[{loadedStore = First[loadedEnvironment]},
+		(* the file's rewrite-rule index is not read: the store makes it from the records, as every derived key *)
 		loadedStore["NaturalNumbers"] = data["NaturalNumbers"];
-		loadedStore["RewriteRuleIndex"] = data["RewriteRuleIndex"];
 		loadedStore["Provenance"] = <|"Source" -> source, "Hash" -> data["Hash"], "Checked" -> False|>
 	];
 	loadedEnvironment

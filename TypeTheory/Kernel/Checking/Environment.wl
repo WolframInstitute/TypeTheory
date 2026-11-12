@@ -23,6 +23,11 @@ the environment's contents. That is the Wolfram Language's own way of storing na
 	store["LibraryName"]         the name of a library environment, "Prelude" or "Integers", set on its own store
 	store["Provenance"]          for an environment read from a file, where it came from and whether it was checked
 
+The records, the natural numbers and the rules are what the caller states. The names, the two indexes, the library
+and the content hash are made from the records and the base, never taken from a file, and TypeTheoryCheck compares
+each with the one its replay makes, so a store changed by hand in any of them is refused. The identifier, the
+library's name and the provenance are bookkeeping, which no check and no reduction reads.
+
 An environment never changes. Adding constants gives a new environment, whose store holds the old
 records joined with the new ones, and leaves the old environment as it was, so a proof can branch or be
 undone without bookkeeping. The records are joined, not copied: the new store shares the old one's records,
@@ -161,13 +166,19 @@ newEnvironment[base_, records_Association, naturalNumbers_] := Module[{store},
 	store["Records"] = Join[base["Records"], records];
 	store["Names"] := Keys[store["Records"]];
 	store["Rules"] = base["Rules"];
-	store["RewriteRuleIndex"] = base["RewriteRuleIndex"];
+	store["RewriteRuleIndex"] = Merge[{Replace[base["RewriteRuleIndex"], Except[_Association] -> <||>], rewriteRuleIndexOf[records]}, Apply[Join]];
 	store["NaturalNumbers"] = naturalNumbers;
 	store["OverloadIndex"] = Merge[{Replace[base["OverloadIndex"], Except[_Association] -> <||>], overloadIndexOf[records]}, Apply[Join]];
 	store["Library"] = libraryOf[base];
 	store["Identifier"] = ++$storeCounter;
 	Sow[store, $storeTag];
 	TypeTheoryEnvironment[store]
+]
+
+(* the rewrite rules among records listed under their heads, in order *)
+rewriteRuleIndexOf[records_Association] := Merge[
+	KeyValueMap[Function[{name, record}, If[record["Kind"] === "RewriteRule", <|record["Head"] -> {name}|>, Nothing]], records],
+	Apply[Join]
 ]
 
 overloadIndexOf[records_Association] := Merge[
@@ -237,14 +248,8 @@ addConstantRecords[environment : TypeTheoryEnvironment[store_Symbol], records_As
 ]
 
 
-(* a rewrite rule is a record of its own, in the order of declarations, and listed under its head *)
-addRewriteRuleRecord[environment : TypeTheoryEnvironment[store_Symbol], name_HoldComplete, record_Association] := With[
-	{extended = addConstantRecords[environment, <|name -> record|>]},
-	With[{newStore = First[extended]},
-		newStore["RewriteRuleIndex"] = Merge[{store["RewriteRuleIndex"], <|record["Head"] -> {name}|>}, Apply[Join]]
-	];
-	extended
-]
+(* a rewrite rule is a record of its own, in the order of declarations; the new store lists it under its head *)
+addRewriteRuleRecord[environment_, name_HoldComplete, record_Association] := addConstantRecords[environment, <|name -> record|>]
 
 rewriteRuleRecords[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name, store["Records"][name]] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
 

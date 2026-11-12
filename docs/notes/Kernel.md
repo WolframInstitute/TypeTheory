@@ -275,6 +275,33 @@ identical. Constructors and recursors are regenerated with their inductive type,
 numbers are registered again as soon as the constants they name exist. This is the defense against a
 hand-written environment; the tests forge a theorem statement, a recursor and the addition.
 
+A store holds more than the records. Each of its keys is stated by the caller and checked by the replay, or made from
+the records and the base, and then never taken from a file and compared with the one the replay makes:
+
+| Key | Made by | Read by | `TypeTheoryCheck` |
+|---|---|---|---|
+| `"Records"` | the declarations | everything | each declared again and compared whole |
+| `"NaturalNumbers"` | the registrations the caller states | the kernel, on literals | registered again and compared |
+| `"Rules"` | the caller, when the environment starts | the kernel | the replay starts from them |
+| `"Names"` | the records' keys | nothing that checks | compared with the replay's |
+| `"RewriteRuleIndex"` | the rewrite rules among the records | reduction | compared with the replay's |
+| `"OverloadIndex"` | the records' `"Overloads"` | elaboration | compared with the replay's |
+| `"Library"` | the base | saving, which names it | its records must be the store's first |
+| `"ContentHash"` | the contents, once a save asks for it | saving | made again and compared where kept |
+| `"Identifier"`, `"LibraryName"`, `"Provenance"` | bookkeeping | neither checking nor reduction | not compared |
+
+**An index the kernel trusted.** From 0.6.0 to 0.42.2 an axiom's rewrite rules were found through the store's index
+alone, and a rule found was not asked whether its left side's head is the axiom reduced; nothing compared the index
+with the records, and from 0.16.0 a saved file gave the index itself. A store changed by hand, or a file read with
+`"Check" -> True`, that filed a rule under another axiom was reported checked by both methods, and that axiom then
+computed by the rule: `Keep[BitZero]` reduced to `BitOne` for an axiom `Keep` with no rule, measured on the tree before
+this fix, whose index code is 0.42.2's. It takes rules with rewrite rules, which of the libraries only
+HomotopyTypeTheory has, and a store or a file changed by hand. From 0.43.0 a rule is taken only for the constant its
+left side's head names, a store makes its indexes from its records, and every key made so is compared. The tests, in
+Tests/Checking/RewriteRules.wlt: each derived key forged in a store, refused by both methods, in an environment with
+rewrite rules and in one the compiled kernel takes; the rule filed under another axiom left unused by the kernel with
+nothing checked; and a file whose index was forged, read back as the environment it was saved from.
+
 ## Elaboration
 
 The elaborator is untrusted and its output is always re-checked. Its state is bound with `Block` for

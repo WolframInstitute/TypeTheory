@@ -963,11 +963,32 @@ replayNames[environment_, names_List, replay_] := Fold[
 
 replayEnvironment[environment_, replay_] := environmentChecked[environment, replayNames[environment, environmentNames[environment], replay]]
 
-(* an environment whose records are made again into replayed is checked where its natural numbers are those made again *)
+(* The keys of a store made from its records and its base (Environment.wl): the names, read by nothing that checks; the
+   rewrite rules of each head, which reduction reads; the constants overloading each operation, which elaboration
+   reads; the library whose records the store's begin with, which saving names as the base; and the content hash, kept
+   once made, compared where it is kept. *)
+$derivedStoreKeys = {"Names", "RewriteRuleIndex", "OverloadIndex", "Library", "ContentHash"}
+
+derivedKeyAgreesQ["Names", TypeTheoryEnvironment[store_Symbol], TypeTheoryEnvironment[replayedStore_Symbol]] := store["Names"] === replayedStore["Names"]
+derivedKeyAgreesQ["RewriteRuleIndex", TypeTheoryEnvironment[store_Symbol], TypeTheoryEnvironment[replayedStore_Symbol]] := store["RewriteRuleIndex"] === replayedStore["RewriteRuleIndex"]
+derivedKeyAgreesQ["OverloadIndex", TypeTheoryEnvironment[store_Symbol], TypeTheoryEnvironment[replayedStore_Symbol]] :=
+	Replace[store["OverloadIndex"], Except[_Association] -> <||>] === Replace[replayedStore["OverloadIndex"], Except[_Association] -> <||>]
+derivedKeyAgreesQ["Library", TypeTheoryEnvironment[store_Symbol], _] := Replace[store["Library"], {
+	None -> True,
+	library_Symbol /; StringQ[library["LibraryName"]] && AssociationQ[library["Records"]] :> Take[store["Records"], UpTo[Length[library["Records"]]]] === library["Records"],
+	_ -> False
+}]
+derivedKeyAgreesQ["ContentHash", environment : TypeTheoryEnvironment[store_Symbol], _] := ! StringQ[store["ContentHash"]] || store["ContentHash"] === contentHashOf[environment]
+
+(* an environment whose records are made again into replayed is checked where its natural numbers are those made again,
+   and where every key its store makes from the records is the one the replay makes *)
 environmentChecked[environment_, replayed_] := (
 	If[ naturalNumberSettings[replayed] =!= naturalNumberSettings[environment],
 		kernelFailure["DeclarationMismatch", "The natural numbers of the environment do not match its declarations.", {}]
 	];
+	Replace[Select[$derivedStoreKeys, Function[key, ! derivedKeyAgreesQ[key, environment, replayed]]], {
+		{key_, ___} :> kernelFailure["DeclarationMismatch", "The `1` of the environment's store does not match what its records give.", {key}]
+	}];
 	Success["EnvironmentChecked", <|
 		"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
 		"MessageParameters" -> {Length[environmentNames[environment]]},

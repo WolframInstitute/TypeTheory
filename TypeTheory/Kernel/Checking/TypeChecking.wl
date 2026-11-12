@@ -557,20 +557,24 @@ reduceByKind[environment_, context_, term_, name_, levels_, arguments_, record_]
    side: a variable of the rule takes the argument at its place, a part without variables must equal the
    argument there, and a constant applied to patterns must be the argument's head after reduction. The
    first rule that matches is taken. The comparisons are of the arguments of the term reduced, and of
-   closed parts of a rule, checked with the rule. *)
+   closed parts of a rule, checked with the rule. A rule is taken only for the constant its left side's head
+   names, whatever index lists it. *)
 rewriteAxiom[environment_, context_, term_, name_, levels_, arguments_] :=
-	firstRewrite[environment, context, term, levels, arguments, rewriteRuleRecords[environment, name]]
+	firstRewrite[environment, context, term, name, levels, arguments, rewriteRuleRecords[environment, name]]
 
-firstRewrite[_, _, term_, _, _, {}] := term
-firstRewrite[environment_, context_, term_, levels_, arguments_, {record_, rest___}] := Replace[
-	matchRewriteRule[environment, context, record, levels, arguments],
-	None :> firstRewrite[environment, context, term, levels, arguments, {rest}]
+firstRewrite[_, _, term_, _, _, _, {}] := term
+firstRewrite[environment_, context_, term_, name_, levels_, arguments_, {record_, rest___}] := Replace[
+	matchRewriteRule[environment, context, name, record, levels, arguments],
+	None :> firstRewrite[environment, context, term, name, levels, arguments, {rest}]
 ]
 
-matchRewriteRule[environment_, context_, record_, levels_, arguments_] := Module[
+matchRewriteRule[environment_, context_, name_, record_, levels_, arguments_] := Module[
 	{numberOfVariables = record["NumberOfVariables"], patternHead, patterns, levelValues, substitution},
 	{patternHead, patterns} = applicationSpine[ruleBody[record["LeftHandSide"], numberOfVariables]];
-	levelValues = matchLevels[Last[patternHead], levels, record["UniverseParameters"]];
+	levelValues = If[ MatchQ[patternHead, constantReference[head_, _] /; head === name],
+		matchLevels[Last[patternHead], levels, record["UniverseParameters"]],
+		None
+	];
 	substitution = If[ Length[arguments] < Length[patterns] || levelValues === None,
 		None,
 		Fold[

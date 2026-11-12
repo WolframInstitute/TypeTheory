@@ -73,6 +73,12 @@ Versions 0.35.0 to 0.42.2.
   `TypeTheoryCheck[environment, Method -> "Symbolic"]` was never affected. From 0.43.0 the compiled program refuses
   such an input itself as well: it reads every row as that check does, a field that a row's kind does not use is 0,
   the order names every constant once, and a constant is declared only on a success that its check returns.
+- **A forged rewrite-rule index (0.6.0 to 0.42.2).** Under rules with rewrite rules, a store changed by hand, and from
+  0.16.0 a saved file read with `"Check" -> True`, could file a rewrite rule under another axiom: `TypeTheoryCheck`
+  reported it checked, and that axiom then computed by the rule. A rule is now taken only for the constant its left
+  side names, a store makes its indexes from its records and takes none from a file, and `TypeTheoryCheck` compares
+  every key a store makes from its records with the one its replay makes. Environments built by declarations were not
+  affected; of the libraries, only HomotopyTypeTheory has rewrite rules.
 - **`TypeTheoryCheck` compares every record whole.** After the compiled kernel every record is declared again and
   compared with the environment's, as `Method -> "Symbolic"` does: on 0.42.2 a definition whose `"Instance"` or
   `"Coercion"` was turned by hand passed, since only inductive types and quotients were declared again.

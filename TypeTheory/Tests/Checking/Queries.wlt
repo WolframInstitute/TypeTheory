@@ -772,7 +772,8 @@ methodVerdict[result_] := If[MatchQ[result, _Success], "accepted", Replace[resul
 
 (* Each change gets one verdict, the same tag from both methods. The changes both take are the record of another
    declaration, which declaring it gives back as it is: a universe parameter more, a role as an instance or a
-   coercion, an annotation, the operation a constant overloads. *)
+   coercion, an annotation. An operation to overload given to a record is refused: the store's index of overloads,
+   which it makes from the records, no longer agrees with them. *)
 VerificationTest[
 	With[{available = Symbol["WolframInstitute`TypeTheory`PackageScope`compiledKernelAvailableQ"][]},
 		With[{verdicts = Function[change, With[{forgedEnvironment = forge[keyedEnvironment, First[First[change]], Last[change]]},
@@ -788,7 +789,7 @@ VerificationTest[
 			}
 		]
 	],
-	{True, {"Axiom", "Constructor", "Definition", "InductiveType", "Opaque", "Quotient", "Recursor", "Theorem"}, 331, {}, {{HoldComplete["Point"], "added", "Annotation"}, {HoldComplete["Point"], "added", "Overloads"}, {HoldComplete["origin"], "added", "Annotation"}, {HoldComplete["origin"], "added", "Overloads"}, {HoldComplete["again"], "turned", "UniverseParameters"}, {HoldComplete["again"], "added", "Coercion"}, {HoldComplete["again"], "added", "Instance"}, {HoldComplete["again"], "added", "Overloads"}, {HoldComplete["hidden"], "turned", "UniverseParameters"}, {HoldComplete["hidden"], "added", "Coercion"}, {HoldComplete["hidden"], "added", "Instance"}, {HoldComplete["hidden"], "added", "Overloads"}, {HoldComplete["pointInhabited"], "turned", "UniverseParameters"}, {HoldComplete["pointInhabited"], "dropped", "Instance"}, {HoldComplete["pointInhabited"], "added", "Coercion"}, {HoldComplete["pointInhabited"], "added", "Overloads"}, {HoldComplete["pointIdentity"], "turned", "UniverseParameters"}, {HoldComplete["pointIdentity"], "dropped", "Coercion"}, {HoldComplete["pointIdentity"], "added", "Overloads"}, {HoldComplete["originItself"], "turned", "UniverseParameters"}, {HoldComplete["originItself"], "added", "Annotation"}}},
+	{True, {"Axiom", "Constructor", "Definition", "InductiveType", "Opaque", "Quotient", "Recursor", "Theorem"}, 331, {}, {{HoldComplete["Point"], "added", "Annotation"}, {HoldComplete["origin"], "added", "Annotation"}, {HoldComplete["again"], "turned", "UniverseParameters"}, {HoldComplete["again"], "added", "Coercion"}, {HoldComplete["again"], "added", "Instance"}, {HoldComplete["hidden"], "turned", "UniverseParameters"}, {HoldComplete["hidden"], "added", "Coercion"}, {HoldComplete["hidden"], "added", "Instance"}, {HoldComplete["pointInhabited"], "turned", "UniverseParameters"}, {HoldComplete["pointInhabited"], "dropped", "Instance"}, {HoldComplete["pointInhabited"], "added", "Coercion"}, {HoldComplete["pointIdentity"], "turned", "UniverseParameters"}, {HoldComplete["pointIdentity"], "dropped", "Coercion"}, {HoldComplete["originItself"], "turned", "UniverseParameters"}, {HoldComplete["originItself"], "added", "Annotation"}}},
 	TestID -> "Every-key-of-every-kind-of-record-changed-gets-one-verdict-from-both-methods"
 ]
 
