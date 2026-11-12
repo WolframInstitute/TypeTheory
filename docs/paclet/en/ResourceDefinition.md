@@ -13,7 +13,8 @@ WolframVersion: 15.0+
 Categories: [Higher Mathematical Computation, Symbolic & Numeric Computation]
 Disclosures: [WLSystemSymbols]
 Sources: ["Thierry Coquand, Gérard Huet, *The Calculus of Constructions*, Information and Computation 76, 1988", "Christine Paulin-Mohring, *Inductive Definitions in the System Coq: Rules and Properties*, TLCA 1993", "Mario Carneiro, *The Type Theory of Lean*, Master's thesis, Carnegie Mellon University, 2019"]
-Links: ["[LeanLink, the Wolfram Language link to Lean, which translates declarations to and from TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
+SourceControlURL: https://github.com/WolframInstitute/TypeTheory
+Links: ["[TypeTheory on GitHub: the source, the tests and the design notes](https://github.com/WolframInstitute/TypeTheory)", "[LeanLink, the Wolfram Language link to Lean, which translates declarations to and from TypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
 ## Details & Options
