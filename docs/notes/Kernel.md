@@ -187,6 +187,42 @@ kernel is asked only where a large literal is present; and a recursor with a for
 is caught. The end state is big numbers in the compiled kernel itself, which goes with its next recompile, beside
 the role that is active only from its registration's place.
 
+**An input the program could skip in.** From 0.16.0 to 0.42.1 `TypeTheoryCheck` accepted an environment in which the
+record of a theorem, of an opaque constant or of a definition had no value: a store changed by hand, with a theorem
+of any statement and no proof, was reported as checked wherever the compiled kernel has its library. It was
+measured on 0.42.1; the two lines of code that make it, the quiet return below and the compiled kernel as the
+default of `TypeTheoryCheck`, are in every release from 0.16.0. A file read with `"Check" -> True` is checked by the
+same function; that route was read in the code and not run. The compiled
+program takes 0 in a constant's row for no value, which is what an axiom has, and 0 is no node. `arenaInferType`
+gives 0 for no node without reporting a failure; everywhere else a 0 from it means that the failure is already
+recorded, so `arenaCheckHasType` and `arenaCheckDeclaration` return on it, and the loop over the declarations, which
+reads the status and finds none, declares the constant. A term with a part 0, a row with an unknown tag and a
+recursor's rule with no right-hand side reach the same return. The kernel of TypeChecking.wl refused such a record
+all along, with `"IllFormedTerm"`. The suite forged wrong values and never an absent one. No declaration, import or
+saved environment of TypeTheory writes such a record: a declaration has its value, and an import declares a constant
+without one as an axiom.
+
+The remedy in 0.42.2 is on the Wolfram Language side, at the one place that calls the program: `programInputQ` reads
+the arrays that are given to it, whatever made them, and `compiledCheckWith` answers None without running the program
+on an input that fails it, so the other kernel answers. It asks that every reference be one: a node's parts are rows
+before its own, constants and levels are in range, tags and kinds are known, every constant has its type and its
+universe parameters, a rule its constructor and its right-hand side; and that no constant the program checks lacks
+what it checks: a definition always has its value, and so has a theorem or an opaque constant that the order has
+checked. Only a theorem or an opaque constant taken as given may have none. The tests are a matrix, in
+Tests/Checking/CompiledKernel.wlt: for each kind of record and each of its fields, the field absent, a number in its
+place, a part that is no term, a loose bound variable, an undeclared constant and a wrong term, by the three methods
+of `TypeTheoryCheck`; and the rows of an input forged one reference at a time. An axiom with another well-formed
+statement is accepted by both kernels: it is another axiom, not a forgery. The two kernels name three refusals
+differently, a loose bound variable in a constructor's type, in a recursor's type and in a recursor's rule: the
+compiled kernel types the terms of the generated records first, and the inductive types are declared again after it,
+where the kernel of TypeChecking.wl declares them again first and so meets the record that does not match before the
+term that is ill formed. The guard is a few passes over the arrays: on the input of 36 modules of Mathlib, 1,105,642
+nodes and 11,936 constants, it takes 0.18 to 0.38 s where a whole pass of the program takes 19.1 s in the same
+process, 1 to 2 percent (measured at nice 19 with background priority, on the tree of main, which takes that cone).
+The program's own refusal, a failure
+of `arenaInferType` on no node, a failure where a column it needs is absent, and a constant declared only on a
+success that the check returns, is its own change, with its own hash.
+
 ## Environments
 
 An environment is a value. Declaring returns a new environment; `$TypeTheoryEnvironment` is just the
