@@ -466,8 +466,9 @@ addDeclaration[environment_, TypeTheoryTheorem[name_, statement_, proof_, option
 	]
 ]
 
-(* the statement and universe parameters come from the proof, which is evaluated *)
-addDeclaration[environment_, TypeTheoryTheorem[name_, proof_, options : OptionsPattern[]]] := Replace[proof, {
+(* the statement and universe parameters come from the proof, which is evaluated in the environment the theorem goes
+   into, as a proof given with its statement is (theoremValue) *)
+addDeclaration[environment_, TypeTheoryTheorem[name_, proof_, options : OptionsPattern[]]] := Replace[Block[{$TypeTheoryEnvironment = environment}, proof], {
 	state : TypeTheoryProof[_Association] :> Block[{$elaboratedHoles = {}},
 		declareTheoremWithHoles[environment, HoldComplete[name], proofUniverseParameters[state], proofStatement[state], completedProofTerm[state], declarationAnnotation[Hold[options]]]
 	],
@@ -579,9 +580,10 @@ rewriteRuleSides[HoldComplete[Rule[left_, right_]]] := <|"Left" -> HoldComplete[
 rewriteRuleSides[HoldComplete[other_]] := kernelFailure["RewriteRuleSpecification", "`1` is not a rewrite rule: write ForAll[{Typed[x, type], ...}, lhs -> rhs].", {HoldForm[other]}]
 
 
-(* A proof written as TypeTheoryProof[...] runs here; any other proof is a term, which may also name a
-   finished proof stored in a symbol. *)
-theoremValue[environment_, HoldComplete[proof_TypeTheoryProof], _, _] := Replace[proof, {
+(* A proof written as TypeTheoryProof[...] runs here, in the environment the theorem goes into: in a list of
+   declarations, those before it are there and those after it are not. Its term is checked by the kernel as any
+   theorem's value is. Any other proof is a term, which may also name a finished proof stored in a symbol. *)
+theoremValue[environment_, HoldComplete[proof_TypeTheoryProof], _, _] := Replace[Block[{$TypeTheoryEnvironment = environment}, proof], {
 	state : TypeTheoryProof[_Association] :> completedProofTerm[state],
 	failure_Failure :> throwFailure[failure]
 }]

@@ -321,3 +321,28 @@ VerificationTest[
 	{True, Failure, "UnknownRules", "InvalidRuleSetting", "UnknownRules"},
 	TestID -> "Definitions-coerce-options-pass-and-unknown-rules-fail"
 ]
+
+
+(* A proof written as TypeTheoryProof[...] in a list of declarations runs in the environment the list has built so far,
+   not in the default environment, which here has a "twice" of its own, n + n + 1, and a "late": a tactic proof about
+   the list's "twice", declared before it, is accepted, given with its statement or alone, and the same proof of a false
+   statement is refused; a "late" declared after it is not there for its tactics, which fail to elaborate the statement, where the proof run
+   in the default environment, which has a "late", reached the kernel, which refused the unknown constant. *)
+VerificationTest[
+	With[
+		{
+			twice = TypeTheoryDefinition["twice", Function[{Typed[n, NonNegativeIntegers]}, n + n]],
+			late = TypeTheoryDefinition["late", Function[{Typed[n, NonNegativeIntegers]}, n + n]]
+		},
+		Block[{$TypeTheoryEnvironment = TypeTheoryEnvironment[prelude, {TypeTheoryDefinition["twice", Function[{Typed[n, NonNegativeIntegers]}, n + n + 1]], late}]},
+			{
+				Head[TypeTheoryEnvironment[prelude, {twice, TypeTheoryTheorem["twiceTwo", "twice"[2] == 4, TypeTheoryProof["twice"[2] == 4, {"Reflexivity"}]]}]],
+				Head[TypeTheoryEnvironment[prelude, {twice, TypeTheoryTheorem["twiceTwo", TypeTheoryProof["twice"[2] == 4, {"Reflexivity"}]]}]],
+				FailureQ[TypeTheoryEnvironment[prelude, {twice, TypeTheoryTheorem["twiceTwoFive", "twice"[2] == 5, TypeTheoryProof["twice"[2] == 5, {"Reflexivity"}]]}]],
+				Replace[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["early", TypeTheoryProof["late"[2] == 4, {"Reflexivity"}]], late}], failure_Failure :> First[failure]]
+			}
+		]
+	],
+	{TypeTheoryEnvironment, TypeTheoryEnvironment, True, "ElaborationFailed"},
+	TestID -> "A-proof-in-a-list-of-declarations-runs-in-the-environment-built-so-far"
+]

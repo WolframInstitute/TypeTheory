@@ -110,6 +110,9 @@ Versions 0.35.0 to 0.44.0.
   the file was checked again in full.
 - A tactic that compares two terms answers in time: `"Reflexivity"` on
   `Quotient[k + 12, 12] == Quotient[k, 12] + 1` took half an hour to say no, and takes 23 ms.
+- A proof written as `TypeTheoryProof[...]` in a list of declarations runs in the environment the list has
+  built so far, where it ran in the default environment: a tactic proof about a definition declared before it in
+  the same list failed to elaborate.
 
 ### Performance
 
