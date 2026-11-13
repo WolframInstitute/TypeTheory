@@ -141,9 +141,13 @@ chunkFiles[index_Integer, count_Integer] := With[
 ]
 
 (* the notebooks show terms as a front end does, with the types of constants on mouseover, in this kernel and the ones
-   it starts; the options of a chunk come first, since the first of two settings of an option is the one taken *)
+   it starts; the options of a chunk come first, since the first of two settings of an option is the one taken. The
+   paclet's directory is loaded before LeanLink's, as release.wls has it after saving the library environments:
+   PacletPage keys every page on the directories loaded, in their order, and a release finds the pages a build of
+   build_docs.wls evaluated only where the two loaded the same. *)
 buildDocumentation[] := (
 	SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"];
+	PacletDirectoryLoad[$pacletDirectory];
 	loadLeanLink[];
 	checkBuild[WolframInstitute`PacletPage`BuildPacletDocumentation[
 		$pacletDirectory,
