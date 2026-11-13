@@ -112,6 +112,9 @@ Versions 0.35.0 to 0.43.1.
 
 ### Performance
 
+- `TypeTheoryCheck` of an environment with a natural number literal of 2^62 or more rechecks only the records the
+  compiled kernel leaves undecided, as a batch of declarations does, where it checked the whole environment with the
+  kernel written in Wolfram Language.
 - A beta reduction computes the operations on literals that it builds.
 - The compiled kernel takes an environment with a natural number literal of 2^62 or more, which it declined whole: the
   literal is an opaque constant there, and the few records that need its value are checked by the other kernel. A

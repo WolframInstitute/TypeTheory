@@ -87,7 +87,7 @@ PackageScoped[$deferKernelChecks]
 coreRecordsOf::usage = "coreRecordsOf[environment, <|HoldComplete[name] -> record, ...|>] gives the records that declaring each axiom, theorem, \
 opaque constant and definition again in environment gives, in order and with the checks deferred, from the kind, the type, the value and the \
 universe parameters of its record: the records a batch of such declarations gives."
-$recheckedConstants::usage = "$recheckedConstants is the list of the constants of the last batch of declarations checked by the compiled kernel that the compiled kernel left undecided and the kernel of TypeChecking.wl checked."
+$recheckedConstants::usage = "$recheckedConstants is the list of the constants that the compiled kernel left undecided and the kernel of TypeChecking.wl checked, in the last batch of declarations or the last TypeTheoryCheck of an environment."
 TypeTheoryAxiom::usage = "TypeTheoryAxiom[name, type] declares name as an axiom of the given type, when added to a TypeTheoryEnvironment.\n\
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
 TypeTheoryDefinition::usage = "TypeTheoryDefinition[name, value] declares name as a definition with the given value, when added to a TypeTheoryEnvironment.\n\

@@ -178,14 +178,23 @@ TypeChecking.wl check that record's declaration in the environment of the declar
 added them, and its verdict is the batch's; the compiled kernel then goes on with the record taken as it is. The
 rules of a recursor are checked at the end of a pass, which a pass that ends at an undecided record does not reach, so
 recursors stay checked from pass to pass. Elsewhere a record the compiled kernel refuses is refused by that, as
-before. `TypeTheoryCheck` gives the compiled kernel no recheck yet, and leaves an environment with an undecided
-record to the kernel of TypeChecking.wl whole: a cone of 207 constants around `USize.size` takes it 3.1 s, as long as
-its declarations one at a time, where the batch takes 1.2 s (at background priority). Giving `TypeTheoryCheck` the
-recheck of one record is the next step. The guards are tests, in Tests/Checking/CompiledKernel.wlt: the two
-kernels give one verdict on batches with large literals, true and false; no literal wraps past the limit; the other
-kernel is asked only where a large literal is present; and a recursor with a forged rule before an undecided record
-is caught. The end state is big numbers in the compiled kernel itself, which goes with its next recompile, beside
-the role that is active only from its registration's place.
+before. From 0.44.0 `TypeTheoryCheck` rechecks too: the records before an undecided one, which the program has
+accepted, are declared again as the replay declares them, each compared whole, and the undecided record with every
+check of the kernel of TypeChecking.wl, after which the program goes on; what is declared is kept from one recheck to
+the next, and leaves the store that declaring the records one at a time leaves. The replay of every record and the
+comparison of the store's derived keys follow as before. Until then it left an environment with an undecided record to
+the kernel of TypeChecking.wl whole. On the import of 36 modules of Mathlib (11,899 constants, 8 of whose records need the value of a large literal)
+`TypeTheoryCheck` took 519.7 s before the rechecks and takes 13.9 s with them, at nice 19, and at each of the 8 the store
+the rechecks leave is the one that declaring the records one at a time leaves. The guards are tests, in
+Tests/Checking/CompiledKernel.wlt: the two kernels give one verdict on batches with large literals, true and false; no
+literal wraps past the limit; the other kernel is asked only where a large literal is present; a recursor with a
+forged rule before an undecided record is caught; `TypeTheoryCheck` rechecks two undecided records, refuses a forged
+proof just after one (the program leaves it undecided, as it does every record it does not accept in an environment
+with a large literal, and its recheck refuses it) and a definition with a flag turned just before one (the program
+does not read the flag; the recheck compares the record whole); and the rechecks' store is the one the replay with full
+checks makes. The step after is the values of large literals in the compiled program itself, integers past 64 bits,
+which would decide those records and leave no recheck: all 8 of the 36 modules' are records that need such a value.
+It goes with the program's next recompile, beside the role that is active only from its registration's place.
 
 **An input the program could skip in.** From 0.16.0 to 0.42.1 `TypeTheoryCheck` accepted an environment in which the
 record of a theorem, of an opaque constant or of a definition had no value: a store changed by hand, with a theorem

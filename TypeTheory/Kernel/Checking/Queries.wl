@@ -901,7 +901,7 @@ TypeTheoryCheck[environment_?environmentQ, options : OptionsPattern[]] /; ! Memb
 		"MessageParameters" -> {OptionValue[TypeTheoryCheck, {options}, Method]}
 	|>]
 TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ Replace[
-	If[MemberQ[{Automatic, "Compiled"}, OptionValue[Method]], compiledKernelCheck[environment], None],
+	If[MemberQ[{Automatic, "Compiled"}, OptionValue[Method]], $recheckedConstants = {}; compiledKernelCheck[environment, 0, 0, recordRecheck[environment]], None],
 	{
 		failure_Failure :> (
 			replayNames[environment, Take[environmentNames[environment], replayedThrough[environment, failure["Position"]]], replayDeferred[environment]];
@@ -942,13 +942,50 @@ replayDeferred[environment_][partial_, name_, record_] := Block[{$deferKernelChe
    fields such a declaration gives with no option but "Opaque" is made again at once, as a batch of declarations makes
    it (coreRecordsOf), each record compared with the environment's whole and the run added in one step, where adding
    each would make a store of its own; every other record is declared again one at a time *)
-replayChecked[environment_] := Fold[
+replayChecked[environment_] := replayCheckedFrom[environment, emptyEnvironmentOf[environmentRules[environment]], environmentNames[environment]]
+
+(* the replay of the records of names, in order, from the environment start *)
+replayCheckedFrom[environment_, start_, names_List] := Fold[
 	Function[{partial, run}, If[ plainRecordQ[constantRecord[environment, First[run]]],
 		replayRun[environment, partial, run],
 		Fold[Function[{inner, name}, replayDeferred[environment][inner, name, constantRecord[environment, name]]], partial, run]
 	]],
-	emptyEnvironmentOf[environmentRules[environment]],
-	SplitBy[environmentNames[environment], Function[name, plainRecordQ[constantRecord[environment, name]]]]
+	start,
+	SplitBy[names, Function[name, plainRecordQ[constantRecord[environment, name]]]]
+]
+
+(* The recheck of a record the compiled program leaves undecided, in an environment with a natural number literal of
+   2^62 or more, which the program does not hold (CompiledKernel.wl). The records before it, which the program has
+   accepted, are declared again as the replay declares them, each compared whole, and the record itself is declared
+   again with every check of the kernel of TypeChecking.wl. It gives the record's position, through which the program
+   then takes the constants as they are and goes on, or the Failure of the first record that does not check, at the
+   undecided one's position, before which the replay of a failure finds it again. What is declared is kept from one
+   recheck to the next, so each record is declared once, and leaves what declaring the records one at a time leaves.
+   The program and its rechecks are followed, as without them, by the replay of every record and the comparison of the
+   store's derived keys. $recheckedConstants lists the records rechecked. *)
+recordRecheck[environment_] := Module[{prefix = emptyEnvironmentOf[environmentRules[environment]], declared = 0},
+	Function[position, If[ position <= declared,
+		position,
+		Replace[
+			catchKernelFailure[
+				prefix = recheckedPrefix[environment, prefix, declared, position];
+				declared = position;
+				AppendTo[$recheckedConstants, Extract[environmentNames[environment], position]];
+				position
+			],
+			failure_Failure :> Failure[failure["Tag"], Append[Last[failure], "Position" -> position]]
+		]
+	]]
+]
+
+(* the environment prefix, which holds the records through declared, extended with those after it up to position as
+   the replay declares them, and the record at position declared with full checks *)
+recheckedPrefix[environment_, prefix_, declared_Integer, position_Integer] := With[{names = environmentNames[environment]},
+	replayDeclaration[
+		environment,
+		replayCheckedFrom[environment, prefix, Take[names, {declared + 1, position - 1}]],
+		Extract[names, position] -> constantRecord[environment, Extract[names, position]]
+	]
 ]
 
 replayRun[environment_, partial_, run_List] := With[{records = AssociationMap[Function[name, constantRecord[environment, name]], run]},

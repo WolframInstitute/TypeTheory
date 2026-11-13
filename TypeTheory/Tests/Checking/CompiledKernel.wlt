@@ -681,3 +681,73 @@ VerificationTest[
 	{WolframInstitute`TypeTheory`PackageScope`$compiledKernelSeed::mismatch},
 	TestID -> "A-seed-whose-row-describes-another-term-is-named-and-not-used"
 ]
+
+
+(* TypeTheoryCheck rechecks a record the compiled program leaves undecided, as the batch path does: the records before
+   it are declared again as the replay declares them, each compared whole, and the record itself with every check of
+   the kernel of TypeChecking.wl; the program then goes on after it. Each case gives TypeTheoryCheck's verdict, the
+   constants rechecked, and the verdict of the kernel of TypeChecking.wl alone:
+   - two records that need the value of a large literal, each rechecked, and the environment checked;
+   - a forged proof just after an undecided record: the program leaves it undecided too, as it does every record it
+     does not accept in an environment with a large literal, and its recheck refuses it;
+   - a definition just before an undecided record with a flag turned, which the program does not read: the recheck
+     declares it again and compares it whole, and refuses it. *)
+recheckBase[declarations_List] := TypeTheoryEnvironment[literalBase, declarations, Method -> "Symbolic"]
+
+recheckVerdict[result_] := If[MatchQ[result, _Success], "accepted", First[result]]
+
+checkedAndRechecked[environment_] := {
+	recheckVerdict[TypeTheoryCheck[environment]],
+	If[available, Function[name, First[name]] /@ WolframInstitute`TypeTheory`PackageScope`$recheckedConstants, "no library"],
+	recheckVerdict[TypeTheoryCheck[environment, Method -> "Symbolic"]]
+}
+
+VerificationTest[
+	With[{big = 2^64, limit = 2^62, half = 2^61, root = 2^32},
+		With[
+			{
+				honest = recheckBase[{claim["t", "squared"[root], big], claim["u", "doubled"[half], limit]}],
+				after = recheckBase[{claim["t", "squared"[root], big], claim["w", "doubled"[2], 4]}],
+				before = recheckBase[{namedNumber["v", 5], claim["t", "squared"[root], big]}]
+			},
+			{
+				checkedAndRechecked[honest],
+				(* w's proof made t's, a proof of another statement *)
+				checkedAndRechecked[forge[after, HoldComplete["w"], Function[record, Association[record, "Value" -> First[after]["Records"][HoldComplete["t"]]["Value"]]]]],
+				(* v's flag "Instance" turned off where a declaration gives none *)
+				checkedAndRechecked[forge[before, HoldComplete["v"], Function[record, Association[record, "Instance" -> False]]]]
+			}
+		]
+	],
+	{
+		{"accepted", rechecked["t", "u"], "accepted"},
+		{"TypeMismatch", rechecked["t"], "TypeMismatch"},
+		{"DeclarationMismatch", rechecked[], "DeclarationMismatch"}
+	},
+	TestID -> "TypeTheoryCheck-rechecks-a-record-left-undecided-and-the-records-on-both-sides-of-it"
+]
+
+(* What the rechecks declare is kept from one to the next, and leaves what declaring the records one at a time leaves:
+   the store after the rechecks of t and u is the one the replay with full checks makes through u. *)
+queriesPrivate[name_String] := Symbol["WolframInstitute`TypeTheory`Checking`Queries`Private`" <> name]
+
+recheckStore[TypeTheoryEnvironment[store_Symbol]] := Function[key, store[key]] /@ {"Records", "Names", "NaturalNumbers", "RewriteRuleIndex", "OverloadIndex", "Library"}
+
+VerificationTest[
+	With[{environment = recheckBase[{claim["t", "squared"[2^32], 2^64], claim["u", "doubled"[2^61], 2^62]}]},
+		With[
+			{
+				names = WolframInstitute`TypeTheory`PackageScope`environmentNames[environment],
+				empty = WolframInstitute`TypeTheory`PackageScope`emptyEnvironmentOf[WolframInstitute`TypeTheory`PackageScope`environmentRules[environment]]
+			},
+			With[{t = First[FirstPosition[names, HoldComplete["t"]]], u = First[FirstPosition[names, HoldComplete["u"]]]},
+				WolframInstitute`TypeTheory`PackageScope`withStoreCleanup[SameQ[
+					recheckStore[queriesPrivate["recheckedPrefix"][environment, queriesPrivate["recheckedPrefix"][environment, empty, 0, t], t, u]],
+					recheckStore[queriesPrivate["replayNames"][environment, Take[names, u], Function[{partial, name, record}, queriesPrivate["replayDeclaration"][environment, partial, name -> record]]]]
+				]]
+			]
+		]
+	],
+	True,
+	TestID -> "The-rechecks-leave-what-declaring-the-records-one-at-a-time-leaves"
+]
