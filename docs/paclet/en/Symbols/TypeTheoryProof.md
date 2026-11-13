@@ -4,7 +4,7 @@ Name: TypeTheoryProof
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryProof
-Keywords: [proof, goals, tactics, interactive proof, proof state, induction, cases, proof term, statement, hypotheses, universe parameters]
+Keywords: [proof, goals, tactics, interactive proof, proof state, induction, cases, proof term, statement, hypotheses, universe parameters, automatic proof, portfolio]
 SeeAlso: [TypeTheoryTactic, TypeTheoryTheorem, TypeTheoryHole, TypeTheoryProofTree, TypeTheoryEnvironment, TypeTheoryTerm, TypeTheoryFormalize]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
@@ -20,6 +20,8 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 
 <code>[TypeTheoryProof]()[*statement*, {*tactic1*, *tactic2*, ...}]</code> and <code>[TypeTheoryProof]()[*statement*, *env*, {*tactic1*, ...}]</code> apply the [TypeTheoryTactic]() tactics in turn; a tactic in the list may be written `"name"` or `"name"[arguments...]`.
 
+<code>[TypeTheoryProof]()[*statement*, [Automatic]()]</code> and <code>[TypeTheoryProof]()[*statement*, *env*, [Automatic]()]</code> prove *statement* by <code>[TypeTheoryTactic]()[[Automatic]()]</code>, which tries the tactics of a portfolio in turn until one proves it.
+
 ## Details & Options
 
 - A proof holds a partial proof term with holes, its goals. A [TypeTheoryTactic]() works on the first goal and fills it with a term that may have new holes, the goals it leaves. A proof with no goals left is finished.
@@ -28,6 +30,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 - The statement is held. It may hold the patterns of a rule, as `Replace[f[5], f[x_] :> x] == 5` does, but a statement that is a pattern or an [Association]() starts no proof: <code>[TypeTheoryProof]()[_[Association]()]</code> stays as it is.
 - A list of tactics written out is held as well: <code>{"Introduce"[n], "Reflexivity"}</code> stands for <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, whose arguments are not evaluated. An environment, options and a list of tactics kept in a symbol evaluate. A statement kept in a symbol is used only when its value is a [TypeTheoryTerm]().
 - The tactics run in turn. The first that does not apply gives its [Failure](), which says why, and the proof stops there.
+- With [Automatic]() in place of the tactics, the proof is <code>[TypeTheoryTactic]()[[Automatic]()]</code> applied to the statement: `"Assumption"`, `"Decide"`, `"Counterexample"` and `"Classical"` are tried on the statement as it stands, then its variables and hypotheses are introduced and `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`, `"Witness"` and `"Classical"` are tried on what is left, until one finishes the proof. A statement that none of them proves gives a [Failure]() tagged `"NoProofFound"`, whose `"Tried"` gives what each tactic gave. In a list of tactics, [Automatic]() stands for <code>[TypeTheoryTactic]()[[Automatic]()]</code>.
 - In a notebook a proof shows each open goal as its hypotheses over the goal, with the name of the constructor on goals that come from induction, as `case zero` or `case Prepend`. A finished proof shows `Proof complete`, with the number of holes the tactic `"Hole"` left. The display stands for the proof itself: copied, or evaluated again, it gives the [TypeTheoryProof]().
 - <code>*proof*["Goals"]</code> gives the open goals as <code>[TypeTheoryTerm]()[[RightTee]()[{[Typed]()[*x*, *type*], ...}, *goal*], *env*]</code>, each a statement in its own right, its hypotheses quantified. <code>*proof*["Term"]</code> gives the proof term built so far, with a hole for each open goal, `?1` for the first goal listed, `?2` for the second, each showing its goal on mouseover, the hypotheses and what is left to prove; <code>*proof*["Statement"]</code> gives the statement and <code>*proof*["Environment"]</code> the environment. The term of an unfinished proof is open: [TypeTheoryCheck](), [TypeTheoryAxiomClosure]() and [Information]() of it give a [Failure]() tagged `"OpenTerm"` that names its holes.
 - Nothing a tactic does is trusted: <code>[TypeTheoryTheorem]()[*name*, *proof*]</code> has the kernel check the finished proof term before it declares the theorem. [TypeTheoryProofTree]() gives the derivation of a finished proof, each step a rule of natural deduction, a theorem or an induction.
@@ -87,6 +90,16 @@ TypeTheoryProof[ForAll[{n}, 0 + n == n], {
     "Introduce"[k, ih],
     "Exact"["equalityCongruence"["successor", ih]]
 }]
+```
+
+<!-- => Proof complete -->
+
+---
+
+[Automatic]() in place of the tactics tries the tactics of a portfolio until one proves the statement, here `"Ring"` once `a` and `b` are introduced:
+
+```wl
+TypeTheoryProof[ForAll[{a, b}, (a + b)^2 == a^2 + 2 a b + b^2], Automatic]
 ```
 
 <!-- => Proof complete -->
@@ -266,6 +279,26 @@ TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[{}, l] == l], steps]
 
 <!-- => Proof complete -->
 
+---
+
+[Automatic]() proves an existential statement with the witnesses that `"Witness"` finds:
+
+```wl
+TypeTheoryProof[Exists[{x, y}, x^2 + y^2 == 25 && 0 < x && x < y], Automatic]
+```
+
+<!-- => Proof complete -->
+
+---
+
+[Automatic]() refutes a universal statement where it fails with `"Counterexample"`; `n^2 <= 2^n` fails at 3:
+
+```wl
+TypeTheoryProof[Not[ForAll[{n}, n^2 <= 2^n]], Automatic]
+```
+
+<!-- => Proof complete -->
+
 ### Parts of a Proof
 
 A finished proof by induction:
@@ -361,6 +394,14 @@ proof = TypeTheoryProof[ForAll[{n}, 2 triangular[n] == n (n + 1)], programs, {
 
 ```wl
 TypeTheoryTactic["PolynomialReduce"][proof]
+```
+
+<!-- => Proof complete -->
+
+[Automatic]() finds a tactic that finishes it as well:
+
+```wl
+TypeTheoryTactic[Automatic][proof]
 ```
 
 <!-- => Proof complete -->
@@ -539,3 +580,21 @@ TypeTheoryProof[_Association]
 ```
 
 <!-- => TypeTheoryProof[_Association] -->
+
+---
+
+[Automatic]() proves only what one of its tactics proves. Joining the empty list to `l` gives `l` by induction, which it does not try:
+
+```wl
+failure = TypeTheoryProof[ForAll[{Typed[l, {Naturals}]}, Join[l, {}] == l], Automatic]
+```
+
+<!-- => Failure["NoProofFound", ...] -->
+
+What each tactic gave, on the statement as it stands and once `l` is introduced:
+
+```wl
+failure["Tried"]
+```
+
+<!-- => <|⊢ ∀_l∶{ℕ} Join[l, {}] == l -> <|"Assumption" -> "NoAssumption", "Decide" -> "NotDecidable", "Counterexample" -> "NegatedUniversalExpected", "Classical" -> "NotATautology"|>, l ∶ {ℕ} ⊢ Join[l, {}] == l -> <|"Reflexivity" -> "NotReflexive", "Assumption" -> "NoAssumption", "Decide" -> "NotDecidable", "Ring" -> "EquationExpected", "LinearArithmetic" -> "InequalityExpected", "NonlinearArithmetic" -> "InequalityExpected", "PolynomialReduce" -> "EquationExpected", "SumOfSquares" -> "SumOfSquaresUnavailable", "FindEquationalProof" -> "NoEquationalHypotheses", "Witness" -> "ExistentialExpected", "Classical" -> "NotATautology"|>|> -->

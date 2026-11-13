@@ -360,12 +360,16 @@ theory to the calculus of inductive constructions with rewrite rules. Axioms are
 | `"Decide"` | proves a closed statement by computing its decision, the instance of `Decidable` that elaboration finds: the prelude's decide `==` and `<=` of natural numbers and the connectives |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, by normal forms with proofs from the prelude's laws |
 | `"FindInstance"` | proves an existential statement over the natural numbers with witnesses that Wolfram's `FindInstance` finds |
+| `"Witness"` | proves an existential statement over the natural numbers or the integers with values that Wolfram finds, by `FindInstance` or smallest first, or with values given, the instance decided by computation |
+| `"Counterexample"` | proves the negation of a universal statement from values at which it fails that Wolfram finds, smallest first, or values given |
 | `"PolynomialReduce"` | proves an equation from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds |
 | `"LinearArithmetic"` | proves an inequality, an equation or `False` from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram finds |
 | `"FindEquationalProof"` | proves an equation from equations for all values among the hypotheses, by replaying the proof Wolfram's `FindEquationalProof` finds |
 | `"SumOfSquares"` | proves an inequality of integers, or of natural numbers, in `TypeTheoryEnvironment["Integers"]` by a sum of squares that Wolfram finds, a positive multiple of the larger side less the smaller |
+| `Automatic` | tries a portfolio of the tactics in turn, on the goal as stated and with its variables and hypotheses introduced, until one closes the goal |
 
-`TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics. Nothing a tactic does
+`TypeTheoryProof[statement, env, {tactic1, tactic2, ...}]` runs a list of tactics, and
+`TypeTheoryProof[statement, env, Automatic]` tries the portfolio. Nothing a tactic does
 is trusted: the finished term is checked by the kernel when the theorem is added to an environment.
 
 `"RewriteRepeated"` unfolds a definition by recursion where it computes, and folds
@@ -381,13 +385,16 @@ TypeTheoryProof[ForAll[{Typed[a, {Naturals}], Typed[b, {Naturals}], Typed[c, {Na
 }]
 ```
 
-`"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`
-ask Wolfram for what a proof needs: witnesses, the cofactors or multipliers of a combination of the
-hypotheses, a proof by completion from equational hypotheses, or a sum of squares. The kernel checks the proof built from the answer:
+`"FindInstance"`, `"Witness"`, `"Counterexample"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"`
+and `"SumOfSquares"` ask Wolfram for what a proof needs: witnesses, counterexamples, the cofactors or multipliers of a
+combination of the hypotheses, a proof by completion from equational hypotheses, or a sum of squares. The kernel checks the proof built from the answer:
 
 ```wolfram
 TypeTheoryProof[Exists[{Typed[x, Naturals], Typed[y, Naturals]}, And[x^2 + y^2 == 25, 0 < x, x < y]], {
     "FindInstance"                     (* x = 3, y = 4, checked by computing *)
+}]
+TypeTheoryProof[Not[ForAll[{Typed[n, Naturals]}, n^2 <= 2^n]], {
+    "Counterexample"                   (* n = 3, where 9 <= 8 is decided false *)
 }]
 TypeTheoryProof[ForAll[{Typed[x, Naturals], Typed[y, Naturals]}, Implies[x + y == 10, Implies[x == 2 y + 1, x y == 21]]], {
     "Introduce"[x, y, h, k],

@@ -78,6 +78,19 @@ The tactics:
 	"SumOfSquares"          proves an inequality of the integers of TypeTheoryEnvironment["Integers"], or of natural
 	                        numbers there, whose larger side less the smaller is a sum of squares of polynomials up
 	                        to a positive factor, which Wolfram finds (SumsOfSquares.wl)
+	"Witness"               proves Exists[{Typed[x1, A1], ...}, p], each Ai the natural numbers or the integers, with
+	                        values that Wolfram finds, by FindInstance or among the smallest values, p of them proved
+	                        by "Decide" or left as the goal; "Witness", v1, ... takes the values given
+	"Counterexample"        proves Not[ForAll[{Typed[x1, A1], ...}, p]] with values at which p fails that Wolfram
+	                        finds, the smallest first: the universal statement applied to them and to a proof of each
+	                        premise of p gives the conclusion of p there, which a proof of its negation refutes; the
+	                        premises and the negation are proved by "Decide" or left as goals; "Counterexample", v1, ...
+	                        takes the values given
+	Automatic               tries the tactics of a portfolio in turn until one closes the goal: "Assumption", "Decide",
+	                        "Counterexample" and "Classical" on the goal as stated, then, its variables and hypotheses
+	                        introduced, "Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic",
+	                        "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof", "Witness"
+	                        and "Classical"
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -115,6 +128,8 @@ TypeTheoryProof[TypeTheoryTerm[statement, environment]] does the same.\n\
 TypeTheoryProof[statement, {tactic1, tactic2, ...}], TypeTheoryProof[statement, environment, {tactic1, ...}] and \
 TypeTheoryProof[TypeTheoryTerm[statement, environment], {tactic1, ...}] apply the TypeTheoryTactic tactics in turn; in a list written out, \
 a tactic may be written \"name\" or \"name\"[arguments...] for TypeTheoryTactic[\"name\", arguments...], as in {\"Introduce\"[n], \"Reflexivity\"}.\n\
+TypeTheoryProof[statement, Automatic] and TypeTheoryProof[statement, environment, Automatic] prove statement by TypeTheoryTactic[Automatic], \
+which tries the tactics of a portfolio in turn until one proves it; in a list of tactics, Automatic stands for TypeTheoryTactic[Automatic].\n\
 proof[\"Goals\"] gives the open goals as TypeTheoryTerm[RightTee[{Typed[x, type], ...}, goal], environment]; proof[\"Term\"] gives the proof term; \
 proof[\"Statement\"] gives the statement; proof[\"Environment\"] gives the environment. \
 The option \"UniverseParameters\" -> {u, ...} lists the universe parameters; Automatic takes the symbols and strings in universe levels in the order they appear."
@@ -139,6 +154,13 @@ a definition among h1, h2, ... unfolds where it computes, as Join does on Prepen
 TypeTheoryTactic[\"Decide\"] proves a closed statement by computing its decision, the instance of Decidable that elaboration finds: \
 the prelude's decide == and <= of natural numbers, And, Or, Not, True and False, and an environment may declare more.\n\
 TypeTheoryTactic[\"FindInstance\"] proves Exists[{Typed[x1, Naturals], ...}, p] with witnesses that Wolfram's FindInstance finds, proving p of them by computing its decision.\n\
+TypeTheoryTactic[\"Witness\"] proves Exists[{Typed[x1, domain1], ...}, p], each domain the natural numbers or the integers, with values that Wolfram finds, \
+by FindInstance or among the smallest values, proving p of them by computing its decision, or leaving it as the goal where the decision does not compute; \
+TypeTheoryTactic[\"Witness\", v1, ...] takes the integers v1, ... as the values.\n\
+TypeTheoryTactic[\"Counterexample\"] proves Not[ForAll[{Typed[x1, domain1], ...}, p]], each domain the natural numbers or the integers, with values at which p fails \
+that Wolfram finds, the smallest first: the universal statement applied to them and to a proof of each premise of p gives the conclusion of p there, which a proof \
+of its negation refutes; the premises and the negation are proved by computing their decisions, or left as goals. \
+TypeTheoryTactic[\"Counterexample\", v1, ...] takes the integers v1, ... as the values.\n\
 TypeTheoryTactic[\"Ring\"] proves an equation of natural numbers that holds in every commutative semiring, such as (a + b)^2 == a^2 + 2 a b + b^2, \
 and an equation of integers that holds in every commutative ring.\n\
 TypeTheoryTactic[\"PolynomialReduce\"] proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination of them that Wolfram finds.\n\
@@ -149,7 +171,11 @@ so that n <= m gives n n <= m m.\n\
 TypeTheoryTactic[\"FindEquationalProof\"] proves an equation from the hypotheses that are equations of its type for all values of their variables, \
 by replaying a proof that Wolfram's FindEquationalProof finds.\n\
 TypeTheoryTactic[\"SumOfSquares\"] proves an inequality of integers, or of natural numbers, in TypeTheoryEnvironment[\"Integers\"], such as 2 x y <= x x + y y, \
-by a sum of squares of polynomials that Wolfram finds, a positive multiple of its larger side less the smaller."
+by a sum of squares of polynomials that Wolfram finds, a positive multiple of its larger side less the smaller.\n\
+TypeTheoryTactic[Automatic] tries \"Assumption\", \"Decide\", \"Counterexample\" and \"Classical\" on the goal as stated, then introduces its variables and hypotheses, \
+a hypothesis whose binder has no name named h1, h2, ..., and tries \"Reflexivity\", \"Assumption\", \"Decide\", \"Ring\", \"LinearArithmetic\", \"NonlinearArithmetic\", \
+\"PolynomialReduce\", \"SumOfSquares\", \"FindEquationalProof\", \"Witness\" and \"Classical\", until one closes the goal; when none does, it gives Failure[\"NoProofFound\", ...], \
+whose \"Tried\" gives, for each goal tried, the tag of each tactic's failure, or \"GoalsLeft\"."
 
 proofStatement::usage = "proofStatement[proof] gives the core statement of the TypeTheoryProof proof."
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
@@ -177,7 +203,7 @@ TypeTheoryTactic[name_Symbol, arguments___] /; StringQ[name] := With[{evaluated 
 
 (* A proof state holds an Association, and patterns such as TypeTheoryProof[_Association] must not start
    a proof either, so a statement that is an Association or contains a pattern is not one. The statement is held,
-   and so is a list of tactics written out, whose tactics may be "name" and "name"[arguments]; the other arguments,
+   and so is a list of tactics written out, whose tactics may be "name", "name"[arguments] and Automatic; the other arguments,
    the environment and the options, and a list of tactics kept in a symbol, evaluate. *)
 TypeTheoryProof[statement_, arguments___] /; statementQ[Unevaluated[statement]] :=
 	proofFrom[HoldComplete[statement], preparedArguments[arguments]]
@@ -193,15 +219,20 @@ preparedArgument[other_] := Replace[other, tactics_List :> Map[preparedTactic, t
 SetAttributes[preparedTactic, HoldAllComplete]
 preparedTactic[name_String] := TypeTheoryTactic[name]
 preparedTactic[name_String[arguments___]] := TypeTheoryTactic[name, arguments]
+preparedTactic[Automatic] := TypeTheoryTactic[Automatic]
 preparedTactic[tactic_TypeTheoryTactic] := tactic
 preparedTactic[other_] := Replace[other, {name_String :> TypeTheoryTactic[name], name_String[arguments___] :> TypeTheoryTactic[name, arguments]}]
 
 proofFrom[held_, Hold[environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] :=
 	runTactics[proofFrom[held, Hold[environment, options]], tactics]
+(* Automatic in place of the tactics: the proof by TypeTheoryTactic[Automatic] *)
+proofFrom[held_, Hold[environment_?environmentQ, Automatic, options : OptionsPattern[]]] :=
+	runTactics[proofFrom[held, Hold[environment, options]], {TypeTheoryTactic[Automatic]}]
 proofFrom[held_, Hold[environment_?environmentQ, options : OptionsPattern[]]] := startProof[environment, held, Hold[options]]
 (* a library environment by its name, as "Integers" *)
 proofFrom[held_, Hold[name_String, rest___]] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> proofFrom[held, Hold[environment, rest]]]
 proofFrom[held_, Hold[tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] := runTactics[proofFrom[held, Hold[options]], tactics]
+proofFrom[held_, Hold[Automatic, options : OptionsPattern[]]] := runTactics[proofFrom[held, Hold[options]], {TypeTheoryTactic[Automatic]}]
 (* a TypeTheoryTerm, written out or held in a symbol, carries its own environment; a statement without one is proved
    in the default environment *)
 proofFrom[HoldComplete[term_], Hold[options : OptionsPattern[]]] /; termExpressionQ[Unevaluated[term]] := With[{evaluated = term},
@@ -356,7 +387,8 @@ goalDisplay[data_, goal_] := Quiet @ catchKernelFailure[goalTerm[data, goal]]
 (*Tactics*)
 
 
-TypeTheoryTactic[name_String, arguments___][TypeTheoryProof[data_Association]] := catchKernelFailure @ Replace[data["Goals"], {
+(* a tactic by its name, or Automatic, the portfolio *)
+TypeTheoryTactic[name : _String | Automatic, arguments___][TypeTheoryProof[data_Association]] := catchKernelFailure @ Replace[data["Goals"], {
 	{} :> kernelFailure["NoGoals", "The proof has no open goals.", {}],
 	{goal_, ___} :> withOpenGoals[data, proofState[runTactic[name, Hold[arguments], data, goal]]]
 }]
@@ -400,6 +432,11 @@ runTactic["LinearArithmetic", Hold[], data_, goal_] := linearArithmetic[data, go
 runTactic["NonlinearArithmetic", Hold[], data_, goal_] := Block[{$productInequalities = True}, linearArithmetic[data, goal]]
 runTactic["FindEquationalProof", Hold[], data_, goal_] := findEquationalProof[data, goal]
 runTactic["SumOfSquares", Hold[], data_, goal_] := sumOfSquares[data, goal]
+runTactic["Witness", Hold[], data_, goal_] := witnessTactic[data, goal, Automatic]
+runTactic["Witness", Hold[values__Integer], data_, goal_] := witnessTactic[data, goal, {values}]
+runTactic["Counterexample", Hold[], data_, goal_] := counterexampleTactic[data, goal, Automatic]
+runTactic["Counterexample", Hold[values__Integer], data_, goal_] := counterexampleTactic[data, goal, {values}]
+runTactic[Automatic, Hold[], data_, goal_] := portfolioProof[data, goal]
 runTactic["Assumption", Hold[], data_, goal_] := assumption[data, goal]
 runTactic["Hole", Hold[annotation___], data_, goal_] /; Length[{annotation}] <= 1 := holeTactic[data, goal, holeAnnotation[{annotation}]]
 runTactic["Rewrite", Hold[term_], data_, goal_] := rewrite[data, goal, HoldComplete[term], "LeftToRight", None]
@@ -1309,7 +1346,7 @@ findInstance[data_, goal_] := With[{current = currentGoal[data, goal], environme
 		];
 		With[{witnesses = foundWitnesses[data, goal, existentials]},
 			{newGoal = freshMetavariableId[]},
-			{witnessed = witnessedProof[environment, current["Context"], current["Type"], witnesses, newGoal]},
+			{witnessed = witnessedProof[environment, current["Context"], current["Type"], naturalLiteral /@ witnesses, newGoal]},
 			decidedInstance[
 				solveGoal[data, goal, First[witnessed], {newGoal -> <|"Context" -> current["Context"], "Type" -> Last[witnessed], "Case" -> None|>}],
 				newGoal
@@ -1404,12 +1441,17 @@ foundWitnesses[data_, goal_, {variables_Association, body_, context_}] := With[
 ]
 
 (* the proposition as a condition on the Wolfram variables; a definition such as Less or Unequal is
-   unfolded to find its form *)
+   unfolded to find its form, but the order of the integers is read by its names, since each of its
+   relations unfolds to an existential statement *)
 wolframCondition[data_, goal_, context_, variables_, proposition_] := Replace[proposition, {
-	application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; naturalNumberTypeQ[data["Environment"], context, type] :>
+	application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; numberDomain[data["Environment"], context, type] =!= None :>
 		wolframExpression[data, goal, variables, left] == wolframExpression[data, goal, variables, right],
 	application[application[constantReference[HoldComplete[LessEqual], _], left_], right_] :>
 		wolframExpression[data, goal, variables, left] <= wolframExpression[data, goal, variables, right],
+	application[application[constantReference[HoldComplete[relation :"integerLessEqual" | "integerLess" | "integerGreaterEqual" | "integerGreater"], _], left_], right_] :> With[
+		{first = wolframExpression[data, goal, variables, left], second = wolframExpression[data, goal, variables, right]},
+		Replace[relation, {"integerLessEqual" :> first <= second, "integerLess" :> first < second, "integerGreaterEqual" :> first >= second, "integerGreater" :> first > second}]
+	],
 	application[application[constantReference[HoldComplete[And], _], left_], right_] :>
 		wolframCondition[data, goal, context, variables, left] && wolframCondition[data, goal, context, variables, right],
 	application[application[constantReference[HoldComplete[Or], _], left_], right_] :>
@@ -1425,7 +1467,8 @@ wolframCondition[data_, goal_, context_, variables_, proposition_] := Replace[pr
 	]
 }]
 
-(* subtraction of natural numbers stops at 0 *)
+(* subtraction of natural numbers stops at 0, and that of integers does not; the integer of a natural number is
+   the number *)
 wolframExpression[data_, goal_, variables_, term_] := Replace[term, {
 	freeVariable[id_] /; KeyExistsQ[variables, id] :> variables[id],
 	naturalLiteral[n_Integer] :> n,
@@ -1435,16 +1478,22 @@ wolframExpression[data_, goal_, variables_, term_] := Replace[term, {
 		{first = wolframExpression[data, goal, variables, left], second = wolframExpression[data, goal, variables, right]},
 		Replace[operation, {Plus :> first + second, Times :> first * second, Power :> first ^ second, Subtract :> Max[first - second, 0]}]
 	],
+	application[application[constantReference[HoldComplete[operation : "integerAddition" | "integerMultiplication" | "integerSubtraction" | "integerPower"], _], left_], right_] :> With[
+		{first = wolframExpression[data, goal, variables, left], second = wolframExpression[data, goal, variables, right]},
+		Replace[operation, {"integerAddition" :> first + second, "integerMultiplication" :> first * second, "integerSubtraction" :> first - second, "integerPower" :> first ^ second}]
+	],
+	application[constantReference[HoldComplete["integerNegation"], _], argument_] :> -wolframExpression[data, goal, variables, argument],
+	application[constantReference[HoldComplete["integerOfNatural"], _], argument_] :> wolframExpression[data, goal, variables, argument],
 	_ :> tacticFailure["NotTranslatable", "In the goal `1`, the term `2` is not arithmetic on the variables and natural number literals.", data, goal, {displayCoreTerm[data["Environment"], <||>, term]}]
 }]
 
-(* {proof, instance}: "existsIntroduction" applied to each witness in turn, the statement left for the
-   last being instance, whose proof is the metavariable newGoal *)
+(* {proof, instance}: "existsIntroduction" applied to each witness, a term, in turn, the statement left for
+   the last being instance, whose proof is the metavariable newGoal *)
 witnessedProof[environment_, context_, statement_, {}, newGoal_] := {metavariable[newGoal], statement}
 witnessedProof[environment_, context_, statement_, {witness_, rest___}, newGoal_] := Replace[weakHeadNormalForm[environment, context, statement], {
 	application[application[constantReference[HoldComplete[Exists], levels_], type_], predicate_] :> With[
-		{inner = witnessedProof[environment, context, betaNormalize[application[predicate, naturalLiteral[witness]]], {rest}, newGoal]},
-		{makeApplication[constantReference[HoldComplete["existsIntroduction"], levels], {type, predicate, naturalLiteral[witness], First[inner]}], Last[inner]}
+		{inner = witnessedProof[environment, context, betaNormalize[application[predicate, witness]], {rest}, newGoal]},
+		{makeApplication[constantReference[HoldComplete["existsIntroduction"], levels], {type, predicate, witness, First[inner]}], Last[inner]}
 	]
 }]
 
@@ -1622,6 +1671,346 @@ closeIfSidesSame[data_, goal_, type_] := If[
 	reflexivity[data, goal],
 	data
 ]
+
+
+(* ::Subsection:: *)
+(*Witnesses and counterexamples*)
+
+
+(* "Witness": for a goal Exists[{Typed[x1, A1], ...}, p], each Ai the natural numbers or the integers of
+   TypeTheoryEnvironment["Integers"], values of the variables at which p holds, which Wolfram finds: FindInstance over the
+   integers, each natural number at least 0, or else the first values, smallest first, at which p evaluates to True.
+   "existsIntroduction" takes them, and "Decide" proves p of them where it decides it; otherwise p of them is left as the
+   goal. "Witness", v1, ... takes the values given. The kernel computes the decision of the instance, so a wrong value
+   makes the tactic fail, and never proves the goal. *)
+witnessTactic[data_, goal_, given_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[$oracleConstants, Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["OracleUnavailable", "The environment of the goal `1` lacks the natural numbers and existential statements of the prelude.", data, goal]
+	];
+	With[{existentials = existentialVariables[environment, current["Context"], current["Type"], <||>]},
+		If[ First[existentials] === <||>,
+			tacticFailure["ExistentialExpected", "The goal `1` is not an existential statement over natural numbers or integers.", data, goal]
+		];
+		With[{values = witnessValues[data, goal, existentials, given], newGoal = freshMetavariableId[]},
+			{witnessed = witnessedProof[environment, current["Context"], current["Type"], MapThread[witnessTerm, {Values[First[existentials]], values}], newGoal]},
+			decidedInstance[
+				solveGoal[data, goal, First[witnessed], {newGoal -> <|"Context" -> current["Context"], "Type" -> Last[witnessed], "Case" -> None|>}],
+				newGoal
+			]
+		]
+	]
+]
+
+(* {<|id -> domain, ...|>, body, context}: the variables of the existential statements over the natural numbers or the
+   integers at the head of statement, outermost first, each a fresh free variable of the body with its domain *)
+existentialVariables[environment_, context_, statement_, variables_Association] := Replace[weakHeadNormalForm[environment, context, statement], {
+	application[application[constantReference[HoldComplete[Exists], _], type_], predicate_] /; numberDomain[environment, context, type] =!= None :>
+		With[{id = freshFreeVariable[]},
+			existentialVariables[
+				environment,
+				extendContext[context, id, HoldComplete[x], type, "Explicit"],
+				betaNormalize[application[predicate, freeVariable[id]]],
+				Append[variables, id -> numberDomain[environment, context, type]]
+			]
+		],
+	_ :> {variables, statement, context}
+}]
+
+(* the domain of the Wolfram Language that a type of numbers stands for: NonNegativeIntegers for the natural numbers,
+   Integers for the integers of TypeTheoryEnvironment["Integers"], and None for any other type *)
+numberDomain[environment_, context_, type_] := Which[
+	naturalNumberTypeQ[environment, context, type],
+		NonNegativeIntegers,
+	integerTypeQ[environment, type],
+		Integers,
+	True,
+		None
+]
+
+(* a value as a term of its domain: a natural number is its literal, an integer the integer of a natural number or its
+   negation *)
+witnessTerm[NonNegativeIntegers, value_Integer] := naturalLiteral[value]
+witnessTerm[Integers, value_Integer?NonNegative] := integerLiteral[value]
+witnessTerm[Integers, value_Integer] := integerNegation[integerLiteral[-value]]
+
+(* the values of the variables, in order: those given, each in its variable's domain, or those Wolfram finds *)
+witnessValues[data_, goal_, {variables_Association, body_, context_}, Automatic] := With[{wolframVariables = wolframVariablesOf[variables]},
+	Replace[
+		searchedValues[wolframCondition[data, goal, context, wolframVariables, body], Values[wolframVariables], Values[variables], {findInstanceValues, smallestValues}],
+		None :> tacticFailure["NoWitness", "Wolfram finds no values that make the goal `1` true, by FindInstance or among the first values.", data, goal]
+	]
+]
+witnessValues[data_, goal_, {variables_Association, _, _}, given_List] := checkedValues[data, goal, given, Values[variables]]
+
+(* "Counterexample": for a goal Not[ForAll[{Typed[x1, A1], ...}, p]], each Ai the natural numbers or the integers, and
+   p perhaps with premises, as ForAll[{x}, q, r] has q, values of the variables at which the premises hold and the
+   conclusion fails, which Wolfram finds: the first such values, smallest first, since a person reads them, or else
+   FindInstance's. The universal statement h, applied to the values and to a proof of each premise, proves the
+   conclusion at the values, which a proof of its negation refutes: the goal is solved by
+   Function[h, notConclusion[h[values, premises]]]. The premises and the negation are new goals, each proved by "Decide"
+   where it decides it and left otherwise. "Counterexample", v1, ... takes the values given. *)
+counterexampleTactic[data_, goal_, given_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[$counterexampleConstants, Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["OracleUnavailable", "The environment of the goal `1` lacks the natural numbers and the negation of the prelude.", data, goal]
+	];
+	Replace[weakHeadNormalForm[environment, current["Context"], current["Type"]], {
+		dependentFunctionType[_, universal_, constantReference[HoldComplete[False], _], binder_] :>
+			refutation[data, goal, current, {universal, binder}, universalPrefix[environment, current["Context"], universal, {}], given],
+		_ :> tacticFailure["NegatedUniversalExpected", "The goal `1` is not the negation of a universal statement over natural numbers or integers.", data, goal]
+	}]
+]
+
+$counterexampleConstants = HoldComplete /@ Unevaluated[{Not, False, NonNegativeIntegers, Equal, LessEqual}]
+
+(* the refutation of the universal statement whose prefix took the steps given, at values found or given *)
+refutation[data_, goal_, current_, {universal_, binder_}, {steps_List, conclusion_, context_}, given_] := With[
+	{variables = Association[Cases[steps, {"Variable", id_, domain_} :> (id -> domain)]]},
+	If[ variables === <||>,
+		tacticFailure["NegatedUniversalExpected", "The goal `1` is not the negation of a universal statement over natural numbers or integers.", data, goal]
+	];
+	refutationProof[
+		data,
+		goal,
+		current,
+		{universal, binder},
+		instanceOfPrefix[data["Environment"], current["Context"], universal, steps, counterexampleValues[data, goal, variables, steps, conclusion, context, given], {}, <||>]
+	]
+]
+
+(* the goal solved by the universal statement h applied to the instance's arguments, refuted there by the negation of
+   the conclusion; the premises and the negation are new goals, in that order, each decided where it computes *)
+refutationProof[data_, goal_, current_, {universal_, binder_}, {arguments_List, premiseGoals_Association, conclusion_}] := With[
+	{id = freshFreeVariable[], negationGoal = freshMetavariableId[]},
+	{
+		context = extendContext[current["Context"], id, HoldComplete["h"], universal, binder],
+		refuted = Construct[application, metavariable[negationGoal], makeApplication[freeVariable[id], arguments]]
+	},
+	Fold[
+		decidedInstance,
+		solveGoal[
+			data,
+			goal,
+			pendingAbstraction[context, {id}, refuted],
+			Append[
+				KeyValueMap[Function[{premiseGoal, premise}, premiseGoal -> <|"Context" -> current["Context"], "Type" -> premise, "Case" -> None|>], premiseGoals],
+				negationGoal -> <|"Context" -> current["Context"], "Type" -> negationOf[conclusion], "Case" -> None|>
+			]
+		],
+		Append[Keys[premiseGoals], negationGoal]
+	]
+]
+
+(* {steps, conclusion, context}: the binders at the head of a universal statement, outermost first, each step
+   {"Variable", id, domain} for a variable of the natural numbers or the integers and {"Premise", id, premise} for a
+   hypothesis that is a proposition, each a fresh free variable of the rest; the conclusion is the rest as written,
+   since the order of the integers unfolds to an existential statement *)
+universalPrefix[environment_, context_, statement_, steps_List] := Replace[weakHeadNormalForm[environment, context, statement], {
+	dependentFunctionType[name_, domain_, codomain_, binder_] /; numberDomain[environment, context, domain] =!= None :> With[{id = freshFreeVariable[]},
+		universalPrefix[
+			environment,
+			extendContext[context, id, name, domain, binder],
+			betaNormalize[instantiateBoundVariable[codomain, freeVariable[id]]],
+			Append[steps, {"Variable", id, numberDomain[environment, context, domain]}]
+		]
+	],
+	dependentFunctionType[name_, domain_, codomain_, binder_] /; propositionTermQ[environment, context, domain] :> With[{id = freshFreeVariable[]},
+		universalPrefix[
+			environment,
+			extendContext[context, id, name, domain, binder],
+			betaNormalize[instantiateBoundVariable[codomain, freeVariable[id]]],
+			Append[steps, {"Premise", id, domain}]
+		]
+	],
+	_ :> {steps, statement, context}
+}]
+
+(* {arguments, <|goal -> premise, ...|>, conclusion}: the universal statement applied to the values, in place of its
+   variables, and to a new goal for each premise, in place of its proof, following the steps its prefix took *)
+instanceOfPrefix[environment_, context_, statement_, {}, {}, arguments_List, premiseGoals_Association] := {arguments, premiseGoals, statement}
+instanceOfPrefix[environment_, context_, statement_, {{"Variable", _, domain_}, steps___}, {value_, values___}, arguments_List, premiseGoals_Association] := Replace[
+	weakHeadNormalForm[environment, context, statement],
+	dependentFunctionType[_, _, codomain_, _] :> With[{term = witnessTerm[domain, value]},
+		instanceOfPrefix[environment, context, betaNormalize[instantiateBoundVariable[codomain, term]], {steps}, {values}, Append[arguments, term], premiseGoals]
+	]
+]
+instanceOfPrefix[environment_, context_, statement_, {{"Premise", _, _}, steps___}, values_List, arguments_List, premiseGoals_Association] := Replace[
+	weakHeadNormalForm[environment, context, statement],
+	dependentFunctionType[_, premise_, codomain_, _] :> With[{premiseGoal = freshMetavariableId[]},
+		instanceOfPrefix[
+			environment,
+			context,
+			betaNormalize[instantiateBoundVariable[codomain, metavariable[premiseGoal]]],
+			{steps},
+			values,
+			Append[arguments, metavariable[premiseGoal]],
+			Append[premiseGoals, premiseGoal -> betaNormalize[premise]]
+		]
+	]
+]
+
+(* the values of the variables, in order: those given, each in its variable's domain, or those Wolfram finds at which
+   the premises hold and the conclusion fails *)
+counterexampleValues[data_, goal_, variables_Association, steps_List, conclusion_, context_, Automatic] := With[{wolframVariables = wolframVariablesOf[variables]},
+	Replace[
+		searchedValues[
+			And @@ Append[
+				Function[premise, wolframCondition[data, goal, context, wolframVariables, premise]] /@ Cases[steps, {"Premise", _, type_} :> type],
+				! wolframCondition[data, goal, context, wolframVariables, conclusion]
+			],
+			Values[wolframVariables],
+			Values[variables],
+			{smallestValues, findInstanceValues}
+		],
+		None :> tacticFailure[
+			"NoCounterexample",
+			"Wolfram finds no values at which the statement that the goal `1` negates fails, among the first values or by FindInstance, which is no evidence that the statement holds.",
+			data,
+			goal
+		]
+	]
+]
+counterexampleValues[data_, goal_, variables_Association, _, _, _, given_List] := checkedValues[data, goal, given, Values[variables]]
+
+(* values given, one for each variable, each in its variable's domain *)
+checkedValues[data_, goal_, given_List, domains_List] := If[ valuesInDomainsQ[given, domains],
+	given,
+	tacticFailure["ValuesOutsideDomains", "The values `2` are not one for each variable of the goal `1`, each a natural number or an integer as its variable is.", data, goal, {given}]
+]
+
+(* the Wolfram variable of each variable, by its identifier *)
+wolframVariablesOf[variables_Association] := AssociationThread[Keys[variables], Table[Subscript[\[FormalX], k], {k, Length[variables]}]]
+
+(* the values the first search finds, or else those the second finds, or None *)
+searchedValues[condition_, variables_List, domains_List, {first_, second_}] := Replace[first[condition, variables, domains], None :> second[condition, variables, domains]]
+
+(* values at which the condition holds that Wolfram's FindInstance finds over the integers, each natural number at least
+   0, or None; a condition it cannot solve in its time and memory gives none *)
+findInstanceValues[condition_, variables_List, domains_List] := Replace[
+	TimeConstrained[
+		MemoryConstrained[Quiet @ FindInstance[condition && domainCondition[variables, domains], variables, Integers], $witnessSearchBytes, $Aborted],
+		$witnessSearchSeconds,
+		$Aborted
+	],
+	{
+		{solution_List, ___} /; valuesInDomainsQ[ReplaceAll[variables, solution], domains] :> ReplaceAll[variables, solution],
+		_ -> None
+	}
+]
+
+(* the first values, smallest first, at which the condition evaluates to True, or None *)
+smallestValues[condition_, variables_List, domains_List] := TimeConstrained[
+	SelectFirst[candidateValues[domains], Function[values, TrueQ[Quiet[ReplaceAll[condition, Thread[variables -> values]]]]], None],
+	$witnessSearchSeconds,
+	None
+]
+
+(* about $witnessCandidateCount tuples of values, by their largest absolute value, then the sum of their absolute values,
+   then the number of negative values *)
+candidateValues[domains_List] := With[{count = Floor[$witnessCandidateCount^(1 / Length[domains])]},
+	SortBy[Tuples[Function[domain, domainValues[domain, count]] /@ domains], {Max[Abs[#]] &, Total[Abs[#]] &, Count[#, _?Negative] &}]
+]
+
+domainValues[NonNegativeIntegers, count_Integer] := Range[0, count - 1]
+domainValues[Integers, count_Integer] := Take[Prepend[Riffle[Range[count], -Range[count]], 0], count]
+
+domainCondition[variables_List, domains_List] := And @@ MapThread[Function[{variable, domain}, If[domain === NonNegativeIntegers, variable >= 0, True]], {variables, domains}]
+
+valuesInDomainsQ[values_List, domains_List] := Length[values] == Length[domains] && AllTrue[MapThread[valueInDomainQ, {values, domains}], TrueQ]
+valuesInDomainsQ[___] := False
+
+valueInDomainQ[value_Integer, NonNegativeIntegers] := value >= 0
+valueInDomainQ[_Integer, Integers] := True
+valueInDomainQ[___] := False
+
+(* each search, FindInstance's and that of the smallest values, stops after this long, and FindInstance's past this much
+   memory *)
+$witnessSearchSeconds = 10
+$witnessSearchBytes = 2^30
+$witnessCandidateCount = 10000
+
+
+(* ::Subsection:: *)
+(*Portfolio*)
+
+
+(* TypeTheoryTactic[Automatic]: the tactics of a portfolio tried in turn on the first goal, until one closes it and leaves
+   no goal of its own. The goal as stated goes first to the tactics that read its binders as they stand: a hypothesis of
+   the same statement, a decision, a counterexample and a tautology. Then its variables and hypotheses are introduced, a
+   hypothesis whose binder has no name, as in Implies[p, q] or Not[p], named h1, h2, ..., and the other tactics are tried
+   on what is left, the cheapest and most specific first. A tactic that does not close the goal leaves nothing behind;
+   when none closes it the result is Failure["NoProofFound", ...], whose "Tried" gives, for each goal tried, what each
+   tactic gave: the tag of its failure, or "GoalsLeft". Each tactic checks what it builds as it does alone, and the kernel
+   checks the finished proof when a theorem is declared with it. *)
+portfolioProof[data_, goal_] := With[{introduced = introducedHypotheses[data, goal, 0]},
+	Replace[
+		portfolioAttempts[
+			If[ introduced === data,
+				{{data, $portfolioTactics}},
+				{{data, $portfolioTacticsOnBinders}, {introduced, $portfolioTactics}}
+			],
+			Rest[data["Goals"]],
+			<||>
+		],
+		{
+			TypeTheoryProof[closed_Association] :> closed,
+			tried_Association :> throwFailure[Failure["NoProofFound", <|
+				"MessageTemplate" -> "No tactic of the portfolio proves the goal `1`.",
+				"MessageParameters" -> {goalDisplay[data, goal]},
+				"Tried" -> tried
+			|>]]
+		}
+	]
+]
+
+(* the tactics tried once the goal's variables and hypotheses are introduced, the cheapest and most specific first *)
+$portfolioTactics = {
+	"Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic", "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof",
+	"Witness", "Classical"
+}
+
+(* the tactics tried first, on the goal as stated, which read its binders as they stand *)
+$portfolioTacticsOnBinders = {"Assumption", "Decide", "Counterexample", "Classical"}
+
+(* the proof of the first attempt whose tactics close its goal, or the outcomes of the tactics by the goals tried *)
+portfolioAttempts[{}, _List, tried_Association] := tried
+portfolioAttempts[{{state_Association, tactics_List}, rest___}, others_List, tried_Association] := Replace[
+	firstClosingTactic[proofState[state], tactics, others, <||>],
+	{
+		closed_TypeTheoryProof :> closed,
+		outcomes_Association :> portfolioAttempts[{rest}, others, Append[tried, goalDisplay[state, First[state["Goals"]]] -> outcomes]]
+	}
+]
+
+(* the proof by the first of the tactics that closes the goal, leaving only the other goals, or the outcome of each *)
+firstClosingTactic[_TypeTheoryProof, {}, _List, outcomes_Association] := outcomes
+firstClosingTactic[proof_TypeTheoryProof, {tactic_String, rest___}, others_List, outcomes_Association] := With[{result = TypeTheoryTactic[tactic][proof]},
+	If[ closedGoalQ[result, others],
+		result,
+		firstClosingTactic[proof, {rest}, others, Append[outcomes, tactic -> tacticOutcome[result]]]
+	]
+]
+
+closedGoalQ[TypeTheoryProof[data_Association], others_List] := SubsetQ[others, data["Goals"]]
+closedGoalQ[___] := False
+
+tacticOutcome[Failure[tag_String, _]] := tag
+tacticOutcome[_TypeTheoryProof] := "GoalsLeft"
+
+(* the proof data with the variables and hypotheses at the head of the goal introduced, a hypothesis whose binder has no
+   name, as the binder of an implication, named h1, h2, ... *)
+introducedHypotheses[data_, goal_, count_Integer] := With[{current = currentGoal[data, goal]},
+	Replace[weakHeadNormalForm[data["Environment"], current["Context"], current["Type"]], {
+		dependentFunctionType[HoldComplete[\[FormalX]], _, _, _] :> With[{introduced = introduceVariable[data, goal, hypothesisName[count + 1]]},
+			introducedHypotheses[introduced, First[introduced["Goals"]], count + 1]
+		],
+		_dependentFunctionType :> With[{introduced = introduceVariable[data, goal, Automatic]},
+			introducedHypotheses[introduced, First[introduced["Goals"]], count]
+		],
+		_ :> data
+	}]
+]
+
+hypothesisName[k_Integer] := With[{name = "h" <> IntegerString[k]}, HoldComplete[name]]
 
 
 (* ::Subsection:: *)

@@ -11,6 +11,15 @@ Versions 0.35.0 to 0.44.0.
 
 ### Added
 
+- **Proofs found by a portfolio of tactics.** `TypeTheoryProof[statement, Automatic]`, and the tactic `Automatic` on
+  the first goal, try `"Assumption"`, `"Decide"`, `"Counterexample"` and `"Classical"` on the goal as stated, then
+  introduce its variables and hypotheses and try `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`,
+  `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`,
+  `"Witness"` and `"Classical"`, until one closes it; a statement none proves gives `Failure["NoProofFound", ...]`,
+  whose `"Tried"` says what each tactic gave. The tactic `"Witness"` proves an existential statement over the natural
+  numbers or the integers with values that Wolfram finds, by `FindInstance` or smallest first, or with values given,
+  and `"Counterexample"` proves the negation of a universal statement from values at which it fails, the premises
+  of the statement made true; the kernel decides the instance at the values.
 - **Compiled code as mathematics.** `TypeTheoryFormalize[f, "Machine"]` reads more of what the compiler
   produces: a recursion, which is proved to compute the mathematical recursion; `While` loops, each a
   constant by recursion on fuel; an `If` whose branch sets a local; a `Do` with an iterator; a loop that

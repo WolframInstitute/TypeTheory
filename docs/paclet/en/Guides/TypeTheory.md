@@ -60,7 +60,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Proofs
 
 - [TypeTheoryProof]() a proof in progress, with its open goals
-- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Hole"`, `"Rewrite"`, `"Change"`, `"RewriteRepeated"`, `"Decide"`, `"Ring"`, `"Classical"`, and the Wolfram oracles `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`
+- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Hole"`, `"Rewrite"`, `"Change"`, `"RewriteRepeated"`, `"Decide"`, `"Ring"`, `"Classical"`, the Wolfram oracles `"FindInstance"`, `"Witness"`, `"Counterexample"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`, and [Automatic](), which tries a portfolio of them in turn
 
 ### The prelude: logic and equality
 

@@ -1020,3 +1020,136 @@ VerificationTest[
 	TestID -> "Cases-splits-a-fact-the-goal-has-no-copy-of"
 ]
 
+
+(* "Witness": values that Wolfram finds for an existential statement over the natural numbers or the integers, by
+   FindInstance or smallest first, the instance decided by the kernel; values given are decided the same way, and a
+   value that makes the instance false is refused *)
+VerificationTest[
+	With[
+		{
+			pythagorean = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, And[x^2 + y^2 == 25, x < y, 0 < x]], prelude, {"Witness"}],
+			negative = TypeTheoryProof[Exists[{Typed[x, Integers]}, x + 5 == 2], TypeTheoryEnvironment["Integers"], {"Witness"}]
+		},
+		{
+			pythagorean["Goals"],
+			pythagorean["Term"],
+			Head[Append[prelude, TypeTheoryTheorem[WitnessedPythagoreanPair, pythagorean]]],
+			negative["Goals"],
+			Head[Append[TypeTheoryEnvironment["Integers"], TypeTheoryTheorem[WitnessedNegativeInteger, negative]]],
+			TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, And[x^2 + y^2 == 25, x < y, 0 < x]], prelude, {"Witness"[3, 4]}]["Goals"],
+			First @ TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, And[x^2 + y^2 == 25, x < y, 0 < x]], prelude, {"Witness"[4, 3]}]
+		}
+	],
+	{
+		{},
+		TypeTheoryTerm["existsIntroduction"[3, "existsIntroduction"[4, "decideSoundness"["equalityReflexivity"["true"]]]], prelude],
+		TypeTheoryEnvironment,
+		{},
+		TypeTheoryEnvironment,
+		{},
+		"InstanceRejected"
+	},
+	TestID -> "Witness-proves-an-existential-statement-with-values-the-kernel-decides"
+]
+
+VerificationTest[
+	First /@ {
+		TypeTheoryProof[Exists[{Typed[n, NonNegativeIntegers]}, n * n == 2], prelude, {"Witness"}],
+		TypeTheoryProof[2 + 2 == 4, prelude, {"Witness"}],
+		TypeTheoryProof[Exists[{Typed[n, NonNegativeIntegers]}, n * n == 4], prelude, {"Witness"[-2]}]
+	},
+	{"NoWitness", "ExistentialExpected", "ValuesOutsideDomains"},
+	TestID -> "Witness-fails-where-it-finds-no-values-or-the-goal-is-no-existential-statement"
+]
+
+(* "Counterexample": the negation of a universal statement, from values at which the statement fails that Wolfram finds,
+   smallest first, or values given; a condition on the variables is a premise that the values make true, so the
+   counterexample of n + 1 <= n^2 among the numbers at least 1 is 1, not 0 *)
+VerificationTest[
+	With[
+		{
+			refuted = TypeTheoryProof[Not[ForAll[{Typed[n, NonNegativeIntegers]}, 2 n <= n^2]], prelude, {"Counterexample"}],
+			conditional = TypeTheoryProof[Not[ForAll[{Typed[n, NonNegativeIntegers]}, 1 <= n, n + 1 <= n^2]], prelude, {"Counterexample"}]
+		},
+		{
+			refuted["Goals"],
+			Head[Append[prelude, TypeTheoryTheorem[DoubleNotAlwaysBelowSquare, refuted]]],
+			conditional["Goals"],
+			Head[Append[prelude, TypeTheoryTheorem[SuccessorNotAlwaysBelowSquare, conditional]]],
+			TypeTheoryProof[Not[ForAll[{Typed[n, NonNegativeIntegers]}, 2 n <= n^2]], prelude, {"Counterexample"[1]}]["Goals"],
+			First @ TypeTheoryProof[Not[ForAll[{Typed[n, NonNegativeIntegers]}, 2 n <= n^2]], prelude, {"Counterexample"[3]}]
+		}
+	],
+	{{}, TypeTheoryEnvironment, {}, TypeTheoryEnvironment, {}, "InstanceRejected"},
+	TestID -> "Counterexample-refutes-a-universal-statement-at-values-where-it-fails"
+]
+
+(* no counterexample of a statement that holds, which is no evidence that it holds; a universal statement that is not
+   negated is no goal of "Counterexample" *)
+VerificationTest[
+	First /@ {
+		TypeTheoryProof[Not[ForAll[{Typed[n, NonNegativeIntegers]}, n <= n^2]], prelude, {"Counterexample"}],
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 2 n <= n^2], prelude, {"Counterexample"}]
+	},
+	{"NoCounterexample", "NegatedUniversalExpected"},
+	TestID -> "Counterexample-finds-none-for-a-true-statement-and-takes-only-a-negated-universal-statement"
+]
+
+(* Automatic: the tactics of a portfolio tried in turn, on the goal as stated and once its variables and hypotheses are
+   introduced, until one closes it: "Reflexivity", "Ring", "LinearArithmetic", "Witness" and "Counterexample" here, each
+   proof one the kernel accepts *)
+VerificationTest[
+	With[
+		{
+			byComputation = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, Automatic],
+			byRing = TypeTheoryProof[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, (a + b)^2 == a^2 + 2 a b + b^2], prelude, Automatic],
+			byLinearArithmetic = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n <= m, n <= m + 1]], prelude, Automatic],
+			byWitness = TypeTheoryProof[Exists[{Typed[x, NonNegativeIntegers]}, x^2 == 49], prelude, Automatic],
+			byCounterexample = TypeTheoryProof[Not[ForAll[{Typed[n, NonNegativeIntegers]}, 2 n <= n^2]], prelude, Automatic]
+		},
+		{
+			byComputation["Goals"],
+			byRing["Goals"],
+			byLinearArithmetic["Goals"],
+			byWitness["Goals"],
+			byCounterexample["Goals"],
+			Head[TypeTheoryEnvironment[prelude, {
+				TypeTheoryTheorem[AutomaticSquareOfSum, byRing],
+				TypeTheoryTheorem[AutomaticBound, byLinearArithmetic],
+				TypeTheoryTheorem[AutomaticSquareRoot, byWitness],
+				TypeTheoryTheorem[AutomaticRefutation, byCounterexample]
+			}]]
+		}
+	],
+	{{}, {}, {}, {}, {}, TypeTheoryEnvironment},
+	TestID -> "Automatic-proves-a-statement-by-the-first-tactic-of-its-portfolio-that-closes-it"
+]
+
+(* a statement no tactic of the portfolio proves gives a Failure, whose "Tried" gives what each tactic gave, on the goal
+   as stated and on the goal with its variable introduced *)
+VerificationTest[
+	With[{failure = TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]]}, p], prelude, Automatic]},
+		{First[failure], Length[failure["Tried"]], Keys /@ Values[failure["Tried"]]}
+	],
+	{
+		"NoProofFound",
+		2,
+		{
+			{"Assumption", "Decide", "Counterexample", "Classical"},
+			{"Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic", "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof", "Witness", "Classical"}
+		}
+	},
+	TestID -> "Automatic-gives-what-each-tactic-gave-when-none-proves-the-goal"
+]
+
+(* Automatic in a list of tactics works on the first goal, as every tactic does *)
+VerificationTest[
+	TypeTheoryProof[
+		And[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], Exists[{Typed[x, NonNegativeIntegers]}, x^2 == 49]],
+		prelude,
+		{"Constructor", Automatic, Automatic}
+	]["Goals"],
+	{},
+	TestID -> "Automatic-is-a-tactic-on-the-first-goal"
+]
+

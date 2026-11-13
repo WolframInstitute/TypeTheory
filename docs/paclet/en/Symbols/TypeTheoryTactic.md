@@ -4,7 +4,7 @@ Name: TypeTheoryTactic
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryTactic
-Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, classical, truth table, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, linarith, NonlinearArithmetic, nonlinear arithmetic, nlinarith, FindEquationalProof, equational reasoning, SumOfSquares, sum of squares, SemidefiniteOptimization, hole, sorry, oracle]
+Keywords: [tactic, proof, introduce, exact, apply, reflexivity, induction, cases, generalize, constructor, assumption, rewrite, change, simplify, decide, classical, truth table, ring, FindInstance, PolynomialReduce, LinearArithmetic, linear arithmetic, linarith, NonlinearArithmetic, nonlinear arithmetic, nlinarith, FindEquationalProof, equational reasoning, SumOfSquares, sum of squares, SemidefiniteOptimization, witness, counterexample, refutation, Automatic, portfolio, automatic proof, hole, sorry, oracle]
 SeeAlso: [TypeTheoryProof, TypeTheoryTheorem, TypeTheoryHole, TypeTheoryTerm, Decidable, Decide, List]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
@@ -15,6 +15,8 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 <code>[TypeTheoryTactic]()[*name*, *arguments*...]</code> is a tactic: <code>[TypeTheoryTactic]()[*name*, *arguments*...][*proof*]</code> applies it to the first goal of the [TypeTheoryProof]() *proof*.
 
 <code>[TypeTheoryTactic]()[*name*[*arguments*...]]</code> is <code>[TypeTheoryTactic]()[*name*, *arguments*...]</code>.
+
+<code>[TypeTheoryTactic]()[[Automatic]()]</code> tries the tactics of a portfolio in turn on the first goal until one closes it.
 
 ## Details & Options
 
@@ -43,16 +45,24 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws, and in <code>[TypeTheoryEnvironment]()["Rationals"]</code> an equation of rationals likewise, from the rationals' laws, with numbers for coefficients; an equation that holds by the arithmetic of fractions, as *x*/2 + *x*/2 == *x*, is proved through the pairs the rationals are classes of |
 | `"Classical"` | proves a statement of classical propositional logic from the hypotheses that are propositions, by a truth table: each atom, a proposition that no connective builds, is split by `"excludedMiddle"`, and the goal is built from the cases under every assignment that makes the hypotheses true |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
+| `"Witness"` | proves <code>[Exists]()[{[Typed]()[*x*, *domain*], ...}, *p*]</code>, each *domain* [Naturals]() or, in <code>[TypeTheoryEnvironment]()["Integers"]</code>, [Integers](), with values that Wolfram finds: [FindInstance]() over the integers, or else the first values, smallest first, at which *p* is [True](); `"Decide"` proves *p* of them, or *p* of them is left as the goal where its decision does not compute |
+| `"Witness", v, ...` | does the same with the integers `v, ...` as the values |
+| `"Counterexample"` | proves <code>[Not]()[[ForAll]()[{[Typed]()[*x*, *domain*], ...}, *p*]]</code>, each *domain* [Naturals]() or [Integers](), with values at which *p* fails: the first that Wolfram finds, smallest first, or else those of [FindInstance](). The statement applied to them, and to a proof of each premise of *p*, gives the conclusion of *p* at them, which the proof of its negation refutes; `"Decide"` proves each premise and the negation, or leaves it as a goal |
+| `"Counterexample", v, ...` | does the same with the integers `v, ...` as the values |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers from the equations of integers |
 | `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
 | `"NonlinearArithmetic"` | proves what `"LinearArithmetic"` proves from the inequalities among the hypotheses and their products: each inequality a <= b times each side k of each, a k <= b k, so that n <= m gives n n <= m m |
 | `"FindEquationalProof"` | proves an equation from the hypotheses that are equations of its type for all values of their variables, by replaying the proof that Wolfram's [FindEquationalProof]() finds, step by step |
 | `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); `"integerLessEqualOfMultiple"` takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
+| [Automatic]() | tries the tactics of a portfolio in turn until one closes the goal: `"Assumption"`, `"Decide"`, `"Counterexample"` and `"Classical"` on the goal as stated, then, with its variables and hypotheses introduced, `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`, `"Witness"` and `"Classical"` |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - In a list of tactics written out in [TypeTheoryProof](), a tactic is written as its name, or its name applied to its arguments: <code>{"Introduce"[n], "Reflexivity"}</code> is <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, and its arguments are held as well.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"RewriteRepeated"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`. A definition applied to another unfolds after the inner one, so for a sum `total` defined by recursion on lists, `total[Join[Prepend[x][l], m]]` becomes `x + total[Join[l, m]]`, where an induction hypothesis about `total[Join[l, m]]` applies. An argument `k + 1` is the successor of `k`, which it shows as, so `f[k + 1]` unfolds as `f` of a successor does, and a rewrite finds `f[k + 1]` where the goal has the successor. A recursion that gives a function, applied in the definition to its last variables, as a loop is to the locals it sets, unfolds the same way.
-- `"FindInstance"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
+- `"FindInstance"`, `"Witness"`, `"Counterexample"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
+- `"Witness"` and `"Counterexample"` read a statement built from `==`, `<=`, `<`, `>=`, `>`, [And](), [Or]() and [Not]() of arithmetic on the variables and number literals. Each of their searches takes at most 10 seconds: [FindInstance]() over the integers, and about 10,000 tuples of values, by their largest absolute value first. `"Witness"` asks [FindInstance]() first, and `"Counterexample"` tries the smallest values first. A counterexample not found is no evidence that the statement holds.
+- `"Counterexample"` reads the premises of the statement, as in <code>[ForAll]()[{*x*}, *q*, *r*]</code> or <code>[Implies]()[*q*, *r*]</code>: the values make each premise true and the conclusion false, and each premise becomes a goal that `"Decide"` proves.
+- [Automatic]() tries the tactics of its portfolio on the first goal, and a tactic that does not close the goal leaves nothing behind. A hypothesis whose binder has no name, as in [Implies]() or [Not](), is introduced as `h1`, `h2`, …. When no tactic closes the goal, the result is a [Failure]() tagged `"NoProofFound"`, whose `"Tried"` gives, for each goal tried, the tag of each tactic's failure, or `"GoalsLeft"` for a tactic that left goals of its own. In a list of tactics, [Automatic]() stands for <code>[TypeTheoryTactic]()[[Automatic]()]</code>.
 - `"NonlinearArithmetic"` multiplies once: it adds products of two factors, not of three.
 - A tactic that does not apply gives a [Failure]() that says why, with the goal.
 
@@ -941,6 +951,82 @@ TypeTheoryTactic["FindEquationalProof"][proof]
 
 <!-- => Proof complete -->
 
+### Witnesses and Counterexamples
+
+`"Witness"` asks Wolfram for values that make an existential statement true, here an integer, in the environment of the integers:
+
+```wl
+proof = TypeTheoryProof[Exists[{Typed[x, Integers]}, x^2 + 2 x == 3 && x <= -1], "Integers", {"Witness"}]
+```
+
+<!-- => Proof complete -->
+
+The witness is -3, and the kernel computed the decision of the instance:
+
+```wl
+proof["Term"]
+```
+
+<!-- => existsIntroduction[-3, decideSoundness[equalityReflexivity[true]]] -->
+
+---
+
+`"Witness"` with values checks them the same way; 17 and 12 solve `x^2 == 2 y^2 + 1`:
+
+```wl
+TypeTheoryProof[Exists[{x, y}, x^2 == 2 y^2 + 1 && 1 < y], {"Witness"[17, 12]}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+`"Counterexample"` proves that a universal statement is false from a value where it fails. `n^2 <= 2^n` fails at 3:
+
+```wl
+proof = TypeTheoryProof[Not[ForAll[{n}, n^2 <= 2^n]], {"Counterexample"}]
+```
+
+<!-- => Proof complete -->
+
+The statement `h` applied to 3, and refuted by the decision of `¬(3^2 <= 2^3)`:
+
+```wl
+proof["Term"]
+```
+
+<!-- => (h ∶ ∀_n∶ℕ n^2 <= 2^n) ↦ decideSoundness[equalityReflexivity[true], h[3]] -->
+
+---
+
+A condition on the variables is a premise, which the values make true. Without the condition, 0 would be the counterexample; with it, 1 is:
+
+```wl
+TypeTheoryProof[Not[ForAll[{n}, 1 <= n, n + 1 <= n^2]], {"Counterexample"}]
+```
+
+<!-- => Proof complete -->
+
+### Automatic
+
+[Automatic]() tries the tactics of a portfolio until one closes the goal. It introduces the variables and the hypothesis, and `"LinearArithmetic"` proves what is left:
+
+```wl
+TypeTheoryProof[ForAll[{n, m}, Implies[n <= m, n <= m + 1]], {Automatic}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+[Automatic]() works on the first goal, so after `"Constructor"` it proves each side of a conjunction in turn, the first by `"Reflexivity"` and the second by `"Witness"`:
+
+```wl
+TypeTheoryProof[And[ForAll[{n}, n + 0 == n], Exists[{x}, x^2 == 49]], {"Constructor", Automatic, Automatic}]
+```
+
+<!-- => Proof complete -->
+
 ### Holes
 
 `"Hole"` closes a goal with a proof left to give:
@@ -1058,6 +1144,16 @@ TypeTheoryProof[3 != 4, {"Decide"}]
 ```
 
 <!-- => Proof complete -->
+
+---
+
+The kernel decides the instance, so values that make it false are refused:
+
+```wl
+TypeTheoryProof[Exists[{x, y}, x^2 == 2 y^2 + 1 && 1 < y], {"Witness"[17, 11]}]
+```
+
+<!-- => Failure["InstanceRejected", ...] -->
 
 ## Possible Issues
 
@@ -1203,6 +1299,16 @@ TypeTheoryProof[ForAll[{n}, n + 0 == n], {"Introduce"[n], "Reflexivity"[n]}]
 
 <!-- => Failure["UnknownTactic", ...] -->
 
+---
+
+`"Counterexample"` searches the smallest values and asks [FindInstance](), so finding none is no evidence that the statement holds. Here it holds:
+
+```wl
+TypeTheoryProof[Not[ForAll[{n}, n <= n^2]], {"Counterexample"}]
+```
+
+<!-- => Failure["NoCounterexample", ...] -->
+
 ## Neat Examples
 
 Ramanujan's taxicab number 1729 is a sum of two cubes:
@@ -1238,3 +1344,21 @@ proof["Term"]
 ```
 
 <!-- => existsIntroduction[9, existsIntroduction[10, decideSoundness[equalityReflexivity[true]]]] -->
+
+---
+
+The equation `x^2 == 61 y^2 + 1`, which Fermat posed as a challenge in 1657, has a solution in natural numbers with `y` positive:
+
+```wl
+proof = TypeTheoryProof[Exists[{x, y}, x^2 == 61 y^2 + 1 && 0 < y], {"Witness"}]
+```
+
+<!-- => Proof complete -->
+
+Its smallest solution, which the kernel checks by computing with numbers of nineteen digits:
+
+```wl
+proof["Term"]
+```
+
+<!-- => existsIntroduction[1766319049, existsIntroduction[226153980, decideSoundness[equalityReflexivity[true]]]] -->
