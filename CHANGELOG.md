@@ -89,6 +89,8 @@ Versions 0.35.0 to 0.43.1.
   compared with the environment's, as `Method -> "Symbolic"` does: on 0.42.2 a definition whose `"Instance"` or
   `"Coercion"` was turned by hand passed, since only inductive types and quotients were declared again.
   `scripts/kernel_agreement_fuzz.wls` runs the two methods on records changed one at a time.
+- The term of an unfinished proof is open: `TypeTheoryCheck`, `TypeTheoryAxiomClosure` and `Information` of it give a
+  `Failure` tagged `"OpenTerm"` that names its holes, where they said that its hole `?1` is no term.
 - The term of a proof by `"LinearArithmetic"` or `"NonlinearArithmetic"` checks against its statement, as the term of
   any finished proof does, and its axiom closure computes: the certificate left out a predicate that no elaboration
   finds again.

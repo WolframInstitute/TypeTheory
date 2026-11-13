@@ -799,6 +799,22 @@ VerificationTest[
 	TestID -> "The-holes-of-an-unfinished-proof's-term-are-numbered-as-its-goals"
 ]
 
+
+(* the term of an unfinished proof is open: a query that needs its core term, its check, its axioms, its holes or its
+   constants, says so and names its holes, where it said that a hole is no term *)
+VerificationTest[
+	With[{term = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]["Term"]},
+		Function[result, {result["Tag"], result["MessageParameters"]}] /@ {
+			TypeTheoryCheck[term],
+			TypeTheoryAxiomClosure[term],
+			Information[term, "Holes"],
+			Information[term, "Constants"]
+		}
+	],
+	ConstantArray[{"OpenTerm", {{"?1", "?2"}}}, 4],
+	TestID -> "A-query-on-an-unfinished-proof's-term-says-it-is-open-and-names-its-holes"
+]
+
 (* A definition by recursion unfolds at x + 1 as at successor[x], which shows alike, and recurses on x as it is written;
    at x + 2 it unfolds twice. A recursion that gives a function, the recursor applied further to the definition's last
    variables, unfolds too, its recursive call folded back into the definition. And a rewrite finds f[k + 1] where the

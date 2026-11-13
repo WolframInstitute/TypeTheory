@@ -132,6 +132,16 @@ givenEnvironment[TypeTheoryTerm[_, name_String]] := environmentNamed[name]
 givenEnvironment[TypeTheoryTerm[_]] := None
 
 (* a term on its own has no universe parameters, so a level nothing decided in it is the level of Type *)
+(* The term of an unfinished proof holds a hole Placeholder["?1", goal] for each goal it leaves (ProofStates.wl). A query
+   that needs a term's core term, its check, its type, its axioms or its holes, says of such a term that it is open and
+   names its holes, which are goals left to prove; a hole is no term of the type theory, and saying so named the hole
+   and not the reason. *)
+elaborateQueryTerm[_, term_TypeTheoryTerm, _, _] /; openHoleNames[term] =!= {} :=
+	kernelFailure["OpenTerm", "The term is open: its holes `1` are goals left to prove, and it is checked once they are filled.", {openHoleNames[term]}]
+
+(* the names of the holes of an open proof's term, each once, in order; its goals are taken held, as terms are *)
+openHoleNames[term_TypeTheoryTerm] := DeleteDuplicates[Cases[heldTerm[term], Placeholder[name_String /; StringStartsQ[name, "?"], ___] :> name, {0, Infinity}, Heads -> True]]
+
 elaborateQueryTerm[environment_, term_TypeTheoryTerm, expected_, universeParameters_List] := Block[{$levelGeneralization = "Type", $queryTermNext = expected === None},
 	elaborateClosedTerm[environment, heldTerm[term], expected, universeParameters]
 ]
