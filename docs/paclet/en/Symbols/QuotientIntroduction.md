@@ -51,7 +51,7 @@ The classes of (2, 5) and (3, 6) are equal by `"quotientSoundness"`, since 2 + 6
 TypeTheoryType[Typed["quotientSoundness"["equalityReflexivity"[8]], QuotientIntroduction["integerRelation", "pair"[2, 5]] == QuotientIntroduction["integerRelation", "pair"[3, 6]]], "Integers"]
 ```
 
-<!-- => QuotientIntroduction[integerRelation, (2, 5)] == QuotientIntroduction[integerRelation, (3, 6)] -->
+<!-- => -3 == -3, the two classes shown as the integer each stands for -->
 
 ## Scope
 

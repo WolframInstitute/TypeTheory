@@ -56,6 +56,10 @@ Versions 0.35.0 to 0.44.0.
 
 ### Changed
 
+- Displays agree with each other: a coercion declared with `"Coercion" -> True` shows as ↑x, as the library's
+  do; an integer computed shows as the number, where it showed as the class of a pair; a constant declared with
+  `"Overloads"` shows as its operation in `env[name]` too; and an object whose rule of `MakeBoxes` makes a summary box
+  shows as the constant applied inside a term, where the box hid the term's parts.
 - `NormalForm` gives a natural number over a part that does not compute as that part and a number, one form however
   it is written: `(k + 1) + 1` and the successor of the successor of `k` normalize to `k + 2`, where they gave two
   successors. `k + 1000000` is its own normal form, where it was a failure of the recursion limit, as was the normal

@@ -57,3 +57,20 @@ VerificationTest[
 	{True, True, TypeTheoryAxiom["polynomialAddition", "Polynomials" -> "Polynomials" -> "Polynomials", "Overloads" -> Plus], "OverloadedOperation"},
 	TestID -> "Overloads-replay-read-back-and-name-only-the-operations-that-take-them"
 ]
+
+
+(* a declaration read back for showing has an overloading constant as its operation, as a term shows it; read back
+   exactly, it keeps the constant *)
+VerificationTest[
+	With[{selfEqual = TypeTheoryEnvironment[polynomials, {
+		TypeTheoryTheorem["selfEqual", ForAll[{Typed[x, "Polynomials"]}, x^2 + x == x^2 + x], Function[{Typed[x, "Polynomials"]}, "equalityReflexivity"[x^2 + x]]]
+	}]},
+		{
+			FreeQ[selfEqual["selfEqual"], "polynomialAddition" | "polynomialPower"],
+			! FreeQ[selfEqual["selfEqual"], Plus] && ! FreeQ[selfEqual["selfEqual"], Power],
+			! FreeQ[Normal[selfEqual], "polynomialAddition"]
+		}
+	],
+	{True, True, True},
+	TestID -> "A-declaration-shown-has-an-overloading-constant-as-its-operation"
+]

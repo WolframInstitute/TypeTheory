@@ -696,7 +696,7 @@ declarationOf[environment_, name_HoldComplete, mode_String] := If[ ! constantDec
 		record : KeyValuePattern["Kind" -> "Hole"] :> declarationOf[environment, record["Theorem"], mode],
 		record : KeyValuePattern["Kind" -> "Quotient"] :> quotientDeclaration[record],
 		record : KeyValuePattern["Kind" -> "Cubical"] :> Replace[record["Sum"], HoldComplete[sum_] :> TypeTheoryCubical[sum]],
-		record_ :> ReleaseHold @ heldFromSyntax @ If[mode === "Display", withoutAutomaticUniverses[#, record] &, Identity][declarationSyntax[environment, name, record, mode]]
+		record_ :> ReleaseHold @ heldFromSyntax @ If[mode === "Display", operationsOfOverloads[environment, withoutAutomaticUniverses[#, record]] &, Identity][declarationSyntax[environment, name, record, mode]]
 	}]
 ]
 
@@ -785,6 +785,36 @@ ruleSyntax[syntaxApplication[syntaxSymbol[HoldComplete[Function]], {binders_, le
 	syntaxHead[ForAll, {binders, syntaxHead[Rule, {leftBody, rightBody}]}]
 
 readBack[environment_, term_, "Display"] := slotFunctions[delaborate[environment, <||>, term]]
+
+(* In a declaration read back for showing, env[name], a constant declared with "Overloads" -> operation, applied to as
+   many arguments as the operation takes, is the operation, which names it in the declaration's environment, as a term
+   shows it. A declaration read back exactly keeps the constant, and so does any other term read back. *)
+operationsOfOverloads[environment_, syntax_] := With[{overloads = declarationOverloads[environment]},
+	If[ overloads === <||>,
+		syntax,
+		Replace[
+			syntax,
+			syntaxApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), arguments_List] /; overloadedApplicationQ[overloads, head, arguments] :>
+				syntaxApplication[syntaxSymbol[overloads[overloadKey[head]]], arguments],
+			{0, Infinity}
+		]
+	]
+]
+
+overloadedApplicationQ[overloads_, head_, arguments_List] := With[{operation = Lookup[overloads, Key[overloadKey[head]], None]},
+	operation =!= None && Length[arguments] === overloadArity[operation]
+]
+
+declarationOverloads[environment_] := Association @ Catenate @ Map[
+	Function[operation, Function[constant, constant -> operation] /@ overloadingConstants[environment, operation]],
+	HoldComplete /@ Unevaluated[{Plus, Times, Subtract, Power, Minus, LessEqual, Less, GreaterEqual, Greater}]
+]
+
+overloadKey[syntaxSymbol[name_HoldComplete]] := name
+overloadKey[syntaxString[name_String]] := HoldComplete[name]
+
+overloadArity[HoldComplete[Minus]] := 1
+overloadArity[_] := 2
 readBack[environment_, term_, "Exact"] := Block[{$exactReadBack = True}, delaborate[environment, <||>, term]]
 
 

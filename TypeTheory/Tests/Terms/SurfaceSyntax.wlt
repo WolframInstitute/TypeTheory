@@ -681,3 +681,33 @@ VerificationTest[
 	TestID -> "A-bound-variable-that-another-symbol-shadows-shows-by-its-name"
 ]
 
+
+(* A coercion of the user's shows as ↑x, as the library's do; a class of a pair of literals of the integers as the
+   integer it stands for; and a head whose rule of MakeBoxes for every form makes a summary box, an object's display, as
+   PureMath's do, is no notation in StandardForm, where the term shows its parts, while its rule for TraditionalForm
+   shows there. *)
+SummarizedThing /: MakeBoxes[thing : SummarizedThing[_, _], form_] := summarizedBoxes[thing, form]
+summarizedBoxes[thing_, form_] := BoxForm`ArrangeSummaryBox[SummarizedThing, thing, None, {BoxForm`SummaryItem[{"Parts: ", 2}]}, {}, form]
+SummarizedThing /: MakeBoxes[SummarizedThing[a_, b_], TraditionalForm] := RowBox[{MakeBoxes[a, TraditionalForm], "\[EmptySquare]", MakeBoxes[b, TraditionalForm]}]
+
+VerificationTest[
+	Module[{plain, wrapped, summarized, wrappedTerm, summarizedTerm},
+		plain[boxes_] := boxes //. (StyleBox | TooltipBox | TagBox)[shown_, ___] :> shown;
+		wrapped = TypeTheoryEnvironment[prelude, {
+			TypeTheoryInductiveType["Wrapped", TypeUniverse[0], {"wrap" -> TypeSpecifier[{NonNegativeIntegers} -> "Wrapped"]}],
+			TypeTheoryDefinition["wrapNatural", Function[{Typed[n, NonNegativeIntegers]}, "wrap"[n]], "Coercion" -> True]
+		}];
+		summarized = TypeTheoryEnvironment[prelude, {TypeTheoryDefinition[SummarizedThing, Function[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n + m]]}];
+		(* the term read back, where elaboration has put the coercion in *)
+		wrappedTerm = WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[k, NonNegativeIntegers]}, Typed[k, "Wrapped"]], wrapped]];
+		summarizedTerm = TypeTheoryTerm[ForAll[{Typed[x, NonNegativeIntegers]}, SummarizedThing[x, 1] == x + 1], summarized];
+		{
+			{! FreeQ[plain[ToBoxes[wrappedTerm, StandardForm]], "\"\[UpArrow]\""], FreeQ[plain[ToBoxes[wrappedTerm, StandardForm]], "\"wrapNatural\""]},
+			MemberQ[{"-3", RowBox[{"-", "3"}]}, First[plain[ToBoxes[TypeTheoryTerm[QuotientIntroduction["integerRelation", "pair"[2, 5]], "Integers"], StandardForm]]]],
+			FreeQ[ToBoxes[summarizedTerm, StandardForm], "SummaryHead" | "SummaryPanel"],
+			! FreeQ[ToBoxes[summarizedTerm, TraditionalForm], "\[EmptySquare]"]
+		}
+	],
+	{{True, True}, True, True, True},
+	TestID -> "User-coercions-integers-and-objects-with-summary-boxes-show-as-the-library's-terms-do"
+]

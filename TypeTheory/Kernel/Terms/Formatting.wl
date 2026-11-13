@@ -138,7 +138,8 @@ displayed[syntax_, form_, body_] := Block[
 		(* the types on mouseover follow the standard layout, part by part, left to right, which TraditionalForm rearranges *)
 		$tooltipsShown = tooltipsWanted[] && form === StandardForm && LeafCount[syntax] <= $tooltipLeafLimit,
 		$displayForm = form,
-		$notationHeads = notationHeads[],
+		$notationHeads = notationHeads[form],
+		$notationChecks = <||>,
 		$displayBoxes = <||>
 	},
 	Block[{$displayTrace = displayTrace[syntax], $operatorTips = <||>, $leafTips = <||>, $tipKeys = <||>, $tipBoxes = <||>, $coreTypeSyntax = <||>}, body]
@@ -180,7 +181,7 @@ $displayedNaturalNumbers = Automatic
 
 SetAttributes[withDisplayEnvironment, HoldRest]
 withDisplayEnvironment[environment_, expression_] := Block[
-	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment], $displayEnvironment = environment},
+	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment], $displayedCoercions = coercionsOrNone[environment], $displayEnvironment = environment},
 	expression
 ]
 
@@ -191,6 +192,21 @@ displayEnvironment[] := Replace[$displayEnvironment, Automatic :> defaultEnviron
 
 (* the constants declared with "Overloads" -> operation, which show as the operation does: <|HoldComplete[constant] -> operation|> *)
 $displayedOverloads = <||>
+
+(* the constants declared with "Coercion" -> True, which show as ↑x as the library's coercions do: <|HoldComplete[constant] -> True|>,
+   found once for each environment, which never changes *)
+$displayedCoercions = <||>
+
+coercionsOrNone[environment_] := Lookup[$coercionDisplays, Key[environment], With[{coercions = Quiet[declaredCoercions[environment]]},
+	If[AssociationQ[coercions], $coercionDisplays[environment] = coercions, <||>]
+]]
+
+$coercionDisplays = <||>
+
+declaredCoercions[environment_?environmentQ] := AssociationMap[
+	Function[name, True],
+	Select[environmentNames[environment], Function[name, TrueQ[constantRecord[environment, name]["Coercion"]]]]
+]
 
 overloadsOrNone[environment_] := Replace[
 	Quiet @ Association @ Catenate @ Map[
@@ -789,6 +805,13 @@ displaySyntax[syntaxApplication[
 	{syntaxString["rationalRelation"], pair : syntaxApplication[syntaxString["pair"], {_, syntaxInteger[_Integer]}]}
 ]] := displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {pair}]]
 displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxString["pair"], {numerator_, syntaxInteger[0]}]}]] := displaySyntax[numerator]
+(* a class of a pair of literals of the integers shows as the integer a - b it stands for, as computation gives it *)
+displaySyntax[syntaxApplication[
+	syntaxSymbol[HoldComplete[QuotientIntroduction]],
+	{syntaxString["integerRelation"], syntaxApplication[syntaxString["pair"], {syntaxInteger[a_Integer], syntaxInteger[b_Integer]}]}
+]] := displaySyntax[syntaxInteger[a - b]]
+displaySyntax[syntaxApplication[syntaxString["integerOfPair"], {syntaxApplication[syntaxString["pair"], {syntaxInteger[a_Integer], syntaxInteger[b_Integer]}]}]] :=
+	displaySyntax[syntaxInteger[a - b]]
 (* a literal numerator makes the fraction the rational number itself, which a product takes without parentheses,
    1/2 (x + y); any other shows as a division *)
 displaySyntax[syntaxApplication[syntaxString["rationalOfPair"], {syntaxApplication[syntaxString["pair"], {numerator_, syntaxInteger[denominator_Integer]}]}]] :=
@@ -814,6 +837,9 @@ displayApplication[head_, {argument_}] /; naturalNumberConstantQ[head, "Successo
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), arguments : {_, _}] /; overloadedDisplayQ[head, 2] :=
 	displayApplication[syntaxSymbol[HoldComplete @@ {$displayedOverloads[displayedName[head]]}], arguments]
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; overloadedDisplayQ[head, 1] := prefixed["-", argument]
+(* a coercion declared with "Coercion" -> True shows as ↑x, as the library's do, unless the user gave it a notation *)
+displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; KeyExistsQ[$displayedCoercions, displayedName[head]] && ! userNotationQ[head] :=
+	prefixed["\[UpArrow]", argument]
 (* a constant whose head has a notation of the user's, a rule of MakeBoxes or Format, is applied undecorated, so that
    the rule shows it. In TraditionalForm the boxes tell which notation there is (notationDisplay): the user's, or the
    Wolfram Language's own for one of its symbols, r_d(n) for SquaresR[d, n]. *)
@@ -929,9 +955,38 @@ appliedDisplay /: Format[appliedDisplay[head_, arguments___], OutputForm] :=
 	Row[{HoldForm[head], "[", Row[Map[HoldForm, Unevaluated[{arguments}]], ", "], "]"}]
 
 (* the heads that rules of MakeBoxes are given for, MakeBoxes[head[...], form] := ..., which it keeps as its FormatValues *)
-notationHeads[] := Cases[FormatValues[MakeBoxes], Verbatim[RuleDelayed][Verbatim[HoldPattern][Verbatim[MakeBoxes][(head : (_Symbol | _String))[___], ___]], _] :> HoldComplete[head]]
+notationHeads[form_] := Cases[
+	FormatValues[MakeBoxes],
+	rule : Verbatim[RuleDelayed][Verbatim[HoldPattern][Verbatim[MakeBoxes][(head : (_Symbol | _String))[___], ___]], _] /; notationRuleQ[rule, form] :> HoldComplete[head]
+]
 
-userNotationQ[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] := MemberQ[$notationHeads, name] || FormatValues[symbol] =!= {}
+userNotationQ[syntaxSymbol[name : HoldComplete[symbol_Symbol]]] := MemberQ[$notationHeads, name] || formatNotationQ[name]
+
+(* a symbol whose own rules of MakeBoxes or Format show a notation in the form shown, looked at once a display *)
+formatNotationQ[name : HoldComplete[symbol_Symbol]] := Lookup[
+	$notationChecks,
+	Key[name],
+	$notationChecks[name] = AnyTrue[FormatValues[symbol], Function[rule, notationRuleQ[rule, $displayForm]]]
+]
+
+$notationChecks = <||>
+
+(* A rule is a notation in a form where its form pattern takes that form, and where it does not make a summary box, which
+   draws an object, as PureMath's AffineVariety[polynomials, variables]: inside a term a summary box hides the term's
+   parts. A summary box is made by BoxForm`ArrangeSummaryBox, in the rule or in a function its right side names. *)
+notationRuleQ[rule_, form_] := ruleFormQ[rule, form] && ! summaryBoxRuleQ[rule]
+
+ruleFormQ[Verbatim[RuleDelayed][Verbatim[HoldPattern][Verbatim[MakeBoxes][_, formPattern_]], _], form_] := MatchQ[form, formPattern]
+ruleFormQ[Verbatim[RuleDelayed][Verbatim[HoldPattern][Verbatim[Format][_, formPattern_]], _], form_] := MatchQ[form, formPattern]
+ruleFormQ[_, _] := True
+
+summaryBoxRuleQ[rule_] := Or[
+	! FreeQ[rule, BoxForm`ArrangeSummaryBox],
+	AnyTrue[
+		Cases[rule, symbol_Symbol /; ! MemberQ[{"System`", "BoxForm`"}, Context[symbol]] :> HoldComplete[symbol], {1, Infinity}, Heads -> True],
+		Function[held, Replace[held, HoldComplete[symbol_] :> ! FreeQ[DownValues[symbol], BoxForm`ArrangeSummaryBox]]]
+	]
+]
 userNotationQ[syntaxString[name_String]] := MemberQ[$notationHeads, HoldComplete[name]]
 userNotationQ[_] := False
 
