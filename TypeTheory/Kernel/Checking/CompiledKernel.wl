@@ -1509,6 +1509,10 @@ $compiledKernel = None
 
 $compiledKernelSeed = None
 
+(* the messages of a seed that is not used: the batch path reads the records' terms instead *)
+$compiledKernelSeed::mismatch = "The term at position `1` of the compiled kernel's seed is not the term its code and parts describe; the records' terms are read instead."
+$compiledKernelSeed::shape = "The compiled kernel's seed is not a table of terms with their codes, parts, starts and roots; the records' terms are read instead."
+
 compiledKernelFunction[] := Replace[$compiledKernel, None :> ($compiledKernel = loadCompiledKernel[])]
 
 (* WolframKernel's compiler builds the program in seconds, and caches what it builds, so there it is compiled in the
@@ -1602,7 +1606,82 @@ termRowOf[_] := notHandled[]
    before. *)
 seedRows[None] := {}
 
-seedRows[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, indexed, composite},
+(* A seed is used only where each of its composite terms is the term its code and parts describe, its parts being
+   terms before it: the rows are made from the codes and the parts, and the records' terms are looked up by the terms
+   themselves, so a term whose row described another term would have the program check what no record holds. A seed
+   that is not so is not used: a message names its first position that does not match, and the records' terms are
+   read as without a seed. *)
+seedRows[seed_Association] := Replace[seedMismatch[seed], {
+	None :> seedRowsOf[seed],
+	"shape" :> (Message[$compiledKernelSeed::shape]; {}),
+	position_ :> (Message[$compiledKernelSeed::mismatch, position]; {})
+}]
+seedRows[_] := (Message[$compiledKernelSeed::shape]; {})
+
+(* None for a seed whose composite terms are those its rows describe; else "shape", or its first position that is not.
+   Each check is made whole first, and its positions sought only where it fails. *)
+seedMismatch[seed_Association] := Block[
+	{seedCheckTerms = seed["Terms"], seedCheckCodes = seed["Codes"], seedCheckParts = seed["Parts"], seedCheckStarts = seed["Starts"], seedCheckRoots = seed["Roots"], seedCheckComposite},
+	If[ ! seedShapeQ[],
+		"shape",
+		seedCheckComposite = Range[seedCheckStarts[[2]] + 1, Length[seedCheckTerms]];
+		Replace[Min[Join[seedOrderMismatches[], seedUnknownCodes[], Catenate[seedCodeMismatches /@ {4, 5, 6, 7, 9}]]], Infinity -> None]
+	]
+]
+
+seedShapeQ[] := And[
+	ListQ[seedCheckTerms] && VectorQ[seedCheckCodes, IntegerQ] && Length[seedCheckCodes] == Length[seedCheckTerms],
+	MatrixQ[seedCheckParts, IntegerQ] && Dimensions[seedCheckParts] === {Length[seedCheckTerms], 3},
+	VectorQ[seedCheckStarts, IntegerQ] && Length[seedCheckStarts] >= 2 && 0 <= seedCheckStarts[[2]] <= Length[seedCheckTerms],
+	(* the terms the records hold, among them leaves, as a record's type that is a sort *)
+	! ListQ[seedCheckRoots] || (VectorQ[seedCheckRoots, IntegerQ] && (seedCheckRoots === {} || (Min[seedCheckRoots] >= 1 && Max[seedCheckRoots] <= Length[seedCheckTerms])))
+]
+
+(* the composite positions whose parts are not all before them; a part a code does not use is 0 *)
+seedOrderMismatches[] := Which[
+	seedCheckComposite === {}, {},
+	Min[seedCheckParts[[seedCheckComposite]]] >= 0 && Max[seedCheckParts[[seedCheckComposite]] - seedCheckComposite] < 0, {},
+	True, Pick[seedCheckComposite, MapThread[Function[{row, position}, Min[row] < 0 || Max[row] >= position], {seedCheckParts[[seedCheckComposite]], seedCheckComposite}]]
+]
+
+(* the composite positions whose code names no composite term *)
+seedUnknownCodes[] := If[ SubsetQ[{4, 5, 6, 7, 9}, Union[seedCheckCodes[[seedCheckComposite]]]],
+	{},
+	Pick[seedCheckComposite, Function[code, ! MemberQ[{4, 5, 6, 7, 9}, code]] /@ seedCheckCodes[[seedCheckComposite]]]
+]
+
+(* the positions of a code whose term has another head, or a used part that is not the term at the part's position,
+   or a part where the code has none; parts are taken only of the terms with the code's head *)
+seedCodeMismatches[code_] := Block[
+	{seedCodePositions = Pick[seedCheckComposite, seedCheckCodes[[seedCheckComposite]], code], seedCodeHead, seedCodePlaces, seedCodeHeaded},
+	{seedCodeHead, seedCodePlaces} = Replace[code, {
+		4 -> {application, {1, 2}},
+		5 -> {lambdaAbstraction, {2, 3}},
+		6 -> {dependentFunctionType, {2, 3}},
+		7 -> {localDefinition, {2, 3, 4}},
+		9 -> {projection, {3}}
+	}];
+	seedCodeHeaded = Pick[seedCodePositions, Head /@ seedCheckTerms[[seedCodePositions]], seedCodeHead];
+	Join[
+		Complement[seedCodePositions, seedCodeHeaded],
+		If[seedCodeHeaded === {}, {}, Catenate[seedSlotMismatches /@ Range[3]]]
+	]
+]
+
+(* a slot of the parts over the terms of the code with its head: the subterm at the slot's place, or 0 where none *)
+seedSlotMismatches[slot_] := Block[{seedSlotParts = seedCheckParts[[seedCodeHeaded, slot]], seedSlotSubterms, seedSlotNamed},
+	If[ slot > Length[seedCodePlaces],
+		Pick[seedCodeHeaded, Unitize[seedSlotParts], 1],
+		seedSlotSubterms = seedCheckTerms[[seedCodeHeaded, seedCodePlaces[[slot]]]];
+		seedSlotNamed = seedCheckTerms[[Clip[seedSlotParts, {1, Length[seedCheckTerms]}]]];
+		If[ Min[seedSlotParts] >= 1 && seedSlotSubterms === seedSlotNamed,
+			{},
+			Pick[seedCodeHeaded, MapThread[Function[{part, subterm, term}, part < 1 || subterm =!= term], {seedSlotParts, seedSlotSubterms, seedSlotNamed}]]
+		]
+	]
+]
+
+seedRowsOf[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Codes"], parts = seed["Parts"], starts = seed["Starts"], rowOf, leafRows, indexed, composite},
 	rowOf = ConstantArray[0, Length[terms]];
 	leafRows = seedLeafRows[Range[starts[[2]]]];
 	(* the other terms come in order of depth, each after its parts, so they are numbered in order *)

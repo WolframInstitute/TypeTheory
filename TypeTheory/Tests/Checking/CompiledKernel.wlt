@@ -637,3 +637,47 @@ VerificationTest[
 	TestID -> "An-undecided-record-without-a-recheck-is-None-and-a-recursor-before-it-stays-checked"
 ]
 
+
+(* The seed an import gives, a table of terms with the rows their codes and parts make, is used only where each of its
+   composite terms is the term its row describes. A theorem of 2 + 2 == 4 declared by the batch path at core level with
+   the proof of 5 == 5 is refused under a seed that gives that proof the row of the proof of 4 == 4, as without a seed:
+   a message names the seed's position that does not match, 5, and the records' terms are read instead. The honest
+   theorem is taken under the honest seed, which passes. Where the paclet has no library there is no program to give
+   the seed to, and the test gives the message the program's input gives. *)
+seedMismatch = compiledPrivate["seedMismatch"]
+
+VerificationTest[
+	Module[{honest, record, proofOfFour, proofOfFive, function, literal, seedOf, declared},
+		honest = TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["honest", 2 + 2 == 4, "equalityReflexivity"[4]]}];
+		record = First[honest]["Records"][HoldComplete["honest"]];
+		proofOfFour = record["Value"];
+		proofOfFive = proofOfFour /. naturalLiteral[4] -> naturalLiteral[5];
+		function = First[proofOfFour];
+		literal = Last[proofOfFour];
+		seedOf[proof_] := <|
+			"Terms" -> {First[function], Last[function], literal, function, proof},
+			"Codes" -> {0, 0, 0, 4, 4},
+			"Parts" -> {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}, {1, 2, 0}, {4, 3, 0}},
+			"Starts" -> {1, 3},
+			"Roots" -> {5}
+		|>;
+		(* the declaration holds its arguments, so the core terms are put in with With *)
+		declared[proof_, seed_] := With[{statement = record["Type"]}, Block[{WolframInstitute`TypeTheory`PackageScope`$compiledKernelSeed = seed},
+			Replace[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["seeded", statement, proof, "UniverseParameters" -> {}]}, Method -> "Compiled"], {
+				failure_Failure :> failure["Tag"],
+				_ -> "accepted"
+			}]
+		]];
+		If[! available, Message[WolframInstitute`TypeTheory`PackageScope`$compiledKernelSeed::mismatch, 5]];
+		{
+			declared[proofOfFive, None],
+			declared[proofOfFive, seedOf[proofOfFive]],
+			declared[proofOfFour, seedOf[proofOfFour]],
+			seedMismatch[seedOf[proofOfFive]],
+			seedMismatch[seedOf[proofOfFour]]
+		}
+	],
+	{"TypeMismatch", "TypeMismatch", "accepted", 5, None},
+	{WolframInstitute`TypeTheory`PackageScope`$compiledKernelSeed::mismatch},
+	TestID -> "A-seed-whose-row-describes-another-term-is-named-and-not-used"
+]

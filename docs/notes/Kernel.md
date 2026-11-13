@@ -302,6 +302,34 @@ Tests/Checking/RewriteRules.wlt: each derived key forged in a store, refused by 
 rewrite rules and in one the compiled kernel takes; the rule filed under another axiom left unused by the kernel with
 nothing checked; and a file whose index was forged, read back as the environment it was saved from.
 
+**The trusted path.** The compiled program checks terms, and two functions run it. Each checks only records
+TypeTheory makes, never records it is given:
+
+- `TypeTheoryCheck` runs the program on an environment's records, then declares every record again without checking
+  its terms a second time, and compares each with the record the declaration makes, and every key the store derives.
+  The replay makes again the constructors, recursors and rules of every inductive type, the constants of the quotients,
+  and every other record from its declaration.
+- The batch path, `TypeTheoryEnvironment[environment, declarations, Method -> "Compiled"]`, makes every record with the
+  declaration functions, the constructors, recursors and rules of an inductive type by its declaration, and only then
+  runs the program on them.
+
+A saved file read with `"Check" -> True` goes through `TypeTheoryCheck`, and an import of Lean's constants through the
+batch path. So the replay and the declarations' generation are part of the trusted path, as the declaration functions
+are. The tests (Tests/Checking/Queries.wlt): the batch path makes the store that declaring one at a time makes, and a
+recursor's rule forged in a store or in a saved file is refused.
+
+**A seed the batch path did not check.** The batch path takes one thing from its caller besides declarations:
+`$compiledKernelSeed`, a table of the terms the records hold with the row each makes. An import gives it so that the
+program's input is written a depth at a time. Its rows are made from its codes and parts, while the records' terms are
+looked up by the terms themselves. From 0.17.0 to 0.43.0 nothing asked that a seed's term is the term its row
+describes: under a seed that gave the proof of 5 == 5 the row of the proof of 4 == 4, the batch path accepted a theorem
+of 2 + 2 == 4 with the first, and further theorems were declared on it; `TypeTheoryCheck` refused the environment
+afterwards. It takes a seed bound by hand or a faulty table; the seeds LeanLink's import makes from Lean's own terms are
+not affected. From 0.43.1 a seed is used only where each of its composite terms is the term its code and parts
+describe. One that is not is named by the message `$compiledKernelSeed::mismatch` with its first position that does
+not match, and the records' terms are read as without a seed. The check costs 0.18 s on the seed of the import of 24 modules of Mathlib (316,377 terms, 5,072 constants) and
+0.65 to 0.69 s on that of 36 (1,096,916 terms, 11,899 constants), and LeanLink's seeds pass it (at nice 19).
+
 ## Elaboration
 
 The elaborator is untrusted and its output is always re-checked. Its state is bound with `Block` for

@@ -73,6 +73,12 @@ Versions 0.35.0 to 0.43.0.
   `TypeTheoryCheck[environment, Method -> "Symbolic"]` was never affected. From 0.43.0 the compiled program refuses
   such an input itself as well: it reads every row as that check does, a field that a row's kind does not use is 0,
   the order names every constant once, and a constant is declared only on a success that its check returns.
+- **A seed the batch path did not check (0.17.0 to 0.43.0).** `TypeTheoryEnvironment[environment, declarations,
+  Method -> "Compiled"]` checked the rows of the seed an import gives in place of the terms the records hold, so a seed
+  whose term described another could make a theorem with a wrong proof accepted. It takes a seed bound by hand or a
+  faulty table; LeanLink's imports, whose seeds are Lean's own terms, are not affected. A seed is now used only where
+  its terms are those its rows describe; otherwise a message names its first position that does not match, and the
+  records' terms are read instead.
 - **A forged rewrite-rule index (0.6.0 to 0.42.2).** Under rules with rewrite rules, a store changed by hand, and from
   0.16.0 a saved file read with `"Check" -> True`, could file a rewrite rule under another axiom: `TypeTheoryCheck`
   reported it checked, and that axiom then computed by the rule. A rule is now taken only for the constant its left
