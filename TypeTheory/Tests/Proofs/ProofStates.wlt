@@ -815,6 +815,23 @@ VerificationTest[
 	TestID -> "A-query-on-an-unfinished-proof's-term-says-it-is-open-and-names-its-holes"
 ]
 
+
+(* the proof tree of an unfinished proof is the tree of the term built so far, each open goal a leaf whose rule is the
+   hole's name and whose claim is the goal: after the induction, the elimination with the base case and the step open *)
+VerificationTest[
+	With[{proof = TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]},
+		With[{tree = TypeTheoryProofTree[proof]},
+			{
+				Head[tree],
+				Cases[tree, TypeTheoryProofTree[rule_String /; StringStartsQ[rule, "?"], claim_, {}] :> {rule, claim}, {0, Infinity}] === Transpose[{{"?1", "?2"}, proof["Goals"]}],
+				Head[TypeTheoryProofTree[TypeTheoryTactic["Reflexivity"][proof]]]
+			}
+		]
+	],
+	{TypeTheoryProofTree, True, TypeTheoryProofTree},
+	TestID -> "The-proof-tree-of-an-unfinished-proof-has-its-open-goals-as-leaves"
+]
+
 (* A definition by recursion unfolds at x + 1 as at successor[x], which shows alike, and recurses on x as it is written;
    at x + 2 it unfolds twice. A recursion that gives a function, the recursor applied further to the definition's last
    variables, unfolds too, its recursive call folded back into the definition. And a rewrite finds f[k + 1] where the

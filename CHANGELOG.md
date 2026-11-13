@@ -50,6 +50,7 @@ Versions 0.35.0 to 0.44.0.
   fact is used for its cases, `"Cases"["lessEqualTotality"[m, n]]`.
 - `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
   of the term in the goal becomes a variable, and each case is stated with its recursors computed.
+- The proof tree of an unfinished proof: the term built so far, each open goal a leaf named by its hole.
 
 ### Changed
 

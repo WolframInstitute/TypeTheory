@@ -101,6 +101,8 @@ PackageScoped[proofUniverseParameters]
 PackageScoped[completedProofTerm]
 PackageScoped[goalDisplaySyntax]
 PackageScoped[instantiateProofTerm]
+PackageScoped[openGoalTypes]
+PackageScoped[goalTerm]
 
 
 (* ::Section:: *)
@@ -153,6 +155,8 @@ proofStatement::usage = "proofStatement[proof] gives the core statement of the T
 proofUniverseParameters::usage = "proofUniverseParameters[proof] gives the universe parameters of the TypeTheoryProof proof."
 completedProofTerm::usage = "completedProofTerm[proof] gives the core proof term of a finished TypeTheoryProof, or throws a kernel failure if goals are left."
 goalDisplaySyntax::usage = "goalDisplaySyntax[data, id] gives {case, {hypothesisSyntax, ...}, goalSyntax} for the goal id of the proof data, case being None or HoldComplete[constructor]."
+openGoalTypes::usage = "openGoalTypes[data] gives the types of the open goals of the proof data, by the goals' identifiers, the solved metavariables in them replaced by their solutions."
+goalTerm::usage = "goalTerm[data, goal] gives the open goal of the proof data as a TypeTheoryTerm of its hypotheses and what is left to prove, as proof[\"Goals\"] lists it."
 instantiateProofTerm::usage = "instantiateProofTerm[data, term] replaces the solved metavariables of the proof data in term by their solutions."
 
 

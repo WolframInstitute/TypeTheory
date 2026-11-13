@@ -11,7 +11,7 @@ RelatedGuides: [TypeTheory]
 
 ## Usage
 
-<code>[TypeTheoryProofTree]()[*proof*]</code> gives the natural-deduction derivation of *proof*, a [TypeTheoryTerm]() that proves a proposition or a finished [TypeTheoryProof]().
+<code>[TypeTheoryProofTree]()[*proof*]</code> gives the natural-deduction derivation of *proof*, a [TypeTheoryTerm]() that proves a proposition or a [TypeTheoryProof](), finished or not.
 
 <code>[TypeTheoryProofTree]()[*rule*, *claim*, {*premise*~1~, ...}]</code> is a natural-deduction derivation of the [TypeTheoryTerm]() *claim* by *rule* from the premises, each a [TypeTheoryProofTree]().
 
@@ -24,7 +24,7 @@ RelatedGuides: [TypeTheory]
 - Each claim is the proposition its part of the proof proves. In a proof of propositional logic it is a formula over the atoms: an atom, [True](), [False](), a conjunction, a disjunction, a negation or an implication. A negation `¬a` is `a ⇒ False`, so applying a proof of it eliminates an implication.
 - A constant applied to formulas, as `"excludedMiddle"` of an atom, is an open assumption, discharged by no rule.
 - A term that is no proof, as a number or a function of numbers, gives `Missing["Untranslatable"]`. A term that does not type-check gives its [Failure]().
-- *proof* is a [TypeTheoryTerm](), or a finished [TypeTheoryProof](), whose tree is that of the term the tactics built; a proof with goals left gives `Failure["ProofIncomplete", ...]`.
+- *proof* is a [TypeTheoryTerm](), or a [TypeTheoryProof](), whose tree is that of the term the tactics built. In a proof with goals left, each open goal is a leaf whose rule is its hole's name, `"?1"` for the first goal listed, and whose claim is the goal, its hypotheses and what is left to prove, as the hole shows it on mouseover.
 - `Information[proof, "ProofTree"]` gives the same derivation.
 - A [TypeTheoryProofTree]() shows drawn, each conclusion under a line over its premises, with the rule named at the line's right, as →I, →E, ∀I, ∀E, ∧I, ∧E, ∨I, ∨E, ⊥E, ∃E or =E, or by its name; an assumption shows as its claim.
 
@@ -215,6 +215,14 @@ Cases[TypeTheoryProofTree[induction], TypeTheoryProofTree[rule_, __] :> rule, {0
 
 <!-- => {"equalityReflexivity", "Assumption", "equalityCongruence", "ImpliesIntro", "ForAllIntro", "Induction", "ForAllIntro"} -->
 
+The tree of an unfinished proof is that of the term the tactics have built so far, each open goal a leaf named by its hole, with the goal for its claim; after the induction, its two cases are open:
+
+```wl
+TypeTheoryProofTree[TypeTheoryProof[ForAll[{Typed[n, Naturals]}, 0 + n == n], {"Introduce"[n], "Induction"[n]}]]
+```
+
+<!-- => the derivation of ∀_n∶ℕ 0 + n == n by ∀I from an Induction whose premises are the leaves ?1, the goal 0 + 0 == 0, and ?2, the goal of the successor's case -->
+
 A hypothesis applied to a number eliminates a universal statement:
 
 ```wl
@@ -293,12 +301,3 @@ TypeTheoryProofTree[TypeTheoryTerm[1 + True]]
 
 <!-- => Failure["TypeMismatch", ...] -->
 
----
-
-A proof with goals left has no tree yet:
-
-```wl
-TypeTheoryProofTree[TypeTheoryProof[ForAll[{a}, Implies[a, a]], {"Introduce"[a, h]}]]
-```
-
-<!-- => Failure["ProofIncomplete", ...] -->

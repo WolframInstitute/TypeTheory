@@ -160,11 +160,22 @@ TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Holes"] := catchKe
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Annotation"] := catchKernelFailure[termAnnotation[termEnvironment[term], term]]
 TypeTheoryProofTree[term : TypeTheoryTerm[_, ___]] := catchKernelFailure[proofTree[termEnvironment[term], term]]
 TypeTheoryProof /: Information[proof : TypeTheoryProof[_Association], "ProofTree"] := TypeTheoryProofTree[proof]
-(* a finished proof, by its term *)
-TypeTheoryProofTree[TypeTheoryProof[data_Association]] := catchKernelFailure @ If[ data["Goals"] =!= {},
-	kernelFailure["ProofIncomplete", "The proof has `1` goals left: its term is not finished.", {Length[data["Goals"]]}],
-	coreProofTree[data["Environment"], instantiateProofTerm[data, metavariable[data["Root"]]]]
+(* a proof, by its term; an unfinished proof by the term built so far, each open goal a leaf whose rule is the hole's
+   name, ?1 for the first goal listed, and whose claim is the goal, its hypotheses and what is left to prove, as the hole
+   shows it on mouseover. The kernel infers the claims of the other parts with the goals' types (ProofStates.wl). *)
+TypeTheoryProofTree[TypeTheoryProof[data_Association]] := catchKernelFailure @ If[ data["Goals"] === {},
+	coreProofTree[data["Environment"], instantiateProofTerm[data, metavariable[data["Root"]]]],
+	Block[
+		{
+			$openGoalLeaves = AssociationThread[data["Goals"], MapIndexed[Function[{goal, position}, TypeTheoryProofTree["?" <> ToString[First[position]], goalTerm[data, goal], {}]], data["Goals"]]],
+			$metavariableTypes = openGoalTypes[data]
+		},
+		coreProofTree[data["Environment"], instantiateProofTerm[data, metavariable[data["Root"]]]]
+	]
 ]
+
+(* the leaves of an unfinished proof's open goals, by the goals' identifiers, while its tree is made *)
+$openGoalLeaves = <||>
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "ProofTree"] := TypeTheoryProofTree[term]
 TypeTheoryTerm /: Information[term : TypeTheoryTerm[_, ___], "Implementation"] := catchKernelFailure[termImplementation[termEnvironment[term], term]]
 TypeTheoryTerm /: Information[TypeTheoryTerm[_, ___], "Properties"] := {"AxiomClosure", "Holes", "Constants", "Annotation", "ProofTree", "Implementation", "Expression"}
@@ -1272,6 +1283,7 @@ connectiveFormulaQ[context_, {constantReference[HoldComplete[Not], {}], {negated
 connectiveFormulaQ[_, _] := False
 
 (* the claim beta-normal, as a recursor's type is its motive applied to the major premise *)
+derivation[environment_, context_, metavariable[id_]] /; KeyExistsQ[$openGoalLeaves, id] := $openGoalLeaves[id]
 derivation[environment_, context_, term_] := derivationOf[environment, context, term, betaNormalize[inferType[environment, context, term]]]
 
 derivationOf[environment_, context_, term_, claim_] := If[propositionTypeQ[environment, context, claim], derivationNode[environment, context, term, claim], notTranslated[]]
