@@ -7,10 +7,8 @@
 
    The build fails on a page that did not convert, and on a section that reads a name only an earlier
    section gave a value (see checkBuild in pacletpage.wl). A page is converted again only when its
-   source or the paclet's code has changed; --no-cache evaluates every example again. The converter is
-   MarkdownToNotebook at the commit pacletpage.wl names, fetched once:
+   source or the paclet's code has changed; --no-cache evaluates every example again.
 
-       sh scripts/fetch_converter.sh
        wolframscript -f build_docs.wls [--no-cache] [--chunk i/n]
 
    A whole build takes over 4 GB. Where memory is short, build in chunks first, each in a kernel of its own that stays

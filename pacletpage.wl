@@ -79,30 +79,6 @@ loadPacletPage[] := Module[{directory = Environment["PACLETPAGE_DIR"], paclet},
 	paclet["Version"]
 ]
 
-(* The converter of markdown to notebooks: MarkdownToNotebook.wl at one commit, fetched into deps/ by
-   scripts/fetch_converter.sh and checked by its SHA-256 before a build. PacletPage keys each page's cache on the
-   converter, and a pinned file keeps the key from one build to the next: the published function it uses otherwise is
-   another converter after each redeploy, and a redeploy between the chunked build and the release of 0.44.0 had the
-   release evaluate all 90 pages again. scripts/fetch_converter.sh reads the commit and the hash from here. *)
-$converterCommit = "c0061425ad87277d5024d7f43bf50d39a18bf9d6"
-
-$converterSHA256 = "a3c036f5c83edfff1e13fab0310134e8b3d4c65b09e5507268fbd7157bdef814"
-
-$converterFile = FileNameJoin[{$repoDirectory, "deps", "MarkdownToNotebook", "MarkdownToNotebook.wl"}]
-
-checkConverter[] := Which[
-	! FileExistsQ[$converterFile],
-		Print["FATAL: the converter ", $converterFile, " is missing. Fetch it with"];
-		Print["    sh scripts/fetch_converter.sh"];
-		Exit[1],
-	FileHash[$converterFile, "SHA256", "HexString"] =!= $converterSHA256,
-		Print["FATAL: the converter ", $converterFile, " is not MarkdownToNotebook ", StringTake[$converterCommit, 7], ". Fetch it again with"];
-		Print["    sh scripts/fetch_converter.sh"];
-		Exit[1],
-	True,
-		Print["converter: MarkdownToNotebook ", StringTake[$converterCommit, 7]]
-]
-
 (* as many parallel kernels as PACLETPAGE_PARALLEL says when it is set, a small count on a machine other builds share;
    after a complete build, the notebooks of pages whose markdown is gone are pruned, as an earlier build left 162 of them,
    387 MB, one of them 358 MB, for the archive and the site to carry; the build cache does not count the
@@ -111,7 +87,6 @@ $buildOptions = {
 	"Source" -> $docsDirectory,
 	"Prune" -> True,
 	"CacheVersion" -> False,
-	"Converter" -> $converterFile,
 	"Parallel" -> Replace[Environment["PACLETPAGE_PARALLEL"], {count_String /; StringMatchQ[count, DigitCharacter ..] && FromDigits[count] > 0 :> FromDigits[count], _ -> Automatic}]
 }
 
@@ -168,7 +143,6 @@ chunkFiles[index_Integer, count_Integer] := With[
 (* the notebooks show terms as a front end does, with the types of constants on mouseover, in this kernel and the ones
    it starts; the options of a chunk come first, since the first of two settings of an option is the one taken *)
 buildDocumentation[] := (
-	checkConverter[];
 	SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"];
 	loadLeanLink[];
 	checkBuild[WolframInstitute`PacletPage`BuildPacletDocumentation[

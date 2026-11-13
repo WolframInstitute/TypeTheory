@@ -28,6 +28,3 @@ TypeTheory/Environments/
 
 # The compiled kernel's library, built by scripts/compile_kernel.wls and by the release
 TypeTheory/LibraryResources/
-
-# The documentation's converter, fetched by scripts/fetch_converter.sh
-deps/
