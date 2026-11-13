@@ -51,6 +51,8 @@ Versions 0.35.0 to 0.44.0.
 - `"Cases"` and `"Induction"` split on a term that is no hypothesis, `"Cases"[Decide[n <= m]]`: every copy
   of the term in the goal becomes a variable, and each case is stated with its recursors computed.
 - The proof tree of an unfinished proof: the term built so far, each open goal a leaf named by its hole.
+- `Information[env, "Holes"]`, every open theorem of an environment with its holes, and
+  `Information[env, "Annotations"]`, the annotation of each constant whose declaration gives one.
 
 ### Changed
 
@@ -113,6 +115,8 @@ Versions 0.35.0 to 0.44.0.
 - A proof written as `TypeTheoryProof[...]` in a list of declarations runs in the environment the list has
   built so far, where it ran in the default environment: a tactic proof about a definition declared before it in
   the same list failed to elaborate.
+- `Information[env, property]` of a property an environment does not have gives a `Failure`, where it gave
+  the property's private function unevaluated.
 
 ### Performance
 

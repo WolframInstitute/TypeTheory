@@ -638,7 +638,7 @@ registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ he
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
-environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "RewriteRules", "NaturalNumbers", "Rules", "Provenance"}
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "Holes", "Annotations", "RewriteRules", "NaturalNumbers", "Rules", "Provenance"}
 (* the theorems by name, each with its statement, in the order they were declared *)
 environmentInformation[environment_, "Theorems"] := Association[
 	Function[name, theoremKey[name] -> coreToTypeTheoryTerm[environment, <||>, constantRecord[environment, name]["Type"]]] /@
@@ -660,6 +660,23 @@ environmentInformation[environment_, "NaturalNumbers"] := Replace[
 ]
 environmentInformation[environment_, "Rules"] := environmentRules[environment]
 environmentInformation[environment_, "Provenance"] := environmentProvenance[environment]
+(* every open theorem with its holes, as a term's "Holes" gives those the term rests on *)
+environmentInformation[environment_, "Holes"] := holeGroups[
+	environment,
+	Association[Function[name, name -> constantRecord[environment, name]] /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Hole"]]]
+]
+(* the annotation of each constant whose declaration gives one, by name, in the order they were declared; a hole's is
+   among the holes *)
+environmentInformation[environment_, "Annotations"] := Association[
+	Function[name, theoremKey[name] -> constantRecord[environment, name]["Annotation"]] /@ Select[
+		environmentNames[environment],
+		Function[name, With[{record = constantRecord[environment, name]}, record["Kind"] =!= "Hole" && Lookup[record, "Annotation", None] =!= None]]
+	]
+]
+environmentInformation[_, property_String] := Failure["UnknownProperty", <|
+	"MessageTemplate" -> "`1` is not a property of an environment; Information[env, \"Properties\"] lists them.",
+	"MessageParameters" -> {property}
+|>]
 
 
 (* ::Subsection:: *)

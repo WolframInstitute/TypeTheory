@@ -866,3 +866,20 @@ VerificationTest[
 	{True, {"DeclarationMismatch", "DeclarationMismatch"}, "DeclarationMismatch", {False, "DeclarationMismatch"}},
 	TestID -> "Each-caller-of-the-compiled-program-checks-records-TypeTheory-makes"
 ]
+
+
+(* the open theorems of an environment, each with its holes, and a property an environment does not have *)
+VerificationTest[
+	With[{open = TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["opened", 1 + 1 == 2, TypeTheoryHole["left open"]], TypeTheoryTheorem["closed", 2 == 2, "equalityReflexivity"[2]], TypeTheoryTheorem["cited", 3 == 3, "equalityReflexivity"[3], "Annotation" -> <|"LeanName" -> "rfl"|>]}]},
+		{
+			Information[open, "Annotations"],
+			Keys[Information[open, "Holes"]],
+			Lookup[First[Information[open, "Holes"]["opened"]], {"Hole", "Annotation"}],
+			Information[prelude, "Holes"],
+			MemberQ[Information[open, "Properties"], "Holes"],
+			Replace[Information[open, "NoSuchProperty"], failure_Failure :> {First[failure], failure["MessageParameters"]}]
+		}
+	],
+	{<|"cited" -> <|"LeanName" -> "rfl"|>|>, {"opened"}, {TypeTheoryHole["opened", 1], <|"Citation" -> "left open"|>}, <||>, True, {"UnknownProperty", {"NoSuchProperty"}}},
+	TestID -> "An-environment-lists-its-annotations-and-open-theorems-and-refuses-a-property-it-does-not-have"
+]

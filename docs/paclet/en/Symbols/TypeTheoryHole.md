@@ -52,6 +52,14 @@ Information[TypeTheoryTerm[AllZero, open], "Holes"]
 
 <!-- => <|AllZero -> {<|"Hole" -> TypeTheoryHole[AllZero, 1], "Statement" -> ∀_n∶ℕ n == 0, "Annotation" -> <|"Citation" -> "a claim left open"|>|>}|> -->
 
+Every open theorem of the environment, with its holes:
+
+```wl
+Information[open, "Holes"]
+```
+
+<!-- => <|AllZero -> {<|"Hole" -> TypeTheoryHole[AllZero, 1], "Statement" -> ∀_n∶ℕ n == 0, "Annotation" -> <|"Citation" -> "a claim left open"|>|>}|> -->
+
 ---
 
 The tactic `"Hole"` closes a goal of a proof with a hole:
