@@ -530,14 +530,20 @@ literalValue[environment_, context_, settings_, term_] := Block[{literalBase, li
 
    Two sides with positive offsets are k successors of each, so they are equal exactly where what is left once the
    smaller offset is stripped is, by constructor injectivity. Two literals, or successors of zero, are equal where their
-   numbers are. Otherwise the offsets decide nothing, None, and the comparison goes on as it would without the rule: a
-   side with offset 0 over a base that is not zero reduces, and the rule applies again once it is a successor. The
-   arithmetic is on the offsets only, Wolfram Language integers. *)
+   numbers are. Where the reading of either side took a step, t + 0 read as t (offsetStepQ), the bases are compared
+   once by general definitional equality, before lazy delta, so the side whose recursion is on 0 takes its step before
+   the other unfolds a unit of a literal: t 2082 + 0 against t 2082 is then the same term on both sides, where lazy
+   delta unfolded the product, the higher of the two, one unit at a time past the recursion limit. Otherwise the
+   offsets decide nothing, None, and the comparison goes on as it would without the rule: a side with offset 0 over a
+   base that is not zero reduces, and the rule applies again once it is a successor. The arithmetic is on the offsets
+   only, Wolfram Language integers. *)
 $naturalOffsetRule = True
 
 naturalOffsetsEqualQ[environment_, context_, a_, b_] := If[ TrueQ[$naturalOffsetRule],
 	Replace[naturalNumberSettings[environment], {
-		settings_Association :> offsetsEqualQ[environment, context, settings, naturalOffset[settings, a], naturalOffset[settings, b]],
+		settings_Association :> With[{first = naturalOffset[settings, a], second = naturalOffset[settings, b]},
+			offsetsEqualQ[environment, context, settings, first, second, offsetStepQ[settings, first, a] || offsetStepQ[settings, second, b]]
+		],
 		_ -> None
 	}],
 	None
@@ -555,9 +561,44 @@ naturalOffset[settings_, term : application[application[constantReference[additi
 		True,
 			{term, 0}
 	]]
+(* A closed term of registered operations on literals reads as the literal it computes: 0 32 as 0, so t + (0 + 0 32)
+   reads as t. The value is the role's function on the integers (closedLiteral), the arithmetic a weak head normal
+   form does at an operation's head (literalOperationResult) and a beta reduction where it builds one (literalFolded),
+   so the reading is a step the kernel takes itself. An operation no role registers, an opaque one among them, or a
+   part that is no literal leaves the term as it is. *)
+naturalOffset[settings_, term : application[_, _]] := With[{value = closedLiteral[settings, term]},
+	{constantReference[settings["Zero"], {}], value} /; IntegerQ[value]
+]
 naturalOffset[_, term_] := {term, 0}
 
+(* the integer a closed term of literals, zero, successors and registered operations computes, or None; a chain of
+   successors is read in a loop, as a reading at one depth *)
+closedLiteral[_, naturalLiteral[n_Integer]] := n
+closedLiteral[settings_, term_] /; zeroBaseQ[settings, term] := 0
+closedLiteral[settings_, term : application[constantReference[successor_, {}], _]] /; successor === settings["Successor"] := Block[
+	{closedTerm = term, closedSuccessors = 0},
+	While[MatchQ[closedTerm, application[constantReference[successor, {}], _]], closedTerm = Last[closedTerm]; closedSuccessors++];
+	Replace[closedLiteral[settings, closedTerm], value_Integer :> value + closedSuccessors]
+]
+closedLiteral[settings_, application[application[constantReference[operation_, {}], left_], right_]] := closedOperation[settings, operation, {left, right}]
+closedLiteral[settings_, application[constantReference[operation_, {}], argument_]] := closedOperation[settings, operation, {argument}]
+closedLiteral[_, _] := None
+
+closedOperation[settings_, operation_, arguments_List] := Replace[Lookup[settings["Roles"], Key[operation], None], {
+	role_String /; First[$naturalNumberOperations[role]] === Length[arguments] :> With[{values = Map[Function[argument, closedLiteral[settings, argument]], arguments]},
+		If[AllTrue[values, IntegerQ], Replace[Last[$naturalNumberOperations[role]] @@ values, Except[_Integer] -> None], None]
+	],
+	_ -> None
+}]
+
 offsetAdded[{base_, offset_Integer}, more_Integer] := {base, offset + more}
+
+(* A reading took a step where it read t + 0 as t, as t + (0 + 0): its offset is 0 and its base, which is not zero, is
+   not the term read. The base is then a part of the term, no new term, and it reads as itself, so comparing it is one
+   more level at most. A reading with successors left takes no such step: written back, t + k reduces to a successor,
+   which reads as t + k again; and the reading of the literal 0 is zero, which the offsets compare. *)
+offsetStepQ[settings_, {base_, 0}, term_] := base =!= term && ! zeroBaseQ[settings, base]
+offsetStepQ[_, _, _] := False
 
 (* a term no literal can be, read without reducing: a variable of the context without a value, a successor of one, or a
    sum by the registered addition with one, as a sum is a literal only where both its sides are.
@@ -579,6 +620,11 @@ stuckQ[context_, settings_, application[application[constantReference[operation_
 	stuckQ[context, settings, right] || (stuckQ[context, settings, left] && MatchQ[right, naturalLiteral[_Integer ? Positive]])
 stuckQ[context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; Lookup[settings["Roles"], Key[operation]] === "Subtraction" :=
 	stuckQ[context, settings, left] || stuckQ[context, settings, right]
+(* a beta-redex is stuck where its reduct is: (x |-> x 2082)[n n] is no literal, as (n n) 2082 is none. Reading the
+   value of the redex otherwise reduced it with its definitions, a unit of 2082 at a time. Stuck only declines the
+   computation on literals, so taking a redex for its reduct accepts nothing more. *)
+stuckQ[context_, settings_, term : application[_, _]] /; MatchQ[First[applicationSpine[term]], _lambdaAbstraction] :=
+	Replace[applicationSpine[term], {lambdaAbstraction[_, _, body_, _], {first_, rest___}} :> stuckQ[context, settings, makeApplication[instantiateBoundVariable[body, first], {rest}]]]
 stuckQ[_, _, _] := False
 
 zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]
@@ -587,8 +633,8 @@ zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]
    offset 0 over a base that is not zero against a positive one, that base is reduced and its offset read again; two
    numerals are decided by their numbers. Once neither side has an offset left to strip, what is left is compared by
    general definitional equality, once, or, where the round made no progress, the rule decides nothing *)
-offsetsEqualQ[environment_, context_, settings_, first_List, second_List] := Block[
-	{offsetFirst = first, offsetSecond = second, offsetProgress = False, offsetDone = False, offsetDecision = None, offsetReduced},
+offsetsEqualQ[environment_, context_, settings_, first_List, second_List, stepTaken_ : False] := Block[
+	{offsetFirst = first, offsetSecond = second, offsetProgress = TrueQ[stepTaken], offsetDone = False, offsetDecision = None, offsetReduced},
 	While[ ! offsetDone,
 		Which[
 			zeroBaseQ[settings, First[offsetFirst]] && zeroBaseQ[settings, First[offsetSecond]],

@@ -755,9 +755,9 @@ VerificationTest[
    any finished proof does. Its certificate carries a proof along an equation, large + c == small, by the recursor of
    equations, whose motive is an argument the term shows; by the theorem "equalitySubstitution", whose predicate is an
    implicit argument, the term read back left the predicate out, and no elaboration finds it again. An equation among
-   the hypotheses, an equation as the goal, False as the goal and products of inequalities go the same way. The three
-   proofs with large literals of the test before this one are not among them: elaborating their terms again has the
-   kernel compare t 2082 + 0 with t 2082, which it does a unit of the literal at a time, past its recursion limit. *)
+   the hypotheses, an equation as the goal, False as the goal and products of inequalities go the same way, and so do
+   the three proofs with large literals of the test before this one, whose terms have the kernel compare t 2082 + 0 with
+   t 2082, which the offset rule decides at once. *)
 VerificationTest[
 	Function[proof, {proof["Goals"], MatchQ[TypeTheoryCheck[ToExpression[ToString[proof["Term"], InputForm]], proof["Statement"]], _Success]}] /@ {
 		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n >= 1, 2 n >= 2]], {"Introduce"[n, "h1"], "LinearArithmetic"}],
@@ -771,9 +771,12 @@ VerificationTest[
 		TypeTheoryProof[
 			ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers]}, Implies[a <= b, Implies[c <= d, a c <= b d]]],
 			{"Introduce"[a, b, c, d, h1, h2], "NonlinearArithmetic"}
-		]
+		],
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 32, n n <= 1024]], {"Introduce"[n, h], "NonlinearArithmetic"}],
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 1000, n n <= 1000000]], {"Introduce"[n, h], "NonlinearArithmetic"}],
+		TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 3037000499, n (n + 1) <= 9223372036854775807]], {"Introduce"[n, h], "NonlinearArithmetic"}]
 	},
-	ConstantArray[{{}, True}, 6],
+	ConstantArray[{{}, True}, 9],
 	TestID -> "The-term-of-a-proof-by-linear-arithmetic-checks-against-its-statement"
 ]
 

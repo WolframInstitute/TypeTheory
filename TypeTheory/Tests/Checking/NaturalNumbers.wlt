@@ -727,3 +727,79 @@ VerificationTest[
 	TestID -> "The-comparison-of-a-registrations-equations-is-left-out-in-two-places-only"
 ]
 
+
+(* The offset rule takes the step its reading took: t k + 0 against t k, for a literal k, is decided at once in both
+   orders, where lazy delta unfolded the product a unit of k at a time past the recursion limit; so is t k + (0 + 0) and
+   (t k + 0) + 1 against t k + 1. 0 + t k is not t k by computation, the addition recursing on its second argument, and
+   is still refused. Each comparison is timed, well under a second, as the walk took a second and ran out at 2082. *)
+SetAttributes[offsetTimedEqual, HoldAll]
+offsetTimedEqual[a_, b_] := With[
+	{timed = AbsoluteTiming[DefinitionallyEqualQ[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, a]], TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, b]]]]},
+	{Last[timed], First[timed] < 1}
+]
+
+VerificationTest[
+	{
+		offsetTimedEqual[n 2082 + 0, n 2082],
+		offsetTimedEqual[n 2082, n 2082 + 0],
+		offsetTimedEqual[n 5000 + 0, n 5000],
+		offsetTimedEqual[n 1000000 + 0, n 1000000],
+		offsetTimedEqual[(n n) 2082 + (0 + 0 32), (n n) 2082],
+		offsetTimedEqual[n 2082 + (0 + 0), n 2082],
+		offsetTimedEqual[(n 2082 + 0) + 1, n 2082 + 1],
+		offsetTimedEqual[n 2082 + 0, n 2082 + 0 0],
+		offsetTimedEqual[66656 n + ((n n) 2082 + (0 + 0 32)), (66656 1) n + ((n n) 2082 + (0 + 0 32))],
+		offsetTimedEqual[(Typed[x, NonNegativeIntegers] |-> x + (0 + 0 32))[(Typed[x, NonNegativeIntegers] |-> x 2082)[(Typed[x, NonNegativeIntegers] |-> x n)[n]]], (n n) 2082 + (0 + 0 32)],
+		offsetTimedEqual[0 + n 2082, n 2082]
+	},
+	Append[ConstantArray[{True, True}, 10], {False, True}],
+	TestID -> "The-offset-rule-takes-the-step-its-reading-took"
+]
+
+(* A closed term of registered operations on literals reads as the literal it computes, by the role's function; an
+   operation no role registers, an opaque one, or a term with a variable in it is not read so. An opaque product of 0
+   and 32 is no 0, so n 3 plus it is not n 3, with either kernel. *)
+VerificationTest[
+	With[
+		{
+			operations = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition["timesUnregistered", Typed[Function[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, m k], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]],
+				TypeTheoryDefinition["timesOpaque", Typed[Function[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, m k], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]], "Opaque" -> True]
+			}],
+			closedLiteral = Symbol["WolframInstitute`TypeTheory`Checking`NaturalNumbers`Private`closedLiteral"],
+			elaborated = Symbol[First[Names["WolframInstitute`TypeTheory`*`elaborateQueryTerm"]]]
+		},
+		With[{settings = WolframInstitute`TypeTheory`PackageScope`naturalNumberSettings[operations]},
+			{
+				Function[term, closedLiteral[settings, First[elaborated[operations, term, None, {}]]]] /@ {
+					TypeTheoryTerm[0 + 0 32, operations],
+					TypeTheoryTerm[(2 + 3) 4, operations],
+					TypeTheoryTerm["timesUnregistered"[0, 32], operations],
+					TypeTheoryTerm["timesOpaque"[0, 32], operations],
+					TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, n 0], operations]
+				},
+				Function[method, Replace[
+					TypeTheoryEnvironment[operations, {TypeTheoryTheorem["opaqueZero", ForAll[{Typed[n, NonNegativeIntegers]}, n 3 + "timesOpaque"[0, 32] == n 3], Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n 3]]]}, Method -> method],
+					{failure_Failure :> First[failure], _ -> "accepted"}
+				]] /@ {"Compiled", "Symbolic"}
+			}
+		]
+	],
+	{{0, 20, None, None, None}, {"TypeMismatch", "TypeMismatch"}},
+	TestID -> "A-closed-term-of-registered-operations-reads-as-its-literal-and-no-other-does"
+]
+
+(* The fold computes only by registered roles, and a role with defining equations is registered only where they hold:
+   a multiplication that is always 0 is refused, so no reading takes its products of literals for the role's *)
+VerificationTest[
+	MatchQ[
+		Lookup[Last @ TypeTheoryEnvironment[beforeNaturalNumbers, {
+			TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", Plus],
+			TypeTheoryDefinition["timesForged", Typed[Function[{Typed[m, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, 0], TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]]],
+			TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|"Multiplication" -> "timesForged"|>]
+		}], "MessageParameters"],
+		{HoldForm["timesForged"], "Multiplication", _String}
+	],
+	True,
+	TestID -> "A-forged-operation-is-refused-so-no-reading-folds-it"
+]

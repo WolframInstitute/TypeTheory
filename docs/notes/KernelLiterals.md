@@ -86,6 +86,27 @@ way, before the rule could read through it.
   numbers; and what is left once neither side has an offset to strip is compared once by general definitional equality.
   A rule that recursed once per round overflowed the stack of W15 (w15-bugs §69): `Twice[2900] + 1` against 5801, 1450
   rounds, crashed the process.
+- **A reading that took a step is compared at once** (task 56, approved by PureMathLead, 2026-11-14). `t 2082 + 0`
+  against `t 2082` read the same offsets, 0 over `t 2082`, so the rule decided nothing and lazy delta unfolded the
+  product, the higher definition, one unit of 2082 at a time past the recursion limit. Where a side's reading has offset
+  0 over a base that is not zero and not the side itself, the reading dropped an addition of zero, and the bases, parts
+  of the sides that read as themselves, are compared once by general definitional equality before lazy delta
+  (`offsetStepQ`). A reading with successors left takes no such step: written back, `t + k` reduces to a successor that
+  reads as `t + k` again, which a first version looped on.
+- **A closed term of registered operations on literals reads as the literal it computes** (`closedLiteral`): `0 32` as
+  0, so `t 2082 + (0 + 0 32)`, the shape a `"NonlinearArithmetic"` proof's term has, reads as `t 2082`. The value is the
+  role's function on the integers, the arithmetic of `literalOperationResult` at a weak head normal form and of
+  `literalFolded` at beta; an operation no role registers, an opaque one among them, or a part that is no literal leaves
+  the term as it is.
+- **A beta-redex is stuck where its reduct is** (`stuckQ`): the literal extension reading the value of
+  `(x |-> x 2082)[n n]` reduced it with its definitions, a unit of 2082 at a time; stuck only declines that computation,
+  so taking a redex for its reduct accepts nothing more.
+
+  Measured on pod 4: the twelve probes in 11-56 ms on both kernels, where eleven ran out of recursion; the 36-module
+  cone accepted constant by constant on both kernels, 1366 s in the Wolfram Language kernel against 1381 s before;
+  task 52's three proofs with large literals read back. Lean's kernel checks the probes and the first of those proofs
+  through LeanLink's export; the other two stop in Lean's elaborator, which unfolds the exported `TypeTheory.Times` a
+  unit at a time, as no literal arithmetic is Lean's for it.
 
 Measured: the three bridge lemmas on the literal 2^63 in 0.41 s together (aborted at 300 s and 2.3 GB before);
 `Twice[2900] + 1` against 5801 and 5802 in 0.94 s, `Twice[20000] + 1` in 6.5 s. The agreement script adds 150 additions

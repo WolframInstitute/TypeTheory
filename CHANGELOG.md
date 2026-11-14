@@ -136,6 +136,10 @@ Versions 0.35.0 to 0.45.0.
   the same list failed to elaborate.
 - `Information[env, property]` of a property an environment does not have gives a `Failure`, where it gave
   the property's private function unevaluated.
+- Definitional equality of t k + 0 and t k, for a literal k, is decided at once, where it unfolded the product a unit
+  of k at a time and ran out of recursion from k = 2082; so is t k + (0 + 0 32), as a closed term of registered
+  operations on literals reads as the literal it computes. Proofs by "NonlinearArithmetic" with large literals
+  check again when their terms are read back.
 
 ### Performance
 
