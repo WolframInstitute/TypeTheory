@@ -85,9 +85,14 @@ real64Neighbours::usage = "real64Neighbours[r] gives the two rationals m 2^e nex
 (*Function Definitions*)
 
 
-(* the declarations of the machine integers on the rationals, then the reals' *)
+(* the declarations of the machine integers on the rationals, then the reals', then the second slice's theorems
+   (Library/MachineRealsSpacing.wl) *)
 machineRealsEnvironment[] := machineRealsEnvironment[] = withoutStoreTracking[
-	libraryEnvironment["MachineReals", rationalsEnvironment[], withStoreCleanup[Fold[addMachineDeclaration, rationalsEnvironment[], Join[$machineDeclarations, $machineRealDeclarations]]]]
+	libraryEnvironment["MachineReals", rationalsEnvironment[], withStoreCleanup[Fold[
+		addMachineDeclaration,
+		rationalsEnvironment[],
+		Join[$machineDeclarations, $machineRealDeclarations, $machineRealSpacingDeclarations]
+	]]]
 ]
 
 (* The implementations. The nearest machine real to a rational, by integers: the exponent e with 2^52 <= |q| / 2^e < 2^53,

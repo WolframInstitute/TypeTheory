@@ -31,7 +31,7 @@ VerificationTest[
 		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", reals]], TypeTheoryTerm[Integers -> Integers -> ("Integer64" | Failure), reals]],
 		TypeTheoryEnvironment["MachineReal"]["Tag"]
 	},
-	{TypeTheoryEnvironment, 80, {"rationalFloor", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
+	{TypeTheoryEnvironment, 170, {"rationalFloor", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
 	TestID -> "The-machine-reals-are-over-the-rationals-with-three-computed-axioms"
 ]
 

@@ -55,8 +55,33 @@ rests on the three axioms.
 
 The slice is in two parts. The first is in the library since 0.41.0: the specification of the rounding as an axiom,
 the two theorems of commutativity, the implementation by integers, and the Boolean of nearness with its grid. Of the
-second, 0.43.0 has the order of the rationals and the three properties of the rounding as theorems; the spacing of
-the machine reals and the lemma that turns the Boolean into an equation are to come.
+second, 0.43.0 has the order of the rationals and the three properties of the rounding as theorems, and 0.48.0 the
+rest, in `Library/MachineRealsSpacing.wl`: the spacing of the machine reals, the lemma that turns the Boolean into an
+equation, and the standard model.
+
+### The certificate and the standard model (0.48.0)
+
+`"real64ResultOfNearestQ"`: `"real64NearestQ"[q, m, a, b] == "true"` gives a machine real r with
+`"real64Result"[q] == "left"[r]` and r 2^b == m 2^a. `"real64StandardModel"`: for |q| < B the result r of q has
+r == q (1 + d) with 2^53 |d| <= 1 where 2^-1022 <= |q|, and 2 |q 2^1074 - r 2^1074| <= 1 below, that is
+|r - q| <= 2^-1075; `"real64PlusStandardModel"` is its instance for a sum, and `"real64TimesStandardModel"` says the same
+of every real that `"real64Times"` gives, since a product that rounds to a subnormal real leaves. The closure of all
+four is `<|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature", "real64ResultNearest" -> "Proposition"|>`.
+
+The proofs work in the scale 2^1074, where a machine real is a whole number z 2^f with |z| < 2^53 and f <= 2045.
+Above n 2^e with 2^52 <= n < 2^53 every machine real is at least 2^e away, and below it 2^e, or 2^(e - 1) at a power
+of two that is not the lowest exponent (`"scaledGridAbove"`, `"scaledGridBelow"`, `"scaledGridBelowEdge"`, and
+`"scaledIntegerAbove"` and `"scaledIntegerBelow"` at the lowest exponent). The certificate compares the real the check
+names with the axiom's nearest over abstract rationals (`"abstractCertificate"`): neither can be nearer, and where they
+tie the tie clause and the check's parity leave one of them; a negative m works at the negations, and m == 0 by the
+neighbours of 0. The standard model takes no floor of q: the nearest real r is put in the form of the largest
+significand by an induction on natural numbers (`"canonicalGrid"`), and q is compared with the neighbour of r on its
+side, which is a machine real by `"real64OfScaledWitness"`. At the top exponent there is none above the largest real,
+and q < B bounds q there.
+
+The machine reals have 170 constants over the rationals where they had 80: the 90 theorems of this part, and no axiom.
+Two faults of the tactics came out on the way and are fixed: `"LinearArithmetic"` over the rationals and over the
+natural numbers found no multipliers for inequalities of numbers alone.
 
 ### Theorems with content
 
