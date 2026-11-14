@@ -85,7 +85,8 @@ VerificationTest[
 		}
 	],
 	ConstantArray[True, 8],
-	TimeConstraint -> 120,
+	(* it ran past 120 s on a pod at a load average of 45, on 0.45.0 and 0.46.0 alike *)
+	TimeConstraint -> 300,
 	TestID -> "Each-real-operation-gives-the-Wolfram-Languages-machine-real"
 ]
 
