@@ -219,3 +219,15 @@ VerificationTest[
 	TestID -> "Ring-refuses-an-equation-of-rationals-without-a-fraction-at-once"
 ]
 
+(* inequalities of natural numbers alone, with no atom for the multipliers to cancel: the multipliers are the unknowns,
+   never variables of the polynomial (CoefficientRules with no variables took them for variables, and found nothing) *)
+VerificationTest[
+	{
+		TypeTheoryProof[0 <= Typed[971, NonNegativeIntegers], prelude, {TypeTheoryTactic["LinearArithmetic"]}]["Goals"],
+		TypeTheoryProof[Implies[Typed[3, NonNegativeIntegers] <= 2, False], prelude, {TypeTheoryTactic["Introduce", h], TypeTheoryTactic["LinearArithmetic"]}]["Goals"],
+		TypeTheoryProof[Typed[3, NonNegativeIntegers] <= 2, prelude, {TypeTheoryTactic["LinearArithmetic"]}]["Tag"]
+	},
+	{{}, {}, "NoLinearCombination"},
+	TestID -> "Linear-arithmetic-decides-inequalities-of-natural-numbers-alone"
+]
+

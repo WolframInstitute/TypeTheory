@@ -189,8 +189,10 @@ linearCofactors[target_, divisors_List, variables_List, degree_Integer, limit_] 
 
 (* the coefficients of a polynomial in the variables, unknowns kept in them; with no variables the polynomial is its
    own coefficient, where CoefficientRules would take every symbol in it, the unknowns too, for a variable *)
-coefficientsIn[polynomial_, {}] := {polynomial}
-coefficientsIn[polynomial_, variables_List] := Last /@ CoefficientRules[polynomial, variables]
+coefficientsIn[polynomial_, variables_List] := Last /@ coefficientRulesIn[polynomial, variables]
+
+coefficientRulesIn[polynomial_, {}] := {{} -> polynomial}
+coefficientRulesIn[polynomial_, variables_List] := CoefficientRules[polynomial, variables]
 
 (* the polynomial as a Wolfram expression in the variables standing for its atoms *)
 wolframPolynomial[polynomial_List, variableOf_Association] := Total[Function[monomial,
@@ -319,7 +321,7 @@ nonnegativity[forms_List] := Function[factors, With[{term = productTerm[factors]
    which divides the constant too, the multipliers are the same for instances that are multiples of each other, and
    the proof term with them. *)
 contradictionMultipliers[differences_List, variables_List] := With[{multipliers = Table[\[FormalY][i], {i, Length[differences]}]},
-	{rules = CoefficientRules[Expand[multipliers . differences], variables]},
+	{rules = coefficientRulesIn[Expand[multipliers . differences], variables]},
 	Replace[
 		TimeConstrained[
 			Quiet @ FindInstance[
