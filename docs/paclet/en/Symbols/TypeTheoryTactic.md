@@ -989,13 +989,13 @@ proof = TypeTheoryProof[Not[ForAll[{n}, n^2 <= 2^n]], {"Counterexample"}]
 
 <!-- => Proof complete -->
 
-The statement `h` applied to 3, and refuted by the decision of `¬(3^2 <= 2^3)`:
+The statement `h` applied to 3, and refuted by the decision of `¬(3^2 <= 2^3)`. Here `"decideSoundness"` is applied past its conclusion, to `h[3]`, so the term shows the proposition and the instance it decides, which reading the term back needs:
 
 ```wl
 proof["Term"]
 ```
 
-<!-- => (h ∶ ∀_n∶ℕ n^2 <= 2^n) ↦ decideSoundness[equalityReflexivity[true], h[3]] -->
+<!-- => (h ∶ ∀_n∶ℕ n^2 <= 2^n) ↦ decideSoundness[¬3^2 <= 2^3, notDecidable, equalityReflexivity[true], h[3]] -->
 
 ---
 
