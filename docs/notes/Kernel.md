@@ -165,36 +165,39 @@ The addition's equations are what the kernel reads terms through:
 [KernelLiterals.md](KernelLiterals.md) has the design, the measurements and the agreement test,
 `scripts/offset_agreement.wls`.
 
-The compiled kernel holds a natural number literal below 2^62. A larger one is no row of its input: `environmentInput`
-writes it as a reference to a constant made for its value, one for each distinct value, declared as an axiom of the
-natural numbers' type right after the natural numbers, their zero and their successor, under a name no constant of an
-environment has (`largeLiteral[n]`); a literal the compiled kernel holds is never made a constant. What is trusted in
-this: that a judgement about a constant with no rule holds of any closed term of its type put in its place, so that a
-record the compiled kernel accepts with the constant is one the kernel of TypeChecking.wl accepts with the literal.
-The compiled kernel can then only accept less. Where a record needs the value of such a literal, or a registered
-operation's result on literals passes 2^62, which ends the check with `eLiteralOverflow` and never wraps, the record
-is undecided, and only in an environment that has a large literal: `compiledDeclarations` has the kernel of
-TypeChecking.wl check that record's declaration in the environment of the declarations before it, added as the batch
-added them, and its verdict is the batch's; the compiled kernel then goes on with the record taken as it is. The
-rules of a recursor are checked at the end of a pass, which a pass that ends at an undecided record does not reach, so
-recursors stay checked from pass to pass. Elsewhere a record the compiled kernel refuses is refused by that, as
-before. From 0.44.0 `TypeTheoryCheck` rechecks too: the records before an undecided one, which the program has
-accepted, are declared again as the replay declares them, each compared whole, and the undecided record with every
-check of the kernel of TypeChecking.wl, after which the program goes on; what is declared is kept from one recheck to
-the next, and leaves the store that declaring the records one at a time leaves. The replay of every record and the
-comparison of the store's derived keys follow as before. Until then it left an environment with an undecided record to
-the kernel of TypeChecking.wl whole. On the import of 36 modules of Mathlib (11,899 constants, 8 of whose records need the value of a large literal)
-`TypeTheoryCheck` took 519.7 s before the rechecks and takes 13.9 s with them, at nice 19, and at each of the 8 the store
-the rechecks leave is the one that declaring the records one at a time leaves. The guards are tests, in
-Tests/Checking/CompiledKernel.wlt: the two kernels give one verdict on batches with large literals, true and false; no
-literal wraps past the limit; the other kernel is asked only where a large literal is present; a recursor with a
-forged rule before an undecided record is caught; `TypeTheoryCheck` rechecks two undecided records, refuses a forged
-proof just after one (the program leaves it undecided, as it does every record it does not accept in an environment
-with a large literal, and its recheck refuses it) and a definition with a flag turned just before one (the program
-does not read the flag; the recheck compares the record whole); and the rechecks' store is the one the replay with full
-checks makes. The step after is the values of large literals in the compiled program itself, integers past 64 bits,
-which would decide those records and leave no recheck: all 8 of the 36 modules' are records that need such a value.
-It goes with the program's next recompile, beside the role that is active only from its registration's place.
+The compiled kernel holds a natural number literal below 2^62 as a row of its own, and one from 2^62 up to 64 limbs
+of 30 bits, below 2^1920, as a node `tBig` over a chain of `tLimbs` nodes, two limbs each from the lowest up. The
+chain's nodes are interned as every node is, so two equal literals are one node and comparing them is comparing nodes,
+and a result below 2^62 is a row again, so a value has one form. Every registered operation computes on the limbs,
+exactly: addition and subtraction with carries, multiplication limb by limb, quotient and remainder by long division,
+the greatest common divisor by halving and subtracting, the bitwise operations, the shifts, the base-2 logarithm, and
+the power by squaring. A result past 64 limbs ends the check with `eLiteralOverflow` and never wraps, and the record is
+undecided, in any environment. `programInputQ` takes chain rows only as chains, as the program's loader does: limbs
+below 2^30, each link a chain row before it, a top row whose limbs are not both 0, a literal's chain of at most 32
+rows and a value of 2^62 or more, and no chain row a part of a term, a constant's type or value, or a rule's side.
+
+A literal past 64 limbs is no row of the input: `environmentInput` writes it as a reference to a constant made for its
+value, one for each distinct value, declared as an axiom of the natural numbers' type right after the natural numbers,
+their zero and their successor, under a name no constant of an environment has (`largeLiteral[n]`); a literal the
+compiled kernel holds is never made a constant. What is trusted in this: that a judgement about a constant with no rule
+holds of any closed term of its type put in its place, so that a record the compiled kernel accepts with the constant
+is one the kernel of TypeChecking.wl accepts with the literal. The compiled kernel can then only accept less. Where a
+record needs the value of such a literal the record is undecided, in an environment that has one: `compiledDeclarations`
+has the kernel of TypeChecking.wl check that record's declaration in the environment of the declarations before it,
+added as the batch added them, and its verdict is the batch's; the compiled kernel then goes on with the record taken
+as it is. The rules of a recursor are checked at the end of a pass, which a pass that ends at an undecided record does
+not reach, so recursors stay checked from pass to pass. Elsewhere a record the compiled kernel refuses is refused by
+that. `TypeTheoryCheck` rechecks too, from 0.44.0: the records before an undecided one, which the program has accepted,
+are declared again as the replay declares them, each compared whole, and the undecided record with every check of the
+kernel of TypeChecking.wl, after which the program goes on; what is declared is kept from one recheck to the next, and
+leaves the store that declaring the records one at a time leaves. The replay of every record and the comparison of the
+store's derived keys follow as before. On the import of 36 modules of Mathlib (11,899 constants), the 8 records that need the value of a large literal, all of `UInt64` and `USize`, are now the compiled kernel's: in Wolfram 15.0.1 on Linux (2 CPUs) `TypeTheoryCheck` rechecks none and takes 17.9 s, where with the 8 rechecks it took 38.5 s; on this Mac at nice 19 it took 519.7 s before the rechecks and 13.9 s with them. The guards are tests, in Tests/Checking/CompiledKernel.wlt:
+every role on literals around 2^62 and the limbs' boundaries, true and false, decided by the compiled kernel alone; a
+result past 64 limbs left to the other kernel; forged chains refused by the guard and by the program; the two kernels
+give one verdict on batches with literals past the limbs, true and false; no literal wraps past the limit; the other
+kernel is asked only where the compiled kernel cannot decide; a recursor with a forged rule before an undecided record
+is caught; `TypeTheoryCheck` rechecks two undecided records, refuses a forged proof just after one and a definition with
+a flag turned just before one; and the rechecks' store is the one the replay with full checks makes.
 
 **An input the program could skip in.** From 0.16.0 to 0.42.1 `TypeTheoryCheck` accepted an environment in which the
 record of a theorem, of an opaque constant or of a definition had no value: a store changed by hand, with a theorem

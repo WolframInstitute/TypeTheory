@@ -105,7 +105,7 @@ $codeConstants = {
 	hMaxDepth -> 46, hMaxStack -> 47, hDefeqCalls -> 48, hWhnfCalls -> 49, hInferCalls -> 50,
 	hMarkBase -> 51, hMarkGen -> 52, hCurrent -> 53, hLazyX -> 54, hLazyY -> 55, hFailA -> 56, hFailB -> 57, hFailTerm -> 58,
 	hHeaderSize -> 64,
-	tBVar -> 1, tSort -> 2, tConst -> 3, tApp -> 4, tLam -> 5, tPi -> 6, tLet -> 7, tLit -> 8, tProj -> 9, tFVar -> 10,
+	tBVar -> 1, tSort -> 2, tConst -> 3, tApp -> 4, tLam -> 5, tPi -> 6, tLet -> 7, tLit -> 8, tProj -> 9, tFVar -> 10, tBig -> 11, tLimbs -> 12,
 	lConst -> 1, lParam -> 2, lSucc -> 3, lMax -> 4, lIMax -> 5, lCons -> 6, lNil -> 7,
 	kAxiom -> 1, kDefinition -> 2, kTheorem -> 3, kOpaque -> 4, kInductive -> 5, kConstructor -> 6, kRecursor -> 7, kQuotient -> 8, kHole -> 9,
 	cWidth -> 20, cKind -> 1, cType -> 2, cValue -> 3, cParams -> 4, cNumParams -> 5, cHeight -> 6, cHint -> 7,
@@ -113,7 +113,8 @@ $codeConstants = {
 	eMismatch -> 1, eNotType -> 2, eNotFunction -> 3, eNotProp -> 4, eLooseBVar -> 5, eArity -> 6, eUnknownConstant -> 7, eProjType -> 8, eProjIndex -> 9,
 	eProjProof -> 10, eUndeclaredParam -> 11, eIllFormed -> 12, eDeclarationMismatch -> 13, eUniverseTooLarge -> 14, eConstructorParameters -> 15,
 	eUnsupported -> 20, eDepth -> 21, eCapacity -> 22, eStack -> 23, eLevelCapacity -> 24, eLctxCapacity -> 25, eLiteralOverflow -> 26,
-	mask40 -> 1099511627775, litLimit -> 4611686018427387904
+	mask40 -> 1099511627775, litLimit -> 4611686018427387904,
+	limbMask -> 1073741823, limbBase -> 1073741824, limbCap -> 64, limbWidth -> 132
 }
 
 SetAttributes[kfn, HoldAll]
@@ -605,15 +606,17 @@ $program = Hold[{
 	(* ::Subsection:: *)
 	(* Reduction *)
 
-	kfn[arenaToConstructorForm, Function[{m, e},
-		If[arenaTagOf[m, e] != tLit || m["Part", hNatType] == 0,
-			e,
-			If[arenaF1Of[m, e] == 0, m["Part", hZeroNode], arenaMkApp[m, m["Part", hSuccNode], arenaMkNode[m, tLit, arenaF1Of[m, e] - 1, 0, 0]]]
+	kfn[arenaToConstructorForm, Function[{m, e}, Module[{t = arenaTagOf[m, e]},
+		Which[
+			m["Part", hNatType] == 0 || (t != tLit && t != tBig), e,
+			t == tLit && arenaF1Of[m, e] == 0, m["Part", hZeroNode],
+			t == tLit, arenaMkApp[m, m["Part", hSuccNode], arenaMkNode[m, tLit, arenaF1Of[m, e] - 1, 0, 0]],
+			True, arenaMkApp[m, m["Part", hSuccNode], arenaBigResult[m, arenaBigOperation[m, 2, e, arenaMkNode[m, tLit, 1, 0, 0], 2]]]
 		]
-	]],
+	]]],
 	kfn[arenaWhnfStep, Function[{m, e, unfold}, Module[{n = arenaSpineCount[m, e], h = arenaSpineHead[m, e], s = 0, t = 0, r = e, c = 0, b = 0, v = 0, top = m["Part", hStackTop]},
 		t = arenaTagOf[m, h];
-		If[n == 0 && (t == tSort || t == tPi || t == tLam || t == tLit || t == tBVar), Return[e]];
+		If[n == 0 && (t == tSort || t == tPi || t == tLam || t == tLit || t == tBig || t == tBVar), Return[e]];
 		s = arenaPushSpine[m, e, n];
 		If[s < 0, Return[0]];
 		r = Which[
@@ -669,59 +672,313 @@ $program = Hold[{
 			True, e
 		]
 	]]],
-	kfn[arenaLiteralValue, Function[{m, a}, Module[{t = arenaWhnf[m, a], succs = 0, succNode = m["Part", hSuccNode]},
+	(* the number a computes to, a successor of a number or a literal, as its literal node: tLit below 2^62, tBig from it;
+	   0 where it is none *)
+	kfn[arenaLiteralNode, Function[{m, a}, Module[{t = arenaWhnf[m, a], succs = 0, succNode = m["Part", hSuccNode], tag = 0},
 		While[arenaTagOf[m, t] == tApp && arenaF1Of[m, t] == succNode,
-			succs++;
+			succs = succs + 1;
 			t = arenaWhnf[m, arenaF2Of[m, t]]
 		];
+		tag = arenaTagOf[m, t];
 		Which[
-			arenaTagOf[m, t] == tLit, arenaF1Of[m, t] + succs,
-			t == m["Part", hZeroNode] && t != 0, succs,
-			True, -1
+			t == m["Part", hZeroNode] && t != 0, arenaMkNode[m, tLit, succs, 0, 0],
+			tag != tLit && tag != tBig, 0,
+			succs == 0, t,
+			tag == tLit && arenaF1Of[m, t] < litLimit - succs, arenaMkNode[m, tLit, arenaF1Of[m, t] + succs, 0, 0],
+			True, arenaBigResult[m, arenaBigOperation[m, 1, t, arenaMkNode[m, tLit, succs, 0, 0], 2]]
 		]
 	]]],
+	(* -2 where the power reaches 2^62, for the limbs to compute *)
 	kfn[arenaLiteralPower, Function[{m, x, y}, Module[{r = 1, b = x, e = y},
 		If[x <= 1, Return[x]];
 		While[e > 0,
-			If[BitAnd[e, 1] == 1, If[r > Quotient[litLimit, b], Return[-2]]; r = r b];
+			If[BitAnd[e, 1] == 1, If[r > Quotient[litLimit - 1, b], Return[-2]]; r = r b];
 			e = BitShiftRight[e, 1];
-			If[e > 0, If[b > Quotient[litLimit, b], Return[-2]]; b = b b]
+			If[e > 0, If[b > Quotient[litLimit - 1, b], Return[-2]]; b = b b]
 		];
 		r
 	]]],
 	kfn[arenaLiteralGCD, Function[{m, x, y}, Module[{a = x, b = y, t = 0}, While[b != 0, t = Mod[a, b]; a = b; b = t]; a]]],
 	kfn[arenaLiteralLog2, Function[{m, x}, Module[{a = x, k = -1}, While[a > 0, a = BitShiftRight[a, 1]; k++]; k]]],
-	(* an operation registered for the natural numbers on literal arguments: 0 where it does not compute, which unfolds it *)
-	kfn[arenaLiteralOperation, Function[{m, c, role, s, n}, Module[{arity = If[role == 8, 1, 2], x = 0, y = 0, r = 0},
+	(* an operation registered for the natural numbers on literal arguments: 0 where it does not compute, which unfolds it.
+	   Two literals below 2^62 compute as machine integers while the result stays below; any other, or one that reaches
+	   2^62, computes on limbs (arenaBigOperation), exactly, up to limbCap limbs, past which the check ends with
+	   eLiteralOverflow and the record is left to the kernel of TypeChecking.wl *)
+	kfn[arenaLiteralOperation, Function[{m, c, role, s, n}, Module[{arity = If[role == 8, 1, 2], x = 0, y = 0, xv = 0, yv = 0, r = -1},
 		If[n != arity, Return[0]];
-		x = arenaLiteralValue[m, arenaStackGet[m, s]];
-		If[x < 0, Return[0]];
-		If[arity == 2, y = arenaLiteralValue[m, arenaStackGet[m, s + 1]]; If[y < 0, Return[0]]];
-		r = Which[
-			role == 1, If[x > litLimit - y, -2, x + y],
-			role == 2, Max[x - y, 0],
-			role == 3, If[x != 0 && y > Quotient[litLimit, x], -2, x y],
-			role == 4, Which[y == 0, 1, y >= 16777216, -1, True, arenaLiteralPower[m, x, y]],
-			role == 5, If[y == 0, 0, Quotient[x, y]],
-			role == 6, If[y == 0, x, Mod[x, y]],
-			role == 7, arenaLiteralGCD[m, x, y],
-			role == 8, If[x == 0, 0, arenaLiteralLog2[m, x]],
-			role == 9, BitAnd[x, y],
-			role == 10, BitOr[x, y],
-			role == 11, BitXor[x, y],
-			role == 12, Which[y >= 16777216, -1, x == 0, 0, y >= 62, -2, x >= BitShiftLeft[1, 62 - y], -2, True, BitShiftLeft[x, y]],
-			role == 13, If[y >= 63, 0, BitShiftRight[x, y]],
-			role == 14, If[x == y, -10, -11],
-			role == 15, If[x <= y, -10, -11],
-			True, -1
+		x = arenaLiteralNode[m, arenaStackGet[m, s]];
+		If[x == 0, Return[0]];
+		If[arity == 2, y = arenaLiteralNode[m, arenaStackGet[m, s + 1]]; If[y == 0, Return[0]]];
+		If[ arenaTagOf[m, x] == tLit && (arity == 1 || arenaTagOf[m, y] == tLit),
+			xv = arenaF1Of[m, x];
+			yv = If[arity == 2, arenaF1Of[m, y], 0];
+			r = Which[
+				role == 1, If[xv >= litLimit - yv, -2, xv + yv],
+				role == 2, Max[xv - yv, 0],
+				role == 3, If[xv != 0 && yv > Quotient[litLimit - 1, xv], -2, xv yv],
+				role == 4, Which[yv == 0, 1, xv <= 1, xv, yv >= 16777216, -3, True, arenaLiteralPower[m, xv, yv]],
+				role == 5, If[yv == 0, 0, Quotient[xv, yv]],
+				role == 6, If[yv == 0, xv, Mod[xv, yv]],
+				role == 7, arenaLiteralGCD[m, xv, yv],
+				role == 8, If[xv == 0, 0, arenaLiteralLog2[m, xv]],
+				role == 9, BitAnd[xv, yv],
+				role == 10, BitOr[xv, yv],
+				role == 11, BitXor[xv, yv],
+				role == 12, Which[xv == 0, 0, yv >= 30 limbCap, -3, yv >= 62, -2, xv >= BitShiftLeft[1, 62 - yv], -2, True, BitShiftLeft[xv, yv]],
+				role == 13, If[yv >= 63, 0, BitShiftRight[xv, yv]],
+				role == 14, If[xv == yv, -10, -11],
+				role == 15, If[xv <= yv, -10, -11],
+				True, -1
+			];
+			r = Which[
+				r == -2, arenaBigOperation[m, role, x, y, arity],
+				r == -3, -2,
+				r >= 0, arenaMkNode[m, tLit, r, 0, 0],
+				True, r
+			],
+			r = arenaBigOperation[m, role, x, y, arity]
 		];
 		Which[
 			r == -1, 0,
 			r == -2, arenaFail[m, eLiteralOverflow],
 			r == -10, arenaMkConst[m, arenaConstCell[m, c, cBoolTrue], m["Part", hLevelNil]],
 			r == -11, arenaMkConst[m, arenaConstCell[m, c, cBoolFalse], m["Part", hLevelNil]],
-			True, arenaMkNode[m, tLit, r, 0, 0]
+			r <= 0, 0,
+			True, r
 		]
+	]]],
+	(* the node of a big operation's result, which is a node or a code: 0 where it is no node *)
+	kfn[arenaBigResult, Function[{m, r}, If[r > 0, r, If[r == -2, arenaFail[m, eLiteralOverflow], 0]]]],
+
+	(* ::Subsection:: *)
+	(* Large literals *)
+
+	(* A natural number literal of 2^62 or more is a node tBig whose first field is a chain of tLimbs nodes, each two limbs
+	   of 30 bits, the lower first, and the chain of the higher limbs, or 0 at the top, whose limbs are not both 0; nodes
+	   are interned, so equal values are one node, and a literal below 2^62 is always tLit. A number is worked on as limbs
+	   on the stack, least significant first, with no leading zero limb, and made a node again by arenaMkNumber. *)
+	kfn[arenaLimbsNormal, Function[{m, s, n}, Module[{k = n}, While[k > 0 && arenaStackGet[m, s + k - 1] == 0, k = k - 1]; k]]],
+	kfn[arenaLimbsCopy, Function[{m, s, n, r}, Module[{j = 0}, Do[arenaStackSet[m, r + j, arenaStackGet[m, s + j]], {j, 0, n - 1}]; n]]],
+	(* the limbs of the literal node e written from s, their count; -1 for a node that is no literal *)
+	kfn[arenaNumberLimbs, Function[{m, e, s}, Module[{t = arenaTagOf[m, e], v = 0, n = 0, chain = 0},
+		Which[
+			t == tLit,
+				v = arenaF1Of[m, e];
+				While[v > 0, arenaStackSet[m, s + n, BitAnd[v, limbMask]]; v = BitShiftRight[v, 30]; n = n + 1];
+				n,
+			t == tBig,
+				chain = arenaF1Of[m, e];
+				While[chain != 0,
+					If[n > limbCap || arenaTagOf[m, chain] != tLimbs, Return[arenaFail[m, eIllFormed] - 1]];
+					arenaStackSet[m, s + n, arenaF1Of[m, chain]];
+					arenaStackSet[m, s + n + 1, arenaF2Of[m, chain]];
+					n = n + 2;
+					chain = arenaF3Of[m, chain]
+				];
+				arenaLimbsNormal[m, s, n],
+			True, -1
+		]
+	]]],
+	(* the literal node of the n limbs from s: tLit below 2^62, past limbCap limbs a failure *)
+	kfn[arenaMkNumber, Function[{m, s, count}, Module[{n = arenaLimbsNormal[m, s, count], v = 0, j = 0, rest = 0},
+		If[ n <= 2 || (n == 3 && arenaStackGet[m, s + 2] < 4),
+			Do[v = v + BitShiftLeft[arenaStackGet[m, s + j], 30 j], {j, 0, n - 1}];
+			Return[arenaMkNode[m, tLit, v, 0, 0]]
+		];
+		If[n > limbCap, Return[arenaFail[m, eLiteralOverflow]]];
+		Do[
+			rest = arenaMkNode[m, tLimbs, arenaStackGet[m, s + 2 j], If[2 j + 1 < n, arenaStackGet[m, s + 2 j + 1], 0], rest];
+			If[rest == 0, Return[0]],
+			{j, Quotient[n + 1, 2] - 1, 0, -1}
+		];
+		arenaMkNode[m, tBig, rest, 0, 0]
+	]]],
+	kfn[arenaLimbsCompare, Function[{m, s, n, t, k}, Module[{j = 0},
+		If[n != k, Return[If[n < k, -1, 1]]];
+		Do[If[arenaStackGet[m, s + j] != arenaStackGet[m, t + j], Return[If[arenaStackGet[m, s + j] < arenaStackGet[m, t + j], -1, 1]]], {j, n - 1, 0, -1}];
+		0
+	]]],
+	kfn[arenaLimbsAdd, Function[{m, s, n, t, k, r}, Module[{j = 0, carry = 0, cur = 0, len = Max[n, k]},
+		Do[
+			cur = carry + If[j < n, arenaStackGet[m, s + j], 0] + If[j < k, arenaStackGet[m, t + j], 0];
+			arenaStackSet[m, r + j, BitAnd[cur, limbMask]];
+			carry = BitShiftRight[cur, 30],
+			{j, 0, len - 1}
+		];
+		If[carry > 0, arenaStackSet[m, r + len, carry]; len + 1, len]
+	]]],
+	(* s minus t, for s at least t *)
+	kfn[arenaLimbsSub, Function[{m, s, n, t, k, r}, Module[{j = 0, borrow = 0, cur = 0},
+		Do[
+			cur = arenaStackGet[m, s + j] - borrow - If[j < k, arenaStackGet[m, t + j], 0];
+			If[cur < 0, cur = cur + limbBase; borrow = 1, borrow = 0];
+			arenaStackSet[m, r + j, cur],
+			{j, 0, n - 1}
+		];
+		arenaLimbsNormal[m, r, n]
+	]]],
+	(* into r, apart from s and t *)
+	kfn[arenaLimbsMul, Function[{m, s, n, t, k, r}, Module[{i = 0, j = 0, carry = 0, cur = 0, ai = 0},
+		If[n == 0 || k == 0, Return[0]];
+		Do[arenaStackSet[m, r + j, 0], {j, 0, n + k - 1}];
+		Do[
+			ai = arenaStackGet[m, s + i];
+			carry = 0;
+			If[ ai != 0,
+				Do[
+					cur = arenaStackGet[m, r + i + j] + ai arenaStackGet[m, t + j] + carry;
+					arenaStackSet[m, r + i + j, BitAnd[cur, limbMask]];
+					carry = BitShiftRight[cur, 30],
+					{j, 0, k - 1}
+				];
+				arenaStackSet[m, r + i + k, carry]
+			],
+			{i, 0, n - 1}
+		];
+		arenaLimbsNormal[m, r, n + k]
+	]]],
+	(* the quotient by a single limb d into r, the remainder given *)
+	kfn[arenaLimbsDivSmall, Function[{m, s, n, d, r}, Module[{j = 0, rem = 0, cur = 0},
+		Do[cur = BitShiftLeft[rem, 30] + arenaStackGet[m, s + j]; arenaStackSet[m, r + j, Quotient[cur, d]]; rem = Mod[cur, d], {j, n - 1, 0, -1}];
+		rem
+	]]],
+	(* in place: s doubled and the bit added, its new count *)
+	kfn[arenaLimbsShiftOne, Function[{m, s, n, bit}, Module[{j = 0, carry = bit, cur = 0},
+		Do[cur = BitOr[BitShiftLeft[arenaStackGet[m, s + j], 1], carry]; arenaStackSet[m, s + j, BitAnd[cur, limbMask]]; carry = BitShiftRight[cur, 30], {j, 0, n - 1}];
+		If[carry > 0, arenaStackSet[m, s + n, carry]; n + 1, n]
+	]]],
+	(* binary long division: the quotient into q, its count given, the remainder into rr, of at most k + 1 limbs *)
+	kfn[arenaLimbsDivMod, Function[{m, s, n, t, k, q, rr}, Module[{i = 0, j = 0, rn = 0, bit = 0},
+		Do[arenaStackSet[m, q + j, 0], {j, 0, n - 1}];
+		Do[arenaStackSet[m, rr + j, 0], {j, 0, k}];
+		Do[
+			bit = BitAnd[BitShiftRight[arenaStackGet[m, s + Quotient[i, 30]], Mod[i, 30]], 1];
+			rn = arenaLimbsShiftOne[m, rr, rn, bit];
+			If[ arenaLimbsCompare[m, rr, rn, t, k] >= 0,
+				rn = arenaLimbsSub[m, rr, rn, t, k, rr];
+				arenaStackSet[m, q + Quotient[i, 30], BitOr[arenaStackGet[m, q + Quotient[i, 30]], BitShiftLeft[1, Mod[i, 30]]]]
+			],
+			{i, 30 n - 1, 0, -1}
+		];
+		arenaLimbsNormal[m, q, n]
+	]]],
+	(* s shifted right by y bits into r, which may be s *)
+	kfn[arenaLimbsShiftRight, Function[{m, s, n, y, r}, Module[{q = Quotient[y, 30], b = Mod[y, 30], j = 0, lo = 0, hi = 0, len = 0},
+		len = n - q;
+		If[len <= 0, Return[0]];
+		Do[
+			lo = arenaStackGet[m, s + j + q];
+			hi = If[j + q + 1 < n, arenaStackGet[m, s + j + q + 1], 0];
+			arenaStackSet[m, r + j, BitAnd[BitOr[BitShiftRight[lo, b], BitShiftLeft[hi, 30 - b]], limbMask]],
+			{j, 0, len - 1}
+		];
+		arenaLimbsNormal[m, r, len]
+	]]],
+	(* s shifted left by y bits into r, apart from s; -2 past limbCap limbs *)
+	kfn[arenaLimbsShiftLeft, Function[{m, s, n, y, r}, Module[{q = Quotient[y, 30], b = Mod[y, 30], j = 0, carry = 0, cur = 0},
+		If[n == 0, Return[0]];
+		If[n + q > limbCap, Return[-2]];
+		Do[arenaStackSet[m, r + j, 0], {j, 0, q - 1}];
+		Do[
+			cur = arenaStackGet[m, s + j];
+			arenaStackSet[m, r + j + q, BitAnd[BitOr[BitShiftLeft[cur, b], carry], limbMask]];
+			carry = If[b == 0, 0, BitShiftRight[cur, 30 - b]],
+			{j, 0, n - 1}
+		];
+		arenaStackSet[m, r + n + q, carry];
+		arenaLimbsNormal[m, r, n + q + 1]
+	]]],
+	kfn[arenaLimbsTrailingZeros, Function[{m, s, n}, Module[{j = 0, z = 0, v = 0},
+		While[j < n && arenaStackGet[m, s + j] == 0, j = j + 1];
+		If[j == n, Return[0]];
+		v = arenaStackGet[m, s + j];
+		While[BitAnd[v, 1] == 0, v = BitShiftRight[v, 1]; z = z + 1];
+		30 j + z
+	]]],
+	kfn[arenaLimbBits, Function[{m, x}, Module[{v = x, k = 0}, While[v > 0, v = BitShiftRight[v, 1]; k = k + 1]; k]]],
+	(* the greatest common divisor by halving and subtracting, the numbers at a and b worked on in place, into r *)
+	kfn[arenaLimbsGCD, Function[{m, a, an, b, bn, r}, Module[{shift = 0, pa = a, pb = b, swap = 0, na = an, nb = bn},
+		If[na == 0, Return[arenaLimbsCopy[m, pb, nb, r]]];
+		If[nb == 0, Return[arenaLimbsCopy[m, pa, na, r]]];
+		shift = Min[arenaLimbsTrailingZeros[m, pa, na], arenaLimbsTrailingZeros[m, pb, nb]];
+		na = arenaLimbsShiftRight[m, pa, na, arenaLimbsTrailingZeros[m, pa, na], pa];
+		While[nb > 0,
+			nb = arenaLimbsShiftRight[m, pb, nb, arenaLimbsTrailingZeros[m, pb, nb], pb];
+			If[arenaLimbsCompare[m, pa, na, pb, nb] > 0, swap = pa; pa = pb; pb = swap; swap = na; na = nb; nb = swap];
+			nb = arenaLimbsSub[m, pb, nb, pa, na, pb]
+		];
+		arenaLimbsShiftLeft[m, pa, na, shift, r]
+	]]],
+	(* x to the power y into r, base and work scratch; -2 past limbCap limbs *)
+	kfn[arenaLimbsPower, Function[{m, x, xn, y, r, base, work}, Module[{e = y, rn = 1, bn = xn},
+		arenaStackSet[m, r, 1];
+		arenaLimbsCopy[m, x, xn, base];
+		While[e > 0,
+			If[ BitAnd[e, 1] == 1,
+				rn = arenaLimbsMul[m, r, rn, base, bn, work];
+				If[rn > limbCap, Return[-2]];
+				arenaLimbsCopy[m, work, rn, r]
+			];
+			e = BitShiftRight[e, 1];
+			If[ e > 0,
+				bn = arenaLimbsMul[m, base, bn, base, bn, work];
+				If[bn > limbCap, Return[-2]];
+				arenaLimbsCopy[m, work, bn, base]
+			]
+		];
+		rn
+	]]],
+	kfn[arenaLimbsBitwise, Function[{m, role, s, n, t, k, r}, Module[{j = 0, x = 0, y = 0, len = If[role == 9, Min[n, k], Max[n, k]]},
+		Do[
+			x = If[j < n, arenaStackGet[m, s + j], 0];
+			y = If[j < k, arenaStackGet[m, t + j], 0];
+			arenaStackSet[m, r + j, Which[role == 9, BitAnd[x, y], role == 10, BitOr[x, y], True, BitXor[x, y]]],
+			{j, 0, len - 1}
+		];
+		arenaLimbsNormal[m, r, len]
+	]]],
+	(* role on the literal nodes x and y, either of 2^62 or more or the result past it: a node, -10 or -11 for true or
+	   false, -1 where it does not compute, -2 past limbCap limbs, 0 for a failure recorded *)
+	kfn[arenaBigOperation, Function[{m, role, x, y, arity}, Module[
+		{top = m["Part", hStackTop], base = 0, xa = 0, ya = 0, ra = 0, ta = 0, ua = 0, xn = 0, yn = 0, rn = 0, yv = 0, rem = 0, result = -1},
+		base = arenaReserve[m, 6 limbWidth];
+		If[base < 0, Return[0]];
+		xa = base; ya = base + limbWidth; ra = base + 2 limbWidth; ta = base + 3 limbWidth; ua = base + 4 limbWidth;
+		xn = arenaNumberLimbs[m, x, xa];
+		If[arity == 2, yn = arenaNumberLimbs[m, y, ya]];
+		If[xn < 0 || yn < 0, arenaRestore[m, top]; Return[0]];
+		(* the exponent and the shifts: a machine integer, or past every one the cap allows *)
+		yv = If[arity == 2 && arenaTagOf[m, y] == tLit, arenaF1Of[m, y], 30 limbCap + 1];
+		result = Which[
+			role == 1, arenaMkNumber[m, ra, arenaLimbsAdd[m, xa, xn, ya, yn, ra]],
+			role == 2, If[arenaLimbsCompare[m, xa, xn, ya, yn] <= 0, arenaMkNode[m, tLit, 0, 0, 0], arenaMkNumber[m, ra, arenaLimbsSub[m, xa, xn, ya, yn, ra]]],
+			role == 3, If[xn + yn > limbCap + 1, If[xn == 0 || yn == 0, arenaMkNode[m, tLit, 0, 0, 0], -2], arenaMkNumber[m, ra, arenaLimbsMul[m, xa, xn, ya, yn, ra]]],
+			role == 4, Which[
+				yn == 0, arenaMkNode[m, tLit, 1, 0, 0],
+				xn == 0 || (xn == 1 && arenaStackGet[m, xa] == 1), x,
+				yv > 30 limbCap, -2,
+				True, rn = arenaLimbsPower[m, xa, xn, yv, ra, ta, ua]; If[rn < 0, -2, arenaMkNumber[m, ra, rn]]
+			],
+			role == 5 || role == 6, Which[
+				yn == 0, If[role == 5, arenaMkNode[m, tLit, 0, 0, 0], x],
+				yn == 1, rem = arenaLimbsDivSmall[m, xa, xn, arenaStackGet[m, ya], ra]; If[role == 5, arenaMkNumber[m, ra, xn], arenaMkNode[m, tLit, rem, 0, 0]],
+				True, rn = arenaLimbsDivMod[m, xa, xn, ya, yn, ra, ta]; If[role == 5, arenaMkNumber[m, ra, rn], arenaMkNumber[m, ta, yn + 1]]
+			],
+			role == 7, rn = arenaLimbsGCD[m, xa, xn, ya, yn, ra]; If[rn < 0, -2, arenaMkNumber[m, ra, rn]],
+			role == 8, arenaMkNode[m, tLit, If[xn == 0, 0, 30 (xn - 1) + arenaLimbBits[m, arenaStackGet[m, xa + xn - 1]] - 1], 0, 0],
+			role == 9 || role == 10 || role == 11, arenaMkNumber[m, ra, arenaLimbsBitwise[m, role, xa, xn, ya, yn, ra]],
+			role == 12, Which[
+				xn == 0, arenaMkNode[m, tLit, 0, 0, 0],
+				yv > 30 limbCap, -2,
+				True, rn = arenaLimbsShiftLeft[m, xa, xn, yv, ra]; If[rn < 0, -2, arenaMkNumber[m, ra, rn]]
+			],
+			role == 13, If[yv >= 30 xn, arenaMkNode[m, tLit, 0, 0, 0], arenaMkNumber[m, ra, arenaLimbsShiftRight[m, xa, xn, yv, ra]]],
+			role == 14, If[x == y, -10, -11],
+			role == 15, If[arenaLimbsCompare[m, xa, xn, ya, yn] <= 0, -10, -11],
+			True, -1
+		];
+		arenaRestore[m, top];
+		result
 	]]],
 	(* the rule of recursor c for constructor ctor: the index of its four cells in the flat table, or 0 *)
 	kfn[arenaRecursorRule, Function[{m, c, ctor}, Module[{base = arenaConstCell[m, c, cI], count = arenaConstCell[m, c, cH], j = 0},
@@ -831,7 +1088,7 @@ $program = Hold[{
 			t == tFVar, arenaFvarType[m, arenaF1Of[m, e]],
 			t == tSort, arenaMkNode[m, tSort, arenaLevelSucc[m, arenaF1Of[m, e], 1], 0, 0],
 			t == tConst, arenaConstantType[m, arenaF1Of[m, e], arenaF2Of[m, e]],
-			t == tLit, If[m["Part", hNatNode] == 0, arenaFail[m, eUnsupported], m["Part", hNatNode]],
+			t == tLit || t == tBig, If[m["Part", hNatNode] == 0, arenaFail[m, eUnsupported], m["Part", hNatNode]],
 			t == tApp, arenaSpineType[m, e, inferOnly],
 			t == tLam, arenaLambdaType[m, e, inferOnly],
 			t == tPi, arenaFunctionTypeSort[m, e, inferOnly],
@@ -965,7 +1222,7 @@ $program = Hold[{
 	kfn[arenaDefEqCases, Function[{m, a, b}, Module[{ta = arenaTagOf[m, a], tb = arenaTagOf[m, b], fv = 0},
 		Which[
 			ta == tSort && tb == tSort, If[arenaF1Of[m, a] == arenaF1Of[m, b], 1, 0],
-			ta == tLit && tb == tLit, If[arenaF1Of[m, a] == arenaF1Of[m, b], 1, 0],
+			(ta == tLit || ta == tBig) && (tb == tLit || tb == tBig), If[a == b || (ta == tLit && tb == tLit && arenaF1Of[m, a] == arenaF1Of[m, b]), 1, 0],
 			(ta == tLam || ta == tPi) && ta == tb,
 				If[arenaIsDefEq[m, arenaF1Of[m, a], arenaF1Of[m, b]] == 0, Return[0]];
 				fv = arenaNewFVar[m, arenaF1Of[m, a], 0];
@@ -986,7 +1243,7 @@ $program = Hold[{
 		If[arenaTagOf[m, s] == tSort && arenaF1Of[m, s] == m["Part", hLevelZero], 1, 0]
 	]]],
 	kfn[arenaProofIrrelevance, Function[{m, a, b}, Module[{t = arenaTagOf[m, a], ta = 0},
-		If[t == tSort || t == tPi || t == tLit, Return[-1]];
+		If[t == tSort || t == tPi || t == tLit || t == tBig, Return[-1]];
 		ta = arenaInferType[m, a, 1];
 		If[ta == 0, Return[0]];
 		If[arenaPropositionQ[m, ta] == 1, arenaIsDefEq[m, ta, arenaInferType[m, b, 1]], -1]
@@ -1108,7 +1365,7 @@ $program = Hold[{
 		Which[
 			ta == tLam, arenaEtaEqual[m, a, b],
 			tb == tLam, arenaEtaEqual[m, b, a],
-			ta == tLit || tb == tLit, arenaLiteralEqual[m, a, b],
+			ta == tLit || tb == tLit || ta == tBig || tb == tBig, arenaLiteralEqual[m, a, b],
 			arenaSpinesEqual[m, a, b] == 1, 1,
 			arenaStructureEta[m, a, b] == 1, 1,
 			arenaStructureEta[m, b, a] == 1, 1,
@@ -1279,6 +1536,7 @@ $program = Hold[{
 		Module[
 			{
 				m = CreateDataStructure["FixedArray"::["MachineInteger"], total], offset = hHeaderSize, i = 0, j = 0, tag = 0, a = 0, b = 0, c = 0, x = 0, cell = 0, processed = 0,
+				chainOk = 0, chainLength = 0, chainRow = 0, chainTop = 0,
 				nodeMap = ConstantArray[0, numNodes], levelMap = ConstantArray[0, numLevels], result = ConstantArray[0, 12]
 			},
 			m["SetPart", hCap, cap];
@@ -1324,14 +1582,23 @@ $program = Hold[{
 			(* nodes: each input row to its id, its parts rows before it *)
 			Do[
 				tag = nodes[[i, 1]]; a = nodes[[i, 2]]; b = nodes[[i, 3]]; c = nodes[[i, 4]];
+				(* a large literal: its chain a chain row before it, of at most limbCap limbs, its value 2^62 or more *)
+				chainOk = 0;
+				If[ tag == tBig && a >= 1 && a < i && b == 0 && c == 0 && nodes[[a, 1]] == tLimbs,
+					chainLength = 0; chainRow = a; chainTop = a;
+					While[chainRow >= 1 && chainRow < i && nodes[[chainRow, 1]] == tLimbs && chainLength <= limbCap, chainLength = chainLength + 1; chainTop = chainRow; chainRow = nodes[[chainRow, 4]]];
+					If[chainRow == 0 && 2 chainLength <= limbCap && (chainLength >= 3 || (chainLength == 2 && nodes[[chainTop, 2]] + limbBase nodes[[chainTop, 3]] >= 4)), chainOk = 1]
+				];
 				nodeMap[[i]] = Which[
 					! (
 						((tag == tBVar || tag == tLit) && a >= 0 && a < litLimit && b == 0 && c == 0)
 							|| (tag == tSort && a >= 1 && a <= numLevels && b == 0 && c == 0)
 							|| (tag == tConst && a >= 1 && a <= numConsts && b >= 1 && b <= numLevels && c == 0)
-							|| ((tag == tApp || tag == tLam || tag == tPi) && a >= 1 && a < i && b >= 1 && b < i && c == 0)
-							|| (tag == tLet && a >= 1 && a < i && b >= 1 && b < i && c >= 1 && c < i)
-							|| (tag == tProj && a >= 1 && a <= numConsts && b >= 0 && c >= 1 && c < i)
+							|| ((tag == tApp || tag == tLam || tag == tPi) && a >= 1 && a < i && b >= 1 && b < i && c == 0 && nodes[[a, 1]] != tLimbs && nodes[[b, 1]] != tLimbs)
+							|| (tag == tLet && a >= 1 && a < i && b >= 1 && b < i && c >= 1 && c < i && nodes[[a, 1]] != tLimbs && nodes[[b, 1]] != tLimbs && nodes[[c, 1]] != tLimbs)
+							|| (tag == tProj && a >= 1 && a <= numConsts && b >= 0 && c >= 1 && c < i && nodes[[c, 1]] != tLimbs)
+							|| (tag == tLimbs && a >= 0 && a <= limbMask && b >= 0 && b <= limbMask && ((c == 0 && a + b > 0) || (c >= 1 && c < i && nodes[[c, 1]] == tLimbs)))
+							|| (tag == tBig && chainOk == 1)
 					),
 						arenaFail[m, eIllFormed],
 					tag == tBVar || tag == tLit, arenaMkNode[m, tag, a, 0, 0],
@@ -1340,6 +1607,8 @@ $program = Hold[{
 					tag == tApp || tag == tLam || tag == tPi, arenaMkNode[m, tag, nodeMap[[a]], nodeMap[[b]], 0],
 					tag == tLet, arenaMkNode[m, tLet, nodeMap[[a]], nodeMap[[b]], nodeMap[[c]]],
 					tag == tProj, arenaMkNode[m, tProj, a, b, nodeMap[[c]]],
+					tag == tLimbs, arenaMkNode[m, tLimbs, a, b, If[c == 0, 0, nodeMap[[c]]]],
+					tag == tBig, arenaMkNode[m, tBig, nodeMap[[a]], 0, 0],
 					True, 0
 				],
 				{i, numNodes}
@@ -1348,9 +1617,9 @@ $program = Hold[{
 			Do[
 				cell = m["Part", hConstBase] + cWidth (i - 1);
 				Do[m["SetPart", cell + j, consts[[i, j]]], {j, cWidth}];
-				If[consts[[i, cType]] >= 1 && consts[[i, cType]] <= numNodes, m["SetPart", cell + cType, nodeMap[[consts[[i, cType]]]]], m["SetPart", cell + cType, 0]; arenaFail[m, eIllFormed]];
+				If[consts[[i, cType]] >= 1 && consts[[i, cType]] <= numNodes && nodes[[consts[[i, cType]], 1]] != tLimbs, m["SetPart", cell + cType, nodeMap[[consts[[i, cType]]]]], m["SetPart", cell + cType, 0]; arenaFail[m, eIllFormed]];
 				If[consts[[i, cValue]] != 0,
-					If[consts[[i, cValue]] >= 1 && consts[[i, cValue]] <= numNodes, m["SetPart", cell + cValue, nodeMap[[consts[[i, cValue]]]]], m["SetPart", cell + cValue, 0]; arenaFail[m, eIllFormed]]
+					If[consts[[i, cValue]] >= 1 && consts[[i, cValue]] <= numNodes && nodes[[consts[[i, cValue]], 1]] != tLimbs, m["SetPart", cell + cValue, nodeMap[[consts[[i, cValue]]]]], m["SetPart", cell + cValue, 0]; arenaFail[m, eIllFormed]]
 				];
 				If[consts[[i, cParams]] >= 1 && consts[[i, cParams]] <= numLevels, m["SetPart", cell + cParams, levelMap[[consts[[i, cParams]]]]], m["SetPart", cell + cParams, 0]; arenaFail[m, eIllFormed]];
 				m["SetPart", cell + cDeclared, 0];
@@ -1398,7 +1667,7 @@ $program = Hold[{
 				{i, numConsts}
 			];
 			(* the flat table: a negative entry is minus a node row *)
-			Do[x = flat[[i]]; m["SetPart", m["Part", hFlatBase] + i, If[x < 0, If[-x <= numNodes, nodeMap[[-x]], arenaFail[m, eIllFormed]], x]], {i, numFlat}];
+			Do[x = flat[[i]]; m["SetPart", m["Part", hFlatBase] + i, If[x < 0, If[-x <= numNodes && nodes[[-x, 1]] != tLimbs, nodeMap[[-x]], arenaFail[m, eIllFormed]], x]], {i, numFlat}];
 			If[numFlat < 1 || flat[[numFlat]] != 0, arenaFail[m, eIllFormed]];
 			If[settings[[4]] < 0 || settings[[4]] > numConsts || settings[[5]] < 0 || settings[[5]] > numConsts || settings[[6]] < 0 || settings[[6]] > numConsts, arenaFail[m, eIllFormed]];
 			m["SetPart", hNatType, settings[[4]]];
@@ -1598,7 +1867,18 @@ termRowOf[boundVariable[index_Integer?NonNegative]] := {1, index, 0, 0}
 termRowOf[universeSort[level_]] := {2, levelRow[level], 0, 0}
 termRowOf[constantReference[name_, levels_List]] := {3, Lookup[$constantIndex, Key[name], notHandled[]], levelListRow[levels], 0}
 termRowOf[naturalLiteral[n_Integer]] /; 0 <= n < 2^62 := {8, n, 0, 0}
-termRowOf[naturalLiteral[n_Integer]] /; n >= 2^62 := largeLiteralRow[n]
+termRowOf[naturalLiteral[n_Integer]] /; 2^62 <= n < 2^(30 $limbCap) := {11, limbChainRow[n], 0, 0}
+termRowOf[naturalLiteral[n_Integer]] /; n >= 2^(30 $limbCap) := largeLiteralRow[n]
+
+(* the most limbs of 30 bits a literal of the program has: one with more is a constant made for its value *)
+$limbCap = 64
+
+(* the chain of a literal's limbs, pairs of limbs from the top down, each a row once *)
+limbChainRow[n_Integer] := With[{limbs = Reverse[IntegerDigits[n, 2^30]]},
+	Fold[Function[{rest, pair}, limbRow[First[pair], Last[pair], rest]], 0, Reverse[Partition[PadRight[limbs, 2 Ceiling[Length[limbs] / 2]], 2]]]
+]
+
+limbRow[low_Integer, high_Integer, rest_Integer] := Lookup[$limbIndex, Key[{low, high, rest}], Sow[{12, low, high, rest}, compiledKernelInput]; $limbIndex[{low, high, rest}] = ++$termCount]
 termRowOf[_] := notHandled[]
 
 (* The rows of the seed's terms, the first rows, and the terms put in the index, where the walk of the records finds them.
@@ -1702,7 +1982,7 @@ seedRowsOf[seed_Association] := Block[{terms = seed["Terms"], codes = seed["Code
    a term of parts, goes through termRow after them. *)
 $simpleLeafHeads = {constantReference, boundVariable, universeSort, naturalLiteral}
 
-seedLeafRows[positions_List] := Block[{leafKinds = PositionIndex[Head /@ terms[[positions]]], simpleAt, simpleRows, otherAt, otherRows},
+seedLeafRows[positions_List] := Block[{leafKinds = PositionIndex[Function[leaf, If[MatchQ[leaf, naturalLiteral[n_Integer /; n >= 2^62]], "large", Head[leaf]]] /@ terms[[positions]]], simpleAt, simpleRows, otherAt, otherRows},
 	simpleAt = Lookup[leafKinds, $simpleLeafHeads, {}];
 	simpleRows = Join @@ MapThread[Function[{head, at}, If[at === {}, {}, leafKindRows[head, terms[[positions[[at]]]]]]], {$simpleLeafHeads, simpleAt}];
 	otherAt = positions[[Complement[Range[Length[positions]], Join @@ simpleAt]]];
@@ -1853,7 +2133,7 @@ functionBody[other_] := other
    theorem, and a registration then need not compare them again. *)
 environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, capacityFactor_] := Catch[Block[
 	{
-		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termCount = 0, $flatCount = 0, $largeLiterals = <||>, $largeLiteralBase = None,
+		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $limbIndex = <||>, $termCount = 0, $flatCount = 0, $largeLiterals = <||>, $largeLiteralBase = None,
 		constantNames = environmentNames[environment], natural = naturalNumberSettings[environment], equations, names, records, seeded, constants, nodes, flat, capacity, large, order
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];
@@ -2055,7 +2335,8 @@ programInputCheck[input_] := Block[
 		nodeRowsQ[inputNodes, inputNodeCount, inputLevelCount, inputConstantCount],
 		levelRowsQ[inputLevels, inputLevelCount],
 		constantRowsQ[inputConstants, inputFlat, inputOrder, inputNodeCount, inputLevelCount, inputConstantCount, inputFlatCount],
-		With[{negativeEntries = Select[inputFlat, Negative]}, negativeEntries === {} || Min[negativeEntries] >= -inputNodeCount],
+		With[{negativeEntries = Select[inputFlat, Negative]}, negativeEntries === {} || (Min[negativeEntries] >= -inputNodeCount && FreeQ[inputNodes[[-negativeEntries, 1]], 12])],
+		FreeQ[inputNodes[[Select[Join[inputConstants[[All, 2]], inputConstants[[All, 3]]], Function[row, 1 <= row <= inputNodeCount]], 1]], 12],
 		inputFlatCount >= 1 && Last[inputFlat] == 0,
 		Sort[Abs[inputOrder]] === Range[inputConstantCount],
 		rowsWithinQ[inputSettings[[{4, 5, 6}]], 0, inputConstantCount]
@@ -2077,13 +2358,14 @@ rowsTagged[tags_List, wanted_List] := Pick[Range[Length[tags]], Unitize[Times @@
 nodeRowsQ[nodes_, nodeCount_, levelCount_, constantCount_] := Block[
 	{
 		nodeTags = nodes[[All, 1]], nodeFirst = nodes[[All, 2]], nodeSecond = nodes[[All, 3]], nodeThird = nodes[[All, 4]],
-		numberRows, sortRows, namedRows, binaryRows, localRows, projectedRows
+		numberRows, sortRows, namedRows, binaryRows, localRows, projectedRows, limbRows, largeRows
 	},
 	And[
-		rowsWithinQ[nodeTags, 1, 9],
+		rowsWithinQ[nodeTags, 1, 12] && rowsTagged[nodeTags, {10}] === {},
 		(
 			numberRows = rowsTagged[nodeTags, {1, 8}]; sortRows = rowsTagged[nodeTags, {2}]; namedRows = rowsTagged[nodeTags, {3}];
 			binaryRows = rowsTagged[nodeTags, {4, 5, 6}]; localRows = rowsTagged[nodeTags, {7}]; projectedRows = rowsTagged[nodeTags, {9}];
+			limbRows = rowsTagged[nodeTags, {12}]; largeRows = rowsTagged[nodeTags, {11}];
 			True
 		),
 		rowsWithinQ[nodeFirst[[numberRows]], 0, 2^62 - 1] && rowsZeroQ[nodeSecond[[numberRows]]] && rowsZeroQ[nodeThird[[numberRows]]],
@@ -2091,7 +2373,32 @@ nodeRowsQ[nodes_, nodeCount_, levelCount_, constantCount_] := Block[
 		rowsWithinQ[nodeFirst[[namedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[namedRows]], 1, levelCount] && rowsZeroQ[nodeThird[[namedRows]]],
 		rowsBeforeQ[nodeFirst[[binaryRows]], binaryRows] && rowsBeforeQ[nodeSecond[[binaryRows]], binaryRows] && rowsZeroQ[nodeThird[[binaryRows]]],
 		rowsBeforeQ[nodeFirst[[localRows]], localRows] && rowsBeforeQ[nodeSecond[[localRows]], localRows] && rowsBeforeQ[nodeThird[[localRows]], localRows],
-		rowsWithinQ[nodeFirst[[projectedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[projectedRows]], 0, 2^62 - 1] && rowsBeforeQ[nodeThird[[projectedRows]], projectedRows]
+		rowsWithinQ[nodeFirst[[projectedRows]], 1, constantCount] && rowsWithinQ[nodeSecond[[projectedRows]], 0, 2^62 - 1] && rowsBeforeQ[nodeThird[[projectedRows]], projectedRows],
+		(* no part of a term is a chain row; the chains, and the large literals over them *)
+		FreeQ[nodeTags[[Join[nodeFirst[[binaryRows]], nodeSecond[[binaryRows]], nodeFirst[[localRows]], nodeSecond[[localRows]], nodeThird[[localRows]], nodeThird[[projectedRows]]]]], 12],
+		limbRowsQ[nodeTags, nodeFirst, nodeSecond, nodeThird, limbRows],
+		AllTrue[largeRows, Function[row, largeLiteralRowQ[nodes, row]]]
+	]
+]
+
+(* chain rows: two limbs each, and 0 or a chain row before it; a top row's limbs are not both 0 *)
+limbRowsQ[nodeTags_, nodeFirst_, nodeSecond_, nodeThird_, limbRows_] := With[{rests = nodeThird[[limbRows]]},
+	And[
+		rowsWithinQ[nodeFirst[[limbRows]], 0, 2^30 - 1] && rowsWithinQ[nodeSecond[[limbRows]], 0, 2^30 - 1],
+		With[{linked = Pick[limbRows, Unitize[rests], 1], links = Pick[rests, Unitize[rests], 1]}, rowsBeforeQ[links, linked] && (links === {} || Union[nodeTags[[links]]] === {12})],
+		With[{tops = Pick[limbRows, Unitize[rests], 0]}, tops === {} || Min[nodeFirst[[tops]] + nodeSecond[[tops]]] >= 1]
+	]
+]
+
+(* a large literal's row: its chain a chain row before it, of at most 64 limbs, its value 2^62 or more *)
+largeLiteralRowQ[nodes_, row_] := With[{chain = nodes[[row, 2]]},
+	And[
+		1 <= chain < row && nodes[[chain, 1]] == 12 && nodes[[row, 3]] == 0 && nodes[[row, 4]] == 0,
+		With[{links = NestWhileList[Function[link, nodes[[link, 4]]], chain, Function[link, link != 0], 1, 33]},
+			Last[links] == 0 && With[{length = Length[links] - 1},
+				2 length <= 64 && (length >= 3 || (length == 2 && nodes[[links[[2]], 2]] + 2^30 nodes[[links[[2]], 3]] >= 4))
+			]
+		]
 	]
 ]
 
@@ -2181,11 +2488,10 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 			compiledCheckWith[function, MapAt[Function[settings, ReplacePart[settings, Thread[{1, 2, 10, 11} -> 4 settings[[{1, 2, 10, 11}]]]]], input, "Settings"], 4 capacityFactor],
 		(* in an environment with a literal the arena does not hold, a record of the environment that it does not accept,
 		   or on which a literal passes its limit, is undecided: it may need the value of such a literal *)
-		And[
-			Lookup[input, "LargeLiterals", 0] > 0,
-			KeyExistsQ[$failureMessages, result[[1]]] || result[[1]] == $literalOverflowStatus,
-			1 <= result[[2]] <= input["EnvironmentConstants"]
-		],
+		Or[
+			Lookup[input, "LargeLiterals", 0] > 0 && KeyExistsQ[$failureMessages, result[[1]]],
+			result[[1]] == $literalOverflowStatus
+		] && 1 <= result[[2]] <= input["EnvironmentConstants"],
 			undecided[result[[2]]],
 		(* a constant made for a large literal is an axiom of a type declared before it, and does not fail *)
 		result[[2]] > input["EnvironmentConstants"] + Length[input["Equations"]],

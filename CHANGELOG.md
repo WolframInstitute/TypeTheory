@@ -133,6 +133,9 @@ Versions 0.35.0 to 0.44.0.
 
 ### Performance
 
+- The compiled kernel computes with natural number literals of up to 1,920 bits, exactly, where a literal of 2^62 or
+  more was a constant to it: a record that needs such a literal's value is the compiled kernel's, and is not checked
+  again by the kernel written in Wolfram Language.
 - `TypeTheoryCheck` of an environment with a natural number literal of 2^62 or more rechecks only the records the
   compiled kernel leaves undecided, as a batch of declarations does, where it checked the whole environment with the
   kernel written in Wolfram Language.

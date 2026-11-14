@@ -367,11 +367,15 @@ VerificationTest[
 	TestID -> "An-environment-the-compiled-kernel-does-not-handle-is-checked-by-the-other"
 ]
 
-(* a literal from 2^62 on is not the compiled kernel's: the environment is checked by the other kernel *)
+(* a literal of 2^62 or more is the compiled kernel's up to 64 limbs of 30 bits, and past them a constant made for its
+   value: either way the theorem that it is itself is checked by the compiled kernel alone *)
 VerificationTest[
-	First @ TypeTheoryCheck[Append[prelude, TypeTheoryTheorem[Large, 2^70 + 1 == 2^70 + 1, "equalityReflexivity"[2^70 + 1]]], Method -> Automatic],
-	"EnvironmentChecked",
-	TestID -> "A-literal-too-large-for-the-compiled-kernel-is-checked-by-the-other"
+	Function[large, {
+		First @ TypeTheoryCheck[Append[prelude, TypeTheoryTheorem[Large, large == large, "equalityReflexivity"[large]]], Method -> Automatic],
+		WolframInstitute`TypeTheory`PackageScope`$recheckedConstants
+	}] /@ {2^70 + 1, 2^2000 + 1},
+	ConstantArray[{"EnvironmentChecked", {}}, 2],
+	TestID -> "A-large-literal-is-checked-by-the-compiled-kernel-within-its-limbs-and-past-them"
 ]
 
 VerificationTest[
@@ -443,12 +447,13 @@ VerificationTest[
 	TestID -> "Both-kernels-catch-a-forged-universe-of-an-inductive-type"
 ]
 
-(* A natural number literal of 2^62 or more is no row of the compiled kernel's. It is an opaque constant there, one for
-   each distinct value, and a record that the compiled kernel then does not accept is checked by the kernel of
-   TypeChecking.wl. Each case is a batch of declarations given as core terms, as an import gives them: a theorem
-   left == right proved by the reflexivity of right, which holds where left computes to right. A case gives what the
-   batch gives with the compiled kernel, the constants it left to the other kernel, and what the declarations give one
-   at a time, which is the same verdict in every case. *)
+(* A natural number literal of 2^62 or more is a chain of limbs of 30 bits in the compiled kernel, up to 64 limbs, below
+   2^1920. Past them it is an opaque constant there, one for each distinct value, and a record that the compiled kernel
+   then does not accept is checked by the kernel of TypeChecking.wl; so is a record on which a result passes 64 limbs.
+   Each case is a batch of declarations given as core terms, as an import gives them: a theorem left == right proved by
+   the reflexivity of right, which holds where left computes to right. A case gives what the batch gives with the
+   compiled kernel, the constants it left to the other kernel, and what the declarations give one at a time, which is
+   the same verdict in every case. The cases of literals within the limbs are the tests after the rechecks'. *)
 application = Symbol["WolframInstitute`TypeTheory`PackageScope`application"]
 
 literalBase = TypeTheoryEnvironment[prelude, {
@@ -492,7 +497,7 @@ literalBatch[declarations_List] := With[{compiled = TypeTheoryEnvironment[litera
 rechecked[names___String] := If[available, {names}, "no library"]
 
 VerificationTest[
-	With[{big = 2^64, other = 2^64 + 1},
+	With[{big = 2^1950, other = 2^1950 + 1},
 		{
 			literalBatch[{namedNumber["big", big], claim["t", "big", "big"]}],
 			literalBatch[{claim["t", big, big]}],
@@ -504,12 +509,12 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{big = 2^64, other = 2^64 + 1, limit = 2^62, half = 2^61, root = 2^32},
+	With[{big = 2^1950, other = 2^1950 + 1, limit = 2^1950, half = 2^1949, root = 2^975},
 		{
 			literalBatch[{claim["t", "squared"[root], big]}],
 			literalBatch[{claim["t", "squared"[root], other]}],
 			literalBatch[{claim["t", "doubled"[half], limit]}],
-			literalBatch[{claim["t", "powerOfTwo"[64], big]}],
+			literalBatch[{claim["t", "powerOfTwo"[1950], big]}],
 			literalBatch[{claim["t", "difference"[big, big], 0]}],
 			literalBatch[{claim["t", "difference"[big, other], 1]}]
 		}
@@ -525,12 +530,12 @@ VerificationTest[
 	TestID -> "A-record-that-needs-the-value-of-a-large-literal-is-checked-by-the-other-kernel"
 ]
 
-(* A forged proof about a made-up constant past the limit is refused alike on both paths: the constant is 2^63, and the
-   theorem says it is 2^63 + 1, with the reflexivity of 2^63 + 1 for its proof. The compiled kernel leaves the record
+(* A forged proof about a made-up constant past the limit is refused alike on both paths: the constant is 2^1950, and
+   the theorem says it is 2^1950 + 1, with the reflexivity of 2^1950 + 1 for its proof. The compiled kernel leaves the record
    undecided, the kernel of TypeChecking.wl refuses it, and the failure a batch reports is the one the declarations give
    one at a time, by its tag and by its message. *)
 VerificationTest[
-	With[{made = 2^63, wrong = 2^63 + 1},
+	With[{made = 2^1950, wrong = 2^1950 + 1},
 		With[{withMade = TypeTheoryEnvironment[literalBase, {namedNumber["madeUp", made]}, Method -> "Symbolic"]},
 			With[{declarations = {namedNumber["madeUp", made], claimOver[withMade, "forged", "madeUp", wrong]}},
 				With[{compiled = TypeTheoryEnvironment[literalBase, declarations, Method -> compiledMethod]},
@@ -553,53 +558,69 @@ VerificationTest[
 	TestID -> "A-forged-proof-about-a-made-up-large-constant-is-refused-alike-on-both-paths"
 ]
 
-(* The compiled kernel computes no literal past 2^62 and never wraps: 2^61 + 2^61, 2^31 2^31 and 2^62 are computed and
-   are not 0; 2^62 - 1 doubled, 2^32 squared and 2^64 are past the limit, where 64 bits would give 0 or a small number.
-   With a large literal in the batch such a record goes to the other kernel, and without one the whole batch does. *)
+(* The compiled kernel computes no literal past 64 limbs and never wraps: 2^1918 + 2^1918, 2^959 2^959 and 2^1919 are
+   computed and are not 0; 2^1919 doubled, 2^960 squared and 2^1920 are past the limit, where 64 limbs would give 0.
+   Such a record is left to the other kernel in any batch; with a constant past the limit in the batch, so is a record
+   the compiled kernel refuses, since it may need the constant's value. *)
 VerificationTest[
-	With[{big = 2^64, half = 2^61, most = 2^62 - 1, root = 2^31, larger = 2^32},
+	With[{big = 2^1950, half = 2^1918, most = 2^1919, root = 2^959, larger = 2^960},
 		{
 			literalBatch[{namedNumber["big", big], claim["t", "doubled"[half], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "doubled"[most], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "squared"[root], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "squared"[larger], 0]}],
-			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[62], 0]}],
-			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[64], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[1919], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[1920], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "difference"[3, 5], 1]}],
 			literalBatch[{claim["t", "doubled"[half], 0]}],
+			literalBatch[{claim["t", "doubled"[most], 0]}],
 			literalBatch[{claim["t", "squared"[larger], 0]}],
-			literalBatch[{claim["t", "powerOfTwo"[64], 0]}],
+			literalBatch[{claim["t", "powerOfTwo"[1920], 0]}],
 			literalBatch[{claim["t", "difference"[3, 5], 1]}]
 		}
 	],
-	Join[ConstantArray[{"TypeMismatch", rechecked["t"], "TypeMismatch"}, 7], ConstantArray[{"TypeMismatch", rechecked[], "TypeMismatch"}, 4]],
+	Join[
+		ConstantArray[{"TypeMismatch", rechecked["t"], "TypeMismatch"}, 7],
+		{
+			{"TypeMismatch", rechecked[], "TypeMismatch"},
+			{"TypeMismatch", rechecked["t"], "TypeMismatch"},
+			{"TypeMismatch", rechecked["t"], "TypeMismatch"},
+			{"TypeMismatch", rechecked["t"], "TypeMismatch"},
+			{"TypeMismatch", rechecked[], "TypeMismatch"}
+		}
+	],
 	TestID -> "The-compiled-kernel-does-not-wrap-a-literal-past-its-limit"
 ]
 
-(* The other kernel is asked about a record only in an environment with a large literal: without one, a record the
-   compiled kernel does not accept is refused by that, and a batch on which a literal passes the limit goes to the other
-   kernel whole, as before. With one, the compiled kernel goes on after a record checked by the other kernel: a later
-   theorem is accepted or refused on its own, and two records may be checked. *)
+(* The other kernel is asked about a record only where the compiled kernel cannot decide it: a record on which a
+   literal passes 64 limbs, and in an environment with a constant made for a literal past them, a record the compiled
+   kernel does not accept. Otherwise such a record is refused by the compiled kernel, and a result past 2^62 within the
+   limbs is computed. The compiled kernel goes on after a record checked by the other kernel: a later theorem is
+   accepted or refused on its own, and two records may be checked. *)
 VerificationTest[
-	With[{big = 2^64, root = 2^32, over = 2^61 + 1},
+	With[{big = 2^1950, root = 2^975, over = 2^1919 + 1, within = 2^61 + 1},
 		{
 			literalBatch[{claim["t", "doubled"[3], 6]}],
 			literalBatch[{claim["t", "doubled"[3], 7]}],
+			literalBatch[{claim["t", "difference"["doubled"[within], "doubled"[within]], 0]}],
+			literalBatch[{claim["t", "difference"["doubled"[within], "doubled"[within]], 1]}],
 			literalBatch[{claim["t", "difference"["doubled"[over], "doubled"[over]], 0]}],
 			literalBatch[{claim["t", "squared"[root], big], claim["u", "doubled"[2], 4]}],
 			literalBatch[{claim["t", "squared"[root], big], claim["u", "doubled"[2], 5]}],
-			literalBatch[{claim["t", "squared"[root], big], claim["u", "powerOfTwo"[64], big], claim["v", "doubled"[2], 4]}]
+			literalBatch[{claim["t", "squared"[root], big], claim["u", "powerOfTwo"[1950], big], claim["v", "doubled"[2], 4]}]
 		}
 	],
 	{
 		{"accepted", rechecked[], "accepted"},
 		{"TypeMismatch", rechecked[], "TypeMismatch"},
 		{"accepted", rechecked[], "accepted"},
+		{"TypeMismatch", rechecked[], "TypeMismatch"},
+		{"accepted", rechecked["t"], "accepted"},
 		{"accepted", rechecked["t"], "accepted"},
 		{"TypeMismatch", rechecked["t", "u"], "TypeMismatch"},
 		{"accepted", rechecked["t", "u"], "accepted"}
 	},
-	TestID -> "Only-an-environment-with-a-large-literal-has-records-checked-by-the-other-kernel"
+	TestID -> "Only-a-record-the-compiled-kernel-cannot-decide-is-checked-by-the-other-kernel"
 ]
 
 (* Without a recheck the compiled kernel answers None where it leaves a record undecided, and the other kernel checks
@@ -609,7 +630,7 @@ VerificationTest[
 VerificationTest[
 	If[ ! available,
 		{True, None, True},
-		With[{big = 2^64, root = 2^32},
+		With[{big = 2^1950, root = 2^975},
 			{
 				named = TypeTheoryEnvironment[literalBase, {namedNumber["big", big], claim["t", "big", "big"]}, Method -> "Symbolic"],
 				valued = TypeTheoryEnvironment[literalBase, {claim["t", "squared"[root], big]}, Method -> "Symbolic"]
@@ -703,7 +724,7 @@ checkedAndRechecked[environment_] := {
 }
 
 VerificationTest[
-	With[{big = 2^64, limit = 2^62, half = 2^61, root = 2^32},
+	With[{big = 2^1950, limit = 2^1950, half = 2^1949, root = 2^975},
 		With[
 			{
 				honest = recheckBase[{claim["t", "squared"[root], big], claim["u", "doubled"[half], limit]}],
@@ -750,4 +771,107 @@ VerificationTest[
 	],
 	True,
 	TestID -> "The-rechecks-leave-what-declaring-the-records-one-at-a-time-leaves"
+]
+
+
+(* Large literals in the compiled program: a literal of 2^62 or more is a chain of limbs of 30 bits there, and every role
+   computes on limbs, exactly. Each case is a batch claiming role[x, y] == value, decided by the compiled kernel alone,
+   with no record left to the other kernel, and its value plus one, refused by both; past 64 limbs a result is left to
+   the other kernel. The roles the libraries do not register are given to axioms, as a registration may. *)
+bigBase = TypeTheoryEnvironment[TypeTheoryEnvironment["Integers"], {
+	TypeTheoryAxiom["gcdOf", TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryAxiom["log2Of", TypeSpecifier[{NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryAxiom["andOf", TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryAxiom["orOf", TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryAxiom["xorOf", TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryAxiom["shiftLeftOf", TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryAxiom["shiftRightOf", TypeSpecifier[{NonNegativeIntegers, NonNegativeIntegers} -> NonNegativeIntegers]],
+	TypeTheoryNaturalNumbers[NonNegativeIntegers, "zero", "successor", <|
+		"GCD" -> "gcdOf", "Log2" -> "log2Of", "BitAnd" -> "andOf", "BitOr" -> "orOf", "BitXor" -> "xorOf", "ShiftLeft" -> "shiftLeftOf", "ShiftRight" -> "shiftRightOf"
+	|>]
+}, Method -> "Symbolic"]
+
+bigVerdicts[declarations_List] := {
+	literalVerdict[TypeTheoryEnvironment[bigBase, declarations, Method -> compiledMethod]],
+	If[available, Function[name, First[name]] /@ WolframInstitute`TypeTheory`PackageScope`$recheckedConstants, "no library"],
+	literalVerdict[TypeTheoryEnvironment[bigBase, declarations, Method -> "Symbolic"]]
+}
+
+(* the claim of an operation on literals, written with the operation's own head, and its value from Wolfram's integers *)
+SetAttributes[bigClaim, HoldFirst]
+bigClaim[left_, right_] := claimOver[bigBase, "t", left, right]
+
+bigValues = {0, 1, 2^30 - 1, 2^30, 2^60 + 7, 2^62 - 1, 2^62, 2^62 + 1, 2^64, 2^64 + 3, 3^50, 2^120 - 1, 2^200 + 12345, 10^100}
+
+bigPairs = BlockRandom[SeedRandom[20261113]; RandomChoice[bigValues, {12, 2}]]
+
+(* each case: {name of the operation, its claim of the true value, its claim of the value plus one} *)
+bigCases = Join[
+	Catenate[Function[pair, With[{x = First[pair], y = Last[pair]},
+		{
+			{"Plus", bigClaim[x + y, x + y], bigClaim[x + y, x + y + 1]},
+			{"Subtract", bigClaim[Subtract[x, y], Max[x - y, 0]], bigClaim[Subtract[x, y], Max[x - y, 0] + 1]},
+			{"Times", bigClaim[x y, x y], bigClaim[x y, x y + 1]},
+			{"Quotient", bigClaim[Quotient[x, y], If[y == 0, 0, Quotient[x, y]]], bigClaim[Quotient[x, y], If[y == 0, 0, Quotient[x, y]] + 1]},
+			{"Mod", bigClaim[Mod[x, y], If[y == 0, x, Mod[x, y]]], bigClaim[Mod[x, y], If[y == 0, x, Mod[x, y]] + 1]},
+			{"gcdOf", bigClaim["gcdOf"[x, y], GCD[x, y]], bigClaim["gcdOf"[x, y], GCD[x, y] + 1]},
+			{"andOf", bigClaim["andOf"[x, y], BitAnd[x, y]], bigClaim["andOf"[x, y], BitAnd[x, y] + 1]},
+			{"orOf", bigClaim["orOf"[x, y], BitOr[x, y]], bigClaim["orOf"[x, y], BitOr[x, y] + 1]},
+			{"xorOf", bigClaim["xorOf"[x, y], BitXor[x, y]], bigClaim["xorOf"[x, y], BitXor[x, y] + 1]}
+		}
+	]] /@ bigPairs],
+	Function[x, {"log2Of", bigClaim["log2Of"[x], If[x == 0, 0, BitLength[x] - 1]], bigClaim["log2Of"[x], If[x == 0, 0, BitLength[x] - 1] + 1]}] /@ bigValues,
+	Function[pair, With[{x = First[pair], y = Last[pair]}, {"Power", bigClaim[x^y, x^y], bigClaim[x^y, x^y + 1]}]] /@ {{2, 64}, {3, 100}, {2^64, 2}, {10, 100}, {2^62 - 1, 2}},
+	Function[pair, With[{x = First[pair], y = Last[pair]}, {"shiftLeftOf", bigClaim["shiftLeftOf"[x, y], x 2^y], bigClaim["shiftLeftOf"[x, y], x 2^y + 1]}]] /@ {{2^62 - 1, 1}, {1, 64}, {3^50, 70}, {2^64, 1800}},
+	Function[pair, With[{x = First[pair], y = Last[pair]}, {"shiftRightOf", bigClaim["shiftRightOf"[x, y], Quotient[x, 2^y]], bigClaim["shiftRightOf"[x, y], Quotient[x, 2^y] + 1]}]] /@ {{2^64, 1}, {10^100, 200}, {2^200 + 12345, 199}, {2^62, 70}}
+]
+
+VerificationTest[
+	Select[
+		Function[case, {First[case], bigVerdicts[{Extract[case, 2]}], bigVerdicts[{Last[case]}]}] /@ bigCases,
+		Function[result, Rest[result] =!= {{"accepted", If[available, {}, "no library"], "accepted"}, {"TypeMismatch", If[available, {}, "no library"], "TypeMismatch"}}]
+	],
+	{},
+	TimeConstraint -> 3600,
+	TestID -> "Every-role-on-large-literals-is-decided-by-the-compiled-kernel-alone"
+]
+
+(* past 64 limbs a result is no literal of the program: the record is left to the other kernel, which decides it *)
+VerificationTest[
+	With[{power = 2^1950, shifted = 2^1964, square = 2^2000, half = 2^1000, big = 2^64},
+		{bigVerdicts[{bigClaim[2^1950, power]}], bigVerdicts[{bigClaim["shiftLeftOf"[big, 1900], shifted]}], bigVerdicts[{bigClaim[half half, square]}]}
+	],
+	ConstantArray[{"accepted", If[available, {"t"}, "no library"], "accepted"}, 3],
+	TestID -> "A-result-past-64-limbs-is-left-to-the-other-kernel"
+]
+
+(* forged chain rows, refused by the guard before the program and by the program alone: a limb of 2^30, a top chain row
+   whose limbs are both 0, a large literal of value below 2^62, and a chain row as a part of a term *)
+VerificationTest[
+	If[ available,
+		(* the literals go in as values: claim holds its arguments, and 2^64 written there is a power, not a literal *)
+		With[{input = With[{root = 2^32, big = 2^64}, compiledPrivate["environmentInput"][recheckBase[{claim["t", "squared"[root], big]}], 0, 0, 1]]},
+			With[
+				{
+					nodes = Normal[input["Nodes"]],
+					big = First[FirstPosition[Normal[input["Nodes"]][[All, 1]], 11]],
+					top = First[FirstPosition[Normal[input["Nodes"]], {12, _, _, 0}, {0}, {1}]],
+					limb = First[FirstPosition[Normal[input["Nodes"]][[All, 1]], 12]]
+				},
+				Function[forgedNodes, With[{forged = Append[input, "Nodes" -> Developer`ToPackedArray[forgedNodes]]}, {compiledPrivate["programInputQ"][forged], programStatus[forged]}]] /@ {
+					(* a limb of 2^30 *)
+					ReplacePart[nodes, {limb, 2} -> 2^30],
+					(* a top chain row whose limbs are both 0 *)
+					ReplacePart[nodes, {{top, 2} -> 0, {top, 3} -> 0}],
+					(* a large literal over a chain of one row, of value below 2^62 *)
+					ReplacePart[nodes, {big, 2} -> top],
+					(* a chain row as the argument of an application after it *)
+					ReplacePart[nodes, {First[Select[Flatten[Position[nodes[[All, 1]], 4]], Function[row, row > limb]]], 3} -> limb]
+				}
+			]
+		],
+		ConstantArray[{False, 12}, 4]
+	],
+	ConstantArray[{False, 12}, 4],
+	TestID -> "A-forged-chain-of-limbs-is-refused-by-the-guard-and-by-the-program"
 ]
