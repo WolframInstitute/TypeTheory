@@ -180,12 +180,17 @@ linearCofactors[target_, divisors_List, variables_List, degree_Integer, limit_] 
 	monomials = Times @@@ (Function[exponents, variables^exponents] /@ Select[Tuples[Range[0, degree], Length[variables]], Function[exponents, Total[exponents] <= degree]]);
 	unknowns = Table[\[FormalU][i, j], {i, Length[divisors]}, {j, Length[monomials]}];
 	cofactors = unknowns . monomials;
-	solution = Quiet @ Solve[Thread[Last /@ CoefficientRules[Expand[target - cofactors . divisors], variables] == 0], Flatten[unknowns]];
+	solution = Quiet @ Solve[Thread[coefficientsIn[Expand[target - cofactors . divisors], variables] == 0], Flatten[unknowns]];
 	If[ MatchQ[solution, {{___Rule}, ___}],
 		Expand[cofactors /. First[solution] /. \[FormalU][___] -> 0],
 		linearCofactors[target, divisors, variables, degree + 1, limit]
 	]
 ]
+
+(* the coefficients of a polynomial in the variables, unknowns kept in them; with no variables the polynomial is its
+   own coefficient, where CoefficientRules would take every symbol in it, the unknowns too, for a variable *)
+coefficientsIn[polynomial_, {}] := {polynomial}
+coefficientsIn[polynomial_, variables_List] := Last /@ CoefficientRules[polynomial, variables]
 
 (* the polynomial as a Wolfram expression in the variables standing for its atoms *)
 wolframPolynomial[polynomial_List, variableOf_Association] := Total[Function[monomial,
@@ -461,7 +466,7 @@ boundMultipliers[variables_List, target_, differences_List] := With[{ys = Table[
 		TimeConstrained[
 			Quiet @ FindInstance[
 				And @@ Join[
-					Thread[(Last /@ CoefficientRules[Expand[target - ys . differences - \[FormalC]], variables]) == 0],
+					Thread[coefficientsIn[Expand[target - ys . differences - \[FormalC]], variables] == 0],
 					Thread[ys >= 0],
 					{\[FormalC] >= 0}
 				],
@@ -484,7 +489,7 @@ contradictionMultipliersOf[variables_List, differences_List, strict_List] := Wit
 		TimeConstrained[
 			Quiet @ FindInstance[
 				And @@ Join[
-					Thread[(Last /@ CoefficientRules[Expand[ys . differences + \[FormalC]], variables]) == 0],
+					Thread[coefficientsIn[Expand[ys . differences + \[FormalC]], variables] == 0],
 					Thread[ys >= 0],
 					{\[FormalC] >= 0, \[FormalC] + Total[Pick[ys, strict]] >= 1}
 				],

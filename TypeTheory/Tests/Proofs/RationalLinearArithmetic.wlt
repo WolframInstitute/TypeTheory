@@ -38,6 +38,25 @@ VerificationTest[
 	TestID -> "Strict-and-non-strict-hypotheses-mix-in-a-strict-conclusion"
 ]
 
+(* inequalities of numbers alone, with no atom for the multipliers to cancel: the multipliers are the unknowns, never
+   variables of the polynomial (CoefficientRules with no variables took them for variables, and found nothing) *)
+VerificationTest[
+	Map[closedQ, {
+		TypeTheoryProof[Implies[Typed[2, Rationals] <= 1, Typed[False, TypeUniverse[0]]], rationals, {"Introduce"[h], "LinearArithmetic"}],
+		TypeTheoryProof[Implies[Typed[1, Rationals] < 1, Typed[False, TypeUniverse[0]]], rationals, {"Introduce"[h], "LinearArithmetic"}],
+		TypeTheoryProof[Typed[1, Rationals] <= 2, rationals, {"LinearArithmetic"}],
+		TypeTheoryProof[Typed[1, Rationals] < 2, rationals, {"LinearArithmetic"}]
+	}],
+	{True, True, True, True},
+	TestID -> "Linear-arithmetic-decides-inequalities-of-numbers-alone"
+]
+
+VerificationTest[
+	First[TypeTheoryProof[Typed[2, Rationals] <= 1, rationals, {"LinearArithmetic"}]],
+	"NoLinearCombination",
+	TestID -> "A-false-inequality-of-numbers-is-refused"
+]
+
 (* a goal that does not follow is refused, a strict one from non-strict hypotheses too *)
 VerificationTest[
 	{
