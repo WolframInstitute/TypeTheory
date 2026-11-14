@@ -62,6 +62,9 @@ Versions 0.35.0 to 0.44.0.
 - The proof tree of an unfinished proof: the term built so far, each open goal a leaf named by its hole.
 - `Information[env, "Holes"]`, every open theorem of an environment with its holes, and
   `Information[env, "Annotations"]`, the annotation of each constant whose declaration gives one.
+- A rule of `MakeBoxes` for a constant applied to a function, as a library's notation for an existential
+  quantifier, receives the function as `Function[{Typed[x, type]}, body]`, its body and type drawn as the term
+  draws them, so the rule draws the binder itself, where it was given the function already laid out as x ↦ body.
 
 ### Changed
 

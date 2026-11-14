@@ -343,7 +343,26 @@ privateNameQ[symbol_Symbol] := With[{context = Context[Unevaluated[symbol]]},
    hole, which it shows on mouseover; the goal is read as it is written, before any of it is displayed *)
 displaySyntax[syntaxApplication[syntaxSymbol[HoldComplete[Placeholder]], {name : syntaxString[text_String], goal_}]] /; StringStartsQ[text, "?"] :=
 	typeTooltip[styled[name, "Unsolved"], goal]
+(* A constant whose head has a notation of the user's, applied to a function, gives the user's rule the function as a
+   function of typed binders, Function[{Typed[x, type]}, body], its body and the binders' types shown as the display shows
+   them: a rule such as LeanLink's for "Exists" draws the binder itself, where the function laid out as x ↦ body first
+   would not match it. *)
+displaySyntax[node : syntaxApplication[head : (_syntaxSymbol | _syntaxString), arguments_List]] /; userNotationQ[head] && MemberQ[arguments, functionSyntaxPattern] :=
+	registered[node, displayApplication[head, notationArgument /@ arguments]]
 displaySyntax[node : syntaxApplication[head_, arguments_List]] := registered[node, displayApplication[head, displaySyntax /@ arguments]]
+
+functionSyntaxPattern = syntaxApplication[syntaxSymbol[HoldComplete[Function]], {_, _}]
+
+notationArgument[syntaxApplication[function : syntaxSymbol[HoldComplete[Function]], {binders_, body_}]] :=
+	syntaxApplication[function, {notationBinders[binders], displaySyntax[body]}]
+notationArgument[argument_] := displaySyntax[argument]
+
+notationBinders[syntaxApplication[list : syntaxSymbol[HoldComplete[List]], binders_List]] := syntaxApplication[list, notationBinder /@ binders]
+notationBinders[binder_] := notationBinder[binder]
+
+notationBinder[syntaxApplication[typed : syntaxSymbol[HoldComplete[Typed | TypedImplicit]], {variable_, type_, rest___}]] :=
+	syntaxApplication[typed, {displaySyntax[variable], displaySyntax[type], rest}]
+notationBinder[binder_] := binder
 (* In TraditionalForm a recursor applied to all its arguments shows as its cases, not as a call of many arguments: the
    recursor beside the term it recurses on, a row for its motive, and a row for each constructor, labelled by the
    constructor applied to the variables the case binds for its fields, with the rest of the case beside it, its induction

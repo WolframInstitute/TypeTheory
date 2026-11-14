@@ -711,3 +711,23 @@ VerificationTest[
 	{{True, True}, True, True, True},
 	TestID -> "User-coercions-integers-and-objects-with-summary-boxes-show-as-the-library's-terms-do"
 ]
+
+
+(* A constant with a notation of the user's applied to a function: the rule gets the function as a function of typed
+   binders, its body shown as the display shows it, and draws the binder itself, as LeanLink's rule for "Exists" does;
+   the function is not laid out as n ↦ body first. *)
+MakeBoxes["existsNotated"[Function[{Typed[variable_, type_]}, body_]], form_] :=
+	RowBox[{"\[Exists]", MakeBoxes[variable, form], "\[Colon]", MakeBoxes[type, form], ",", MakeBoxes[body, form]}]
+
+VerificationTest[
+	Module[{plain, notated, boxes},
+		plain[shown_] := shown //. (StyleBox | TooltipBox | TagBox)[inner_, ___] :> inner;
+		notated = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom["existsNotated", TypeSpecifier[{TypeSpecifier[{NonNegativeIntegers} -> TypeUniverse[0]]} -> TypeUniverse[0]]]
+		}];
+		boxes = plain[ToBoxes[TypeTheoryTerm["existsNotated"[Function[{Typed[n, NonNegativeIntegers]}, n == n]], notated], StandardForm]];
+		{! FreeQ[boxes, "\[Exists]"], FreeQ[boxes, "\[RightTeeArrow]" | "\[Function]"], FreeQ[boxes, "\"existsNotated\""]}
+	],
+	{True, True, True},
+	TestID -> "A-notation-of-the-user's-draws-a-function-argument-as-its-binders"
+]
