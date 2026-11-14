@@ -235,3 +235,20 @@ VerificationTest[
 	},
 	TestID -> "The-hash-of-the-kernels-sources-is-of-bytes-the-same-on-every-engine"
 ]
+
+(* the archive carries every library environment the release saves (pacletpage.wl), each an asset of the paclet:
+   one left out is built from its declarations in every session, as the machine reals were from 0.40.0 to 0.47.0 *)
+VerificationTest[
+	Module[{pacletInfo = Get[FileNameJoin[{Directory[], "TypeTheory", "PacletInfo.wl"}]], saved},
+		saved = First[StringCases[ReadString[FileNameJoin[{Directory[], "pacletpage.wl"}]], "$libraryEnvironmentNames = " ~~ list : ("{" ~~ Shortest[__] ~~ "}") :> ToExpression[list]]];
+		{
+			Sort[Map[First, Catenate[Cases[First[pacletInfo]["Extensions"], {"Asset", ___, "Root" -> "Environments", ___, "Assets" -> assets_, ___} :> assets]]]],
+			Sort[saved]
+		}
+	],
+	{
+		Sort[{"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical"}],
+		Sort[{"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical"}]
+	},
+	TestID -> "Every-library-environment-the-release-saves-is-an-asset-of-the-paclet"
+]

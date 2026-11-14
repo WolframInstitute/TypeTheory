@@ -32,6 +32,7 @@ PacletObject[<|
 				{"Integers", "Integers.wxf"},
 				{"Rationals", "Rationals.wxf"},
 				{"Machine", "Machine.wxf"},
+				{"MachineReals", "MachineReals.wxf"},
 				{"HomotopyTypeTheory", "HomotopyTypeTheory.wxf"},
 				{"Cubical", "Cubical.wxf"}
 			}
