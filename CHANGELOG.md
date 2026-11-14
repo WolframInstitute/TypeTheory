@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.44.0.
+Versions 0.35.0 to 0.45.0.
 
 ### Added
 
@@ -65,6 +65,9 @@ Versions 0.35.0 to 0.44.0.
 - A rule of `MakeBoxes` for a constant applied to a function, as a library's notation for an existential
   quantifier, receives the function as `Function[{Typed[x, type]}, body]`, its body and type drawn as the term
   draws them, so the rule draws the binder itself, where it was given the function already laid out as x ↦ body.
+- The release carries the compiled kernel's library for Linux too, built for Wolfram 15.0.1 on x86-64, beside the
+  macOS libraries for 15.0 and 15.1; a kernel that finds none for its version checks with the kernel written in
+  Wolfram Language, as before.
 
 ### Changed
 
