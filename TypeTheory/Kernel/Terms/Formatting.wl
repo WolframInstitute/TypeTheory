@@ -1497,12 +1497,15 @@ $ruleLabels = <|
 |>
 
 derivationBoxes[TypeTheoryProofTree["Assumption", claim_, {}], form_] := MakeBoxes[claim, form]
-(* the script level is held, so that a deep derivation keeps one size *)
+(* the script level is held, so that a deep derivation keeps one size; an inference's bar is never broken over lines,
+   as the front end breaks a fraction wider than its line, into (1/claim) premises, where a reference page's margin
+   leaves a wide derivation too little room *)
 derivationBoxes[TypeTheoryProofTree[rule_String, claim_, premises_List], form_] := RowBox[{
 	StyleBox[
 		FractionBox[
 			If[premises === {}, "", RowBox[Riffle[Map[Function[premise, derivationBoxes[premise, form]], premises], "\[ThickSpace]\[ThickSpace]\[ThickSpace]"]]],
-			MakeBoxes[claim, form]
+			MakeBoxes[claim, form],
+			MultilineFunction -> None
 		],
 		ScriptLevel -> 0,
 		AllowScriptLevelChange -> False

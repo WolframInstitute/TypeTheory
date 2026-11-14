@@ -406,13 +406,16 @@ VerificationTest[
 		{
 			rules[peirce],
 			MemberQ[Cases[peirce, TypeTheoryProofTree["Assumption", claim_, {}] :> claim, {0, Infinity}], TypeTheoryTerm[Or[a, Not[a]], prelude]],
-			MatchQ[ToBoxes[peirce], InterpretationBox[_, _TypeTheoryProofTree]] && ! FreeQ[First[ToBoxes[peirce]], FractionBox] && ! FreeQ[First[ToBoxes[peirce]], StyleBox["\[Or]E", ___]]
+			MatchQ[ToBoxes[peirce], InterpretationBox[_, _TypeTheoryProofTree]] && ! FreeQ[First[ToBoxes[peirce]], FractionBox] && ! FreeQ[First[ToBoxes[peirce]], StyleBox["\[Or]E", ___]],
+			(* the bars of its inferences, which the front end must not break over lines as fractions *)
+			Union[Cases[First[ToBoxes[peirce]], FractionBox[_, _, options___] :> {options}, Infinity]]
 		}
 	],
 	{
 		{"Assumption", "Assumption", "Assumption", "Assumption", "Assumption", "ImpliesElim", "FalseElim", "ImpliesIntro", "ImpliesElim", "OrElim", "ImpliesIntro"},
 		True,
-		True
+		True,
+		{{MultilineFunction -> None}}
 	},
 	TestID -> "Peirce's-law-by-excluded-middle-has-an-open-assumption-and-shows-drawn"
 ]
