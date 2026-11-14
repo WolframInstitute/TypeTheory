@@ -316,6 +316,31 @@ VerificationTest[
 	TestID -> "A-type-nested-in-a-negative-parameter-is-rejected"
 ]
 
+(* nested elimination leaves no Module variables of its own, after a declaration it accepts and after one it refuses
+   midway, as it refuses a type in an index of its container: its local functions are defined in terms of one another,
+   and kept their symbols, with the auxiliary types, until they were cleared at its end *)
+inductiveModuleVariables[] := Select[Names["WolframInstitute`TypeTheory`Checking`InductiveTypes`Private`*"], StringMatchQ[#, __ ~~ "$" ~~ DigitCharacter ..]&]
+
+indexed = TypeTheoryEnvironment[chains, {
+	TypeTheoryInductiveType[Indexed, TypeSpecifier[{TypeUniverse[1], TypeUniverse[1]} -> TypeUniverse[1]], {
+		IndexedMake -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[a, A]}, Indexed[A, NonNegativeIntegers]]
+	}, "Parameters" -> 1]
+}]
+
+VerificationTest[
+	With[{before = inductiveModuleVariables[]},
+		With[
+			{
+				accepted = TypeTheoryEnvironment[chains, {TypeTheoryInductiveType[Bush, TypeUniverse[1], {BushNode -> ForAll[{Typed[children, Chain[Bush]]}, Bush]}]}],
+				refused = TypeTheoryEnvironment[indexed, {TypeTheoryInductiveType[Knot, TypeUniverse[1], {KnotMake -> ForAll[{Typed[x, Indexed[Knot, Knot]]}, Knot]}]}]
+			},
+			{Head[accepted], First[refused], StringContainsQ[refused["Message"], "index of the nested type"], Complement[inductiveModuleVariables[], before]}
+		]
+	],
+	{TypeTheoryEnvironment, "NonPositiveOccurrence", True, {}},
+	TestID -> "Nested-elimination-leaves-no-Module-variables-and-still-refuses-a-type-in-an-index-of-its-container"
+]
+
 VerificationTest[
 	First @ TypeTheoryEnvironment[prelude, {
 		TypeTheoryInductiveType[

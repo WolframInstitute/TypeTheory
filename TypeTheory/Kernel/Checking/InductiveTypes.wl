@@ -363,43 +363,49 @@ eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, 
 constructorFieldsAndIndices[dependentFunctionType[_, domain_, body_, _]] := {domain, constructorFieldsAndIndices[body]}
 constructorFieldsAndIndices[conclusion_] := Last[applicationSpine[conclusion]]
 
+(* The local functions of nested elimination are defined in terms of one another, which would keep their symbols, with
+   the auxiliary types, after the Module: their definitions are cleared when it ends, after a failure too, with Clear,
+   which keeps them Temporary, where ClearAll would take that attribute and keep the symbols for good. *)
 eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, names_, originalConstructors_] := Module[
 	{auxiliaries = {}, replaceNested, replaceParts, nestedApplication, replaced, index = 1},
-	replaceNested[term_] := Replace[applicationSpine[term], {
-		{constantReference[inductive_, inductiveLevels_], arguments_} /; nestedOccurrenceQ[environment, names, inductive, arguments] :>
-			nestedApplication[inductive, inductiveLevels, arguments],
-		{head_, {}} :> replaceParts[head],
-		{head_, arguments_} :> makeApplication[replaceParts[head], replaceNested /@ arguments]
-	}];
-	replaceParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, replaceNested[domain], replaceNested[body], binder];
-	replaceParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, replaceNested[type], replaceNested[value], replaceNested[body]];
-	replaceParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, replaceNested[structureTerm]];
-	replaceParts[other_] := other;
-	nestedApplication[inductive_, inductiveLevels_, arguments_] := Module[
-		{numberOfNestedParameters = constantRecord[environment, inductive]["NumberOfParameters"], parameters, auxiliary},
-		parameters = Take[arguments, numberOfNestedParameters];
-		If[ occursQ[Drop[arguments, numberOfNestedParameters], names],
-			kernelFailure["NonPositiveOccurrence", "`1` occurs in an index of the nested type `2`.", {HoldForm @@ First[names], HoldForm @@ inductive}]
-		];
-		If[ looseBoundVariablesQ[parameters],
-			kernelFailure["NestedParameters", "The parameters of the nested type `1` must not depend on the fields of a constructor of `2`.", {HoldForm @@ inductive, HoldForm @@ First[names]}]
-		];
-		auxiliary = SelectFirst[auxiliaries, Function[candidate, candidate["Key"] === {inductive, inductiveLevels, parameters}], None];
-		If[ auxiliary === None,
-			If[ Length[auxiliaries] >= $maximumAuxiliaryTypes,
-				kernelFailure["NestingTooDeep", "`1` is nested more than `2` times.", {HoldForm @@ First[names], $maximumAuxiliaryTypes}]
+	WithCleanup[
+		replaceNested[term_] := Replace[applicationSpine[term], {
+			{constantReference[inductive_, inductiveLevels_], arguments_} /; nestedOccurrenceQ[environment, names, inductive, arguments] :>
+				nestedApplication[inductive, inductiveLevels, arguments],
+			{head_, {}} :> replaceParts[head],
+			{head_, arguments_} :> makeApplication[replaceParts[head], replaceNested /@ arguments]
+		}];
+		replaceParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, replaceNested[domain], replaceNested[body], binder];
+		replaceParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, replaceNested[type], replaceNested[value], replaceNested[body]];
+		replaceParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, replaceNested[structureTerm]];
+		replaceParts[other_] := other;
+		nestedApplication[inductive_, inductiveLevels_, arguments_] := Module[
+			{numberOfNestedParameters = constantRecord[environment, inductive]["NumberOfParameters"], parameters, auxiliary},
+			parameters = Take[arguments, numberOfNestedParameters];
+			If[ occursQ[Drop[arguments, numberOfNestedParameters], names],
+				kernelFailure["NonPositiveOccurrence", "`1` occurs in an index of the nested type `2`.", {HoldForm @@ First[names], HoldForm @@ inductive}]
 			];
-			auxiliary = auxiliaryType[environment, typeContext, parameterIds, First[names], Length[auxiliaries] + 1, inductive, inductiveLevels, parameters];
-			auxiliaries = Append[auxiliaries, auxiliary]
+			If[ looseBoundVariablesQ[parameters],
+				kernelFailure["NestedParameters", "The parameters of the nested type `1` must not depend on the fields of a constructor of `2`.", {HoldForm @@ inductive, HoldForm @@ First[names]}]
+			];
+			auxiliary = SelectFirst[auxiliaries, Function[candidate, candidate["Key"] === {inductive, inductiveLevels, parameters}], None];
+			If[ auxiliary === None,
+				If[ Length[auxiliaries] >= $maximumAuxiliaryTypes,
+					kernelFailure["NestingTooDeep", "`1` is nested more than `2` times.", {HoldForm @@ First[names], $maximumAuxiliaryTypes}]
+				];
+				auxiliary = auxiliaryType[environment, typeContext, parameterIds, First[names], Length[auxiliaries] + 1, inductive, inductiveLevels, parameters];
+				auxiliaries = Append[auxiliaries, auxiliary]
+			];
+			makeApplication[constantReference[auxiliary["Name"], levelParameter /@ universeParameters], Join[freeVariable /@ parameterIds, Drop[arguments, numberOfNestedParameters]]]
 		];
-		makeApplication[constantReference[auxiliary["Name"], levelParameter /@ universeParameters], Join[freeVariable /@ parameterIds, Drop[arguments, numberOfNestedParameters]]]
-	];
-	replaced = Function[constructor, Append[constructor, "AfterParameters" -> replaceNested[constructor["AfterParameters"]]]] /@ originalConstructors;
-	While[ index <= Length[auxiliaries],
-		auxiliaries[[index, "Constructors"]] = Function[constructor, Append[constructor, "AfterParameters" -> replaceNested[constructor["AfterParameters"]]]] /@ auxiliaries[[index, "Constructors"]];
-		index++
-	];
-	{Join[replaced, Catenate[Lookup[auxiliaries, "Constructors", {}]]], auxiliaries}
+		replaced = Function[constructor, Append[constructor, "AfterParameters" -> replaceNested[constructor["AfterParameters"]]]] /@ originalConstructors;
+		While[ index <= Length[auxiliaries],
+			auxiliaries[[index, "Constructors"]] = Function[constructor, Append[constructor, "AfterParameters" -> replaceNested[constructor["AfterParameters"]]]] /@ auxiliaries[[index, "Constructors"]];
+			index++
+		];
+		{Join[replaced, Catenate[Lookup[auxiliaries, "Constructors", {}]]], auxiliaries},
+		Clear[replaceNested, replaceParts, nestedApplication]
+	]
 ]
 
 $maximumAuxiliaryTypes = 64
@@ -445,26 +451,29 @@ instantiateParameters[record_, inductiveLevels_, type_, parameters_] := Fold[
 (* once the recursors are generated, the nested type and its constructors take each auxiliary's place *)
 restoreNested[blockTypes_, numberOfParameters_][term_] := Module[
 	{auxiliaries = Select[blockTypes, Function[type, type["Nested"] =!= None]], restore, restoreParts},
-	restore[subterm_] := Replace[applicationSpine[subterm], {
-		{constantReference[name_, _], arguments_} /; MemberQ[Lookup[auxiliaries, "Name"], name] :> With[
-			{nested = SelectFirst[auxiliaries, Function[type, type["Name"] === name]]["Nested"]},
-			makeApplication[constantReference[nested["Inductive"], nested["Levels"]], Join[nested["Parameters"], restore /@ Drop[arguments, numberOfParameters]]]
-		],
-		{constantReference[HoldComplete[nestedAuxiliary[_, auxiliaryIndex_, constructorIndex_]], _], arguments_} :> With[
-			{nested = auxiliaries[[auxiliaryIndex]]["Nested"]},
-			makeApplication[
-				constantReference[nested["Constructors"][[constructorIndex]]["Original"], nested["Levels"]],
-				Join[nested["Parameters"], restore /@ Drop[arguments, numberOfParameters]]
-			]
-		],
-		{head_, {}} :> restoreParts[head],
-		{head_, arguments_} :> makeApplication[restoreParts[head], restore /@ arguments]
-	}];
-	restoreParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, restore[domain], restore[body], binder];
-	restoreParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, restore[type], restore[value], restore[body]];
-	restoreParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, restore[structureTerm]];
-	restoreParts[other_] := other;
-	restore[term]
+	WithCleanup[
+		restore[subterm_] := Replace[applicationSpine[subterm], {
+			{constantReference[name_, _], arguments_} /; MemberQ[Lookup[auxiliaries, "Name"], name] :> With[
+				{nested = SelectFirst[auxiliaries, Function[type, type["Name"] === name]]["Nested"]},
+				makeApplication[constantReference[nested["Inductive"], nested["Levels"]], Join[nested["Parameters"], restore /@ Drop[arguments, numberOfParameters]]]
+			],
+			{constantReference[HoldComplete[nestedAuxiliary[_, auxiliaryIndex_, constructorIndex_]], _], arguments_} :> With[
+				{nested = auxiliaries[[auxiliaryIndex]]["Nested"]},
+				makeApplication[
+					constantReference[nested["Constructors"][[constructorIndex]]["Original"], nested["Levels"]],
+					Join[nested["Parameters"], restore /@ Drop[arguments, numberOfParameters]]
+				]
+			],
+			{head_, {}} :> restoreParts[head],
+			{head_, arguments_} :> makeApplication[restoreParts[head], restore /@ arguments]
+		}];
+		restoreParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, restore[domain], restore[body], binder];
+		restoreParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, restore[type], restore[value], restore[body]];
+		restoreParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, restore[structureTerm]];
+		restoreParts[other_] := other;
+		restore[term],
+		Clear[restore, restoreParts]
+	]
 ]
 
 restoredContext[restore_, context_Association] := Map[Function[entry, Append[entry, "Type" -> restore[entry["Type"]]]], context]
