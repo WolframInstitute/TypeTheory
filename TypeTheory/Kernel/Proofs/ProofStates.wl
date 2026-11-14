@@ -68,9 +68,9 @@ The tactics:
 	                        polynomial combination, whose cofactors Wolfram finds and "Ring" checks; and an
 	                        equation of the integers of TypeTheoryEnvironment["Integers"] from the equations of
 	                        integers among them, by a combination with integer cofactors
-	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, that follows linearly
-	                        from the inequalities and equations among the hypotheses, with multipliers Wolfram
-	                        finds
+	"LinearArithmetic"      proves an inequality, an equation or False, of natural numbers, or of rationals with
+	                        strict inequalities too, that follows linearly from the inequalities and equations
+	                        among the hypotheses, with multipliers Wolfram finds
 	"NonlinearArithmetic"   the same from the hypotheses and their products: each inequality a <= b times each side
 	                        of each, a k <= b k, so a product of inequalities follows linearly
 	"FindEquationalProof"   proves an equation from the hypotheses that are equations for all values, by replaying
@@ -1533,10 +1533,89 @@ polynomialReduce[data_, goal_] := With[{current = currentGoal[data, goal], envir
 	}]
 ]
 
+(* "LinearArithmetic" of rationals: a goal l <= r, l < r, l == r or False of Rationals, from the hypotheses that are
+   inequalities and equations of Rationals as written, since the order of the rationals is a definition that a weak
+   head normal form unfolds (Ring.wl, rationalLinearBoundProof); any other goal is the natural numbers' *)
+linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	Replace[rationalLinearGoal[environment, current], {
+		"NotRational" :> naturalLinearArithmetic[data, goal],
+		"Unavailable" :> tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the rationals' arithmetic and the lemmas of their order.", data, goal],
+		None :> tacticFailure["NoLinearCombination", "Wolfram finds no linear combination of the inequalities among the hypotheses that gives the goal `1`.", data, goal],
+		proof_ :> solvedByCheckedProof[data, goal, current, proof]
+	}]
+]
+
+rationalLinearGoal[environment_, current_] := With[{context = current["Context"]},
+	Replace[current["Type"], {
+		application[application[constantReference[HoldComplete["rationalLessEqual"], _], left_], right_] :> If[ ! rationalLinearAvailableQ[environment], "Unavailable",
+			rationalLinearBoundProof[environment, context, left, right, rationalInequalityHypotheses[environment, context]]
+		],
+		application[application[constantReference[HoldComplete["rationalLess"], _], left_], right_] :> If[ ! rationalLinearAvailableQ[environment], "Unavailable",
+			rationalStrictProof[environment, context, left, right, rationalInequalityHypotheses[environment, context]]
+		],
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], left_], right_] /; rationalTypeQ[environment, context, type] :>
+			If[ ! rationalLinearAvailableQ[environment], "Unavailable",
+				With[
+					{
+						hypotheses = rationalInequalityHypotheses[environment, context]
+					},
+					Replace[
+						{rationalLinearBoundProof[environment, context, left, right, hypotheses], rationalLinearBoundProof[environment, context, right, left, hypotheses]},
+						{
+							{one_, other_} /; one =!= None && other =!= None :>
+								makeApplication[constantReference[HoldComplete["rationalLessEqualAntisymmetry"], {}], {left, right, one, other}],
+							_ -> None
+						}
+					]
+				]
+			],
+		constantReference[HoldComplete[False], _] /; rationalLinearAvailableQ[environment] && rationalInequalityHypotheses[environment, context] =!= {} :>
+			Replace[rationalLinearContradictionProof[environment, context, rationalInequalityHypotheses[environment, context]], None -> "NotRational"],
+		_ -> "NotRational"
+	}]
+]
+
+(* l < r: r <= l with the hypotheses is contradictory *)
+rationalStrictProof[environment_, context_, left_, right_, hypotheses_List] := With[{id = freshFreeVariable[]},
+	Replace[
+		rationalLinearContradictionProof[
+			environment,
+			Append[context, id -> <|"Name" -> HoldComplete["k"], "Type" -> rationalLessEqualTerm[right, left], "Binder" -> "Explicit"|>],
+			Append[hypotheses, {right, left, freeVariable[id], False}]
+		],
+		{
+			None -> None,
+			contradiction_ :> makeApplication[constantReference[HoldComplete["rationalLessOfNotLessEqual"], {}], {
+				left,
+				right,
+				Construct[lambdaAbstraction, HoldComplete["k"], rationalLessEqualTerm[right, left], abstractFreeVariable[contradiction, id], "Explicit"]
+			}]
+		}
+	]
+]
+
+(* the type as written, since Rationals is a definition, a quotient type, that a weak head normal form unfolds *)
+rationalTypeQ[environment_, context_, type_] := MatchQ[type, constantReference[HoldComplete[Rationals], _]]
+
+(* {{a, b, proof, strict}, ...}: the hypotheses that are a <= b or a < b of rationals as written, an equation of
+   rationals giving two *)
+rationalInequalityHypotheses[environment_, context_] := Catenate @ KeyValueMap[
+	Function[{id, entry}, Replace[entry["Type"], {
+		application[application[constantReference[HoldComplete["rationalLessEqual"], _], a_], b_] :> {{a, b, freeVariable[id], False}},
+		application[application[constantReference[HoldComplete["rationalLess"], _], a_], b_] :> {{a, b, freeVariable[id], True}},
+		application[application[application[constantReference[HoldComplete[Equal], _], type_], a_], b_] /; rationalTypeQ[environment, context, type] :> {
+			{a, b, typedTransported[type, a, b, freeVariable[id], Function[side, rationalLessEqualTerm[a, side]], makeApplication[constantReference[HoldComplete["rationalLessEqualReflexivity"], {}], {a}]], False},
+			{b, a, typedTransported[type, a, b, freeVariable[id], Function[side, rationalLessEqualTerm[side, a]], makeApplication[constantReference[HoldComplete["rationalLessEqualReflexivity"], {}], {a}]], False}
+		},
+		_ :> {}
+	}]],
+	context
+]
+
 (* "LinearArithmetic": an inequality, an equation or False, of natural numbers, that follows linearly
    from the inequalities and equations among the hypotheses, each monomial counted as a variable;
    Wolfram's FindInstance finds the multipliers, and "Ring" checks the sum (Ring.wl) *)
-linearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+naturalLinearArithmetic[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
 	If[ ! AllTrue[Join[$ringConstants, $linearConstants, recursorName /@ $linearEliminated], Function[name, constantDeclaredQ[environment, name]]],
 		tacticFailure["RingUnavailable", "The environment of the goal `1` lacks the arithmetic of the prelude and its laws.", data, goal]
 	];

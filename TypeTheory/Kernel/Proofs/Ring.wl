@@ -62,6 +62,12 @@ PackageScoped[integerRingAvailableQ]
 PackageScoped[integerCombinationProof]
 PackageScoped[rationalRingEquationProof]
 PackageScoped[rationalRingAvailableQ]
+PackageScoped[rationalLinearBoundProof]
+PackageScoped[rationalLinearContradictionProof]
+PackageScoped[rationalLinearAvailableQ]
+PackageScoped[rationalLinearCertificate]
+PackageScoped[rationalLessEqualTerm]
+PackageScoped[typedTransported]
 
 
 (* ::Section:: *)
@@ -83,6 +89,12 @@ integerRingAvailableQ::usage = "integerRingAvailableQ[environment] gives True if
 rationalRingEquationProof::usage = "rationalRingEquationProof[left, right] gives a proof of left == right for core terms of the rationals of TypeTheoryEnvironment[\"Rationals\"] \
 with the same normal form, from the rationals' laws, or None."
 rationalRingAvailableQ::usage = "rationalRingAvailableQ[environment] gives True if environment declares the rationals and the laws their normal forms are built from."
+rationalLinearBoundProof::usage = "rationalLinearBoundProof[environment, context, left, right, {{a, b, proof, strict}, ...}] gives a proof of left <= right of rationals from proofs of a <= b, or of a < b where strict is True, that imply it linearly, or None."
+rationalLinearContradictionProof::usage = "rationalLinearContradictionProof[environment, context, {{a, b, proof, strict}, ...}] gives a proof of False from proofs of inequalities of rationals a <= b, or a < b where strict is True, that contradict each other linearly, or None."
+rationalLinearAvailableQ::usage = "rationalLinearAvailableQ[environment] gives True if environment declares the rationals, their laws and the lemmas linear arithmetic over them uses."
+rationalLinearCertificate::usage = "rationalLinearCertificate[environment, context, left, right, {{a, b, proof, strict}, ...}, d, {p1, ...}, c] gives the proof of left <= right of rationals that the multipliers make, with d (right - left) == p1 (b1 - a1) + ... + c, or None where a step does not check or the identity does not hold."
+rationalLessEqualTerm::usage = "rationalLessEqualTerm[a, b] gives the core term a <= b of rationals."
+typedTransported::usage = "typedTransported[type, a, b, equation, predicate, proof] gives a proof of predicate[b] from a proof of predicate[a] and a proof equation of a == b, for terms of type."
 integerCombinationProof::usage = "integerCombinationProof[left, right, {{a, b, proof}, ...}] gives a proof of left == right for core terms of the integers of \
 TypeTheoryEnvironment[\"Integers\"] from proofs of equations a == b of integers, by a polynomial combination of them with integer cofactors that Wolfram finds, or None."
 ringEquationInequalities::usage = "ringEquationInequalities[a, b, proof] gives {{a, b, proof1}, {b, a, proof2}}, the inequalities a <= b and b <= a, from a proof of a == b."
@@ -393,6 +405,224 @@ transported[a_, b_, equation_, predicate_, proof_] := makeApplication[constantRe
 	b,
 	equation
 }]
+
+
+
+(* ::Subsection:: *)
+(*Linear arithmetic over the rationals*)
+
+
+(* Linear arithmetic over the rationals proves l <= r from hypotheses a <= b and a < b of Rationals, each monomial of
+   the atoms a variable: Wolfram finds nonnegative rationals y_i and c with r - l == y_1 (b_1 - a_1) + ... + c, scaled
+   to natural numbers D >= 1, P_i and C, D (r - l) == P_1 (b_1 - a_1) + ... + C, an identity of commutative rings that
+   "Ring" proves. Each b_i - a_i is at least 0 by "rationalDifferenceOfLessEqual", times P_i by
+   "rationalLessEqualScaling", summed by "rationalLessEqualSum" with C at least 0, which carried along the identity is
+   0 <= D (r - l); "rationalNonnegativeOfScaled" leaves 0 <= r - l, and "rationalLessEqualOfDifference" l <= r. Each
+   step's statement is read from the kernel's inference, so the terms are the lemmas' own. False is C <= 0 for a
+   combination that is the negative constant -C, or d_j <= c_j for a strict hypothesis c_j < d_j with a positive
+   multiplier, against it. *)
+
+rationalLinearBoundProof[environment_, context_, left_, right_, inequalities_List] := Block[{$ring = $rationalRing},
+	Replace[rationalDifferences[Join[{{left, right}}, Map[Function[inequality, Take[inequality, 2]], inequalities]]], {
+		{variables_, differences_List} :> Replace[boundMultipliers[variables, First[differences], Rest[differences]], {
+			{scale_Integer, multipliers_List, constant_Integer} :>
+				boundCertificate[environment, context, left, right, inequalities, scale, multipliers, constant],
+			_ -> None
+		}],
+		_ -> None
+	}]
+]
+
+(* the certificate of given multipliers, which the tests forge *)
+rationalLinearCertificate[environment_, context_, left_, right_, inequalities_List, scale_Integer, multipliers_List, constant_Integer] :=
+	Block[{$ring = $rationalRing}, boundCertificate[environment, context, left, right, inequalities, scale, multipliers, constant]]
+
+rationalLinearContradictionProof[environment_, context_, inequalities_List] := Block[{$ring = $rationalRing},
+	Replace[rationalDifferences[Map[Function[inequality, Take[inequality, 2]], inequalities]], {
+		{variables_, differences_List} :> Replace[contradictionMultipliersOf[variables, differences, Map[Last, inequalities]], {
+			{scale_Integer, multipliers_List, constant_Integer} :> contradictionCertificate[environment, context, inequalities, scale, multipliers, constant],
+			_ -> None
+		}],
+		_ -> None
+	}]
+]
+
+(* {variables, {b_1 - a_1, ...}}: the pairs {a, b} as Wolfram polynomials of their atoms *)
+rationalDifferences[pairs_List] := Module[{forms, atoms, variables},
+	forms = Map[Function[pair, Map[Function[term, First @ ringNormalForm[term]], pair]], pairs];
+	atoms = DeleteDuplicates @ Catenate[Map[Function[monomial, First /@ Last[monomial]], Catenate[Catenate[forms]]]];
+	variables = Table[Subscript[\[FormalX], k], {k, Length[atoms]}];
+	{variables, Map[Function[pair, Expand[Last[pair] - First[pair]]], Map[Function[form, Map[Function[polynomial, wolframPolynomial[polynomial, AssociationThread[atoms, variables]]], form]], forms]]}
+]
+
+(* {D, {P_1, ...}, C} with D target == P . differences + C, or None *)
+boundMultipliers[variables_List, target_, differences_List] := With[{ys = Table[\[FormalY][i], {i, Length[differences]}]},
+	Replace[
+		TimeConstrained[
+			Quiet @ FindInstance[
+				And @@ Join[
+					Thread[(Last /@ CoefficientRules[Expand[target - ys . differences - \[FormalC]], variables]) == 0],
+					Thread[ys >= 0],
+					{\[FormalC] >= 0}
+				],
+				Append[ys, \[FormalC]],
+				Rationals
+			],
+			10,
+			$Aborted
+		],
+		{
+			{solution_List, ___} :> scaledMultipliers[ReplaceAll[Append[ys, \[FormalC]], solution]],
+			_ -> None
+		}
+	]
+]
+
+(* {D, {P_1, ...}, C} with P . differences + C == 0 and C or a strict one's P_j positive, or None *)
+contradictionMultipliersOf[variables_List, differences_List, strict_List] := With[{ys = Table[\[FormalY][i], {i, Length[differences]}]},
+	Replace[
+		TimeConstrained[
+			Quiet @ FindInstance[
+				And @@ Join[
+					Thread[(Last /@ CoefficientRules[Expand[ys . differences + \[FormalC]], variables]) == 0],
+					Thread[ys >= 0],
+					{\[FormalC] >= 0, \[FormalC] + Total[Pick[ys, strict]] >= 1}
+				],
+				Append[ys, \[FormalC]],
+				Rationals
+			],
+			10,
+			$Aborted
+		],
+		{
+			{solution_List, ___} :> scaledMultipliers[ReplaceAll[Append[ys, \[FormalC]], solution]],
+			_ -> None
+		}
+	]
+]
+
+scaledMultipliers[values_List] /; AllTrue[values, Function[value, Element[value, Rationals] && value >= 0]] :=
+	With[{scale = LCM @@ Map[Denominator, values]}, {scale, Most[scale values], Last[scale values]}]
+scaledMultipliers[_] := None
+
+(* False: with C >= 1 and no strict multiplier, the combination is the constant -C, so C <= 0, which computes false;
+   else a strict c_j < d_j with P_j >= 1, and d_j <= c_j from the others by the same certificate *)
+contradictionCertificate[environment_, context_, inequalities_List, scale_Integer, multipliers_List, constant_Integer] := With[{pairs = Transpose[{inequalities, multipliers}]},
+	Replace[SelectFirst[pairs, Function[pair, MatchQ[pair, {{_, _, _, True}, multiplier_ /; multiplier > 0}]], None], {
+		chosen : {{c_, d_, proof_, True}, multiplier_} :> With[{others = DeleteCases[pairs, chosen, {1}, 1]},
+			Replace[boundCertificate[environment, context, d, c, Map[First, others], multiplier, Map[Last, others], constant], {
+				None -> None,
+				bound_ :> makeApplication[makeApplication[constantReference[HoldComplete["rationalNotLessEqualOfLess"], {}], {c, d, proof}], {bound}]
+			}]
+		],
+		_ :> Replace[boundCertificate[environment, context, rationalLiteral[constant], rationalLiteral[0], inequalities, 1, multipliers, 0], {
+			None -> None,
+			bound_ :> makeApplication[
+				makeApplication[constantReference[HoldComplete["rationalLessEqualQFalse"], {}], {rationalLiteral[constant], rationalLiteral[0], reflexivityProofOf[$booleanFalse]}],
+				{bound}
+			]
+		}]
+	}]
+]
+
+$booleanFalse = constantReference[HoldComplete["false"], {}]
+(* the Booleans are a Type, so the equation's universe is 1 *)
+reflexivityProofOf[term_] := makeApplication[constantReference[HoldComplete["equalityReflexivity"], {1}], {constantReference[HoldComplete[Booleans], {}], term}]
+
+(* left <= right from D (right - left) == P . (b - a) + C *)
+boundCertificate[environment_, context_, left_, right_, inequalities_List, scale_Integer, multipliers_List, constant_Integer] := Catch[
+	Module[{parts, sum, difference, premise, zeroSide, scaledSide, carried},
+		parts = Join[
+			DeleteCases[MapThread[Function[{inequality, multiplier}, scaledDifference[environment, context, inequality, multiplier]], {inequalities, multipliers}], None],
+			{conclusionSides[environment, context, makeApplication[constantReference[HoldComplete["rationalCastNonnegative"], {}], {naturalLiteral[constant]}]]}
+		];
+		sum = Fold[Function[{accumulated, part}, summedInequalities[environment, context, accumulated, part]], First[parts], Rest[parts]];
+		difference = Last[premiseSides[environment, context, makeApplication[constantReference[HoldComplete["rationalLessEqualOfDifference"], {}], {left, right}]]];
+		premise = premiseSides[environment, context, makeApplication[constantReference[HoldComplete["rationalNonnegativeOfScaled"], {}], {difference, naturalLiteral[scale - 1]}]];
+		(* the premise's (D - 1) + 1 is a sum of naturals, an atom to the rationals' normal forms: the literal D, which
+		   the kernel computes it to, stands in its place *)
+		zeroSide = First[premise];
+		scaledSide = times[rationalLiteral[scale], difference];
+		carried = Replace[sum, {small_, large_, proof_} :> With[
+			{
+				toZero = Replace[rationalRingEquationProof[small, zeroSide], None :> Throw[None, boundCertificate]],
+				toScaled = Replace[rationalRingEquationProof[large, scaledSide], None :> Throw[None, boundCertificate]]
+			},
+			typedTransported[$ring["Type"], large, scaledSide, toScaled, Function[side, rationalLessEqualTerm[zeroSide, side]],
+				typedTransported[$ring["Type"], small, zeroSide, toZero, Function[side, rationalLessEqualTerm[side, large]], proof]
+			]
+		]];
+		makeApplication[constantReference[HoldComplete["rationalLessEqualOfDifference"], {}], {left, right,
+			makeApplication[constantReference[HoldComplete["rationalNonnegativeOfScaled"], {}], {difference, naturalLiteral[scale - 1], carried}]
+		}]
+	],
+	boundCertificate
+]
+
+(* {0 P, (b - a) P, proof} for an inequality a <= b, or a < b, scaled by P >= 1; None for P == 0 *)
+scaledDifference[_, _, _, 0] := None
+scaledDifference[environment_, context_, {a_, b_, proof_, strict_}, multiplier_Integer] := With[
+	{nonstrict = If[TrueQ[strict], makeApplication[constantReference[HoldComplete["rationalLessEqualOfLess"], {}], {a, b, proof}], proof]},
+	Replace[
+		{
+			conclusionSides[environment, context, makeApplication[constantReference[HoldComplete["rationalDifferenceOfLessEqual"], {}], {a, b, nonstrict}]],
+			conclusionSides[environment, context, makeApplication[constantReference[HoldComplete["rationalCastNonnegative"], {}], {naturalLiteral[multiplier]}]]
+		},
+		{{zero_, difference_, differenceProof_}, {_, factor_, factorProof_}} :> conclusionSides[environment, context,
+			makeApplication[constantReference[HoldComplete["rationalLessEqualScaling"], {}], {zero, difference, factor, factorProof, differenceProof}]
+		]
+	]
+]
+
+(* the sum of two inequalities, a + c <= b + d *)
+summedInequalities[environment_, context_, {a_, b_, proof_}, {c_, d_, otherProof_}] :=
+	conclusionSides[environment, context, makeApplication[constantReference[HoldComplete["rationalLessEqualSum"], {}], {a, b, c, d, proof, otherProof}]]
+
+(* {x, y, proof} for a proof of x <= y, its sides read from its inferred statement *)
+conclusionSides[environment_, context_, proof_] := Replace[Quiet[catchKernelFailure[inferType[environment, context, proof]]], {
+	application[application[constantReference[HoldComplete["rationalLessEqual"], _], x_], y_] :> {x, y, proof},
+	_ :> Throw[None, boundCertificate]
+}]
+
+(* {x, y} for the premise x <= y of a lemma applied to all but its proof *)
+premiseSides[environment_, context_, partial_] := Replace[Quiet[catchKernelFailure[weakHeadNormalForm[environment, context, inferType[environment, context, partial]]]], {
+	dependentFunctionType[_, application[application[constantReference[HoldComplete["rationalLessEqual"], _], x_], y_], _, _] :> {x, y},
+	_ :> Throw[None, boundCertificate]
+}]
+
+rationalLessEqualTerm[a_, b_] := application[application[constantReference[HoldComplete["rationalLessEqual"], {}], a], b]
+
+(* predicate[b] from a proof of predicate[a], for a and b of the type and a proof of a == b *)
+typedTransported[type_, a_, b_, equation_, predicate_, proof_] := makeApplication[constantReference[recursorName[HoldComplete[Equal]], {0, 1}], {
+	type,
+	a,
+	Construct[
+		lambdaAbstraction,
+		HoldComplete["y"],
+		type,
+		Construct[
+			lambdaAbstraction,
+			HoldComplete["e"],
+			makeApplication[constantReference[HoldComplete[Equal], {1}], {type, a, boundVariable[0]}],
+			predicate[boundVariable[1]],
+			"Explicit"
+		],
+		"Explicit"
+	],
+	proof,
+	b,
+	equation
+}]
+
+$rationalLinearConstants = HoldComplete /@ Unevaluated[{
+	"rationalLessEqual", "rationalLess", "rationalDifferenceOfLessEqual", "rationalLessEqualScaling", "rationalLessEqualSum",
+	"rationalLessEqualOfDifference", "rationalNonnegativeOfScaled", "rationalCastNonnegative", "rationalLessEqualOfLess",
+	"rationalNotLessEqualOfLess", "rationalLessOfNotLessEqual", "rationalLessEqualQFalse", "rationalLessEqualAntisymmetry",
+	"rationalLessEqualReflexivity", "falseElimination"
+}]
+
+rationalLinearAvailableQ[environment_] := rationalRingAvailableQ[environment] &&
+	AllTrue[Join[$rationalLinearConstants, {recursorName[HoldComplete[Equal]]}], Function[name, constantDeclaredQ[environment, name]]]
 
 
 (* ::Subsection:: *)

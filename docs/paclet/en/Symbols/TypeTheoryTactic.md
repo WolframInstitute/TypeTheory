@@ -50,7 +50,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"Counterexample"` | proves <code>[Not]()[[ForAll]()[{[Typed]()[*x*, *domain*], ...}, *p*]]</code>, each *domain* [Naturals]() or [Integers](), with values at which *p* fails: the first that Wolfram finds, smallest first, or else those of [FindInstance](). The statement applied to them, and to a proof of each premise of *p*, gives the conclusion of *p* at them, which the proof of its negation refutes; `"Decide"` proves each premise and the negation, or leaves it as a goal |
 | `"Counterexample", v, ...` | does the same with the integers `v, ...` as the values |
 | `"PolynomialReduce"` | proves an equation of natural numbers from the equations among the hypotheses, by a polynomial combination whose cofactors Wolfram finds, with [PolynomialReduce]() or linear algebra, and `"Ring"` checks; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers from the equations of integers |
-| `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
+| `"LinearArithmetic"` | proves an inequality, an equation or [False](), of natural numbers, or of rationals with strict inequalities too, from the inequalities and equations among the hypotheses, by a linear combination whose multipliers Wolfram's [FindInstance]() finds, each monomial counted as a variable |
 | `"NonlinearArithmetic"` | proves what `"LinearArithmetic"` proves from the inequalities among the hypotheses and their products: each inequality a <= b times each side k of each, a k <= b k, so that n <= m gives n n <= m m |
 | `"FindEquationalProof"` | proves an equation from the hypotheses that are equations of its type for all values of their variables, by replaying the proof that Wolfram's [FindEquationalProof]() finds, step by step |
 | `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); `"integerLessEqualOfMultiple"` takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
@@ -777,6 +777,19 @@ TypeTheoryProof[ForAll[{x, y}, Implies[2 x + 3 y <= 12, Implies[4 <= x, y <= 1]]
 ```wl
 TypeTheoryProof[ForAll[{x, y}, Implies[x + 1 <= y, Implies[y <= x, False]]], {
     "Introduce"[x, y, h, k],
+    "LinearArithmetic"
+}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+Over the rationals `"LinearArithmetic"` takes strict inequalities too, and proves a strict one where a strict hypothesis makes the combination positive:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[x, Rationals], Typed[y, Rationals], Typed[z, Rationals]}, Implies[x < y, Implies[y <= z, x < z]]], TypeTheoryEnvironment["Rationals"], {
+    "Introduce"[x, y, z, h, k],
     "LinearArithmetic"
 }]
 ```
