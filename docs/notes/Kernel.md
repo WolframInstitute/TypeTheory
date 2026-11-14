@@ -342,6 +342,31 @@ describe. One that is not is named by the message `$compiledKernelSeed::mismatch
 not match, and the records' terms are read as without a seed. The check costs 0.18 s on the seed of the import of 24 modules of Mathlib (316,377 terms, 5,072 constants) and
 0.65 to 0.69 s on that of 36 (1,096,916 terms, 11,899 constants), and LeanLink's seeds pass it (at nice 19).
 
+## The compiled kernel's memory
+
+The compiled program's memory is one array, whose regions the header of `CompiledKernel.wl` lists. Two measurements on
+the 36-module Mathlib cone, 11,899 constants, decide how it is laid out (task 55, 2026-11-14). They ran on pod 4, Wolfram
+15.0.1, at a load average of 45 from other jobs: the ratios and counts hold, the times are about four times an idle
+machine's.
+
+- **What one declaration needs.** Checked alone, every other constant declared as it is, the largest declaration,
+  `_private.Init.Data.Array.Extract.0.Array.extract_append._proof_1_1`, makes 495,248 nodes; the next,
+  `Std.DTreeMap.Internal.Impl.balance!_eq_balanceₘ`, 342,618; no other more than 302,000. 600 constants were measured
+  alone, those of the six chunks of 100 whose total could exceed the largest. The whole cone makes 10,904,985 nodes
+  beyond the 1,099,245 its input interns, in an arena of 17,688,080.
+- **What the tables kept across declarations save.** Seven tables are keyed by node and kept from one declaration to
+  the next: the weak head normal forms with and without unfolding, the types inferred with and without checking, the
+  union-find of the definitional equalities found, the hash of those refuted, and the universe instantiation memo. A
+  program that empties them after each declaration, built for this measurement only, checks the cone with 1.72 times
+  the work: 74% more definitional-equality calls, 127% more weak head normal forms, 46% more type inferences, 2.9% more
+  nodes. The memo of substitution, lifting and abstraction is per call already, by its generation.
+
+So (Stephen, 2026-11-14): the node-keyed tables survive across declarations, and only the per-call memo and a
+declaration's own temporaries go to a scratch region of a few million nodes for each declaration. The input already
+leaves out what a check takes as given: since 0.45.0 the theorems and opaque constants among the trusted ones enter it
+without their values, so a batch of 1,190 constants on 10,709 has an input of 319,600 nodes instead of 1,105,505 and an
+arena of 0.66 GB instead of 2.35 GB.
+
 ## Elaboration
 
 The elaborator is untrusted and its output is always re-checked. Its state is bound with `Block` for
