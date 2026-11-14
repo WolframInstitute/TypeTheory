@@ -875,3 +875,99 @@ VerificationTest[
 	ConstantArray[{False, 12}, 4],
 	TestID -> "A-forged-chain-of-limbs-is-refused-by-the-guard-and-by-the-program"
 ]
+
+
+(* The theorems and opaque constants a check takes as given enter the compiled kernel's input without their values. The
+   program reads a theorem's or an opaque constant's value only where it checks that constant, and refuses one without a
+   value there; a given one it declares as it is. Each row it reads of a checked constant is the one it reads with the
+   values in, its terms read back from the rows; every row keeps its kind; a given theorem or opaque constant has 0 for
+   its value, where it has its proof with the values in; and the program accepts both inputs. *)
+givenBase = TypeTheoryEnvironment[prelude, {
+	TypeTheoryAxiom["assumed", 1 + 1 == 2],
+	TypeTheoryTheorem["given", 2 + 2 == 4, "equalityReflexivity"[4]],
+	TypeTheoryTheorem["onAxiom", 1 + 1 == 2, "assumed"],
+	TypeTheoryDefinition["secret", Typed[5, NonNegativeIntegers], "Opaque" -> True],
+	TypeTheoryDefinition["two", Typed[2, NonNegativeIntegers]]
+}, Method -> "Symbolic"]
+
+givenBatch = {
+	TypeTheoryTheorem["usesGiven", 2 + 2 == 4, "given"],
+	TypeTheoryTheorem["usesAxiom", 1 + 1 == 2, "onAxiom"],
+	TypeTheoryTheorem["unfolds", "two" == 2, "equalityReflexivity"[2]]
+}
+
+givenInput[omit_] := Block[{WolframInstitute`TypeTheory`PackageScope`$omitGivenProofs = omit},
+	compiledPrivate["environmentInput"][
+		TypeTheoryEnvironment[givenBase, givenBatch, Method -> "Symbolic"],
+		Length[givenBase],
+		Symbol["WolframInstitute`TypeTheory`Checking`Declarations`Private`registrationCount"][givenBase],
+		1
+	]
+]
+
+(* a row's term or level read back from the rows, the rows' own numbers left out *)
+inputLevel[levels_, row_Integer] := With[{level = levels[[row]]}, Switch[First[level],
+	3, {3, inputLevel[levels, level[[2]]], level[[3]]},
+	4 | 5 | 6, {First[level], inputLevel[levels, level[[2]]], inputLevel[levels, level[[3]]]},
+	_, level
+]]
+inputTerm[_, _, 0] := 0
+inputTerm[nodes_, levels_, row_Integer] := With[{node = nodes[[row]]}, Switch[First[node],
+	2, {2, inputLevel[levels, node[[2]]]},
+	3, {3, node[[2]], inputLevel[levels, node[[3]]]},
+	4 | 5 | 6, {First[node], inputTerm[nodes, levels, node[[2]]], inputTerm[nodes, levels, node[[3]]]},
+	7, {7, inputTerm[nodes, levels, node[[2]]], inputTerm[nodes, levels, node[[3]]], inputTerm[nodes, levels, node[[4]]]},
+	9 | 12, {First[node], node[[2]], node[[3]], inputTerm[nodes, levels, node[[4]]]},
+	11, {11, inputTerm[nodes, levels, node[[2]]]},
+	_, node
+]]
+
+(* a checked constant's row with its type, value and universe parameters read back *)
+checkedRow[input_, position_Integer] := With[{nodes = Normal[input["Nodes"]], levels = Normal[input["Levels"]], row = Normal[input["Constants"]][[position]]},
+	ReplacePart[row, {2 -> inputTerm[nodes, levels, row[[2]]], 3 -> inputTerm[nodes, levels, row[[3]]], 4 -> inputLevel[levels, row[[4]]]}]
+]
+
+VerificationTest[
+	With[{on = givenInput[True], off = givenInput[False]},
+		With[
+			{
+				checked = Select[Normal[on["Order"]], Positive],
+				provedGiven = Select[-Select[Normal[on["Order"]], Negative], Function[position, MemberQ[{3, 4}, Normal[on["Constants"]][[position, 1]]]]]
+			},
+			{
+				TrueQ[WolframInstitute`TypeTheory`PackageScope`$omitGivenProofs],
+				Length[on["Nodes"]] < Length[off["Nodes"]],
+				on["Order"] === off["Order"] && on["Names"] === off["Names"],
+				Normal[on["Constants"]][[All, 1]] === Normal[off["Constants"]][[All, 1]],
+				Function[position, checkedRow[on, position]] /@ checked === Function[position, checkedRow[off, position]] /@ checked,
+				Length[provedGiven] > 3 && Union[Normal[on["Constants"]][[provedGiven, 3]]] === {0} && Min[Normal[off["Constants"]][[provedGiven, 3]]] > 0,
+				If[available, {programStatus[on], programStatus[off]}, {0, 0}]
+			}
+		]
+	],
+	{True, True, True, True, True, True, {0, 0}},
+	TestID -> "The-given-proofs-are-left-out-of-the-compiled-kernel's-input"
+]
+
+(* A batch on constants taken as given: it gives the records it gives with the values in and with the other kernel, and
+   so the axioms each of its constants depends on; a forged proof in it is refused, and a theorem that needs the value
+   of a given opaque constant is refused, as before, on every path. *)
+givenVerdict[result_] := Which[FailureQ[result], First[result], Head[result] === TypeTheoryEnvironment, "accepted", True, result]
+
+VerificationTest[
+	With[
+		{
+			omitted = TypeTheoryEnvironment[givenBase, givenBatch, Method -> compiledMethod],
+			kept = Block[{WolframInstitute`TypeTheory`PackageScope`$omitGivenProofs = False}, TypeTheoryEnvironment[givenBase, givenBatch, Method -> compiledMethod]],
+			symbolic = TypeTheoryEnvironment[givenBase, givenBatch, Method -> "Symbolic"]
+		},
+		{
+			First[omitted]["Records"] === First[kept]["Records"] === First[symbolic]["Records"],
+			Function[environment, Block[{$TypeTheoryEnvironment = environment}, Keys[TypeTheoryAxiomClosure[TypeTheoryTerm["usesAxiom"]]]]] /@ {omitted, kept, symbolic},
+			Function[method, givenVerdict[TypeTheoryEnvironment[givenBase, {TypeTheoryTheorem["wrong", 2 + 2 == 5, "given"]}, Method -> method]]] /@ {compiledMethod, "Symbolic"},
+			Function[method, givenVerdict[TypeTheoryEnvironment[givenBase, {TypeTheoryTheorem["opened", "secret" == 5, "equalityReflexivity"[5]]}, Method -> method]]] /@ {compiledMethod, "Symbolic"}
+		}
+	],
+	{True, ConstantArray[{"assumed"}, 3], {"TypeMismatch", "TypeMismatch"}, {"TypeMismatch", "TypeMismatch"}},
+	TestID -> "A-batch-on-given-constants-gives-the-records-and-axioms-it-gives-with-their-proofs"
+]

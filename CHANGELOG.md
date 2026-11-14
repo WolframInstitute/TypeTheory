@@ -149,6 +149,10 @@ Versions 0.35.0 to 0.44.0.
   Wolfram 15. The compiled program is unchanged.
 - A registration's defining equations are compared with the kernel's caches: 160 ms less in every check of
   an environment that registers the natural numbers' operations, as a cone of Mathlib does.
+- The compiled kernel's input leaves out the proofs of the theorems and the values of the opaque constants that a
+  check takes as given, which the program never reads. A batch of 1,190 constants on 10,709 of a Mathlib cone has an
+  input of 319,600 nodes, where it had 1,105,505, built in 5.9 s instead of 21.1 s, in an arena of 0.66 GB instead of
+  2.35 GB, and checked in half the time.
 
 ### Documentation
 

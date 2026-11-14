@@ -57,12 +57,14 @@ PackageScoped[compiledKernelCheck]
 PackageScoped[compiledKernelAvailableQ]
 PackageScoped[compileKernelLibrary]
 PackageScoped[$compiledKernelSeed]
+PackageScoped[$omitGivenProofs]
 
 
 (* ::Section:: *)
 (*Usage Messages*)
 
 
+$omitGivenProofs::usage = "$omitGivenProofs is True while the input of the compiled kernel leaves out the values of the theorems and opaque constants that a check takes as given."
 compiledKernelCheck::usage = "compiledKernelCheck[environment], compiledKernelCheck[environment, trusted, registrations] or compiledKernelCheck[environment, trusted, registrations, recheck], its first trusted constants and registrations of the natural numbers taken as they are, checks the declarations of environment with the compiled kernel, taking inductive types, \
 their constructors and recursors, and quotient types as the records their kernels generate, and the equations of the other registrations that have a variable in every application of an operation, and gives a Success, the Failure of the first declaration that does not check, whose \"Position\" \
 is that declaration's, or one past the last for an equation of a registration, or None where the compiled kernel does not handle the environment or no library is available. Where the environment has a natural number literal that the compiled kernel does not hold, \
@@ -2128,6 +2130,21 @@ booleanConstructors[records_, type_] := Replace[functionBody[functionBody[type]]
 functionBody[dependentFunctionType[_, _, body_, _]] := body
 functionBody[other_] := other
 
+(* The program reads the value of a theorem or of an opaque constant in one place, where it checks that constant
+   (arenaCheckDeclaration), which refuses one without a value: it unfolds a definition and nothing else. So a theorem or
+   an opaque constant among the first trusted constants, which the program declares as they are, goes in without its
+   value: its row has 0 there, as the row of an axiom has, and keeps its own kind. The proofs of the constants a batch
+   builds on are most of the nodes of an environment, and the memory of a check is in proportion to the nodes of its
+   input. The records the input carries keep their values: a declaration the other kernel checks again is checked on
+   them. *)
+$omitGivenProofs = True
+
+givenWithoutProofs[records_List, trusted_Integer] /; TrueQ[$omitGivenProofs] && trusted > 0 := Join[
+	Function[record, If[MemberQ[{"Theorem", "Opaque"}, record["Kind"]], KeyDrop[record, "Value"], record]] /@ Take[records, UpTo[trusted]],
+	Drop[records, UpTo[trusted]]
+]
+givenWithoutProofs[records_List, _Integer] := records
+
 (* The equations of the registrations after the first trustedRegistrations go in as theorems after the environment's
    constants, under names no constant has (registrationEquationRecords): the kernel checks them as it checks any
    theorem, and a registration then need not compare them again. *)
@@ -2149,7 +2166,7 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 	];
 	seeded = seedRows[$compiledKernelSeed];
 	{constants, {nodes, flat}} = Reap[
-		With[{rows = Quiet[Check[constantRows[Values[records]], $Failed]]},
+		With[{rows = Quiet[Check[constantRows[givenWithoutProofs[Values[records], trusted]], $Failed]]},
 			(* a record that lacks what its kind has, as a recursor without its rules, gives a message: not handled *)
 			If[rows === $Failed, notHandled[]];
 			If[Length[$largeLiterals] == 0, rows, Join[rows, constantRows[ConstantArray[largeLiteralRecord[natural], Length[$largeLiterals]]]]]
