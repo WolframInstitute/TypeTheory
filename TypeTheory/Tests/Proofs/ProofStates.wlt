@@ -1156,3 +1156,26 @@ VerificationTest[
 	TestID -> "Automatic-is-a-tactic-on-the-first-goal"
 ]
 
+
+(* The term of a proof by "LinearArithmetic" or "NonlinearArithmetic" names its binders by plain names: the binders of
+   the certificate, symbols of a private context of TypeTheory where the tactic builds them, are strings, numbered where
+   a variable in scope shows the same name, as the user's hypothesis "h1" does. The environment the term names is the
+   only private symbol in it. *)
+VerificationTest[
+	With[
+		{
+			privateNames = Function[term, DeleteCases[
+				DeleteDuplicates[Cases[term, symbol_Symbol /; StringContainsQ[Context[Unevaluated[symbol]], "Private`"] :> SymbolName[Unevaluated[symbol]], {0, Infinity}, Heads -> True]],
+				name_ /; StringStartsQ[name, "store$"]
+			]],
+			proofs = {
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n >= 1, 2 n >= 2]], {"Introduce"[n, "h1"], "LinearArithmetic"}],
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, Implies[n == m, n <= m + 1]], {"Introduce"[n, m, h], "LinearArithmetic"}],
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n <= 32, n n <= 1024]], {"Introduce"[n, "h1"], "NonlinearArithmetic"}]
+			}
+		},
+		Function[proof, {privateNames[proof["Term"]], MatchQ[TypeTheoryCheck[ToExpression[ToString[proof["Term"], InputForm]], proof["Statement"]], _Success]}] /@ proofs
+	],
+	ConstantArray[{{}, True}, 3],
+	TestID -> "The-term-of-an-arithmetic-proof-names-nothing-private"
+]

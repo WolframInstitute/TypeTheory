@@ -160,7 +160,7 @@ congruenceProof[contextBody_, left_, right_, proof_, local_Association] := With[
 	},
 	makeApplication[
 		constantReference[HoldComplete["equalityCongruence"], {sortLevel[$replayEnvironment, local, innerType], sortLevel[$replayEnvironment, local, outerType]}],
-		{innerType, outerType, left, right, lambdaAbstraction[HoldComplete[x], innerType, contextBody, "Explicit"], proof}
+		{innerType, outerType, left, right, lambdaAbstraction[HoldComplete["x"], innerType, contextBody, "Explicit"], proof}
 	]
 ]
 

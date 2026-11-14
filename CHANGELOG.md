@@ -140,6 +140,8 @@ Versions 0.35.0 to 0.45.0.
   of k at a time and ran out of recursion from k = 2082; so is t k + (0 + 0 32), as a closed term of registered
   operations on literals reads as the literal it computes. Proofs by "NonlinearArithmetic" with large literals
   check again when their terms are read back.
+- The term of a proof by `"LinearArithmetic"` or `"NonlinearArithmetic"` names its binders plainly, where it named them
+  by symbols of a private context of TypeTheory; a name a variable in scope already shows is numbered.
 
 ### Performance
 

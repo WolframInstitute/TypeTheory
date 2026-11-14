@@ -268,11 +268,11 @@ ringLinearProof[left_, right_, inequalities_List] := With[{id = freshFreeVariabl
 		contradiction_ :> makeApplication[constantReference[recursorName[HoldComplete[Or]], {}], {
 			lessEqual[left, right],
 			less[right, left],
-			Construct[lambdaAbstraction, HoldComplete[t], or[lessEqual[left, right], less[right, left]], lessEqual[left, right], "Explicit"],
-			Construct[lambdaAbstraction, HoldComplete[h], lessEqual[left, right], boundVariable[0], "Explicit"],
+			Construct[lambdaAbstraction, HoldComplete["t"], or[lessEqual[left, right], less[right, left]], lessEqual[left, right], "Explicit"],
+			Construct[lambdaAbstraction, HoldComplete["h"], lessEqual[left, right], boundVariable[0], "Explicit"],
 			Construct[
 				lambdaAbstraction,
-				HoldComplete[g],
+				HoldComplete["g"],
 				less[right, left],
 				makeApplication[constantReference[HoldComplete["falseElimination"], {}], {lessEqual[left, right], abstractFreeVariable[contradiction, id]}],
 				"Explicit"
@@ -378,11 +378,11 @@ transported[a_, b_, equation_, predicate_, proof_] := makeApplication[constantRe
 	a,
 	Construct[
 		lambdaAbstraction,
-		HoldComplete[y],
+		HoldComplete["y"],
 		$naturals,
 		Construct[
 			lambdaAbstraction,
-			HoldComplete[e],
+			HoldComplete["e"],
 			makeApplication[constantReference[HoldComplete[Equal], {1}], {$naturals, a, boundVariable[0]}],
 			predicate[boundVariable[1]],
 			"Explicit"
@@ -572,7 +572,7 @@ congruent[context_, {left_, right_, proof_}] := {
 	context[right],
 	makeApplication[
 		constantReference[HoldComplete["equalityCongruence"], {1, 1}],
-		{$ring["Type"], $ring["Type"], left, right, Construct[lambdaAbstraction, HoldComplete[x], $ring["Type"], context[boundVariable[0]], "Explicit"], proof}
+		{$ring["Type"], $ring["Type"], left, right, Construct[lambdaAbstraction, HoldComplete["x"], $ring["Type"], context[boundVariable[0]], "Explicit"], proof}
 	]
 }
 
