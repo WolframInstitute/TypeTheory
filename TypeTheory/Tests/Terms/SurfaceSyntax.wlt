@@ -665,6 +665,43 @@ VerificationTest[
 	TestID -> "The-types-on-mouseover-change-nothing-a-term-shows"
 ]
 
+(* a term read back from a core term, as the type of each constant of the integers, takes its types on mouseover from
+   the core term it was read from, without elaborating it again: it shows every type the elaborated term shows, and
+   more, where elaboration leaves an operator without one, and its boxes with them left out are the same *)
+VerificationTest[
+	With[
+		{
+			integers = TypeTheoryEnvironment["Integers"],
+			tips = Function[boxes, Union[Cases[boxes, TooltipBox[shown_, tip_, ___] :> ({shown, tip} //. (StyleBox | TagBox | InterpretationBox | TooltipBox)[inner_, ___] :> inner), Infinity]]],
+			plain = Function[boxes, boxes //. TooltipBox[inner_, ___] :> inner]
+		},
+		Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True},
+			With[
+				{
+					types = Map[
+						Function[name, WolframInstitute`TypeTheory`PackageScope`coreToTypeTheoryTerm[integers, <||>, WolframInstitute`TypeTheory`PackageScope`constantRecord[integers, name]["Type"]]],
+						WolframInstitute`TypeTheory`PackageScope`environmentNames[integers]
+					]
+				},
+				With[
+					{
+						recorded = Reap[Block[{WolframInstitute`TypeTheory`PackageScope`elaborationTrace = Function[{environment, syntax}, Sow[syntax]; <||>]}, Map[ToBoxes, types]]],
+						elaborated = Block[{WolframInstitute`TypeTheory`PackageScope`$readBackRecords = <||>}, Map[ToBoxes, types]]
+					},
+					{
+						Last[recorded],
+						AllTrue[MapThread[Function[{record, elaboration}, SubsetQ[tips[record], tips[elaboration]]], {First[recorded], elaborated}], TrueQ],
+						plain[First[recorded]] === plain[elaborated],
+						Total[Map[Length, Map[tips, First[recorded]]]] > Total[Map[Length, Map[tips, elaborated]]]
+					}
+				]
+			]
+		]
+	],
+	{{}, True, True, True},
+	TestID -> "A-term-read-back-from-a-core-term-shows-its-types-without-elaborating-it-again"
+]
+
 (* a variable the term binds shows by its name also where another symbol of that name shadows it, as a variable of a
    notebook's context is shadowed by one of the context that is current: its context never shows *)
 VerificationTest[

@@ -92,6 +92,7 @@ PackageScoped[rememberDisplayEnvironment]
 PackageScoped[displaySyntax]
 PackageScoped[$displayColors]
 PackageScoped[$displayTooltips]
+PackageScoped[tooltipsWanted]
 
 
 (* ::Section:: *)
@@ -99,6 +100,7 @@ PackageScoped[$displayTooltips]
 
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
+tooltipsWanted::usage = "tooltipsWanted[] is True where a display shows the types of its parts on mouseover."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
 $displayTooltips::usage = "$displayTooltips is True where a display shows the types of its parts on mouseover, of constants, bound variables, numbers, strings and operators, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_NOTEBOOK_BOXES is \"True\"."
 prependedElements::usage = "prependedElements[syntax] gives the elements of the list literal syntax, {} where it is none."
@@ -1074,9 +1076,35 @@ $tipBoxes = <||>
 $displayTrace = <||>
 $tracingDisplay = False
 displayTrace[syntax_] := If[ TrueQ[$tooltipsShown] && ! TrueQ[$tracingDisplay],
-	Block[{$tracingDisplay = True}, elaborationTrace[displayEnvironment[], syntax]],
+	Replace[readBackTrace[displayEnvironment[], syntax], None :> Block[{$tracingDisplay = True}, elaborationTrace[displayEnvironment[], syntax]]],
 	<||>
 ]
+
+(* A term read back from a core term has its parts already: a node is typed by the kernel's inference in the local
+   context it was delaborated in, when a tooltip asks for its type, cheap beside elaborating the term again. The record
+   has every node the elaborated trace answers a tooltip for (all 3,319 for the 356 types of the integers); the nodes it
+   lacks, the rows of binders and the levels of universes, are ones that trace has no type for either. A term with no
+   record, as one written by hand, is elaborated. *)
+readBackTrace[environment_, syntax_] := Replace[shownRecord[{environment, heldFromSyntax[syntax]}], {
+	record_Association :> readBackRecord[environment, record],
+	_ -> None
+}]
+
+(* {term, type} of a node of the display, from the elaborated trace or the record; with typed False, the type from the
+   record is not inferred, as an operator's tooltip shows the declared type of its constant *)
+traceEntry[node_, typed_] := Replace[$displayTrace, {
+	readBackRecord[environment_, record_] :> Replace[Lookup[record, Key[node], None], {
+		part : {_, _} /; typed :> readBackEntry[environment, part],
+		{term_, _} :> {term, None},
+		_ -> None
+	}],
+	trace_Association :> Lookup[trace, Key[node], None]
+}]
+
+readBackEntry[environment_, {term_, context_}] := Replace[Quiet[catchKernelFailure[inferType[environment, context, term]]], {
+	failure_Failure :> None,
+	type_ :> {term, type}
+}]
 
 (* The types on mouseover of the parts a display takes from its term, noted as each is shown: an application shows the
    type of its head on its operators, as + and ==, or on its head and brackets, as AtomQ[x]; a part of an expression the
@@ -1102,7 +1130,7 @@ noteLeafTip[leaf_, tip_] := ($leafTips[leaf] = If[KeyExistsQ[$leafTips, leaf] &&
 
 applicationTip[node_] := If[TrueQ[$quotedExpression], expressionsTypeSyntax[], tracedHeadTip[node]]
 
-tracedHeadTip[node_] := Replace[Lookup[$displayTrace, Key[node], None], {
+tracedHeadTip[node_] := Replace[traceEntry[node, MatchQ[node, syntaxApplication[syntaxSymbol[HoldComplete[TypeUniverse | Function | Rule | RuleDelayed | ForAll | Exists]], _]]], {
 	{term_, type_} :> headTip[First[applicationSpine[term]], node, type],
 	_ -> None
 }]
@@ -1139,7 +1167,7 @@ tracedLeafType[syntaxString[text_String]] /; KeyExistsQ[$displayedTypeNames, tex
 	With[{name = $displayedTypeNames[text]}, If[displayedConstantQ[name], constantTypeSyntax[name], None]]
 tracedLeafType[leaf_] := tracedType[leaf]
 
-tracedType[piece_] := Replace[Lookup[$displayTrace, Key[piece], None], {{_, type_} /; closedCoreQ[type] :> coreTypeSyntax[type], _ -> None}]
+tracedType[piece_] := Replace[traceEntry[piece, True], {{_, type_} /; type =!= None && closedCoreQ[type] :> coreTypeSyntax[type], _ -> None}]
 
 $displayedTypeNames = <|
 	"\[DoubleStruckCapitalN]" -> HoldComplete[NonNegativeIntegers],

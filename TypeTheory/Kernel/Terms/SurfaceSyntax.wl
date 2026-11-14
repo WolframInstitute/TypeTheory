@@ -83,6 +83,8 @@ PackageScoped[listElements]
 PackageScoped[delaborate]
 PackageScoped[displayCoreTerm]
 PackageScoped[coreToTypeTheoryTerm]
+PackageScoped[$readBackRecords]
+PackageScoped[shownRecord]
 PackageScoped[slotFunctions]
 PackageScoped[$exactReadBack]
 PackageScoped[$fieldTelescope]
@@ -123,6 +125,8 @@ slotFunctions::usage = "slotFunctions[syntax] writes each function of the syntax
 delaborate::usage = "delaborate[environment, context, term] gives a syntax tree for the core term in the local context."
 displayCoreTerm::usage = "displayCoreTerm[environment, context, term] gives the core term as a TypeTheoryTerm, or the core term itself if it cannot be displayed."
 coreToTypeTheoryTerm::usage = "coreToTypeTheoryTerm[environment, context, term] gives the core term as a TypeTheoryTerm in environment."
+$readBackRecords::usage = "$readBackRecords associates {environment, HoldComplete[expression]} of a term read back from a core term, where a display may show the types of its parts, with the part of the core term and the local context each node of its syntax came from."
+shownRecord::usage = "shownRecord[{environment, HoldComplete[expression]}] gives the part of the core term and its local context that each node of the display of a term read back came from, keyed by the nodes as the display shows them, or None where the term has no record."
 $exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
 $fieldTelescope::usage = "$fieldTelescope is True while the type of a constructor is read back exactly for its declaration, as Normal reads it, along its binders and not inside their types: a field that the rest of the type does not mention keeps its name, as a binder, where an arrow would drop it."
 nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
@@ -226,7 +230,45 @@ listElements[single_] := {single}
 (*Delaboration*)
 
 
-coreToTypeTheoryTerm[environment_, context_, term_] := TypeTheoryTerm @@ Append[heldFromSyntax[readableSyntax[delaborate[environment, context, term]]], environment]
+(* Where a display may show the types of a term's parts (tooltipsWanted), the term read back keeps what each node of
+   its syntax was delaborated from, a part of the core term and its local context ($readBackRecords): the display types
+   those parts by the kernel's inference instead of elaborating the term again (Formatting.wl, readBackTrace). *)
+coreToTypeTheoryTerm[environment_, context_, term_] := If[ TrueQ[tooltipsWanted[]],
+	Block[{$delaborationRecord = <||>},
+		With[{held = heldFromSyntax[readableSyntax[delaborate[environment, context, term]]]},
+			rememberReadBack[environment, held, $delaborationRecord];
+			TypeTheoryTerm @@ Append[held, environment]
+		]
+	],
+	TypeTheoryTerm @@ Append[heldFromSyntax[readableSyntax[delaborate[environment, context, term]]], environment]
+]
+
+(* the record as delaboration made it, of the most recent terms only, so that it never outgrows a session's displays; a
+   display reads it once by the nodes it shows (shownRecord), as many terms read back are never shown *)
+$readBackRecords = <||>
+$readBackRecordLimit = 1024
+
+rememberReadBack[environment_, held_HoldComplete, record_Association] := (
+	If[Length[$readBackRecords] >= $readBackRecordLimit, $readBackRecords = Drop[$readBackRecords, Floor[$readBackRecordLimit / 2]]];
+	$readBackRecords[{environment, held}] = delaborationRecord[record]
+)
+
+(* the record keyed by the nodes as the display reads them back from the held expression, a node shown for two parts
+   that differ left out *)
+shownRecord[key_] := Replace[Lookup[$readBackRecords, Key[key], None], {
+	delaborationRecord[record_] :> ($readBackRecords[key] = Map[First, Select[
+		KeyDrop[GroupBy[KeyValueMap[Function[{syntax, parts}, shownNode[syntax] -> parts], record], First -> Last, Catenate], $Failed],
+		Function[parts, Length[DeleteDuplicates[recordedPart /@ parts]] == 1]
+	]]),
+	shown_Association :> shown,
+	_ -> None
+}]
+
+shownNode[syntax_] := Quiet[Check[toSyntax @@ heldFromSyntax[readableSyntax[syntax]], $Failed]]
+
+(* a part with each of its free variables named by its name and type, so that the same part met under more binders, or
+   under another opening of binders of the same names, is one; the rules are made first, as core terms hold their parts *)
+recordedPart[{term_, context_}] := ReplaceAll[term, KeyValueMap[Function[{id, entry}, freeVariable[id] -> {Lookup[entry, "Name", id], Lookup[entry, "Type", None]}], context]]
 
 (* a term read back as it is written: a list literal {a, b}, any other list Prepend[l, x] in the order of the Wolfram
    Language, a string as its text, and an expression of the Wolfram Language quoted, Unevaluated[e], which keeps its type *)
@@ -290,7 +332,15 @@ displayCoreTerm[environment_, context_, term_] := Replace[
 ]
 
 
-delaborate[environment_, context_, term_] := Replace[term, {
+(* while a term is read back to be shown with the types of its parts, each node of the syntax is noted with the part of
+   the core term it came from and that part's local context *)
+$delaborationRecord = None
+delaborate[environment_, context_, term_] := With[{syntax = delaborateCases[environment, context, term]},
+	If[AssociationQ[$delaborationRecord], $delaborationRecord[syntax] = Append[Lookup[$delaborationRecord, Key[syntax], {}], {term, context}]];
+	syntax
+]
+
+delaborateCases[environment_, context_, term_] := Replace[term, {
 	freeVariable[id_] :> nameSyntax[Lookup[Lookup[context, id, <||>], "Name", HoldComplete[x]]],
 	boundVariable[index_] :> syntaxHead[Placeholder, {syntaxString["bound " <> ToString[index]]}],
 	metavariable[id_] :> syntaxHead[Placeholder, {syntaxString["?" <> ToString[id]]}],
