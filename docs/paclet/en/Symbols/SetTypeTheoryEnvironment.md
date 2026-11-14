@@ -289,13 +289,13 @@ SetTypeTheoryEnvironment["Prelude"]
 
 <!-- => TypeTheoryEnvironment summary box: 257 constants -->
 
-The term no longer has the definition:
+The term no longer has the definition: its head is a Wolfram Language expression there, of type `Expressions`:
 
 ```wl
 TypeTheoryType[term]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->
 
 To keep a term in its environment, give it the environment: <code>[TypeTheoryTerm]()[*expr*, *env*]</code>.
 

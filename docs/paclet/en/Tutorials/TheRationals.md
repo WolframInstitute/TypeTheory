@@ -174,7 +174,7 @@ The order is total, and transitive and antisymmetric with it:
 rationals["rationalLessEqualTotality"]
 ```
 
-<!-- => theorem rationalLessEqualTotality : ∀_x∶ℚ ∀_y∶ℚ x ≤ y ∨ y ≤ x -->
+<!-- => theorem rationalLessEqualTotality : ∀_x∶ℚ ∀_y∶ℚ (x ≤ y ∨ y ≤ x) -->
 
 Sums keep the order, `"rationalLessEqualAddition"`, and so do products by a rational that is at least 0, `"rationalLessEqualScaling"`. A proof names the law it uses:
 

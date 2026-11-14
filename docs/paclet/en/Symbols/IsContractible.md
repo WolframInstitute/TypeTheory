@@ -121,10 +121,10 @@ TypeTheoryType[Typed["dependentPair"["true", z |-> Function[{i}, "true"]], IsCon
 
 ---
 
-A term without an environment is in the default environment, the prelude, which has no [IsContractible]():
+A term without an environment is in the default environment, the prelude, which has no [IsContractible](): there it is a Wolfram Language expression, of type `Expressions`, not the proposition:
 
 ```wl
 TypeTheoryType[IsContractible[Booleans]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->

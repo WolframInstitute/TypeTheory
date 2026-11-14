@@ -172,7 +172,7 @@ An argument is coerced the same way:
 WeakHeadNormalForm[TypeTheoryTerm["successor"["true"], coercions]]
 ```
 
-<!-- => NaturalOfBoolean[true] + 1 -->
+<!-- => ↑true + 1 -->
 
 Coercions chain, at most three of them: a Boolean where an optional natural number is expected becomes a number, then its option:
 
@@ -180,7 +180,7 @@ Coercions chain, at most three of them: a Boolean where an optional natural numb
 WeakHeadNormalForm[TypeTheoryTerm[Typed["true", Option[Naturals]], coercions]]
 ```
 
-<!-- => some[NaturalOfBoolean[true]] -->
+<!-- => some[↑true] -->
 
 Both types must be known: a coercion is inserted only where no metavariable is left in either. With no coercion that applies, the term's type is a mismatch:
 

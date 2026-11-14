@@ -240,7 +240,7 @@ A part of a part is written as two, `p["second"]["first"]` or `p[[2]][[1]]`, not
 TypeTheoryType["pair"[1, "pair"["true", 3]][[2, 1]]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Failure["TypeMismatch", ...] -->
 
 ---
 

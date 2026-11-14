@@ -137,7 +137,7 @@ WeakHeadNormalForm[TypeTheoryTerm[Construct[QuotientInduction,
 ], "Integers"]]
 ```
 
-<!-- => equalityReflexivity[QuotientIntroduction[integerRelation, (2, 5)]] -->
+<!-- => equalityReflexivity[-3], the class of (2, 5) shown as the integer it stands for -->
 
 ## Possible Issues
 

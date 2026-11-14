@@ -248,13 +248,13 @@ TypeTheoryType["abc"[1]]
 
 ---
 
-The string functions are not constants of the prelude; [TypeTheoryFormalize]() declares those a definition calls:
+The string functions are not constants of the prelude, so a call of one is a Wolfram Language expression there, of type `Expressions`; [TypeTheoryFormalize]() declares those a definition calls:
 
 ```wl
 TypeTheoryType[StringReverse["ab"]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->
 
 ---
 

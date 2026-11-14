@@ -156,4 +156,4 @@ The prelude has no equivalences:
 TypeTheoryType[IsEquivalence["not"]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Failure["TypeMismatch", ...] -->

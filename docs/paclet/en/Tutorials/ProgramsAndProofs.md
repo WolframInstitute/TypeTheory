@@ -216,7 +216,7 @@ tree = TypeTheoryProofTree[proof];
 Counts[Cases[tree, TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
 ```
 
-<!-- => <|"equalityReflexivity" -> 1, "additionSubtractionCancellation" -> 2, "equalitySymmetry" -> 34, "additionCommutativity" -> 9, "equalityCongruence" -> 48, "equalityTransitivity" -> 61, ..., "Assumption" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
+<!-- => <|"equalityReflexivity" -> 1, "additionSubtractionCancellation" -> 2, "equalitySymmetry" -> 34, "additionCommutativity" -> 9, "equalityCongruence" -> 48, "additionAssociativity" -> 10, "equalityTransitivity" -> 61, ..., "Assumption" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2, "Induction" -> 1|> -->
 
 The kernel checks the proof again when the theorem is declared:
 
@@ -428,7 +428,7 @@ Past it, the multiplication overflows, the compiled code stops with an error, an
 compiledClosedForm[2^32]
 ```
 
-<!-- => 9223372039002259456, with CompiledCodeFunction::uncomp: IntegerOverflow -->
+<!-- => 9223372039002259456, with CompiledCodeFunction::uncomp -->
 
 The theorem does not say that the compiled code is fast or that it does not overflow: it says what the program computes wherever the machine computes it. Where that is, is a theorem of its own, about the code the compiler runs.
 

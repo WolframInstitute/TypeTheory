@@ -49,7 +49,7 @@ On a class it computes to the class of the swapped pair:
 WeakHeadNormalForm[TypeTheoryTerm[-QuotientIntroduction["integerRelation", "pair"[2, 5]], "Integers"]]
 ```
 
-<!-- => QuotientIntroduction[integerRelation, (5, 2)] -->
+<!-- => 3, the class of (5, 2) shown as the integer it stands for -->
 
 ---
 

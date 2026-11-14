@@ -566,7 +566,7 @@ TypeTheoryProof[ForAll[{m, n}, m <= n || n <= m], {
 }]
 ```
 
-<!-- => Proof, 2 goals: case orIntroductionLeft m ∶ ℕ, n ∶ ℕ ⊢ m <= n ⇒ (m <= n || n <= m); case orIntroductionRight m ∶ ℕ, n ∶ ℕ ⊢ n < m ⇒ (m <= n || n <= m) -->
+<!-- => Proof, 2 goals: case orIntroductionLeft m ∶ ℕ, n ∶ ℕ ⊢ m <= n ⇒ (m <= n ∨ n <= m); case orIntroductionRight m ∶ ℕ, n ∶ ℕ ⊢ n < m ⇒ (m <= n ∨ n <= m) -->
 
 ### Rewriting and Simplification
 

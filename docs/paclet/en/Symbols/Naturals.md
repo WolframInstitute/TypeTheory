@@ -220,13 +220,13 @@ TypeTheoryProof[3 - 5 == 0, {"Reflexivity"}]
 
 ---
 
-A negative number is no natural number:
+A negative number is no natural number: it is a Wolfram Language expression, of type `Expressions`:
 
 ```wl
 TypeTheoryType[-3]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->
 
 ---
 

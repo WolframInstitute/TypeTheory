@@ -413,7 +413,7 @@ increment = FunctionCompile[Typed[x, "MachineInteger"] |-> x + 1];
 {increment[2^62], increment[1/2]}
 ```
 
-<!-- => {4611686018427387905, Failure["ArgumentType", ...]} -->
+<!-- => {4611686018427387905, Failure["ArgumentType", ...]}, with CompiledCodeFunction::argtype -->
 
 The natural numbers of the type theory have no bound: the successor of 2^63 - 1 is 2^63, computed by the kernel:
 
@@ -429,7 +429,7 @@ The compiler's types describe arrays by their element type and rank, the shape o
 TypeOf[Typed[{1, 2, 3}, "PackedArray"::["MachineInteger", 1]]]
 ```
 
-<!-- => TypeSpecifier[TypeSpecifier["PackedArray"]["Integer64", 1]] -->
+<!-- => TypeSpecifier["PackedArray"::["Integer64", 1]] -->
 
 The type theory has types that no compiler type has: a statement is a type, a proposition, whose elements are its proofs:
 

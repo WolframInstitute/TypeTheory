@@ -114,10 +114,10 @@ TypeTheoryProof[IsSet[Booleans], "HomotopyTypeTheory", {"Introduce"[x, y, p, q],
 
 ---
 
-The prelude has no [IsSet]():
+The prelude has no [IsSet](): there it is a Wolfram Language expression, of type `Expressions`, not the proposition:
 
 ```wl
 TypeTheoryType[IsSet[Naturals]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->

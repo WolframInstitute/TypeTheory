@@ -304,14 +304,14 @@ TypeTheoryType[Typed[{}, {Naturals}]]
 
 ---
 
-The argument is held, so a term computed by an expression is a term of its own, here of the function [Last](), which no environment declares:
+The argument is held, so a term computed by an expression is a term of its own, here of the function [Last](), which no environment declares, so it is a Wolfram Language expression, of type `Expressions`:
 
 ```wl
 terms = {TypeTheoryTerm[2 + 3], TypeTheoryTerm[1 + 1 == 2]};
 TypeTheoryType[Last[terms]]
 ```
 
-<!-- => Failure["ElaborationFailed", ...] -->
+<!-- => Expressions -->
 
 [Evaluate]() computes the term first:
 
