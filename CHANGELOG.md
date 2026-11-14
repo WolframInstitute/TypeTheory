@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.46.0.
+Versions 0.35.0 to 0.47.0.
 
 ### Added
 
@@ -142,9 +142,19 @@ Versions 0.35.0 to 0.46.0.
   check again when their terms are read back.
 - The term of a proof by `"LinearArithmetic"` or `"NonlinearArithmetic"` names its binders plainly, where it named them
   by symbols of a private context of TypeTheory; a name a variable in scope already shows is numbered.
+- A derivation of `TypeTheoryProofTree` wider than its line showed on a page with a narrow line, as the reference pages
+  have, as 1 over its claim followed by its premises: the front end broke the inference's bar as a fraction. The bar is
+  never broken over lines now.
+- Each declaration of an inductive type, and each `TypeTheoryCheck` of an environment with one, kept the local
+  functions of nested elimination and the auxiliary types they hold: about 80 symbols and 0.23 MB a check of the
+  integers on Wolfram 15. They are freed when the declaration is done, refused or not.
 
 ### Performance
 
+- A term the engine gives back, as a type, a normal form or a statement, shows the types of its parts on mouseover
+  from the core term it was read from, where the display elaborated the term again: the 356 types of the integers
+  read back and draw with their types in 1.60 s where they took 2.37 s, and the operators elaboration left without a
+  type show theirs, 1,002 more tooltips.
 - The compiled kernel computes with natural number literals of up to 1,920 bits, exactly, where a literal of 2^62 or
   more was a constant to it: a record that needs such a literal's value is the compiled kernel's, and is not checked
   again by the kernel written in Wolfram Language.
