@@ -7,9 +7,20 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.47.0.
+Versions 0.35.0 to 0.48.0.
 
 ### Added
+
+- **The certificate of the rounding and the standard model of the machine reals.** In
+  `TypeTheoryEnvironment["MachineReals"]`, `"real64ResultOfNearestQ"`: where the Boolean `"real64NearestQ"[q, m, a, b]`
+  computes to `"true"`, `"real64Result"[q]` is the machine real m 2^a / 2^b, so a rounding that the Wolfram Language
+  computed enters a proof once the kernel has computed its check. `"real64StandardModel"`: for |q| below the bound the
+  result r of q is q (1 + d) with |d| <= 2^-53 in the normal range and within 2^-1075 of q in the subnormal range,
+  with `"real64PlusStandardModel"` and `"real64TimesStandardModel"` for sums and products. Their closure is the
+  soundness of quotients, the rounding as a signature and its specification `"real64ResultNearest"`, nothing new. The
+  proofs work in the scale 2^1074, by the spacing of the machine reals around a significand in [2^52, 2^53).
+- `"LinearArithmetic"` over the rationals, strict inequalities too, by multipliers that Wolfram finds and a certificate
+  the rationals' `"Ring"` checks.
 
 - **Proofs found by a portfolio of tactics.** `TypeTheoryProof[statement, Automatic]`, and the tactic `Automatic` on
   the first goal, try `"Assumption"`, `"Decide"`, `"Counterexample"` and `"Classical"` on the goal as stated, then
@@ -84,6 +95,11 @@ Versions 0.35.0 to 0.47.0.
   only where Lean is the subject.
 
 ### Fixed
+
+- `"LinearArithmetic"` decides inequalities of numbers alone, over the natural numbers and the rationals: with no atom
+  in the hypotheses, the search for multipliers took the multipliers for variables and found none, so `0 <= 971` had
+  no proof and `2 <= 1` refuted nothing.
+- The paclet archive carries the machine reals' saved environment, as it does the other libraries'.
 
 - **`TypeTheoryCheck` accepted a record without its value (0.16.0 to 0.42.1).** Where the compiled kernel has its
   library, the check of an environment passed a record of a theorem, an opaque constant or a definition that had no
