@@ -89,6 +89,7 @@ PackageScoped[ruleSyntaxQ]
 PackageScoped[constructedPieces]
 PackageScoped[stringOfSyntax]
 PackageScoped[rememberDisplayEnvironment]
+PackageScoped[declarationEnvironment]
 PackageScoped[displaySyntax]
 PackageScoped[$displayColors]
 PackageScoped[$displayTooltips]
@@ -100,6 +101,7 @@ PackageScoped[tooltipsWanted]
 
 
 typeTheoryBoxes::usage = "typeTheoryBoxes[syntax, form] gives boxes showing the syntax tree of a term in mathematical notation."
+declarationEnvironment::usage = "declarationEnvironment[declaration] gives the environment that declaration was read from or made for, or None."
 tooltipsWanted::usage = "tooltipsWanted[] is True where a display shows the types of its parts on mouseover."
 displaySyntax::usage = "displaySyntax[syntax] rewrites the syntax tree of a term with the built-in operators that show it in mathematical notation."
 $displayTooltips::usage = "$displayTooltips is True where a display shows the types of its parts on mouseover, of constants, bound variables, numbers, strings and operators, False where it does not, and Automatic, the default, where a front end draws the display or TYPETHEORY_NOTEBOOK_BOXES is \"True\"."
@@ -1374,19 +1376,11 @@ levelArgumentDisplay[level_] := level
 (*Proofs*)
 
 
-(* the display is interpretable: copied or evaluated again it is the proof. It holds a handle to the proof, a symbol of
-   the session whose value it is, as the proof holds one to its environment, not the proof itself: a proof term shares its
-   parts, which a notebook would write out each time they occur, hundreds of megabytes for a proof by "Ring" *)
+(* the display is interpretable: it holds the proof itself, so the cell is the proof copied, evaluated again or turned
+   to InputForm; a proof by "Ring" or "LinearArithmetic" is some 300 000 characters of InputForm *)
 TypeTheoryProof /: MakeBoxes[proof : TypeTheoryProof[data_Association], form : StandardForm | TraditionalForm] := With[
-	{boxes = withDisplayEnvironment[data["Environment"], ToBoxes[proofPanel[data, form], form]], name = storedProofName[proof]},
-	ToExpression[name, InputForm, Function[handle, InterpretationBox[boxes, handle], HoldAllComplete]]
-]
-
-$storedProofCount = 0
-
-storedProofName[proof_] := With[{name = Context[$storedProofCount] <> "storedProof" <> ToString[++$storedProofCount]},
-	ToExpression[name, InputForm, Function[handle, handle = proof, HoldAllComplete]];
-	name
+	{boxes = withDisplayEnvironment[data["Environment"], ToBoxes[proofPanel[data, form], form]]},
+	InterpretationBox[boxes, proof]
 ]
 
 proofPanel[data_, form_] := Framed[
@@ -1473,17 +1467,21 @@ TypeTheoryInductiveType /: MakeBoxes[declaration : TypeTheoryInductiveType[types
 		form
 	]
 
-(* the keyword, then name : type (:= value), with each constructor of an inductive type on a line of its own *)
+(* the keyword, then name : type (:= value), with each constructor of an inductive type on a line of its own. Each line is
+   a row of boxes, which breaks where the window ends, as a long value needs; a grid would keep it on one line *)
 declarationBoxes[declaration_, keyword_String, {first_, constructors___}, form_] := declarationBoxes[declaration, keyword, {first}, {constructors}, form]
 
 declarationBoxes[declaration_, keyword_String, headings_List, constructors_List, form_] := With[
 	{
-		rows = inDeclarationEnvironment[declaration, Join[
-			Function[heading, Join[{StyleBox[keyword, FontWeight -> Bold, FontColor -> StandardBlue]}, declarationRow[heading, form]]] /@ headings,
-			Function[constructor, Join[{"|"}, declarationRow[constructor, form]]] /@ constructors
+		boxes = RowBox[Riffle[
+			Function[row, RowBox[Riffle[row, " "]]] /@ inDeclarationEnvironment[declaration, Join[
+				Function[heading, Join[{StyleBox[keyword, FontWeight -> Bold, FontColor -> StandardBlue]}, declarationRow[heading, form]]] /@ headings,
+				Function[constructor, Join[{"  |"}, declarationRow[constructor, form]]] /@ constructors
+			]],
+			"\n"
 		]]
 	},
-	InterpretationBox[GridBox[rows, GridBoxAlignment -> {"Columns" -> {{Left}}}, GridBoxSpacings -> {"Columns" -> {{0.6}}}], declaration]
+	InterpretationBox[boxes, declaration]
 ]
 
 (* A declaration has no environment of its own, so it shows in the default one; one that TypeTheoryFormalize made shows in
@@ -1495,7 +1493,12 @@ rememberDisplayEnvironment[declarations_List, environment_] := (
 	Scan[Function[declaration, $declarationEnvironments[Hash[declaration]] = environment], declarations];
 	declarations
 )
+rememberDisplayEnvironment[declaration : _TypeTheoryDefinition | _TypeTheoryTheorem | _TypeTheoryAxiom | _TypeTheoryInductiveType | _TypeTheoryRewriteRule, environment_] :=
+	First[rememberDisplayEnvironment[{declaration}, environment]]
 rememberDisplayEnvironment[other_, _] := other
+
+(* the environment a declaration was read from or made for, or None *)
+declarationEnvironment[declaration_] := Lookup[$declarationEnvironments, Hash[declaration], None]
 
 SetAttributes[inDeclarationEnvironment, HoldRest]
 inDeclarationEnvironment[declaration_, rows_] := Replace[Lookup[$declarationEnvironments, Hash[declaration], None], {

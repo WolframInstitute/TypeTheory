@@ -571,7 +571,47 @@ registeredSuccessorQ[environment_, successor_] := Replace[naturalNumberSettings[
 (*Environments as associations*)
 
 
-(environment : TypeTheoryEnvironment[_Symbol])[name_] /; environmentQ[environment] := declarationOf[environment, HoldComplete[name], "Display"]
+(* the declaration of a constant, which remembers the environment it was read from: it shows its constants there, and
+   its type and term are terms of it *)
+(environment : TypeTheoryEnvironment[_Symbol])[name_] /; environmentQ[environment] :=
+	rememberDisplayEnvironment[declarationOf[environment, HoldComplete[name], "Display"], environment]
+
+
+(* ::Subsection:: *)
+(*The parts of a declaration*)
+
+
+(* a declaration's name as written, and its type and its term as terms of the environment it was read from, or else of
+   the default environment; an axiom and an inductive type have no term *)
+TypeTheoryDefinition[name_, ___]["Name"] := name
+TypeTheoryTheorem[name_, ___]["Name"] := name
+TypeTheoryAxiom[name_, ___]["Name"] := name
+TypeTheoryInductiveType[name_, ___]["Name"] := name
+TypeTheoryRewriteRule[name_, ___]["Name"] := name
+
+(declaration : TypeTheoryDefinition[_, Typed[_, type_], ___])["Type"] := declarationTerm[declaration, type]
+(declaration : TypeTheoryDefinition[_, value_, ___])["Type"] := TypeTheoryType[Evaluate[declarationTerm[declaration, value]]]
+(declaration : TypeTheoryDefinition[_, Typed[value_, type_], ___])["Term"] := declarationTerm[declaration, Typed[value, type]]
+(declaration : TypeTheoryDefinition[_, value_, ___])["Term"] := declarationTerm[declaration, value]
+TypeTheoryDefinition[___]["Properties"] := {"Name", "Type", "Term", "Properties"}
+
+TypeTheoryTheorem[_, proof_TypeTheoryProof, ___]["Type"] := proof["Statement"]
+TypeTheoryTheorem[_, proof_TypeTheoryProof, ___]["Term"] := proof["Term"]
+(declaration : TypeTheoryTheorem[_, statement_, Except[_Rule | _RuleDelayed], ___])["Type"] := declarationTerm[declaration, statement]
+(declaration : TypeTheoryTheorem[_, statement_, term : Except[_Rule | _RuleDelayed], ___])["Term"] := declarationTerm[declaration, Typed[term, statement]]
+TypeTheoryTheorem[___]["Properties"] := {"Name", "Type", "Term", "Properties"}
+
+(declaration : TypeTheoryAxiom[_, type_, ___])["Type"] := declarationTerm[declaration, type]
+TypeTheoryAxiom[___]["Properties"] := {"Name", "Type", "Properties"}
+
+(declaration : TypeTheoryInductiveType[_, type_, _List, ___])["Type"] := declarationTerm[declaration, type]
+TypeTheoryInductiveType[___]["Properties"] := {"Name", "Type", "Properties"}
+
+SetAttributes[declarationTerm, HoldRest]
+declarationTerm[declaration_, expression_] := Replace[declarationEnvironment[declaration], {
+	None :> TypeTheoryTerm[expression],
+	environment_ :> TypeTheoryTerm[expression, environment]
+}]
 
 TypeTheoryEnvironment /: Keys[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := ReleaseHold /@ environmentNames[environment]
 TypeTheoryEnvironment /: Length[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := Length[environmentNames[environment]]

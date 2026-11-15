@@ -196,10 +196,10 @@ VerificationTest[
 ]
 
 VerificationTest[
-	(* the display holds a handle to the proof, a symbol whose value it is, not the proof's term *)
+	(* the display holds the proof itself, so the cell turned to InputForm is the proof *)
 	{
-		MatchQ[ToBoxes[zeroLeft], InterpretationBox[_FrameBox, handle_Symbol /; handle === zeroLeft]],
-		MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], InterpretationBox[_FrameBox, _Symbol]],
+		MatchQ[ToBoxes[zeroLeft], InterpretationBox[_FrameBox, proof_ /; proof === zeroLeft]],
+		MatchQ[ToBoxes[TypeTheoryProof[2 + 2 == 4, prelude]], InterpretationBox[_FrameBox, _TypeTheoryProof]],
 		ToExpression[ToBoxes[zeroLeft], StandardForm] === zeroLeft
 	},
 	{True, True, True},

@@ -144,16 +144,54 @@ VerificationTest[
 VerificationTest[
 	MatchQ[
 		shownBoxes[TypeTheoryRewriteRule[FlipZero, Flip[BitZero] -> BitOne]],
-		InterpretationBox[GridBox[{{_, "FlipZero", ":", RowBox[{_, "\[LongRightArrow]", "BitOne"}]}}, ___], _TypeTheoryRewriteRule]
+		InterpretationBox[RowBox[{RowBox[{_, " ", "FlipZero", " ", ":", " ", RowBox[{_, "\[LongRightArrow]", "BitOne"}]}]}], _TypeTheoryRewriteRule]
 	],
 	True,
 	TestID -> "A-rewrite-rule-shows-its-sides-with-a-long-arrow"
 ]
 
 VerificationTest[
-	MatchQ[ToBoxes[prelude["equalityCongruence"]], InterpretationBox[_GridBox, _TypeTheoryTheorem]],
+	MatchQ[ToBoxes[prelude["equalityCongruence"]], InterpretationBox[RowBox[{_RowBox}], _TypeTheoryTheorem]],
 	True,
 	TestID -> "A-declaration-displays-as-a-keyword-a-name-and-a-type"
+]
+
+(* a declaration is a row of boxes, which breaks where the window ends; an inductive type has a line for each
+   constructor *)
+VerificationTest[
+	{
+		FreeQ[ToBoxes[prelude["naturalNumberEqualityDecidable"]], _GridBox],
+		MatchQ[ToBoxes[prelude[NonNegativeIntegers]], InterpretationBox[RowBox[{_RowBox, "\n", RowBox[{"  |", __}], "\n", RowBox[{"  |", __}]}], _TypeTheoryInductiveType]]
+	},
+	{True, True},
+	TestID -> "A-long-declaration-is-a-row-that-wraps"
+]
+
+(* the parts of a declaration read from an environment are terms of it: the type is the constant's type, and the term
+   has that type *)
+VerificationTest[
+	With[{declaration = prelude["naturalNumberEqualityDecidable"]},
+		{
+			declaration["Properties"],
+			declaration["Name"],
+			DefinitionallyEqualQ[declaration["Type"], TypeTheoryType[TypeTheoryTerm["naturalNumberEqualityDecidable", prelude]]],
+			DefinitionallyEqualQ[TypeTheoryType[Evaluate[declaration["Term"]]], declaration["Type"]],
+			DefinitionallyEqualQ[prelude["equalityCongruence"]["Type"], TypeTheoryType[TypeTheoryTerm["equalityCongruence", prelude]]],
+			prelude["equalityCongruence"]["Properties"]
+		}
+	],
+	{{"Name", "Type", "Term", "Properties"}, "naturalNumberEqualityDecidable", True, True, True, {"Name", "Type", "Term", "Properties"}},
+	TestID -> "A-declaration-gives-its-name-type-and-term"
+]
+
+(* the display of a proof holds the proof itself, no symbol of the session: copied or turned to InputForm it is the
+   proof *)
+VerificationTest[
+	With[{proof = TypeTheoryProof[ForAll[{Typed[a, Booleans]}, a == a], prelude, {"Introduce"[a], "Reflexivity"}]},
+		{Last[ToBoxes[proof]] === proof, FreeQ[ToBoxes[proof], s_Symbol /; StringContainsQ[Context[s], "Formatting"]]}
+	],
+	{True, True},
+	TestID -> "A-proof-displays-as-an-interpretation-of-itself"
 ]
 
 VerificationTest[

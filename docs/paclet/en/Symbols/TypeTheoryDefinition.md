@@ -28,6 +28,8 @@ RelatedTutorials: [InstancesAndCoercions, TypeTheoryIntroduction]
 - The option `"Opaque" -> True` makes the definition opaque: the kernel checks *value* against the type, but the definition never unfolds, so it equals only itself. Unlike an axiom of its type, it cannot make the theory inconsistent, since *value* is an element of the type.
 - The option `"Overloads" -> *operation*`, for [Plus](), [Times](), [Subtract](), [Power](), [Minus](), [LessEqual](), [Less](), [GreaterEqual]() or [Greater](), makes the constant one more meaning of the operation, chosen by the types of its arguments and the type expected, as the integers' and rationals' operations are, and the constant shows as the operation.
 - [MakeBoxes]() definitions give a definition a notation in terms, declarations and proofs, and [Format]() definitions give its symbol a display.
+- *definition*`["Name"]` gives the name, *definition*`["Type"]` the type and *definition*`["Term"]` the value, the last two as [TypeTheoryTerm]() objects of the environment the definition was read from, as <code>*environment*[*name*]</code> reads it, or else of [$TypeTheoryEnvironment](); *definition*`["Properties"]` lists them. [TypeTheoryTheorem]() and [TypeTheoryAxiom]() declarations have the same properties, an axiom no `"Term"`.
+- A definition displays as the keyword, then *name* : *type* := *value* on a line that breaks where the window ends.
 
 ## Basic Examples
 
@@ -395,6 +397,26 @@ DefinitionallyEqualQ[TypeTheoryTerm[n |-> Double[n], doubled], TypeTheoryTerm[n 
 ```
 
 <!-- => True -->
+
+A definition read from an environment gives its parts as terms of it:
+
+```wl
+decidable = TypeTheoryEnvironment["Prelude"]["naturalNumberEqualityDecidable"]
+```
+
+<!-- => definition naturalNumberEqualityDecidable : ∀ m n, Decidable (m = n) := ..., a line that wraps -->
+
+```wl
+{decidable["Name"], decidable["Type"]}
+```
+
+<!-- => {"naturalNumberEqualityDecidable", ∀ m n : ℕ, Decidable (m = n)} -->
+
+```wl
+TypeTheoryType[Evaluate[decidable["Term"]]]
+```
+
+<!-- => ∀ m n : ℕ, Decidable (m = n) -->
 
 ---
 
