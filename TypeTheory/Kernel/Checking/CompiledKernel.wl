@@ -106,7 +106,14 @@ $codeConstants = {
 	hLevelZero -> 43, hLevelNil -> 44, hLevelOne -> 45,
 	hMaxDepth -> 46, hMaxStack -> 47, hDefeqCalls -> 48, hWhnfCalls -> 49, hInferCalls -> 50,
 	hMarkBase -> 51, hMarkGen -> 52, hCurrent -> 53, hLazyX -> 54, hLazyY -> 55, hFailA -> 56, hFailB -> 57, hFailTerm -> 58,
-	hHeaderSize -> 64,
+	hEpoch -> 59, hNodeMark -> 60, hLevelMark -> 61, hContextMark -> 62, hScratchStart -> 63, hLevelScratchStart -> 64,
+	hScratchPeak -> 65, hNodesMade -> 66, hLevelsMade -> 67, hLostEntries -> 68, hProbePassed -> 69,
+	hHeaderSize -> 80,
+	(* the scratch region: a stored node or level made while checking carries in its upper bits the epoch, the count
+	   of declarations begun, that wrote it, and is gone once another declaration begins; an epoch of 0 marks what is
+	   permanent, the nodes and levels made before checking began. A debug build (arenaDebug 1) never reuses a node:
+	   it overwrites the tags of a declaration's nodes once it is done, so a reference that outlives its epoch fails *)
+	stampUnit -> 4294967296, stampMask -> 4294967295, arenaDebug -> 0, tPoison -> 99, lPoison -> 99,
 	tBVar -> 1, tSort -> 2, tConst -> 3, tApp -> 4, tLam -> 5, tPi -> 6, tLet -> 7, tLit -> 8, tProj -> 9, tFVar -> 10, tBig -> 11, tLimbs -> 12,
 	lConst -> 1, lParam -> 2, lSucc -> 3, lMax -> 4, lIMax -> 5, lCons -> 6, lNil -> 7,
 	kAxiom -> 1, kDefinition -> 2, kTheorem -> 3, kOpaque -> 4, kInductive -> 5, kConstructor -> 6, kRecursor -> 7, kQuotient -> 8, kHole -> 9,
@@ -115,6 +122,7 @@ $codeConstants = {
 	eMismatch -> 1, eNotType -> 2, eNotFunction -> 3, eNotProp -> 4, eLooseBVar -> 5, eArity -> 6, eUnknownConstant -> 7, eProjType -> 8, eProjIndex -> 9,
 	eProjProof -> 10, eUndeclaredParam -> 11, eIllFormed -> 12, eDeclarationMismatch -> 13, eUniverseTooLarge -> 14, eConstructorParameters -> 15,
 	eUnsupported -> 20, eDepth -> 21, eCapacity -> 22, eStack -> 23, eLevelCapacity -> 24, eLctxCapacity -> 25, eLiteralOverflow -> 26,
+	eScratchInvariant -> 27,
 	mask40 -> 1099511627775, litLimit -> 4611686018427387904,
 	limbMask -> 1073741823, limbBase -> 1073741824, limbCap -> 64, limbWidth -> 132
 }
@@ -143,11 +151,41 @@ $program = Hold[{
 		top
 	]]],
 	kfn[arenaRestore, Function[{m, top}, m["SetPart", hStackTop, top]; top]],
+	(* a stored cell is there when its epoch is 0, permanent, or the current one *)
+	kfn[arenaLiveQ, Function[{m, cell}, Module[{epoch = BitShiftRight[cell, 32]}, If[epoch == 0 || epoch == m["Part", hEpoch], 1, 0]]]],
+	(* the cell for value stored under key, of a table keyed by node: permanent where both were made before checking *)
+	kfn[arenaStamped, Function[{m, key, value}, Module[{mark = m["Part", hNodeMark]},
+		If[key <= mark && value <= mark, value, value + stampUnit m["Part", hEpoch]]
+	]]],
+	(* a declaration is done: the nodes, levels and free variables it made are given up, and a new epoch begins *)
+	kfn[arenaResetScratch, Function[{m}, Module[
+		{top = m["Part", hNodes], levelTop = m["Part", hLevels], start = m["Part", hScratchStart], levelStart = m["Part", hLevelScratchStart], epoch = m["Part", hEpoch] + 1, k = 0},
+		If[top - start > m["Part", hScratchPeak], m["SetPart", hScratchPeak, top - start]];
+		m["SetPart", hNodesMade, m["Part", hNodesMade] + top - start];
+		m["SetPart", hLevelsMade, m["Part", hLevelsMade] + levelTop - levelStart];
+		If[arenaDebug == 1,
+			Do[m["SetPart", m["Part", hNodeBase] + 6 k - 5, tPoison], {k, start + 1, top}];
+			Do[m["SetPart", m["Part", hLevelBase] + 4 k - 3, lPoison], {k, levelStart + 1, levelTop}];
+			m["SetPart", hScratchStart, top];
+			m["SetPart", hLevelScratchStart, levelTop],
+			m["SetPart", hNodes, m["Part", hNodeMark]];
+			m["SetPart", hLevels, m["Part", hLevelMark]];
+			m["SetPart", hScratchStart, m["Part", hNodeMark]];
+			m["SetPart", hLevelScratchStart, m["Part", hLevelMark]]
+		];
+		m["SetPart", hLctx, m["Part", hContextMark]];
+		If[epoch >= 1073741824, Return[arenaFail[m, eCapacity]]];
+		m["SetPart", hEpoch, epoch];
+		1
+	]]],
 
 	(* ::Subsection:: *)
 	(* Nodes *)
 
-	kfn[arenaNodeAt, Function[{m, id, j}, m["Part", m["Part", hNodeBase] + 6 id - 6 + j]]],
+	kfn[arenaNodeAt, Function[{m, id, j}, If[arenaDebug == 1 && m["Part", m["Part", hNodeBase] + 6 id - 5] == tPoison,
+		arenaFail[m, eScratchInvariant],
+		m["Part", m["Part", hNodeBase] + 6 id - 6 + j]
+	]]],
 	kfn[arenaTagOf, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 1]]]],
 	kfn[arenaF1Of, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 2]]]],
 	kfn[arenaF2Of, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 3]]]],
@@ -155,14 +193,16 @@ $program = Hold[{
 	kfn[arenaRangeOf, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 5]]]],
 	kfn[arenaFlagsOf, Function[{m, id}, If[id < 1 || id > m["Part", hNodes], arenaFail[m, eIllFormed], arenaNodeAt[m, id, 6]]]],
 	kfn[arenaMkNode, Function[{m, tag, a, b, c}, Module[
-		{mask = m["Part", hTableMask], base = m["Part", hTableBase], h = 0, id = 0, n = 0, range = 0, flags = 0, cell = 0},
+		{mask = m["Part", hTableMask], base = m["Part", hTableBase], epoch = m["Part", hEpoch], h = 0, id = 0, n = 0, range = 0, flags = 0, cell = 0},
 		h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
 		h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
 		h = BitAnd[h * 1000003 + BitAnd[c, mask40], mask40];
 		h = BitAnd[BitXor[h, BitShiftRight[h, 17]], mask];
 		While[True,
 			id = m["Part", base + 1 + h];
-			If[id == 0, Break[]];
+			(* an empty slot, or one of a node of an epoch gone, is free *)
+			If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
+			id = BitAnd[id, stampMask];
 			If[arenaNodeAt[m, id, 1] == tag && arenaNodeAt[m, id, 2] == a && arenaNodeAt[m, id, 3] == b && arenaNodeAt[m, id, 4] == c, Return[id]];
 			h = BitAnd[h + 1, mask]
 		];
@@ -186,7 +226,7 @@ $program = Hold[{
 		m["SetPart", cell + 4, c];
 		m["SetPart", cell + 5, range];
 		m["SetPart", cell + 6, flags];
-		m["SetPart", base + 1 + h, n];
+		m["SetPart", base + 1 + h, n + stampUnit epoch];
 		(* a new node is its own class's root *)
 		m["SetPart", m["Part", hParentBase] + n, 0];
 		m["SetPart", hNodes, n];
@@ -201,19 +241,23 @@ $program = Hold[{
 	(* ::Subsection:: *)
 	(* Universe levels, canonical: a component, or a maximum of components sorted by base, as TypeTheory's normalizeLevel *)
 
-	kfn[arenaLevelAt, Function[{m, l, j}, m["Part", m["Part", hLevelBase] + 4 l - 4 + j]]],
+	kfn[arenaLevelAt, Function[{m, l, j}, If[arenaDebug == 1 && m["Part", m["Part", hLevelBase] + 4 l - 3] == lPoison,
+		arenaFail[m, eScratchInvariant],
+		m["Part", m["Part", hLevelBase] + 4 l - 4 + j]
+	]]],
 	kfn[arenaLtagOf, Function[{m, l}, If[l < 1, 0, arenaLevelAt[m, l, 1]]]],
 	kfn[arenaLa, Function[{m, l}, If[l < 1, 0, arenaLevelAt[m, l, 2]]]],
 	kfn[arenaLb, Function[{m, l}, If[l < 1, 0, arenaLevelAt[m, l, 3]]]],
 	kfn[arenaLevelFlags, Function[{m, l}, If[l < 1, 0, arenaLevelAt[m, l, 4]]]],
 	kfn[arenaMkLevel, Function[{m, tag, a, b}, Module[
-		{mask = m["Part", hLevelTableMask], base = m["Part", hLevelTableBase], h = 0, id = 0, n = 0, flags = 0, cell = 0},
+		{mask = m["Part", hLevelTableMask], base = m["Part", hLevelTableBase], epoch = m["Part", hEpoch], h = 0, id = 0, n = 0, flags = 0, cell = 0},
 		h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
 		h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
 		h = BitAnd[BitXor[h, BitShiftRight[h, 17]], mask];
 		While[True,
 			id = m["Part", base + 1 + h];
-			If[id == 0, Break[]];
+			If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
+			id = BitAnd[id, stampMask];
 			If[arenaLevelAt[m, id, 1] == tag && arenaLevelAt[m, id, 2] == a && arenaLevelAt[m, id, 3] == b, Return[id]];
 			h = BitAnd[h + 1, mask]
 		];
@@ -230,7 +274,7 @@ $program = Hold[{
 		m["SetPart", cell + 2, a];
 		m["SetPart", cell + 3, b];
 		m["SetPart", cell + 4, flags];
-		m["SetPart", base + 1 + h, n];
+		m["SetPart", base + 1 + h, n + stampUnit epoch];
 		m["SetPart", hLevels, n];
 		n
 	]]],
@@ -398,46 +442,59 @@ $program = Hold[{
 		];
 		v
 	]]],
-	kfn[arenaUnivSlot, Function[{m, k1, k2, k3}, Module[{mask = m["Part", hUnivMask], base = m["Part", hUnivBase], h = 0, cell = 0},
+	(* a slot that is empty, or written in an epoch gone, is free and ends the search: within an epoch a slot only goes
+	   from free to taken, so no entry of this epoch lies beyond a free slot; a permanent entry written beyond a slot of
+	   this epoch is lost when the epoch ends, which the debug build counts *)
+	kfn[arenaUnivSlot, Function[{m, k1, k2, k3}, Module[{mask = m["Part", hUnivMask], base = m["Part", hUnivBase], epoch = m["Part", hEpoch], h = 0, cell = 0, key = 0},
 		h = BitAnd[BitAnd[k1, mask40] * 1000003 + BitAnd[k2, mask40], mask40];
 		h = BitAnd[h * 1000003 + BitAnd[k3, mask40], mask40];
 		h = BitAnd[BitXor[h, BitShiftRight[h, 15]], mask];
+		If[arenaDebug == 1, m["SetPart", hProbePassed, 0]];
 		Do[
 			cell = base + 4 h;
-			If[m["Part", cell + 1] == 0, Return[-1 - h]];
-			If[m["Part", cell + 1] == k1 && m["Part", cell + 2] == k2 && m["Part", cell + 3] == k3, Return[1 + h]];
+			key = m["Part", cell + 1];
+			If[key == 0 || (key >= stampUnit && BitShiftRight[key, 32] != epoch), Return[-1 - h]];
+			If[BitAnd[key, stampMask] == k1 && m["Part", cell + 2] == k2 && m["Part", cell + 3] == k3, Return[1 + h]];
+			If[arenaDebug == 1 && key >= stampUnit, m["SetPart", hProbePassed, 1]];
 			h = BitAnd[h + 1, mask],
 			{64}
 		];
 		0
 	]]],
 	kfn[arenaUnivValue, Function[{m, slot}, m["Part", m["Part", hUnivBase] + 4 (slot - 1) + 4]]],
-	kfn[arenaUnivStore, Function[{m, slot, k1, k2, k3, v}, Module[{cell = 0},
+	kfn[arenaUnivStore, Function[{m, slot, k1, k2, k3, v}, Module[{cell = 0, permanent = 0},
 		If[slot < 0 && v > 0,
 			cell = m["Part", hUnivBase] + 4 (-1 - slot);
-			m["SetPart", cell + 1, k1];
+			permanent = If[k1 <= m["Part", hNodeMark] && v <= m["Part", hNodeMark] && k2 <= m["Part", hLevelMark] && k3 <= m["Part", hLevelMark], 1, 0];
+			If[arenaDebug == 1 && permanent == 1 && m["Part", hProbePassed] == 1, m["SetPart", hLostEntries, m["Part", hLostEntries] + 1]];
+			m["SetPart", cell + 1, If[permanent == 1, k1, k1 + stampUnit m["Part", hEpoch]]];
 			m["SetPart", cell + 2, k2];
 			m["SetPart", cell + 3, k3];
 			m["SetPart", cell + 4, v]
 		];
 		v
 	]]],
-	kfn[arenaFailSlot, Function[{m, x, y}, Module[{mask = m["Part", hFailMask], base = m["Part", hFailBase], h = 0, cell = 0},
+	kfn[arenaFailSlot, Function[{m, x, y}, Module[{mask = m["Part", hFailMask], base = m["Part", hFailBase], epoch = m["Part", hEpoch], h = 0, cell = 0, key = 0},
 		h = BitAnd[BitAnd[x, mask40] * 1000003 + BitAnd[y, mask40], mask40];
 		h = BitAnd[BitXor[h, BitShiftRight[h, 15]], mask];
+		If[arenaDebug == 1, m["SetPart", hProbePassed, 0]];
 		Do[
 			cell = base + 2 h;
-			If[m["Part", cell + 1] == 0, Return[-1 - h]];
-			If[m["Part", cell + 1] == x && m["Part", cell + 2] == y, Return[1 + h]];
+			key = m["Part", cell + 1];
+			If[key == 0 || (key >= stampUnit && BitShiftRight[key, 32] != epoch), Return[-1 - h]];
+			If[BitAnd[key, stampMask] == x && m["Part", cell + 2] == y, Return[1 + h]];
+			If[arenaDebug == 1 && key >= stampUnit, m["SetPart", hProbePassed, 1]];
 			h = BitAnd[h + 1, mask],
 			{64}
 		];
 		0
 	]]],
-	kfn[arenaFailInsert, Function[{m, x, y}, Module[{slot = arenaFailSlot[m, x, y], cell = 0},
+	kfn[arenaFailInsert, Function[{m, x, y}, Module[{slot = arenaFailSlot[m, x, y], cell = 0, permanent = 0},
 		If[slot < 0,
 			cell = m["Part", hFailBase] + 2 (-1 - slot);
-			m["SetPart", cell + 1, x];
+			permanent = If[x <= m["Part", hNodeMark] && y <= m["Part", hNodeMark], 1, 0];
+			If[arenaDebug == 1 && permanent == 1 && m["Part", hProbePassed] == 1, m["SetPart", hLostEntries, m["Part", hLostEntries] + 1]];
+			m["SetPart", cell + 1, If[permanent == 1, x, x + stampUnit m["Part", hEpoch]]];
 			m["SetPart", cell + 2, y]
 		];
 		0
@@ -447,6 +504,7 @@ $program = Hold[{
 			p = m["Part", base + x];
 			If[p == 0, Return[x]];
 			g = m["Part", base + p];
+			If[arenaDebug == 1 && (p >= x || (g != 0 && g >= p)), arenaFail[m, eScratchInvariant]; Return[x]];
 			If[g == 0, Return[p]];
 			m["SetPart", base + x, g];
 			x = g
@@ -647,7 +705,7 @@ $program = Hold[{
 		If[e < 1 || e > m["Part", hNodes], Return[arenaFail[m, eIllFormed]]];
 		cacheBase = If[unfold == 1, m["Part", hWhnfBase], m["Part", hCoreBase]];
 		cached = m["Part", cacheBase + e];
-		If[cached != 0, Return[cached]];
+		If[cached != 0 && arenaLiveQ[m, cached] == 1, Return[BitAnd[cached, stampMask]]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		m["SetPart", hWhnfCalls, m["Part", hWhnfCalls] + 1];
 		While[True,
@@ -656,7 +714,7 @@ $program = Hold[{
 			r = next
 		];
 		If[next == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
-		m["SetPart", cacheBase + e, r];
+		m["SetPart", cacheBase + e, arenaStamped[m, e, r]];
 		arenaLeave[m, r]
 	]]],
 	kfn[arenaWhnf, Function[{m, e}, arenaWhnfCore[m, e, 1]]],
@@ -1082,13 +1140,13 @@ $program = Hold[{
 	kfn[arenaInferType, Function[{m, e, inferOnly}, Module[{cached = 0, r = 0},
 		If[e < 1 || e > m["Part", hNodes], Return[arenaFail[m, eIllFormed]]];
 		cached = m["Part", m["Part", hInferBase] + e];
-		If[cached != 0, Return[cached]];
-		If[inferOnly == 1, cached = m["Part", m["Part", hInferOnlyBase] + e]; If[cached != 0, Return[cached]]];
+		If[cached != 0 && arenaLiveQ[m, cached] == 1, Return[BitAnd[cached, stampMask]]];
+		If[inferOnly == 1, cached = m["Part", m["Part", hInferOnlyBase] + e]; If[cached != 0 && arenaLiveQ[m, cached] == 1, Return[BitAnd[cached, stampMask]]]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		m["SetPart", hInferCalls, m["Part", hInferCalls] + 1];
 		r = arenaInferTypeOf[m, e, inferOnly];
 		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
-		m["SetPart", If[inferOnly == 1, m["Part", hInferOnlyBase], m["Part", hInferBase]] + e, r];
+		m["SetPart", If[inferOnly == 1, m["Part", hInferOnlyBase], m["Part", hInferBase]] + e, arenaStamped[m, e, r]];
 		arenaLeave[m, r]
 	]]],
 	kfn[arenaInferTypeOf, Function[{m, e, inferOnly}, Module[{t = arenaTagOf[m, e]},
@@ -1535,8 +1593,8 @@ $program = Hold[{
 		},
 		Module[
 			{
-				cap = settings[[1]], levelCap = settings[[2]], tableSize = 2, levelTableSize = 2, memoSize = BitShiftLeft[1, settings[[7]]], univSize = BitShiftLeft[1, settings[[8]]],
-				failSize = BitShiftLeft[1, settings[[9]]], stackCap = settings[[10]], lctxCap = settings[[11]], numNodes = Length[nodes], numLevels = Length[levels],
+				cap = Min[settings[[1]], 2147483647], levelCap = Min[settings[[2]], 2147483647], tableSize = 2, levelTableSize = 2, memoSize = BitShiftLeft[1, settings[[7]]], univSize = BitShiftLeft[1, settings[[8]]],
+				failSize = BitShiftLeft[1, settings[[9]]], stackCap = settings[[10]], lctxCap = Min[settings[[11]], 2147483647], numNodes = Length[nodes], numLevels = Length[levels],
 				numConsts = Length[consts], numFlat = Length[flat], total = 0
 			},
 			While[tableSize < 2 cap, tableSize = 2 tableSize];
@@ -1546,7 +1604,7 @@ $program = Hold[{
 			{
 				m = CreateDataStructure["FixedArray"::["MachineInteger"], total], offset = hHeaderSize, i = 0, j = 0, tag = 0, a = 0, b = 0, c = 0, x = 0, cell = 0, processed = 0,
 				chainOk = 0, chainLength = 0, chainRow = 0, chainTop = 0,
-				nodeMap = ConstantArray[0, numNodes], levelMap = ConstantArray[0, numLevels], result = ConstantArray[0, 12]
+				nodeMap = ConstantArray[0, numNodes], levelMap = ConstantArray[0, numLevels], result = ConstantArray[0, 16]
 			},
 			m["SetPart", hCap, cap];
 			m["SetPart", hNodeBase, offset]; offset = offset + 6 cap;
@@ -1687,6 +1745,14 @@ $program = Hold[{
 				m["SetPart", hZeroNode, arenaMkConst[m, settings[[5]], m["Part", hLevelNil]]];
 				m["SetPart", hSuccNode, arenaMkConst[m, settings[[6]], m["Part", hLevelNil]]]
 			];
+			(* what is made from here on is scratch: the nodes, levels and free variables a declaration makes are given up
+			   once it is checked *)
+			m["SetPart", hNodeMark, m["Part", hNodes]];
+			m["SetPart", hLevelMark, m["Part", hLevels]];
+			m["SetPart", hContextMark, m["Part", hLctx]];
+			m["SetPart", hScratchStart, m["Part", hNodes]];
+			m["SetPart", hLevelScratchStart, m["Part", hLevels]];
+			m["SetPart", hEpoch, 1];
 			(* the declarations in order: a positive entry is checked, a negative one declared as it is *)
 			Do[
 				x = order[[i]];
@@ -1697,7 +1763,8 @@ $program = Hold[{
 				If[x > 0 && arenaCheckDeclaration[m, x] != 1 && m["Part", hStatus] == 0, m["SetPart", hCurrent, x]; arenaFail[m, eIllFormed]];
 				If[m["Part", hStatus] == 0,
 					m["SetPart", m["Part", hConstBase] + cWidth (Abs[x] - 1) + cDeclared, 1];
-					processed++
+					processed++;
+					arenaResetScratch[m]
 				],
 				{i, Length[order]}
 			];
@@ -1709,14 +1776,15 @@ $program = Hold[{
 				If[m["Part", hStatus] != 0, Break[]];
 				If[ x > 0 && arenaConstCell[m, x, cKind] == kRecursor,
 					m["SetPart", hCurrent, x];
-					Do[If[arenaInferType[m, arenaFlatAt[m, arenaConstCell[m, x, cI] + 4 j + 3], 0] == 0, arenaFail[m, eIllFormed]; Break[]], {j, 0, arenaConstCell[m, x, cH] - 1}]
+					Do[If[arenaInferType[m, arenaFlatAt[m, arenaConstCell[m, x, cI] + 4 j + 3], 0] == 0, arenaFail[m, eIllFormed]; Break[]], {j, 0, arenaConstCell[m, x, cH] - 1}];
+					If[m["Part", hStatus] == 0, arenaResetScratch[m]]
 				],
 				{i, Length[order]}
 			];
 			result[[1]] = m["Part", hStatus];
 			result[[2]] = m["Part", hCurrent];
-			result[[3]] = m["Part", hNodes];
-			result[[4]] = m["Part", hLevels];
+			result[[3]] = m["Part", hNodeMark] + m["Part", hNodesMade] + m["Part", hNodes] - m["Part", hScratchStart];
+			result[[4]] = m["Part", hLevelMark] + m["Part", hLevelsMade] + m["Part", hLevels] - m["Part", hLevelScratchStart];
 			result[[5]] = m["Part", hMaxDepth];
 			result[[6]] = m["Part", hMaxStack];
 			result[[7]] = m["Part", hDefeqCalls];
@@ -1725,6 +1793,10 @@ $program = Hold[{
 			result[[10]] = m["Part", hLctx];
 			result[[11]] = processed;
 			result[[12]] = total;
+			result[[13]] = Max[m["Part", hScratchPeak], m["Part", hNodes] - m["Part", hScratchStart]];
+			result[[14]] = m["Part", hLostEntries];
+			result[[15]] = m["Part", hEpoch];
+			result[[16]] = m["Part", hNodeMark];
 			If[settings[[12]] == 1,
 				Module[{dump = ConstantArray[0, 15 + 4 m["Part", hNodes] + 3 m["Part", hLevels]], k = 0},
 					Do[dump[[k]] = result[[k]], {k, 12}];
@@ -2201,9 +2273,10 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 			natural["Roles"]
 		]
 	];
-	(* the nodes a check makes are kept to its end: a Mathlib cone of 724,000 nodes, Real.sqrt_nonneg's, makes more
-	   than 8 times as many, and a first run that runs out of room costs about as long as the run with room *)
-	capacity = capacityFactor Max[2^20, 16 Length[nodes]];
+	(* the nodes a declaration makes are given up once it is checked, so the room is the input's and one declaration's:
+	   in the 36-module cone of 1,105,505 input nodes the largest declaration made 354,746, and a declaration that
+	   needs more runs the check again with four times the room *)
+	capacity = capacityFactor Max[2^20, 2 Length[nodes]];
 	<|
 		"Nodes" -> Developer`ToPackedArray[nodes],
 		"Levels" -> Developer`ToPackedArray[Values[$levelRows]],

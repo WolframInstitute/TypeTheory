@@ -45,6 +45,27 @@ VerificationTest[
 	TestID -> "Both-kernels-catch-a-forged-statement-and-a-forged-proof"
 ]
 
+(* The compiled kernel gives up the nodes a declaration makes once it is checked, and the next declaration makes its own
+   in their place; every cell that names one carries the epoch, the declaration, that wrote it. The free variables of
+   scratchFirst and scratchSecond are made at the same places, and the forged type of scratchSecond, Booleans ->
+   NonNegativeIntegers, would check only with the type scratchFirst gave its free variable. *)
+scratchEnvironment = TypeTheoryEnvironment[prelude, {
+	TypeTheoryDefinition["scratchOther", Typed[Function[{Typed[x, Booleans]}, 0], Booleans -> NonNegativeIntegers]],
+	TypeTheoryDefinition["scratchFirst", Typed[Function[{Typed[x, NonNegativeIntegers]}, x], NonNegativeIntegers -> NonNegativeIntegers]],
+	TypeTheoryDefinition["scratchSecond", Typed[Function[{Typed[x, Booleans]}, x], Booleans -> Booleans]]
+}]
+
+VerificationTest[
+	{
+		bothKernels[scratchEnvironment],
+		bothKernels[forge[scratchEnvironment, HoldComplete["scratchSecond"], Function[record,
+			ReplacePart[record, Key["Type"] -> First[scratchEnvironment]["Records"][HoldComplete["scratchOther"]]["Type"]]
+		]]]
+	},
+	{{"EnvironmentChecked", "EnvironmentChecked"}, {"TypeMismatch", "TypeMismatch"}},
+	TestID -> "A-declaration-never-reads-what-the-one-before-learned-of-its-scratch-nodes"
+]
+
 (* The matrix of forged records. From 0.16.0 to 0.42.1 TypeTheoryCheck accepted a record of a theorem, an opaque
    constant or a definition without its value: the compiled program takes 0 for no value and then checks nothing of the
    constant, so a theorem without a proof was declared, of a falsehood as well. Here each kind of record has each of
