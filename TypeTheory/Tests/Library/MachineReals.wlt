@@ -31,7 +31,7 @@ VerificationTest[
 		DefinitionallyEqualQ[TypeTheoryType[TypeTheoryTerm["machinePlus", reals]], TypeTheoryTerm[Integers -> Integers -> ("Integer64" | Failure), reals]],
 		TypeTheoryEnvironment["MachineReal"]["Tag"]
 	},
-	{TypeTheoryEnvironment, 170, {"rationalFloor", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
+	{TypeTheoryEnvironment, 179, {"rationalFloor", "real64LibraryPower", "real64Result", "real64ResultNearest", "real64SqrtResult"}, {True, True, True, False}, True, True, "UnknownEnvironment"},
 	TestID -> "The-machine-reals-are-over-the-rationals-with-three-computed-axioms"
 ]
 
@@ -105,6 +105,45 @@ VerificationTest[
 	{Failure["NotFinite", <||>], Failure["Underflow", <||>], Failure["NotFinite", <||>], Failure["Domain", <||>], Failure["IntegerOverflow", <||>]},
 	TimeConstraint -> 120,
 	TestID -> "A-real-operation-leaves-where-compiled-code-declines"
+]
+
+(* Power[x, n] of a real and an integer is Wolfram 15's x^n, which multiplies in the order of n's bits from the top, a
+   bit at a time below 8 and two at a time from 8, with a last bit alone, on bases where the order from the lowest bit
+   rounds differently: below 8, from 8 with the bits after the leading one odd and even in number, negative, and large *)
+VerificationTest[
+	Map[
+		Function[{case}, With[{x = realExact[First[case]], n = Last[case]}, realValue["real64IntegerPower"[Typed[x, Rationals], n]] === realExact[First[case]^n]]],
+		{
+			{1.8595758754054015, 6}, {1.8595758754054015, 10}, {1.8595758754054015, 14}, {1.8595758754054015, 21}, {1.8595758754054015, 24},
+			{1.8595758754054015, -6}, {1.8595758754054015, -21}, {1.3231998472169695, 1000}, {1.0000001, 1000000}
+		}
+	],
+	ConstantArray[True, 9],
+	TimeConstraint -> 300,
+	TestID -> "A-real-to-an-integer-power-multiplies-as-Wolfram-15-does"
+]
+
+(* its leaves: from 2^31 in size and 0^0 before anything is computed, then only on the final value, an infinity, or a
+   value below 2^-1022 that is not the 0 of a 0 base: 10.^-400 leaves as an underflow, the reciprocal of an infinity *)
+VerificationTest[
+	{
+		realValue["real64IntegerPower"[Typed[3/2, Rationals], 2147483648]],
+		realValue["real64IntegerPower"[Typed[3/2, Rationals], -2147483648]],
+		realValue["real64IntegerPower"[Typed[0, Rationals], 0]],
+		realValue["real64IntegerPower"[Typed[0, Rationals], -2]],
+		realValue["real64IntegerPower"[Typed[10, Rationals], 400]],
+		realValue["real64IntegerPower"[Typed[10, Rationals], -400]],
+		realValue["real64IntegerPower"[Typed[1/2, Rationals], 1074]],
+		realValue["real64IntegerPower"[Typed[0, Rationals], 3]],
+		realValue["real64IntegerPower"[Typed[2, Rationals], -1022]],
+		realValue["real64IntegerPower"[Typed[7, Rationals], 0]]
+	},
+	{
+		Failure["Range", <||>], Failure["Range", <||>], Failure["Domain", <||>], Failure["NotFinite", <||>], Failure["NotFinite", <||>],
+		Failure["Underflow", <||>], Failure["Underflow", <||>], 0, 2^-1022, 1
+	},
+	TimeConstraint -> 300,
+	TestID -> "A-real-to-an-integer-power-leaves-on-its-final-value"
 ]
 
 (* the whole numbers of a real, Round half to even, and Equal within 2^-46 of the larger *)

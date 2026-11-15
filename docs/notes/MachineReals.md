@@ -26,6 +26,7 @@ Each operation is the rounding of an exact rational result:
 | `"real64OfInteger"` | the result of an integer, taken before an operation with a real | none in the range of 64 bits |
 | `"real64Floor"`, `"real64Ceiling"`, `"real64Round"`, `"real64IntegerPart"` | the machine integer of the whole number, `Round` half to even | `"IntegerOverflow"` from 9*10^18 on |
 | `"real64Sqrt"` | the correctly rounded square root | `"Domain"` below 0 |
+| `"real64IntegerPower"` | `Power[x, n]` of an integer n: rounded products in the order of n's bits from the top, a bit at a time below 8 and two from 8, 1 / x^-n for n < 0; from 2^25 the C library's `pow` | `"Range"` from 2^31 and `"Domain"` for 0^0 first; then on the final value only, `"NotFinite"` and `"Underflow"` as a product |
 | an order of an integer and a real | the order of the two values | `"Range"` for an integer past 2^53 |
 | `"real64EqualQ"` | the same, or apart by no more than 2^-46 of the larger | none |
 
@@ -33,7 +34,9 @@ Each operation is the rounding of an exact rational result:
 
 Three constants are axioms with an `"Implementation"`, which the Wolfram Language computes and the kernel never does:
 `"real64Result"`, the rounding to the nearest real with ties to even; `"rationalFloor"`; and `"real64SqrtResult"`.
-A fourth axiom is a proposition, `"real64ResultNearest"`, the specification of the rounding (below).
+A fourth axiom is a proposition, `"real64ResultNearest"`, the specification of the rounding (below). A fifth,
+`"real64LibraryPower"` (0.50.0), is the C library's `pow`, which typed code calls for an exponent from 2^25 on: a
+function, with nothing about its values and no implementation, since `pow` does not promise the nearest real.
 Everything else is a definition over a Boolean order of the rationals. A theorem about real code names the axioms
 it uses in its closure: `"real64Plus"[x, y] == "real64Result"[x + y]` has
 `<|"quotientSoundness" -> "Proposition", "real64Result" -> "Signature"|>`.
@@ -240,7 +243,7 @@ The model fixes a value only where every conforming machine computes the same va
 | Functions | What the model states | On what evidence |
 |---|---|---|
 | sum, difference, product, reciprocal, square root, the conversions and the whole-number functions | the value | IEEE 754 requires correct rounding; the 47 rows on two platforms |
-| `Power` with an integer exponent | no value yet, only its leaves | typed code computes it by the compiler's built-in power, a chain of products in the order of the exponent's binary digits; Wolfram 15's own power is another rule, a last place off the chain at 6, 7, 10 and 15 on some bases and further at 1000. The WolframKernel project is to put its evaluator and typed code on Wolfram 15's rule; the model takes the rule from it then. The rows of `scripts/machine_real_checks.wl`, a variable and a constant exponent each, are the regression test, and whatever value the model gives will be tied to that kernel's C compiler and runtime library |
+| `Power` with an integer exponent | the value (0.50.0), `"real64IntegerPower"` | WolframKernel put typed code and its evaluator on Wolfram 15's rule (58e50f658, `wl_real_power` in `wl_abi.h`): the exponent's bits from the top, a bit at a time below 8, two at a time from 8 with the base, its square or its cube, and a last bit alone, each product rounded; the C's `powi` it replaced went from the lowest bit. The chain by exact rationals agrees with Wolfram 15's `x^n` in all 16,357 normal cases tried (ten bases, exponents -40 to 2000, 4095, 65537 and 10^6), where `powi`'s order differs in 15,406, and the 16 power rows of `scripts/machine_real_checks.wl` give the same text compiled, evaluated and by the chain on WolframKernel's main build. From 2^25 typed code calls `pow`, of which nothing is stated |
 | `Exp`, `Log`, `Sin`, `Cos`, `Tan`, `ArcTan`, `Power` with a real exponent, and the rest of the library | no value: a constant per function with its domain and its leaves, and nothing about its last bit | these are not correctly rounded, and two libraries may differ in the last place; one witness per function, a point where arm64 and x86-64 differ, is to be found by a grid run on both |
 
 A function of the last row is an axiom whose `"Implementation"` is the library of the machine it runs on, so a

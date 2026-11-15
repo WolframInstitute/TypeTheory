@@ -5,7 +5,22 @@ Each entry names the versions released in that week; releases are tagged `v<vers
 `git log v0.38.0..v0.39.0` gives the commits of one. An entry is a summary, not a list of commits: several
 commits and releases that build one feature are one line.
 
-## 2026-W46 (November 9 to 15), in progress
+## 2026-W47 (November 16 to 22), in progress
+
+Version 0.50.0.
+
+### Added
+
+- **A real to an integer power in typed code.** `TypeTheoryFormalize` reads `x^n` of a machine real and an integer, a
+  constant or a machine integer, as `"real64IntegerPower"` of `TypeTheoryEnvironment["MachineReals"]`: the products
+  Wolfram 15 rounds one by one, in the order of the exponent's bits from the top (a bit at a time below 8, two at a
+  time from 8 with the base, its square or its cube, and a last bit alone), and 1 / x^-n for a negative n, as the
+  WolframKernel project's typed code and evaluator now compute it. It leaves with `"Range"` from 2^31 and `"Domain"`
+  for 0^0 first, then on the final value only: `"NotFinite"` for an infinity and `"Underflow"` below 2^-1022, so
+  10.^-400 leaves as an underflow, the reciprocal of a power past the largest real. From 2^25 typed code calls the C
+  library's pow, a fifth axiom of the reals, `"real64LibraryPower"`, about whose values nothing is assumed.
+
+## 2026-W46 (November 9 to 15)
 
 Versions 0.35.0 to 0.49.0.
 

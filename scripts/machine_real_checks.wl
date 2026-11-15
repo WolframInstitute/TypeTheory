@@ -10,11 +10,12 @@
    apart as the same, and the column of declines says where the typed entry leaves. It prints a row for each case,
    and the system it ran on: the fused multiply-add of x y + z depends on the platform's C compiler.
 
-   The rows of a real to an integer power are a regression test, not yet a part of the model: typed code computes
-   the power by powi, a chain of products in the order of the exponent's binary digits, where Wolfram 15's own power
-   is another rule at some exponents (6, 7, 10, 15 by a last place, 1000 by many). Each such row has a variable and a
-   constant exponent, on a base where the orders of the products round differently, and prints the chain's value,
-   computed by exact rationals, beside the compiled value and the evaluator's. *)
+   The rows of a real to an integer power check "real64IntegerPower" of the model: typed code and the evaluator
+   multiply as Wolfram 15 does (WolframKernel since 58e50f658, wl_abi.h's wl_real_power), in the order of the
+   exponent's bits from the top, a bit at a time below 8 and two at a time from 8, with a last bit alone, where the
+   C's powi went from the lowest bit and differed from Wolfram 15 at most exponents. Each row has a variable and a
+   constant exponent, on a base where the two orders round differently, and prints the chain's value, computed by
+   exact rationals, beside the compiled value and the evaluator's. *)
 addR[x_Real, y_Real] := x + y;
 subR[x_Real, y_Real] := x - y;
 mulR[x_Real, y_Real] := x y;
@@ -46,16 +47,28 @@ pow15R[x_Real] := x^15;
 powMinus3R[x_Real] := x^-3;
 pow1000R[x_Real] := x^1000;
 text[x_] := ToString[x, InputForm];
-(* The product chain of powi, by exact rationals: the base is squared and the result multiplied in the order of the
-   exponent's binary digits from the lowest, each product rounded to the nearest real with ties to even, and one
-   division for a negative exponent. The rounding is by integers: the exponent from the lengths in bits, the
-   significand by Round of an exact rational. A row of a power prints the chain's value beside the compiled value. *)
+(* The product chain of Wolfram 15's power, by exact rationals: the exponent's bits after the leading one from the top,
+   below 8 a square for each and the base times it for a set one; from 8 two at a time, the fourth power times the base,
+   its square or its cube for 01, 10 or 11, the square and the cube rounded once, and a last bit alone as below 8; each
+   product rounded to the nearest real with ties to even, and one division for a negative exponent. The rounding is by
+   integers: the exponent from the lengths in bits, the significand by Round of an exact rational. A row of a power
+   prints the chain's value beside the compiled value. *)
 binaryExponent[q_] := With[{estimate = BitLength[Numerator[q]] - BitLength[Denominator[q]]}, If[q < 2^estimate, estimate - 1, estimate]];
 nearest[0] := 0;
 nearest[q_] := With[{e = Max[binaryExponent[Abs[q]] - 52, -1074]}, Round[q/2^e] 2^e];
-chain[x_, n_] := Module[{a = x, b = Abs[n], r = 1},
-	While[True, If[OddQ[b], r = nearest[r a]]; b = Quotient[b, 2]; If[b == 0, Break[]]; a = nearest[a a]];
-	If[n < 0, nearest[1/r], r]];
+chainMagnitude[x_, m_] := Module[{bits = Rest[IntegerDigits[m, 2]], r = x, square = nearest[x x], cube = 0},
+	cube = nearest[x square];
+	If[m >= 8,
+		While[Length[bits] >= 2,
+			r = nearest[nearest[r r]^2];
+			Switch[FromDigits[Take[bits, 2], 2], 1, r = nearest[x r], 2, r = nearest[square r], 3, r = nearest[cube r]];
+			bits = Drop[bits, 2]
+		]
+	];
+	Scan[Function[bit, r = nearest[r r]; If[bit == 1, r = nearest[x r]]], bits];
+	r
+];
+chain[x_, n_] := Which[n == 0, 1, n > 0, chainMagnitude[x, n], True, nearest[1 / chainMagnitude[x, -n]]];
 (* the exact rational of a machine real, from its digits in base 2 *)
 exactOf[x_Real] := With[{digits = RealDigits[x, 2]}, Sign[x] FromDigits[First[digits], 2] 2^(Last[digits] - Length[First[digits]])];
 chainText[x_Real, n_Integer] := text[N[chain[exactOf[x], n]]];

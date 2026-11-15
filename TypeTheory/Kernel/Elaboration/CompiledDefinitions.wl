@@ -796,9 +796,10 @@ expandedPairwise[t_String, operation_String, first_, rest_List] := With[
    operands is the reals': each operand is its exact rational, a real's value, a real constant, or an integer constant;
    a machine integer is made a real first, a step of its own that rounds past 2^53, as the Wolfram Language makes it.
    A sum, a difference and a product are the results of the exact ones; Power[y, -1], which the compiler writes for a
-   quotient before its product, is the reciprocal. An order of reals is the rationals', and of a machine integer with a
-   real it leaves past 2^53, where the C's conversion is not exact; Equal is within its tolerance, the integer made a
-   real. The whole numbers, Abs, Minus, N and Sqrt are the library's. *)
+   quotient before its product, is the reciprocal, and Power[y, n] of another integer n, a constant or a machine
+   integer, the chain of rounded products of typed code, checked once at its end. An order of reals is the rationals',
+   and of a machine integer with a real it leaves past 2^53, where the C's conversion is not exact; Equal is within its
+   tolerance, the integer made a real. The whole numbers, Abs, Minus, N and Sqrt are the library's. *)
 realEntryQ[{_, "Real64" | "Rational"}] := True
 realEntryQ[_] := False
 
@@ -807,6 +808,13 @@ realOperandsQ[atoms_List, scope_] := AnyTrue[atoms, Function[atom, MatchQ[atom, 
 	coreForm["Temporary"][name_String] :> Lookup[scope, Key[{"T", name}], None],
 	_ :> None
 }]]]]
+
+(* an operand that is an integer, a constant or a machine integer, found without modeling it *)
+integerOperandQ[atom_, scope_] := MatchQ[atom, coreForm["Constant"][_Integer]] || MatchQ[Replace[atom, {
+	coreForm["Local"][name_String] :> Lookup[scope, Key[{"L", name}], None],
+	coreForm["Temporary"][name_String] :> Lookup[scope, Key[{"T", name}], None],
+	_ :> None
+}], {_, "Integer64"}]
 
 (* the exact rational of an operand that is no machine integer *)
 rationalTerm[{HoldComplete[x_], "Real64"}] := HoldComplete[x[["rational"]]]
@@ -836,6 +844,10 @@ stepTerm[coreForm["Call"][operation : "System`Plus" | "System`Times" | "System`S
 		Replace[rationals, {HoldComplete[x_], HoldComplete[y_]} :> HoldComplete[name[x, y]]]]]], "Real64"}
 stepTerm[coreForm["Call"]["System`Power", {a_, coreForm["Constant"][-1]}], scope_, _, _] /; realOperandsQ[{a}, scope] :=
 	{"Result", realStep[{atomTerm[a, scope]}, Function[rationals, Replace[rationals, {HoldComplete[x_]} :> HoldComplete["real64Reciprocal"[x]]]]], "Real64"}
+(* the exponent stays an integer: only the base goes through realStep, which makes a machine integer a real *)
+stepTerm[coreForm["Call"]["System`Power", {a_, b_}], scope_, _, _] /; realOperandsQ[{a}, scope] && integerOperandQ[b, scope] :=
+	{"Result", realStep[{atomTerm[a, scope]}, Function[rationals, Replace[{rationals, integerTerm[atomTerm[b, scope]]},
+		{{HoldComplete[x_]}, HoldComplete[n_]} :> HoldComplete["real64IntegerPower"[x, n]]]]], "Real64"}
 stepTerm[coreForm["Call"]["System`Divide", {a_, b_}], scope_, _, _] /; realOperandsQ[{a, b}, scope] :=
 	{"Result", realStep[{atomTerm[a, scope], atomTerm[b, scope]}, Function[rationals, With[{reciprocal = compiledSymbol["reciprocal"]},
 		Replace[{rationals, reciprocal}, {{HoldComplete[x_], HoldComplete[y_]}, HoldComplete[r_]} :>

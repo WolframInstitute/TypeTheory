@@ -873,6 +873,10 @@ VerificationTest[
 	TestID -> "An-If-whose-branch-sets-a-local-gives-the-locals-back"
 ]
 
+(* the machine reals once, outside any test's time limit: where no saved environment is current, a fresh checkout or a
+   changed kernel, they are built and checked from their declarations, which takes minutes *)
+machineReals = TypeTheoryEnvironment["MachineReals"]
+
 (* Typed code on machine reals, in TypeTheoryEnvironment["MachineReals"]. An argument x_Real is a machine real, a
    rational that binary64 represents, and each step is the compiler's: a sum, a product and a difference are the results
    of the exact ones; a quotient is x times the rounded 1/y, as the compiler writes it, Power[y, -1] and a product; a
@@ -888,7 +892,7 @@ realNewton[x_Real] := Module[{y = 1., i = 0}, While[i < 5, y = (y + x / y) / 2.;
 
 VerificationTest[
 	Module[{reals, environment, exact, value, one, two, mixed, fueled},
-		reals = TypeTheoryEnvironment["MachineReals"];
+		reals = machineReals;
 		environment = TypeTheoryEnvironment[reals, Join[
 			TypeTheoryFormalize[realHalf, reals], TypeTheoryFormalize[realMix, reals], TypeTheoryFormalize[realWhole, reals],
 			TypeTheoryFormalize[realRoot, reals], TypeTheoryFormalize[realNewton, reals]
@@ -931,4 +935,35 @@ VerificationTest[
 	},
 	TimeConstraint -> 300,
 	TestID -> "Typed-code-on-machine-reals-gives-the-Wolfram-Languages-reals"
+]
+
+(* a real to an integer power, a constant or a machine integer, is the library's "real64IntegerPower": Wolfram 15's
+   order of the products, on bases where another order rounds differently, and the leaves of typed code on the final
+   value only *)
+realCube[x_Real] := x^3
+realPower[x_Real, n_Integer] := x^n
+
+VerificationTest[
+	Module[{reals, environment, exact, value, cube, power},
+		reals = machineReals;
+		environment = TypeTheoryEnvironment[reals, Join[TypeTheoryFormalize[realCube, reals], TypeTheoryFormalize[realPower, reals]]];
+		exact[x_] := SetPrecision[x, Infinity];
+		value[term_] := TypeTheoryExpression[NormalForm[term, "Implementations" -> True]];
+		cube[x_] := With[{q = exact[x]}, value[TypeTheoryTerm["confirmBind"["real64Result"[Typed[q, Rationals]], realCube], environment]]];
+		power[x_, n_] := With[{q = exact[x]},
+			value[TypeTheoryTerm["confirmBind"["real64Result"[Typed[q, Rationals]], Function[{Typed[u, "Real64"]}, "confirmBind"["machineResult"[n], realPower[u]]]], environment]]];
+		{
+			{FreeQ[TypeTheoryFormalize[realCube, reals], "real64IntegerPower"], FreeQ[TypeTheoryFormalize[realPower, reals], "real64IntegerPower"]},
+			Map[Function[x, cube[x] === exact[realCube[x]]], {1.8595758754054015, -0.3, 1.*^100}],
+			Map[Apply[Function[{x, n}, power[x, n] === exact[realPower[x, n]]]], {{1.8595758754054015, 6}, {1.8595758754054015, -21}, {1.3231998472169695, 1000}}],
+			{cube[1.*^200], power[10., -400], power[0., 0]}
+		}
+	],
+	{
+		{False, False},
+		ConstantArray[True, 3], ConstantArray[True, 3],
+		{Failure["NotFinite", <||>], Failure["Underflow", <||>], Failure["Domain", <||>]}
+	},
+	TimeConstraint -> 300,
+	TestID -> "Typed-code-raises-a-real-to-an-integer-power-as-Wolfram-15-does"
 ]

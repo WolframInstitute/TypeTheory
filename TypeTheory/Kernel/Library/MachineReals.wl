@@ -24,13 +24,20 @@ values. NaN and the infinities are no values: a typed entry leaves before it hol
 	                                 the machine integer of the whole number, Round half to even, leaving with
 	                                 Failure["IntegerOverflow", <||>] from 9*10^18 on, where the compiler's code leaves
 	"real64Sqrt"                     the square root, leaving with Failure["Domain", <||>] below 0: an axiom above 0
+	"real64IntegerPower"[x, n]       Power[x, n] of an integer n, as typed code and Wolfram 15's evaluator compute it:
+	                                 rounded products in the order of n's bits from the top, a bit at a time below 8 and
+	                                 two from 8, 1 / x^-n for n < 0; it leaves with Failure["Range", <||>] from 2^31 in
+	                                 size and Failure["Domain", <||>] for 0^0 first, and then, on the final value only,
+	                                 with Failure["NotFinite", <||>] or Failure["Underflow", <||>] as a product does
 	"real64EqualQ"                   Equal of two values as the Wolfram Language takes machine reals: the same, or apart
 	                                 by no more than 2^-46 of the larger
 
 Three constants are axioms with an "Implementation", which the Wolfram Language computes and the kernel never does:
 "real64Result", the rounding; "rationalFloor", the whole number below a rational; and "real64SqrtResult". A fourth axiom
 is a proposition, "real64ResultNearest", the specification of the rounding: from 2^1024 - 2^970 on the leave, and below
-it a machine real that none is nearer than, an even multiple of the distance to another that is as near. Everything else
+it a machine real that none is nearer than, an even multiple of the distance to another that is as near. A fifth,
+"real64LibraryPower", is the C library's pow, which typed code calls for an exponent from 2^25 on: a function, and
+nothing about its values, since pow does not promise the nearest real. Everything else
 is a definition, by a Boolean order of the rationals, "rationalNonNegativeQ", which this library adds: a rational is at
 least 0 where the numerator of a pair of it is, which does not depend on the pair. A theorem about real code has the
 axioms it uses in its closure: "real64PlusCommutativity" and "real64TimesCommutativity" rest on the rounding as a
@@ -164,6 +171,11 @@ $machineRealDeclarations = With[
 		bound = 2^1024 - 2^970,
 		(* the largest power of 2 a machine real is a multiple of, 2^971 *)
 		top = 2^971,
+		(* the exponents of a power: from 2^31 in size typed code declines, from 2^25 it calls the C library's pow,
+		   and below it the recursions on the exponent's bits go at most 32 levels deep *)
+		exponentLimit = 2147483648,
+		libraryExponent = 33554432,
+		exponentLevels = 32,
 		tolerance = 1 / 70368744177664
 	},
 	{
@@ -320,6 +332,139 @@ $machineRealDeclarations = With[
 		TypeTheoryDefinition["real64Reciprocal", Typed[
 			Function[{Typed[y, Rationals]}, "machineIf"["rationalEqual"[y, 0], Typed["right"[Failure["NotFinite", <||>]], "Real64" | Failure], "real64Normal"["rationalInverse"[y]]]],
 			Rationals -> ("Real64" | Failure)
+		]],
+		(* Power[x, n] of a real and an integer, as typed code and the evaluator of Wolfram 15 compute it: products of
+		   machine reals, each rounded, in the order of the exponent's bits from the top. An intermediate value is a
+		   machine real or the leave of the rounding, "right", which stands for an infinity: the powers of one base are
+		   all at least 1 in size or all at most 1, so an infinity never meets a 0, and a product with one is one. Each
+		   value is bound once by "confirmBind" before it is used twice. *)
+		TypeTheoryDefinition["real64ChainSquare", Typed[
+			Function[{Typed[a, "Real64" | Failure]}, "confirmBind"[a, Function[{Typed[p, "Real64"]}, "real64Result"[p[["rational"]] p[["rational"]]]]]],
+			("Real64" | Failure) -> ("Real64" | Failure)
+		]],
+		TypeTheoryDefinition["real64ChainTimes", Typed[
+			Function[{Typed[a, "Real64" | Failure], Typed[b, "Real64" | Failure]},
+				"confirmBind"[a, Function[{Typed[p, "Real64"]}, "confirmBind"[b, Function[{Typed[q, "Real64"]}, "real64Result"[p[["rational"]] q[["rational"]]]]]]]
+			],
+			("Real64" | Failure) -> ("Real64" | Failure) -> ("Real64" | Failure)
+		]],
+		(* below 8, x^m for m >= 1 of the base b a bit at a time: the square of x^(m / 2), times b for an odd m *)
+		TypeTheoryDefinition["real64PowerByBits", Typed[
+			Function[{Typed[b, "Real64" | Failure]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, Integers -> ("Real64" | Failure)],
+				Function[{Typed[m, Integers]}, b],
+				Function[{Typed[k, NonNegativeIntegers], Typed[lower, Integers -> ("Real64" | Failure)]}, Function[{Typed[m, Integers]},
+					"machineIf"["integerLessEqualQ"[m, 1], b,
+						Function[{Typed[s, "Real64" | Failure]}, "machineIf"["integerEqual"[Mod[m, 2], 1], "real64ChainTimes"[s, b], s]][
+							"real64ChainSquare"[lower[Quotient[m, 2]]]
+						]
+					]
+				]],
+				exponentLevels
+			]],
+			("Real64" | Failure) -> Integers -> ("Real64" | Failure)
+		]],
+		(* whether the bits of m >= 1 after its leading one are an even number, which the steps by two take in pairs *)
+		TypeTheoryDefinition["integerPairedBitsQ", Typed[
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, Integers -> Booleans],
+				Function[{Typed[m, Integers]}, "true"],
+				Function[{Typed[k, NonNegativeIntegers], Typed[paired, Integers -> Booleans]}, Function[{Typed[m, Integers]},
+					"machineIf"["integerLessEqualQ"[m, 1], "true", "machineIf"["integerLessEqualQ"[m, 3], "false", paired[Quotient[m, 4]]]]
+				]],
+				exponentLevels
+			],
+			Integers -> Booleans
+		]],
+		(* from 8, x^m of the base b for an m whose bits after the leading one pair up, two bits at a time: the fourth power
+		   of x^(m / 4), times b, b^2 or b^3 for the bits 01, 10 or 11, where b^2 and b^3 are b b and b b^2 rounded *)
+		TypeTheoryDefinition["real64PowerByPairs", Typed[
+			Function[{Typed[b, "Real64" | Failure]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, Integers -> ("Real64" | Failure)],
+				Function[{Typed[m, Integers]}, b],
+				Function[{Typed[k, NonNegativeIntegers], Typed[lower, Integers -> ("Real64" | Failure)]}, Function[{Typed[m, Integers]},
+					"machineIf"["integerLessEqualQ"[m, 1], b,
+						Function[{Typed[t, "Real64" | Failure]},
+							"machineIf"["integerEqual"[Mod[m, 4], 0], t,
+								"machineIf"["integerEqual"[Mod[m, 4], 1], "real64ChainTimes"[t, b],
+									"machineIf"["integerEqual"[Mod[m, 4], 2], "real64ChainTimes"[t, "real64ChainSquare"[b]],
+										"real64ChainTimes"[t, "real64ChainTimes"[b, "real64ChainSquare"[b]]]
+									]
+								]
+							]
+						]["real64ChainSquare"["real64ChainSquare"[lower[Quotient[m, 4]]]]]
+					]
+				]],
+				exponentLevels
+			]],
+			("Real64" | Failure) -> Integers -> ("Real64" | Failure)
+		]],
+		(* x^m for 1 <= m < 2^25 of the base b: below 8 by bits; from 8 by pairs, with a last bit alone where the bits after
+		   the leading one are odd in number *)
+		TypeTheoryDefinition["real64PowerChain", Typed[
+			Function[{Typed[b, "Real64" | Failure], Typed[m, Integers]},
+				"machineIf"["integerLessEqualQ"[m, 7], "real64PowerByBits"[b][m],
+					"machineIf"["integerPairedBitsQ"[m], "real64PowerByPairs"[b][m],
+						Function[{Typed[s, "Real64" | Failure]}, "machineIf"["integerEqual"[Mod[m, 2], 1], "real64ChainTimes"[s, b], s]][
+							"real64ChainSquare"["real64PowerByPairs"[b][Quotient[m, 2]]]
+						]
+					]
+				]
+			],
+			("Real64" | Failure) -> Integers -> ("Real64" | Failure)
+		]],
+		(* x^m for m >= 2^25, the C library's pow: nothing is assumed of its value, which pow does not round correctly *)
+		TypeTheoryAxiom["real64LibraryPower", Rationals -> Integers -> ("Real64" | Failure)],
+		(* x^n before the check: 1 for n = 0, the chain or pow for n > 0, and for n < 0 the reciprocal of x^-n, where an
+		   infinity's is 0 and 0's an infinity *)
+		TypeTheoryDefinition["real64PowerUnchecked", Typed[
+			Function[{Typed[x, Rationals], Typed[n, Integers]},
+				Function[{Typed[magnitude, Integers -> ("Real64" | Failure)]},
+					"machineIf"["integerEqual"[n, 0], "real64Result"[1],
+						"machineIf"["integerLessEqualQ"[0, n], magnitude[n],
+							InductiveRecursor[DisjointUnionType][
+								Function[{Typed[w, "Real64" | Failure]}, "Real64" | Failure],
+								Function[{Typed[c, "Real64"]}, "machineIf"["rationalEqual"[c[["rational"]], 0],
+									Typed["right"[Failure["NotFinite", <||>]], "Real64" | Failure],
+									"real64Result"["rationalInverse"[c[["rational"]]]]
+								]],
+								Function[{Typed[e, Failure]}, "real64Result"[0]],
+								magnitude[-n]
+							]
+						]
+					]
+				][Function[{Typed[m, Integers]}, "machineIf"["integerLessEqualQ"[Typed[libraryExponent, Integers], m],
+					"real64LibraryPower"[x, m],
+					"real64PowerChain"["real64Result"[x], m]
+				]]]
+			],
+			Rationals -> Integers -> ("Real64" | Failure)
+		]],
+		(* Power[x, n] of typed code: an exponent past 2^31 - 1 in size leaves with Failure["Range", <||>] and 0^0 with
+		   Failure["Domain", <||>] before anything is computed; then only the final value is checked, as the compiler's
+		   code checks it: an infinity leaves with Failure["NotFinite", <||>], and a value below 2^-1022 with
+		   Failure["Underflow", <||>] unless it is the 0 of a 0 base *)
+		TypeTheoryDefinition["real64IntegerPower", Typed[
+			Function[{Typed[x, Rationals], Typed[n, Integers]},
+				"machineIf"["or"["integerLessEqualQ"[Typed[exponentLimit, Integers], n], "integerLessEqualQ"[n, Typed[-exponentLimit, Integers]]],
+					Typed["right"[Failure["Range", <||>]], "Real64" | Failure],
+					"machineIf"["and"["rationalEqual"[x, 0], "integerEqual"[n, 0]],
+						Typed["right"[Failure["Domain", <||>]], "Real64" | Failure],
+						InductiveRecursor[DisjointUnionType][
+							Function[{Typed[w, "Real64" | Failure]}, "Real64" | Failure],
+							Function[{Typed[v, "Real64"]},
+								"machineIf"["and"["rationalLessQ"["rationalAbsolute"[v[["rational"]]], Typed[normal, Rationals]], "not"["and"["rationalEqual"[v[["rational"]], 0], "rationalEqual"[x, 0]]]],
+									Typed["right"[Failure["Underflow", <||>]], "Real64" | Failure],
+									Typed["left"[v], "Real64" | Failure]
+								]
+							],
+							Function[{Typed[e, Failure]}, Typed["right"[Failure["NotFinite", <||>]], "Real64" | Failure]],
+							"real64PowerUnchecked"[x, n]
+						]
+					]
+				]
+			],
+			Rationals -> Integers -> ("Real64" | Failure)
 		]],
 		TypeTheoryDefinition["real64OfInteger", Typed[Function[{Typed[n, Integers]}, "real64Result"["rationalOfInteger"[n]]], Integers -> ("Real64" | Failure)]],
 		TypeTheoryDefinition["real64Abs", Typed[Function[{Typed[x, Rationals]}, "real64Result"["rationalAbsolute"[x]]], Rationals -> ("Real64" | Failure)]],
