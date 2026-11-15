@@ -20,6 +20,14 @@ Version 0.50.0.
   10.^-400 leaves as an underflow, the reciprocal of a power past the largest real. From 2^25 typed code calls the C
   library's pow, a fifth axiom of the reals, `"real64LibraryPower"`, about whose values nothing is assumed.
 
+### Performance
+
+- **The compiled kernel gives up what its checks make.** The nodes, levels and free variables made while checking are
+  a scratch region, given up once they fill half its room; every cell that names one carries the epoch that wrote it,
+  so nothing given up is read again. The room is twice the input instead of 16 times. On the 36-module cone of 11,899
+  constants the memory is 0.372 GiB instead of 2.424 GiB (35.6 cells per input node instead of 294, and 85 MB fixed)
+  and the check is 7.6% faster (6.58 s against 7.12 s), the smaller memory keeping its tables nearer the processor.
+
 ## 2026-W46 (November 9 to 15)
 
 Versions 0.35.0 to 0.49.0.

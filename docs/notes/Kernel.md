@@ -367,6 +367,39 @@ leaves out what a check takes as given: since 0.45.0 the theorems and opaque con
 without their values, so a batch of 1,190 constants on 10,709 has an input of 319,600 nodes instead of 1,105,505 and an
 arena of 0.66 GB instead of 2.35 GB.
 
+### The scratch region (0.50.0)
+
+The nodes, levels and free variables a check makes are scratch: everything past the marks, the counts when checking
+begins. A cell that names one, in the normal-form and type caches, the hash-cons tables, the refuted pairs and the
+universe memo, holds the epoch that wrote it in its upper 32 bits and is read only in that epoch. Epoch 0 marks a cell
+whose key and value were both made before checking began, which stays. Once what the declarations made fills half
+the room past the marks, the region is given up: the counts go back to the marks and a new epoch begins. A hash slot
+of an epoch gone is free and ends a search; within an epoch a slot only goes from free to taken, and every permanent
+hash-cons slot is written at load. The union-find makes the lower index the root, so a node made before checking never
+points at one made after. The room is Max[2^20, 2 input] nodes instead of 16 input, with the same retry at four times
+the room.
+
+On the 36-module cone (pod 4, Wolfram 15.0.1, two processors, three runs each beside the 0.49.0 program):
+
+| | 0.49.0 | 0.50.0 |
+|---|---|---|
+| time of the whole cone | 7.086, 7.189, 7.078 s | 6.487, 6.642, 6.597 s (7.6% less) |
+| memory | 325,339,267 cells, 2.424 GiB | 49,940,047 cells, 0.372 GiB (6.5 times less) |
+| cells per input node | 294 | 35.6, and 10.6 million fixed cells (85 MB) |
+| nodes made | 12,004,230 | 13,871,758, in 22 epochs |
+
+The check does 16% more work and is faster: the smaller memory keeps the hash-cons table and the caches nearer the
+processor. By the allocation's own formula a cone of 10 million input nodes takes 2.9 GB instead of 22.3 GB, and one of
+50 million 13.4 GB instead of 107 GB. The largest declaration made 424,036 nodes. Giving the region up after every
+declaration costs 17.9% instead: what one declaration made, the next made again (19.8 million nodes, 84% more weak head
+normal forms).
+
+The checks behind it: a debug build reuses no node and overwrites the tags of the nodes it gives up, so a reference
+that outlives its epoch fails; with the region given up every 50,000 nodes (221 times) it checks all 11,899 constants
+and reads no such tag. A 13th setting gives the region up after every declaration, and the test of a declaration whose
+forged type would check only with what the declaration before it cached runs that way; a build that reads every stale
+cell as live fails it.
+
 ## Elaboration
 
 The elaborator is untrusted and its output is always re-checked. Its state is bound with `Block` for
