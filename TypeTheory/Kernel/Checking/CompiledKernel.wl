@@ -187,6 +187,8 @@ $program = Hold[{
 		m["SetPart", cell + 5, range];
 		m["SetPart", cell + 6, flags];
 		m["SetPart", base + 1 + h, n];
+		(* a new node is its own class's root *)
+		m["SetPart", m["Part", hParentBase] + n, 0];
 		m["SetPart", hNodes, n];
 		n
 	]]],
@@ -451,8 +453,13 @@ $program = Hold[{
 		];
 		x
 	]]],
+	(* the lower index is the root, so a node's parent is always below it and path halving keeps it so: a node made
+	   before checking began never points at one made while checking *)
 	kfn[arenaUnite, Function[{m, a, b}, Module[{ra = arenaFindRoot[m, a], rb = arenaFindRoot[m, b]},
-		If[ra != rb, m["SetPart", m["Part", hParentBase] + ra, rb]];
+		Which[
+			ra < rb, m["SetPart", m["Part", hParentBase] + rb, ra],
+			rb < ra, m["SetPart", m["Part", hParentBase] + ra, rb]
+		];
 		1
 	]]],
 
