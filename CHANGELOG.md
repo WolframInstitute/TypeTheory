@@ -7,10 +7,13 @@ commits and releases that build one feature are one line.
 
 ## 2026-W46 (November 9 to 15), in progress
 
-Versions 0.35.0 to 0.48.0.
+Versions 0.35.0 to 0.49.0.
 
 ### Added
 
+- **The parts of a declaration.** A `TypeTheoryDefinition`, `TypeTheoryTheorem` or `TypeTheoryAxiom` gives `"Name"`,
+  and `"Type"` and `"Term"` as `TypeTheoryTerm` objects of the environment it was read from, `environment[name]`, or of
+  the default environment; `"Properties"` lists them, and an axiom has no `"Term"`.
 - **The certificate of the rounding and the standard model of the machine reals.** In
   `TypeTheoryEnvironment["MachineReals"]`, `"real64ResultOfNearestQ"`: where the Boolean `"real64NearestQ"[q, m, a, b]`
   computes to `"true"`, `"real64Result"[q]` is the machine real m 2^a / 2^b, so a rounding that the Wolfram Language
@@ -82,6 +85,9 @@ Versions 0.35.0 to 0.48.0.
 
 ### Changed
 
+- A declaration displays as lines that break where the window ends, so a long definition wraps; a grid kept it on one
+  line. A proof's display holds the proof itself rather than a symbol of the session whose value it is: the cell turned
+  to InputForm, or copied into another session, is `TypeTheoryProof[...]`.
 - Displays agree with each other: a coercion declared with `"Coercion" -> True` shows as ↑x, as the library's
   do; an integer computed shows as the number, where it showed as the class of a pair; a constant declared with
   `"Overloads"` shows as its operation in `env[name]` too; and an object whose rule of `MakeBoxes` makes a summary box
