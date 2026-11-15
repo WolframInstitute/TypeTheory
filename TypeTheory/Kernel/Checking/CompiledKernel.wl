@@ -107,12 +107,13 @@ $codeConstants = {
 	hMaxDepth -> 46, hMaxStack -> 47, hDefeqCalls -> 48, hWhnfCalls -> 49, hInferCalls -> 50,
 	hMarkBase -> 51, hMarkGen -> 52, hCurrent -> 53, hLazyX -> 54, hLazyY -> 55, hFailA -> 56, hFailB -> 57, hFailTerm -> 58,
 	hEpoch -> 59, hNodeMark -> 60, hLevelMark -> 61, hContextMark -> 62, hScratchStart -> 63, hLevelScratchStart -> 64,
-	hScratchPeak -> 65, hNodesMade -> 66, hLevelsMade -> 67, hLostEntries -> 68, hProbePassed -> 69,
+	hScratchPeak -> 65, hNodesMade -> 66, hLevelsMade -> 67, hLostEntries -> 68, hProbePassed -> 69, hDeclarationStart -> 70,
+	hResetThreshold -> 71,
 	hHeaderSize -> 80,
-	(* the scratch region: a stored node or level made while checking carries in its upper bits the epoch, the count
-	   of declarations begun, that wrote it, and is gone once another declaration begins; an epoch of 0 marks what is
-	   permanent, the nodes and levels made before checking began. A debug build (arenaDebug 1) never reuses a node:
-	   it overwrites the tags of a declaration's nodes once it is done, so a reference that outlives its epoch fails *)
+	(* the scratch region: a stored node or level made while checking carries in its upper bits the epoch that wrote
+	   it, and is gone once the region is given up, when what the declarations made fills half its room; an epoch of 0
+	   marks what is permanent, the nodes and levels made before checking began. A debug build (arenaDebug 1) never
+	   reuses a node: it overwrites the tags of the nodes given up, so a reference that outlives its epoch fails *)
 	stampUnit -> 4294967296, stampMask -> 4294967295, arenaDebug -> 0, tPoison -> 99, lPoison -> 99,
 	tBVar -> 1, tSort -> 2, tConst -> 3, tApp -> 4, tLam -> 5, tPi -> 6, tLet -> 7, tLit -> 8, tProj -> 9, tFVar -> 10, tBig -> 11, tLimbs -> 12,
 	lConst -> 1, lParam -> 2, lSucc -> 3, lMax -> 4, lIMax -> 5, lCons -> 6, lNil -> 7,
@@ -157,10 +158,23 @@ $program = Hold[{
 	kfn[arenaStamped, Function[{m, key, value}, Module[{mark = m["Part", hNodeMark]},
 		If[key <= mark && value <= mark, value, value + stampUnit m["Part", hEpoch]]
 	]]],
-	(* a declaration is done: the nodes, levels and free variables it made are given up, and a new epoch begins *)
+	(* a declaration is done. Once the nodes, levels or free variables made past the marks fill half the room left for
+	   them, or reach the threshold of a 13th setting, they are all given up and a new epoch begins; until then the
+	   declarations share what they made, as they did before the scratch region, and every cell naming it stays *)
 	kfn[arenaResetScratch, Function[{m}, Module[
-		{top = m["Part", hNodes], levelTop = m["Part", hLevels], start = m["Part", hScratchStart], levelStart = m["Part", hLevelScratchStart], epoch = m["Part", hEpoch] + 1, k = 0},
-		If[top - start > m["Part", hScratchPeak], m["SetPart", hScratchPeak, top - start]];
+		{
+			top = m["Part", hNodes], levelTop = m["Part", hLevels], start = m["Part", hScratchStart], levelStart = m["Part", hLevelScratchStart],
+			context = m["Part", hLctx] - m["Part", hContextMark], threshold = m["Part", hResetThreshold], epoch = m["Part", hEpoch] + 1, k = 0
+		},
+		If[top - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, top - m["Part", hDeclarationStart]]];
+		If[ If[threshold > 0,
+				top - start < threshold && levelTop - levelStart < threshold && context < threshold,
+				2 (top - start) <= m["Part", hCap] - m["Part", hNodeMark] && 2 (levelTop - levelStart) <= m["Part", hLevelCap] - m["Part", hLevelMark]
+					&& 2 context <= m["Part", hLctxCap] - m["Part", hContextMark]
+			],
+			m["SetPart", hDeclarationStart, top];
+			Return[1]
+		];
 		m["SetPart", hNodesMade, m["Part", hNodesMade] + top - start];
 		m["SetPart", hLevelsMade, m["Part", hLevelsMade] + levelTop - levelStart];
 		If[arenaDebug == 1,
@@ -174,6 +188,7 @@ $program = Hold[{
 			m["SetPart", hLevelScratchStart, m["Part", hLevelMark]]
 		];
 		m["SetPart", hLctx, m["Part", hContextMark]];
+		m["SetPart", hDeclarationStart, m["Part", hNodes]];
 		If[epoch >= 1073741824, Return[arenaFail[m, eCapacity]]];
 		m["SetPart", hEpoch, epoch];
 		1
@@ -1626,6 +1641,7 @@ $program = Hold[{
 			m["SetPart", hUnivBase, offset]; m["SetPart", hUnivMask, univSize - 1]; offset = offset + 4 univSize;
 			m["SetPart", hMarkBase, offset]; offset = offset + cap;
 			m["SetPart", hDepthLimit, settings[[3]]];
+			m["SetPart", hResetThreshold, If[Length[settings] >= 13, Max[settings[[13]], 0], 0]];
 			m["SetPart", hGen, 1];
 			(* levels: each input row to its canonical level *)
 			m["SetPart", hLevelNil, arenaMkLevel[m, lNil, 0, 0]];
@@ -1752,6 +1768,7 @@ $program = Hold[{
 			m["SetPart", hContextMark, m["Part", hLctx]];
 			m["SetPart", hScratchStart, m["Part", hNodes]];
 			m["SetPart", hLevelScratchStart, m["Part", hLevels]];
+			m["SetPart", hDeclarationStart, m["Part", hNodes]];
 			m["SetPart", hEpoch, 1];
 			(* the declarations in order: a positive entry is checked, a negative one declared as it is *)
 			Do[
@@ -1793,7 +1810,7 @@ $program = Hold[{
 			result[[10]] = m["Part", hLctx];
 			result[[11]] = processed;
 			result[[12]] = total;
-			result[[13]] = Max[m["Part", hScratchPeak], m["Part", hNodes] - m["Part", hScratchStart]];
+			result[[13]] = Max[m["Part", hScratchPeak], m["Part", hNodes] - m["Part", hDeclarationStart]];
 			result[[14]] = m["Part", hLostEntries];
 			result[[15]] = m["Part", hEpoch];
 			result[[16]] = m["Part", hNodeMark];
@@ -2273,9 +2290,10 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 			natural["Roles"]
 		]
 	];
-	(* the nodes a declaration makes are given up once it is checked, so the room is the input's and one declaration's:
-	   in the 36-module cone of 1,105,505 input nodes the largest declaration made 354,746, and a declaration that
-	   needs more runs the check again with four times the room *)
+	(* the nodes declarations make are given up once they fill half the room past the input, so the room is the
+	   input's and twice a stretch of declarations': in the 36-module cone of 1,105,505 input nodes the largest
+	   declaration made 491,110 with nothing shared, and a declaration that needs more runs the check again with four
+	   times the room *)
 	capacity = capacityFactor Max[2^20, 2 Length[nodes]];
 	<|
 		"Nodes" -> Developer`ToPackedArray[nodes],
