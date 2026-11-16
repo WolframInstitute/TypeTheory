@@ -469,7 +469,7 @@ bounds = TypeTheoryEnvironment[bounds, {TypeTheoryTheorem["quotientBound",
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 386 constants -->
+<!-- => TypeTheoryEnvironment summary box: 439 constants -->
 
 The theorem: for every n <= 3037000499, the typed code at the machine integer n is the machine integer Quotient[n (n + 1), 2], never the leave. The proof is a chain of equations, one for each step of the typed code, and the kernel computes the code between them:
 
@@ -541,7 +541,7 @@ recursions = TypeTheoryEnvironment[bounds, Join[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 388 constants -->
+<!-- => TypeTheoryEnvironment summary box: 441 constants -->
 
 Its type has the levels first:
 
@@ -570,7 +570,7 @@ recursions = TypeTheoryEnvironment[recursions, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 392 constants -->
+<!-- => TypeTheoryEnvironment summary box: 445 constants -->
 
 The proof is by induction on n, and in each case by cases on the levels. With no level, n < 0 is absurd. At 0 with a level, the test is true and the value is the machine integer 0. At k + 1 with a level, the test is false; k is a machine integer, since it is below `triangular[k + 1]`; the call of itself is the induction hypothesis at that machine integer, with a level less; and the sum is `triangular[k + 1]`, which fits. The argument is any machine integer whose value equals n as an integer, because the recursion's own argument, (k + 1) - 1, is the class of (k + 1, 1): it is the integer k by `"integerOfNaturalPredecessor"`, not by computation.
 
@@ -676,7 +676,7 @@ whileSum[n_Integer] := Module[{s = 0, i = 1}, While[i <= n, s = s + i; i = i + 1
 loops = TypeTheoryEnvironment[recursions, TypeTheoryFormalize[whileSum, recursions]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 394 constants -->
+<!-- => TypeTheoryEnvironment summary box: 447 constants -->
 
 The loop is a constant of its own, `"While[whileSum]"`, by recursion on the fuel: it takes the fuel, the local it reads, n, and the locals it sets, s and i, and gives the pair of s and i it ends with, or a [Failure]():
 
@@ -732,7 +732,7 @@ loops = TypeTheoryEnvironment[loops, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 406 constants -->
+<!-- => TypeTheoryEnvironment summary box: 456 constants -->
 
 The triangular numbers grow, so each one on the way is below the last, which fits:
 
@@ -745,7 +745,7 @@ loops = TypeTheoryEnvironment[loops, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 408 constants -->
+<!-- => TypeTheoryEnvironment summary box: 458 constants -->
 
 One round. Where the counter b is at most n, the loop with a unit of fuel more is the loop at the machine integers of a + b and b + 1: the round unfolds, the hypotheses rewrite the locals to the natural numbers they are, the test is true, and the two sums are machine integers. Where b is past n, the test is false and the loop gives the pair as it is:
 
@@ -765,7 +765,7 @@ loops = TypeTheoryEnvironment[loops, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 410 constants -->
+<!-- => TypeTheoryEnvironment summary box: 460 constants -->
 
 The invariant: after j rounds the sum is `triangular[j]` and the counter j + 1. With d rounds left, n == j + d, and fuel above d, the loop ends with the sum `triangular[n]`. The proof is by induction on the rounds left, and in each case by cases on the fuel: without fuel its bound is absurd; with none left to do, the loop stops; with a round left, `"whileRound"` rewrites the loop to the next round, where the hypothesis of the induction applies at the counter j + 1 with a unit of fuel less:
 
@@ -810,7 +810,7 @@ invariant = TypeTheoryProof[
 loops = TypeTheoryEnvironment[loops, {TypeTheoryTheorem["whileInvariant", invariant]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 411 constants -->
+<!-- => TypeTheoryEnvironment summary box: 461 constants -->
 
 The function starts the loop at 0 and 1 and gives the first of the pair. So for every fuel above n, wherever `triangular[n]` and n + 1 fit a machine integer, the compiled loop at a machine integer whose integer is n gives a machine integer whose integer is `triangular[n]`:
 
@@ -860,7 +860,7 @@ loops = TypeTheoryEnvironment[loops, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 413 constants -->
+<!-- => TypeTheoryEnvironment summary box: 463 constants -->
 
 ```wl
 TypeTheoryAxiomClosure[TypeTheoryTerm["whileSumComputes", loops]]
@@ -877,7 +877,7 @@ doSum[n_Integer] := Module[{s = 0}, Do[s += i, {i, n}]; s];
 counted = TypeTheoryEnvironment[loops, TypeTheoryFormalize[doSum, loops]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 415 constants -->
+<!-- => TypeTheoryEnvironment summary box: 465 constants -->
 
 Its arguments are the fuel, the end and the step of the range, which it reads, and s and the counter, which it sets:
 
