@@ -209,8 +209,9 @@ Order: (1) first, since it touches no trusted code; then (2), after this note is
 
 ## (3) Arithmetic on stuck terms with literals
 
-Status: proposed 2026-11-16, for Stephen's review before any code, and after 0.52.0. Task 56 reopened as one item with
-task 87's kernel side: arithmetic on terms that do not reduce, with large literals, decided without unary unfolding.
+Status: approved by Stephen 2026-11-16, (B) then (A), after 0.52.0, with the conditions written into (A) and the tests
+below. Task 56 reopened as one item with task 87's kernel side: arithmetic on terms that do not reduce, with large
+literals, decided without unary unfolding.
 
 ### What the measurements show
 
@@ -266,26 +267,36 @@ against `s n'`, with `n` and `n'` positive literals and `t` and `s` **neutral** 
 is stuck but not neutral, and is left to the paths of today) are equal exactly where `n == n'` and `t` is equal to `s`,
 compared once by general definitional equality. The same for `t^n` against `s^n'`.
 
-- **Justification.** The registration checks the equations `t 0 == 0` and `t (k + 1) == t k + t` for variables (power:
-  `t^0 == 1`, `t^(k + 1) == t^k t`), so `t n` reduces to the folded sum `t (n - 1) + t`. A sum whose second argument
-  is neutral is neutral, as the folded addition leaves it as it is and its recursor is stuck on that argument; and two
-  neutral terms are convertible exactly where their heads are the same and their arguments convertible. By induction on
-  the smaller literal, `t n` and `s n'` are convertible exactly where each step's `t` and `s` are and both reach `t 0`,
-  that is `0`, at once; a `0` against a neutral sum is a constructor against a neutral term, which no reduction makes
-  equal. So the rule decides what min(n, n') unfoldings decide, and nothing else, as the offset rule does for sums.
-- **Not decided by the rule:** a product of a term that is not neutral, of two different operations, or where a side is
-  no product; those take today's path. The rule makes no product equal to a sum: `t K + K` against `(t + 1) K` is
-  convertible, by K unfoldings, and stays a matter for `"Ring"`, which proves it with a term.
+- **What the argument rests on.** Definitional equality of these terms is equality of their normal forms: the prelude's
+  arithmetic is confluent and normalizing, so two terms are convertible exactly where their normal forms are the same.
+  The registration checks the equations `t 0 == 0` and `t (k + 1) == t k + t` for variables (power: `t^0 == 1`,
+  `t^(k + 1) == t^k t`), so for a neutral `t` and a positive literal `n` the normal form of `t n` is the left-nested
+  chain of n additions of the normal form of `t`, `((0 + nf(t)) + nf(t)) + ... + nf(t)`. That chain is neutral: each
+  addition's second argument is neutral, the folded addition leaves such a sum as it is, and its recursor is stuck on
+  that argument. Two such chains are the same exactly where their lengths are and their summands are. So `t n` and
+  `s n'` are convertible exactly where `n == n'` and `nf(t) == nf(s)`, that is where `t` and `s` are convertible: both
+  directions of the rule. The same for `t^n`, a left-nested chain of n products of `nf(t)` from `1`. The rule decides
+  what min(n, n') unfoldings decide, and nothing else, as the offset rule does for sums.
+- **The case answers only on the literal shape.** Both sides must be written `t n`, an application of the registered
+  multiplication (or power) to a factor and a positive literal, read as they stand, with both factors neutral by (B).
+  Anything else, `t (k + 1)` with `k` a literal, a product of a term that is not neutral, two different operations, a
+  side that is no product, falls through to today's path unchanged. The rule makes no product equal to a sum:
+  `t K + K` against `(t + 1) K` is convertible, by K unfoldings, and stays a matter for `"Ring"`, which proves it with
+  a term.
+- **Subtraction is left out.** Nothing has met it, and each role the rule reads adds to what is trusted; it can follow
+  when a proof needs it, under the same argument.
 
 ### Tests
 
 - **Agreement**, in `scripts/offset_agreement.wls`: pairs of products and powers of the bases `x`, `y`, `Length[m]`,
-  `Length[l]`, `x y` and `x + 1` by the literals 1 to 12, as written and written as their unfolded sums, compared with
-  (A) and (B) on and off; the results agree, and the off path finishes in that range. With literals up to 2^64, equal
-  exactly where the base and the literal are the same, by an independent route.
-- **Forged proofs:** `x 1000 == y 1000`, `x 1000 == x 1001` and `Length[m] 2^63 == Length[l] 2^63` refused at once, as
-  type mismatches and not recursion limits; `Typed["equalityReflexivity"[Length[m] K], Length[m] K == Length[l] K]`
-  refused.
+  `Length[l]`, `x y`, `x + y` and `x + 1` by the literals 1 to 12, as written and written as their unfolded sums, and the
+  nestings `(t n)^k`, `t^k n` and `(x + y) n`, which meet the rule against other neutral heads, where a wrong False would
+  show; compared with (A) and (B) on and off, the results agree, and the off path finishes in that range. With literals
+  up to 2^64, equal exactly where the base and the literal are the same, by an independent route.
+- **Forged proofs:** `x 1000 == y 1000`, `x 1000 == x 1001` and `Length[m] 2^63 == Length[l] 2^63` refused at once;
+  `Typed["equalityReflexivity"[Length[m] K], Length[m] K == Length[l] K]` refused. Each test checks the failure's tag:
+  a refusal is a type mismatch, and a `"RecursionLimit"`, which only says that the kernel did not finish, fails the
+  test as a wrong answer would.
 - **Registration:** a multiplication by recursion on its first argument, which computes literals right, is refused by
   its equations, as today; the rule reads only a registered operation whose equations passed.
 - **The rows of the table** at K = 2^63, each answered in under 0.1 s, the four unequal ones False.
