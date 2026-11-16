@@ -1,6 +1,6 @@
 # Large literals in elaboration and definitional equality: design note
 
-Status: (1) built (4c9cdc8). (2) built and approved by Stephen, 2026-11-07: the offset rule, read through Plus, the registration check that justifies it, and literal values read by offsets (see Result of (2)). Items (1) and (2) of the TypeTheory kernel findings.
+Status: (1) built (4c9cdc8). (2) built and approved by Stephen, 2026-11-07: the offset rule, read through Plus, the registration check that justifies it, and literal values read by offsets (see Result of (2)). Items (1) and (2) of the TypeTheory kernel findings. (3), arithmetic on stuck terms with literals, proposed 2026-11-16 for review.
 
 ## What the measurements show
 
@@ -206,3 +206,102 @@ registered as the greatest common divisor computes `FirstNumber[2, 3]` as 1 on l
 - The whole TypeTheory suite unchanged, today 456 of 456.
 
 Order: (1) first, since it touches no trusted code; then (2), after this note is reviewed.
+
+## (3) Arithmetic on stuck terms with literals
+
+Status: proposed 2026-11-16, for Stephen's review before any code, and after 0.52.0. Task 56 reopened as one item with
+task 87's kernel side: arithmetic on terms that do not reduce, with large literals, decided without unary unfolding.
+
+### What the measurements show
+
+Definitional equality in the prelude today (`probe-stuck.wls` in the job's scratch; 20 s and 1 GB per case):
+
+| Case | K = 10 | K = 1000 | K = 2^63 |
+|---|---|---|---|
+| `x K` against `x K` | True | True | True |
+| `x K + 0` against `x K` | True | True | True |
+| `x K` against `y K` (not equal) | False | RecursionLimit | RecursionLimit |
+| `x K` against `x (K + 1)` (not equal) | False | RecursionLimit | RecursionLimit |
+| `Length[m] K + 0` against `Length[m] K` | True | RecursionLimit | RecursionLimit |
+| `(Length[m] + 1) K + 0` against `(Length[m] + 1) K` | True | RecursionLimit | RecursionLimit |
+| `Length[m]^K + 0` against `Length[m]^K` | True | RecursionLimit | RecursionLimit |
+| `Length[m] K` against `Length[l] K` (not equal) | False | RecursionLimit | RecursionLimit |
+
+Each failure comes within 0.5 s: the recursion limit, not the time. Two causes:
+
+- **(B) A stuck term that is not a variable.** `stuckQ` reads a term as no literal without reducing it: a variable
+  without a value, a successor of one, a sum, product, power or difference of stuck parts by the registered operations,
+  a beta-redex by its reduct. `Length[m]`, a definition whose recursor is stuck on the variable `m`, is none of these.
+  So `literalValue` of `Length[m] K` reduces it: the product's recursor on the literal exposes `Length[m] (K - 1) +
+  Length[m]`, whose value `literalValues` reads argument by argument, the left one first, K levels down before it
+  meets `Length[m]`, which has none. For variables the same shape was the 0.46.0 fix; it did not reach other stuck
+  terms. Task 87's `"LinearArithmetic"` certificates met it with multipliers near 3 2^63.
+- **(A) Two different stuck products.** `x K` against `y K`: the heads are the same definition, the arguments differ,
+  and lazy delta unfolds both products, `x (K - 1) + x` against `y (K - 1) + y`; the sums compare their first
+  arguments first, so the descent is K levels before `x` meets `y`. Even for variables, a product by a literal is decided
+  unequal only by unfolding the literal. A real statement with a large constant and a mistake in it gives a recursion
+  limit, which says only that the kernel did not finish, where it should say that the sides differ.
+
+### (B) A term whose weak head normal form is neutral is stuck
+
+`stuckQ` of an application whose spine head is a constant that no role names, or a recursor or a projection, takes
+the term's weak head normal form, the kernel's own reduction, cached, and reads the result as stuck where it is
+**neutral**: a variable without a value, or an application whose spine head is one; an axiom or an opaque constant,
+applied; a recursor or a projection applied to a major premise that is itself neutral. The rest of `stuckQ` stays.
+
+- **Soundness.** Stuck only declines the computation on literals; the term is then reduced by its definitions, as
+  without the rule. Declining is exact: a neutral term's weak head normal form has no constructor and no literal at its
+  head, and no reduction inside its arguments puts one there, so peeling its value ends in None too, only later.
+- **Termination and cost.** `stuckQ` reduces a strict part of the term it was asked about, whose reduction may read
+  `stuckQ` again only of parts of that; each weak head normal form is cached by the kernel already. The reading of
+  sums and products as trees, which the comment on `stuckQ` notes, is unchanged.
+- **What it decides.** `Length[m] K + 0` against `Length[m] K`, the same shape with `Length[m] + 1` and with a power,
+  and task 87's original certificates: the value reading stops at `Length[m]` at once, and the offset rule's step
+  (`offsetStepQ`) compares the bases.
+
+### (A) Products and powers of neutral terms by literals, compared by their parts
+
+A new case of `definitionallyEqualCases`, before lazy delta, for the registered multiplication and power only: `t n`
+against `s n'`, with `n` and `n'` positive literals and `t` and `s` **neutral** (B's reading; a successor of a variable
+is stuck but not neutral, and is left to the paths of today) are equal exactly where `n == n'` and `t` is equal to `s`,
+compared once by general definitional equality. The same for `t^n` against `s^n'`.
+
+- **Justification.** The registration checks the equations `t 0 == 0` and `t (k + 1) == t k + t` for variables (power:
+  `t^0 == 1`, `t^(k + 1) == t^k t`), so `t n` reduces to the folded sum `t (n - 1) + t`. A sum whose second argument
+  is neutral is neutral, as the folded addition leaves it as it is and its recursor is stuck on that argument; and two
+  neutral terms are convertible exactly where their heads are the same and their arguments convertible. By induction on
+  the smaller literal, `t n` and `s n'` are convertible exactly where each step's `t` and `s` are and both reach `t 0`,
+  that is `0`, at once; a `0` against a neutral sum is a constructor against a neutral term, which no reduction makes
+  equal. So the rule decides what min(n, n') unfoldings decide, and nothing else, as the offset rule does for sums.
+- **Not decided by the rule:** a product of a term that is not neutral, of two different operations, or where a side is
+  no product; those take today's path. The rule makes no product equal to a sum: `t K + K` against `(t + 1) K` is
+  convertible, by K unfoldings, and stays a matter for `"Ring"`, which proves it with a term.
+
+### Tests
+
+- **Agreement**, in `scripts/offset_agreement.wls`: pairs of products and powers of the bases `x`, `y`, `Length[m]`,
+  `Length[l]`, `x y` and `x + 1` by the literals 1 to 12, as written and written as their unfolded sums, compared with
+  (A) and (B) on and off; the results agree, and the off path finishes in that range. With literals up to 2^64, equal
+  exactly where the base and the literal are the same, by an independent route.
+- **Forged proofs:** `x 1000 == y 1000`, `x 1000 == x 1001` and `Length[m] 2^63 == Length[l] 2^63` refused at once, as
+  type mismatches and not recursion limits; `Typed["equalityReflexivity"[Length[m] K], Length[m] K == Length[l] K]`
+  refused.
+- **Registration:** a multiplication by recursion on its first argument, which computes literals right, is refused by
+  its equations, as today; the rule reads only a registered operation whose equations passed.
+- **The rows of the table** at K = 2^63, each answered in under 0.1 s, the four unequal ones False.
+
+### The compiled kernel
+
+Unchanged in this item. It uses a role only where every argument is a literal and unfolds an open application
+otherwise, so it accepts nothing the Wolfram Language kernel refuses; where it does not finish, the record is undecided
+and checked by the Wolfram Language kernel (0.43.0). A compiled counterpart of (A) and (B), if the cones need one, is a
+change of the program, which would carry the debug cut (task 86) and its gate with it.
+
+### Acceptance
+
+- The table's rows, at K = 2^63, decided right in under 0.1 s each.
+- Task 87's old certificates, with the multipliers FindInstance gave (kept in the scratch), checked by the kernel.
+- The whole suite, the agreement script, and the 36-module cone checked constant by constant on pod 4 in no more time
+  than today's.
+
+Order: (B) first, which changes a reading that only declines; then (A), a new case of definitional equality.
