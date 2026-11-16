@@ -11,6 +11,19 @@ Version 0.50.0.
 
 ### Added
 
+- **Vectors in typed code.** `TypeTheoryEnvironment["Machine"]` has the packed arrays of rank 1 of the compiler's typed
+  entries, `"PackedArray"[A, 1]`: the lists whose length a machine integer holds, of `"Integer64"`, and of `"Real64"`
+  in `TypeTheoryEnvironment["MachineReals"]`. `TypeTheoryFormalize` reads `Length`, `Part`, `Take`, `Total` and
+  `ConstantArray` of them as typed code computes them, with its leaves (`"PartRange"`, `"Range"`,
+  `"IntegerOverflow"`), and `a[[i]] = v` as the local set to the array with the part set, so a loop carries the array
+  in its state. A function of a vector takes its types with it, `TypeTheoryFormalize[Typed[f, {types} -> result],
+  "Machine"]`, as FunctionCompile takes them; `Typed[f, type]` is the option `"Type"` for every meaning. The library
+  (Library/MachineArrays.wl) proves that a part set keeps the length, that Take gives the length asked for, and that
+  neither leaves for want of memory, which the model leaves out; the tests prove that a sum over the parts by a While
+  is the array's Total for all fuel above its length, and the exact sum where no partial sum leaves, and that a loop
+  setting parts gives the squares of 1 to n. The machine library also has the order, the sum and the product of
+  natural numbers that proofs about loops rewrite with (`"integerLessEqualQOfNatural"`, `"machinePlusOfNatural"`,
+  `"machineTimesOfNatural"`).
 - **A real to an integer power in typed code.** `TypeTheoryFormalize` reads `x^n` of a machine real and an integer, a
   constant or a machine integer, as `"real64IntegerPower"` of `TypeTheoryEnvironment["MachineReals"]`: the products
   Wolfram 15 rounds one by one, in the order of the exponent's bits from the top (a bit at a time below 8, two at a

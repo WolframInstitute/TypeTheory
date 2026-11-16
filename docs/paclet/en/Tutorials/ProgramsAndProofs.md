@@ -708,54 +708,13 @@ TypeTheoryProof[
 
 <!-- => Proof, 1 goal: f ∶ ℕ, n1 ∶ Integer64, s ∶ Integer64, i ∶ Integer64, b ∶ ℕ, top ∶ ℕ, hn ∶ n1〚"integer"〛 == ↑top, hi ∶ i〚"integer"〛 == ↑b, hle ∶ ¬b ≤ top ⊢ machineIf[integerLessEqualQ[i〚"integer"〛, n1〚"integer"〛], confirmBind[machinePlus[s〚"integer"〛, i〚"integer"〛], (t6∶Integer64) ↦ confirmBind[machinePlus[i〚"integer"〛, 1], (t8∶Integer64) ↦ While[whileSum][f, n1, t6, t8]]], left[(s, i)]] == left[(s, i)] -->
 
-The proof needs the order of the integers decided on natural numbers, both ways, and the machine's sum of two natural numbers whose sum fits:
+The proof needs the order of the integers decided on natural numbers, both ways, `"integerLessEqualQOfNatural"` and `"integerLessEqualQNotOfNatural"`, and the machine's sum of two natural numbers whose sum fits, which the machine library has, as it has the product's, `"machineTimesOfNatural"`:
 
 ```wl
-loops = TypeTheoryEnvironment[loops, {
-    TypeTheoryTheorem["integerLessEqualQOfNatural",
-        ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]],
-        Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, m <= n]},
-            InductiveRecursor[Exists][
-                Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, n == m + k]] |-> "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true",
-                {Typed[k, NonNegativeIntegers], Typed[e, n == m + k]} |-> "equalitySubstitution"[
-                    "equalitySymmetry"[e],
-                    "equalitySubstitution"[
-                        "equalitySymmetry"["integerOfNaturalAddition"[m, k]],
-                        "integerLessEqualQSelfAddition"["integerOfNatural"[m], k],
-                        P -> Function[{Typed[y, Integers]}, "integerLessEqualQ"["integerOfNatural"[m], y] == "true"]
-                    ],
-                    P -> Function[{Typed[x, NonNegativeIntegers]}, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[x]] == "true"]
-                ],
-                "lessEqualWitness"[m, n, h]
-            ]
-        ]
-    ],
-    TypeTheoryTheorem["integerLessEqualQNotOfNatural",
-        ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[Not[m <= n], "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
-        Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, Not[m <= n]]},
-            InductiveRecursor[Booleans][
-                Function[{Typed[b, Booleans]}, Implies["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == b, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
-                Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]}, e],
-                Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]},
-                    "falseElimination"[h["integerOfNaturalLessEqual"[m, n, "integerLessEqualQTrue"["integerOfNatural"[m], "integerOfNatural"[n], e]]]]],
-                "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]
-            ]["equalityReflexivity"["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]]]
-        ]
-    ],
-    TypeTheoryTheorem["machinePlusOfNatural",
-        ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < 9223372036854775808]},
-            "machinePlus"["integerOfNatural"[a], "integerOfNatural"[b]] == Typed["left"["subtype"["integerOfNatural"[a + b], "naturalInteger64Range"[a + b, h]]], "Integer64" | Failure]],
-        Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < 9223372036854775808]},
-            "equalityTransitivity"[
-                "equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "equalitySymmetry"["integerOfNaturalAddition"[a, b]]],
-                "machineResultOfNatural"[a + b, h]
-            ]
-        ]
-    ]
-}]
+TypeTheoryType[TypeTheoryTerm["machinePlusOfNatural", loops]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 397 constants -->
+<!-- => ∀ (a : ℕ) (b : ℕ) (h : a + b < 9223372036854775808), machinePlus[↑a, ↑b] == left[subtype[↑(a + b), naturalInteger64Range[a + b, h]]] -->
 
 And facts of arithmetic about the rounds and the bounds, each by a tactic:
 

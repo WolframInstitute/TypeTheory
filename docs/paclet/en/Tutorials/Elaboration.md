@@ -452,6 +452,7 @@ TypeTheoryType[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n]]
 | A type error | a failure of compilation, or a refused argument | a [Failure]() of elaboration; the kernel accepts nothing it has not checked |
 | What runs | machine code | reduction in the kernel, or the Wolfram Language for an axiom with an `"Implementation"` |
 | Overflow | a typed entry leaves for the generic code, which computes the exact value | none in ℤ; in [TypeTheoryEnvironment]()`["Machine"]`, the leave is a value, `Failure["IntegerOverflow", <||>]` |
+| Arrays | `"PackedArray"::["Integer64", 1]`, memory of a rank and an element type, whose parts are checked as they are read | lists `{A}` of any length; in [TypeTheoryEnvironment]()`["Machine"]`, `"PackedArray"[A, 1]`, the lists a machine holds, and a part that is not there is the value `Failure["PartRange", <||>]` |
 | Pattern matching | a match program, compiled to code that tests and binds the parts of the call | a term of the monad of matches, `Match[A]`, whose first result is the rule applied: a function's rules have type `Expressions -> Option[Expressions]` |
 
 [TypeHint]()`[e, type]` is how the compiler is told the type of an expression, and it evaluates to *e*, so code with type hints runs as it is. Elaboration reads it as *e* of that type where the type is one of the type theory, and as *e* alone where it is only the compiler's, as `"MachineInteger"`, which says how *e* is stored; [TypeTheoryFormalize]() reads it as *e*:
@@ -482,6 +483,15 @@ TypeTheoryFormalize[pronic, "Machine"]
 <!-- => {definition pronic : Integer64 → (Integer64 | Failure) := (n∶Integer64) ↦ confirmBind[machinePlus[n〚"integer"〛, 1], (t3∶Integer64) ↦ machineTimes[n〚"integer"〛, t3〚"integer"〛]]} -->
 
 A function on machine reals, `x_Real`, is read the same way in <code>[TypeTheoryEnvironment]()["MachineReals"]</code>, the machine integers over the rationals with the 64-bit reals, and `"Machine"` stands for that environment where the typed code computes on reals.
+
+An argument `v_List` says no type the compiler can use, so a function of a vector takes its types with it, as [FunctionCompile]() takes them: <code>[Typed]()[*f*, {*types*} -> *result*]</code>. The vector is a `"PackedArray"[A, 1]` of the environment, a list whose length a machine integer holds, and a part read is a step that may leave:
+
+```wl
+lastOf[v_List] := v[[-1]];
+TypeTheoryFormalize[Typed[lastOf, {"PackedArray"::["Integer64", 1]} -> "Integer64"], "Machine"]
+```
+
+<!-- => {definition lastOf : PackedArray[Integer64, 1] → (Integer64 | Failure) := (v∶PackedArray[Integer64, 1]) ↦ arrayPart[v, -1]} -->
 
 The mathematical meaning of the same definition, in the integers, has no leave:
 
