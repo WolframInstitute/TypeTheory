@@ -45,6 +45,9 @@ PackageScoped[uncheckedRegistrationQ]
 PackageScoped[additionReduct]
 PackageScoped[$foldedAddition]
 PackageScoped[$naturalOffsetRule]
+PackageScoped[naturalProductsEqualQ]
+PackageScoped[$naturalProductRule]
+PackageScoped[$neutralStuckReading]
 PackageScoped[$deferRegistrationEquations]
 PackageScoped[registrationEquationRecords]
 
@@ -65,6 +68,9 @@ registeredAdditionQ::usage = "registeredAdditionQ[environment, HoldComplete[name
 additionReduct::usage = "additionReduct[environment, context, term, HoldComplete[name], t, s] reduces the registered addition t + s by its defining equations: t where s reduces to zero, the successor of t + s' where s reduces to a successor of s' or a positive literal, and term where s is stuck."
 $foldedAddition::usage = "$foldedAddition is True where the registered addition reduces by its defining equations, its recursion folded; False unfolds its definition, for the agreement test."
 $naturalOffsetRule::usage = "$naturalOffsetRule is True where definitional equality compares natural numbers by their offsets; False compares them by unfolding alone."
+naturalProductsEqualQ::usage = "naturalProductsEqualQ[environment, context, a, b] decides whether a and b, each a factor times a positive literal, or each a factor to a positive literal's power, by the registered operation, with neutral factors, are definitionally equal: exactly where the literals are equal and the factors are; None for any other a and b."
+$neutralStuckReading::usage = "$neutralStuckReading is True where a term whose weak head normal form is neutral is read as no literal at once; False reads it by peeling its value, as the agreement test compares."
+$naturalProductRule::usage = "$naturalProductRule is True where definitional equality compares products and powers of neutral terms by positive literals by their parts; False compares them by unfolding alone."
 $deferRegistrationEquations::usage = "$deferRegistrationEquations is True where the compiled kernel checks the equations of the registrations that have a variable in every application of an \
 operation: while a list of declarations is added before the compiled kernel checks it, the list being kept only where the check succeeds, and while an environment is declared again after the \
 compiled kernel has checked it. A registration then compares only the equations left to it."
@@ -487,7 +493,7 @@ operationResult[environment_, context_, settings_, name_, role_, arguments_] := 
 ]
 
 (* the integers of the arguments, or None as soon as one does not reduce to a literal *)
-literalValues[environment_, context_, settings_, arguments_List] /; AnyTrue[arguments, Function[argument, stuckQ[context, settings, argument]]] := None
+literalValues[environment_, context_, settings_, arguments_List] /; AnyTrue[arguments, Function[argument, stuckQ[environment, context, settings, argument]]] := None
 literalValues[environment_, context_, settings_, arguments_List] := Catch[
 	Function[argument, Replace[literalValue[environment, context, settings, argument], None :> Throw[None, literalValues]]] /@ arguments,
 	literalValues
@@ -549,6 +555,50 @@ naturalOffsetsEqualQ[environment_, context_, a_, b_] := If[ TrueQ[$naturalOffset
 	None
 ]
 
+(* Products and powers of neutral terms by literals (task 56, docs/notes/KernelLiterals.md, (3), approved by Stephen
+   2026-11-16). Definitional equality of these terms is equality of their normal forms, the prelude's arithmetic being
+   confluent and normalizing. The registration checked t 0 == 0 and t (k + 1) == t k + t for variables, so for a neutral
+   t and a positive literal n the normal form of t n is the left-nested chain of n additions of the normal form of t,
+   ((0 + nf(t)) + nf(t)) + ... + nf(t); each addition's second argument is neutral, so the chain is neutral, and two
+   chains are the same exactly where their lengths and their summands are. So t n and s n' are equal exactly where
+   n == n' and t is equal to s, and a power t^n, a chain of n products of nf(t) from 1, the same. The rule decides what
+   min(n, n') unfoldings decide, and nothing else; without it the unfolding is one unit of the literal at a time, and x K
+   against y K, which differ, reached the recursion limit from K = 1000.
+   It answers only on the shape as written: the registered multiplication, or power, of a factor and a positive literal
+   on both sides, the same operation, with both factors neutral by their weak head normal forms. Anything else, as
+   t (k + 1) with k a literal, a successor of a variable, a side that is no product, gives None, and the comparison goes
+   on as without the rule. Subtraction is left out until a proof needs it. *)
+$naturalProductRule = True
+
+naturalProductsEqualQ[environment_, context_, a_, b_] := If[ TrueQ[$naturalProductRule],
+	Replace[naturalNumberSettings[environment], {
+		settings_Association :> Replace[{literalProduct[settings, a], literalProduct[settings, b]}, {
+			{{operation_, first_, n_}, {operation_, second_, m_}} /; neutralQ[environment, context, settings, first] && neutralQ[environment, context, settings, second] :>
+				n == m && definitionallyEqualQ[environment, context, first, second],
+			_ -> None
+		}],
+		_ -> None
+	}],
+	None
+]
+
+(* {operation, factor, n} of a factor times, or to the power of, a positive literal n, by the registered operation *)
+literalProduct[settings_, application[application[constantReference[operation_, {}], factor_], naturalLiteral[n_Integer ? Positive]]] /;
+	MemberQ[{"Multiplication", "Power"}, Lookup[settings["Roles"], Key[operation]]] := {operation, factor, n}
+literalProduct[_, _] := None
+
+(* a term whose weak head normal form is neutral: its head a variable without a value, a recursor, an axiom, a
+   quotient's operation or a projection (neutralHeadQ), or a sum by the registered addition whose second argument is
+   neutral, which the folded addition leaves as it is and whose recursor is stuck on that argument. A successor, zero
+   or a literal is a constructor, no neutral term *)
+neutralQ[environment_, context_, settings_, term_] := With[{reduced = weakHeadNormalForm[environment, context, term]},
+	Replace[reduced, {
+		application[application[constantReference[addition_, {}], _], right_] /; addition === Lookup[settings["Operations"], "Addition"] :>
+			neutralQ[environment, context, settings, right],
+		_ :> neutralHeadQ[environment, context, settings, First[applicationSpine[reduced]]]
+	}]
+]
+
 naturalOffset[settings_, naturalLiteral[n_Integer]] := {constantReference[settings["Zero"], {}], n}
 naturalOffset[settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] :=
 	offsetAdded[naturalOffset[settings, argument], 1]
@@ -600,32 +650,80 @@ offsetAdded[{base_, offset_Integer}, more_Integer] := {base, offset + more}
 offsetStepQ[settings_, {base_, 0}, term_] := base =!= term && ! zeroBaseQ[settings, base]
 offsetStepQ[_, _, _] := False
 
-(* a term no literal can be, read without reducing: a variable of the context without a value, a successor of one, or a
-   sum by the registered addition with one, as a sum is a literal only where both its sides are.
+(* a term no literal can be: a variable of the context without a value, a successor of one, or a sum by the registered
+   addition with one, as a sum is a literal only where both its sides are, read without reducing.
    This reading and naturalOffset's visit a term as a tree, a shared subterm once for each place it stands, so on sums and
    products that share their parts level after level they cost the size of the tree, which doubles where the shared
    graph grows by a few nodes. Closed arithmetic no longer builds such terms: a beta reduction computes each operation on
    literals as its substitution builds it (TypeChecking.wl, literalFolded). A symbolic part used twice is still read so;
    no blow-up of that kind has been measured (docs/notes/EvaluationCosts.md). *)
-stuckQ[context_, _, freeVariable[id_]] := ! KeyExistsQ[Lookup[context, id, <||>], "Value"]
-stuckQ[context_, settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] := stuckQ[context, settings, argument]
-stuckQ[context_, settings_, application[application[constantReference[addition_, {}], left_], right_]] /; addition === Lookup[settings["Operations"], "Addition"] :=
-	stuckQ[context, settings, left] || stuckQ[context, settings, right]
+stuckQ[_, context_, _, freeVariable[id_]] := ! KeyExistsQ[Lookup[context, id, <||>], "Value"]
+stuckQ[environment_, context_, settings_, application[constantReference[successor_, {}], argument_]] /; successor === settings["Successor"] :=
+	stuckQ[environment, context, settings, argument]
+stuckQ[environment_, context_, settings_, application[application[constantReference[addition_, {}], left_], right_]] /; addition === Lookup[settings["Operations"], "Addition"] :=
+	stuckQ[environment, context, settings, left] || stuckQ[environment, context, settings, right]
 (* a product, a power or a difference by a registered operation, read by the defining equations its registration checked:
    t s and t^s are stuck where s is, and where t is and s a positive literal, as t (k + 1) == t k + t and t^(k + 1) ==
    t^k t leave t in the sum or the product, while t 0 == 0 and t^0 == 1 are literals; t - s is stuck where either is,
    as t - (k + 1) == predecessor[t - k]. A product of a variable by a literal is so no literal at once, where reading
    its value would unfold it one step for each unit of the literal *)
-stuckQ[context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; MemberQ[{"Multiplication", "Power"}, Lookup[settings["Roles"], Key[operation]]] :=
-	stuckQ[context, settings, right] || (stuckQ[context, settings, left] && MatchQ[right, naturalLiteral[_Integer ? Positive]])
-stuckQ[context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; Lookup[settings["Roles"], Key[operation]] === "Subtraction" :=
-	stuckQ[context, settings, left] || stuckQ[context, settings, right]
+stuckQ[environment_, context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; MemberQ[{"Multiplication", "Power"}, Lookup[settings["Roles"], Key[operation]]] :=
+	stuckQ[environment, context, settings, right] || (stuckQ[environment, context, settings, left] && MatchQ[right, naturalLiteral[_Integer ? Positive]])
+stuckQ[environment_, context_, settings_, application[application[constantReference[operation_, {}], left_], right_]] /; Lookup[settings["Roles"], Key[operation]] === "Subtraction" :=
+	stuckQ[environment, context, settings, left] || stuckQ[environment, context, settings, right]
 (* a beta-redex is stuck where its reduct is: (x |-> x 2082)[n n] is no literal, as (n n) 2082 is none. Reading the
    value of the redex otherwise reduced it with its definitions, a unit of 2082 at a time. Stuck only declines the
    computation on literals, so taking a redex for its reduct accepts nothing more. *)
-stuckQ[context_, settings_, term : application[_, _]] /; MatchQ[First[applicationSpine[term]], _lambdaAbstraction] :=
-	Replace[applicationSpine[term], {lambdaAbstraction[_, _, body_, _], {first_, rest___}} :> stuckQ[context, settings, makeApplication[instantiateBoundVariable[body, first], {rest}]]]
-stuckQ[_, _, _] := False
+stuckQ[environment_, context_, settings_, term : application[_, _]] /; MatchQ[First[applicationSpine[term]], _lambdaAbstraction] :=
+	Replace[applicationSpine[term], {lambdaAbstraction[_, _, body_, _], {first_, rest___}} :> stuckQ[environment, context, settings, makeApplication[instantiateBoundVariable[body, first], {rest}]]]
+(* any other term, a constant alone or applied, a recursor's application, a projection, is stuck where its weak head
+   normal form is: the term reduced at its head as far as it reduces, which the kernel caches, and read again by the rules
+   above, or, where it reduced no further, by its head. A head that is a variable without a value, a recursor, an axiom,
+   a quotient's operation or a projection is neutral: no step reduces the term at its head, so no reduction inside it puts
+   a constructor or a literal there, and reading its value by peeling ends in None too, only later. So Length[m], a
+   definition whose recursor is stuck on the variable m, is no literal at once, and Length[m] 2^63 with it, whose value
+   was read by peeling the product one unit of the literal at a time (task 56, docs/notes/KernelLiterals.md, (3)).
+   Stuck only declines the computation on literals, so this accepts nothing more. *)
+$neutralStuckReading = True
+
+(* A recursor applied is read by one step of the kernel's head reduction and no more: stuck where the step leaves it as it
+   is, its major premise reduced to no constructor, and neither a structure's eta nor a K-like rule applying, so that no
+   step ever reduces it at its head. A step that reduces it decides nothing here. Its weak head normal form would reduce
+   on, and the recursion of a product by a literal, rec(k - 1), reduces to a sum whose value literalValues reads, asking
+   this reading of rec(k - 2), one unit of the literal at a time *)
+stuckQ[environment_, context_, settings_, term_] /; TrueQ[$neutralStuckReading] && recursorApplicationQ[environment, term] :=
+	reduceHead[environment, context, term] === term
+
+recursorApplicationQ[environment_, term_] := Replace[First[applicationSpine[term]], {
+	constantReference[name_, _] :> constantRecord[environment, name]["Kind"] === "Recursor",
+	_ -> False
+}]
+
+(* The term is reduced once, and what it reduces to is read by the rules above without reducing again, and by its head:
+   a reading that reduced again went down a product's recursion one unit of its literal at a time, as n 2082 reduces to
+   a sum whose first argument is the recursion at 2081, read before the variable n that decides it; and down a recursion
+   that adds two successors at a time, 2900 deep. So each argument is reduced at most once, and the depth of the reading
+   is the depth of the term as it is written *)
+stuckQ[environment_, context_, settings_, term_] /; TrueQ[$neutralStuckReading] && reducibleReadingQ[settings, term] := With[{reduced = weakHeadNormalForm[environment, context, term]},
+	Or[
+		reduced =!= term && Block[{$neutralStuckReading = False}, stuckQ[environment, context, settings, reduced]],
+		neutralHeadQ[environment, context, settings, First[applicationSpine[reduced]]]
+	]
+]
+stuckQ[_, _, _, _] := False
+
+(* the terms the reading by the weak head normal form takes: a constant alone or applied, and a projection, applied or
+   not; a literal, zero and the rules above's terms are read by those *)
+reducibleReadingQ[settings_, term_] := MatchQ[First[applicationSpine[term]], _constantReference | _projection | _freeVariable] &&
+	! MatchQ[term, _freeVariable] && ! zeroBaseQ[settings, term]
+
+(* the head of a term that reduces no further at its head: neutral where no constructor, literal or abstraction can come
+   of it *)
+neutralHeadQ[_, context_, _, freeVariable[id_]] := ! KeyExistsQ[Lookup[context, id, <||>], "Value"]
+neutralHeadQ[_, _, _, _projection] := True
+neutralHeadQ[environment_, _, settings_, constantReference[name_, _]] := name =!= settings["Zero"] && name =!= settings["Successor"] &&
+	MemberQ[{"Recursor", "Axiom", "Quotient", "Cubical"}, constantRecord[environment, name]["Kind"]]
+neutralHeadQ[_, _, _, _] := False
 
 zeroBaseQ[settings_, base_] := base === constantReference[settings["Zero"], {}]
 

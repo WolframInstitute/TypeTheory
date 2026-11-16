@@ -803,3 +803,66 @@ VerificationTest[
 	True,
 	TestID -> "A-forged-operation-is-refused-so-no-reading-folds-it"
 ]
+
+(* Arithmetic on stuck terms with literals (docs/notes/KernelLiterals.md, (3)): a term whose weak head normal form is
+   neutral, as Length[m], is no literal at once, and products and powers of neutral terms by literals are equal exactly
+   where the literals and the factors are. Each comparison at K = 2^63 is decided, well under a second, where each
+   reached the recursion limit from K = 1000: two different products, a product against itself plus 0 with a factor
+   that is no variable, and the nestings (t n)^k, t^k n and (x + y) n against other neutral heads. *)
+SetAttributes[stuckTimedEqual, HoldAll]
+stuckTimedEqual[a_, b_] := With[
+	{
+		timed = AbsoluteTiming[DefinitionallyEqualQ[
+			TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[m, {NonNegativeIntegers}], Typed[l, {NonNegativeIntegers}]}, a]],
+			TypeTheoryTerm[Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers], Typed[m, {NonNegativeIntegers}], Typed[l, {NonNegativeIntegers}]}, b]]
+		]]
+	},
+	{Last[timed], First[timed] < 1}
+]
+
+VerificationTest[
+	{
+		stuckTimedEqual[x 9223372036854775808, x 9223372036854775808],
+		stuckTimedEqual[x 9223372036854775808, y 9223372036854775808],
+		stuckTimedEqual[x 9223372036854775808, x 9223372036854775809],
+		stuckTimedEqual[Length[m] 9223372036854775808 + 0, Length[m] 9223372036854775808],
+		stuckTimedEqual[(Length[m] + 1) 9223372036854775808 + 0, (Length[m] + 1) 9223372036854775808],
+		stuckTimedEqual[Length[m]^9223372036854775808 + 0, Length[m]^9223372036854775808],
+		stuckTimedEqual[Length[m] 9223372036854775808, Length[l] 9223372036854775808],
+		stuckTimedEqual[x^9223372036854775808, y^9223372036854775808],
+		stuckTimedEqual[(x 3)^9223372036854775808, (x 3)^9223372036854775808 + 0],
+		stuckTimedEqual[(x 3)^9223372036854775808, (x 4)^9223372036854775808],
+		stuckTimedEqual[x^3 9223372036854775808, x^2 9223372036854775808],
+		stuckTimedEqual[(x + y) 9223372036854775808 + 0, (x + y) 9223372036854775808],
+		stuckTimedEqual[(x + y) 9223372036854775808, (y + x) 9223372036854775808]
+	},
+	{
+		{True, True}, {False, True}, {False, True}, {True, True}, {True, True}, {True, True}, {False, True},
+		{False, True}, {True, True}, {False, True}, {False, True}, {True, True}, {False, True}
+	},
+	TestID -> "Arithmetic-on-stuck-terms-with-literals-is-decided-without-unfolding-the-literal"
+]
+
+(* forged equations of products of neutral terms by large literals are refused as type mismatches: a recursion limit
+   would say only that the kernel did not finish, and fails this test as a wrong answer would *)
+VerificationTest[
+	Map[
+		Function[declaration, Replace[TypeTheoryEnvironment[prelude, {declaration}], {failure_Failure :> First[failure], _ -> "accepted"}]],
+		{
+			TypeTheoryTheorem["forgedProducts",
+				ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, x 9223372036854775808 == y 9223372036854775808],
+				Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, "equalityReflexivity"[x 9223372036854775808]]],
+			TypeTheoryTheorem["forgedLiterals",
+				ForAll[{Typed[x, NonNegativeIntegers]}, x 1000 == x 1001],
+				Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"[x 1000]]],
+			TypeTheoryTheorem["forgedLengths",
+				ForAll[{Typed[m, {NonNegativeIntegers}], Typed[l, {NonNegativeIntegers}]}, Length[m] 9223372036854775808 == Length[l] 9223372036854775808],
+				Function[{Typed[m, {NonNegativeIntegers}], Typed[l, {NonNegativeIntegers}]}, "equalityReflexivity"[Length[m] 9223372036854775808]]],
+			TypeTheoryTheorem["forgedPowers",
+				ForAll[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, x^9223372036854775808 == y^9223372036854775808],
+				Function[{Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, "equalityReflexivity"[x^9223372036854775808]]]
+		}
+	],
+	{"TypeMismatch", "TypeMismatch", "TypeMismatch", "TypeMismatch"},
+	TestID -> "Forged-equations-of-products-by-large-literals-are-refused-not-left-undecided"
+]

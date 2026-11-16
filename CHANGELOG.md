@@ -35,6 +35,14 @@ Versions 0.50.0 to 0.52.0.
 
 ### Fixed
 
+- **Arithmetic on stuck terms with large literals decided without unfolding them.** Definitional equality reached the
+  recursion limit, where it should decide, on products of terms that do not reduce by literals of a thousand or more:
+  `x K` against `y K` and against `x (K + 1)`, which differ, and `Length[m] K + 0` against `Length[m] K`, which are equal.
+  Two rules of the kernel, reviewed before they were built (docs/notes/KernelLiterals.md, (3)): a term whose weak head
+  normal form is neutral, as `Length[m]`, is read as no literal at once; and products and powers of neutral terms by
+  positive literals are equal exactly where the literals and the factors are, by the equations each registration
+  checks. Each such comparison at 2^63 is decided in under 0.02 s; forged equations of such products are refused as
+  type mismatches.
 - **"LinearArithmetic" with a large literal among its hypotheses.** The tactic took the first multipliers that Wolfram's
   FindInstance found, which with a bound such as 2^63 were near three times the bound. Its certificate then held the
   product of such a multiplier with each atom, and where an atom does not reduce, as the length of a list, the kernel

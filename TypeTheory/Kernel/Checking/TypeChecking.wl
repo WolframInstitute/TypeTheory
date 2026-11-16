@@ -48,6 +48,7 @@ PackageScoped[withCheckedTerms]
 PackageScoped[$termsChecked]
 PackageScoped[projectionFunctionQ]
 PackageScoped[weakHeadNormalForm]
+PackageScoped[reduceHead]
 PackageScoped[reducedHeadWithoutUnfolding]
 PackageScoped[definitionallyEqualQ]
 PackageScoped[sortLevel]
@@ -70,6 +71,7 @@ PackageScoped[$metavariableAssignments]
 
 inferType::usage = "inferType[environment, context, term] gives the type of term, checking it; a term that does not type-check throws a kernel failure."
 weakHeadNormalForm::usage = "weakHeadNormalForm[environment, context, term] reduces term until its head can no longer reduce."
+reduceHead::usage = "reduceHead[environment, context, term] gives term reduced by one step at its head: a beta, iota or delta step, a literal operation or a projection; term itself where no step applies."
 reducedHeadWithoutUnfolding::usage = "reducedHeadWithoutUnfolding[environment, context, term] reduces the head of term as far as it reduces without unfolding a definition."
 definitionallyEqualQ::usage = "definitionallyEqualQ[environment, context, a, b] gives True if a and b are equal by computation, eta and proof irrelevance."
 sortLevel::usage = "sortLevel[environment, context, type] gives the level of the sort type belongs to, or throws a kernel failure if type is not a type."
@@ -775,7 +777,8 @@ definitionallyEqualCases[environment_, context_, a_, b_] := Or[
 ]
 
 (* The order: each side reduced as far as it reduces without unfolding a definition, then, where neither
-   reduces, the offsets of natural numbers, then proof irrelevance, which decides two proofs by their propositions,
+   reduces, the offsets of natural numbers, then products and powers of neutral terms by literals, then proof
+   irrelevance, which decides two proofs by their propositions,
    then lazy delta. The offset rule and proof irrelevance are asked once for the two sides as they reduce no further,
    never of the sides on the way: a beta-redex compared with its reduct, (x |-> x + 0)[t 2082] and t 2082 + 0, is
    decided once the redex is reduced, where reading the offsets of the redex first unfolded t 2082 by one step for
@@ -784,7 +787,8 @@ reducedEqualQ[environment_, context_, a_, b_] := coresEqualQ[environment, contex
 
 coresEqualQ[environment_, context_, a_, b_, coreA_, coreB_] := If[ coreA =!= a || coreB =!= b,
 	definitionallyEqualQ[environment, context, coreA, coreB],
-	Replace[naturalOffsetsEqualQ[environment, context, a, b], None :> Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]]
+	Replace[naturalOffsetsEqualQ[environment, context, a, b], None :> Replace[naturalProductsEqualQ[environment, context, a, b], None :>
+		Replace[proofIrrelevance[environment, context, a, b], None :> lazyDeltaEqualQ[environment, context, a, b]]]]
 ]
 
 (* one definition applied to equal arguments at both heads, tried before unfolding it *)

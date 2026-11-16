@@ -16,7 +16,8 @@
    normal forms gives, with the addition unfolded, the kernel's way before the offsets: the same integer, or None for both. Past the range, where
    peeling cannot finish, the literal values of 120 terms with random offsets up to 2^64 must be the offsets' sums: the
    offset over zero, None over a variable. A term read as stuck, which no literal can be, must have no literal value by
-   peeling either. It prints the counts and the times, and the cases that disagree, and exits
+   peeling either. Products and powers of neutral terms by literals are compared too, with the product rule and the
+   neutral reading on and off (below). It prints the counts and the times, and the cases that disagree, and exits
    with status 1 on a disagreement. The run is held under a memory cap. *)
 
 repositoryRoot = ParentDirectory[DirectoryName[$InputFileName]]
@@ -79,7 +80,7 @@ peeledLiteralValue[term_] := With[
 
 valueTerms = Join[terms, Function[pair, plus[First[pair], Last[pair]]] /@ pairs]
 
-stuckQ[term_] := WolframInstitute`TypeTheory`Checking`NaturalNumbers`Private`stuckQ[context, settings, term]
+stuckQ[term_] := WolframInstitute`TypeTheory`Checking`NaturalNumbers`Private`stuckQ[prelude, context, settings, term]
 
 (* random offsets up to 2^64, over zero and over x, written as base plus a literal and as base plus zero plus a literal *)
 largeCases = BlockRandom[SeedRandom[2026]; Flatten[Function[k, {
@@ -190,4 +191,105 @@ Print[Length[recursorPairs], " additions written as recursors, ", Count[Last /@ 
 
 Scan[Function[pair, Print["disagree: ", InputForm[pair]]], Take[Join[disagreements, valueDisagreements, largeDisagreements, stuckDisagreements, recursorDisagreements], UpTo[10]]]
 
-Exit[If[disagreements === {} && valueDisagreements === {} && largeDisagreements === {} && stuckDisagreements === {} && recursorDisagreements === {}, 0, 1]]
+(* Products and powers of neutral terms by literals (docs/notes/KernelLiterals.md, (3)): the bases productX, productY,
+   Length[listM], Length[listL], productX productY, productX + productY and productX + 1, the last a successor and no
+   neutral term, each times 1 to the largest offset and to the powers 1 to 4, written as the product and as its unfolded
+   chain, and the nestings (t n)^k, t^k n and (productX + productY) n, which meet the rule against other neutral heads.
+   Every written product and power is compared with every term by definitional equality with the product rule, the
+   neutral reading, the offset rule and the folded addition on, and with all four off, unfolding alone, which finishes in
+   this range: the two must agree. Past the range, products by literals up to 2^64 of the neutral bases must be equal
+   exactly where the base and the literal are the same, decided with the rules on. The terms are elaborated in the
+   prelude as functions of the four variables, held, so that the Wolfram Language puts no literal first. *)
+productBases = {HoldComplete[productX], HoldComplete[productY], HoldComplete[Length[listM]], HoldComplete[Length[listL]],
+	HoldComplete[productX productY], HoldComplete[productX + productY], HoldComplete[productX + 1]}
+
+productTerm[HoldComplete[body_]] := TypeTheoryTerm[
+	Function[{Typed[productX, NonNegativeIntegers], Typed[productY, NonNegativeIntegers], Typed[listM, {NonNegativeIntegers}], Typed[listL, {NonNegativeIntegers}]}, body],
+	prelude
+]
+
+timesHeld[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[a b]
+plusHeld[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[a + b]
+powerHeld[HoldComplete[a_], HoldComplete[b_]] := HoldComplete[a^b]
+literalHeld[n_Integer] := HoldComplete[n]
+
+(* t n, and its chain ((0 + t) + t) ... + t of n additions; t^n, and its chain ((1 t) t) ... t of n products *)
+writtenProduct[base_, n_] := timesHeld[base, literalHeld[n]]
+unfoldedProduct[base_, n_] := Fold[Function[{chain, part}, plusHeld[chain, part]], literalHeld[0], ConstantArray[base, n]]
+writtenPower[base_, n_] := powerHeld[base, literalHeld[n]]
+unfoldedPower[base_, n_] := Fold[Function[{chain, part}, timesHeld[chain, part]], literalHeld[1], ConstantArray[base, n]]
+
+writtenProducts = Join[
+	Catenate[Outer[writtenProduct, productBases, Range[largestOffset], 1]],
+	Catenate[Outer[writtenPower, productBases, Range[4], 1]],
+	(* (t n)^k, t^k n and (productX + productY) n, for n and k from 1 to 3 *)
+	Flatten[Outer[Function[{base, n, k}, powerHeld[writtenProduct[base, n], literalHeld[k]]], Take[productBases, 4], Range[3], Range[3], 1], 2],
+	Flatten[Outer[Function[{base, n, k}, timesHeld[writtenPower[base, k], literalHeld[n]]], Take[productBases, 4], Range[3], Range[3], 1], 2]
+]
+
+productForms = Join[
+	writtenProducts,
+	Catenate[Outer[unfoldedProduct, productBases, Range[largestOffset], 1]],
+	Catenate[Outer[unfoldedPower, productBases, Range[4], 1]],
+	Catenate[Outer[Function[{base, n}, plusHeld[writtenProduct[base, n], literalHeld[0]]], productBases, Range[4], 1]]
+]
+
+productTerms = productTerm /@ productForms
+
+writtenTerms = Take[productTerms, Length[writtenProducts]]
+
+productPairs = Tuples[{Range[Length[writtenTerms]], Range[Length[productTerms]]}]
+
+productsCompared[] := Function[pair, DefinitionallyEqualQ[writtenTerms[[First[pair]]], productTerms[[Last[pair]]]]] /@ productPairs
+
+productResults = MemoryConstrained[
+	{
+		AbsoluteTiming[productsCompared[]],
+		Block[
+			{
+				WolframInstitute`TypeTheory`PackageScope`$naturalProductRule = False,
+				WolframInstitute`TypeTheory`PackageScope`$neutralStuckReading = False,
+				WolframInstitute`TypeTheory`PackageScope`$naturalOffsetRule = False,
+				WolframInstitute`TypeTheory`PackageScope`$foldedAddition = False
+			},
+			AbsoluteTiming[productsCompared[]]
+		]
+	},
+	4*^9,
+	"MemoryLimit"
+]
+
+If[ productResults === "MemoryLimit",
+	Print["The comparison of products went past 4 GB."];
+	Exit[1]
+]
+
+{{productRuleTime, productsWithRule}, {productUnfoldingTime, productsWithoutRule}} = productResults
+
+productDisagreements = Pick[productPairs, MapThread[Function[{with, without}, with =!= without || ! BooleanQ[with]], {productsWithRule, productsWithoutRule}]]
+
+Print[Length[productPairs], " pairs of products and powers, ", Count[productsWithRule, True], " equal; ", Length[productDisagreements], " disagree with unfolding alone or are undecided"]
+
+Print["products with the rules ", Round[productRuleTime, 0.01], " s, unfolding alone ", Round[productUnfoldingTime, 0.01], " s"]
+
+(* products by literals up to 2^64 of the neutral bases, by the rules alone: equal exactly where the base and the literal
+   are the same *)
+largeProductCases = BlockRandom[SeedRandom[2026]; Table[
+	With[{first = RandomInteger[{1, 6}], second = RandomInteger[{1, 6}], k = RandomInteger[{10^6, 2^64}]},
+		With[{other = If[RandomReal[] < 0.5, k, k + RandomInteger[{1, 3}]]},
+			{writtenProduct[productBases[[first]], k], writtenProduct[productBases[[second]], other], first === second && k === other}
+		]
+	],
+	{80}
+]]
+
+{largeProductTime, largeProductResults} = AbsoluteTiming[Function[case, DefinitionallyEqualQ[productTerm[First[case]], productTerm[case[[2]]]]] /@ largeProductCases]
+
+largeProductDisagreements = Pick[largeProductCases, MapThread[Function[{result, case}, result =!= Last[case]], {largeProductResults, largeProductCases}]]
+
+Print[Length[largeProductCases], " products by literals up to 2^64, ", Count[Last /@ largeProductCases, True], " expected equal; ", Length[largeProductDisagreements], " disagree, in ", Round[largeProductTime, 0.01], " s"]
+
+Scan[Function[pair, Print["disagree: ", InputForm[{productForms[[First[pair]]], productForms[[Last[pair]]]}]]], Take[productDisagreements, UpTo[10]]]
+Scan[Function[case, Print["disagree: ", InputForm[case]]], Take[largeProductDisagreements, UpTo[10]]]
+
+Exit[If[disagreements === {} && valueDisagreements === {} && largeDisagreements === {} && stuckDisagreements === {} && recursorDisagreements === {} && productDisagreements === {} && largeProductDisagreements === {}, 0, 1]]

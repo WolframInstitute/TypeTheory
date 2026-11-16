@@ -316,3 +316,35 @@ change of the program, which would carry the debug cut (task 86) and its gate wi
   than today's.
 
 Order: (B) first, which changes a reading that only declines; then (A), a new case of definitional equality.
+
+### Result of (3)
+
+Built 2026-11-17, (B) and then (A), as approved, with two refinements of (B) that the suite showed:
+
+- **The reading reduces once.** The general reading takes the term's weak head normal form and reads what it reduces to
+  by the rules of `stuckQ` without reducing again, and by its head. Reading the result with the general rule again went
+  down chains: `OffsetTwice[2900]` reduces to two successors over the recursion at 2898, which the successor rule read
+  by the general rule again, 1450 levels, and the test of the offset loop met `$IterationLimit`.
+- **A recursor applied is read by one step.** A recursor's application is stuck where one step of the kernel's head
+  reduction (`reduceHead`, now package-scoped) leaves it as it is: its major premise reduced to no constructor, and no
+  structure's eta or K-like rule applying. Its weak head normal form would go on: reducing a sum calls `literalValues`,
+  which asks `stuckQ` of the sum's arguments first to last, and in `0 + n 2082` against `n 2082` the first argument was
+  the product's recursion at 2081, whose reduction is a sum whose first argument is the recursion at 2080, and so on, one
+  level of the kernel's recursion per unit of 2082: the old reading answered that recursion False at once, and the
+  variable `n` after it decided. One step is the exact test, and bounded.
+
+`$neutralStuckReading` and `$naturalProductRule` switch (B) and (A) off for the agreement test, as `$naturalOffsetRule`
+and `$foldedAddition` do.
+
+Measured:
+- The table's rows at K = 2^63, and the nestings `(x 3)^K`, `x^3 K` and `(x + y) K` against each other and against
+  themselves plus 0: each decided right in under 0.02 s. `x (K + 1)`, the sum of two literals as written, and `(x + 1) K`,
+  a successor and no neutral term, still reach the recursion limit, as the rule leaves them to the paths of today.
+- Task 87's certificates with 0.51.0's multipliers, near 2.77 10^19: the four that reached the recursion limit are
+  declared in 0.09 s each.
+- `scripts/offset_agreement.wls` on pod 4: 38025 pairs of offsets, 38220 literal values, 120 large offsets, 36660 terms
+  read as stuck and 150 additions written as recursors as before, none disagreeing; 59616 pairs of products and powers,
+  367 equal, none disagreeing with unfolding alone and none undecided; 80 products by literals up to 2^64, none
+  disagreeing.
+- The suite: 667 of 667, with the tests `Arithmetic-on-stuck-terms-with-literals-is-decided-without-unfolding-the-literal`
+  and `Forged-equations-of-products-by-large-literals-are-refused-not-left-undecided`, which check the tag of each refusal.
