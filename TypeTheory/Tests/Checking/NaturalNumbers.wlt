@@ -866,3 +866,46 @@ VerificationTest[
 	{"TypeMismatch", "TypeMismatch", "TypeMismatch", "TypeMismatch"},
 	TestID -> "Forged-equations-of-products-by-large-literals-are-refused-not-left-undecided"
 ]
+
+(* A recursor applied is read as stuck only where one step of head reduction leaves it as it is, and that step reduces the
+   major premise to its weak head normal form before it tests for a constructor, so that such a term is its own weak head
+   normal form (docs/notes/KernelLiterals.md, (3)). A major premise that reaches a constructor only after three
+   unfoldings makes the recursor compute: the term is no stuck term, its value is 8, and a product of it by 2^63 is equal
+   to 8 times 2^63 and differs from 9 times it, which the rule of products, whose False answers rest on this reading,
+   leaves to the computation *)
+VerificationTest[
+	With[
+		{
+			chain = TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition["chainThree", Typed[1, NonNegativeIntegers]],
+				TypeTheoryDefinition["chainTwo", Typed["chainThree", NonNegativeIntegers]],
+				TypeTheoryDefinition["chainOne", Typed["chainTwo", NonNegativeIntegers]]
+			}],
+			stuck = Symbol["WolframInstitute`TypeTheory`Checking`NaturalNumbers`Private`stuckQ"],
+			elaborated = Symbol[First[Names["WolframInstitute`TypeTheory`*`elaborateQueryTerm"]]]
+		},
+		With[
+			{
+				settings = WolframInstitute`TypeTheory`PackageScope`naturalNumberSettings[chain],
+				counted = TypeTheoryTerm[
+					InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers], 7, Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, r + 1], "chainOne"],
+					chain
+				]
+			},
+			{
+				stuck[chain, <||>, settings, First[elaborated[chain, counted, None, {}]]],
+				TypeTheoryExpression[NormalForm[counted]],
+				DefinitionallyEqualQ[
+					TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers], 7, Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, r + 1], "chainOne"] 9223372036854775808, chain],
+					TypeTheoryTerm[8 9223372036854775808, chain]
+				],
+				DefinitionallyEqualQ[
+					TypeTheoryTerm[InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers], 7, Function[{Typed[k, NonNegativeIntegers], Typed[r, NonNegativeIntegers]}, r + 1], "chainOne"] 9223372036854775808, chain],
+					TypeTheoryTerm[9 9223372036854775808, chain]
+				]
+			}
+		]
+	],
+	{False, 8, True, False},
+	TestID -> "A-recursor-whose-major-premise-unfolds-to-a-constructor-is-no-stuck-term"
+]

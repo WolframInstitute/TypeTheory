@@ -333,6 +333,26 @@ Built 2026-11-17, (B) and then (A), as approved, with two refinements of (B) tha
   level of the kernel's recursion per unit of 2082: the old reading answered that recursion False at once, and the
   variable `n` after it decided. One step is the exact test, and bounded.
 
+**Why one step is exact** (Stephen's condition, 2026-11-17: (A)'s False answers rest on it). One step of `reduceHead` on
+a recursor's application is `reduceRecursorApplication` (`TypeChecking.wl`): it takes the weak head normal form of the
+major premise, `weakHeadNormalForm`, which reduces with definitions unfolded whatever `$unfoldDefinitions` the caller has,
+reads a literal as a successor (`toConstructorForm`), and only then tests for a constructor; where there is none it tries
+the K-like rule and a structure's eta, and gives the term unchanged where neither applies, or where the recursor lacks
+arguments. So:
+
+- unchanged by one step ⇒ no head rule applies to the term: iota does not, since the major premise is already in weak
+  head normal form and no constructor is at its head; the K-like rule and eta do not;
+- ⇒ the term is a fixed point of `reduceHead`, and its weak head normal form, `FixedPoint[reduceHead]` with definitions
+  unfolded, is the term itself;
+- ⇒ it is neutral exactly where its major premise is: a weak head normal form with no constructor at its head is neutral
+  or a value of no inductive type, and a term of the type of the major premise is no abstraction or sort, so its head
+  stays where it is under any reduction inside it, and no later iota fires.
+
+A major premise that reaches a constructor only after several unfoldings is no exception: the step reduces it to its weak
+head normal form before testing, so iota fires and the term is changed, not stuck. The test
+`A-recursor-whose-major-premise-unfolds-to-a-constructor-is-no-stuck-term` checks it, and that (A) answers no False on a
+product of such a term.
+
 `$neutralStuckReading` and `$naturalProductRule` switch (B) and (A) off for the agreement test, as `$naturalOffsetRule`
 and `$foldedAddition` do.
 
