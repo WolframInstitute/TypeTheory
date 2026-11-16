@@ -92,13 +92,14 @@ real64Neighbours::usage = "real64Neighbours[r] gives the two rationals m 2^e nex
 (*Function Definitions*)
 
 
-(* the declarations of the machine integers on the rationals, then the reals', then the second slice's theorems
-   (Library/MachineRealsSpacing.wl) *)
+(* the declarations of the machine integers and their vectors on the rationals, then the reals', then the second
+   slice's theorems (Library/MachineRealsSpacing.wl): the vectors' definitions take reals as elements as they take
+   integers *)
 machineRealsEnvironment[] := machineRealsEnvironment[] = withoutStoreTracking[
 	libraryEnvironment["MachineReals", rationalsEnvironment[], withStoreCleanup[Fold[
 		addMachineDeclaration,
 		rationalsEnvironment[],
-		Join[$machineDeclarations, $machineRealDeclarations, $machineRealSpacingDeclarations]
+		Join[$machineDeclarations, $machineArrayDeclarations, $machineRealDeclarations, $machineRealSpacingDeclarations]
 	]]]
 ]
 

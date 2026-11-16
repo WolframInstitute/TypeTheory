@@ -53,7 +53,7 @@ PackageScoped[machineEnvironmentQ]
 (*Usage Messages*)
 
 
-compiledDeclarations::usage = "compiledDeclarations[environment, HoldComplete[symbol]] gives the definitions of symbol and the functions it calls as the compiler's typed entries compute them, in an environment of the machine integers."
+compiledDeclarations::usage = "compiledDeclarations[environment, HoldComplete[symbol], type] gives the definitions of symbol and the functions it calls as the compiler's typed entries compute them, in an environment of the machine integers; type is HoldComplete[{types} -> result], the types of the arguments and of the value, or None for the types the arguments' patterns x_Integer and x_Real say."
 machineEnvironmentQ::usage = "machineEnvironmentQ[environment] is True if environment declares the machine integers of TypeTheoryEnvironment[\"Machine\"]."
 
 
@@ -66,13 +66,13 @@ machineEnvironmentQ[environment_] := constantDeclaredQ[environment, HoldComplete
 (* the context of the variables the steps bind, named as the compiler names its temporaries *)
 $compiledContext = "WolframInstitute`TypeTheory`Compiled`"
 
-compiledDeclarations[environment_, held : HoldComplete[symbol_Symbol]] := Which[
+compiledDeclarations[environment_, held : HoldComplete[symbol_Symbol], type_] := Which[
 	! machineEnvironmentQ[environment],
 		kernelFailure["NoMachineIntegers", "The compiled meaning of `1` needs the machine integers: formalize it in TypeTheoryEnvironment[\"Machine\"].", {HoldForm[symbol]}],
 	True,
 		Replace[loadKernelCompiler[], {
 			failure_Failure :> failure,
-			True :> With[{signatures = typedSignaturesOf[held]},
+			True :> With[{signatures = typedSignaturesOf[held, type]},
 				If[ realSignaturesQ[signatures] && ! constantDeclaredQ[environment, HoldComplete["Real64"]],
 					kernelFailure["NoMachineReals", "The typed code of `1` computes on machine reals: formalize it in TypeTheoryEnvironment[\"MachineReals\"], the machine integers with the rationals and the reals.", {HoldForm[symbol]}],
 					compiledProgramDeclarations[environment, held, signatures]
@@ -81,23 +81,57 @@ compiledDeclarations[environment_, held : HoldComplete[symbol_Symbol]] := Which[
 		}]
 ]
 
-(* typed code with a machine real among its parameters, its variables or its results *)
+(* typed code with a machine real among its parameters, its variables or its results, alone or in a vector *)
 realSignaturesQ[signatures_Association] := AnyTrue[signatures, Function[signature,
-	MemberQ[signature["Variables"], "Real64"] || signature["Result"] === "Real64" || MemberQ[signature["Parameters"], {_, _, "Real64"}]
+	MemberQ[signature["Variables"], "Real64" | "Array:Real64"] || MatchQ[signature["Result"], "Real64" | "Array:Real64"] ||
+		MemberQ[signature["Parameters"], {_, _, "Real64" | "Array:Real64"}]
 ]]
 
-(* the compiler's typed signatures of the symbol and the functions it calls, for machine integers as the arguments' patterns
-   say *)
-typedSignaturesOf[held : HoldComplete[symbol_Symbol]] := With[
-	{types = argumentTypes[held], name = fullName[symbol]},
+(* the compiler's typed signatures of the symbol and the functions it calls, for the types given, or else for machine
+   numbers as the arguments' patterns say; a result given is the one the compiler finds *)
+typedSignaturesOf[held : HoldComplete[symbol_Symbol], type_] := With[
+	{types = argumentTypes[held, type], name = fullName[symbol]},
 	Replace[
 		Quiet[kernelCompilerSymbol["TypedSignatures"][Language`ExtendedFullDefinition[symbol], <|name -> types|>]],
 		{
-			signatures_Association /; KeyExistsQ[signatures, name] :> standardTypeNames[coreNormal[signatures]],
-			_ :> kernelFailure["NoTypedEntry", "The compiler gives `1` no typed entry: it computes on more than machine integers, or its definitions are more than one.", {HoldForm[symbol]}]
+			signatures_Association /; KeyExistsQ[signatures, name] :> givenResult[held, type, standardTypeNames[coreNormal[signatures]]],
+			_ :> kernelFailure["NoTypedEntry", "The compiler gives `1` no typed entry: it computes on more than machine numbers and their vectors, or its definitions are more than one.", {HoldForm[symbol]}]
 		}
 	]
 ]
+
+givenResult[_, None, signatures_] := signatures
+givenResult[HoldComplete[symbol_Symbol], HoldComplete[_ -> result_], signatures_] := With[{found = signatures[fullName[symbol]]["Result"]},
+	If[ typeKind[result] === found,
+		signatures,
+		kernelFailure["TypedResult", "The typed code of `1` gives a value of the type `2`, not of the type `3` given.", {HoldForm[symbol], writtenType[found], result}]
+	]
+]
+
+(* A type given is one of the model's, by its name there or the compiler's: "Integer64" or "MachineInteger", "Real64"
+   or "MachineReal", "Boolean", and the vectors "PackedArray"::["Integer64", 1] and "PackedArray"::["Real64", 1], which
+   may be written as the environment's types, "PackedArray"["Integer64", 1]. Its kind is the name the translation knows
+   it by; the compiler takes the type of an argument as a string, a vector's in InputForm. *)
+typeKind["Integer64" | "MachineInteger"] := "Integer64"
+typeKind["Real64" | "MachineReal"] := "Real64"
+typeKind["Boolean"] := "Boolean"
+typeKind[(TypeSpecifier["PackedArray"] | "PackedArray")["Integer64" | "MachineInteger", 1]] := "Array:Int64"
+typeKind[(TypeSpecifier["PackedArray"] | "PackedArray")["Real64" | "MachineReal", 1]] := "Array:Real64"
+typeKind[type_] := kernelFailure[
+	"UnmodeledType",
+	"The machine model has no type `1`: it has \"Integer64\", \"Real64\", \"Boolean\" and the vectors \"PackedArray\"::[\"Integer64\", 1] and \"PackedArray\"::[\"Real64\", 1].",
+	{type}
+]
+
+compilerTypeName["Integer64"] := "MachineInteger"
+compilerTypeName["Real64"] := "MachineReal"
+compilerTypeName["Array:Int64"] := ToString[TypeSpecifier["PackedArray"]["MachineInteger", 1], InputForm]
+compilerTypeName["Array:Real64"] := ToString[TypeSpecifier["PackedArray"]["Real64", 1], InputForm]
+compilerTypeName[kind_] := kernelFailure["UnmodeledType", "The machine model has no argument of the type `1`.", {kind}]
+
+writtenType["Array:Int64"] := TypeSpecifier["PackedArray"]["Integer64", 1]
+writtenType["Array:Real64"] := TypeSpecifier["PackedArray"]["Real64", 1]
+writtenType[kind_] := kind
 
 (* The compiler writes its types "Int64" and "Bool". From here on they go by their standard names, "Integer64" and
    "Boolean", the names of the environment's types: the type of each parameter, of each variable and of the result. *)
@@ -107,7 +141,7 @@ standardTypeNames[signatures_Association] := Map[
 			"Parameters" -> Replace[signature["Parameters"], {position_, middle_, type_String} :> {position, middle, standardTypeName[type]}, {1}],
 			"Variables" -> variables,
 			"Result" -> standardTypeName[signature["Result"]],
-			"Body" -> plainIterators[plainLocals[signature["Body"]], variables]
+			"Body" -> plainSetParts[plainIterators[plainLocals[signature["Body"]], variables]]
 		|>]
 	]],
 	signatures
@@ -123,6 +157,19 @@ plainLocals[body_] := ReplaceRepeated[
 		coreForm["LazyValue"][local_] :> coreForm["Copy"][coreForm["Local"][local]]
 	}],
 	coreForm["StatementBlock"][{before___, coreForm["LazyReset"][_], after___}, value_] :> coreForm["StatementBlock"][{before, after}, value]
+]
+
+(* a[[i]] = v, the compiler's SetPart of a local array, is two statements the model has already: the step that gives
+   the array with the part set, a call of "TypeTheory`SetPart", and the local set to it. So an array a loop or an If
+   sets is one of the locals it sets, its state, by the rule for locals. The temporaries are named apart from the
+   compiler's. *)
+plainSetParts[body_] := Block[{setPartCount = 0},
+	ReplaceAll[body, coreForm["SetPart"][local_String, {index_}, value_, _] :> With[{name = "setPart" <> ToString[++setPartCount]},
+		Splice[{
+			coreForm["SetTemporary"][name, coreForm["Call"]["TypeTheory`SetPart", {coreForm["Local"][local], index, value}]],
+			coreForm["SetLocal"][local, coreForm["Temporary"][name]]
+		}]
+	]]
 ]
 
 (* A Do with an iterator. The code keeps the counter in a local and the iterator's symbol, a global, in step with it:
@@ -195,15 +242,26 @@ standardTypeName["Int64"] := "Integer64"
 standardTypeName["Bool"] := "Boolean"
 standardTypeName[type_] := type
 
-(* "MachineInteger" for each argument x_Integer and "MachineReal" for each x_Real of the one definition, the patterns
-   matched as written *)
-argumentTypes[HoldComplete[symbol_Symbol]] := Replace[Map[definitionArguments, definitionStatements[symbol]], {
+(* the types of the arguments of the one definition: those given, one for each; or else "MachineInteger" for each
+   argument x_Integer and "MachineReal" for each x_Real, the patterns matched as written *)
+argumentTypes[held : HoldComplete[symbol_Symbol], HoldComplete[types_List -> _]] := Replace[Map[definitionArguments, definitionStatements[symbol]], {
+	{arguments_HoldComplete} /; Length[arguments] === Length[types] :> Map[Function[type, compilerTypeName[typeKind[type]]], types],
+	{arguments_HoldComplete} :> kernelFailure["TypedArguments", "`1` has `2` arguments, and `3` types are given.", {HoldForm[symbol], Length[arguments], Length[types]}],
+	_ :> kernelFailure["NoTypedEntry", "The compiled meaning of `1` needs one definition, as the compiler types it.", {HoldForm[symbol]}]
+}]
+argumentTypes[HoldComplete[symbol_Symbol], HoldComplete[other_]] :=
+	kernelFailure["TypedSignature", "The types of the typed code of `1` are given as {types} -> result, not as `2`.", {HoldForm[symbol], HoldForm[other]}]
+argumentTypes[HoldComplete[symbol_Symbol], None] := Replace[Map[definitionArguments, definitionStatements[symbol]], {
 	{arguments : HoldComplete[Verbatim[Pattern][_Symbol, Verbatim[Blank][Integer | Real]]...]} :> Replace[
 		List @@ Map[HoldComplete, arguments],
 		{HoldComplete[Verbatim[Pattern][_, Verbatim[Blank][Integer]]] :> "MachineInteger", HoldComplete[Verbatim[Pattern][_, Verbatim[Blank][Real]]] :> "MachineReal"},
 		{1}
 	],
-	_ :> kernelFailure["NoTypedEntry", "The compiled meaning of `1` needs one definition whose arguments are each x_Integer or x_Real, as the compiler types it.", {HoldForm[symbol]}]
+	_ :> kernelFailure[
+		"NoTypedEntry",
+		"The compiled meaning of `1` needs one definition and the types of its arguments. An argument x_Integer or x_Real says its own; for others, such as x_List, give the types with the function: Typed[`1`, {types} -> result].",
+		{HoldForm[symbol]}
+	]
 }]
 
 (* the definitions of the functions that the symbol reaches, each after the ones it calls, and the symbol's last *)
@@ -464,7 +522,13 @@ parameterScope[parameters_List, terms_List] := Association[MapThread[
 ]]
 
 machineType[type : "Integer64" | "Boolean" | "Real64"] := HoldComplete[type]
-machineType[type_] := kernelFailure["UnmodeledType", "The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\", \"Real64\" and \"Boolean\".", {type}]
+machineType["Array:Int64"] := HoldComplete["PackedArray"["Integer64", 1]]
+machineType["Array:Real64"] := HoldComplete["PackedArray"["Real64", 1]]
+machineType[type_] := kernelFailure[
+	"UnmodeledType",
+	"The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\", \"Real64\", \"Boolean\" and their vectors, \"PackedArray\"::[\"Integer64\", 1] and \"PackedArray\"::[\"Real64\", 1].",
+	{type}
+]
 
 resultType[type_String] := Replace[machineType[type], HoldComplete[machine_] :> HoldComplete[machine | Failure]]
 
@@ -947,6 +1011,43 @@ stepTerm[coreForm["Call"][name_String, arguments_List], scope_, signature_, sign
 ]
 
 budgetTerm[signature_, key_String] := Replace[signature[key], None :> unmodeled[key]]
+
+(* The steps on arrays (Library/MachineArrays.wl). Length is a value that never leaves; Part, Take, Total and
+   ConstantArray are results that may, and so is a[[i]] = v, the step of "TypeTheory`SetPart" (plainSetParts). An
+   element given as a constant is made a machine value first. *)
+stepTerm[coreForm["Call"]["System`Length", {a_}], scope_, _, _] /; arrayOperandQ[a, scope] :=
+	{"Pure", Replace[First[atomTerm[a, scope]], HoldComplete[array_] :> HoldComplete["arrayLength"[array]]], "Integer64"}
+stepTerm[coreForm["Call"]["System`Part", {a_, i_}], scope_, _, _] /; arrayOperandQ[a, scope] := With[{entry = atomTerm[a, scope]},
+	{
+		"Result",
+		Replace[{First[entry], integerTerm[atomTerm[i, scope]]}, {HoldComplete[array_], HoldComplete[index_]} :> HoldComplete["arrayPart"[array, index]]],
+		arrayElementKind[Last[entry]]
+	}
+]
+stepTerm[coreForm["Call"]["System`Take", {a_, n_}], scope_, _, _] /; arrayOperandQ[a, scope] := With[{entry = atomTerm[a, scope]},
+	{
+		"Result",
+		Replace[{First[entry], integerTerm[atomTerm[n, scope]]}, {HoldComplete[array_], HoldComplete[count_]} :> HoldComplete["arrayTake"[array, count]]],
+		Last[entry]
+	}
+]
+stepTerm[coreForm["Call"]["System`Total", {a_}], scope_, _, _] /; arrayOperandQ[a, scope] := Replace[atomTerm[a, scope], {
+	{HoldComplete[array_], "Array:Int64"} :> {"Result", HoldComplete["arrayTotal"[array]], "Integer64"},
+	{_, kind_} :> unmodeled[{"System`Total", kind}]
+}]
+stepTerm[coreForm["Call"]["System`ConstantArray", {c_, n_}], scope_, _, _] := With[{count = integerTerm[atomTerm[n, scope]]},
+	Replace[
+		elementStep[atomTerm[c, scope], Function[element, Replace[{element, count}, {HoldComplete[x_], HoldComplete[k_]} :> HoldComplete["arrayConstant"[x, k]]]]],
+		{term_HoldComplete, kind_String} :> {"Result", term, arrayKind[kind]}
+	]
+]
+stepTerm[coreForm["Call"]["TypeTheory`SetPart", {a_, i_, v_}], scope_, _, _] := With[{entry = atomTerm[a, scope], index = integerTerm[atomTerm[i, scope]]},
+	Replace[
+		elementStep[atomTerm[v, scope], Function[element, Replace[{First[entry], index, element}, {HoldComplete[array_], HoldComplete[k_], HoldComplete[x_]} :> HoldComplete["arraySetPart"[array, k, x]]]]],
+		{term_HoldComplete, _} :> {"Result", term, Last[entry]}
+	]
+]
+
 stepTerm[coreForm["Call"][name_String, _], _, _, _] := unmodeled[name]
 stepTerm[other_, _, _, _] := unmodeled[other]
 
@@ -987,7 +1088,7 @@ integerTerm[{term_HoldComplete, "Integer"}] := term
 integerTerm[{_, kind_}] := unmodeled[kind]
 
 (* a machine integer or a Boolean as a value; a constant was bound as a machine integer before the call *)
-machineTerm[{term_HoldComplete, "Integer64" | "Boolean" | "Real64"}] := term
+machineTerm[{term_HoldComplete, "Integer64" | "Boolean" | "Real64" | "Array:Int64" | "Array:Real64"}] := term
 machineTerm[{_, kind_}] := unmodeled[kind]
 
 (* the block's value as a result: a machine integer or a Boolean that never left, or a constant's machine result *)
@@ -996,6 +1097,34 @@ valueTerm[{HoldComplete[x_], "Boolean"}, "Boolean"] := HoldComplete[Typed["left"
 valueTerm[{HoldComplete[x_], "Integer"}, "Integer64"] := HoldComplete["machineResult"[x]]
 valueTerm[{HoldComplete[x_], "Real64"}, "Real64"] := HoldComplete[Typed["left"[x], "Real64" | Failure]]
 valueTerm[{HoldComplete[q_], "Rational"}, "Real64"] := HoldComplete["real64Result"[q]]
+valueTerm[{HoldComplete[x_], kind : "Array:Int64" | "Array:Real64"}, kind_] :=
+	Replace[machineType[kind], HoldComplete[type_] :> HoldComplete[Typed["left"[x], type | Failure]]]
 valueTerm[{_, kind_}, result_] := unmodeled[{kind, result}]
+
+(* an operand that is an array, told by its kind in the scope without modeling it *)
+arrayOperandQ[atom_, scope_] := MatchQ[
+	Replace[atom, {
+		coreForm["Local"][name_String] :> Lookup[scope, Key[{"L", name}], None],
+		coreForm["Temporary"][name_String] :> Lookup[scope, Key[{"T", name}], None],
+		_ :> None
+	}],
+	{_, "Array:Int64" | "Array:Real64"}
+]
+
+arrayElementKind["Array:Int64"] := "Integer64"
+arrayElementKind["Array:Real64"] := "Real64"
+arrayKind["Integer64"] := "Array:Int64"
+arrayKind["Real64"] := "Array:Real64"
+
+(* the element of ConstantArray[c, n] and of a[[i]] = c, and the term built with it: a machine value as it is, a
+   constant made one first, bound to a variable of its own *)
+elementStep[{HoldComplete[x_], kind : "Integer64" | "Real64"}, build_] := {build[HoldComplete[x]], kind}
+elementStep[{HoldComplete[constant_], "Integer"}, build_] := With[{element = compiledSymbol["element"]},
+	{Replace[{element, build[element]}, {HoldComplete[z_], HoldComplete[built_]} :> HoldComplete["confirmBind"["machineResult"[constant], Function[{Typed[z, "Integer64"]}, built]]]], "Integer64"}
+]
+elementStep[{HoldComplete[q_], "Rational"}, build_] := With[{element = compiledSymbol["element"]},
+	{Replace[{element, build[element]}, {HoldComplete[z_], HoldComplete[built_]} :> HoldComplete["confirmBind"["real64Result"[q], Function[{Typed[z, "Real64"]}, built]]]], "Real64"}
+]
+elementStep[{_, kind_}, _] := unmodeled[{"an element of an array", kind}]
 
 unmodeled[form_] := kernelFailure["UnmodeledOperation", "The typed code has `1`, which the machine model does not have yet.", {Short[form, 2]}]

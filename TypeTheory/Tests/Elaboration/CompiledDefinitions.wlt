@@ -652,48 +652,8 @@ loopTheorem[environment_, name_, statement_, tactics_] := Replace[TypeTheoryProo
 loops = TypeTheoryEnvironment[machine, TypeTheoryFormalize[loopTriangular, machine, "Meaning" -> "Function", "Type" -> (NonNegativeIntegers -> NonNegativeIntegers)]]
 loops = TypeTheoryEnvironment[loops, TypeTheoryFormalize[loopSum, loops]]
 
-(* the order of the integers decided on the images of natural numbers, both ways *)
-loops = loopDeclare[loops, TypeTheoryTheorem["integerLessEqualQOfNatural",
-	ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]],
-	Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, m <= n]},
-		InductiveRecursor[Exists][
-			Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, n == m + k]] |-> "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true",
-			{Typed[k, NonNegativeIntegers], Typed[e, n == m + k]} |-> "equalitySubstitution"[
-				"equalitySymmetry"[e],
-				"equalitySubstitution"[
-					"equalitySymmetry"["integerOfNaturalAddition"[m, k]],
-					"integerLessEqualQSelfAddition"["integerOfNatural"[m], k],
-					P -> Function[{Typed[y, Integers]}, "integerLessEqualQ"["integerOfNatural"[m], y] == "true"]
-				],
-				P -> Function[{Typed[x, NonNegativeIntegers]}, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[x]] == "true"]
-			],
-			"lessEqualWitness"[m, n, h]
-		]
-	]
-]];
-loops = loopDeclare[loops, TypeTheoryTheorem["integerLessEqualQNotOfNatural",
-	ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[Not[m <= n], "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
-	Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, Not[m <= n]]},
-		InductiveRecursor[Booleans][
-			Function[{Typed[b, Booleans]}, Implies["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == b, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
-			Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]}, e],
-			Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]},
-				"falseElimination"[h["integerOfNaturalLessEqual"[m, n, "integerLessEqualQTrue"["integerOfNatural"[m], "integerOfNatural"[n], e]]]]],
-			"integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]
-		]["equalityReflexivity"["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]]]
-	]
-]];
-(* the machine's sum of two natural numbers whose sum is below 2^63 is the machine integer of the sum *)
-loops = loopDeclare[loops, TypeTheoryTheorem["machinePlusOfNatural",
-	ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < 9223372036854775808]},
-		"machinePlus"["integerOfNatural"[a], "integerOfNatural"[b]] == Typed["left"["subtype"["integerOfNatural"[a + b], "naturalInteger64Range"[a + b, h]]], "Integer64" | Failure]],
-	Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < 9223372036854775808]},
-		"equalityTransitivity"[
-			"equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "equalitySymmetry"["integerOfNaturalAddition"[a, b]]],
-			"machineResultOfNatural"[a + b, h]
-		]
-	]
-]];
+(* the order of the integers decided on natural numbers, both ways, and the machine's sum of two natural numbers are
+   the machine library's: "integerLessEqualQOfNatural", "integerLessEqualQNotOfNatural", "machinePlusOfNatural" *)
 loops = loopTheorem[loops, "notLessZero", ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n < 0, False]], {"Introduce"[n, h], "LinearArithmetic"}];
 loops = loopTheorem[loops, "lessOfSuccessors", ForAll[{Typed[n, NonNegativeIntegers], Typed[l, NonNegativeIntegers]}, Implies[n + 1 < l + 1, n < l]], {"Introduce"[n, l, h], "LinearArithmetic"}];
 loops = loopTheorem[loops, "roundContinues", ForAll[{Typed[j, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + (d + 1), j + 1 <= k]], {"Introduce"[j, d, k, e], "LinearArithmetic"}];
@@ -873,6 +833,343 @@ VerificationTest[
 	TestID -> "An-If-whose-branch-sets-a-local-gives-the-locals-back"
 ]
 
+(* Vectors, the packed arrays of rank 1 of typed code (Library/MachineArrays.wl). A function of a vector is formalized
+   with its types, Typed[f, {types} -> result], as FunctionCompile takes it: an argument x_List says no type of its own.
+   A vector is a "PackedArray"["Integer64", 1], a list whose length a machine integer holds; Length of it never leaves,
+   Part, Take, Total and ConstantArray leave where typed code does, and a[[i]] = v sets the local a to the array with
+   the part set, so that a loop that sets parts carries the array in its state. *)
+vectorSum[v_List] := Module[{s = 0, i = 1}, While[i <= Length[v], s = s + v[[i]]; i = i + 1]; s]
+vectorSquares[n_Integer] := Module[{a = ConstantArray[0, n], i = 1}, While[i <= n, a[[i]] = i i; i = i + 1]; a]
+vectorLast[v_List] := v[[-1]]
+vectorHeadTotal[v_List, k_Integer] := Total[Take[v, k]]
+
+vectors = TypeTheoryEnvironment[machine, Join[
+	TypeTheoryFormalize[Typed[vectorSum, {"PackedArray"::["Integer64", 1]} -> "Integer64"], machine],
+	TypeTheoryFormalize[vectorSquares, machine],
+	TypeTheoryFormalize[Typed[vectorLast, {"PackedArray"::["MachineInteger", 1]} -> "MachineInteger"], machine],
+	TypeTheoryFormalize[vectorHeadTotal, machine, "Type" -> ({"PackedArray"["Integer64", 1], "Integer64"} -> "Integer64")]
+]]
+
+SetAttributes[vectorValue, HoldFirst]
+vectorValue[term_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm[term, vectors]]]
+
+(* each of the four, at the squares of 1 to 5, gives what the Wolfram Language's evaluator gives, and leaves where typed
+   code does: a part that is not there, a negative length, a total past the machine integers, and the fuel of a loop
+   used up *)
+VerificationTest[
+	{
+		Length[Information[vectors, "Constants"]] - Length[Information[machine, "Constants"]],
+		vectorValue["confirmBind"["machineResult"[5], Typed[n, "Integer64"] |-> vectorSquares[20, n]]],
+		vectorValue["confirmBind"["machineResult"[5], Typed[n, "Integer64"] |-> "confirmBind"[vectorSquares[20, n], Typed[a, "PackedArray"["Integer64", 1]] |-> vectorSum[20, a]]]],
+		vectorValue["confirmBind"["machineResult"[5], Typed[n, "Integer64"] |-> "confirmBind"[vectorSquares[20, n], vectorLast]]],
+		vectorValue["confirmBind"["machineResult"[5], Typed[n, "Integer64"] |-> "confirmBind"["machineResult"[3], Typed[k, "Integer64"] |->
+			"confirmBind"[vectorSquares[20, n], Typed[a, "PackedArray"["Integer64", 1]] |-> vectorHeadTotal[a, k]]]]],
+		{
+			vectorValue["confirmBind"["machineResult"[5], Typed[n, "Integer64"] |-> "confirmBind"["machineResult"[6], Typed[k, "Integer64"] |->
+				"confirmBind"[vectorSquares[20, n], Typed[a, "PackedArray"["Integer64", 1]] |-> vectorHeadTotal[a, k]]]]],
+			vectorValue["confirmBind"["machineResult"[-1], Typed[n, "Integer64"] |-> vectorSquares[20, n]]],
+			vectorValue["confirmBind"["machineResult"[0], Typed[n, "Integer64"] |-> "confirmBind"[vectorSquares[20, n], vectorLast]]],
+			vectorValue["confirmBind"["machineResult"[4611686018427387904], Typed[x, "Integer64"] |-> "confirmBind"["machineResult"[2], Typed[k, "Integer64"] |->
+				"confirmBind"["arrayConstant"[x, 2], Typed[a, "PackedArray"["Integer64", 1]] |-> vectorHeadTotal[a, k]]]]],
+			vectorValue["confirmBind"["machineResult"[5], Typed[n, "Integer64"] |-> "confirmBind"[vectorSquares[20, n], Typed[a, "PackedArray"["Integer64", 1]] |-> vectorSum[5, a]]]]
+		}
+	},
+	{
+		6,
+		vectorSquares[5],
+		vectorSum[vectorSquares[5]],
+		vectorLast[vectorSquares[5]],
+		vectorHeadTotal[vectorSquares[5], 3],
+		{Failure["PartRange", <||>], Failure["Range", <||>], Failure["PartRange", <||>], Failure["IntegerOverflow", <||>], Failure["OutOfFuel", <||>]}
+	},
+	TestID -> "Functions-of-vectors-compute-what-the-evaluator-computes-and-leave-where-typed-code-does"
+]
+
+(* the types given are the compiler's or the environment's names alike, as Typed or as the option "Type"; a function
+   whose argument is x_List and whose types are not given is refused, saying to give them, and so are types that are
+   not the compiler's: a result it does not find, a number of arguments it does not have, a rank the model does not
+   have, and a type that is no {types} -> result *)
+VerificationTest[
+	{
+		TypeTheoryFormalize[Typed[vectorSum, {"PackedArray"::["Integer64", 1]} -> "Integer64"], machine] ===
+			TypeTheoryFormalize[vectorSum, machine, "Type" -> ({"PackedArray"["MachineInteger", 1]} -> "MachineInteger")],
+		TypeTheoryFormalize[vectorSquares, machine] === TypeTheoryFormalize[Typed[vectorSquares, {"Integer64"} -> "PackedArray"::["Integer64", 1]], machine],
+		Map[
+			Function[failure, failure["Tag"]],
+			{
+				TypeTheoryFormalize[vectorSum, machine],
+				TypeTheoryFormalize[Typed[vectorSum, {"PackedArray"::["Integer64", 1]} -> "Real64"], machine],
+				TypeTheoryFormalize[Typed[vectorSum, {"PackedArray"::["Integer64", 1], "Integer64"} -> "Integer64"], machine],
+				TypeTheoryFormalize[Typed[vectorSum, {"PackedArray"::["Integer64", 2]} -> "Integer64"], machine],
+				TypeTheoryFormalize[Typed[vectorSum, "Integer64"], machine]
+			}
+		],
+		StringContainsQ[TypeTheoryFormalize[vectorSum, machine]["Message"], "Typed["]
+	},
+	{True, True, {"NoTypedEntry", "TypedResult", "TypedArguments", "UnmodeledType", "TypedSignature"}, True},
+	TestID -> "A-function-of-a-vector-is-formalized-with-its-types-and-wrong-types-are-refused"
+]
+
+(* The two theorems of the vectors. vectorSum, a While over the parts of an array, computes the array's Total, with its
+   leaves, for all fuel above the array's length, wherever its length and one more are machine integers, the counter
+   that passes the last part being one more; and where no partial sum leaves, the sum of the integers of the list.
+   vectorSquares, a ConstantArray whose parts a While sets, gives the squares of 1 to n wherever n n is a machine
+   integer, for all fuel above n. The proofs: one round of each loop and the round that stops, by unfolding the loop
+   once; an invariant, by induction on the elements left, with the array split at the place the loop is at, pre and the
+   rest; then the function, which starts the loop at the first place. The library gives the parts of an array split so,
+   "arrayPartOfJoin" and "arraySetPartOfJoin", and a continuation bound twice as once, "confirmBindThen". *)
+vectorFailures = {}
+vectorDeclare[environment_, declaration_] := Replace[TypeTheoryEnvironment[environment, {declaration}], failure_Failure :> (AppendTo[vectorFailures, failure["Message"]]; environment)]
+SetAttributes[vectorTheorem, HoldAll]
+vectorTheorem[environment_, name_, statement_, tactics_] := Replace[TypeTheoryProof[statement, environment, tactics], {
+	failure_Failure :> (AppendTo[vectorFailures, {name, failure["Message"]}]; environment),
+	proof_ :> vectorDeclare[environment, TypeTheoryTheorem[name, proof]]
+}]
+
+(* the squares of 1 to n, as integers, which vectorSquares is stated against *)
+vectors = vectorDeclare[vectors, TypeTheoryDefinition["integerSquares", Typed[
+	Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+		Function[{Typed[k, NonNegativeIntegers]}, {Integers}],
+		Typed[{}, {Integers}],
+		Function[{Typed[k, NonNegativeIntegers], Typed[r, {Integers}]}, Join[r, Prepend["integerOfNatural"[(k + 1) (k + 1)]][{}]]],
+		n
+	]],
+	NonNegativeIntegers -> {Integers}
+]]]
+
+With[{
+		upper = 9223372036854775808,
+		integerOf = Function[{Typed[z, "Integer64"]}, z[["integer"]]],
+		zeroValue = Typed["subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "Integer64"],
+		oneValue = Typed["subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]], "Integer64"]
+	},
+	vectors = vectorTheorem[vectors, "notLessZero", ForAll[{Typed[n, NonNegativeIntegers]}, Implies[n < 0, False]], {"Introduce"[n, h], "LinearArithmetic"}];
+	vectors = vectorTheorem[vectors, "lessOfSuccessors", ForAll[{Typed[n, NonNegativeIntegers], Typed[l, NonNegativeIntegers]}, Implies[n + 1 < l + 1, n < l]], {"Introduce"[n, l, h], "LinearArithmetic"}];
+	vectors = vectorTheorem[vectors, "roundBound",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[a + 1 <= b, Implies[b + 1 < u, (a + 1) + 1 < u]]],
+		{"Introduce"[a, b, u, h, k], "LinearArithmetic"}
+	];
+	vectors = vectorTheorem[vectors, "lengthOfSplit",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[pre, {A}], Typed[x, A], Typed[rest, {A}]}, Implies[l == Join[pre, Prepend[x][rest]], Length[pre] + 1 <= Length[l]]],
+		{"Introduce"[A, l, pre, x, rest, e], "Rewrite"[e], "Rewrite"["lengthJoin"[pre, Prepend[x][rest]]], "Change"[Length[pre] + 1 <= Length[pre] + (Length[rest] + 1)], "LinearArithmetic"}
+	];
+	vectors = vectorTheorem[vectors, "lengthOfWhole",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[pre, {A}]}, Implies[l == Join[pre, {}], Not[Length[pre] + 1 <= Length[l]]]],
+		{"Introduce"[A, l, pre, e, h], "Rewrite"[e, "At" -> h], "Rewrite"["joinEmptyRight"[pre], "At" -> h], "LinearArithmetic"}
+	];
+	vectors = vectorTheorem[vectors, "vectorRound",
+		ForAll[{Typed[f, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]], Typed[s, "Integer64"], Typed[i, "Integer64"], Typed[pre, {"Integer64"}], Typed[x, "Integer64"], Typed[rest, {"Integer64"}],
+				Typed[e, v[["list"]] == Join[pre, Prepend[x][rest]]], Typed[hi, i[["integer"]] == "integerOfNatural"[Length[pre] + 1]], Typed[h2, (Length[pre] + 1) + 1 < 9223372036854775808]},
+			"While[vectorSum]"[f + 1, v, s, i] == "confirmBind"["machinePlus"[s[["integer"]], x[["integer"]]],
+				Function[{Typed[t, "Integer64"]}, "While[vectorSum]"[f, v, t, "subtype"["integerOfNatural"[(Length[pre] + 1) + 1], "naturalInteger64Range"[(Length[pre] + 1) + 1, h2]]]]]],
+		{"Introduce"[f, v, s, i, pre, x, rest, e, hi, h2], "RewriteRepeated"["While[vectorSum]"], "Rewrite"["arrayLengthInteger"["Integer64", v]], "Rewrite"[hi],
+			"Rewrite"["integerLessEqualQOfNatural"[Length[pre] + 1, Length[v[["list"]]], "lengthOfSplit"["Integer64", v[["list"]], pre, x, rest, e]]],
+			"Rewrite"["arrayPartOfJoin"["Integer64", v, pre, x, rest, e]],
+			"Rewrite"["machinePlusOfNatural"[Length[pre] + 1, 1, h2]],
+			"Reflexivity"}
+	];
+	vectors = vectorTheorem[vectors, "vectorStop",
+		ForAll[{Typed[f, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]], Typed[s, "Integer64"], Typed[i, "Integer64"], Typed[n, NonNegativeIntegers],
+				Typed[hi, i[["integer"]] == "integerOfNatural"[n + 1]], Typed[hle, Not[n + 1 <= Length[v[["list"]]]]]},
+			"While[vectorSum]"[f + 1, v, s, i] == Typed["left"["pair"[s, i]], CartesianProductType["Integer64", "Integer64"] | Failure]],
+		{"Introduce"[f, v, s, i, n, hi, hle], "RewriteRepeated"["While[vectorSum]"], "Rewrite"["arrayLengthInteger"["Integer64", v]], "Rewrite"[hi],
+			"Rewrite"["integerLessEqualQNotOfNatural"[n + 1, Length[v[["list"]]], hle]], "Reflexivity"}
+	];
+	vectors = vectorTheorem[vectors, "vectorInvariant",
+		ForAll[{Typed[v, "PackedArray"["Integer64", 1]]}, Implies[Length[v[["list"]]] + 1 < 9223372036854775808,
+			ForAll[{Typed[rest, {"Integer64"}], Typed[pre, {"Integer64"}], Typed[fuel, NonNegativeIntegers], Typed[s, "Integer64"], Typed[i, "Integer64"]},
+				Implies[v[["list"]] == Join[pre, rest], Implies[i[["integer"]] == "integerOfNatural"[Length[pre] + 1], Implies[Length[rest] < fuel,
+					"confirmBind"["While[vectorSum]"[fuel, v, s, i], Function[{Typed[state, CartesianProductType["Integer64", "Integer64"]]}, Typed["left"[state[["first"]]], "Integer64" | Failure]]] ==
+						"integerListTotal"[rest][s]]]]]]],
+		{"Introduce"[v, bound, rest], "Induction"[rest],
+			(* nothing left: without fuel the bound on it is absurd; with fuel the loop stops with s *)
+			"Introduce"[pre, fuel], "Cases"[fuel],
+			"Introduce"[s, i, e, hi, hf], "Exact"["falseElimination"["notLessZero"[0, hf]]],
+			"Introduce"[f, s, i, e, hi, hf],
+			"Rewrite"["vectorStop"[f, v, s, i, Length[pre], hi, "lengthOfWhole"["Integer64", v[["list"]], pre, e]]], "Reflexivity",
+			(* an element left: one round, then the hypothesis of the induction at the next place and a unit of fuel less *)
+			"Introduce"[x, tail, ih, pre, fuel], "Cases"[fuel],
+			"Introduce"[s, i, e, hi, hf], "Exact"["falseElimination"["notLessZero"[Length[tail] + 1, hf]]],
+			"Introduce"[f, s, i, e, hi, hf],
+			"Have"[h2, (Length[pre] + 1) + 1 < 9223372036854775808],
+			"Exact"["roundBound"[Length[pre], Length[v[["list"]]], 9223372036854775808, "lengthOfSplit"["Integer64", v[["list"]], pre, x, tail, e], bound]],
+			"Rewrite"["vectorRound"[f, v, s, i, pre, x, tail, e, hi, h2]],
+			"Apply"["confirmBindThen"["Integer64", CartesianProductType["Integer64", "Integer64"], "Integer64", "machinePlus"[s[["integer"]], x[["integer"]]],
+				Function[{Typed[t, "Integer64"]}, "While[vectorSum]"[f, v, t, "subtype"["integerOfNatural"[(Length[pre] + 1) + 1], "naturalInteger64Range"[(Length[pre] + 1) + 1, h2]]]],
+				Function[{Typed[state, CartesianProductType["Integer64", "Integer64"]]}, Typed["left"[state[["first"]]], "Integer64" | Failure]],
+				"integerListTotal"[tail]]],
+			"Introduce"[t],
+			"Apply"[ih[Join[pre, Prepend[x][{}]], f, t, "subtype"["integerOfNatural"[(Length[pre] + 1) + 1], "naturalInteger64Range"[(Length[pre] + 1) + 1, h2]]]],
+			"Exact"["equalityTransitivity"[e, "equalitySymmetry"["joinAssociativity"[pre, Prepend[x][{}], tail]]]],
+			"Exact"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, "integerOfNatural"[k + 1]], "equalitySymmetry"["lengthJoin"[pre, Prepend[x][{}]]]]],
+			"Exact"["lessOfSuccessors"[Length[tail], f, hf]]}
+	];
+	vectors = vectorTheorem[vectors, "zeroBound", 0 < 9223372036854775808, {"Decide"}];
+	vectors = vectorTheorem[vectors, "oneBound", 1 < 9223372036854775808, {"Decide"}];
+	vectors = vectorTheorem[vectors, "vectorSumIsTotal",
+		ForAll[{Typed[fuel, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]]},
+			Implies[Length[v[["list"]]] + 1 < 9223372036854775808, Implies[Length[v[["list"]]] < fuel, vectorSum[fuel, v] == "arrayTotal"[v]]]],
+		{"Introduce"[fuel, v, bound, hf],
+			"Exact"["vectorInvariant"[v, bound, v[["list"]], Typed[{}, {"Integer64"}], fuel,
+				"subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]],
+				"equalityReflexivity"[v[["list"]]], "equalityReflexivity"["integerOfNatural"[1]], hf]]}
+	];
+	vectors = vectorTheorem[vectors, "vectorSumComputes",
+		ForAll[{Typed[fuel, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]]},
+			Implies[Length[v[["list"]]] + 1 < 9223372036854775808, Implies[Length[v[["list"]]] < fuel, Implies["partialSumsInRange"[v[["list"]]][0],
+				Exists[{Typed[r, "Integer64"]}, vectorSum[fuel, v] == Typed["left"[r], "Integer64" | Failure] && r[["integer"]] == "integerListSum"[v[["list"]]]]]]]],
+		{"Introduce"[fuel, v, bound, hf, sums],
+			"Rewrite"["vectorSumIsTotal"[fuel, v, bound, hf]],
+			"Cases"["integerListTotalOfSums"[v[["list"]], "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], sums]],
+			"Introduce"[r, hr],
+			"Exact"["existsIntroduction"[r, "andIntroduction"[hr[["left"]], "equalityTransitivity"[hr[["right"]], "integerAdditionZeroLeft"["integerListSum"[v[["list"]]]]]]]]}
+	];
+	vectors = vectorTheorem[vectors, "machineSquare",
+		ForAll[{Typed[k, NonNegativeIntegers]}, Implies[k k < upper,
+			Exists[{Typed[q, "Integer64"]}, "machineTimes"["integerOfNatural"[k], "integerOfNatural"[k]] == Typed["left"[q], "Integer64" | Failure] && q[["integer"]] == "integerOfNatural"[k k]]]],
+		{"Introduce"[k, h], "Exact"["existsIntroduction"["subtype"["integerOfNatural"[k k], "naturalInteger64Range"[k k, h]],
+			"andIntroduction"["machineTimesOfNatural"[k, k, h], "equalityReflexivity"["integerOfNatural"[k k]]]]]}
+	];
+	vectors = vectorTheorem[vectors, "roundContinues", ForAll[{Typed[j, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + (d + 1), j + 1 <= k]], {"Introduce"[j, d, k, e], "LinearArithmetic"}];
+	vectors = vectorTheorem[vectors, "roundsLeft", ForAll[{Typed[j, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + (d + 1), k == (j + 1) + d]], {"Introduce"[j, d, k, e], "LinearArithmetic"}];
+	vectors = vectorTheorem[vectors, "stopsAt", ForAll[{Typed[j, NonNegativeIntegers], Typed[k, NonNegativeIntegers]}, Implies[k == j + 0, Not[j + 1 <= k]]], {"Introduce"[j, k, e, h], "LinearArithmetic"}];
+	vectors = vectorTheorem[vectors, "squareBound",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[t, NonNegativeIntegers], Typed[u, NonNegativeIntegers]}, Implies[a <= t, Implies[t t < u, a a < u]]],
+		{"Introduce"[a, t, u, h, k], "NonlinearArithmetic"}
+	];
+	vectors = vectorTheorem[vectors, "squareRootBound",
+		ForAll[{Typed[t, NonNegativeIntegers]}, Implies[t t < upper, t + 1 < upper]],
+		{"Introduce"[t], "Cases"[t],
+			"Introduce"[h], "Decide",
+			"Introduce"[k], "Cases"[k],
+			"Introduce"[h], "Decide",
+			"Introduce"[j, h], "LinearArithmetic"}
+	];
+	vectors = vectorTheorem[vectors, "squaresRound",
+		ForAll[{Typed[f, NonNegativeIntegers], Typed[n1, "Integer64"], Typed[a, "PackedArray"["Integer64", 1]], Typed[i, "Integer64"], Typed[top, NonNegativeIntegers], Typed[k, NonNegativeIntegers],
+				Typed[q, "Integer64"], Typed[b, "PackedArray"["Integer64", 1]],
+				Typed[hn, n1[["integer"]] == "integerOfNatural"[top]], Typed[hi, i[["integer"]] == "integerOfNatural"[k + 1]], Typed[hle, k + 1 <= top],
+				Typed[hq, "machineTimes"["integerOfNatural"[k + 1], "integerOfNatural"[k + 1]] == Typed["left"[q], "Integer64" | Failure]],
+				Typed[hb, "arraySetPart"[a, "integerOfNatural"[k + 1], q] == Typed["left"[b], "PackedArray"["Integer64", 1] | Failure]],
+				Typed[h2, (k + 1) + 1 < upper]},
+			"While[vectorSquares]"[f + 1, n1, a, i] == "While[vectorSquares]"[f, n1, b, "subtype"["integerOfNatural"[(k + 1) + 1], "naturalInteger64Range"[(k + 1) + 1, h2]]]],
+		{"Introduce"[f, n1, a, i, top, k, q, b, hn, hi, hle, hq, hb, h2], "RewriteRepeated"["While[vectorSquares]"], "Rewrite"[hi], "Rewrite"[hn],
+			"Rewrite"["integerLessEqualQOfNatural"[k + 1, top, hle]], "Rewrite"[hq], "RewriteRepeated"["confirmBind"], "Rewrite"[hb], "RewriteRepeated"["confirmBind"],
+			"Rewrite"["machinePlusOfNatural"[k + 1, 1, h2]], "Reflexivity"}
+	];
+	vectors = vectorTheorem[vectors, "squaresStop",
+		ForAll[{Typed[f, NonNegativeIntegers], Typed[n1, "Integer64"], Typed[a, "PackedArray"["Integer64", 1]], Typed[i, "Integer64"], Typed[top, NonNegativeIntegers], Typed[k, NonNegativeIntegers],
+				Typed[hn, n1[["integer"]] == "integerOfNatural"[top]], Typed[hi, i[["integer"]] == "integerOfNatural"[k + 1]], Typed[hle, Not[k + 1 <= top]]},
+			"While[vectorSquares]"[f + 1, n1, a, i] == Typed["left"["pair"[a, i]], CartesianProductType["PackedArray"["Integer64", 1], "Integer64"] | Failure]],
+		{"Introduce"[f, n1, a, i, top, k, hn, hi, hle], "RewriteRepeated"["While[vectorSquares]"], "Rewrite"[hi], "Rewrite"[hn],
+			"Rewrite"["integerLessEqualQNotOfNatural"[k + 1, top, hle]], "Reflexivity"}
+	];
+	vectors = vectorTheorem[vectors, "squaresInvariant",
+		ForAll[{Typed[top, NonNegativeIntegers], Typed[n1, "Integer64"]}, Implies[n1[["integer"]] == "integerOfNatural"[top], Implies[top top < upper, Implies[top + 1 < upper,
+			ForAll[{Typed[rest, {"Integer64"}], Typed[pre, {"Integer64"}], Typed[fuel, NonNegativeIntegers], Typed[a, "PackedArray"["Integer64", 1]], Typed[i, "Integer64"]},
+				Implies[a[["list"]] == Join[pre, rest], Implies[top == Length[pre] + Length[rest], Implies[i[["integer"]] == "integerOfNatural"[Length[pre] + 1], Implies[Length[rest] < fuel,
+					Implies[Map[integerOf, pre] == "integerSquares"[Length[pre]],
+						Exists[{Typed[b, "PackedArray"["Integer64", 1]], Typed[w, "Integer64"]},
+							"While[vectorSquares]"[fuel, n1, a, i] == Typed["left"["pair"[b, w]], CartesianProductType["PackedArray"["Integer64", 1], "Integer64"] | Failure] &&
+								Map[integerOf, b[["list"]]] == "integerSquares"[top]]]]]]]]]]]],
+		{"Introduce"[top, n1, hn, bT, bN, rest], "Induction"[rest],
+			(* nothing left to set: the loop stops with the array *)
+			"Introduce"[pre, fuel], "Cases"[fuel],
+			"Introduce"[a, i, e, ht, hi, hf, hp], "Exact"["falseElimination"["notLessZero"[0, hf]]],
+			"Introduce"[f, a, i, e, ht, hi, hf, hp],
+			"Have"[hm, Map[integerOf, a[["list"]]] == "integerSquares"[top]],
+			"Rewrite"[e], "Rewrite"["joinEmptyRight"[pre]], "Rewrite"[ht], "Exact"[hp],
+			"Exact"["existsIntroduction"[a, "existsIntroduction"[i, "andIntroduction"["squaresStop"[f, n1, a, i, top, Length[pre], hn, hi, "stopsAt"[Length[pre], top, ht]], hm]]]],
+			(* a part left: one round sets it, then the hypothesis of the induction with the part among those set *)
+			"Introduce"[y, tail, ih, pre, fuel], "Cases"[fuel],
+			"Introduce"[a, i, e, ht, hi, hf, hp], "Exact"["falseElimination"["notLessZero"[Length[tail] + 1, hf]]],
+			"Introduce"[f, a, i, e, ht, hi, hf, hp],
+			"Have"[hle, Length[pre] + 1 <= top], "Exact"["roundContinues"[Length[pre], Length[tail], top, ht]],
+			"Have"[h1, (Length[pre] + 1) (Length[pre] + 1) < upper], "Exact"["squareBound"[Length[pre] + 1, top, upper, hle, bT]],
+			"Have"[h2, (Length[pre] + 1) + 1 < upper], "Exact"["roundBound"[Length[pre], top, upper, hle, bN]],
+			"Cases"["machineSquare"[Length[pre] + 1, h1]], "Introduce"[q, hq],
+			"Cases"["arraySetPartOfJoin"["Integer64", a, pre, y, q, tail, e]], "Introduce"[b, hb],
+			"Rewrite"["squaresRound"[f, n1, a, i, top, Length[pre], q, b, hn, hi, hle, hq[["left"]], hb[["left"]], h2]],
+			"Apply"[ih[Join[pre, Prepend[q][{}]], f, b, "subtype"["integerOfNatural"[(Length[pre] + 1) + 1], "naturalInteger64Range"[(Length[pre] + 1) + 1, h2]]]],
+			"Exact"["equalityTransitivity"[hb[["right"]], "equalitySymmetry"["joinAssociativity"[pre, Prepend[q][{}], tail]]]],
+			"Rewrite"["lengthJoin"[pre, Prepend[q][{}]]], "Exact"["roundsLeft"[Length[pre], Length[tail], top, ht]],
+			"Exact"["equalityCongruence"[Function[{Typed[m, NonNegativeIntegers]}, "integerOfNatural"[m + 1]], "equalitySymmetry"["lengthJoin"[pre, Prepend[q][{}]]]]],
+			"Exact"["lessOfSuccessors"[Length[tail], f, hf]],
+			"Rewrite"["mapJoin"[integerOf, pre, Prepend[q][{}]]], "Rewrite"[hp], "Rewrite"["lengthJoin"[pre, Prepend[q][{}]]],
+			"Change"[Join["integerSquares"[Length[pre]], Prepend[q[["integer"]]][{}]] == Join["integerSquares"[Length[pre]], Prepend["integerOfNatural"[(Length[pre] + 1) (Length[pre] + 1)]][{}]]],
+			"Rewrite"[hq[["right"]]]}
+	];
+	vectors = vectorTheorem[vectors, "squaresOfLoop",
+		ForAll[{Typed[fuel, NonNegativeIntegers], Typed[n, "Integer64"], Typed[a, "PackedArray"["Integer64", 1]], Typed[b, "PackedArray"["Integer64", 1]], Typed[w, "Integer64"]},
+			Implies["arrayConstant"[zeroValue, n[["integer"]]] == Typed["left"[a], "PackedArray"["Integer64", 1] | Failure],
+				Implies["While[vectorSquares]"[fuel, n, a, oneValue] == Typed["left"["pair"[b, w]], CartesianProductType["PackedArray"["Integer64", 1], "Integer64"] | Failure],
+					vectorSquares[fuel, n] == Typed["left"[b], "PackedArray"["Integer64", 1] | Failure]]]],
+		{"Introduce"[fuel, n, a, b, w, h1, h2],
+			"Change"["confirmBind"["arrayConstant"[zeroValue, n[["integer"]]], Function[{Typed[t, "PackedArray"["Integer64", 1]]},
+				"confirmBind"["While[vectorSquares]"[fuel, n, t, oneValue], Function[{Typed[state, CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]}, Typed["left"[state[["first"]]], "PackedArray"["Integer64", 1] | Failure]]]]] ==
+					Typed["left"[b], "PackedArray"["Integer64", 1] | Failure]],
+			"Rewrite"[h1],
+			"Change"["confirmBind"["While[vectorSquares]"[fuel, n, a, oneValue], Function[{Typed[state, CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]}, Typed["left"[state[["first"]]], "PackedArray"["Integer64", 1] | Failure]]] ==
+				Typed["left"[b], "PackedArray"["Integer64", 1] | Failure]],
+			"Rewrite"[h2], "Reflexivity"}
+	];
+	vectors = vectorTheorem[vectors, "squaresComputes",
+		ForAll[{Typed[top, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[n, "Integer64"]},
+			Implies[n[["integer"]] == "integerOfNatural"[top], Implies[top top < upper, Implies[top < fuel,
+				Exists[{Typed[a, "PackedArray"["Integer64", 1]]}, vectorSquares[fuel, n] == Typed["left"[a], "PackedArray"["Integer64", 1] | Failure] && Map[integerOf, a[["list"]]] == "integerSquares"[top]]]]]],
+		{"Introduce"[top, fuel, n, hn, bT, hf],
+			"Have"[bN, top + 1 < upper], "Exact"["squareRootBound"[top, bT]],
+			"Have"[bK, top < upper], "LinearArithmetic",
+			"Cases"["arrayConstantOfNatural"["Integer64", zeroValue, top, bK]], "Introduce"[a0, h0],
+			"Have"[h1, "arrayConstant"[zeroValue, n[["integer"]]] == Typed["left"[a0], "PackedArray"["Integer64", 1] | Failure]], "Rewrite"[hn], "Exact"[h0[["left"]]],
+			"Have"[ht, top == 0 + Length["listConstant"[zeroValue, top]]], "Rewrite"["listConstantLength"["Integer64", zeroValue, top]], "LinearArithmetic",
+			"Have"[hl, Length["listConstant"[zeroValue, top]] < fuel], "Rewrite"["listConstantLength"["Integer64", zeroValue, top]], "Exact"[hf],
+			"Cases"["squaresInvariant"[top, n, hn, bT, bN, "listConstant"[zeroValue, top], Typed[{}, {"Integer64"}], fuel, a0, oneValue,
+				h0[["right"]], ht, "equalityReflexivity"["integerOfNatural"[1]], hl, "equalityReflexivity"[Typed[{}, {Integers}]]]],
+			"Introduce"[b, hb], "Cases"[hb], "Introduce"[w, hw],
+			"Exact"["existsIntroduction"[b, "andIntroduction"["squaresOfLoop"[fuel, n, a0, b, w, h1, hw[["left"]]], hw[["right"]]]]]}
+	]
+]
+
+VerificationTest[
+	{
+		vectorFailures,
+		Map[Function[name, TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, vectors}]], {"vectorSumIsTotal", "vectorSumComputes", "squaresComputes"}],
+		(* the statements, as they are declared *)
+		DefinitionallyEqualQ[
+			TypeTheoryType[TypeTheoryTerm["vectorSumIsTotal", vectors]],
+			TypeTheoryTerm[
+				ForAll[{Typed[fuel, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]]},
+					Implies[Length[v[["list"]]] + 1 < 9223372036854775808, Implies[Length[v[["list"]]] < fuel, vectorSum[fuel, v] == "arrayTotal"[v]]]],
+				vectors
+			]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryType[TypeTheoryTerm["vectorSumComputes", vectors]],
+			TypeTheoryTerm[
+				ForAll[{Typed[fuel, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]]},
+					Implies[Length[v[["list"]]] + 1 < 9223372036854775808, Implies[Length[v[["list"]]] < fuel, Implies["partialSumsInRange"[v[["list"]]][0],
+						Exists[{Typed[r, "Integer64"]}, vectorSum[fuel, v] == Typed["left"[r], "Integer64" | Failure] && r[["integer"]] == "integerListSum"[v[["list"]]]]]]]],
+				vectors
+			]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryType[TypeTheoryTerm["squaresComputes", vectors]],
+			TypeTheoryTerm[
+				ForAll[{Typed[top, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[n, "Integer64"]},
+					Implies[n[["integer"]] == "integerOfNatural"[top], Implies[top top < 9223372036854775808, Implies[top < fuel,
+						Exists[{Typed[a, "PackedArray"["Integer64", 1]]}, vectorSquares[fuel, n] == Typed["left"[a], "PackedArray"["Integer64", 1] | Failure] &&
+							Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], a[["list"]]] == "integerSquares"[top]]]]]],
+				vectors
+			]
+		]
+	},
+	{{}, ConstantArray[<|"quotientSoundness" -> "Proposition"|>, 3], True, True, True},
+	TimeConstraint -> 300,
+	TestID -> "The-vector-sum-is-the-total-and-the-squares-loop-gives-the-squares-for-all-fuel-above-its-rounds"
+]
+
+
 (* the machine reals once, outside any test's time limit: where no saved environment is current, a fresh checkout or a
    changed kernel, they are built and checked from their declarations, which takes minutes *)
 machineReals = TypeTheoryEnvironment["MachineReals"]
@@ -966,4 +1263,45 @@ VerificationTest[
 	},
 	TimeConstraint -> 300,
 	TestID -> "Typed-code-raises-a-real-to-an-integer-power-as-Wolfram-15-does"
+]
+
+(* Vectors of machine reals, in TypeTheoryEnvironment["MachineReals"], with the definitions of the integers' vectors
+   at "Real64": a dot product, a vector made by setting its parts, and Take. Their values are the evaluator's machine
+   reals, to the last bit, and a part that is not there leaves. A function of real vectors is refused among the integers
+   alone, and "Machine" by name formalizes it among the reals; typed code has no Total of reals. *)
+realDot[u_List, v_List] := Module[{s = 0., i = 1}, While[i <= Length[u], s = s + u[[i]] v[[i]]; i = i + 1]; s]
+realHalves[n_Integer] := Module[{a = ConstantArray[0., n], i = 1}, While[i <= n, a[[i]] = 0.5 i; i = i + 1]; a]
+realHead[v_List, k_Integer] := Take[v, k]
+realTotal[v_List] := Total[v]
+
+realVectors = TypeTheoryEnvironment[machineReals, Join[
+	TypeTheoryFormalize[Typed[realDot, {"PackedArray"::["Real64", 1], "PackedArray"::["Real64", 1]} -> "Real64"], "Machine"],
+	TypeTheoryFormalize[realHalves, machineReals],
+	TypeTheoryFormalize[Typed[realHead, {"PackedArray"::["MachineReal", 1], "MachineInteger"} -> "PackedArray"::["MachineReal", 1]], machineReals]
+]]
+
+SetAttributes[realVectorValue, HoldFirst]
+realVectorValue[term_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm[term, realVectors], "Implementations" -> True]]
+
+VerificationTest[
+	{
+		TypeTheoryFormalize[Typed[realDot, {"PackedArray"::["Real64", 1], "PackedArray"::["Real64", 1]} -> "Real64"], machine]["Tag"],
+		TypeTheoryFormalize[Typed[realTotal, {"PackedArray"::["Real64", 1]} -> "Real64"], machineReals]["Tag"],
+		realVectorValue["confirmBind"["machineResult"[3], Typed[n, "Integer64"] |-> realHalves[10, n]]],
+		realVectorValue["confirmBind"["machineResult"[3], Typed[n, "Integer64"] |-> "confirmBind"[realHalves[10, n], Typed[a, "PackedArray"["Real64", 1]] |-> realDot[10, a, a]]]],
+		realVectorValue["confirmBind"["machineResult"[3], Typed[n, "Integer64"] |-> "confirmBind"[realHalves[10, n], Typed[a, "PackedArray"["Real64", 1]] |->
+			"confirmBind"["machineResult"[2], Typed[k, "Integer64"] |-> realHead[a, k]]]]],
+		realVectorValue["confirmBind"["machineResult"[3], Typed[n, "Integer64"] |-> "confirmBind"[realHalves[10, n], Typed[a, "PackedArray"["Real64", 1]] |->
+			"confirmBind"["machineResult"[4], Typed[k, "Integer64"] |-> realHead[a, k]]]]]
+	},
+	{
+		"NoMachineReals",
+		"NoTypedEntry",
+		SetPrecision[realHalves[3], Infinity],
+		SetPrecision[realDot[realHalves[3], realHalves[3]], Infinity],
+		SetPrecision[realHead[realHalves[3], 2], Infinity],
+		Failure["PartRange", <||>]
+	},
+	TimeConstraint -> 300,
+	TestID -> "Vectors-of-machine-reals-compute-the-evaluators-reals"
 ]

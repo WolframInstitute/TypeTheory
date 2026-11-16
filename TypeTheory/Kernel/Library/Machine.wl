@@ -24,7 +24,10 @@ The range is decided by the order of the integers, "integerLessEqualDecidable", 
 computes: "machineResult"[5] is the machine integer 5, and "machineResult"[2^63] the failure. Where an exact result is
 in range it is the machine value, "machineResultInRange", and the natural numbers below 2^63 are machine integers,
 "naturalInteger64Range": the first steps of the bridge from the machine's arithmetic to the mathematics, which
-TypeTheoryFormalize[f, "Machine"] is to state of a compiled function.
+TypeTheoryFormalize[f, "Machine"] is to state of a compiled function. A proof about compiled code on natural numbers
+rewrites its steps with "integerLessEqualQOfNatural" and "integerLessEqualQNotOfNatural", a test decided, and
+"machinePlusOfNatural" and "machineTimesOfNatural", a sum and a product in range. The vectors of typed code are in
+Library/MachineArrays.wl, in the same environment.
 *)
 
 
@@ -58,9 +61,10 @@ machineTheorem::usage = "machineTheorem[name, statement, tactics] is a theorem o
 (*Function Definitions*)
 
 
-(* the declarations in order, each theorem proved by its tactics in the environment so far *)
+(* the declarations in order, each theorem proved by its tactics in the environment so far: the machine integers', then
+   the vectors' (Library/MachineArrays.wl) *)
 machineEnvironment[] := machineEnvironment[] = withoutStoreTracking[
-	libraryEnvironment["Machine", integersEnvironment[], withStoreCleanup[Fold[addMachineDeclaration, integersEnvironment[], $machineDeclarations]]]
+	libraryEnvironment["Machine", integersEnvironment[], withStoreCleanup[Fold[addMachineDeclaration, integersEnvironment[], Join[$machineDeclarations, $machineArrayDeclarations]]]]
 ]
 
 SetAttributes[machineTheorem, HoldAll]
@@ -252,5 +256,77 @@ $machineDeclarations = With[{lower = -9223372036854775808, upper = 9223372036854
 	machineTheorem["integerOfNaturalPredecessor",
 		ForAll[{Typed[n, NonNegativeIntegers]}, "integerOfNatural"[n + 1] - 1 == "integerOfNatural"[n]],
 		{"Introduce"[n], "Rewrite"["integerOfNaturalAddition"[n, 1]], "Ring"}
+	],
+	(* the order of the integers decided on the images of natural numbers, both ways *)
+	TypeTheoryTheorem["integerLessEqualQOfNatural",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[m <= n, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, m <= n]},
+			InductiveRecursor[Exists][
+				Typed[w, Exists[{Typed[k, NonNegativeIntegers]}, n == m + k]] |-> "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true",
+				{Typed[k, NonNegativeIntegers], Typed[e, n == m + k]} |-> "equalitySubstitution"[
+					"equalitySymmetry"[e],
+					"equalitySubstitution"[
+						"equalitySymmetry"["integerOfNaturalAddition"[m, k]],
+						"integerLessEqualQSelfAddition"["integerOfNatural"[m], k],
+						P -> Function[{Typed[y, Integers]}, "integerLessEqualQ"["integerOfNatural"[m], y] == "true"]
+					],
+					P -> Function[{Typed[x, NonNegativeIntegers]}, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[x]] == "true"]
+				],
+				"lessEqualWitness"[m, n, h]
+			]
+		]
+	],
+	TypeTheoryTheorem["integerLessEqualQNotOfNatural",
+		ForAll[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, Implies[Not[m <= n], "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
+		Function[{Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[h, Not[m <= n]]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[b, Booleans]}, Implies["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == b, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]],
+				Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "false"]}, e],
+				Function[{Typed[e, "integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]] == "true"]},
+					"falseElimination"[h["integerOfNaturalLessEqual"[m, n, "integerLessEqualQTrue"["integerOfNatural"[m], "integerOfNatural"[n], e]]]]],
+				"integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]
+			]["equalityReflexivity"["integerLessEqualQ"["integerOfNatural"[m], "integerOfNatural"[n]]]]
+		]
+	],
+	(* the machine's sum and product of two natural numbers whose exact one is below 2^63 is the machine integer of it *)
+	TypeTheoryTheorem["machinePlusOfNatural",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < upper]},
+			"machinePlus"["integerOfNatural"[a], "integerOfNatural"[b]] == Typed["left"["subtype"["integerOfNatural"[a + b], "naturalInteger64Range"[a + b, h]]], "Integer64" | Failure]],
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a + b < upper]},
+			"equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "equalitySymmetry"["integerOfNaturalAddition"[a, b]]],
+				"machineResultOfNatural"[a + b, h]
+			]
+		]
+	],
+	TypeTheoryTheorem["machineTimesOfNatural",
+		ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a b < upper]},
+			"machineTimes"["integerOfNatural"[a], "integerOfNatural"[b]] == Typed["left"["subtype"["integerOfNatural"[a b], "naturalInteger64Range"[a b, h]]], "Integer64" | Failure]],
+		Function[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[h, a b < upper]},
+			"equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[x, Integers]}, "machineResult"[x]], "equalitySymmetry"["integerOfNaturalMultiplication"[a, b]]],
+				"machineResultOfNatural"[a b, h]
+			]
+		]
+	],
+	(* the integer of a successor is not 0: a place counted down from one is not the first; and the natural number of
+	   the integer of one is that number, which is what an integer that is not below 0 counts *)
+	TypeTheoryTheorem["integerOfSuccessorNotZero",
+		ForAll[{Typed[n, NonNegativeIntegers]}, "integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]] == "false"],
+		Function[{Typed[n, NonNegativeIntegers]},
+			InductiveRecursor[Booleans][
+				Function[{Typed[b, Booleans]}, Implies["integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]] == b, "integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]] == "false"]],
+				Function[{Typed[e, "integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]] == "false"]}, e],
+				Function[{Typed[e, "integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]] == "true"]},
+					"falseElimination"["successorNotLessEqualZero"[n, "integerOfNaturalLessEqual"[n + 1, 0,
+						"equalitySubstitution"["integerEqualTrue"["integerOfNatural"[n + 1], "integerOfNatural"[0], e], "integerLessEqualReflexivity"["integerOfNatural"[n + 1]],
+							P -> Function[{Typed[y, Integers]}, "integerLessEqual"["integerOfNatural"[n + 1], y]]]]]]],
+				"integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]]
+			]["equalityReflexivity"["integerEqual"["integerOfNatural"[n + 1], "integerOfNatural"[0]]]]
+		]
+	],
+	machineTheorem["integerNormalPairOfNatural",
+		ForAll[{Typed[k, NonNegativeIntegers]}, "integerNormalPair"["integerOfNatural"[k]][[1]] == k],
+		{"Introduce"[k], "Reflexivity"}
 	]
 }]
