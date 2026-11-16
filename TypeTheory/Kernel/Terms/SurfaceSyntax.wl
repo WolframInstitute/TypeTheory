@@ -248,10 +248,13 @@ coreToTypeTheoryTerm[environment_, context_, term_] := If[ TrueQ[tooltipsWanted[
 $readBackRecords = <||>
 $readBackRecordLimit = 1024
 
-rememberReadBack[environment_, held_HoldComplete, record_Association] := (
+(* a term read back again is the most recent again: its record is taken out and put at the end, where setting it in
+   place left it among the oldest, to go with them the next time the records were full *)
+rememberReadBack[environment_, held_HoldComplete, record_Association] := With[{key = {environment, held}},
+	If[KeyExistsQ[$readBackRecords, key], KeyDropFrom[$readBackRecords, {key}]];
 	If[Length[$readBackRecords] >= $readBackRecordLimit, $readBackRecords = Drop[$readBackRecords, Floor[$readBackRecordLimit / 2]]];
-	$readBackRecords[{environment, held}] = delaborationRecord[record]
-)
+	$readBackRecords[key] = delaborationRecord[record]
+]
 
 (* the record keyed by the nodes as the display reads them back from the held expression, a node shown for two parts
    that differ left out *)

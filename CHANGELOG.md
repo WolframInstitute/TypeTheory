@@ -20,6 +20,12 @@ Version 0.50.0.
   10.^-400 leaves as an underflow, the reciprocal of a power past the largest real. From 2^25 typed code calls the C
   library's pow, a fifth axiom of the reals, `"real64LibraryPower"`, about whose values nothing is assumed.
 
+### Fixed
+
+- A term read back from a core term a second time keeps the types its display shows on mouseover. The records of
+  terms read back hold the most recent 1,024, and one read back again kept its old place among them, so it could go
+  with the older half moments later and its display elaborated it again (since 0.47.0).
+
 ### Performance
 
 - **The compiled kernel gives up what its checks make.** The nodes, levels and free variables made while checking are

@@ -740,6 +740,35 @@ VerificationTest[
 	TestID -> "A-term-read-back-from-a-core-term-shows-its-types-without-elaborating-it-again"
 ]
 
+(* the records of terms read back are kept for the most recent 1024, the older half given up when they are full, and
+   a term read back again is the most recent again: the type of "zero", read back, then 1022 other records, then read
+   back again, keeps its record when two more terms fill the records, where setting it in place left it the oldest to
+   go. From 0.47.0 to 0.49.0 a type many constants share lost its record that way, and its display elaborated it again,
+   by what the tests before had read back *)
+VerificationTest[
+	With[
+		{
+			scope = Function[name, Symbol["WolframInstitute`TypeTheory`PackageScope`" <> name]],
+			environment = TypeTheoryEnvironment["Prelude"]
+		},
+		With[{readBack = Function[name, scope["coreToTypeTheoryTerm"][environment, <||>, scope["constantRecord"][environment, HoldComplete @@ {name}]["Type"]]]},
+			Block[{WolframInstitute`TypeTheory`PackageScope`$displayTooltips = True, WolframInstitute`TypeTheory`PackageScope`$readBackRecords = <||>},
+				With[{first = readBack["zero"]},
+					WolframInstitute`TypeTheory`PackageScope`$readBackRecords = Join[WolframInstitute`TypeTheory`PackageScope`$readBackRecords, AssociationThread[Range[1022] -> 0]];
+					{
+						readBack["zero"] === first,
+						Length[WolframInstitute`TypeTheory`PackageScope`$readBackRecords],
+						readBack["successor"]; readBack["false"]; Length[WolframInstitute`TypeTheory`PackageScope`$readBackRecords],
+						Last[Reap[Block[{WolframInstitute`TypeTheory`PackageScope`elaborationTrace = Function[{given, syntax}, Sow[syntax]; <||>]}, ToBoxes[first]]]]
+					}
+				]
+			]
+		]
+	],
+	{True, 1023, 513, {}},
+	TestID -> "A-term-read-back-again-is-among-the-most-recent-again"
+]
+
 (* a variable the term binds shows by its name also where another symbol of that name shadows it, as a variable of a
    notebook's context is shadowed by one of the context that is current: its context never shows *)
 VerificationTest[
