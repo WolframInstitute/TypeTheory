@@ -35,6 +35,12 @@ Versions 0.50.0 to 0.51.0.
 
 ### Fixed
 
+- **"LinearArithmetic" with a large literal among its hypotheses.** The tactic took the first multipliers that Wolfram's
+  FindInstance found, which with a bound such as 2^63 were near three times the bound. Its certificate then held the
+  product of such a multiplier with each atom, and where an atom does not reduce, as the length of a list, the kernel
+  unfolds that product one unit at a time and gave up, `Failure["RecursionLimit", ...]`. It takes the smallest
+  multipliers now, which Minimize finds (FindInstance where Minimize gives none in time), over the natural numbers and
+  over the rationals: a bound then needs none, and the certificate is a third the size.
 - A term read back from a core term a second time keeps the types its display shows on mouseover. The records of
   terms read back hold the most recent 1,024, and one read back again kept its old place among them, so it could go
   with the older half moments later and its display elaborated it again (since 0.47.0).

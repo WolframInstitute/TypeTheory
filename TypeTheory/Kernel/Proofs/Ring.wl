@@ -39,9 +39,9 @@ leaves l == r. Over the integers, with d = 1, l == r + c1 (a1 - b1) + ... and r 
 hold in every commutative ring, and the hypotheses carry the one sum to the other.
 
 Linear arithmetic proves l <= r from hypotheses a1 <= b1, ..., each monomial of the atoms counted as a
-variable. "lessEqualTotality" gives l <= r or r < l, and the second is refuted: Wolfram's FindInstance
-finds natural multipliers yi of r + 1 <= l and the hypotheses with y1 (a1 - b1) + ... a positive
-constant c. The inequalities, multiplied by "multiplicationMonotonicity" and added by "additionMonotonicity",
+variable. "lessEqualTotality" gives l <= r or r < l, and the second is refuted: Wolfram's Minimize
+finds the smallest natural multipliers yi of r + 1 <= l and the hypotheses with y1 (a1 - b1) + ... a
+positive constant c, small also where the hypotheses hold a large literal. The inequalities, multiplied by "multiplicationMonotonicity" and added by "additionMonotonicity",
 give A <= B, where B + c == A holds in every commutative semiring, so B + c <= B, which is
 (B + (c - 1)) + 1 <= B + (c - 1) after B <= B + (c - 1), and "lessIrreflexivity" refutes it.
 *)
@@ -316,25 +316,27 @@ nonnegativity[forms_List] := Function[factors, With[{term = productTerm[factors]
 	{literal[0], term, makeApplication[constantReference[HoldComplete["lessEqualZero"], {}], {term}]}
 ]] /@ DeleteCases[DeleteDuplicates[Last /@ Catenate[Catenate[forms]]], {}]
 
-(* Natural numbers y with y . differences a positive constant, or None. FindInstance's integer instance depends on how
-   the constraints are written and on the kernel, {0, 2, 2} on one and {0, 1, 1} on another; divided by their GCD,
-   which divides the constant too, the multipliers are the same for instances that are multiples of each other, and
-   the proof term with them. *)
+(* Natural numbers y with y . differences a positive constant, the smallest in total, or None. The certificate scales
+   each inequality by its multiplier, and the kernel unfolds a product of a literal with an atom it cannot reduce, as
+   Length[l], one unit of the literal at a time: FindInstance's first instance, which depends on how the constraints are
+   written and on the kernel, was about three times a literal bound in the hypotheses, 3 2^63 for the machine's, where 1
+   does. The smallest are found by Minimize over the integers; where it gives none in time, FindInstance's instance is
+   taken. Divided by their GCD, which divides the constant too, the multipliers are the same for instances that are
+   multiples of each other, and the proof term with them. *)
 contradictionMultipliers[differences_List, variables_List] := With[{multipliers = Table[\[FormalY][i], {i, Length[differences]}]},
 	{rules = coefficientRulesIn[Expand[multipliers . differences], variables]},
+	{constraints = And @@ Join[
+		Thread[(Last /@ Select[rules, Function[rule, Total[First[rule]] > 0]]) == 0],
+		{Total[Last /@ Select[rules, Function[rule, Total[First[rule]] == 0]]] >= 1},
+		Thread[multipliers >= 0]
+	]},
 	Replace[
-		TimeConstrained[
-			Quiet @ FindInstance[
-				And @@ Join[
-					Thread[(Last /@ Select[rules, Function[rule, Total[First[rule]] > 0]]) == 0],
-					{Total[Last /@ Select[rules, Function[rule, Total[First[rule]] == 0]]] >= 1},
-					Thread[multipliers >= 0]
-				],
-				multipliers,
-				Integers
-			],
-			10,
-			$Aborted
+		Replace[
+			TimeConstrained[Quiet @ Minimize[{Total[multipliers], constraints}, multipliers, Integers], 10, $Aborted],
+			{
+				{_Integer, solution : {__Rule}} :> {solution},
+				_ :> TimeConstrained[Quiet @ FindInstance[constraints, multipliers, Integers], 10, $Aborted]
+			}
 		],
 		{
 			{solution_List, ___} :> With[{found = ReplaceAll[multipliers, solution]}, found / (GCD @@ found)],
@@ -462,21 +464,28 @@ rationalDifferences[pairs_List] := Module[{forms, atoms, variables},
 	{variables, Map[Function[pair, Expand[Last[pair] - First[pair]]], Map[Function[form, Map[Function[polynomial, wolframPolynomial[polynomial, AssociationThread[atoms, variables]]], form]], forms]]}
 ]
 
+(* the solutions of constraints with the smallest objective, a linear program whose optimum Minimize gives exactly at a
+   vertex, as {solution}; where it gives none in time, FindInstance's instance over the rationals. The smallest
+   multipliers keep a certificate's products of literals small, as the naturals' do (contradictionMultipliers). *)
+smallestInstance[objective_, constraints_, variables_List] := Replace[
+	TimeConstrained[Quiet @ Minimize[{objective, constraints}, variables], 10, $Aborted],
+	{
+		{value_ /; Element[value, Rationals], solution : {__Rule}} :> {solution},
+		_ :> TimeConstrained[Quiet @ FindInstance[constraints, variables, Rationals], 10, $Aborted]
+	}
+]
+
 (* {D, {P_1, ...}, C} with D target == P . differences + C, or None *)
 boundMultipliers[variables_List, target_, differences_List] := With[{ys = Table[\[FormalY][i], {i, Length[differences]}]},
 	Replace[
-		TimeConstrained[
-			Quiet @ FindInstance[
-				And @@ Join[
-					Thread[coefficientsIn[Expand[target - ys . differences - \[FormalC]], variables] == 0],
-					Thread[ys >= 0],
-					{\[FormalC] >= 0}
-				],
-				Append[ys, \[FormalC]],
-				Rationals
+		smallestInstance[
+			Total[ys] + \[FormalC],
+			And @@ Join[
+				Thread[coefficientsIn[Expand[target - ys . differences - \[FormalC]], variables] == 0],
+				Thread[ys >= 0],
+				{\[FormalC] >= 0}
 			],
-			10,
-			$Aborted
+			Append[ys, \[FormalC]]
 		],
 		{
 			{solution_List, ___} :> scaledMultipliers[ReplaceAll[Append[ys, \[FormalC]], solution]],
@@ -488,18 +497,14 @@ boundMultipliers[variables_List, target_, differences_List] := With[{ys = Table[
 (* {D, {P_1, ...}, C} with P . differences + C == 0 and C or a strict one's P_j positive, or None *)
 contradictionMultipliersOf[variables_List, differences_List, strict_List] := With[{ys = Table[\[FormalY][i], {i, Length[differences]}]},
 	Replace[
-		TimeConstrained[
-			Quiet @ FindInstance[
-				And @@ Join[
-					Thread[coefficientsIn[Expand[ys . differences + \[FormalC]], variables] == 0],
-					Thread[ys >= 0],
-					{\[FormalC] >= 0, \[FormalC] + Total[Pick[ys, strict]] >= 1}
-				],
-				Append[ys, \[FormalC]],
-				Rationals
+		smallestInstance[
+			Total[ys] + \[FormalC],
+			And @@ Join[
+				Thread[coefficientsIn[Expand[ys . differences + \[FormalC]], variables] == 0],
+				Thread[ys >= 0],
+				{\[FormalC] >= 0, \[FormalC] + Total[Pick[ys, strict]] >= 1}
 			],
-			10,
-			$Aborted
+			Append[ys, \[FormalC]]
 		],
 		{
 			{solution_List, ___} :> scaledMultipliers[ReplaceAll[Append[ys, \[FormalC]], solution]],

@@ -231,3 +231,27 @@ VerificationTest[
 	TestID -> "Linear-arithmetic-decides-inequalities-of-natural-numbers-alone"
 ]
 
+
+(* the multipliers are the smallest: with a large literal among the hypotheses and atoms that do not reduce, as the
+   length of a list, the certificate scales nothing, where FindInstance's first instance gave multipliers near three
+   times the literal, a product the kernel unfolds one unit at a time and gave up on (RecursionLimit) *)
+VerificationTest[
+	With[
+		{
+			bounded = TypeTheoryProof[
+				ForAll[{Typed[A, TypeUniverse[1]], Typed[m, {A}], Typed[l, {A}]},
+					Implies[Length[m] <= Length[l], Implies[Length[l] < 9223372036854775808, Length[m] < 9223372036854775808]]],
+				prelude,
+				{TypeTheoryTactic["Introduce", A, m, l, h, k], TypeTheoryTactic["LinearArithmetic"]}
+			]
+		},
+		{
+			bounded["Goals"],
+			FreeQ[bounded["Term"], "multiplicationMonotonicity"],
+			MatchQ[TypeTheoryEnvironment[prelude, {TypeTheoryTheorem[ShorterListBound, bounded]}], _TypeTheoryEnvironment],
+			readBackChecks[bounded]
+		}
+	],
+	{{}, True, True, True},
+	TestID -> "LinearArithmetic-takes-the-smallest-multipliers-so-a-large-bound-checks"
+]
