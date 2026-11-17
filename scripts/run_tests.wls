@@ -24,8 +24,9 @@ SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"]
 
 PacletDirectoryLoad[pacletDirectory]
 
+(* a file given relative to the repository root is made absolute, so that its line names it under the tests *)
 testFiles = If[ Length[$ScriptCommandLine] > 1,
-	Rest[$ScriptCommandLine],
+	Map[ExpandFileName, Rest[$ScriptCommandLine]],
 	FileNames["*.wlt", testsDirectory, Infinity]
 ]
 
@@ -40,13 +41,20 @@ If[ testFiles === {},
 runTestFile[file_String] := Module[{report, failures},
 	If[ ! ListQ[$runnerSymbols], $runnerSymbols = Names["Global`*"]];
 	Quiet[ClearAll @@ Complement[Names["Global`*"], $runnerSymbols]];
-	report = TestReport[file];
+	report = If[ Environment["TT_TEST_PROGRESS"] === "1",
+		TestReport[file, HandlerFunctions -> <|"TestEvaluated" -> testProgress|>],
+		TestReport[file]
+	];
 	failures = Cases[
 		Values[report["TestResults"]],
 		result_ /; result["Outcome"] =!= "Success" :> result /@ {"TestID", "ActualOutput", "ExpectedOutput", "ActualMessages"}
 	];
 	<|"File" -> file, "Passed" -> report["TestsSucceededCount"], "Failed" -> report["TestsFailedCount"], "Failures" -> failures|>
 ]
+
+(* with TT_TEST_PROGRESS=1, a line as each test ends, so that a file stopped at its time limit names the last test that
+   ended *)
+testProgress[event_Association] := Print["  test  ", Lookup[event, "TestObject", Missing[]]["TestID"]]
 
 results = runTestFile /@ testFiles
 
