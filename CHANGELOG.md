@@ -24,6 +24,16 @@ Versions 0.50.0 to 0.53.0.
   setting parts gives the squares of 1 to n. The machine library also has the order, the sum and the product of
   natural numbers that proofs about loops rewrite with (`"integerLessEqualQOfNatural"`, `"machinePlusOfNatural"`,
   `"machineTimesOfNatural"`).
+- **Matrices in the machine library.** `"PackedArray"[A, 2]` is the matrices typed code makes inside a function, a
+  structure that keeps its columns as typed code's own matrix does: `m["columns"]`, `m["rows"]`, and the proof that
+  every row is as long as the columns and that the columns, the rows and their product are below 2^63. Typed code's
+  operations are there with their leaves: `"matrixOfPartition"` (`Partition`, `"Range"` for a count below 1),
+  `"matrixLength"`, `"matrixRow"` and `"matrixPart"` (`"PartRange"`). So are `"matrixDimensions"`,
+  `"matrixTranspose"` and `"matrixVectorProduct"`, which typed code does not have, as the mathematics its loops are
+  stated against. The library proves that Transpose twice is the identity on every matrix, with no axiom, that the
+  dimensions of a transpose are the pair swapped, that Partition by a machine count of 1 or more is the matrix of its
+  rows, and that a row or an element leaves by a part that is not there alone. A rank above 2 is the lists of the rank
+  below, and `TypeTheoryFormalize` refuses it by name. Reading typed code's matrices waits for KernelCompiler 0.1.7.
 - **A real to an integer power in typed code.** `TypeTheoryFormalize` reads `x^n` of a machine real and an integer, a
   constant or a machine integer, as `"real64IntegerPower"` of `TypeTheoryEnvironment["MachineReals"]`: the products
   Wolfram 15 rounds one by one, in the order of the exponent's bits from the top (a bit at a time below 8, two at a

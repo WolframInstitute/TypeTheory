@@ -1,8 +1,8 @@
 (* ::Package:: *)
 
-(* Tests for Library/MachineArrays.wl: the vectors of typed code, lists that a machine can hold, with the operations of
-   typed code on them and their leaves, in TypeTheoryEnvironment["Machine"]. A part is counted from 1, or below 0 from
-   the end; one that is not there is Failure["PartRange", <||>].
+(* Tests for Library/MachineArrays.wl: the vectors of typed code, lists that a machine can hold, and its matrices, which
+   keep their columns, with the operations of typed code on them and their leaves, in TypeTheoryEnvironment["Machine"].
+   A part is counted from 1, or below 0 from the end; one that is not there is Failure["PartRange", <||>].
    Run with: TestReport["TypeTheory/Tests/Library/MachineArrays.wlt"] from the repository root. *)
 
 PacletDirectoryLoad[Directory[]]
@@ -120,4 +120,126 @@ VerificationTest[
 	TypeTheoryEnvironment[machine, {TypeTheoryDefinition["forgedArray", Typed["subtype"[Typed[{}, {"Integer64"}], "trueIntroduction"], "PackedArray"["Integer64", 1]]]}]["Tag"],
 	"TypeMismatch",
 	TestID -> "An-array-needs-the-proof-that-its-list-is-held"
+]
+
+(* the matrices: Partition[{1, 2, 3, 4, 5}, 2] and Partition[{1, 2}, 3], of natural numbers, as the operations do not
+   depend on the elements; and Partition[{3, 2, 2, 2, 2, 2}, 3] and {1, 1, 1} of machine integers, for the product *)
+matrixSamples = TypeTheoryEnvironment[machine, {
+	TypeTheoryDefinition["sampleMatrix", Typed[
+		"confirmBind"["arrayOfList"[Typed[{1, 2, 3, 4, 5}, {NonNegativeIntegers}]], Typed[a, "PackedArray"[NonNegativeIntegers, 1]] |-> "matrixOfPartition"[a, 2]],
+		"PackedArray"[NonNegativeIntegers, 2] | Failure
+	]],
+	TypeTheoryDefinition["emptyMatrix", Typed[
+		"confirmBind"["arrayOfList"[Typed[{1, 2}, {NonNegativeIntegers}]], Typed[a, "PackedArray"[NonNegativeIntegers, 1]] |-> "matrixOfPartition"[a, 3]],
+		"PackedArray"[NonNegativeIntegers, 2] | Failure
+	]],
+	TypeTheoryDefinition["sampleProduct", Typed[
+		"confirmBind"["machineResult"[2], Typed[z, "Integer64"] |-> "confirmBind"["arrayConstant"[z, 6], Typed[a, "PackedArray"["Integer64", 1]] |->
+			"confirmBind"["machineResult"[3], Typed[t, "Integer64"] |-> "confirmBind"["arraySetPart"[a, 1, t], Typed[b, "PackedArray"["Integer64", 1]] |->
+				"confirmBind"["matrixOfPartition"[b, 3], Typed[m, "PackedArray"["Integer64", 2]] |->
+					"confirmBind"["machineResult"[1], Typed[o, "Integer64"] |-> "confirmBind"["arrayConstant"[o, 3], Typed[v, "PackedArray"["Integer64", 1]] |->
+						Typed["left"["matrixVectorProduct"[m, v]], {Integers} | Failure]]]]]]]],
+		{Integers} | Failure
+	]]
+}]
+
+(* the value of a function of a sample matrix; the rows, the dimensions and a transpose's rows as lists of the
+   natural numbers *)
+onMatrix[sample_String, function_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"[sample, function], matrixSamples]]]
+rowsOf = Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> Typed["left"[m[["rows"]]], {{NonNegativeIntegers}} | Failure];
+dimensionsOf = Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |->
+	Typed["left"[Typed[{"matrixDimensions"[m][[1]], "matrixDimensions"[m][[2]]}, {NonNegativeIntegers}]], {NonNegativeIntegers} | Failure];
+
+(* a matrix is the array of rank 2, and keeps its columns; the array of a rank above is a list a machine holds of
+   arrays of the rank below. Transpose twice is the identity on every matrix with no axiom; the leaves and Partition
+   rest on the integers' alone *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm["PackedArray"["Integer64", 2], machine], TypeTheoryTerm["Matrix"["Integer64"], machine]],
+		DefinitionallyEqualQ[TypeTheoryTerm["PackedArray"["Integer64", 3], machine], TypeTheoryTerm[Subtype["arrayLengthRange"["Matrix"["Integer64"]]], machine]],
+		Map[
+			Function[name, TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, machine}]],
+			{"matrixTransposeTwice", "matrixDimensionsOfTranspose", "matrixOfPartitionOfNatural", "matrixRowLeave", "matrixPartLeave"}
+		]
+	},
+	{True, True, {<||>, <||>, <|"quotientSoundness" -> "Proposition"|>, <|"quotientSoundness" -> "Proposition"|>, <|"quotientSoundness" -> "Proposition"|>}},
+	TestID -> "A-matrix-is-the-array-of-rank-2-and-Transpose-twice-needs-no-axiom"
+]
+
+(* Partition, Length, a row, an element, Dimensions and Transpose of Partition[{1, 2, 3, 4, 5}, 2], as the evaluator
+   gives them; a matrix of no rows keeps its columns, which the evaluator's list of lists does not: Dimensions of
+   Partition[{1, 2}, 3] is {0, 3}, and of its transpose {3, 0}. The product as Dot gives it *)
+VerificationTest[
+	{
+		onMatrix["sampleMatrix", rowsOf],
+		onMatrix["sampleMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> Typed["left"["matrixLength"[m]], "Integer64" | Failure]],
+		Map[Function[i, onMatrix["sampleMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> "matrixRow"[m, Typed[i, Integers]]]], {1, 2, -1}],
+		Apply[Function[{i, j}, onMatrix["sampleMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> "matrixPart"[m, Typed[i, Integers], Typed[j, Integers]]]], {{1, 1}, {2, 1}, {-1, -1}, {1, -2}}, {1}],
+		onMatrix["sampleMatrix", dimensionsOf],
+		onMatrix["sampleMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> Typed["left"["matrixTranspose"[m][["rows"]]], {{NonNegativeIntegers}} | Failure]],
+		onMatrix["emptyMatrix", dimensionsOf],
+		With[{dimensions = dimensionsOf}, onMatrix["emptyMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> dimensions["matrixTranspose"[m]]]],
+		TypeTheoryExpression[NormalForm[TypeTheoryTerm["sampleProduct", matrixSamples]]]
+	},
+	{
+		Partition[{1, 2, 3, 4, 5}, 2],
+		Length[Partition[{1, 2, 3, 4, 5}, 2]],
+		Map[Function[i, Part[Partition[{1, 2, 3, 4, 5}, 2], i]], {1, 2, -1}],
+		Apply[Function[{i, j}, Part[Partition[{1, 2, 3, 4, 5}, 2], i, j]], {{1, 1}, {2, 1}, {-1, -1}, {1, -2}}, {1}],
+		Dimensions[Partition[{1, 2, 3, 4, 5}, 2]],
+		Transpose[Partition[{1, 2, 3, 4, 5}, 2]],
+		{0, 3},
+		{3, 0},
+		Dot[Partition[{3, 2, 2, 2, 2, 2}, 3], {1, 1, 1}]
+	},
+	TestID -> "Partition-Length-parts-Dimensions-Transpose-and-the-product-are-the-evaluators"
+]
+
+(* Partition by a count below 1 leaves with Failure["Range", <||>], a row or an element that is not there with
+   Failure["PartRange", <||>] *)
+VerificationTest[
+	{
+		Map[Function[k, TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+			"confirmBind"["arrayOfList"[Typed[{1, 2}, {NonNegativeIntegers}]], Typed[a, "PackedArray"[NonNegativeIntegers, 1]] |-> "matrixOfPartition"[a, Typed[k, Integers]]],
+			matrixSamples
+		]]]], {0, -1}],
+		Map[Function[i, onMatrix["sampleMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> "matrixRow"[m, Typed[i, Integers]]]], {0, 3, -3}],
+		Apply[Function[{i, j}, onMatrix["sampleMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> "matrixPart"[m, Typed[i, Integers], Typed[j, Integers]]]], {{3, 1}, {1, 3}, {0, 1}, {1, -3}}, {1}],
+		onMatrix["emptyMatrix", Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> "matrixPart"[m, 1, 1]]
+	},
+	{
+		ConstantArray[Failure["Range", <||>], 2],
+		ConstantArray[Failure["PartRange", <||>], 3],
+		ConstantArray[Failure["PartRange", <||>], 4],
+		Failure["PartRange", <||>]
+	},
+	TestID -> "Partition-by-less-than-1-and-a-part-that-is-not-there-leave"
+]
+
+(* what the theorems say *)
+VerificationTest[
+	Map[
+		Function[pair, With[{theorem = TypeTheoryTerm @@ {First[pair], machine}}, DefinitionallyEqualQ[TypeTheoryType[theorem], Last[pair]]]],
+		{
+			{"matrixTransposeTwice", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixTranspose"["matrixTranspose"[m]] == m], machine]},
+			{"matrixDimensionsOfTranspose", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]},
+				"matrixDimensions"["matrixTranspose"[m]] == "pair"["matrixDimensions"[m][[2]], "matrixDimensions"[m][[1]]]], machine]},
+			{"matrixRowLeave", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[f, Failure]},
+				Implies["matrixRow"[m, i] == Typed["right"[f], "PackedArray"[A, 1] | Failure], f == Failure["PartRange", <||>]]], machine]},
+			{"matrixPartLeave", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[j, Integers], Typed[f, Failure]},
+				Implies["matrixPart"[m, i, j] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]], machine]},
+			{"matrixOfPartitionRange", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[k, Integers]},
+				Implies["integerLessEqualQ"[1, k] == "false", "matrixOfPartition"[a, k] == Typed["right"[Failure["Range", <||>]], "PackedArray"[A, 2] | Failure]]], machine]}
+		}
+	],
+	ConstantArray[True, 5],
+	TestID -> "Transpose-twice-is-the-identity-and-the-operations-leave-where-typed-code-does"
+]
+
+(* a matrix needs the proof of its range: rows of another length than the columns, or the proof of something else, are
+   refused *)
+VerificationTest[
+	TypeTheoryEnvironment[machine, {TypeTheoryDefinition["forgedMatrix", Typed["matrix"[2, Typed[{{1}}, {{NonNegativeIntegers}}], "trueIntroduction"], "PackedArray"[NonNegativeIntegers, 2]]]}]["Tag"],
+	"TypeMismatch",
+	TestID -> "A-matrix-needs-the-proof-of-its-range"
 ]

@@ -1,18 +1,25 @@
 (* ::Package:: *)
 
 (*
-The vectors of typed code: the packed arrays of rank 1 that the compiler's typed entries take, make and return, with
-their operations as typed code computes them, in TypeTheoryEnvironment["Machine"] and, with the reals' vectors,
-TypeTheoryEnvironment["MachineReals"].
+The vectors and matrices of typed code: the packed arrays of rank 1 that the compiler's typed entries take, make and
+return, and those of rank 2 that typed code makes inside a function, with their operations as typed code computes them,
+in TypeTheoryEnvironment["Machine"] and, with the reals' arrays, TypeTheoryEnvironment["MachineReals"].
 
 An array is a list that a machine can hold, a subtype of the prelude's lists: its length is below 2^63, so Length of
 an array is a machine integer and never leaves, as in typed code. a["list"] is the list of an array a, as n["integer"]
 is the integer of a machine integer, and a["proof"] the proof that the length is in range. Parts are counted from 1, or
 below 0 from the end, and a part that is not there is the compiler's leave Failure["PartRange", <||>].
 
-	"PackedArray"[A, rank]           the compiler's "PackedArray"::[A, rank]: A at rank 0, and at a rank above, the
-	                                 lists a machine holds of the arrays of the rank below; the model has rank 1, of
-	                                 "Integer64" or "Real64"
+A matrix keeps its columns, as typed code's own matrix, {data, rows, columns}, does: m["columns"], the list of its rows
+m["rows"], each as long as the columns, and m["proof"], that the columns, the rows and their product, the elements typed
+code allocates, are below 2^63. A matrix with no rows still has its columns, Partition[{1, 2}, 3] 3, so that Transpose
+twice is the identity on every matrix. Typed code makes a matrix by Partition of a vector alone, and reads its Length,
+a row and an element; Dimensions, Transpose and the product by a vector are not typed code, and are here as the
+mathematics typed code's loops are stated against.
+
+	"PackedArray"[A, rank]           the compiler's "PackedArray"::[A, rank]: A at rank 0, the vectors at rank 1, the
+	                                 matrices at rank 2, and at a rank above, the lists a machine holds of the arrays of
+	                                 the rank below; the model has ranks 1 and 2, of "Integer64" or "Real64"
 	"arrayLength"[a]                 Length[a], an "Integer64"
 	"arrayPart"[a, i]                a[[i]], A | Failure
 	"arraySetPart"[a, i, v]          the array of a[[i]] = v, by the same rule on i
@@ -27,6 +34,15 @@ below 0 from the end, and a part that is not there is the compiler's leave Failu
 	"integerListSum", "partialSumsInRange"
 	                                 the sum of the integers of a list, and that every sum on the way to it is a machine
 	                                 integer: what a total is stated against
+	"matrixOfPartition"[a, k]        Partition[a, k]: k columns, as many rows of k as the vector has, a shorter tail
+	                                 dropped, leaving with Failure["Range", <||>] for k below 1
+	"matrixLength"[m]                Length[m], the rows, an "Integer64"
+	"matrixRow"[m, i]                m[[i]], a vector
+	"matrixPart"[m, i, j]            m[[i, j]], each index by Part's rule
+	"matrixDimensions"[m]            Dimensions[m], the pair of the counts of the rows and the columns
+	"matrixTranspose"[m]             Transpose[m]
+	"matrixVectorProduct"[m, v]      the product of a matrix and a vector of machine integers, the exact sums of the
+	                                 integers' products, row by row
 
 Whether an allocation fails depends on the machine and not on the values, as the checks of the recursion level do,
 which the model leaves out: the meaning of typed code is its value where it does not leave for want of memory. The
@@ -35,6 +51,11 @@ theorems say so of each operation: a part set keeps the length, "arraySetPartLen
 alone, "arraySetPartLeave" and "arrayTakeLeave"; a constant array of a length a machine integer counts is there,
 "arrayConstantOfNatural". A proof about a loop over an array takes its rounds with "arrayPartOfJoin" and
 "arraySetPartOfJoin", the array split at the place the loop is at, and its invariant with "confirmBindThen".
+
+Of matrices: Partition by a count a machine integer holds, 1 or more, is the matrix of its rows,
+"matrixOfPartitionOfNatural", and by a count below 1 it leaves, "matrixOfPartitionRange"; a row and an element leave by
+a part that is not there alone, "matrixRowLeave" and "matrixPartLeave"; Transpose twice is the identity,
+"matrixTransposeTwice", and the dimensions of a transpose are the pair swapped, "matrixDimensionsOfTranspose".
 *)
 
 
@@ -55,7 +76,7 @@ PackageScoped[$machineArrayDeclarations]
 (*Usage Messages*)
 
 
-$machineArrayDeclarations::usage = "$machineArrayDeclarations is the list of the declarations of the vectors of typed code, in order, which need the declarations of the machine integers before them."
+$machineArrayDeclarations::usage = "$machineArrayDeclarations is the list of the declarations of the vectors and matrices of typed code, in order, which need the declarations of the machine integers before them."
 
 
 (* ::Section:: *)
@@ -102,16 +123,50 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 		Function[{Typed[A, TypeUniverse[1]]}, Typed[list, {A}] |-> Length[list] < upper],
 		ForAll[{Typed[A, TypeUniverse[1]]}, {A} -> TypeUniverse[0]]
 	]],
-	(* by its rank, as the compiler's type "PackedArray"::[t, 1]: an array of rank 0 is an element, and one of a rank
-	   above an array of the rank below of the lists of elements a machine holds. The recursion carries the type of
-	   the elements, so that the array of rank 1 computes to the lists of A itself, and not of a recursion at rank 0
-	   that is yet to compute: a hypothesis on a["list"] and a term written with {A} are then the same term, which a
-	   rewrite needs *)
+	(* the matrices: every row as long as the columns, and the columns, the rows and the elements counts a machine
+	   holds. The binders of "matrix" name the parts of a matrix, m["columns"], m["rows"] and m["proof"] *)
+	TypeTheoryDefinition["rowsOfLength", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[rows, {{A}}], Typed[columns, NonNegativeIntegers]}, InductiveRecursor[List][
+			Function[{Typed[t, {{A}}]}, TypeUniverse[0]],
+			True,
+			Function[{Typed[row, {A}], Typed[rest, {{A}}], Typed[r, TypeUniverse[0]]}, Length[row] == columns && r],
+			rows
+		]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, {{A}} -> NonNegativeIntegers -> TypeUniverse[0]]
+	]],
+	TypeTheoryDefinition["matrixRange", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}]},
+			columns < upper && Length[rows] < upper && Length[rows] columns < upper && "rowsOfLength"[rows, columns]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, NonNegativeIntegers -> {{A}} -> TypeUniverse[0]]
+	]],
+	TypeTheoryInductiveType[
+		"Matrix",
+		ForAll[{Typed[A, TypeUniverse[1]]}, TypeUniverse[1]],
+		{"matrix" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}], Typed[proof, "matrixRange"[columns, rows]]}, "Matrix"[A]]}
+	],
+	(* by its rank, as the compiler's type "PackedArray"::[t, rank]: an array of rank 0 is an element, of rank 1 a list
+	   of elements a machine holds, of rank 2 a matrix, and of a rank above a list a machine holds of the arrays of the
+	   rank below, which typed code does not have. The arrays of ranks 1 and 2 compute to the lists and matrices of A
+	   itself, and not of a recursion that is yet to compute: a hypothesis on a["list"] and a term written with {A} are
+	   then the same term, which a rewrite needs *)
 	TypeTheoryDefinition["PackedArray", Typed[
 		Function[{Typed[A, TypeUniverse[1]], Typed[rank, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
 			Function[{Typed[k, NonNegativeIntegers]}, TypeUniverse[1] -> TypeUniverse[1]],
 			Function[{Typed[T, TypeUniverse[1]]}, T],
-			Function[{Typed[k, NonNegativeIntegers], Typed[r, TypeUniverse[1] -> TypeUniverse[1]]}, Function[{Typed[T, TypeUniverse[1]]}, r[Subtype["arrayLengthRange"[T]]]]],
+			Function[{Typed[k, NonNegativeIntegers], Typed[r, TypeUniverse[1] -> TypeUniverse[1]]}, Function[{Typed[T, TypeUniverse[1]]},
+				InductiveRecursor[NonNegativeIntegers][
+					Function[{Typed[j, NonNegativeIntegers]}, TypeUniverse[1]],
+					Subtype["arrayLengthRange"[T]],
+					Function[{Typed[j, NonNegativeIntegers], Typed[s, TypeUniverse[1]]}, InductiveRecursor[NonNegativeIntegers][
+						Function[{Typed[i, NonNegativeIntegers]}, TypeUniverse[1]],
+						"Matrix"[T],
+						Function[{Typed[i, NonNegativeIntegers], Typed[q, TypeUniverse[1]]}, Subtype["arrayLengthRange"[r[T]]]],
+						j
+					]],
+					k
+				]
+			]],
 			rank
 		][A]],
 		TypeUniverse[1] -> NonNegativeIntegers -> TypeUniverse[1]
@@ -284,6 +339,126 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 			l
 		]],
 		{"Integer64"} -> Integers -> TypeUniverse[0]
+	]],
+	(* the element of a list at an index counted as Part counts it, from 1, or below 0 from the end *)
+	TypeTheoryDefinition["listPartOfIndex", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[l, {A}], Typed[i, Integers]},
+			"machineIf"["integerLessEqualQ"[1, i], "listPart"[l][i - 1], "listPart"[l]["integerOfNatural"[Length[l]] + i]]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, {A} -> Integers -> (A | Failure)]
+	]],
+	(* the first n elements of a list, all of them where it has fewer *)
+	TypeTheoryDefinition["listFirst", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[l, {A}], Typed[n, NonNegativeIntegers]},
+			InductiveRecursor[List][
+				Function[{Typed[t, {A}]}, NonNegativeIntegers -> {A}],
+				Function[{Typed[k, NonNegativeIntegers]}, Typed[{}, {A}]],
+				Function[{Typed[x, A], Typed[rest, {A}], Typed[r, NonNegativeIntegers -> {A}]},
+					Function[{Typed[k, NonNegativeIntegers]},
+						InductiveRecursor[NonNegativeIntegers][Typed[j, NonNegativeIntegers] |-> {A}, Typed[{}, {A}], {Typed[j, NonNegativeIntegers], Typed[s, {A}]} |-> Prepend[x][r[j]], k]
+					]
+				],
+				l
+			][n]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, {A} -> NonNegativeIntegers -> {A}]
+	]],
+	(* the rows of Partition[l, n]: the first n elements, then the rows of the rest, while n elements are left; a
+	   shorter tail is dropped. A row takes at least one element where n is above 0, so as many rounds as the list is
+	   long are enough; Partition by 0 leaves before it is reached *)
+	TypeTheoryDefinition["partitionRows", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[k, NonNegativeIntegers]}, {A} -> {{A}}],
+				Function[{Typed[l, {A}]}, Typed[{}, {{A}}]],
+				Function[{Typed[k, NonNegativeIntegers], Typed[r, {A} -> {{A}}]}, Function[{Typed[l, {A}]},
+					"machineIf"["lessEqual"[n, Length[l]], Prepend["listFirst"[l, n]][r[Drop[l, n]]], Typed[{}, {{A}}]]
+				]],
+				fuel
+			]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, NonNegativeIntegers -> NonNegativeIntegers -> {A} -> {{A}}]
+	]],
+	TypeTheoryDefinition["listPartition", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[l, {A}], Typed[n, NonNegativeIntegers]}, "partitionRows"[n, Length[l]][l]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, {A} -> NonNegativeIntegers -> {{A}}]
+	]],
+	(* each element of a row put before its column, the row and the columns as long as each other *)
+	TypeTheoryDefinition["prependColumns", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[row, {A}]}, InductiveRecursor[List][
+			Function[{Typed[t, {A}]}, {{A}} -> {{A}}],
+			Function[{Typed[columns, {{A}}]}, columns],
+			Function[{Typed[x, A], Typed[xs, {A}], Typed[r, {{A}} -> {{A}}]}, Function[{Typed[columns, {{A}}]},
+				InductiveRecursor[List][
+					Function[{Typed[t, {{A}}]}, {{A}}],
+					Typed[{}, {{A}}],
+					Function[{Typed[column, {A}], Typed[rest, {{A}}], Typed[s, {{A}}]}, Prepend[Prepend[x][column]][r[rest]]],
+					columns
+				]
+			]],
+			row
+		]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, {A} -> {{A}} -> {{A}}]
+	]],
+	(* the columns of rows of a length, as lists: no rows give that many empty columns *)
+	TypeTheoryDefinition["transposeRows", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}]}, InductiveRecursor[List][
+			Function[{Typed[t, {{A}}]}, {{A}}],
+			"listConstant"[Typed[{}, {A}], columns],
+			Function[{Typed[row, {A}], Typed[rest, {{A}}], Typed[r, {{A}}]}, "prependColumns"[row][r]],
+			rows
+		]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, NonNegativeIntegers -> {{A}} -> {{A}}]
+	]],
+	(* typed code's operations on a matrix: Length, the rows, which never leaves; a row, m[[i]], a vector; and an
+	   element, m[[i, j]], each index counted as Part counts it *)
+	TypeTheoryDefinition["matrixLength", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]},
+			Typed["subtype"["integerOfNatural"[Length[m[["rows"]]]], "naturalInteger64Range"[Length[m[["rows"]]], m[["proof"]][["right"]][["left"]]]], "Integer64"]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> "Integer64"]
+	]],
+	TypeTheoryDefinition["matrixRow", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers]},
+			"confirmBind"["listPartOfIndex"[m[["rows"]], i], Function[{Typed[row, {A}]}, "arrayOfList"[row]]]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> Integers -> ("PackedArray"[A, 1] | Failure)]
+	]],
+	TypeTheoryDefinition["matrixPart", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[j, Integers]},
+			"confirmBind"["listPartOfIndex"[m[["rows"]], i], Function[{Typed[row, {A}]}, "listPartOfIndex"[row, j]]]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> Integers -> Integers -> (A | Failure)]
+	]],
+	(* the mathematics: Dimensions, the pair of the counts of the rows and the columns; and the product of a matrix and a
+	   vector of machine integers, the exact sum of the integers' products for each row, as far as the shorter goes *)
+	TypeTheoryDefinition["matrixDimensions", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]},
+			Typed["pair"[Length[m[["rows"]]], m[["columns"]]], CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]
+	]],
+	TypeTheoryDefinition["integerListDot", Typed[
+		Function[{Typed[l, {"Integer64"}]}, InductiveRecursor[List][
+			Function[{Typed[t, {"Integer64"}]}, {"Integer64"} -> Integers],
+			Function[{Typed[w, {"Integer64"}]}, Typed[0, Integers]],
+			Function[{Typed[x, "Integer64"], Typed[rest, {"Integer64"}], Typed[r, {"Integer64"} -> Integers]}, Function[{Typed[w, {"Integer64"}]},
+				InductiveRecursor[List][
+					Function[{Typed[t, {"Integer64"}]}, Integers],
+					Typed[0, Integers],
+					Function[{Typed[y, "Integer64"], Typed[ys, {"Integer64"}], Typed[s, Integers]}, x[["integer"]] y[["integer"]] + r[ys]],
+					w
+				]
+			]],
+			l
+		]],
+		{"Integer64"} -> {"Integer64"} -> Integers
+	]],
+	TypeTheoryDefinition["matrixVectorProduct", Typed[
+		Function[{Typed[m, "PackedArray"["Integer64", 2]], Typed[v, "PackedArray"["Integer64", 1]]},
+			Map[Function[{Typed[row, {"Integer64"}]}, "integerListDot"[row][v[["list"]]]], m[["rows"]]]
+		],
+		"PackedArray"["Integer64", 2] -> "PackedArray"["Integer64", 1] -> {Integers}
 	]],
 
 	(* a list a machine can hold is its array, with no leave: the decision of the range, whatever the instance, takes its
@@ -653,5 +828,322 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 			"Introduce"[r, hr],
 			"Exact"["existsIntroduction"[r, "andIntroduction"[hr[["left"]],
 				"equalityTransitivity"[hr[["right"]], "integerAdditionAssociativity"[s[["integer"]], x[["integer"]], "integerListSum"[tail]]]]]]}
+	],
+
+	(* the transpose of rows: as long as the columns, each column as long as the rows are many, and twice the rows. A row
+	   put before columns as long as it is transposes to the row before the transpose of the columns *)
+	machineTheorem["prependColumnsLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[row, {A}], Typed[columns, {{A}}]}, Length["prependColumns"[row][columns]] == Length[columns]],
+		{"Introduce"[A, row], "Induction"[row],
+			"Introduce"[columns], "Reflexivity",
+			"Introduce"[x, xs, ih, columns], "Cases"[columns],
+			"Reflexivity",
+			"Introduce"[column, rest], "Exact"["equalityCongruence"["successor", ih[rest]]]}
+	],
+	machineTheorem["transposeRowsLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}]}, Length["transposeRows"[columns, rows]] == columns],
+		{"Introduce"[A, columns, rows], "Induction"[rows],
+			"Exact"["listConstantLength"[{A}, Typed[{}, {A}], columns]],
+			"Introduce"[row, rest, ih], "Exact"["equalityTransitivity"["prependColumnsLength"[A, row, "transposeRows"[columns, rest]], ih]]}
+	],
+	machineTheorem["prependColumnsOfLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers], Typed[row, {A}], Typed[columns, {{A}}]},
+			Implies[Length[row] == Length[columns], Implies["rowsOfLength"[columns, n], "rowsOfLength"["prependColumns"[row][columns], n + 1]]]],
+		{"Introduce"[A, n, row], "Induction"[row],
+			"Introduce"[columns], "Cases"[columns],
+			"Introduce"[hl, hc], "Exact"["trueIntroduction"],
+			"Introduce"[column, rest, hl, hc], "Exact"["falseElimination"["successorNotZero"[Length[rest]]["equalitySymmetry"[hl]]]],
+			"Introduce"[x, xs, ih, columns], "Cases"[columns],
+			"Introduce"[hl, hc], "Exact"["falseElimination"["successorNotZero"[Length[xs]][hl]]],
+			"Introduce"[column, rest, hl, hc],
+			"Exact"["andIntroduction"["equalityCongruence"["successor", hc[["left"]]], ih[rest, "successorInjectivity"[hl], hc[["right"]]]]]}
+	],
+	machineTheorem["constantRowsOfLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[c, NonNegativeIntegers]}, "rowsOfLength"["listConstant"[Typed[{}, {A}], c], 0]],
+		{"Introduce"[A, c], "Induction"[c],
+			"Exact"["trueIntroduction"],
+			"Introduce"[k, ih], "Exact"["andIntroduction"["equalityReflexivity"[0], ih]]}
+	],
+	machineTheorem["transposeRowsOfLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}]},
+			Implies["rowsOfLength"[rows, columns], "rowsOfLength"["transposeRows"[columns, rows], Length[rows]]]],
+		{"Introduce"[A, columns, rows], "Induction"[rows],
+			"Introduce"[h], "Exact"["constantRowsOfLength"[A, columns]],
+			"Introduce"[row, rest, ih, h],
+			"Exact"["prependColumnsOfLength"[A, Length[rest], row, "transposeRows"[columns, rest],
+				"equalityTransitivity"[h[["left"]], "equalitySymmetry"["transposeRowsLength"[A, columns, rest]]], ih[h[["right"]]]]]}
+	],
+	machineTheorem["transposeOfPrependColumns",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers], Typed[row, {A}], Typed[columns, {{A}}]},
+			Implies[Length[row] == Length[columns], "transposeRows"[n + 1, "prependColumns"[row][columns]] == Prepend[row]["transposeRows"[n, columns]]]],
+		{"Introduce"[A, n, row], "Induction"[row],
+			"Introduce"[columns], "Cases"[columns],
+			"Introduce"[hl], "Reflexivity",
+			"Introduce"[column, rest, hl], "Exact"["falseElimination"["successorNotZero"[Length[rest]]["equalitySymmetry"[hl]]]],
+			"Introduce"[x, xs, ih, columns], "Cases"[columns],
+			"Introduce"[hl], "Exact"["falseElimination"["successorNotZero"[Length[xs]][hl]]],
+			"Introduce"[column, rest, hl],
+			"Exact"["equalityCongruence"[Function[{Typed[t, {{A}}]}, "prependColumns"[Prepend[x][column]][t]], ih[rest, "successorInjectivity"[hl]]]]}
+	],
+	machineTheorem["transposeOfConstantRows",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[c, NonNegativeIntegers]}, "transposeRows"[0, "listConstant"[Typed[{}, {A}], c]] == Typed[{}, {{A}}]],
+		{"Introduce"[A, c], "Induction"[c], "Reflexivity", "Introduce"[k, ih], "Exact"[ih]}
+	],
+	machineTheorem["transposeRowsTwice",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}]},
+			Implies["rowsOfLength"[rows, columns], "transposeRows"[Length[rows], "transposeRows"[columns, rows]] == rows]],
+		{"Introduce"[A, columns, rows], "Induction"[rows],
+			"Introduce"[h], "Exact"["transposeOfConstantRows"[A, columns]],
+			"Introduce"[row, rest, ih, h],
+			"Exact"["equalityTransitivity"[
+				"transposeOfPrependColumns"[A, Length[rest], row, "transposeRows"[columns, rest], "equalityTransitivity"[h[["left"]], "equalitySymmetry"["transposeRowsLength"[A, columns, rest]]]],
+				"equalityCongruence"[Function[{Typed[t, {{A}}]}, Prepend[row][t]], ih[h[["right"]]]]]]}
+	],
+	(* two matrices are one where their columns and rows are: any two proofs of the range are one *)
+	machineTheorem["matrixEquality",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[c, NonNegativeIntegers], Typed[d, NonNegativeIntegers], Typed[r, {{A}}], Typed[s, {{A}}], Typed[p, "matrixRange"[c, r]], Typed[q, "matrixRange"[d, s]]},
+			Implies[c == d, Implies[r == s, "matrix"[c, r, p] == "matrix"[d, s, q]]]],
+		{"Introduce"[A, c, d, r, s, p, q, e, f], "Generalize"[q], "Rewrite"[e, "RightToLeft"], "Rewrite"[f, "RightToLeft"], "Introduce"[q], "Reflexivity"}
+	],
+	(* the transpose of a matrix is one: its rows are the columns, as long as the rows were many *)
+	machineTheorem["matrixTransposeRange",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixRange"[Length[m[["rows"]]], "transposeRows"[m[["columns"]], m[["rows"]]]]],
+		{"Introduce"[A, m],
+			"Have"[h, "matrixRange"[m[["columns"]], m[["rows"]]]], "Exact"[m[["proof"]]],
+			"Change"[Length[m[["rows"]]] < upper && Length["transposeRows"[m[["columns"]], m[["rows"]]]] < upper &&
+				Length["transposeRows"[m[["columns"]], m[["rows"]]]] Length[m[["rows"]]] < upper && "rowsOfLength"["transposeRows"[m[["columns"]], m[["rows"]]], Length[m[["rows"]]]]],
+			"Rewrite"["transposeRowsLength"[A, m[["columns"]], m[["rows"]]]],
+			"Exact"["andIntroduction"[h[["right"]][["left"]], "andIntroduction"[h[["left"]], "andIntroduction"[
+				"equalitySubstitution"["multiplicationCommutativity"[Length[m[["rows"]]], m[["columns"]]], h[["right"]][["right"]][["left"]], P -> Function[{Typed[k, NonNegativeIntegers]}, k < upper]],
+				"transposeRowsOfLength"[A, m[["columns"]], m[["rows"]], h[["right"]][["right"]][["right"]]]]]]]}
+	],
+	TypeTheoryDefinition["matrixTranspose", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]},
+			"matrix"[Length[m[["rows"]]], "transposeRows"[m[["columns"]], m[["rows"]]], "matrixTransposeRange"[A, m]]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> "PackedArray"[A, 2]]
+	]],
+	(* Transpose twice is the identity on every matrix, and the dimensions of a transpose are the pair swapped *)
+	machineTheorem["matrixTransposeTwice",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixTranspose"["matrixTranspose"[m]] == m],
+		{"Introduce"[A, m], "Cases"[m], "Introduce"[c, rows, p],
+			"Exact"["matrixEquality"[A, Length["transposeRows"[c, rows]], c, "transposeRows"[Length[rows], "transposeRows"[c, rows]], rows,
+				"matrixTransposeRange"[A, "matrixTranspose"["matrix"[c, rows, p]]], p,
+				"transposeRowsLength"[A, c, rows], "transposeRowsTwice"[A, c, rows, p[["right"]][["right"]][["right"]]]]]}
+	],
+	machineTheorem["matrixDimensionsOfTranspose",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixDimensions"["matrixTranspose"[m]] == "pair"["matrixDimensions"[m][[2]], "matrixDimensions"[m][[1]]]],
+		{"Introduce"[A, m],
+			"Exact"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, Typed["pair"[k, Length[m[["rows"]]]], CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]],
+				"transposeRowsLength"[A, m[["columns"]], m[["rows"]]]]]}
+	],
+
+	(* the first n elements are n where the list has them, and the rest is as long as what is left *)
+	machineTheorem["listFirstLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[n, NonNegativeIntegers]}, Implies[n <= Length[l], Length["listFirst"[l, n]] == n]],
+		{"Introduce"[A, l], "Induction"[l],
+			"Introduce"[n], "Cases"[n],
+			"Introduce"[h], "Reflexivity",
+			"Introduce"[k, h], "Exact"["falseElimination"["successorNotLessEqualZero"[k][h]]],
+			"Introduce"[x, rest, ih, n], "Cases"[n],
+			"Introduce"[h], "Reflexivity",
+			"Introduce"[k, h], "Exact"["equalityCongruence"["successor", ih[k, "lessEqualPredecessor"[h]]]]}
+	],
+	machineTheorem["dropLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[n, NonNegativeIntegers]}, Implies[n <= Length[l], Length[Drop[l, n]] + n == Length[l]]],
+		{"Introduce"[A, l], "Induction"[l],
+			"Introduce"[n], "Cases"[n],
+			"Introduce"[h], "Reflexivity",
+			"Introduce"[k, h], "Exact"["falseElimination"["successorNotLessEqualZero"[k][h]]],
+			"Introduce"[x, rest, ih, n], "Cases"[n],
+			"Introduce"[h], "Reflexivity",
+			"Introduce"[k, h],
+			"Exact"["equalityTransitivity"["additionSuccessorRight"[Length[Drop[rest, k]], k], "equalityCongruence"["successor", ih[k, "lessEqualPredecessor"[h]]]]]}
+	],
+	(* the rows of a partition: no more than its rounds, no more elements than the list has, and each n long *)
+	machineTheorem["partitionRowsCount",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[l, {A}]}, Length["partitionRows"[n, fuel][l]] <= fuel],
+		{"Introduce"[A, n, fuel], "Induction"[fuel],
+			"Introduce"[l], "Exact"["lessEqualZero"[0]],
+			"Introduce"[k, ih, l],
+			"Change"[Length["machineIf"["lessEqual"[n, Length[l]], Prepend["listFirst"[l, n]]["partitionRows"[n, k][Drop[l, n]]], Typed[{}, {{A}}]]] <= k + 1],
+			"Cases"["lessEqual"[n, Length[l]]],
+			"Exact"["lessEqualZero"[k + 1]],
+			"Exact"["lessEqualSuccessor"[ih[Drop[l, n]]]]}
+	],
+	machineTheorem["partitionRowsBound",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[l, {A}]}, Length["partitionRows"[n, fuel][l]] n <= Length[l]],
+		{"Introduce"[A, n, fuel], "Induction"[fuel],
+			"Introduce"[l], "Change"[0 n <= Length[l]], "Rewrite"["multiplicationZeroLeft"[n]], "Exact"["lessEqualZero"[Length[l]]],
+			"Introduce"[k, ih, l],
+			"Change"[Length["machineIf"["lessEqual"[n, Length[l]], Prepend["listFirst"[l, n]]["partitionRows"[n, k][Drop[l, n]]], Typed[{}, {{A}}]]] n <= Length[l]],
+			"Have"[hc, Implies["lessEqual"[n, Length[l]] == "true", n <= Length[l]]], "Exact"["lessEqualTrue"[n, Length[l]]],
+			"Generalize"[hc], "Cases"["lessEqual"[n, Length[l]]],
+			"Introduce"[hc], "Change"[0 n <= Length[l]], "Rewrite"["multiplicationZeroLeft"[n]], "Exact"["lessEqualZero"[Length[l]]],
+			"Introduce"[hc],
+			"Have"[hn, n <= Length[l]], "Exact"[hc["equalityReflexivity"["true"]]],
+			"Have"[hb, Length["partitionRows"[n, k][Drop[l, n]]] n <= Length[Drop[l, n]]], "Exact"[ih[Drop[l, n]]],
+			"Have"[hd, Length[Drop[l, n]] + n == Length[l]], "Exact"["dropLength"[A, l, n, hn]],
+			"Change"[(Length["partitionRows"[n, k][Drop[l, n]]] + 1) n <= Length[l]],
+			"Rewrite"["multiplicationSuccessorLeft"[Length["partitionRows"[n, k][Drop[l, n]]], n]],
+			"Rewrite"[hd, "RightToLeft"],
+			"Exact"["additionMonotonicity"[hb, "lessEqualReflexivity"]]}
+	],
+	machineTheorem["partitionRowsOfLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers], Typed[fuel, NonNegativeIntegers], Typed[l, {A}]}, "rowsOfLength"["partitionRows"[n, fuel][l], n]],
+		{"Introduce"[A, n, fuel], "Induction"[fuel],
+			"Introduce"[l], "Exact"["trueIntroduction"],
+			"Introduce"[k, ih, l],
+			"Change"["rowsOfLength"["machineIf"["lessEqual"[n, Length[l]], Prepend["listFirst"[l, n]]["partitionRows"[n, k][Drop[l, n]]], Typed[{}, {{A}}]], n]],
+			"Have"[hc, Implies["lessEqual"[n, Length[l]] == "true", n <= Length[l]]], "Exact"["lessEqualTrue"[n, Length[l]]],
+			"Generalize"[hc], "Cases"["lessEqual"[n, Length[l]]],
+			"Introduce"[hc], "Exact"["trueIntroduction"],
+			"Introduce"[hc], "Exact"["andIntroduction"["listFirstLength"[A, l, n, hc["equalityReflexivity"["true"]]], ih[Drop[l, n]]]]}
+	],
+	(* the partition of a vector into rows of n, a count a machine holds, is a matrix *)
+	machineTheorem["partitionRange",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[n, NonNegativeIntegers]}, Implies[n < upper, "matrixRange"[n, "listPartition"[a[["list"]], n]]]],
+		{"Introduce"[A, a, n, hn],
+			"Have"[held, Length[a[["list"]]] < upper], "Exact"[a[["proof"]]],
+			"Have"[count, Length["listPartition"[a[["list"]], n]] <= Length[a[["list"]]]], "Exact"["partitionRowsCount"[A, n, Length[a[["list"]]], a[["list"]]]],
+			"Have"[bound, Length["listPartition"[a[["list"]], n]] n <= Length[a[["list"]]]], "Exact"["partitionRowsBound"[A, n, Length[a[["list"]]], a[["list"]]]],
+			"Exact"["andIntroduction"[hn, "andIntroduction"["lessEqualTransitivity"["lessEqualSuccessor"[count], held],
+				"andIntroduction"["lessEqualTransitivity"["lessEqualSuccessor"[bound], held], "partitionRowsOfLength"[A, n, Length[a[["list"]]], a[["list"]]]]]]]}
+	],
+	(* the matrix of the rows of n of a vector; a count no machine holds is the leave of an allocation that fails, which
+	   typed code, whose counts are machine integers, never reaches *)
+	TypeTheoryDefinition["partitionMatrix", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[n, NonNegativeIntegers]}, InductiveRecursor[Decidable][
+			Typed[d, Decidable[n < upper]] |-> "PackedArray"[A, 2] | Failure,
+			Typed[h, Not[n < upper]] |-> Typed["right"[Failure["Memory", <||>]], "PackedArray"[A, 2] | Failure],
+			Typed[h, n < upper] |-> Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, h]]], "PackedArray"[A, 2] | Failure],
+			"machineDecision"[n < upper]
+		]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 1] -> NonNegativeIntegers -> ("PackedArray"[A, 2] | Failure)]
+	]],
+	(* Partition[a, k]: k columns, as many rows of k as the vector has, a shorter tail dropped; k below 1 is the
+	   compiler's leave Failure["Range", <||>] *)
+	TypeTheoryDefinition["matrixOfPartition", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[k, Integers]},
+			"machineIf"["integerLessEqualQ"[1, k], "partitionMatrix"[a, "integerNormalPair"[k][[1]]], Typed["right"[Failure["Range", <||>]], "PackedArray"[A, 2] | Failure]]
+		],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 1] -> Integers -> ("PackedArray"[A, 2] | Failure)]
+	]],
+	TypeTheoryTheorem["partitionMatrixInRange",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[n, NonNegativeIntegers], Typed[h, n < upper]},
+			"partitionMatrix"[a, n] == Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, h]]], "PackedArray"[A, 2] | Failure]],
+		Function[{Typed[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[n, NonNegativeIntegers], Typed[h, n < upper]}, InductiveRecursor[Decidable][
+			Typed[d, Decidable[n < upper]] |-> InductiveRecursor[Decidable][
+				Typed[e, Decidable[n < upper]] |-> "PackedArray"[A, 2] | Failure,
+				Typed[k, Not[n < upper]] |-> Typed["right"[Failure["Memory", <||>]], "PackedArray"[A, 2] | Failure],
+				Typed[k, n < upper] |-> Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, k]]], "PackedArray"[A, 2] | Failure],
+				d
+			] == Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, h]]], "PackedArray"[A, 2] | Failure],
+			Typed[k, Not[n < upper]] |-> "falseElimination"[k[h]],
+			Typed[k, n < upper] |-> "equalityReflexivity"[Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, h]]], "PackedArray"[A, 2] | Failure]],
+			"machineDecision"[n < upper]
+		]]
+	],
+	(* Partition by a count a machine integer holds, 1 or more, is the matrix of its rows; by a count below 1 it leaves *)
+	machineTheorem["matrixOfPartitionOfNatural",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[n, NonNegativeIntegers], Typed[h, n < upper]}, Implies[1 <= n,
+			"matrixOfPartition"[a, "integerOfNatural"[n]] == Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, h]]], "PackedArray"[A, 2] | Failure]]],
+		{"Introduce"[A, a, n, h, positive],
+			"Change"["machineIf"["integerLessEqualQ"[1, "integerOfNatural"[n]], "partitionMatrix"[a, "integerNormalPair"["integerOfNatural"[n]][[1]]], Typed["right"[Failure["Range", <||>]], "PackedArray"[A, 2] | Failure]] ==
+				Typed["left"["matrix"[n, "listPartition"[a[["list"]], n], "partitionRange"[A, a, n, h]]], "PackedArray"[A, 2] | Failure]],
+			"Rewrite"["integerLessEqualQOfNatural"[1, n, positive]], "Rewrite"["integerNormalPairOfNatural"[n]],
+			"Exact"["partitionMatrixInRange"[A, a, n, h]]}
+	],
+	machineTheorem["matrixOfPartitionRange",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[a, "PackedArray"[A, 1]], Typed[k, Integers]},
+			Implies["integerLessEqualQ"[1, k] == "false", "matrixOfPartition"[a, k] == Typed["right"[Failure["Range", <||>]], "PackedArray"[A, 2] | Failure]]],
+		{"Introduce"[A, a, k, h],
+			"Change"["machineIf"["integerLessEqualQ"[1, k], "partitionMatrix"[a, "integerNormalPair"[k][[1]]], Typed["right"[Failure["Range", <||>]], "PackedArray"[A, 2] | Failure]] == Typed["right"[Failure["Range", <||>]], "PackedArray"[A, 2] | Failure]],
+			"Rewrite"[h], "Reflexivity"}
+	],
+	(* a part leaves by a place that is not there alone; a part of rows each c long is c long *)
+	machineTheorem["listPartLeave",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[j, Integers], Typed[f, Failure]}, Implies["listPart"[l][j] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]],
+		{"Introduce"[A, l], "Induction"[l],
+			"Introduce"[j, f, h], "Exact"["equalitySymmetry"["rightInjective"[A, Failure, Failure["PartRange", <||>], f, h]]],
+			"Introduce"[x, rest, ih, j, f],
+			"Change"[Implies["machineIf"["integerEqual"[j, 0], Typed["left"[x], A | Failure], "listPart"[rest][j - 1]] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]],
+			"Cases"["integerEqual"[j, 0]],
+			"Introduce"[h], "Exact"[ih[j - 1, f, h]],
+			"Introduce"[h], "Exact"["falseElimination"["leftNotRight"[A, Failure, x, f, h]]]}
+	],
+	machineTheorem["listPartOfIndexLeave",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[i, Integers], Typed[f, Failure]}, Implies["listPartOfIndex"[l, i] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]],
+		{"Introduce"[A, l, i, f],
+			"Change"[Implies["machineIf"["integerLessEqualQ"[1, i], "listPart"[l][i - 1], "listPart"[l]["integerOfNatural"[Length[l]] + i]] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]],
+			"Cases"["integerLessEqualQ"[1, i]],
+			"Introduce"[h], "Exact"["listPartLeave"[A, l, "integerOfNatural"[Length[l]] + i, f, h]],
+			"Introduce"[h], "Exact"["listPartLeave"[A, l, i - 1, f, h]]}
+	],
+	machineTheorem["rowsOfLengthPart",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[c, NonNegativeIntegers], Typed[rows, {{A}}], Typed[j, Integers], Typed[row, {A}]},
+			Implies["rowsOfLength"[rows, c], Implies["listPart"[rows][j] == Typed["left"[row], {A} | Failure], Length[row] == c]]],
+		{"Introduce"[A, c, rows], "Induction"[rows],
+			"Introduce"[j, row, hr, h], "Exact"["falseElimination"["rightNotLeft"[{A}, Failure, row, Failure["PartRange", <||>], h]]],
+			"Introduce"[x, rest, ih, j, row, hr],
+			"Change"[Implies["machineIf"["integerEqual"[j, 0], Typed["left"[x], {A} | Failure], "listPart"[rest][j - 1]] == Typed["left"[row], {A} | Failure], Length[row] == c]],
+			"Cases"["integerEqual"[j, 0]],
+			"Introduce"[h], "Exact"[ih[j - 1, row, hr[["right"]], h]],
+			"Introduce"[h], "Rewrite"["leftInjective"[{A}, Failure, x, row, h], "RightToLeft"], "Exact"[hr[["left"]]]}
+	],
+	machineTheorem["rowsOfLengthPartOfIndex",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[c, NonNegativeIntegers], Typed[rows, {{A}}], Typed[i, Integers], Typed[row, {A}]},
+			Implies["rowsOfLength"[rows, c], Implies["listPartOfIndex"[rows, i] == Typed["left"[row], {A} | Failure], Length[row] == c]]],
+		{"Introduce"[A, c, rows, i, row, hr],
+			"Change"[Implies["machineIf"["integerLessEqualQ"[1, i], "listPart"[rows][i - 1], "listPart"[rows]["integerOfNatural"[Length[rows]] + i]] == Typed["left"[row], {A} | Failure], Length[row] == c]],
+			"Cases"["integerLessEqualQ"[1, i]],
+			"Introduce"[h], "Exact"["rowsOfLengthPart"[A, c, rows, "integerOfNatural"[Length[rows]] + i, row, hr, h]],
+			"Introduce"[h], "Exact"["rowsOfLengthPart"[A, c, rows, i - 1, row, hr, h]]}
+	],
+	(* a row and an element of a matrix leave by a part that is not there alone: a row is a vector a machine holds,
+	   never the leave of an allocation that fails *)
+	machineTheorem["matrixRowLeave",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[f, Failure]},
+			Implies["matrixRow"[m, i] == Typed["right"[f], "PackedArray"[A, 1] | Failure], f == Failure["PartRange", <||>]]],
+		{"Introduce"[A, m, i, f],
+			"Have"[hv, ForAll[{Typed[row, {A}]}, Implies["listPartOfIndex"[m[["rows"]], i] == Typed["left"[row], {A} | Failure], Length[row] == m[["columns"]]]]],
+			"Exact"[Function[{Typed[row, {A}]}, "rowsOfLengthPartOfIndex"[A, m[["columns"]], m[["rows"]], i, row, m[["proof"]][["right"]][["right"]][["right"]]]]],
+			"Have"[hl, ForAll[{Typed[g, Failure]}, Implies["listPartOfIndex"[m[["rows"]], i] == Typed["right"[g], {A} | Failure], g == Failure["PartRange", <||>]]]],
+			"Exact"["listPartOfIndexLeave"[{A}, m[["rows"]], i]],
+			"Have"[held, m[["columns"]] < upper], "Exact"[m[["proof"]][["left"]]],
+			"Change"[Implies["confirmBind"["listPartOfIndex"[m[["rows"]], i], Function[{Typed[row, {A}]}, "arrayOfList"[row]]] == Typed["right"[f], "PackedArray"[A, 1] | Failure], f == Failure["PartRange", <||>]]],
+			"Generalize"[hv], "Generalize"[hl], "Cases"["listPartOfIndex"[m[["rows"]], i]],
+			"Introduce"[row, hl, hv, h],
+			"Have"[hr, "arrayLengthRange"[A][row]], "Change"[Length[row] < upper], "Rewrite"[hv[row, "equalityReflexivity"[Typed["left"[row], {A} | Failure]]]], "Exact"[held],
+			"Have"[h2, "arrayOfList"[row] == Typed["right"[f], "PackedArray"[A, 1] | Failure]], "Exact"[h],
+			"Rewrite"["arrayOfListInRange"[A, row, hr], "At" -> h2],
+			"Exact"["falseElimination"["leftNotRight"["PackedArray"[A, 1], Failure, "subtype"[row, hr], f, h2]]],
+			"Introduce"[g, hl, hv, h],
+			"Have"[h3, Typed["right"[g], "PackedArray"[A, 1] | Failure] == Typed["right"[f], "PackedArray"[A, 1] | Failure]], "Exact"[h],
+			"Rewrite"["rightInjective"["PackedArray"[A, 1], Failure, g, f, h3], "RightToLeft"],
+			"Exact"[hl[g, "equalityReflexivity"[Typed["right"[g], {A} | Failure]]]]}
+	],
+	machineTheorem["matrixPartLeave",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[j, Integers], Typed[f, Failure]},
+			Implies["matrixPart"[m, i, j] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]],
+		{"Introduce"[A, m, i, j, f],
+			"Have"[hl, ForAll[{Typed[g, Failure]}, Implies["listPartOfIndex"[m[["rows"]], i] == Typed["right"[g], {A} | Failure], g == Failure["PartRange", <||>]]]],
+			"Exact"["listPartOfIndexLeave"[{A}, m[["rows"]], i]],
+			"Change"[Implies["confirmBind"["listPartOfIndex"[m[["rows"]], i], Function[{Typed[row, {A}]}, "listPartOfIndex"[row, j]]] == Typed["right"[f], A | Failure], f == Failure["PartRange", <||>]]],
+			"Generalize"[hl], "Cases"["listPartOfIndex"[m[["rows"]], i]],
+			"Introduce"[row, hl, h], "Exact"["listPartOfIndexLeave"[A, row, j, f, h]],
+			"Introduce"[g, hl, h],
+			"Have"[h3, Typed["right"[g], A | Failure] == Typed["right"[f], A | Failure]], "Exact"[h],
+			"Rewrite"["rightInjective"[A, Failure, g, f, h3], "RightToLeft"],
+			"Exact"[hl[g, "equalityReflexivity"[Typed["right"[g], {A} | Failure]]]]}
+	],
+	(* Length of a matrix is the integer of the count of its rows, and the product has as many integers *)
+	machineTheorem["matrixLengthInteger",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixLength"[m][["integer"]] == "integerOfNatural"[Length[m[["rows"]]]]],
+		{"Introduce"[A, m], "Reflexivity"}
+	],
+	machineTheorem["matrixVectorProductLength",
+		ForAll[{Typed[m, "PackedArray"["Integer64", 2]], Typed[v, "PackedArray"["Integer64", 1]]}, Length["matrixVectorProduct"[m, v]] == Length[m[["rows"]]]],
+		{"Introduce"[m, v], "Exact"["lengthMap"[Function[{Typed[row, {"Integer64"}]}, "integerListDot"[row][v[["list"]]]], m[["rows"]]]]}
 	]
 }]
