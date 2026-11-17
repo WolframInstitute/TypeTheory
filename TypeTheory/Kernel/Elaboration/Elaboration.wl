@@ -794,7 +794,7 @@ tryReadings[_, {}, failures_List, {arguments_List, names_List, functionType_}, h
 			throwFailure[Last[SelectFirst[failures, First]]],
 		MemberQ[failures, {True, _, _}],
 			throwFailure[Failure["ElaborationFailed", <|
-				"MessageTemplate" -> $tooManyArguments,
+				"MessageTemplate" -> messageTemplate[$tooManyArguments],
 				"MessageParameters" -> {HoldForm @@ heldFromSyntax[headSyntax]},
 				"EveryBinder" -> Last[SelectFirst[failures, First]]
 			|>]],
@@ -810,7 +810,7 @@ unknownNameQ[names_List, syntaxApplication[syntaxSymbol[HoldComplete[Rule | Rule
 unknownNameQ[_, _] := False
 
 $tooManyArguments = "`1` is applied to more arguments than its type takes."
-tooManyArgumentsQ[failure_Failure] := failure["MessageTemplate"] === $tooManyArguments
+tooManyArgumentsQ[failure_Failure] := templateString[failure] === $tooManyArguments
 tooManyArgumentsQ[_] := False
 
 explicitBinderCount[dependentFunctionType[_, _, codomain_, binder_]] := If[explicitBinderQ[binder], 1, 0] + explicitBinderCount[codomain]

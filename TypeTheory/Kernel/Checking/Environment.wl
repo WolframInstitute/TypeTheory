@@ -227,7 +227,7 @@ environmentNamed[environment_] := environment
 SetTypeTheoryEnvironment[specification_] := Replace[TypeTheoryEnvironment[specification], {
 	environment_?environmentQ :> SetTypeTheoryEnvironment[environment],
 	failure_Failure :> failure,
-	_ :> Failure["NotAnEnvironment", <|"MessageTemplate" -> "`1` does not specify an environment.", "MessageParameters" -> {specification}|>]
+	_ :> Failure["NotAnEnvironment", <|"MessageTemplate" -> messageTemplate["`1` does not specify an environment."], "MessageParameters" -> {specification}|>]
 }]
 
 
@@ -289,7 +289,7 @@ checkUniverseParameters[name_HoldComplete, universeParameters_List, terms_List] 
 
 
 kernelFailure[tag_String, template_String, parameters_List] := throwFailure[
-	Failure[tag, <|"MessageTemplate" -> template, "MessageParameters" -> parameters|>]
+	Failure[tag, <|"MessageTemplate" -> messageTemplate[template], "MessageParameters" -> parameters|>]
 ]
 
 throwFailure[failure_Failure] := Throw[failure, $kernelFailureTag]
@@ -309,7 +309,7 @@ $kernelRecursionLimit = 8000
 
 recursionFailure[value_, Hold[]] := value
 recursionFailure[_, Hold[Throw[_, TerminatedEvaluation["RecursionLimit", ___]]]] := Failure["RecursionLimit", <|
-	"MessageTemplate" -> "The computation goes deeper than the kernel can recurse, `1` calls: a reduction this deep computes when its operation is registered, as TypeTheoryNaturalNumbers registers those of the natural numbers.",
+	"MessageTemplate" -> messageTemplate["The computation goes deeper than the kernel can recurse, `1` calls: a reduction this deep computes when its operation is registered, as TypeTheoryNaturalNumbers registers those of the natural numbers."],
 	"MessageParameters" -> {$kernelRecursionLimit}
 |>]
 recursionFailure[_, control_] := ReleaseHold[control]

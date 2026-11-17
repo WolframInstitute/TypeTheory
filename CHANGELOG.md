@@ -45,6 +45,11 @@ Versions 0.50.0 to 0.53.0.
 
 ### Fixed
 
+- **Failure messages are plain text.** A failure's `"Message"` carried Wolfram's linear syntax for boxes,
+  `\!\(\*TagBox[...]\)`, for each parameter, with the environments' session handles inside, wherever the string was read:
+  a log, a test, an agent. The message template now inserts each parameter as the text of its boxes, so a type
+  mismatch reads `equalityReflexivity[4] has type 4 ⩵ 4, ...`, the same with a front end or without, and
+  `"MessageParameters"` stays the terms it was.
 - **Arithmetic on stuck terms with large literals decided without unfolding them.** Definitional equality reached the
   recursion limit, where it should decide, on products of terms that do not reduce by literals of a thousand or more:
   `x K` against `y K` and against `x (K + 1)`, which differ, and `Length[m] K + 0` against `Length[m] K`, which are equal.

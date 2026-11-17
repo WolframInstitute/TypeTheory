@@ -241,7 +241,7 @@ proofFrom[HoldComplete[term_], Hold[options : OptionsPattern[]]] /; termExpressi
 proofFrom[held_, Hold[options : OptionsPattern[]]] := startProof[unnamedEnvironment[held], held, Hold[options]]
 proofFrom[_, Hold[___, failure_Failure, ___]] := failure
 proofFrom[_, Hold[arguments___]] := Failure["ProofArguments", <|
-	"MessageTemplate" -> "TypeTheoryProof takes a statement, then an environment, a list of tactics and options, in that order, not `1`.",
+	"MessageTemplate" -> messageTemplate["TypeTheoryProof takes a statement, then an environment, a list of tactics and options, in that order, not `1`."],
 	"MessageParameters" -> {HoldForm[{arguments}]}
 |>]
 
@@ -1312,9 +1312,11 @@ solvedByCheckedProof[data_, goal_, current_, proof_] := (
 	solveGoal[data, goal, proof, {}]
 )
 
-(* a Failure's message as plain text, its parameters as text too, for a message that quotes it *)
+(* a Failure's message as plain text, its parameters as text too, for a message that quotes it: a TypeTheory failure's
+   message is text already (messageTemplate), and another's template is applied to the text of its parameters *)
 failureText[failure_Failure] := Replace[failure["MessageTemplate"], {
-	template_String :> TemplateApply[StringTemplate[template], Function[parameter, ToString[parameter, OutputForm]] /@ Replace[failure["MessageParameters"], Except[_List] -> {}]],
+	_TemplateObject :> failure["Message"],
+	template_String :> TemplateApply[StringTemplate[template], messageText /@ Replace[failure["MessageParameters"], Except[_List] -> {}]],
 	_ :> ToString[failure["Tag"]]
 }]
 
@@ -2033,7 +2035,7 @@ portfolioProof[data_, goal_] := With[{introduced = introducedHypotheses[data, go
 		{
 			TypeTheoryProof[closed_Association] :> closed,
 			tried_Association :> throwFailure[Failure["NoProofFound", <|
-				"MessageTemplate" -> "No tactic of the portfolio proves the goal `1`.",
+				"MessageTemplate" -> messageTemplate["No tactic of the portfolio proves the goal `1`."],
 				"MessageParameters" -> {goalDisplay[data, goal]},
 				"Tried" -> tried
 			|>]]

@@ -27,7 +27,7 @@ traced to its test and the call that takes the time.
 
 | Cause | Area | Files (tests never run) | State |
 | --- | --- | --- | --- |
-| `CodeParse` of a 217 KB file takes 349 s, against 2.4 s on Wolfram 15 (about 146 times slower); `Terms/Scoping.wlt` parses every kernel file before its first test | KernelPaclet | Scoping (3) | known: PureMath's ledger sent it as a speed item; TypeTheory's case sent |
+| `CodeParse` of a 217 KB file takes 349 s, against 2.4 s on Wolfram 15 (about 146 times slower); `Terms/Scoping.wlt` parses every kernel file before its first test | KernelPaclet, then MarkdownToNotebook | Scoping (3) | cause found (MarkdownToNotebook): v2 pins Parser 1.9.5, whose concrete tree is a grammar in Wolfram Language, 50 s on Wolfram 15's evaluator for this file; from Parser 1.9.9 the tree comes from the reader's tokens, 6.3 s. The pin is queued as h876 |
 | TypeTheory's own work, normal forms and environments, about 1.7 to 5 times slower: a real vector's normal form 36 s against 21 s, an environment of three definitions 3.9 s against 0.8 s | WolframKernel | CompiledDefinitions (29) | sent, a speed item with TypeTheory as its repro |
 | Slow but done when run alone: 423 s and 471 s | WolframKernel | CompiledKernel (32), NormalForms (5) | rerun alone: 31 of 32 and 4 of 5, the failures below; with the speed item |
 

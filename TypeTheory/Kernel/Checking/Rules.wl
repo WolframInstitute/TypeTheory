@@ -91,11 +91,11 @@ TypeTheoryRules[rules_TypeTheoryRules?rulesQ, changes__Rule] /; SubsetQ[$ruleSet
 
 (* a name of no rules, a setting the rules do not have, or a value that is no Boolean is a Failure *)
 TypeTheoryRules[name_String, ___Rule] /; ! KeyExistsQ[$namedRules, name] := Failure["UnknownRules", <|
-	"MessageTemplate" -> "`1` is not the name of rules, which are `2`.",
+	"MessageTemplate" -> messageTemplate["`1` is not the name of rules, which are `2`."],
 	"MessageParameters" -> {name, Keys[$namedRules]}
 |>]
 TypeTheoryRules[rules_TypeTheoryRules?rulesQ, changes__Rule] := Failure["InvalidRuleSetting", <|
-	"MessageTemplate" -> "The settings `1` are not settings of rules, each one of `2` with the value True or False.",
+	"MessageTemplate" -> messageTemplate["The settings `1` are not settings of rules, each one of `2` with the value True or False."],
 	"MessageParameters" -> {{changes}, $ruleSettings}
 |>]
 

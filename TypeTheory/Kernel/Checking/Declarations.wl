@@ -181,7 +181,7 @@ TypeTheoryEnvironment["MachineReals"] := machineRealsEnvironment[]
 TypeTheoryEnvironment["Cubical"] := cubicalEnvironment[]
 TypeTheoryEnvironment["WolframLanguage"] := wolframLanguageEnvironment[]
 TypeTheoryEnvironment[name_String] := Failure["UnknownEnvironment", <|
-	"MessageTemplate" -> "`1` is not the name of a library environment, which are `2`.",
+	"MessageTemplate" -> messageTemplate["`1` is not the name of a library environment, which are `2`."],
 	"MessageParameters" -> {name, $environmentNames}
 |>]
 (* a library environment by its name, extended *)

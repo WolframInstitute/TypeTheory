@@ -87,11 +87,13 @@ VerificationTest[
    plain message. *)
 VerificationTest[
 	{
-		Lookup[Last[TypeTheoryType[TypeTheoryTerm[Prepend["trueIntroduction"][{}], prelude]]], {"MessageTemplate", "MessageParameters"}] /. {template_String, parameters_List} :> {
-			StringContainsQ[template, "whose sort is"],
-			Length[parameters],
-			ToString[parameters[[3]]] =!= "True"
-		},
+		With[{failure = TypeTheoryType[TypeTheoryTerm[Prepend["trueIntroduction"][{}], prelude]]},
+			{
+				StringContainsQ[failure["Message"], "whose sort is"],
+				Length[failure["MessageParameters"]],
+				ToString[failure["MessageParameters"][[3]]] =!= "True"
+			}
+		],
 		Length[Last[TypeTheoryType[TypeTheoryTerm[Typed["trueIntroduction", False], prelude]]]["MessageParameters"]]
 	},
 	{{True, 5, True}, 3},

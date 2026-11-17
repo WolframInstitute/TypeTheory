@@ -94,6 +94,9 @@ PackageScoped[displaySyntax]
 PackageScoped[$displayColors]
 PackageScoped[$displayTooltips]
 PackageScoped[tooltipsWanted]
+PackageScoped[messageTemplate]
+PackageScoped[messageText]
+PackageScoped[templateString]
 
 
 (* ::Section:: *)
@@ -109,6 +112,9 @@ prependedElements::usage = "prependedElements[syntax] gives the elements of the 
 ruleSyntaxQ::usage = "ruleSyntaxQ[syntax] gives True if syntax is a rule, lhs -> rhs or lhs :> rhs."
 associationPairsQ::usage = "associationPairsQ[syntax] gives True if syntax is a list literal of pairs, the pairs of an association written out."
 $displayColors::usage = "$displayColors is the Association of the colors a display gives a bound variable, a universe level and an unsolved metavariable."
+messageTemplate::usage = "messageTemplate[template] gives the template of a Failure's message, the string template with its parameters inserted as text, by messageText."
+messageText::usage = "messageText[value] gives value as the plain text a message shows: a string as it is, a term or another expression as the text of its boxes, without boxes, tooltips or styles, wherever it is read."
+templateString::usage = "templateString[failure] gives the string template of the message of failure, or None where it has none."
 
 
 (* ::Section:: *)
@@ -1055,7 +1061,22 @@ $displayColors = <|"BoundVariable" -> RGBColor[0.2, 0.55, 0.2], "Level" -> Stand
 $displayTooltips = Automatic
 $tooltipLeafLimit = 5000
 tooltipsWanted[] := TrueQ[Replace[$displayTooltips, Automatic :> notebookBoxesQ[]]]
-notebookBoxesQ[] := $FrontEnd =!= Null || Environment["TYPETHEORY_NOTEBOOK_BOXES"] === "True"
+notebookBoxesQ[] := ! $plainTextBoxes && ($FrontEnd =!= Null || Environment["TYPETHEORY_NOTEBOOK_BOXES"] === "True")
+
+(* A Failure's message is text wherever it is read: Wolfram writes each parameter that a template inserts as boxes,
+   \!\(\*TagBox[...]\) in the string of a log, a test or an agent, a string parameter included. The template of a
+   TypeTheory failure inserts its parameters itself, each as the text of its boxes made without a front end, and the
+   parameters stay the terms they are. *)
+$plainTextBoxes = False
+messageTemplate[template_String] := StringTemplate[template, InsertionFunction -> messageText]
+messageText[text_String] := text
+messageText[value_] := Block[{$plainTextBoxes = True}, ToString[DisplayForm[textBoxes[ToBoxes[value, StandardForm]]]]]
+(* StringTemplate gives a TemplateObject of the template's pieces, whose slots are written back as `n` *)
+templateString[failure_] := Replace[failure["MessageTemplate"], {
+	TemplateObject[pieces_List, ___] :> StringJoin[Replace[pieces, TemplateSlot[slot_Integer] :> "`" <> ToString[slot] <> "`", {1}]],
+	template_String :> template,
+	_ :> None
+}]
 $tooltipsShown = False
 
 (* a TooltipBox alone, where Tooltip would also keep the tooltip's boxes in a TagBox's annotation, twice its size *)

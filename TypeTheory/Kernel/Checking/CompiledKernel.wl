@@ -1907,7 +1907,7 @@ compileKernelLibrary[] := Block[{library, $RecursionLimit = 100000},
 	If[! DirectoryQ[$libraryDirectory], CreateDirectory[$libraryDirectory, CreateIntermediateDirectories -> True]];
 	library = Replace[compiledKernelProgram[], Hold[declarations_, entry_] :> FunctionCompileExportLibrary[FileNameJoin[{$libraryDirectory, $libraryName}], declarations, entry]];
 	If[ ! StringQ[library],
-		Failure["CompiledKernelNotBuilt", <|"MessageTemplate" -> "The compiled kernel's library was not built: `1`.", "MessageParameters" -> {library}|>],
+		Failure["CompiledKernelNotBuilt", <|"MessageTemplate" -> messageTemplate["The compiled kernel's library was not built: `1`."], "MessageParameters" -> {library}|>],
 		Export[
 			FileNameJoin[{$libraryDirectory, $libraryName <> ".json"}],
 			<|"Hash" -> compiledKernelHash[], "Library" -> FileNameTake[library], "Engine" -> $engineName, "WolframVersion" -> $wolframVersion, "SystemID" -> $SystemID|>,
@@ -2359,7 +2359,7 @@ compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer,
 	duplicate = FirstPosition[input["Names"], name_ /; ! DuplicateFreeQ[input["Records"][name]["UniverseParameters"]], None, {1}, Heads -> False];
 	If[ duplicate =!= None,
 		Return[Failure["DuplicateUniverseParameter", <|
-			"MessageTemplate" -> "The universe parameters of `1` must be distinct.",
+			"MessageTemplate" -> messageTemplate["The universe parameters of `1` must be distinct."],
 			"MessageParameters" -> {HoldForm @@ input["Names"][[First[duplicate]]]},
 			"Position" -> First[duplicate]
 		|>]]
@@ -2595,7 +2595,7 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 			None,
 		result[[1]] == 0,
 			Success["EnvironmentChecked", <|
-				"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
+				"MessageTemplate" -> messageTemplate["All `1` constants of the environment check again from their declarations."],
 				"MessageParameters" -> {input["EnvironmentConstants"]},
 				"Constants" -> input["EnvironmentConstants"]
 			|>],
@@ -2615,14 +2615,14 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 		   placed after every constant, so that what is declared again before it is all of them *)
 		KeyExistsQ[$failureMessages, result[[1]]] && result[[2]] > input["EnvironmentConstants"],
 			Replace[First[Drop[input["Equations"], result[[2]] - input["EnvironmentConstants"] - 1]], {role_, name_, statement_} :> Failure["InvalidNaturalNumberOperation", <|
-				"MessageTemplate" -> "`1` cannot be registered as `2`: `3` does not hold by computation.",
+				"MessageTemplate" -> messageTemplate["`1` cannot be registered as `2`: `3` does not hold by computation."],
 				"MessageParameters" -> {HoldForm @@ name, role, statement},
 				"Position" -> input["EnvironmentConstants"] + 1,
 				"RegistrationEquation" -> True
 			|>]],
 		KeyExistsQ[$failureMessages, result[[1]]] && result[[2]] >= 1,
 			Failure[First[$failureMessages[result[[1]]]], <|
-				"MessageTemplate" -> "`1` does not check: `2`.",
+				"MessageTemplate" -> messageTemplate["`1` does not check: `2`."],
 				"MessageParameters" -> {HoldForm @@ input["Names"][[result[[2]]]], Last[$failureMessages[result[[1]]]]},
 				"Position" -> result[[2]]
 			|>],

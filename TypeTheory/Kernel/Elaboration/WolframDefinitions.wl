@@ -85,7 +85,7 @@ loadKernelCompiler[] := Which[
 		True,
 	! AnyTrue[PacletFind["Wolfram/KernelCompiler"], Function[paclet, StringStartsQ[paclet["Version"], $kernelCompilerVersions]]],
 		Failure["KernelCompilerMissing", <|
-			"MessageTemplate" -> "Reading Wolfram Language definitions needs the paclet Wolfram/KernelCompiler `1`*. Install it with `2`.",
+			"MessageTemplate" -> messageTemplate["Reading Wolfram Language definitions needs the paclet Wolfram/KernelCompiler `1`*. Install it with `2`."],
 			"MessageParameters" -> {$kernelCompilerVersions, "PacletInstall[ResourceObject[\"" <> $kernelCompilerResource <> "\"]]"}
 		|>],
 	True,
@@ -95,7 +95,7 @@ loadKernelCompiler[] := Which[
 		If[ kernelCompilerSymbol["$CoreVersion"] === $kernelCompilerCoreVersion,
 			$kernelCompilerLoaded = True,
 			Failure["KernelCompilerVersion", <|
-				"MessageTemplate" -> "The paclet Wolfram/KernelCompiler writes Core of version `1`, and reading definitions is written for version `2`.",
+				"MessageTemplate" -> messageTemplate["The paclet Wolfram/KernelCompiler writes Core of version `1`, and reading definitions is written for version `2`."],
 				"MessageParameters" -> {kernelCompilerSymbol["$CoreVersion"], $kernelCompilerCoreVersion}
 			|>]
 		]

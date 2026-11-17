@@ -278,7 +278,7 @@ SetAttributes[givenTerm, HoldAllComplete]
 givenTerm[term : TypeTheoryTerm[__], None] := term
 givenTerm[TypeTheoryTerm[term_], environment_] := TypeTheoryTerm[term, environment]
 givenTerm[given : TypeTheoryTerm[_, own_], environment_] /; environment =!= None :=
-	If[ givenEnvironment[given] === environment, given, Failure["DifferentEnvironments", <|"MessageTemplate" -> "The term carries another environment than the one given.", "MessageParameters" -> {}|>]]
+	If[ givenEnvironment[given] === environment, given, Failure["DifferentEnvironments", <|"MessageTemplate" -> messageTemplate["The term carries another environment than the one given."], "MessageParameters" -> {}|>]]
 givenTerm[(head : HoldPattern[PacletSymbol[_, _String]])[arguments___], environment_] /; head === TypeTheoryTerm := givenTerm[TypeTheoryTerm[arguments], environment]
 givenTerm[symbol_Symbol, None] /; MatchQ[OwnValues[symbol], {_ :> _TypeTheoryTerm}] := symbol
 givenTerm[term_, None] := TypeTheoryTerm[term]
@@ -311,7 +311,7 @@ TypeTheoryCheck[term_TypeTheoryTerm, type_TypeTheoryTerm] := catchKernelFailure 
 	{environment = sharedEnvironment[term, type], universeParameters = universeParameterNames[{termSyntax[term], termSyntax[type]}]},
 	{expected = Block[{$levelGeneralization = "Type"}, elaborateClosedType[environment, heldTerm[type], universeParameters]]},
 	checkedQueryTerm[environment, term, expected, universeParameters];
-	Success["TypeChecked", <|"MessageTemplate" -> "`1` has type `2`.", "MessageParameters" -> {term, type}, "Term" -> term, "Type" -> type|>]
+	Success["TypeChecked", <|"MessageTemplate" -> messageTemplate["`1` has type `2`."], "MessageParameters" -> {term, type}, "Term" -> term, "Type" -> type|>]
 ]
 
 
@@ -328,7 +328,7 @@ DefinitionallyEqualQ[first_TypeTheoryTerm, second_TypeTheoryTerm] := Replace[cat
 	withCheckedTerms[definitionallyEqualQ[environment, <||>, First[terms], Last[terms]]]
 ], {
 	exhausted : Failure["RecursionLimit", _] :> Failure["RecursionLimit", <|
-		"MessageTemplate" -> "Deciding whether `1` and `2` are definitionally equal goes deeper than the kernel can recurse, `3` calls: the two are not known to differ.",
+		"MessageTemplate" -> messageTemplate["Deciding whether `1` and `2` are definitionally equal goes deeper than the kernel can recurse, `3` calls: the two are not known to differ."],
 		"MessageParameters" -> {first, second, First[exhausted["MessageParameters"]]}
 	|>],
 	result_ :> TrueQ[result]
@@ -714,7 +714,7 @@ environmentInformation[environment_, "Annotations"] := Association[
 	]
 ]
 environmentInformation[_, property_String] := Failure["UnknownProperty", <|
-	"MessageTemplate" -> "`1` is not a property of an environment; Information[env, \"Properties\"] lists them.",
+	"MessageTemplate" -> messageTemplate["`1` is not a property of an environment; Information[env, \"Properties\"] lists them."],
 	"MessageParameters" -> {property}
 |>]
 
@@ -995,7 +995,7 @@ Options[TypeTheoryCheck] = {Method -> Automatic}
 TypeTheoryCheck[name_String, options : OptionsPattern[]] := Replace[TypeTheoryEnvironment[name], environment_?environmentQ :> TypeTheoryCheck[environment, options]]
 TypeTheoryCheck[environment_?environmentQ, options : OptionsPattern[]] /; ! MemberQ[{Automatic, "Compiled", "Symbolic"}, OptionValue[TypeTheoryCheck, {options}, Method]] :=
 	Failure["UnknownMethod", <|
-		"MessageTemplate" -> "`1` is no method of TypeTheoryCheck, which are Automatic, \"Compiled\" and \"Symbolic\".",
+		"MessageTemplate" -> messageTemplate["`1` is no method of TypeTheoryCheck, which are Automatic, \"Compiled\" and \"Symbolic\"."],
 		"MessageParameters" -> {OptionValue[TypeTheoryCheck, {options}, Method]}
 	|>]
 TypeTheoryCheck[environment_?environmentQ, OptionsPattern[]] := withStoreCleanup @ catchKernelFailure @ Replace[
@@ -1135,7 +1135,7 @@ environmentChecked[environment_, replayed_] := (
 		{key_, ___} :> kernelFailure["DeclarationMismatch", "The `1` of the environment's store does not match what its records give.", {key}]
 	}];
 	Success["EnvironmentChecked", <|
-		"MessageTemplate" -> "All `1` constants of the environment check again from their declarations.",
+		"MessageTemplate" -> messageTemplate["All `1` constants of the environment check again from their declarations."],
 		"MessageParameters" -> {Length[environmentNames[environment]]},
 		"Constants" -> Length[environmentNames[environment]]
 	|>]
@@ -1190,7 +1190,7 @@ TypeTheoryTranslate[environment_?environmentQ, rules_?rulesQ, OptionsPattern[]] 
 		]
 	},
 	Success["Translated", <|
-		"MessageTemplate" -> "`1` of the `2` declarations translate to the rules `3`.",
+		"MessageTemplate" -> messageTemplate["`1` of the `2` declarations translate to the rules `3`."],
 		"MessageParameters" -> {Length[primary] - Length[result["Failures"]], Length[primary], rules["Name"]},
 		"Environment" -> result["Environment"],
 		"Failures" -> KeyMap[ReleaseHold, result["Failures"]]
@@ -1201,7 +1201,7 @@ TypeTheoryTranslate[environment_?environmentQ, rules_?rulesQ, OptionsPattern[]] 
 translateDeclaration[original_, state_Association, name_, direction_String, axiomsQ_] := With[{record = constantRecord[original, name]},
 	If[ record["Kind"] === "Axiom" && ! axiomsQ,
 		Append[state, "Failures" -> Append[state["Failures"], name -> Failure["AxiomLeftOut", <|
-			"MessageTemplate" -> "`1` is an axiom, which a translation keeps only with \"Axioms\" -> True.",
+			"MessageTemplate" -> messageTemplate["`1` is an axiom, which a translation keeps only with \"Axioms\" -> True."],
 			"MessageParameters" -> {HoldForm @@ name}
 		|>]]],
 		Replace[catchKernelFailure[translatedDeclaration[original, state["Environment"], name, record, direction]], {
