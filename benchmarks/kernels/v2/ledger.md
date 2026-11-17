@@ -43,11 +43,11 @@ the tests that also need another item. Ranking is by alone, then total.
 
 | # | Item | Owner | Alone | Total | State |
 | --- | --- | --- | --- | --- | --- |
-| 1 | Operators print as calls: `Subtract`, `Divide`, `Cross`, `CenterDot`, `CircleTimes`, `NotExists` | FrontEnd | 5 | 7 | sent |
+| 1 | Operators print as calls: `Subtract`, `Divide`, `Cross`, `CenterDot`, `CircleTimes`, `NotExists` | FrontEnd | 5 | 7 | fixed in h975 (0cefe9e0f), queued behind h832 and h890 |
 | 2 | `FindEquationalProof` is not implemented | Math | 2 | 2 | sent |
-| 3 | TraditionalForm rewrites a sum inside a held argument before a `MakeBoxes` rule sees it | FrontEnd | 1 | 4 | sent |
-| 4 | A sum inside a sum loses its parentheses | FrontEnd | 1 | 3 | sent |
-| 5 | TraditionalForm's `Mod` leaves its argument's sum without parentheses | FrontEnd | 0 | 1 | sent |
+| 3 | TraditionalForm rewrites a sum inside a held argument before a `MakeBoxes` rule sees it | FrontEnd | 1 | 4 | fixed in h975 (0cefe9e0f), queued behind h832 and h890 |
+| 4 | A sum inside a sum loses its parentheses | FrontEnd | 1 | 3 | fixed in h975 (0cefe9e0f), queued behind h832 and h890 |
+| 5 | TraditionalForm's `Mod` leaves its argument's sum without parentheses | FrontEnd | 0 | 1 | fixed in h975 (0cefe9e0f), queued behind h832 and h890 |
 
 ### 1. Operators print as calls (FrontEnd)
 
