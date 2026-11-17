@@ -904,9 +904,13 @@ VerificationTest[
 				TypeTheoryFormalize[Typed[vectorSum, "Integer64"], machine]
 			}
 		],
-		StringContainsQ[TypeTheoryFormalize[vectorSum, machine]["Message"], "Typed["]
+		StringContainsQ[TypeTheoryFormalize[vectorSum, machine]["Message"], "Typed["],
+		(* a rank above 2 is refused by name, typed code having none *)
+		With[{failure = TypeTheoryFormalize[Typed[vectorSum, {"PackedArray"::["Integer64", 3]} -> "Integer64"], machine]},
+			{failure["Tag"], StringContainsQ[failure["Message"], "rank above 2"], StringContainsQ[ToString[failure["MessageParameters"], InputForm], "3"]}
+		]
 	},
-	{True, True, {"NoTypedEntry", "TypedResult", "TypedArguments", "UnmodeledType", "TypedSignature"}, True},
+	{True, True, {"NoTypedEntry", "TypedResult", "TypedArguments", "UnmodeledType", "TypedSignature"}, True, {"UnmodeledType", True, True}},
 	TestID -> "A-function-of-a-vector-is-formalized-with-its-types-and-wrong-types-are-refused"
 ]
 

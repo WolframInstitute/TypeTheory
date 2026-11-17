@@ -117,6 +117,13 @@ typeKind["Real64" | "MachineReal"] := "Real64"
 typeKind["Boolean"] := "Boolean"
 typeKind[(TypeSpecifier["PackedArray"] | "PackedArray")["Integer64" | "MachineInteger", 1]] := "Array:Int64"
 typeKind[(TypeSpecifier["PackedArray"] | "PackedArray")["Real64" | "MachineReal", 1]] := "Array:Real64"
+(* typed code has no arrays of a rank above 2, whose meaning in the environment, the lists a machine holds of the
+   arrays of the rank below, no typed entry computes *)
+typeKind[type : (TypeSpecifier["PackedArray"] | "PackedArray")[_, rank_Integer /; rank > 2]] := kernelFailure[
+	"UnmodeledType",
+	"The machine model has no type `1`: typed code has no packed arrays of a rank above 2.",
+	{type}
+]
 typeKind[type_] := kernelFailure[
 	"UnmodeledType",
 	"The machine model has no type `1`: it has \"Integer64\", \"Real64\", \"Boolean\" and the vectors \"PackedArray\"::[\"Integer64\", 1] and \"PackedArray\"::[\"Real64\", 1].",
