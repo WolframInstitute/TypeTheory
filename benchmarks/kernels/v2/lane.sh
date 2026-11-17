@@ -23,14 +23,18 @@ P() { POD_HOST=$1 sh "$pods/pod.sh" "$2"; }
 Pi() { POD_HOST=$1 sh "$pods/pod.sh" -i "$2"; }
 # the tree: the commit, then the release's additions, then the compiler
 stage=$(mktemp -d "${TMPDIR:-/tmp}/tt-v2.XXXXXX") || exit 2
-trap 'rm -rf "$stage"' EXIT
+trap 'rm -rf "$stage" "$stage.tgz" "$stage.send"' EXIT
 git -C "$root" archive --format=tar "$sha" | tar -xf - -C "$stage" || exit 2
 mkdir -p "$stage/TypeTheory/Environments" "$stage/TypeTheory/LibraryResources/Linux-x86-64" "$stage/KernelCompiler"
 cp "$root"/TypeTheory/Environments/*.wxf "$stage/TypeTheory/Environments/" && cp "$root"/TypeTheory/LibraryResources/Linux-x86-64/* "$stage/TypeTheory/LibraryResources/Linux-x86-64/" &&
 	cp -R "$compiler"/. "$stage/KernelCompiler/" || exit 2
 COPYFILE_DISABLE=1 tar --no-mac-metadata -czf "$stage.tgz" -C "$stage" . || exit 2
 echo "lane.sh: TypeTheory $short ($(wc -c < "$stage.tgz" | tr -d ' ') bytes), kernel $(echo "$ksha" | cut -c1-12)"
-send() { Pi "$1" "rm -rf ~/TypeTheory-lanes/$short && mkdir -p ~/TypeTheory-lanes/$short && tar -xzf - -C ~/TypeTheory-lanes/$short" < "$stage.tgz" 2>&1 | grep -v LIBARCHIVE; }
+# the pod command's own status, its output without tar's warnings about macOS metadata
+send() {
+	Pi "$1" "rm -rf ~/TypeTheory-lanes/$short && mkdir -p ~/TypeTheory-lanes/$short && tar -xzf - -C ~/TypeTheory-lanes/$short" < "$stage.tgz" > "$stage.send" 2>&1; status=$?
+	grep -v LIBARCHIVE "$stage.send"; echo "lane.sh: TypeTheory $short on $1, status $status"; return $status
+}
 # the lanes pod with the most free slots now
 freest() { best=; most=-1; for p in $(sh "$pods/pod-addr.sh" --role lanes); do f=0; for l in $(sh "$pods/pod-addr.sh" --slots "$p" | awk '{ print $1 }'); do lockf -s -t 0 "$l" true 2> /dev/null && f=$((f + 1)); done; [ "$f" -gt "$most" ] && { most=$f; best=$p; }; done; echo "$best"; }
 pod=${TT_POD:-$(freest)}; w15=$(sh "$pods/pod-addr.sh" --role w15 | head -1)
