@@ -20,6 +20,7 @@ RelatedTutorials: [ThePrelude, InstancesAndCoercions]
 - A decision is data, in `Type`, not a proposition, so it computes, and its recursor eliminates into any universe: [Decide]() turns it into a Boolean, and `"decideSoundness"` turns a decision that computes to `"true"` into a proof of *p*.
 - [Decidable]() is a class: its instances are definitions declared with `"Instance" -> True`, and elaboration finds the decision of a proposition among them.
 - The prelude's instances decide equations and inequalities of natural numbers with `"naturalNumberEqualityDecidable"` and `"lessEqualDecidable"`, which compare literals in one step of the kernel, combine decisions with `"notDecidable"`, `"andDecidable"` and `"orDecidable"`, and decide [True](), [False]() and equations of Booleans with `"trueDecidable"`, `"falseDecidable"` and `"booleanEqualityDecidable"`.
+- A Boolean where a proposition is expected is the proposition that it is true, by the coercion `"booleanProposition"`, which `"booleanPropositionDecidable"` decides: the condition of [If]() is a Boolean as [SameQ]() or [MatchQ]() gives it, `If[Head[e] === Integer, a, b]`, or a proposition, `If[n == 0, a, b]`.
 - The tactic `"Decide"` of [TypeTheoryTactic]() finds the decision of the goal and proves it with `"decideSoundness"`; an environment extends it with instances of its own.
 
 ## Basic Examples

@@ -47,6 +47,13 @@ Versions 0.50.0 to 0.54.0.
   10.^-400 leaves as an underflow, the reciprocal of a power past the largest real. From 2^25 typed code calls the C
   library's pow, a fifth axiom of the reals, `"real64LibraryPower"`, about whose values nothing is assumed.
 
+### Changed
+
+- **`If` takes a Boolean condition.** A Boolean where a proposition is expected is the proposition that it is true, by
+  the prelude's coercion `"booleanProposition"`, which `"booleanPropositionDecidable"` decides, so `If[Head[e] ===
+  Integer, a, b]` is written as the Wolfram Language writes it, with the Boolean that `SameQ` or `MatchQ` gives; a
+  proposition such as `n == 0` is decided as before. The prelude has 259 constants.
+
 ### Fixed
 
 - **Failure messages are plain text.** A failure's `"Message"` carried Wolfram's linear syntax for boxes,

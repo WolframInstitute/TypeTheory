@@ -123,7 +123,7 @@ VerificationTest[
 
 VerificationTest[
 	{Length[prelude], Take[Keys[prelude], 3], KeyExistsQ[prelude, Plus], KeyExistsQ[prelude, Divide]},
-	{257, {True, "trueIntroduction", InductiveRecursor[True]}, True, False},
+	{259, {True, "trueIntroduction", InductiveRecursor[True]}, True, False},
 	TestID -> "Keys-Length-and-KeyExistsQ"
 ]
 

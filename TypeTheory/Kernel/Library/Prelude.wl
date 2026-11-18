@@ -31,6 +31,8 @@ The connectives are built-in symbols, so terms read as ordinary mathematics:
 	Decidable[p]               decisions, with Decide, "decideSoundness", and the instances deciding == and <= of
 	                           natural numbers, True, False, the connectives and == of Booleans, the last three
 	                           named "trueDecidable", "falseDecidable" and "booleanEqualityDecidable"
+	"booleanProposition"       a Boolean where a proposition is expected, b == "true", a coercion: If[c, x, y] takes a
+	                           Boolean c, as SameQ or MatchQ gives, decided by "booleanPropositionDecidable"
 	CartesianProductType, DisjointUnionType, Option, List
 	                           pairs, sums, optional values and lists, with Join, Length, Map, Append and Reverse:
 	                           {a}, List[a], is the type of lists of a where a type is expected, and a list elsewhere
@@ -853,6 +855,18 @@ $constructiveDeclarations = {
 			InductiveRecursor[Booleans][Function[{Typed[y, Booleans]}, Decidable["true" == y]], "decidableFalse"["trueNotFalse"], "decidableTrue"["equalityReflexivity"["true"]], b],
 			a
 		]],
+		"Instance" -> True
+	],
+	(* a Boolean where a proposition is expected, as the condition of If, is the proposition that it is true, which the
+	   equality of Booleans decides: If[Head[e] === Integer, a, b] as the Wolfram Language writes it *)
+	TypeTheoryDefinition[
+		"booleanProposition",
+		Function[{Typed[b, Booleans]}, Typed[b == "true", TypeUniverse[0]]],
+		"Coercion" -> True
+	],
+	TypeTheoryDefinition[
+		"booleanPropositionDecidable",
+		Function[{Typed[b, Booleans]}, Typed["booleanEqualityDecidable"[b, "true"], Decidable["booleanProposition"[b]]]],
 		"Instance" -> True
 	],
 

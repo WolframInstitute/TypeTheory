@@ -205,6 +205,24 @@ VerificationTest[
 	TestID -> "A-decision-that-computes-to-True-proves-its-proposition"
 ]
 
+(* a Boolean where a proposition is expected is the proposition that it is true, so If takes the Boolean that SameQ or
+   MatchQ gives, as the Wolfram Language writes it, and a proposition is decided as before *)
+VerificationTest[
+	{
+		TypeTheoryType[TypeTheoryTerm[Typed[e, Expressions] |-> If[Head[e] === Integer, 1, 0], prelude]],
+		TypeTheoryExpression[NormalForm[TypeTheoryTerm[{If[Head[7] === Integer, 1, 0], If[Head["seven"] === Integer, 1, 0], If[3 == 0, 1, 0]}, prelude]]],
+		Head[TypeTheoryProof[ForAll[{Typed[b, Booleans], Typed[x, NonNegativeIntegers]}, If[b, x, x] == x], prelude, {"Introduce"[b, x], "Cases"[b], "Reflexivity", "Reflexivity"}]],
+		TypeTheoryType["booleanProposition", prelude]
+	},
+	{
+		TypeTheoryTerm[Expressions -> NonNegativeIntegers, prelude],
+		{1, 0, 0},
+		TypeTheoryProof,
+		TypeTheoryTerm[Booleans -> TypeUniverse[0], prelude]
+	},
+	TestID -> "A-Boolean-is-a-condition-of-If-as-the-proposition-that-it-is-true"
+]
+
 VerificationTest[
 	{
 		TypeTheoryType[TypeTheoryTerm["pair"[1, "true"][[2]], prelude]],
