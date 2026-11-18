@@ -172,13 +172,15 @@ TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], 
 	InterpretationBox[StyleBox[boxes, ShowStringCharacters -> False], term] /; notebookBoxesQ[]
 ]
 (* with no front end to draw them, as in a terminal, which prints a failure's message from the boxes of its terms, the
-   boxes are those a terminal prints as text: rows of their pieces, without styles, tooltips or tags *)
+   boxes are those a terminal prints as text: rows of their pieces, without styles, tooltips or tags, and an object's
+   summary panel, as an environment's, an ellipsis after its head: TypeTheoryEnvironment[…] *)
 TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], form : StandardForm | TraditionalForm] /; MatchQ[{environment}, {} | {_?environmentQ} | {_String}] := With[
 	{boxes = textBoxes[withDisplayEnvironment[termEnvironment[term], typeTheoryBoxes[toSyntax[expression], form]]]},
 	InterpretationBox[boxes, term]
 ]
 
 textBoxes[boxes_] := boxes //. {
+	DynamicModuleBox[_, TemplateBox[_, "SummaryPanel", ___], ___] :> "\[Ellipsis]",
 	TemplateBox[{separator_, _, items___}, "RowWithSeparators", ___] :> RowBox[Riffle[{items}, separator]],
 	TemplateBox[{items___}, "RowDefault", ___] :> RowBox[{items}],
 	SubscriptBox[quantifier : "\[ForAll]" | "\[Exists]", binder_, ___] :> RowBox[{quantifier, binder, " "}],

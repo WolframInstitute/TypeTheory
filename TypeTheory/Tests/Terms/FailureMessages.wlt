@@ -44,6 +44,15 @@ VerificationTest[
 	TestID -> "A-failure-message-is-plain-text-in-every-area-and-its-parameters-stay-terms"
 ]
 
+(* an environment among a message's parameters is its head and an ellipsis, never its summary panel's boxes *)
+VerificationTest[
+	With[{text = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]]}, Implies[a, a]], Automatic, prelude]["Message"]},
+		{StringQ[text], StringContainsQ[text, "TypeTheoryEnvironment[\[Ellipsis]]"], StringFreeQ[text, "Box" | "FontCapHeight" | "\n"]}
+	],
+	{True, True, True},
+	TestID -> "An-environment-in-a-failure-message-is-its-head-and-an-ellipsis"
+]
+
 (* a message shows the same text whether boxes are drawn for a notebook or for a terminal *)
 VerificationTest[
 	Map[
