@@ -55,7 +55,10 @@ alone, "arraySetPartLeave" and "arrayTakeLeave"; a constant array of a length a 
 Of matrices: Partition by a count a machine integer holds, 1 or more, is the matrix of its rows,
 "matrixOfPartitionOfNatural", and by a count below 1 it leaves, "matrixOfPartitionRange"; a row and an element leave by
 a part that is not there alone, "matrixRowLeave" and "matrixPartLeave"; Transpose twice is the identity,
-"matrixTransposeTwice", and the dimensions of a transpose are the pair swapped, "matrixDimensionsOfTranspose".
+"matrixTransposeTwice", and the dimensions of a transpose are the pair swapped, "matrixDimensionsOfTranspose". A proof
+about a loop over a matrix and a vector takes the machine's dot product, "integerListDotTotal", which is the exact one
+where every product and sum is in range, "integerListDotTotalOfSums"; the rows' dot products in turn, "rowsDotTotals"
+and "rowsDotTotalsOfSums"; and an element of a matrix split at a place, "matrixPartOfJoin".
 *)
 
 
@@ -1145,5 +1148,175 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 	machineTheorem["matrixVectorProductLength",
 		ForAll[{Typed[m, "PackedArray"["Integer64", 2]], Typed[v, "PackedArray"["Integer64", 1]]}, Length["matrixVectorProduct"[m, v]] == Length[m[["rows"]]]],
 		{"Introduce"[m, v], "Exact"["lengthMap"[Function[{Typed[row, {"Integer64"}]}, "integerListDot"[row][v[["list"]]]], m[["rows"]]]]}
-	]
+	],
+
+	(* what a proof about a loop over a matrix and a vector rests on: the machine's dot product of two lists, each
+	   product and sum leaving where it does, as s = s + m[[i, j]] v[[j]] computes it, and the exact one where every
+	   one is in range; the rows' dot products in turn; an element of a matrix split at a place; and binds taken apart,
+	   a pair's first part through a continuation that reads it alone included *)
+	TypeTheoryDefinition["integerListDotTotal", Typed[
+		Function[{Typed[l, {"Integer64"}]}, InductiveRecursor[List][
+			Function[{Typed[t, {"Integer64"}]}, {"Integer64"} -> "Integer64" -> ("Integer64" | Failure)],
+			Function[{Typed[w, {"Integer64"}], Typed[s, "Integer64"]}, Typed["left"[s], "Integer64" | Failure]],
+			Function[{Typed[x, "Integer64"], Typed[rest, {"Integer64"}], Typed[r, {"Integer64"} -> "Integer64" -> ("Integer64" | Failure)]}, Function[{Typed[w, {"Integer64"}], Typed[s, "Integer64"]},
+				InductiveRecursor[List][
+					Function[{Typed[t, {"Integer64"}]}, "Integer64" | Failure],
+					Typed["left"[s], "Integer64" | Failure],
+					Function[{Typed[y, "Integer64"], Typed[ys, {"Integer64"}], Typed[q, "Integer64" | Failure]},
+						"confirmBind"["machineTimes"[x[["integer"]], y[["integer"]]], Function[{Typed[p, "Integer64"]},
+							"confirmBind"["machinePlus"[s[["integer"]], p[["integer"]]], Function[{Typed[u, "Integer64"]}, r[ys, u]]]]]
+					],
+					w
+				]
+			]],
+			l
+		]],
+		{"Integer64"} -> {"Integer64"} -> "Integer64" -> ("Integer64" | Failure)
+	]],
+	TypeTheoryDefinition["dotSumsInRange", Typed[
+		Function[{Typed[l, {"Integer64"}]}, InductiveRecursor[List][
+			Function[{Typed[t, {"Integer64"}]}, {"Integer64"} -> Integers -> TypeUniverse[0]],
+			Function[{Typed[w, {"Integer64"}], Typed[s, Integers]}, True],
+			Function[{Typed[x, "Integer64"], Typed[rest, {"Integer64"}], Typed[r, {"Integer64"} -> Integers -> TypeUniverse[0]]}, Function[{Typed[w, {"Integer64"}], Typed[s, Integers]},
+				InductiveRecursor[List][
+					Function[{Typed[t, {"Integer64"}]}, TypeUniverse[0]],
+					True,
+					Function[{Typed[y, "Integer64"], Typed[ys, {"Integer64"}], Typed[q, TypeUniverse[0]]},
+						"integer64Range"[x[["integer"]] y[["integer"]]] && "integer64Range"[s + x[["integer"]] y[["integer"]]] && r[ys, s + x[["integer"]] y[["integer"]]]
+					],
+					w
+				]
+			]],
+			l
+		]],
+		{"Integer64"} -> {"Integer64"} -> Integers -> TypeUniverse[0]
+	]],
+	machineTheorem["integerListDotTotalOfSums",
+	ForAll[{Typed[l, {"Integer64"}], Typed[w, {"Integer64"}], Typed[s, "Integer64"]}, Implies["dotSumsInRange"[l, w, s[["integer"]]],
+		Exists[{Typed[t, "Integer64"]}, "integerListDotTotal"[l, w, s] == Typed["left"[t], "Integer64" | Failure] && t[["integer"]] == s[["integer"]] + "integerListDot"[l][w]]]],
+	{"Introduce"[l], "Induction"[l],
+		"Introduce"[w, s, h],
+		"Exact"["existsIntroduction"[s, "andIntroduction"["equalityReflexivity"[Typed["left"[s], "Integer64" | Failure]], "equalitySymmetry"["integerAdditionZero"[s[["integer"]]]]]]],
+		"Introduce"[x, tail, ih, w], "Cases"[w],
+		"Introduce"[s, h],
+		"Exact"["existsIntroduction"[s, "andIntroduction"["equalityReflexivity"[Typed["left"[s], "Integer64" | Failure]], "equalitySymmetry"["integerAdditionZero"[s[["integer"]]]]]]],
+		"Introduce"[y, ys, s, h],
+		"Change"[Exists[{Typed[t, "Integer64"]},
+			"confirmBind"["machineResult"[x[["integer"]] y[["integer"]]], Function[{Typed[p, "Integer64"]},
+				"confirmBind"["machineResult"[s[["integer"]] + p[["integer"]]], Function[{Typed[u, "Integer64"]}, "integerListDotTotal"[tail, ys, u]]]]] == Typed["left"[t], "Integer64" | Failure] &&
+			t[["integer"]] == s[["integer"]] + (x[["integer"]] y[["integer"]] + "integerListDot"[tail][ys])]],
+		"Rewrite"["machineResultInRange"[x[["integer"]] y[["integer"]], h[["left"]]]],
+		"Change"[Exists[{Typed[t, "Integer64"]},
+			"confirmBind"["machineResult"[s[["integer"]] + x[["integer"]] y[["integer"]]], Function[{Typed[u, "Integer64"]}, "integerListDotTotal"[tail, ys, u]]] == Typed["left"[t], "Integer64" | Failure] &&
+			t[["integer"]] == s[["integer"]] + (x[["integer"]] y[["integer"]] + "integerListDot"[tail][ys])]],
+		"Rewrite"["machineResultInRange"[s[["integer"]] + x[["integer"]] y[["integer"]], h[["right"]][["left"]]]],
+		"Cases"[ih[ys, "subtype"[s[["integer"]] + x[["integer"]] y[["integer"]], h[["right"]][["left"]]], h[["right"]][["right"]]]],
+		"Introduce"[t, ht],
+		"Exact"["existsIntroduction"[t, "andIntroduction"[ht[["left"]],
+			"equalityTransitivity"[ht[["right"]], "integerAdditionAssociativity"[s[["integer"]], x[["integer"]] y[["integer"]], "integerListDot"[tail][ys]]]]]]}
+],
+	machineTheorem["listPartOfIndexOfJoin",
+	ForAll[{Typed[A, TypeUniverse[1]], Typed[pre, {A}], Typed[x, A], Typed[rest, {A}], Typed[c, NonNegativeIntegers]},
+		Implies[c == Length[pre], "listPartOfIndex"[Join[pre, Prepend[x][rest]], "integerOfNatural"[c + 1]] == Typed["left"[x], A | Failure]]],
+	{"Introduce"[A, pre, x, rest, c, hc], "Rewrite"[hc],
+		"Have"[positive, 1 <= Length[pre] + 1], "LinearArithmetic",
+		"Change"["machineIf"["integerLessEqualQ"[1, "integerOfNatural"[Length[pre] + 1]],
+			"listPart"[Join[pre, Prepend[x][rest]]]["integerOfNatural"[Length[pre] + 1] - 1],
+			"listPart"[Join[pre, Prepend[x][rest]]]["integerOfNatural"[Length[Join[pre, Prepend[x][rest]]]] + "integerOfNatural"[Length[pre] + 1]]] == Typed["left"[x], A | Failure]],
+		"Rewrite"["integerLessEqualQOfNatural"[1, Length[pre] + 1, positive]],
+		"Rewrite"["integerOfNaturalPredecessor"[Length[pre]]],
+		"Exact"["listPartOfJoin"[A, x, rest, pre]]}
+],
+	machineTheorem["matrixPartOfJoin",
+	ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[preRows, {{A}}], Typed[row, {A}], Typed[restRows, {{A}}], Typed[pre, {A}], Typed[x, A], Typed[rest, {A}], Typed[c, NonNegativeIntegers]},
+		Implies[m[["rows"]] == Join[preRows, Prepend[row][restRows]], Implies[row == Join[pre, Prepend[x][rest]], Implies[c == Length[pre],
+			"matrixPart"[m, "integerOfNatural"[Length[preRows] + 1], "integerOfNatural"[c + 1]] == Typed["left"[x], A | Failure]]]]],
+	{"Introduce"[A, m, preRows, row, restRows, pre, x, rest, c, e1, e2, hc],
+		"Change"["confirmBind"["listPartOfIndex"[m[["rows"]], "integerOfNatural"[Length[preRows] + 1]], Function[{Typed[r, {A}]}, "listPartOfIndex"[r, "integerOfNatural"[c + 1]]]] == Typed["left"[x], A | Failure]],
+		"Rewrite"[e1],
+		"Rewrite"["listPartOfIndexOfJoin"[{A}, preRows, row, restRows, Length[preRows], "equalityReflexivity"[Length[preRows]]]],
+		"Rewrite"[e2],
+		"Exact"["listPartOfIndexOfJoin"[A, pre, x, rest, c, hc]]}
+],
+	TypeTheoryDefinition["rowsDotTotals", Typed[
+		Function[{Typed[rows, {{"Integer64"}}], Typed[w, {"Integer64"}]}, InductiveRecursor[List][
+			Function[{Typed[t, {{"Integer64"}}]}, {"Integer64"} | Failure],
+			Typed["left"[Typed[{}, {"Integer64"}]], {"Integer64"} | Failure],
+			Function[{Typed[row, {"Integer64"}], Typed[rest, {{"Integer64"}}], Typed[r, {"Integer64"} | Failure]},
+				"confirmBind"["confirmBind"["machineResult"[0], Function[{Typed[z, "Integer64"]}, "integerListDotTotal"[row, w, z]]], Function[{Typed[d, "Integer64"]},
+					"confirmBind"[r, Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Prepend[d][ds]], {"Integer64"} | Failure]]]]]
+			],
+			rows
+		]],
+		{{"Integer64"}} -> {"Integer64"} -> ({"Integer64"} | Failure)
+	]],
+	TypeTheoryDefinition["rowsDotSumsInRange", Typed[
+		Function[{Typed[rows, {{"Integer64"}}], Typed[w, {"Integer64"}]}, InductiveRecursor[List][
+			Function[{Typed[t, {{"Integer64"}}]}, TypeUniverse[0]],
+			True,
+			Function[{Typed[row, {"Integer64"}], Typed[rest, {{"Integer64"}}], Typed[r, TypeUniverse[0]]}, "dotSumsInRange"[row, w, 0] && r],
+			rows
+		]],
+		{{"Integer64"}} -> {"Integer64"} -> TypeUniverse[0]
+	]],
+	machineTheorem["machineZeroBound", 0 < upper, {"Decide"}],
+	machineTheorem["rowsDotTotalsOfSums",
+	ForAll[{Typed[rows, {{"Integer64"}}], Typed[w, {"Integer64"}]}, Implies["rowsDotSumsInRange"[rows, w],
+		Exists[{Typed[ds, {"Integer64"}]}, "rowsDotTotals"[rows, w] == Typed["left"[ds], {"Integer64"} | Failure] &&
+			Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], ds] == Map[Function[{Typed[row, {"Integer64"}]}, "integerListDot"[row][w]], rows]]]],
+	{"Introduce"[rows, w], "Induction"[rows],
+		"Introduce"[h], "Exact"["existsIntroduction"[Typed[{}, {"Integer64"}], "andIntroduction"["equalityReflexivity"[Typed["left"[Typed[{}, {"Integer64"}]], {"Integer64"} | Failure]], "equalityReflexivity"[Typed[{}, {Integers}]]]]],
+		"Introduce"[row, rest, ih, h],
+		"Have"[zb, 0 < upper], "Exact"["machineZeroBound"],
+		"Cases"["integerListDotTotalOfSums"[row, w, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, zb]], h[["left"]]]],
+		"Introduce"[t, ht],
+		"Cases"[ih[h[["right"]]]],
+		"Introduce"[ds, hd],
+		"Change"[Exists[{Typed[es, {"Integer64"}]},
+			"confirmBind"["confirmBind"["machineResult"[0], Function[{Typed[z, "Integer64"]}, "integerListDotTotal"[row, w, z]]], Function[{Typed[d, "Integer64"]},
+				"confirmBind"["rowsDotTotals"[rest, w], Function[{Typed[fs, {"Integer64"}]}, Typed["left"[Prepend[d][fs]], {"Integer64"} | Failure]]]]] == Typed["left"[es], {"Integer64"} | Failure] &&
+			Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], es] == Prepend["integerListDot"[row][w]][Map[Function[{Typed[r, {"Integer64"}]}, "integerListDot"[r][w]], rest]]]],
+		"Rewrite"["machineResultInRange"[0, "naturalInteger64Range"[0, zb]]],
+		"Change"[Exists[{Typed[es, {"Integer64"}]},
+			"confirmBind"["integerListDotTotal"[row, w, "subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, zb]]], Function[{Typed[d, "Integer64"]},
+				"confirmBind"["rowsDotTotals"[rest, w], Function[{Typed[fs, {"Integer64"}]}, Typed["left"[Prepend[d][fs]], {"Integer64"} | Failure]]]]] == Typed["left"[es], {"Integer64"} | Failure] &&
+			Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], es] == Prepend["integerListDot"[row][w]][Map[Function[{Typed[r, {"Integer64"}]}, "integerListDot"[r][w]], rest]]]],
+		"Rewrite"[ht[["left"]]],
+		"Change"[Exists[{Typed[es, {"Integer64"}]},
+			"confirmBind"["rowsDotTotals"[rest, w], Function[{Typed[fs, {"Integer64"}]}, Typed["left"[Prepend[t][fs]], {"Integer64"} | Failure]]] == Typed["left"[es], {"Integer64"} | Failure] &&
+			Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], es] == Prepend["integerListDot"[row][w]][Map[Function[{Typed[r, {"Integer64"}]}, "integerListDot"[r][w]], rest]]]],
+		"Rewrite"[hd[["left"]]],
+		"Exact"["existsIntroduction"[Prepend[t][ds], "andIntroduction"["equalityReflexivity"[Typed["left"[Prepend[t][ds]], {"Integer64"} | Failure]],
+			"equalityTransitivity"["equalityCongruence"[Function[{Typed[k, Integers]}, Prepend[k][Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], ds]]],
+					"equalityTransitivity"[ht[["right"]], "integerAdditionZeroLeft"["integerListDot"[row][w]]]],
+				"equalityCongruence"[Function[{Typed[ks, {Integers}]}, Prepend["integerListDot"[row][w]][ks]], hd[["right"]]]]]]]}
+],
+	machineTheorem["confirmBindAssociativity",
+	ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[C, TypeUniverse[1]], Typed[p, A | Failure], Typed[f, A -> B | Failure], Typed[k, B -> C | Failure]},
+		"confirmBind"["confirmBind"[p, f], k] == "confirmBind"[p, Function[{Typed[t, A]}, "confirmBind"[f[t], k]]]],
+	{"Introduce"[A, B, C, p], "Cases"[p], "Introduce"[a, f, k], "Reflexivity", "Introduce"[e, f, k], "Reflexivity"}
+],
+	machineTheorem["confirmBindCongruence",
+	ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[p, A | Failure], Typed[f, A -> B | Failure], Typed[g, A -> B | Failure]},
+		Implies[ForAll[{Typed[t, A]}, f[t] == g[t]], "confirmBind"[p, f] == "confirmBind"[p, g]]],
+	{"Introduce"[A, B, p], "Cases"[p], "Introduce"[a, f, g, h], "Exact"[h[a]], "Introduce"[e, f, g, h], "Reflexivity"}
+],
+	machineTheorem["confirmBindFirstThen",
+	ForAll[{Typed[A, TypeUniverse[1]], Typed[B, TypeUniverse[1]], Typed[C, TypeUniverse[1]], Typed[D, TypeUniverse[1]], Typed[E, TypeUniverse[1]],
+			Typed[p, CartesianProductType[A, B] | Failure], Typed[d, A | Failure], Typed[c, CartesianProductType[A, B] -> C | Failure], Typed[k, C -> D | Failure],
+			Typed[h, A -> E | Failure], Typed[g, E -> D | Failure]},
+		Implies["confirmBind"[p, Function[{Typed[t, CartesianProductType[A, B]]}, Typed["left"[t[["first"]]], A | Failure]]] == d,
+			Implies[ForAll[{Typed[t, CartesianProductType[A, B]]}, "confirmBind"[c[t], k] == "confirmBind"[h[t[["first"]]], g]],
+				"confirmBind"["confirmBind"[p, c], k] == "confirmBind"["confirmBind"[d, h], g]]]],
+	{"Introduce"[A, B, C, D, E, p], "Cases"[p],
+		"Introduce"[t, d, c, k, h, g, e, hc], "Rewrite"[e, "RightToLeft"], "Exact"[hc[t]],
+		"Introduce"[f, d, c, k, h, g, e, hc], "Rewrite"[e, "RightToLeft"], "Reflexivity"}
+],
+	machineTheorem["rowsOfLengthOfJoin",
+	ForAll[{Typed[A, TypeUniverse[1]], Typed[c, NonNegativeIntegers], Typed[row, {A}], Typed[rest, {{A}}], Typed[pre, {{A}}]},
+		Implies["rowsOfLength"[Join[pre, Prepend[row][rest]], c], Length[row] == c]],
+	{"Introduce"[A, c, row, rest, pre], "Induction"[pre],
+		"Introduce"[h], "Exact"[h[["left"]]],
+		"Introduce"[x, tail, ih, h], "Exact"[ih[h[["right"]]]]}
+]
 }]

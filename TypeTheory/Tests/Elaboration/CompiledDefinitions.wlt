@@ -1222,6 +1222,253 @@ VerificationTest[
 	TestID -> "Functions-of-matrices-compute-what-the-evaluator-computes-and-leave-where-typed-code-does"
 ]
 
+(* The theorem of the matrices: partitionedProduct, Partition and then two loops over m[[i, j]] v[[j]], gives the vector
+   whose integers are the library's "matrixVectorProduct", where Partition gives a matrix, the vector is as long as a
+   row, the counters stay machine integers, the fuel is above either loop's rounds and no product or partial sum leaves.
+   The inner loop is the machine's dot product of a row with the vector, "integerListDotTotal"; the outer one runs it
+   for each row with the function's whole fuel and sets the row's part of r, so its recursor is named, productRounds,
+   with the rounds left counted down and the inner fuel fixed. Each loop has a round, a stop and an invariant, as the
+   vectors' do; the library's "rowsDotTotalsOfSums" gives the exact sums. *)
+matrices = vectorDeclare[matrices, TypeTheoryDefinition["productRounds", Typed[Function[{Typed[fuel, NonNegativeIntegers], Typed[m4, "PackedArray"["Integer64", 2]], Typed[v3, "PackedArray"["Integer64", 1]], Typed[roundsLeft, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[j, NonNegativeIntegers]}, "Integer64" -> "Integer64" -> "PackedArray"["Integer64", 1] -> "Integer64" -> CartesianProductType["Integer64", CartesianProductType["Integer64", CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]] | Failure], Function[{Typed[s8, "Integer64"], Typed[j7, "Integer64"], Typed[r5, "PackedArray"["Integer64", 1]], Typed[i6, "Integer64"]}, Typed["right"[Failure["OutOfFuel", Association[]]], CartesianProductType["Integer64", CartesianProductType["Integer64", CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]] | Failure]], Function[{Typed[fuelLeft, NonNegativeIntegers], Typed[loop, "Integer64" -> "Integer64" -> "PackedArray"["Integer64", 1] -> "Integer64" -> CartesianProductType["Integer64", CartesianProductType["Integer64", CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]] | Failure]}, Function[{Typed[s8, "Integer64"], Typed[j7, "Integer64"], Typed[r5, "PackedArray"["Integer64", 1]], Typed[i6, "Integer64"]}, "machineIf"["integerLessEqualQ"[i6[["integer"]], "matrixLength"[m4][["integer"]]], "confirmBind"["machineResult"[0], Function[{Typed[s8, "Integer64"]}, "confirmBind"["machineResult"[1], Function[{Typed[j7, "Integer64"]}, "confirmBind"["While[partitionedProduct, 2]"[fuel, v3, m4, i6, s8, j7], Function[{Typed[state2, CartesianProductType["Integer64", "Integer64"]]}, "confirmBind"["arraySetPart"[r5, i6[["integer"]], state2[["first"]]], Function[{Typed[setPart1, "PackedArray"["Integer64", 1]]}, "confirmBind"["machinePlus"[i6[["integer"]], 1], Function[{Typed[t34, "Integer64"]}, loop[state2[["first"]], state2[["second"]], setPart1, t34]]]]]]]]]]], Typed["left"["pair"[s8, "pair"[j7, "pair"[r5, i6]]]], CartesianProductType["Integer64", CartesianProductType["Integer64", CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]] | Failure]]]], roundsLeft]], NonNegativeIntegers -> "PackedArray"["Integer64", 2] -> "PackedArray"["Integer64", 1] -> NonNegativeIntegers -> "Integer64" -> "Integer64" -> "PackedArray"["Integer64", 1] -> "Integer64" -> CartesianProductType["Integer64", CartesianProductType["Integer64", CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]] | Failure]]]
+
+With[{state = CartesianProductType["Integer64", CartesianProductType["Integer64", CartesianProductType["PackedArray"["Integer64", 1], "Integer64"]]]}, With[{
+		upper = 9223372036854775808,
+		zero = Typed["subtype"["integerOfNatural"[0], "naturalInteger64Range"[0, "zeroBound"]], "Integer64"],
+		one = Typed["subtype"["integerOfNatural"[1], "naturalInteger64Range"[1, "oneBound"]], "Integer64"],
+		listOfState = Function[{Typed[st, state]}, Typed["left"[st[["second"]][["second"]][["first"]][["list"]]], {"Integer64"} | Failure]]
+	},
+	matrices = vectorTheorem[matrices, "lengthOfJoin",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[l, {A}], Typed[pre, {A}], Typed[rest, {A}]}, Implies[l == Join[pre, rest], Length[l] == Length[pre] + Length[rest]]],
+		{"Introduce"[A, l, pre, rest, e], "Rewrite"[e], "Exact"["lengthJoin"[pre, rest]]}
+	];
+	matrices = vectorTheorem[matrices, "innerRound",
+		ForAll[{Typed[f, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]], Typed[m, "PackedArray"["Integer64", 2]], Typed[i, "Integer64"], Typed[s, "Integer64"], Typed[j, "Integer64"],
+				Typed[preRows, {{"Integer64"}}], Typed[row, {"Integer64"}], Typed[restRows, {{"Integer64"}}], Typed[pre, {"Integer64"}], Typed[x, "Integer64"], Typed[rest, {"Integer64"}],
+				Typed[preV, {"Integer64"}], Typed[y, "Integer64"], Typed[restV, {"Integer64"}],
+				Typed[e1, m[["rows"]] == Join[preRows, Prepend[row][restRows]]], Typed[hi, i[["integer"]] == "integerOfNatural"[Length[preRows] + 1]],
+				Typed[e2, row == Join[pre, Prepend[x][rest]]], Typed[e3, v[["list"]] == Join[preV, Prepend[y][restV]]], Typed[hl, Length[preV] == Length[pre]],
+				Typed[hj, j[["integer"]] == "integerOfNatural"[Length[preV] + 1]], Typed[h2, (Length[preV] + 1) + 1 < upper]},
+			"While[partitionedProduct, 2]"[f + 1, v, m, i, s, j] == "confirmBind"["machineTimes"[x[["integer"]], y[["integer"]]], Function[{Typed[p, "Integer64"]},
+				"confirmBind"["machinePlus"[s[["integer"]], p[["integer"]]], Function[{Typed[u, "Integer64"]},
+					"While[partitionedProduct, 2]"[f, v, m, i, u, "subtype"["integerOfNatural"[(Length[preV] + 1) + 1], "naturalInteger64Range"[(Length[preV] + 1) + 1, h2]]]]]]]],
+		{"Introduce"[f, v, m, i, s, j, preRows, row, restRows, pre, x, rest, preV, y, restV, e1, hi, e2, e3, hl, hj, h2],
+			"RewriteRepeated"["While[partitionedProduct, 2]"], "Rewrite"["arrayLengthInteger"["Integer64", v]], "Rewrite"[hj], "Rewrite"[hi],
+			"Rewrite"["integerLessEqualQOfNatural"[Length[preV] + 1, Length[v[["list"]]], "lengthOfSplit"["Integer64", v[["list"]], preV, y, restV, e3]]],
+			"Rewrite"["matrixPartOfJoin"["Integer64", m, preRows, row, restRows, pre, x, rest, Length[preV], e1, e2, hl]],
+			"Rewrite"["arrayPartOfJoin"["Integer64", v, preV, y, restV, e3]],
+			"Rewrite"["machinePlusOfNatural"[Length[preV] + 1, 1, h2]],
+			"Reflexivity"}
+	];
+	matrices = vectorTheorem[matrices, "innerStop",
+		ForAll[{Typed[f, NonNegativeIntegers], Typed[v, "PackedArray"["Integer64", 1]], Typed[m, "PackedArray"["Integer64", 2]], Typed[i, "Integer64"], Typed[s, "Integer64"], Typed[j, "Integer64"],
+				Typed[n, NonNegativeIntegers], Typed[hj, j[["integer"]] == "integerOfNatural"[n + 1]], Typed[hle, Not[n + 1 <= Length[v[["list"]]]]]},
+			"While[partitionedProduct, 2]"[f + 1, v, m, i, s, j] == Typed["left"["pair"[s, j]], CartesianProductType["Integer64", "Integer64"] | Failure]],
+		{"Introduce"[f, v, m, i, s, j, n, hj, hle], "RewriteRepeated"["While[partitionedProduct, 2]"], "Rewrite"["arrayLengthInteger"["Integer64", v]], "Rewrite"[hj],
+			"Rewrite"["integerLessEqualQNotOfNatural"[n + 1, Length[v[["list"]]], hle]], "Reflexivity"}
+	];
+	matrices = vectorTheorem[matrices, "innerInvariant",
+		ForAll[{Typed[v, "PackedArray"["Integer64", 1]], Typed[m, "PackedArray"["Integer64", 2]], Typed[i, "Integer64"],
+				Typed[preRows, {{"Integer64"}}], Typed[row, {"Integer64"}], Typed[restRows, {{"Integer64"}}]},
+			Implies[m[["rows"]] == Join[preRows, Prepend[row][restRows]], Implies[i[["integer"]] == "integerOfNatural"[Length[preRows] + 1],
+				Implies[Length[row] == Length[v[["list"]]], Implies[Length[v[["list"]]] + 1 < upper,
+					ForAll[{Typed[rest, {"Integer64"}], Typed[pre, {"Integer64"}], Typed[preV, {"Integer64"}], Typed[restV, {"Integer64"}], Typed[fuel, NonNegativeIntegers], Typed[s, "Integer64"], Typed[j, "Integer64"]},
+						Implies[row == Join[pre, rest], Implies[v[["list"]] == Join[preV, restV], Implies[Length[preV] == Length[pre],
+							Implies[j[["integer"]] == "integerOfNatural"[Length[preV] + 1], Implies[Length[restV] < fuel,
+								"confirmBind"["While[partitionedProduct, 2]"[fuel, v, m, i, s, j], Function[{Typed[st, CartesianProductType["Integer64", "Integer64"]]}, Typed["left"[st[["first"]]], "Integer64" | Failure]]] ==
+									"integerListDotTotal"[rest, restV, s]]]]]]]]]]]],
+		{"Introduce"[v, m, i, preRows, row, restRows, e1, hi, hrow, bound, rest], "Induction"[rest],
+			(* nothing left of the row: nothing is left of the vector either, and the loop stops *)
+			"Introduce"[pre, preV, restV, fuel, s, j, e2, e3, hl, hj, hf],
+			"Have"[l2, Length[row] == Length[pre]], "Exact"["lengthOfJoin"["Integer64", row, pre, Typed[{}, {"Integer64"}], e2]],
+			"Have"[l3, Length[v[["list"]]] == Length[preV] + Length[restV]], "Exact"["lengthOfJoin"["Integer64", v[["list"]], preV, restV, e3]],
+			"Generalize"[hf], "Generalize"[l3], "Generalize"[e3], "Cases"[restV],
+			"Introduce"[e3, l3, hf], "Generalize"[hf], "Cases"[fuel],
+			"Introduce"[hf], "Exact"["falseElimination"["notLessZero"[0, hf]]],
+			"Introduce"[f, hf],
+			"Rewrite"["innerStop"[f, v, m, i, s, j, Length[preV], hj, "lengthOfWhole"["Integer64", v[["list"]], preV, e3]]], "Reflexivity",
+			"Introduce"[y, ys, e3, l3, hf], "Have"[l4, Length[v[["list"]]] == Length[preV] + (Length[ys] + 1)], "Exact"[l3],
+			"Have"[contradiction, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[contradiction]],
+			(* an element left of the row: one of the vector too, one round, then the hypothesis at the next place *)
+			"Introduce"[x, xs, ih, pre, preV, restV, fuel, s, j, e2, e3, hl, hj, hf],
+			"Have"[l2, Length[row] == Length[pre] + (Length[xs] + 1)], "Exact"["lengthOfJoin"["Integer64", row, pre, Prepend[x][xs], e2]],
+			"Have"[l3, Length[v[["list"]]] == Length[preV] + Length[restV]], "Exact"["lengthOfJoin"["Integer64", v[["list"]], preV, restV, e3]],
+			"Generalize"[hf], "Generalize"[l3], "Generalize"[e3], "Cases"[restV],
+			"Introduce"[e3, l3, hf], "Have"[l4, Length[v[["list"]]] == Length[preV]], "Exact"[l3],
+			"Have"[contradiction, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[contradiction]],
+			"Introduce"[y, ys, e3, l3, hf], "Generalize"[hf], "Cases"[fuel],
+			"Introduce"[hf], "Exact"["falseElimination"["notLessZero"[Length[ys] + 1, hf]]],
+			"Introduce"[f, hf],
+			"Have"[h2, (Length[preV] + 1) + 1 < upper], "Exact"["roundBound"[Length[preV], Length[v[["list"]]], upper, "lengthOfSplit"["Integer64", v[["list"]], preV, y, ys, e3], bound]],
+			"Rewrite"["innerRound"[f, v, m, i, s, j, preRows, row, restRows, pre, x, xs, preV, y, ys, e1, hi, e2, e3, hl, hj, h2]],
+			"Apply"["confirmBindThen"["Integer64", CartesianProductType["Integer64", "Integer64"], "Integer64", "machineTimes"[x[["integer"]], y[["integer"]]],
+				Function[{Typed[p, "Integer64"]}, "confirmBind"["machinePlus"[s[["integer"]], p[["integer"]]], Function[{Typed[u, "Integer64"]},
+					"While[partitionedProduct, 2]"[f, v, m, i, u, "subtype"["integerOfNatural"[(Length[preV] + 1) + 1], "naturalInteger64Range"[(Length[preV] + 1) + 1, h2]]]]]],
+				Function[{Typed[st, CartesianProductType["Integer64", "Integer64"]]}, Typed["left"[st[["first"]]], "Integer64" | Failure]],
+				Function[{Typed[p, "Integer64"]}, "confirmBind"["machinePlus"[s[["integer"]], p[["integer"]]], Function[{Typed[u, "Integer64"]}, "integerListDotTotal"[xs, ys, u]]]]]],
+			"Introduce"[p],
+			"Apply"["confirmBindThen"["Integer64", CartesianProductType["Integer64", "Integer64"], "Integer64", "machinePlus"[s[["integer"]], p[["integer"]]],
+				Function[{Typed[u, "Integer64"]}, "While[partitionedProduct, 2]"[f, v, m, i, u, "subtype"["integerOfNatural"[(Length[preV] + 1) + 1], "naturalInteger64Range"[(Length[preV] + 1) + 1, h2]]]],
+				Function[{Typed[st, CartesianProductType["Integer64", "Integer64"]]}, Typed["left"[st[["first"]]], "Integer64" | Failure]],
+				Function[{Typed[u, "Integer64"]}, "integerListDotTotal"[xs, ys, u]]]],
+			"Introduce"[u],
+			"Apply"[ih[Join[pre, Prepend[x][{}]], Join[preV, Prepend[y][{}]], ys, f, u, "subtype"["integerOfNatural"[(Length[preV] + 1) + 1], "naturalInteger64Range"[(Length[preV] + 1) + 1, h2]]]],
+			"Exact"["equalityTransitivity"[e2, "equalitySymmetry"["joinAssociativity"[pre, Prepend[x][{}], xs]]]],
+			"Exact"["equalityTransitivity"[e3, "equalitySymmetry"["joinAssociativity"[preV, Prepend[y][{}], ys]]]],
+			"Exact"["equalityTransitivity"["lengthJoin"[preV, Prepend[y][{}]], "equalityTransitivity"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, k + 1], hl], "equalitySymmetry"["lengthJoin"[pre, Prepend[x][{}]]]]]],
+			"Exact"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, "integerOfNatural"[k + 1]], "equalitySymmetry"["lengthJoin"[preV, Prepend[y][{}]]]]],
+			"Exact"["lessOfSuccessors"[Length[ys], f, hf]]}
+	];
+	matrices = vectorTheorem[matrices, "outerStop",
+		ForAll[{Typed[fuel, NonNegativeIntegers], Typed[k, NonNegativeIntegers], Typed[m, "PackedArray"["Integer64", 2]], Typed[v, "PackedArray"["Integer64", 1]],
+				Typed[s, "Integer64"], Typed[j, "Integer64"], Typed[r, "PackedArray"["Integer64", 1]], Typed[i, "Integer64"], Typed[n, NonNegativeIntegers],
+				Typed[hi, i[["integer"]] == "integerOfNatural"[n + 1]], Typed[hle, Not[n + 1 <= Length[m[["rows"]]]]]},
+			"productRounds"[fuel, m, v, k + 1][s, j, r, i] == Typed["left"["pair"[s, "pair"[j, "pair"[r, i]]]], state | Failure]],
+		{"Introduce"[fuel, k, m, v, s, j, r, i, n, hi, hle], "RewriteRepeated"["productRounds"], "Rewrite"["matrixLengthInteger"["Integer64", m]], "Rewrite"[hi],
+			"Rewrite"["integerLessEqualQNotOfNatural"[n + 1, Length[m[["rows"]]], hle]], "Reflexivity"}
+	];
+	matrices = vectorTheorem[matrices, "outerInvariant",
+		ForAll[{Typed[fuel, NonNegativeIntegers], Typed[m, "PackedArray"["Integer64", 2]], Typed[v, "PackedArray"["Integer64", 1]]},
+			Implies[Length[v[["list"]]] == m[["columns"]], Implies[Length[v[["list"]]] + 1 < upper, Implies[Length[m[["rows"]]] + 1 < upper, Implies[Length[v[["list"]]] < fuel,
+				ForAll[{Typed[restRows, {{"Integer64"}}], Typed[preRows, {{"Integer64"}}], Typed[done, {"Integer64"}], Typed[rest0, {"Integer64"}], Typed[k, NonNegativeIntegers],
+						Typed[s, "Integer64"], Typed[j, "Integer64"], Typed[r, "PackedArray"["Integer64", 1]], Typed[i, "Integer64"]},
+					Implies[m[["rows"]] == Join[preRows, restRows], Implies[r[["list"]] == Join[done, rest0], Implies[Length[done] == Length[preRows],
+						Implies[Length[rest0] == Length[restRows], Implies[i[["integer"]] == "integerOfNatural"[Length[done] + 1], Implies[Length[restRows] < k,
+							"confirmBind"["productRounds"[fuel, m, v, k][s, j, r, i], listOfState] ==
+								"confirmBind"["rowsDotTotals"[restRows, v[["list"]]], Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Join[done, ds]], {"Integer64"} | Failure]]]]]]]]]]]]]]],
+		{"Introduce"[fuel, m, v, hcols, boundV, boundR, hF, restRows], "Induction"[restRows],
+			(* no row left: the loop stops, and r is done *)
+			"Introduce"[preRows, done, rest0, k, s, j, r, i, e1, er, hd, hr0, hi, hk],
+			"Have"[whole, Not[Length[done] + 1 <= Length[m[["rows"]]]]], "Rewrite"[hd], "Exact"["lengthOfWhole"[{"Integer64"}, m[["rows"]], preRows, e1]],
+			"Generalize"[hk], "Cases"[k],
+			"Introduce"[hk], "Exact"["falseElimination"["notLessZero"[0, hk]]],
+			"Introduce"[k2, hk], "Rewrite"["outerStop"[fuel, k2, m, v, s, j, r, i, Length[done], hi, whole]],
+			"Generalize"[er], "Generalize"[hr0], "Cases"[rest0],
+			"Introduce"[hr0, er], "Exact"["equalityCongruence"[Function[{Typed[l, {"Integer64"}]}, Typed["left"[l], {"Integer64"} | Failure]], er]],
+			"Introduce"[y, ys, hr0, er], "Exact"["falseElimination"["successorNotZero"[Length[ys]][hr0]]],
+			(* a row left: its dot product by the inner loop, its part of r set, then the hypothesis at the next row *)
+			"Introduce"[row, rest, ih, preRows, done, rest0, k, s, j, r, i, e1, er, hd, hr0, hi, hk],
+			"Have"[split, Length[preRows] + 1 <= Length[m[["rows"]]]], "Exact"["lengthOfSplit"[{"Integer64"}, m[["rows"]], preRows, row, rest, e1]],
+			"Have"[less, Length[done] + 1 <= Length[m[["rows"]]]], "Rewrite"[hd], "Exact"[split],
+			"Have"[h2, (Length[done] + 1) + 1 < upper], "Exact"["roundBound"[Length[done], Length[m[["rows"]]], upper, less, boundR]],
+			"Have"[hi2, i[["integer"]] == "integerOfNatural"[Length[preRows] + 1]],
+			"Exact"["equalityTransitivity"[hi, "equalityCongruence"[Function[{Typed[c, NonNegativeIntegers]}, "integerOfNatural"[c + 1]], hd]]],
+			"Have"[hrow, Length[row] == Length[v[["list"]]]],
+			"Exact"["equalityTransitivity"[
+				"rowsOfLengthOfJoin"["Integer64", m[["columns"]], row, rest, preRows,
+					"equalitySubstitution"[e1, m[["proof"]][["right"]][["right"]][["right"]], P -> Function[{Typed[l, {{"Integer64"}}]}, "rowsOfLength"[l, m[["columns"]]]]]],
+				"equalitySymmetry"[hcols]]],
+			"Generalize"[hk], "Generalize"[er], "Generalize"[hr0], "Cases"[rest0],
+			"Introduce"[hr0, er, hk], "Exact"["falseElimination"["successorNotZero"[Length[rest]]["equalitySymmetry"[hr0]]]],
+			"Introduce"[y, ys, hr0, er, hk], "Generalize"[hk], "Cases"[k],
+			"Introduce"[hk], "Exact"["falseElimination"["notLessZero"[Length[rest] + 1, hk]]],
+			"Introduce"[k2, hk],
+			"RewriteRepeated"["productRounds"], "Rewrite"["matrixLengthInteger"["Integer64", m]], "Rewrite"[hi],
+			"Rewrite"["integerLessEqualQOfNatural"[Length[done] + 1, Length[m[["rows"]]], less]],
+			"Apply"["confirmBindFirstThen"["Integer64", "Integer64", state, {"Integer64"}, {"Integer64"},
+				"While[partitionedProduct, 2]"[fuel, v, m, i, zero, one],
+				"integerListDotTotal"[row, v[["list"]], zero],
+				Function[{Typed[st, CartesianProductType["Integer64", "Integer64"]]}, "confirmBind"["arraySetPart"[r, "integerOfNatural"[Length[done] + 1], st[["first"]]], Function[{Typed[r2, "PackedArray"["Integer64", 1]]},
+					"confirmBind"["machinePlus"["integerOfNatural"[Length[done] + 1], 1], Function[{Typed[i2, "Integer64"]}, "productRounds"[fuel, m, v, k2][st[["first"]], st[["second"]], r2, i2]]]]]],
+				listOfState,
+				Function[{Typed[d, "Integer64"]}, "confirmBind"["rowsDotTotals"[rest, v[["list"]]], Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Prepend[d][ds]], {"Integer64"} | Failure]]]],
+				Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Join[done, ds]], {"Integer64"} | Failure]]]],
+			"Exact"["innerInvariant"[v, m, i, preRows, row, rest, e1, hi2, hrow, boundV, row, Typed[{}, {"Integer64"}], Typed[{}, {"Integer64"}], v[["list"]], fuel, zero, one,
+				"equalityReflexivity"[row], "equalityReflexivity"[v[["list"]]], "equalityReflexivity"[0], "equalityReflexivity"["integerOfNatural"[1]], hF]],
+			"Introduce"[t],
+			"Have"[hR, "arrayLengthRange"["Integer64"][Join[done, Prepend[t[["first"]]][ys]]]], "Exact"["arraySetPartRange"["Integer64", r, done, y, t[["first"]], ys, er]],
+			"Rewrite"["arraySetPartOfJoinInRange"["Integer64", r, done, y, t[["first"]], ys, hR, er]],
+			"Rewrite"["machinePlusOfNatural"[Length[done] + 1, 1, h2]],
+			"Exact"["equalityTransitivity"[
+				ih[Join[preRows, Prepend[row][{}]], Join[done, Prepend[t[["first"]]][{}]], ys, k2, t[["first"]], t[["second"]],
+					"subtype"[Join[done, Prepend[t[["first"]]][ys]], hR], "subtype"["integerOfNatural"[(Length[done] + 1) + 1], "naturalInteger64Range"[(Length[done] + 1) + 1, h2]],
+					"equalityTransitivity"[e1, "equalitySymmetry"["joinAssociativity"[preRows, Prepend[row][{}], rest]]],
+					"equalitySymmetry"["joinAssociativity"[done, Prepend[t[["first"]]][{}], ys]],
+					"equalityTransitivity"["lengthJoin"[done, Prepend[t[["first"]]][{}]],
+						"equalityTransitivity"["equalityCongruence"[Function[{Typed[c, NonNegativeIntegers]}, c + 1], hd], "equalitySymmetry"["lengthJoin"[preRows, Prepend[row][{}]]]]],
+					"successorInjectivity"[hr0],
+					"equalityCongruence"[Function[{Typed[c, NonNegativeIntegers]}, "integerOfNatural"[c + 1]], "equalitySymmetry"["lengthJoin"[done, Prepend[t[["first"]]][{}]]]],
+					"lessOfSuccessors"[Length[rest], k2, hk]],
+				"equalityTransitivity"[
+					"confirmBindCongruence"[{"Integer64"}, {"Integer64"}, "rowsDotTotals"[rest, v[["list"]]],
+						Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Join[Join[done, Prepend[t[["first"]]][{}]], ds]], {"Integer64"} | Failure]],
+						Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Join[done, Prepend[t[["first"]]][ds]]], {"Integer64"} | Failure]],
+						Function[{Typed[ds, {"Integer64"}]}, "equalityCongruence"[Function[{Typed[l, {"Integer64"}]}, Typed["left"[l], {"Integer64"} | Failure]], "joinAssociativity"[done, Prepend[t[["first"]]][{}], ds]]]],
+					"equalitySymmetry"["confirmBindAssociativity"[{"Integer64"}, {"Integer64"}, {"Integer64"}, "rowsDotTotals"[rest, v[["list"]]],
+						Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Prepend[t[["first"]]][ds]], {"Integer64"} | Failure]],
+						Function[{Typed[ds, {"Integer64"}]}, Typed["left"[Join[done, ds]], {"Integer64"} | Failure]]]]]]]}
+	];
+	matrices = vectorTheorem[matrices, "partitionedProductComputes",
+		ForAll[{Typed[fuel, NonNegativeIntegers], Typed[data, "PackedArray"["Integer64", 1]], Typed[k, "Integer64"], Typed[v, "PackedArray"["Integer64", 1]], Typed[m, "PackedArray"["Integer64", 2]]},
+			Implies["matrixOfPartition"[data, k[["integer"]]] == Typed["left"[m], "PackedArray"["Integer64", 2] | Failure],
+				Implies[Length[v[["list"]]] == m[["columns"]], Implies[Length[m[["rows"]]] + 1 < upper, Implies[Length[v[["list"]]] + 1 < upper,
+					Implies[Length[m[["rows"]]] < fuel, Implies[Length[v[["list"]]] < fuel, Implies["rowsDotSumsInRange"[m[["rows"]], v[["list"]]],
+						Exists[{Typed[r, "PackedArray"["Integer64", 1]]}, partitionedProduct[fuel, data, k, v] == Typed["left"[r], "PackedArray"["Integer64", 1] | Failure] &&
+							Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], r[["list"]]] == "matrixVectorProduct"[m, v]]]]]]]]]],
+		{"Introduce"[fuel, data, k, v, m, hm, hcols, boundR, boundV, hR, hV, sums],
+			"Have"[rowsBound, Length[m[["rows"]]] < upper], "LinearArithmetic",
+			"Cases"["arrayConstantOfNatural"["Integer64", zero, Length[m[["rows"]]], rowsBound]], "Introduce"[a, ha],
+			"Cases"["rowsDotTotalsOfSums"[m[["rows"]], v[["list"]], sums]], "Introduce"[ds, hds],
+			"Have"[inv, "confirmBind"["productRounds"[fuel, m, v, fuel][zero, one, a, one], listOfState] ==
+				"confirmBind"["rowsDotTotals"[m[["rows"]], v[["list"]]], Function[{Typed[es, {"Integer64"}]}, Typed["left"[Join[Typed[{}, {"Integer64"}], es]], {"Integer64"} | Failure]]]],
+			"Exact"["outerInvariant"[fuel, m, v, hcols, boundV, boundR, hV, m[["rows"]], Typed[{}, {{"Integer64"}}], Typed[{}, {"Integer64"}], a[["list"]], fuel, zero, one, a, one,
+				"equalityReflexivity"[m[["rows"]]], "equalityReflexivity"[a[["list"]]], "equalityReflexivity"[0],
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[l, {"Integer64"}]}, Length[l]], ha[["right"]]], "listConstantLength"["Integer64", zero, Length[m[["rows"]]]]],
+				"equalityReflexivity"["integerOfNatural"[1]], hR]],
+			"Rewrite"[hds[["left"]], "At" -> inv],
+			"Change"[Exists[{Typed[r, "PackedArray"["Integer64", 1]]},
+				"confirmBind"["matrixOfPartition"[data, k[["integer"]]], Function[{Typed[t3, "PackedArray"["Integer64", 2]]}, "confirmBind"["matrixOfPartition"[data, k[["integer"]]], Function[{Typed[t6, "PackedArray"["Integer64", 2]]},
+					"confirmBind"["confirmBind"["machineResult"[0], Function[{Typed[element, "Integer64"]}, "arrayConstant"[element, "matrixLength"[t6][["integer"]]]]], Function[{Typed[t8, "PackedArray"["Integer64", 1]]},
+						"confirmBind"["machineResult"[1], Function[{Typed[i6, "Integer64"]}, "confirmBind"["machineResult"[1], Function[{Typed[j7, "Integer64"]}, "confirmBind"["machineResult"[0], Function[{Typed[s8, "Integer64"]},
+							"confirmBind"["While[partitionedProduct]"[fuel, t3, v, s8, j7, t8, i6], Function[{Typed[state1, state]}, Typed["left"[state1[["second"]][["second"]][["first"]]], "PackedArray"["Integer64", 1] | Failure]]]]]]]]]]]]]]] ==
+						Typed["left"[r], "PackedArray"["Integer64", 1] | Failure] &&
+					Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], r[["list"]]] == "matrixVectorProduct"[m, v]]],
+			"Rewrite"[hm],
+			"Rewrite"["machineResultInRange"[0, "naturalInteger64Range"[0, "zeroBound"]]],
+			"Rewrite"["machineResultInRange"[1, "naturalInteger64Range"[1, "oneBound"]]],
+			"Change"[Exists[{Typed[r, "PackedArray"["Integer64", 1]]},
+				"confirmBind"["arrayConstant"[zero, "integerOfNatural"[Length[m[["rows"]]]]], Function[{Typed[t8, "PackedArray"["Integer64", 1]]},
+					"confirmBind"["While[partitionedProduct]"[fuel, m, v, zero, one, t8, one], Function[{Typed[state1, state]}, Typed["left"[state1[["second"]][["second"]][["first"]]], "PackedArray"["Integer64", 1] | Failure]]]]] ==
+						Typed["left"[r], "PackedArray"["Integer64", 1] | Failure] &&
+					Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], r[["list"]]] == "matrixVectorProduct"[m, v]]],
+			"Rewrite"[ha[["left"]]],
+			"Generalize"[inv],
+			"Change"[Implies["confirmBind"["While[partitionedProduct]"[fuel, m, v, zero, one, a, one], listOfState] == Typed["left"[ds], {"Integer64"} | Failure],
+				Exists[{Typed[r, "PackedArray"["Integer64", 1]]},
+					"confirmBind"["While[partitionedProduct]"[fuel, m, v, zero, one, a, one], Function[{Typed[state1, state]}, Typed["left"[state1[["second"]][["second"]][["first"]]], "PackedArray"["Integer64", 1] | Failure]]] ==
+						Typed["left"[r], "PackedArray"["Integer64", 1] | Failure] &&
+					Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], r[["list"]]] == "matrixVectorProduct"[m, v]]]],
+			"Cases"["While[partitionedProduct]"[fuel, m, v, zero, one, a, one]],
+			"Introduce"[st, inv],
+			"Exact"["existsIntroduction"[st[["second"]][["second"]][["first"]], "andIntroduction"[
+				"equalityReflexivity"[Typed["left"[st[["second"]][["second"]][["first"]]], "PackedArray"["Integer64", 1] | Failure]],
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[l, {"Integer64"}]}, Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], l]],
+					"leftInjective"[{"Integer64"}, Failure, st[["second"]][["second"]][["first"]][["list"]], ds, inv]], hds[["right"]]]]]],
+			"Introduce"[f, inv], "Exact"["falseElimination"["rightNotLeft"[{"Integer64"}, Failure, ds, f, inv]]]}
+	];
+]]
+
+VerificationTest[
+	{
+		vectorFailures,
+		TypeTheoryAxiomClosure[TypeTheoryTerm["partitionedProductComputes", matrices]],
+		DefinitionallyEqualQ[
+			TypeTheoryType[TypeTheoryTerm["partitionedProductComputes", matrices]],
+			TypeTheoryTerm[
+				ForAll[{Typed[fuel, NonNegativeIntegers], Typed[data, "PackedArray"["Integer64", 1]], Typed[k, "Integer64"], Typed[v, "PackedArray"["Integer64", 1]], Typed[m, "PackedArray"["Integer64", 2]]},
+					Implies["matrixOfPartition"[data, k[["integer"]]] == Typed["left"[m], "PackedArray"["Integer64", 2] | Failure],
+						Implies[Length[v[["list"]]] == m[["columns"]], Implies[Length[m[["rows"]]] + 1 < 9223372036854775808, Implies[Length[v[["list"]]] + 1 < 9223372036854775808,
+							Implies[Length[m[["rows"]]] < fuel, Implies[Length[v[["list"]]] < fuel, Implies["rowsDotSumsInRange"[m[["rows"]], v[["list"]]],
+								Exists[{Typed[r, "PackedArray"["Integer64", 1]]}, partitionedProduct[fuel, data, k, v] == Typed["left"[r], "PackedArray"["Integer64", 1] | Failure] &&
+									Map[Function[{Typed[z, "Integer64"]}, z[["integer"]]], r[["list"]]] == "matrixVectorProduct"[m, v]]]]]]]]]],
+				matrices
+			]
+		]
+	},
+	{{}, <|"quotientSoundness" -> "Proposition"|>, True},
+	TimeConstraint -> 300,
+	TestID -> "The-matrix-vector-product-by-two-loops-computes-the-librarys-product"
+]
+
 
 (* the machine reals once, outside any test's time limit: where no saved environment is current, a fresh checkout or a
    changed kernel, they are built and checked from their declarations, which takes minutes *)
