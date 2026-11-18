@@ -20,7 +20,7 @@ VerificationTest[
 		Information[translated["Environment"], "Rules"]["Name"],
 		MatchQ[TypeTheoryCheck[translated["Environment"]], _Success]
 	},
-	{{114, 115, "MartinLofTypeTheory"}, {QuotientType}, "MartinLofTypeTheory", True},
+	{{116, 117, "MartinLofTypeTheory"}, {QuotientType}, "MartinLofTypeTheory", True},
 	TestID -> "The-constructive-prelude-translates-to-Martin-Lof-type-theory"
 ]
 

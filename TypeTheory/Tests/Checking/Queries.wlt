@@ -136,7 +136,7 @@ VerificationTest[
 VerificationTest[
 	{Information[prelude, "Kinds"], Information[prelude, "Axioms"], Information[prelude, "NaturalNumbers"]},
 	{
-		<|"InductiveType" -> 27, "Constructor" -> 41, "Recursor" -> 28, "Definition" -> 81, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|>,
+		<|"InductiveType" -> 27, "Constructor" -> 41, "Recursor" -> 28, "Definition" -> 83, "Quotient" -> 4, "Theorem" -> 72, "Axiom" -> 4|>,
 		{"propositionalExtensionality", "quotientSoundness", "choice", ExpressionEvaluate},
 		<|"Type" -> NonNegativeIntegers, "Zero" -> "zero", "Successor" -> "successor", "Operations" -> <|"Addition" -> Plus, "Subtraction" -> Subtract, "Multiplication" -> Times, "Power" -> Power, "Equal" -> "equal", "LessEqual" -> "lessEqual"|>|>
 	},
