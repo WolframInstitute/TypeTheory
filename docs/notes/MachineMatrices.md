@@ -79,12 +79,35 @@ transposes to the row before the transpose of the columns. It needs no rectangul
 each of its steps is computation. With it and the column count, `"transposeRowsTwice"` goes by induction on the rows.
 Two matrices with the same columns and rows are one, `"matrixEquality"`, since any two proofs of the range are one.
 
+## The translation
+
+With KernelCompiler 0.1.8 (0.1.7 types nothing outside its own checkout), `TypeTheoryFormalize` reads typed code's matrices (`CompiledDefinitions.wl`): the kinds
+`"Matrix:Int64"` and `"Matrix:Real64"` are `"PackedArray"["Integer64", 2]` and `"PackedArray"["Real64", 2]`, and the steps are
+
+- `Partition[a, k]` of a vector: `"matrixOfPartition"[a, k]`, a result;
+- `Length[m]`: `"matrixLength"[m]`, a value that never leaves;
+- `m[[i]]`: `"matrixRow"[m, i]`, a vector, a result;
+- `m[[i, j]]`: `"matrixPart"[m, i, j]`, an element, a result.
+
+A matrix is a local or a temporary only, so the input form and the typed entries do not change. The values of four
+functions of a partitioned vector are the evaluator's, with the leaves `"Range"` and `"PartRange"` where typed code has
+them (`CompiledDefinitions.wlt`).
+
+## Theorem 1
+
+`partitionedProduct`, `Partition` and then two `While` loops over `m[[i, j]] v[[j]]`, gives the vector whose integers are
+`"matrixVectorProduct"`'s. The conditions: Partition gives a matrix, the vector is as long as a row, the counters stay
+machine integers, the fuel is above either loop's rounds, and no product or partial sum leaves (`"rowsDotSumsInRange"`).
+Its closure is the integers' `quotientSoundness` alone. The proof (`CompiledDefinitions.wlt`):
+
+- The inner loop is the machine's dot product of a row with the vector, `"integerListDotTotal"`, by a round, a stop and
+  an invariant over the row and the vector split at the place the loop is at.
+- The outer loop runs the inner one for each row and sets the row's part of `r`. It passes the inner loop the
+  function's whole fuel while it counts its own rounds down, so its invariant is stated of its recursor, named
+  `productRounds[fuel, m, v, k]`, and not of the loop's constant. A pair's first part through a continuation that reads
+  it alone (`"confirmBindFirstThen"`) carries the inner invariant into the outer round.
+- Where every sum is in range, the rows' dot products are the exact ones, `"rowsDotTotalsOfSums"`.
+
 ## Not done yet
 
-- The translation: the kinds `"Matrix:Int64"` and `"Matrix:Real64"`, and steps for `Partition`, `Length` of a matrix
-  and `Part` at one and two levels. A matrix is a local only, so the input form and the typed entries do not change.
-  It needs KernelCompiler with matrices installed (0.1.7, from the WolframKernel project's main), which TypeTheory
-  loads; the installed 0.1.1 has none.
-- The theorem that a matrix-vector product by loops, `Partition` and then `m[[i, j]] v[[j]]`, computes
-  `"matrixVectorProduct"` where no step leaves.
-- The reals' matrices, `"Matrix:Real64"`, with the translation.
+- No test computes a matrix of reals, `"Matrix:Real64"`, though the translation reads its kind.

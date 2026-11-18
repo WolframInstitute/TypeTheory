@@ -33,7 +33,11 @@ Versions 0.50.0 to 0.53.0.
   stated against. The library proves that Transpose twice is the identity on every matrix, with no axiom, that the
   dimensions of a transpose are the pair swapped, that Partition by a machine count of 1 or more is the matrix of its
   rows, and that a row or an element leaves by a part that is not there alone. A rank above 2 is the lists of the rank
-  below, and `TypeTheoryFormalize` refuses it by name. Reading typed code's matrices waits for KernelCompiler 0.1.7.
+  below, and `TypeTheoryFormalize` refuses it by name. With KernelCompiler 0.1.8, `TypeTheoryFormalize` reads
+  typed code's matrices: `Partition` of a vector, `Length` of a matrix and `Part` at one and two levels, as the
+  library's operations with their leaves. The tests prove that a matrix-vector product by two loops computes
+  `"matrixVectorProduct"` where nothing leaves; the library has the machine's dot product and the rows' dot products
+  that such a proof rests on.
 - **A real to an integer power in typed code.** `TypeTheoryFormalize` reads `x^n` of a machine real and an integer, a
   constant or a machine integer, as `"real64IntegerPower"` of `TypeTheoryEnvironment["MachineReals"]`: the products
   Wolfram 15 rounds one by one, in the order of the exponent's bits from the top (a bit at a time below 8, two at a
