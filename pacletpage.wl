@@ -91,9 +91,16 @@ $buildOptions = {
 }
 
 (* The tutorial Mathlib in TypeTheory runs LeanLink: the checkout next to this one when there is one,
-   as LeanLink's scripts run this checkout, and otherwise LeanLink as installed. *)
+   as LeanLink's scripts run this checkout, and otherwise LeanLink as installed. A git worktree is not next to it: its
+   .git file names the main checkout's .git, beside which LeanLink's checkout is. An installed LeanLink older than
+   TypeTheory refuses Mathlib's natural numbers, as the 0.53.0 build from a worktree did. *)
 
-$leanLinkDirectory = FileNameJoin[{ParentDirectory[$repoDirectory], "LeanLink", "LeanLink"}]
+$mainCheckoutDirectory = Replace[
+	Quiet[ReadString[FileNameJoin[{$repoDirectory, ".git"}]]],
+	{text_String /; StringStartsQ[text, "gitdir: "] :> FileNameDrop[StringTrim[StringDrop[text, 8]], -3], _ :> $repoDirectory}
+]
+
+$leanLinkDirectory = FileNameJoin[{ParentDirectory[$mainCheckoutDirectory], "LeanLink", "LeanLink"}]
 
 loadLeanLink[] := If[DirectoryQ[$leanLinkDirectory], PacletDirectoryLoad[$leanLinkDirectory]]
 
