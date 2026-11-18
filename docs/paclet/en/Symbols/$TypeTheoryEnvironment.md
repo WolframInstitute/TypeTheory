@@ -29,7 +29,7 @@ The default environment is the prelude:
 $TypeTheoryEnvironment
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 
@@ -51,7 +51,7 @@ Declarations without an environment extend the default, here the constructive en
 Block[{$TypeTheoryEnvironment = "Constructive"}, TypeTheoryEnvironment[{TypeTheoryAxiom[Unprovable, False]}]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 156 constants -->
+<!-- => TypeTheoryEnvironment summary box: 158 constants -->
 
 ## Scope
 
@@ -83,7 +83,7 @@ Block[{$TypeTheoryEnvironment = "HomotopyTypeTheory"}, TypeTheoryType["univalenc
 SetTypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 155 constants -->
+<!-- => TypeTheoryEnvironment summary box: 157 constants -->
 
 The default environment is now the constructive one:
 
@@ -91,7 +91,7 @@ The default environment is now the constructive one:
 $TypeTheoryEnvironment
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 155 constants -->
+<!-- => TypeTheoryEnvironment summary box: 157 constants -->
 
 It has no excluded middle:
 
@@ -107,7 +107,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ## Properties and Relations
 

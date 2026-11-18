@@ -147,7 +147,7 @@ A definition of doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 The constant unfolds to its value:
 
@@ -168,7 +168,7 @@ bits = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 262 constants -->
+<!-- => TypeTheoryEnvironment summary box: 264 constants -->
 
 Flipping twice gives the bit back; the term without an environment takes the other's:
 
@@ -207,7 +207,7 @@ parity = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 259 constants -->
+<!-- => TypeTheoryEnvironment summary box: 261 constants -->
 
 The recursion computes, seven steps to `"false"`:
 
@@ -273,7 +273,7 @@ A definition of doubling:
 doubled = TypeTheoryEnvironment[TypeTheoryDefinition[Double, n |-> n + n]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 `k + k` and `2 k` are equal for every `k`, but neither computes for a variable:
 

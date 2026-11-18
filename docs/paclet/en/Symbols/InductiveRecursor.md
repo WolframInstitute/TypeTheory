@@ -122,7 +122,7 @@ vectors = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 262 constants -->
+<!-- => TypeTheoryEnvironment summary box: 264 constants -->
 
 The type of the function says the length of its result:
 
@@ -210,7 +210,7 @@ roses = TypeTheoryEnvironment[{TypeTheoryInductiveType[Rose, TypeUniverse[1], {
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 A tree nested in a list of trees has a recursor on the list as well, with the same motives and minor premises:
 
@@ -228,7 +228,7 @@ The sum 1 + 2 + ... + *n*, by recursion:
 sums = TypeTheoryEnvironment[{TypeTheoryDefinition[SumTo, n |-> InductiveRecursor[Naturals][Naturals &, 0, {k, r} |-> r + (k + 1), n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 It computes in the kernel:
 

@@ -37,7 +37,7 @@ Make the integers the default environment:
 SetTypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 356 constants -->
+<!-- => TypeTheoryEnvironment summary box: 358 constants -->
 
 A proof about integers now names no environment:
 
@@ -53,7 +53,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 
@@ -63,7 +63,7 @@ Make the prelude with a definition added the default:
 SetTypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> n + n]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 Terms use the definition without naming the environment:
 
@@ -87,7 +87,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ## Scope
 
@@ -113,7 +113,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 
@@ -123,7 +123,7 @@ Declarations extend the default that is set. Make the integers the default:
 SetTypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 356 constants -->
+<!-- => TypeTheoryEnvironment summary box: 358 constants -->
 
 Then add a definition to them and make the result the default:
 
@@ -131,7 +131,7 @@ Then add a definition to them and make the result the default:
 SetTypeTheoryEnvironment[{TypeTheoryDefinition[IntegerSquare, Typed[x, Integers] |-> x x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 357 constants -->
+<!-- => TypeTheoryEnvironment summary box: 359 constants -->
 
 The definition is a function on the integers:
 
@@ -147,7 +147,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 
@@ -173,7 +173,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 
@@ -201,7 +201,7 @@ TypeTheoryType["excludedMiddle"]
 SetTypeTheoryEnvironment["Integers"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 356 constants -->
+<!-- => TypeTheoryEnvironment summary box: 358 constants -->
 
 [$TypeTheoryEnvironment]() is now the integers:
 
@@ -217,7 +217,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 
@@ -227,7 +227,7 @@ SetTypeTheoryEnvironment["Prelude"]
 TypeTheoryEnvironment[{TypeTheoryAxiom[Mystery, Naturals]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 The default has no `Mystery`:
 
@@ -245,7 +245,7 @@ Make the constructive environment the default:
 SetTypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 155 constants -->
+<!-- => TypeTheoryEnvironment summary box: 157 constants -->
 
 A term that names its environment is in it whatever the default is:
 
@@ -261,7 +261,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ## Possible Issues
 
@@ -271,7 +271,7 @@ A term written without an environment is in the default environment when it is u
 SetTypeTheoryEnvironment[{TypeTheoryDefinition[Tripled, n |-> n + n + n]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 A term written while it is the default:
 
@@ -287,7 +287,7 @@ Make the prelude the default again:
 SetTypeTheoryEnvironment["Prelude"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 The term no longer has the definition: its head is a Wolfram Language expression there, of type `Expressions`:
 
@@ -315,7 +315,7 @@ The default stays the prelude:
 $TypeTheoryEnvironment
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 257 constants -->
+<!-- => TypeTheoryEnvironment summary box: 259 constants -->
 
 ---
 

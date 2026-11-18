@@ -420,7 +420,7 @@ TypeTheoryType[Typed[p, TypeUniverse[0]] |-> InductiveRecursor[Or][
 constructive = TypeTheoryEnvironment["Constructive"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 155 constants -->
+<!-- => TypeTheoryEnvironment summary box: 157 constants -->
 
 It has no axioms:
 
@@ -444,7 +444,7 @@ Whatever is proved in it uses no axiom. Other axioms can be assumed there with [
 excludedMiddle = TypeTheoryEnvironment[constructive, {TypeTheoryAxiom["excludedMiddle", ForAll[{p}, Or[p, Not[p]]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 156 constants -->
+<!-- => TypeTheoryEnvironment summary box: 158 constants -->
 
 Its one axiom:
 

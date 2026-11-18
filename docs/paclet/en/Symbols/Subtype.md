@@ -143,7 +143,7 @@ evens = TypeTheoryEnvironment[{TypeTheoryDefinition[EvenNumber, Typed[
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 The even number of 3 is 6:
 

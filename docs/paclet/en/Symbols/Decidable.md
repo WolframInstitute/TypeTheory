@@ -121,7 +121,7 @@ decided = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 [Decide]() finds it:
 
@@ -171,7 +171,7 @@ The theorem it proves:
 constructive = TypeTheoryEnvironment["Constructive", TypeTheoryTheorem[DecidableExcludedMiddle, proof]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 156 constants -->
+<!-- => TypeTheoryEnvironment summary box: 158 constants -->
 
 It rests on no axiom:
 

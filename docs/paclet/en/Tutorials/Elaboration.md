@@ -106,7 +106,7 @@ vectors = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 A rule gives the argument of that name, as an option is given: after the arguments in order, which fill the explicit binders:
 

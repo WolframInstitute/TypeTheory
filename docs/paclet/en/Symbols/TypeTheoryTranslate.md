@@ -51,7 +51,7 @@ The translated environment:
 translated["Environment"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 153 constants -->
 
 [True]() is a type there:
 
@@ -79,7 +79,7 @@ The constructive prelude in Martin-Löf type theory:
 martinLof = TypeTheoryTranslate["Constructive", TypeTheoryRules["MartinLofTypeTheory"]]["Environment"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 153 constants -->
 
 The laws of arithmetic hold there, proved as in the prelude:
 
@@ -121,7 +121,7 @@ An inductive type of one's own translates with the rest:
 bits = TypeTheoryEnvironment["Constructive", {TypeTheoryInductiveType[Bit, TypeUniverse[1], {BitZero -> Bit, BitOne -> Bit}]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 159 constants -->
+<!-- => TypeTheoryEnvironment summary box: 161 constants -->
 
 ```wl
 TypeTheoryTranslate[bits, TypeTheoryRules["MartinLofTypeTheory"]]["Environment"][Bit]
@@ -219,7 +219,7 @@ The constructive prelude in Martin-Löf type theory:
 martinLof = TypeTheoryTranslate["Constructive", TypeTheoryRules["MartinLofTypeTheory"]]["Environment"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 153 constants -->
 
 It follows the rules it was translated to:
 
@@ -245,7 +245,7 @@ A proposition about all propositions is a proposition only by impredicativity, w
 impredicative = TypeTheoryEnvironment[{TypeTheoryDefinition[Everything, Typed[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], TypeUniverse[0]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 ```wl
 TypeTheoryTranslate[impredicative, TypeTheoryRules["MartinLofTypeTheory"]]["Failures"][Everything]
@@ -261,7 +261,7 @@ There is no Prop in rules without it:
 martinLof = TypeTheoryTranslate["Constructive", TypeTheoryRules["MartinLofTypeTheory"]]["Environment"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 151 constants -->
+<!-- => TypeTheoryEnvironment summary box: 153 constants -->
 
 ```wl
 TypeTheoryType[TypeUniverse[0], martinLof]
@@ -277,4 +277,4 @@ The rules are a [TypeTheoryRules]() object, not their name:
 TypeTheoryTranslate["Constructive", "MartinLofTypeTheory"]
 ```
 
-<!-- => TypeTheoryTranslate[TypeTheoryEnvironment summary box: 155 constants, "MartinLofTypeTheory"] -->
+<!-- => TypeTheoryTranslate[TypeTheoryEnvironment summary box: 157 constants, "MartinLofTypeTheory"] -->

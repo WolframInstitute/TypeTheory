@@ -33,7 +33,7 @@ curry = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 The proof rests on the three axioms:
 
@@ -77,7 +77,7 @@ choice = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 The transitivity joins the two equations only because their middle terms, the choices from the two proofs, are equal by proof irrelevance. The proof rests on the choice and its two equations:
 
@@ -116,7 +116,7 @@ loops = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 ```wl
 TypeTheoryAxiomClosure[TypeTheoryTerm[LoopParadox, loops]]
@@ -147,7 +147,7 @@ selfContained = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 The paradox needs a type `U` into which every set of sets of `U` packs and out of which it unpacks again: `"girardTau"` packs and `"girardSigma"` unpacks. In a universe that does not contain itself no such type exists, as the sets of sets of `U` are in a larger universe than `U`:
 
@@ -166,7 +166,7 @@ packing = TypeTheoryEnvironment[selfContained, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 266 constants -->
+<!-- => TypeTheoryEnvironment summary box: 268 constants -->
 
 By `"beta"`, unpacking what packed `S` holds of a set `s` exactly when `S` holds of the set of the `x` whose unpacking repacks into `s`, in both directions:
 
@@ -193,7 +193,7 @@ unpacking = TypeTheoryEnvironment[packing, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 269 constants -->
+<!-- => TypeTheoryEnvironment summary box: 271 constants -->
 
 `"girardOmega"` is the set of the sets `q` that hold of every `x` whose unpacking contains `q`, and `"girardDelta"` says of a set of sets that every set it contains holds of its packing. `"girardOmega"` has that property, and the set of the `y` whose unpacking lacks it then gives the contradiction, as the collection of all well-founded sets would be one and not one:
 
@@ -228,7 +228,7 @@ hurkens = TypeTheoryEnvironment[unpacking, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 273 constants -->
+<!-- => TypeTheoryEnvironment summary box: 275 constants -->
 
 The proof of `False` rests on nothing but the four axioms that put a product over Type into Type:
 
@@ -251,7 +251,7 @@ lying = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 On literals the kernel computes the greatest common divisor, 1, and on a variable it unfolds the definition, which gives the variable:
 
@@ -271,7 +271,7 @@ lied = TypeTheoryEnvironment[lying, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 263 constants -->
 
 The proof rests on no axiom, but on the registration, which [TypeTheoryAxiomClosure]() names as one:
 

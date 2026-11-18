@@ -42,7 +42,7 @@ The polymorphic identity, declared:
 identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 Declared, it is applied to its explicit argument alone:
 
@@ -74,7 +74,7 @@ swap = TypeTheoryEnvironment[{TypeTheoryTheorem[
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 Its declaration:
 
@@ -130,7 +130,7 @@ The polymorphic identity, declared:
 identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 [Construct]() applies it to its type argument alone, which gives the identity of that type:
 
@@ -178,7 +178,7 @@ The polymorphic identity, declared:
 identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 Declarations read back with it:
 
@@ -236,7 +236,7 @@ The polymorphic identity, declared:
 identity = TypeTheoryEnvironment[{TypeTheoryDefinition[PolymorphicIdentity, {TypedImplicit[A, TypeUniverse[u]], Typed[x, A]} |-> x]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 As many arguments as the explicit binders take are for those, so a type given alone is the element, not the implicit argument, and the identity at a type is a type:
 

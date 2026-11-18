@@ -45,7 +45,7 @@ The factorial, defined by the recursor of the natural numbers:
 factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, n |-> InductiveRecursor[Naturals][Naturals &, 1, {k, r} |-> (k + 1) r, n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 The definition unfolds and the recursor computes on the literal, here the factorial of 20:
 
@@ -184,7 +184,7 @@ A theorem, which does not unfold:
 arithmetic = TypeTheoryEnvironment[{TypeTheoryTheorem[TwoPlusTwo, 2 + 2 == 4, "equalityReflexivity"[4]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 Its proof stays a name:
 

@@ -140,7 +140,7 @@ joining = TypeTheoryEnvironment[{TypeTheoryDefinition[JoinStrings, {s, t} |->
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 258 constants -->
+<!-- => TypeTheoryEnvironment summary box: 260 constants -->
 
 It takes two strings to a string:
 
