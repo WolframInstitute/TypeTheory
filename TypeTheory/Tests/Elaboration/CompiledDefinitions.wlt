@@ -1174,6 +1174,55 @@ VerificationTest[
 ]
 
 
+(* Matrices, the packed arrays of rank 2 typed code makes by Partition of a vector (Library/MachineArrays.wl): Length of
+   one, a row and an element, each index counted as Part counts it, read as typed code computes them, with its leaves,
+   "Range" for Partition by less than 1 and "PartRange" for a part that is not there. *)
+partitionedEntry[data_List, k_Integer, i_Integer, j_Integer] := Partition[data, k][[i, j]]
+partitionedRows[data_List, k_Integer] := Length[Partition[data, k]]
+partitionedRow[data_List, k_Integer, i_Integer] := Partition[data, k][[i]]
+partitionedProduct[data_List, k_Integer, v_List] := Module[{m = Partition[data, k], r = ConstantArray[0, Length[Partition[data, k]]], i = 1, j = 1, s = 0},
+	While[i <= Length[m], s = 0; j = 1; While[j <= Length[v], s = s + m[[i, j]] v[[j]]; j = j + 1]; r[[i]] = s; i = i + 1];
+	r
+]
+
+matrices = TypeTheoryEnvironment[vectors, Join[
+	TypeTheoryFormalize[Typed[partitionedEntry, {"PackedArray"::["Integer64", 1], "Integer64", "Integer64", "Integer64"} -> "Integer64"], machine],
+	TypeTheoryFormalize[Typed[partitionedRows, {"PackedArray"::["Integer64", 1], "Integer64"} -> "Integer64"], machine],
+	TypeTheoryFormalize[Typed[partitionedRow, {"PackedArray"::["Integer64", 1], "Integer64", "Integer64"} -> "PackedArray"::["Integer64", 1]], machine],
+	TypeTheoryFormalize[Typed[partitionedProduct, {"PackedArray"::["Integer64", 1], "Integer64", "PackedArray"::["Integer64", 1]} -> "PackedArray"::["Integer64", 1]], machine]
+]]
+
+(* a function of the squares of 1 to n, with machine integers bound by name *)
+SetAttributes[withSquares, HoldRest]
+withSquares[n_Integer, body_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm[
+	"confirmBind"["machineResult"[n], Typed[size, "Integer64"] |-> "confirmBind"[vectorSquares[20, size], Typed[a, "PackedArray"["Integer64", 1]] |-> body]],
+	matrices
+]]]
+
+VerificationTest[
+	{
+		withSquares[5, "confirmBind"["machineResult"[2], Typed[k, "Integer64"] |-> "confirmBind"["machineResult"[2], Typed[i, "Integer64"] |-> "confirmBind"["machineResult"[1], Typed[j, "Integer64"] |-> partitionedEntry[a, k, i, j]]]]],
+		withSquares[5, "confirmBind"["machineResult"[2], Typed[k, "Integer64"] |-> partitionedRows[a, k]]],
+		withSquares[5, "confirmBind"["machineResult"[2], Typed[k, "Integer64"] |-> "confirmBind"["machineResult"[-1], Typed[i, "Integer64"] |-> partitionedRow[a, k, i]]]],
+		withSquares[6, "confirmBind"["machineResult"[3], Typed[k, "Integer64"] |-> "confirmBind"["machineResult"[3], Typed[three, "Integer64"] |->
+			"confirmBind"[vectorSquares[20, three], Typed[v, "PackedArray"["Integer64", 1]] |-> partitionedProduct[30, a, k, v]]]]],
+		{
+			withSquares[5, "confirmBind"["machineResult"[0], Typed[k, "Integer64"] |-> partitionedRows[a, k]]],
+			withSquares[5, "confirmBind"["machineResult"[2], Typed[k, "Integer64"] |-> "confirmBind"["machineResult"[3], Typed[i, "Integer64"] |-> "confirmBind"["machineResult"[1], Typed[j, "Integer64"] |-> partitionedEntry[a, k, i, j]]]]],
+			withSquares[5, "confirmBind"["machineResult"[2], Typed[k, "Integer64"] |-> "confirmBind"["machineResult"[0], Typed[i, "Integer64"] |-> partitionedRow[a, k, i]]]]
+		}
+	},
+	{
+		partitionedEntry[vectorSquares[5], 2, 2, 1],
+		partitionedRows[vectorSquares[5], 2],
+		partitionedRow[vectorSquares[5], 2, -1],
+		partitionedProduct[vectorSquares[6], 3, vectorSquares[3]],
+		{Failure["Range", <||>], Failure["PartRange", <||>], Failure["PartRange", <||>]}
+	},
+	TestID -> "Functions-of-matrices-compute-what-the-evaluator-computes-and-leave-where-typed-code-does"
+]
+
+
 (* the machine reals once, outside any test's time limit: where no saved environment is current, a fresh checkout or a
    changed kernel, they are built and checked from their declarations, which takes minutes *)
 machineReals = TypeTheoryEnvironment["MachineReals"]

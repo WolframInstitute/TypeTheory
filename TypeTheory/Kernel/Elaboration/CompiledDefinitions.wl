@@ -81,9 +81,10 @@ compiledDeclarations[environment_, held : HoldComplete[symbol_Symbol], type_] :=
 		}]
 ]
 
-(* typed code with a machine real among its parameters, its variables or its results, alone or in a vector *)
+(* typed code with a machine real among its parameters, its variables or its results, alone, in a vector or in a
+   matrix *)
 realSignaturesQ[signatures_Association] := AnyTrue[signatures, Function[signature,
-	MemberQ[signature["Variables"], "Real64" | "Array:Real64"] || MatchQ[signature["Result"], "Real64" | "Array:Real64"] ||
+	MemberQ[signature["Variables"], "Real64" | "Array:Real64" | "Matrix:Real64"] || MatchQ[signature["Result"], "Real64" | "Array:Real64"] ||
 		MemberQ[signature["Parameters"], {_, _, "Real64" | "Array:Real64"}]
 ]]
 
@@ -531,9 +532,11 @@ parameterScope[parameters_List, terms_List] := Association[MapThread[
 machineType[type : "Integer64" | "Boolean" | "Real64"] := HoldComplete[type]
 machineType["Array:Int64"] := HoldComplete["PackedArray"["Integer64", 1]]
 machineType["Array:Real64"] := HoldComplete["PackedArray"["Real64", 1]]
+machineType["Matrix:Int64"] := HoldComplete["PackedArray"["Integer64", 2]]
+machineType["Matrix:Real64"] := HoldComplete["PackedArray"["Real64", 2]]
 machineType[type_] := kernelFailure[
 	"UnmodeledType",
-	"The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\", \"Real64\", \"Boolean\" and their vectors, \"PackedArray\"::[\"Integer64\", 1] and \"PackedArray\"::[\"Real64\", 1].",
+	"The typed code computes on `1`, which the machine model does not have yet: it has \"Integer64\", \"Real64\", \"Boolean\", their vectors, \"PackedArray\"::[\"Integer64\", 1] and \"PackedArray\"::[\"Real64\", 1], and their matrices.",
 	{type}
 ]
 
@@ -1024,6 +1027,34 @@ budgetTerm[signature_, key_String] := Replace[signature[key], None :> unmodeled[
    element given as a constant is made a machine value first. *)
 stepTerm[coreForm["Call"]["System`Length", {a_}], scope_, _, _] /; arrayOperandQ[a, scope] :=
 	{"Pure", Replace[First[atomTerm[a, scope]], HoldComplete[array_] :> HoldComplete["arrayLength"[array]]], "Integer64"}
+(* The steps on matrices, which typed code makes by Partition of a vector alone: Length, the rows, never leaves; a row,
+   an element and Partition are results that may *)
+stepTerm[coreForm["Call"]["System`Partition", {a_, k_}], scope_, _, _] /; arrayOperandQ[a, scope] := With[{entry = atomTerm[a, scope]},
+	{
+		"Result",
+		Replace[{First[entry], integerTerm[atomTerm[k, scope]]}, {HoldComplete[array_], HoldComplete[count_]} :> HoldComplete["matrixOfPartition"[array, count]]],
+		matrixKind[Last[entry]]
+	}
+]
+stepTerm[coreForm["Call"]["System`Length", {m_}], scope_, _, _] /; matrixOperandQ[m, scope] :=
+	{"Pure", Replace[First[atomTerm[m, scope]], HoldComplete[matrix_] :> HoldComplete["matrixLength"[matrix]]], "Integer64"}
+stepTerm[coreForm["Call"]["System`Part", {m_, i_}], scope_, _, _] /; matrixOperandQ[m, scope] := With[{entry = atomTerm[m, scope]},
+	{
+		"Result",
+		Replace[{First[entry], integerTerm[atomTerm[i, scope]]}, {HoldComplete[matrix_], HoldComplete[index_]} :> HoldComplete["matrixRow"[matrix, index]]],
+		matrixRowKind[Last[entry]]
+	}
+]
+stepTerm[coreForm["Call"]["System`Part", {m_, i_, j_}], scope_, _, _] /; matrixOperandQ[m, scope] := With[{entry = atomTerm[m, scope]},
+	{
+		"Result",
+		Replace[
+			{First[entry], integerTerm[atomTerm[i, scope]], integerTerm[atomTerm[j, scope]]},
+			{HoldComplete[matrix_], HoldComplete[row_], HoldComplete[column_]} :> HoldComplete["matrixPart"[matrix, row, column]]
+		],
+		arrayElementKind[matrixRowKind[Last[entry]]]
+	}
+]
 stepTerm[coreForm["Call"]["System`Part", {a_, i_}], scope_, _, _] /; arrayOperandQ[a, scope] := With[{entry = atomTerm[a, scope]},
 	{
 		"Result",
@@ -1095,7 +1126,7 @@ integerTerm[{term_HoldComplete, "Integer"}] := term
 integerTerm[{_, kind_}] := unmodeled[kind]
 
 (* a machine integer or a Boolean as a value; a constant was bound as a machine integer before the call *)
-machineTerm[{term_HoldComplete, "Integer64" | "Boolean" | "Real64" | "Array:Int64" | "Array:Real64"}] := term
+machineTerm[{term_HoldComplete, "Integer64" | "Boolean" | "Real64" | "Array:Int64" | "Array:Real64" | "Matrix:Int64" | "Matrix:Real64"}] := term
 machineTerm[{_, kind_}] := unmodeled[kind]
 
 (* the block's value as a result: a machine integer or a Boolean that never left, or a constant's machine result *)
@@ -1118,10 +1149,24 @@ arrayOperandQ[atom_, scope_] := MatchQ[
 	{_, "Array:Int64" | "Array:Real64"}
 ]
 
+(* an operand that is a matrix, which typed code has as a local or a temporary alone *)
+matrixOperandQ[atom_, scope_] := MatchQ[
+	Replace[atom, {
+		coreForm["Local"][name_String] :> Lookup[scope, Key[{"L", name}], None],
+		coreForm["Temporary"][name_String] :> Lookup[scope, Key[{"T", name}], None],
+		_ :> None
+	}],
+	{_, "Matrix:Int64" | "Matrix:Real64"}
+]
+
 arrayElementKind["Array:Int64"] := "Integer64"
 arrayElementKind["Array:Real64"] := "Real64"
 arrayKind["Integer64"] := "Array:Int64"
 arrayKind["Real64"] := "Array:Real64"
+matrixRowKind["Matrix:Int64"] := "Array:Int64"
+matrixRowKind["Matrix:Real64"] := "Array:Real64"
+matrixKind["Array:Int64"] := "Matrix:Int64"
+matrixKind["Array:Real64"] := "Matrix:Real64"
 
 (* the element of ConstantArray[c, n] and of a[[i]] = c, and the term built with it: a machine value as it is, a
    constant made one first, bound to a variable of its own *)
