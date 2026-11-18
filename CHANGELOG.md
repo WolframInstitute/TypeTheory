@@ -87,6 +87,14 @@ Versions 0.50.0 to 0.54.0.
   constants the memory is 0.372 GiB instead of 2.424 GiB (35.6 cells per input node instead of 294, and 85 MB fixed)
   and the check is 7.6% faster (6.58 s against 7.12 s), the smaller memory keeping its tables nearer the processor.
 
+### Documentation
+
+- **The tutorial Wolfram Language Theorems.** Statements about every value of Wolfram Language code, proved and
+  checked: what computation decides with unknowns in it, the order of rules by a split on the Boolean of a pattern's
+  test, the Booleans and `If` by cases, `Enclose[Confirm[x]]` for every value that may fail, the converse of
+  `"decideSoundness"` and with it `SameQ` of natural numbers and `Lookup` of a key that is a variable, the rules of a
+  function for every call of a shape, and where the tactics stop.
+
 ## 2026-W46 (November 9 to 15)
 
 Versions 0.35.0 to 0.49.0.

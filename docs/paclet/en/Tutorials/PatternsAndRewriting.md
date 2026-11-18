@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/PatternsAndRewriting
 Keywords: [patterns, rules, rewriting, Replace, ReplaceList, ReplaceAll, ReplaceRepeated, Match, sequences, Orderless, Optional, Longest, Wolfram Language]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TheWolframLanguage, Elaboration, TypeTheoryIntroduction]
+RelatedTutorials: [TheWolframLanguage, WolframLanguageTheorems, Elaboration, TypeTheoryIntroduction]
 ---
 
 In the prelude, a pattern is a function from an expression to its matches, the [Match]() of every way it matches, in the order the Wolfram Language tries them. Rules are such functions, and [Replace](), [ReplaceList](), [ReplaceAll]() and [ReplaceRepeated]() are definitions over them. An atom is data, a symbol by its name, so heads, literals and [SameQ]() compute, and the kernel rewrites as the Wolfram Language does. Every pattern translates but [KeyValuePattern](), and a condition or a pattern test is the one part that only the Wolfram Language evaluates.

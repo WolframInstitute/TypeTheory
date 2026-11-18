@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/TheWolframLanguage
 Keywords: [Wolfram Language, expressions, sums, Alternatives, Failure, Enclose, Confirm, errors, Association, Lookup, Missing, Keys, Values, Sequence, List, heterogeneous list, currying, pattern matching, Match, MatchValue, MatchSum, MatchPart, monad, nondeterminism, Option, Wolfram/Patterns, Match IR, DownValues, rules, rewriting]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [PatternsAndRewriting, Elaboration, ThePrelude, TypeTheoryIntroduction]
+RelatedTutorials: [PatternsAndRewriting, WolframLanguageTheorems, Elaboration, ThePrelude, TypeTheoryIntroduction]
 ---
 
 The prelude declares the expressions of the Wolfram Language as an inductive type, and the monad of pattern matching, so every term, proof and query can use them without naming an environment; <code>[TypeTheoryEnvironment]()["WolframLanguage"]</code> is the prelude by the name it had when they were an environment of their own. A pattern is a function from expressions to its matches, and a definition is the first match of its rules, so a Wolfram Language function has a meaning in the type theory: a total function, whose value is an [Option]() that is none where no rule matches and the expression stays as it is.
@@ -104,7 +104,7 @@ TypeTheoryType[Failure["DivideByZero", <|"Numerator" -> 7|>]]
 
 <!-- => Failure -->
 
-So a computation that may fail has a value of `A | Failure`, and [If]() picks the branch by the decision of its condition:
+So a computation that may fail has a value of `A | Failure`, and [If]() picks the branch by the decision of its condition, a proposition such as `n == 0` or a Boolean such as `Head[e] === Integer`:
 
 ```wl
 TypeTheoryType[n |-> Typed[If[n == 0, Failure["Zero", <|"Value" -> n|>], n - 1], NonNegativeIntegers | Failure]]

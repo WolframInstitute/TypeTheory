@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, instances, type classes, coercions]
-RelatedTutorials: [TypeTheoryIntroduction, Elaboration, ProgramsAndProofs, TheWolframLanguage, PatternsAndRewriting, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Paradoxes, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory]
+RelatedTutorials: [TypeTheoryIntroduction, Elaboration, ProgramsAndProofs, TheWolframLanguage, PatternsAndRewriting, WolframLanguageTheorems, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Paradoxes, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
@@ -147,7 +147,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 - [CartesianProductType]() pairs, made with `"pair"`
 - [DisjointUnionType]() sums, written `A | B`, made with `"left"` and `"right"`, or injected where the sum is expected
-- [Failure]() failures, `Failure[tag, details]`: a computation that may fail has a value of `A | Failure`, written with [Enclose]() and [Confirm](), and [If]() branches by a [Decidable]() condition
+- [Failure]() failures, `Failure[tag, details]`: a computation that may fail has a value of `A | Failure`, written with [Enclose]() and [Confirm](), and [If]() branches by a Boolean, as [SameQ]() gives, or a [Decidable]() proposition
 - [Association]() associations, `<|k -> v, ...|>`, with [Lookup]() giving `V | Missing`, [Keys](), [Values](), [KeyExistsQ]() and [Length](); [Missing]() missing values, `Missing[reason, details...]`
 - [Option]() optional values, `"none"` and `"some"`
 - [List]() lists, built from `{}` by [Prepend](), with [Join](), [Length](), [Map](), [Append]() and [Reverse]()
