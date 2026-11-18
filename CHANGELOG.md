@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.54.0.
+Versions 0.50.0 to 0.54.1.
 
 ### Added
 
@@ -93,7 +93,9 @@ Versions 0.50.0 to 0.54.0.
   checked: what computation decides with unknowns in it, the order of rules by a split on the Boolean of a pattern's
   test, the Booleans and `If` by cases, `Enclose[Confirm[x]]` for every value that may fail, the converse of
   `"decideSoundness"` and with it `SameQ` of natural numbers and `Lookup` of a key that is a variable, the rules of a
-  function for every call of a shape, and where the tactics stop.
+  function for every call of a shape, vectors and matrices of typed code (Partition by a count below 1 leaves with
+  "Range" for every input, Take gives the length asked for, an entry of a matrix leaves by a part that is not there
+  alone, Transpose twice is the identity, a transpose swaps the dimensions), and where the tactics stop (0.54.1).
 
 ## 2026-W46 (November 9 to 15)
 

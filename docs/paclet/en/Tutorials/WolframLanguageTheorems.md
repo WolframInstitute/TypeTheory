@@ -167,6 +167,71 @@ TypeTheoryProof[ForAll[{Typed[a, Expressions], Typed[b, Expressions], Typed[c, E
 
 <!-- => Proof complete -->
 
+## Vectors and Matrices of Typed Code
+
+[TypeTheoryFormalize]() reads a function that takes its types with it, as [FunctionCompile]() does, as the code the compiler makes of it: a vector is a `"PackedArray"[A, 1]`, a matrix made inside the function by [Partition]() is a `"PackedArray"[A, 2]`, and each operation is a result that may leave, as typed code does. One function reads an entry of the rows a vector is partitioned into, another takes the first two parts of a vector:
+
+```wl
+entryOfRows[data_List, k_Integer, i_Integer, j_Integer] := Partition[data, k][[i, j]];
+firstTwo[v_List] := Take[v, 2];
+typed = TypeTheoryEnvironment["Machine", Join[
+    TypeTheoryFormalize[Typed[entryOfRows, {"PackedArray"::["Integer64", 1], "Integer64", "Integer64", "Integer64"} -> "Integer64"], "Machine"],
+    TypeTheoryFormalize[Typed[firstTwo, {"PackedArray"::["Integer64", 1]} -> "PackedArray"::["Integer64", 1]], "Machine"]
+]]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 500 constants -->
+
+For every vector and every pair of indices, a count below 1 makes `entryOfRows` leave with [Failure]()`["Range", <||>]`, as [Partition]() does, whatever the rest would have done. The proof unfolds the function and rewrites its [Partition]() with the machine library's theorem about a count below 1:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, "PackedArray"["Integer64", 1]], Typed[k, "Integer64"], Typed[i, "Integer64"], Typed[j, "Integer64"]},
+    Implies["integerLessEqualQ"[1, k[["integer"]]] == False, entryOfRows[a, k, i, j] == Typed["right"[Failure["Range", <||>]], "Integer64" | Failure]]], typed,
+    {"Introduce"[a, k, i, j, small], "RewriteRepeated"[entryOfRows, "matrixOfPartitionRange"["Integer64", a, k[["integer"]], small]]}]
+```
+
+<!-- => Proof complete -->
+
+Whatever vector `firstTwo` is given, the vector it gives, where it gives one, has two parts:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[v, "PackedArray"["Integer64", 1]], Typed[b, "PackedArray"["Integer64", 1]]},
+    Implies[firstTwo[v] == Typed["left"[b], "PackedArray"["Integer64", 1] | Failure], "integerOfNatural"[Length[b[["list"]]]] == 2]], typed,
+    {"Introduce"[v, b, given], "Exact"["arrayTakeLength"["Integer64", v, 2, b, "equalityReflexivity"[True], given]]}]
+```
+
+<!-- => Proof complete -->
+
+The only way an entry of a matrix leaves is a part that is not there, for every matrix and every pair of indices:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]], Typed[i, Integers], Typed[j, Integers], Typed[f, Failure]},
+    Implies["matrixPart"[m, i, j] == Typed["right"[f], "Integer64" | Failure], f == Failure["PartRange", <||>]]], "Machine",
+    {"Introduce"[m, i, j, f, left], "Exact"["matrixPartLeave"["Integer64", m, i, j, f, left]]}]
+```
+
+<!-- => Proof complete -->
+
+[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics, named by strings: Transpose twice is the identity on every matrix, a theorem with no axiom,
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, "matrixTranspose"["matrixTranspose"[m]] == m], "Machine",
+    {"Introduce"[m], "Exact"["matrixTransposeTwice"["Integer64", m]]}]
+```
+
+<!-- => Proof complete -->
+
+and the dimensions of a transpose are the dimensions swapped:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, "matrixDimensions"["matrixTranspose"[m]] == "pair"["matrixDimensions"[m][["second"]], "matrixDimensions"[m][["first"]]]], "Machine",
+    {"Introduce"[m], "Exact"["matrixDimensionsOfTranspose"["Integer64", m]]}]
+```
+
+<!-- => Proof complete -->
+
+Loops over vectors and matrices are proved the same way, by induction on the rounds of the loop with an invariant: the suite proves that a [While]() summing a vector's parts gives its total for all fuel above its length, and that a matrix-vector product by two loops over `m[[i, j]] v[[j]]` gives the library's product wherever no sum leaves the machine's range. The tutorial Programs and Proofs walks through such a proof for a loop over machine integers.
+
 ## Where the Tactics Stop
 
 A statement is written inside [TypeTheoryProof](), which holds it. Outside, the Wolfram Language evaluates it first: `e` is a symbol, so its head is [Symbol]() and the test is already `False`:
