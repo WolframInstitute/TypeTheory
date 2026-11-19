@@ -221,10 +221,10 @@ TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Transpose[Tran
 
 <!-- => Proof complete -->
 
-and the dimensions of a transpose are the dimensions swapped:
+and the dimensions of a transpose, the list `{rows, columns}` as [Dimensions]() gives it, are the dimensions reversed:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Dimensions[Transpose[m]] == "pair"[Dimensions[m][["second"]], Dimensions[m][["first"]]]], "Machine",
+TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Dimensions[Transpose[m]] == Reverse[Dimensions[m]]], "Machine",
     {"Introduce"[m], "Exact"["matrixDimensionsOfTranspose"["Integer64", m]]}]
 ```
 

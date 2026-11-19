@@ -55,7 +55,7 @@ guarantee (Stephen, 2026-11-17). `TypeTheoryFormalize` refuses a type of a rank 
 
 The mathematics, which typed code does not have, stated on the model's matrices:
 
-- `"matrixDimensions"[m]` is the pair of the counts of the rows and the columns.
+- `"matrixDimensions"[m]` is the list `{rows, columns}`, as `Dimensions` gives it.
 - `"matrixTranspose"[m]` is the matrix whose rows are m's columns, built from the rows by `"transposeRows"`.
 - `"matrixVectorProduct"[m, v]` is the list of the exact sums of the integers' products, row by row, for matrices
   and vectors of machine integers (`"integerListDot"`).
@@ -68,7 +68,7 @@ no machine holds, which typed code's machine integers never give, leaves as an a
 ## The theorems
 
 - `"matrixTransposeTwice"`: `"matrixTranspose"["matrixTranspose"[m]] == m` for every matrix, with no axiom.
-- `"matrixDimensionsOfTranspose"`: the dimensions of a transpose are the pair swapped, with no axiom.
+- `"matrixDimensionsOfTranspose"`: the dimensions of a transpose are the dimensions reversed, with no axiom.
 - `"matrixOfPartitionOfNatural"`: Partition by a count a machine integer holds, 1 or more, is the matrix of the rows
   `"listPartition"` gives.
 - `"matrixOfPartitionRange"`: by a count below 1 it leaves with `"Range"`.

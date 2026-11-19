@@ -39,7 +39,7 @@ mathematics typed code's loops are stated against.
 	"matrixLength"[m]                Length[m], the rows, an "Integer64"
 	"matrixRow"[m, i]                m[[i]], a vector
 	"matrixPart"[m, i, j]            m[[i, j]], each index by Part's rule
-	"matrixDimensions"[m]            Dimensions[m], the pair of the counts of the rows and the columns
+	"matrixDimensions"[m]            Dimensions[m], the list {rows, columns}, as the Wolfram Language gives it
 	"matrixTranspose"[m]             Transpose[m]
 	"matrixVectorProduct"[m, v]      the product of a matrix and a vector of machine integers, the exact sums of the
 	                                 integers' products, row by row
@@ -55,7 +55,7 @@ alone, "arraySetPartLeave" and "arrayTakeLeave"; a constant array of a length a 
 Of matrices: Partition by a count a machine integer holds, 1 or more, is the matrix of its rows,
 "matrixOfPartitionOfNatural", and by a count below 1 it leaves, "matrixOfPartitionRange"; a row and an element leave by
 a part that is not there alone, "matrixRowLeave" and "matrixPartLeave"; Transpose twice is the identity,
-"matrixTransposeTwice", and the dimensions of a transpose are the pair swapped, "matrixDimensionsOfTranspose". A proof
+"matrixTransposeTwice", and the dimensions of a transpose are the dimensions reversed, "matrixDimensionsOfTranspose". A proof
 about a loop over a matrix and a vector takes the machine's dot product, "integerListDotTotal", which is the exact one
 where every product and sum is in range, "integerListDotTotalOfSums"; the rows' dot products in turn, "rowsDotTotals"
 and "rowsDotTotalsOfSums"; and an element of a matrix split at a place, "matrixPartOfJoin".
@@ -433,13 +433,14 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 		],
 		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> Integers -> Integers -> (A | Failure)]
 	]],
-	(* the mathematics: Dimensions, the pair of the counts of the rows and the columns; and the product of a matrix and a
+	(* the mathematics: Dimensions, the list of the counts of the rows and the columns, as the Wolfram Language gives it;
+	   and the product of a matrix and a
 	   vector of machine integers, the exact sum of the integers' products for each row, as far as the shorter goes *)
 	TypeTheoryDefinition["matrixDimensions", Typed[
 		Function[{TypedImplicit[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]},
-			Typed["pair"[Length[m[["rows"]]], m[["columns"]]], CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]
+			Typed[{Length[m[["rows"]]], m[["columns"]]}, {NonNegativeIntegers}]
 		],
-		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]
+		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> {NonNegativeIntegers}]
 	]],
 	TypeTheoryDefinition["integerListDot", Typed[
 		Function[{Typed[l, {"Integer64"}]}, InductiveRecursor[List][
@@ -926,7 +927,7 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 		],
 		ForAll[{TypedImplicit[A, TypeUniverse[1]]}, "PackedArray"[A, 2] -> "PackedArray"[A, 2]]
 	]],
-	(* Transpose twice is the identity on every matrix, and the dimensions of a transpose are the pair swapped *)
+	(* Transpose twice is the identity on every matrix, and the dimensions of a transpose are the dimensions reversed *)
 	machineTheorem["matrixTransposeTwice",
 		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixTranspose"["matrixTranspose"[m]] == m],
 		{"Introduce"[A, m], "Cases"[m], "Introduce"[c, rows, p],
@@ -935,9 +936,9 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 				"transposeRowsLength"[A, c, rows], "transposeRowsTwice"[A, c, rows, p[["right"]][["right"]][["right"]]]]]}
 	],
 	machineTheorem["matrixDimensionsOfTranspose",
-		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixDimensions"["matrixTranspose"[m]] == "pair"["matrixDimensions"[m][[2]], "matrixDimensions"[m][[1]]]],
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixDimensions"["matrixTranspose"[m]] == Reverse["matrixDimensions"[m]]],
 		{"Introduce"[A, m],
-			"Exact"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, Typed["pair"[k, Length[m[["rows"]]]], CartesianProductType[NonNegativeIntegers, NonNegativeIntegers]]],
+			"Exact"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, Typed[{k, Length[m[["rows"]]]}, {NonNegativeIntegers}]],
 				"transposeRowsLength"[A, m[["columns"]], m[["rows"]]]]]}
 	],
 
