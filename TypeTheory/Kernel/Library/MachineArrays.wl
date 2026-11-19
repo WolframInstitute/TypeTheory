@@ -148,9 +148,40 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 		ForAll[{Typed[A, TypeUniverse[1]]}, TypeUniverse[1]],
 		{"matrix" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], Typed[columns, NonNegativeIntegers], Typed[rows, {{A}}], Typed[proof, "matrixRange"[columns, rows]]}, "Matrix"[A]]}
 	],
+	(* the levels of an array below its first two, rectangular, by recursion on their dimensions: none leaves an element,
+	   and a dimension d before the rest the lists of d values of the levels below *)
+	TypeTheoryDefinition["Nested", Typed[
+		Function[{Typed[A, TypeUniverse[1]], Typed[shape, {NonNegativeIntegers}]}, InductiveRecursor[List][
+			Function[{Typed[t, {NonNegativeIntegers}]}, TypeUniverse[1]],
+			A,
+			Function[{Typed[d, NonNegativeIntegers], Typed[ds, {NonNegativeIntegers}], Typed[r, TypeUniverse[1]]}, Subtype[Function[{Typed[l, {r}]}, Length[l] == d]]],
+			shape
+		]],
+		TypeUniverse[1] -> {NonNegativeIntegers} -> TypeUniverse[1]
+	]],
+	(* the elements of an array of a shape, the product of its dimensions *)
+	TypeTheoryDefinition["shapeElements", Typed[
+		Function[{Typed[shape, {NonNegativeIntegers}]}, InductiveRecursor[List][
+			Function[{Typed[t, {NonNegativeIntegers}]}, NonNegativeIntegers],
+			1,
+			Function[{Typed[d, NonNegativeIntegers], Typed[ds, {NonNegativeIntegers}], Typed[r, NonNegativeIntegers]}, d r],
+			shape
+		]],
+		{NonNegativeIntegers} -> NonNegativeIntegers
+	]],
+	(* the arrays of rank k + 3: the first two levels a matrix of the levels below, of the k + 1 dimensions inner, and
+	   all the elements, the product of every dimension, below 2^63. The binders of "tensor" name its parts,
+	   t["inner"], t["values"] and t["proof"] *)
+	TypeTheoryInductiveType[
+		"Tensor",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[k, NonNegativeIntegers]}, TypeUniverse[1]],
+		{"tensor" -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[k, NonNegativeIntegers], Typed[inner, {NonNegativeIntegers}],
+			Typed[values, "Matrix"["Nested"[A, inner]]],
+			Typed[proof, Length[inner] == k + 1 && "shapeElements"[inner] (Length[values[["rows"]]] values[["columns"]]) < upper]}, "Tensor"[A, k]]}
+	],
 	(* by its rank, as the compiler's type "PackedArray"::[t, rank]: an array of rank 0 is an element, of rank 1 a list
-	   of elements a machine holds, of rank 2 a matrix, and of a rank above a list a machine holds of the arrays of the
-	   rank below, which typed code does not have. The arrays of ranks 1 and 2 compute to the lists and matrices of A
+	   of elements a machine holds, of rank 2 a matrix, and of a rank k + 3 a "Tensor", the matrix of its first two
+	   levels over the levels below, rectangular at every rank; typed code has ranks 1 and 2 alone. The arrays of ranks 1 and 2 compute to the lists and matrices of A
 	   itself, and not of a recursion that is yet to compute: a hypothesis on a["list"] and a term written with {A} are
 	   then the same term, which a rewrite needs *)
 	TypeTheoryDefinition["PackedArray", Typed[
@@ -164,7 +195,7 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 					Function[{Typed[j, NonNegativeIntegers], Typed[s, TypeUniverse[1]]}, InductiveRecursor[NonNegativeIntegers][
 						Function[{Typed[i, NonNegativeIntegers]}, TypeUniverse[1]],
 						"Matrix"[T],
-						Function[{Typed[i, NonNegativeIntegers], Typed[q, TypeUniverse[1]]}, Subtype["arrayLengthRange"[r[T]]]],
+						Function[{Typed[i, NonNegativeIntegers], Typed[q, TypeUniverse[1]]}, "Tensor"[T, i]],
 						j
 					]],
 					k
@@ -940,6 +971,107 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 		{"Introduce"[A, m],
 			"Exact"["equalityCongruence"[Function[{Typed[k, NonNegativeIntegers]}, Typed[{k, Length[m[["rows"]]]}, {NonNegativeIntegers}]],
 				"transposeRowsLength"[A, m[["columns"]], m[["rows"]]]]]}
+	],
+	(* every rank: Dimensions, the list of the dimensions, {} for an element, {length} for a vector, {rows, columns} for
+	   a matrix, and the rows, the columns and the levels below for a rank above; a rank of n + 2 has a Transpose, the
+	   first two levels swapped, the matrix transpose at rank 2 and of the outer matrix above *)
+	TypeTheoryDefinition["arrayDimensions", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[k, NonNegativeIntegers]}, "PackedArray"[A, k] -> {NonNegativeIntegers}],
+			Function[{Typed[x, A]}, Typed[{}, {NonNegativeIntegers}]],
+			Function[{Typed[k, NonNegativeIntegers], Typed[r, "PackedArray"[A, k] -> {NonNegativeIntegers}]}, InductiveRecursor[NonNegativeIntegers][
+				Function[{Typed[j, NonNegativeIntegers]}, "PackedArray"[A, j + 1] -> {NonNegativeIntegers}],
+				Function[{Typed[a, "PackedArray"[A, 1]]}, Typed[{Length[a[["list"]]]}, {NonNegativeIntegers}]],
+				Function[{Typed[j, NonNegativeIntegers], Typed[s, "PackedArray"[A, j + 1] -> {NonNegativeIntegers}]}, InductiveRecursor[NonNegativeIntegers][
+					Function[{Typed[i, NonNegativeIntegers]}, "PackedArray"[A, i + 2] -> {NonNegativeIntegers}],
+					Function[{Typed[m, "PackedArray"[A, 2]]}, "matrixDimensions"[m]],
+					Function[{Typed[i, NonNegativeIntegers], Typed[q, "PackedArray"[A, i + 2] -> {NonNegativeIntegers}]},
+						Function[{Typed[t, "Tensor"[A, i]]}, Join["matrixDimensions"[t[["values"]]], t[["inner"]]]]],
+					j
+				]],
+				k
+			]],
+			n
+		]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]}, "PackedArray"[A, n] -> {NonNegativeIntegers}]
+	]],
+	(* the transpose of an array of rank k + 3 is one: the outer matrix transposed has as many elements *)
+	machineTheorem["tensorTransposeRange",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[k, NonNegativeIntegers], Typed[t, "Tensor"[A, k]]},
+			Length[t[["inner"]]] == k + 1 && "shapeElements"[t[["inner"]]] (Length["matrixTranspose"[t[["values"]]][["rows"]]] "matrixTranspose"[t[["values"]]][["columns"]]) < upper],
+		{"Introduce"[A, k, t], "Cases"[t], "Introduce"[inner, values, p], "Cases"[values], "Introduce"[c, rows, q, p],
+			"Change"[Length[inner] == k + 1 && "shapeElements"[inner] (Length["transposeRows"[c, rows]] Length[rows]) < upper],
+			"Rewrite"["transposeRowsLength"["Nested"[A, inner], c, rows]],
+			"Exact"["andIntroduction"[p[["left"]],
+				"equalitySubstitution"["multiplicationCommutativity"[Length[rows], c], p[["right"]], P -> Function[{Typed[z, NonNegativeIntegers]}, "shapeElements"[inner] z < upper]]]]}
+	],
+	TypeTheoryDefinition["arrayTranspose", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+			Function[{Typed[k, NonNegativeIntegers]}, "PackedArray"[A, k + 2] -> "PackedArray"[A, k + 2]],
+			Function[{Typed[m, "PackedArray"[A, 2]]}, "matrixTranspose"[m]],
+			Function[{Typed[k, NonNegativeIntegers], Typed[r, "PackedArray"[A, k + 2] -> "PackedArray"[A, k + 2]]},
+				Function[{Typed[t, "Tensor"[A, k]]}, Typed["tensor"[t[["inner"]], "matrixTranspose"[t[["values"]]], "tensorTransposeRange"[A, k, t]], "Tensor"[A, k]]]],
+			n
+		]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]}, "PackedArray"[A, n + 2] -> "PackedArray"[A, n + 2]]
+	]],
+	(* the dimensions with the first two swapped, as Transpose swaps the first two levels *)
+	TypeTheoryDefinition["dimensionsTransposed", Typed[
+		Function[{Typed[d, {NonNegativeIntegers}]}, InductiveRecursor[List][
+			Function[{Typed[t, {NonNegativeIntegers}]}, {NonNegativeIntegers}],
+			Typed[{}, {NonNegativeIntegers}],
+			Function[{Typed[x, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[r, {NonNegativeIntegers}]}, InductiveRecursor[List][
+				Function[{Typed[t, {NonNegativeIntegers}]}, {NonNegativeIntegers}],
+				Prepend[x][Typed[{}, {NonNegativeIntegers}]],
+				Function[{Typed[y, NonNegativeIntegers], Typed[others, {NonNegativeIntegers}], Typed[s, {NonNegativeIntegers}]}, Prepend[y][Prepend[x][others]]],
+				rest
+			]],
+			d
+		]],
+		{NonNegativeIntegers} -> {NonNegativeIntegers}
+	]],
+	(* two arrays of rank k + 3 are one where their dimensions below and their outer matrices are *)
+	machineTheorem["tensorEquality",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[k, NonNegativeIntegers], Typed[inner, {NonNegativeIntegers}], Typed[v, "Matrix"["Nested"[A, inner]]], Typed[w, "Matrix"["Nested"[A, inner]]],
+				Typed[p, Length[inner] == k + 1 && "shapeElements"[inner] (Length[v[["rows"]]] v[["columns"]]) < upper],
+				Typed[q, Length[inner] == k + 1 && "shapeElements"[inner] (Length[w[["rows"]]] w[["columns"]]) < upper]},
+			Implies[v == w, Typed["tensor"[inner, v, p], "Tensor"[A, k]] == Typed["tensor"[inner, w, q], "Tensor"[A, k]]]],
+		{"Introduce"[A, k, inner, v, w, p, q, e], "Generalize"[q], "Rewrite"[e, "RightToLeft"], "Introduce"[q], "Reflexivity"}
+	],
+	(* the theorems of every rank: as many dimensions as the rank, Transpose twice the identity, and the dimensions of a
+	   transpose the first two swapped *)
+	machineTheorem["arrayDimensionsLength",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers]}, ForAll[{Typed[a, "PackedArray"[A, n]]}, Length["arrayDimensions"[a]] == n]],
+		{"Introduce"[A, n], "Cases"[n],
+			"Introduce"[x], "Reflexivity",
+			"Introduce"[k], "Cases"[k],
+			"Introduce"[a], "Reflexivity",
+			"Introduce"[j], "Cases"[j],
+			"Introduce"[m], "Reflexivity",
+			"Introduce"[i, t],
+			"Change"[Length[Join["matrixDimensions"[t[["values"]]], t[["inner"]]]] == i + 3],
+			"Rewrite"["lengthJoin"["matrixDimensions"[t[["values"]]], t[["inner"]]]],
+			"Rewrite"[t[["proof"]][["left"]]],
+			"Change"[2 + (i + 1) == i + 3],
+			"LinearArithmetic"}
+	],
+	machineTheorem["arrayTransposeTwice",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers]}, ForAll[{Typed[a, "PackedArray"[A, n + 2]]}, "arrayTranspose"["arrayTranspose"[a]] == a]],
+		{"Introduce"[A, n], "Cases"[n],
+			"Introduce"[m], "Exact"["matrixTransposeTwice"[A, m]],
+			"Introduce"[k, t], "Cases"[t], "Introduce"[inner, values, p],
+			"Exact"["tensorEquality"[A, k, inner, "matrixTranspose"["matrixTranspose"[values]], values,
+				"tensorTransposeRange"[A, k, "tensor"[inner, "matrixTranspose"[values], "tensorTransposeRange"[A, k, "tensor"[inner, values, p]]]], p,
+				"matrixTransposeTwice"["Nested"[A, inner], values]]]}
+	],
+	machineTheorem["arrayDimensionsOfTranspose",
+		ForAll[{Typed[A, TypeUniverse[1]], Typed[n, NonNegativeIntegers]}, ForAll[{Typed[a, "PackedArray"[A, n + 2]]},
+			"arrayDimensions"["arrayTranspose"[a]] == "dimensionsTransposed"["arrayDimensions"[a]]]],
+		{"Introduce"[A, n], "Cases"[n],
+			"Introduce"[m], "Exact"["matrixDimensionsOfTranspose"[A, m]],
+			"Introduce"[k, t],
+			"Exact"["equalityCongruence"[Function[{Typed[z, NonNegativeIntegers]}, Prepend[z][Prepend[Length[t[["values"]][["rows"]]]][t[["inner"]]]]],
+				"transposeRowsLength"["Nested"[A, t[["inner"]]], t[["values"]][["columns"]], t[["values"]][["rows"]]]]]}
 	],
 
 	(* the first n elements are n where the list has them, and the rest is as long as what is left *)

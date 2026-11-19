@@ -1668,8 +1668,8 @@ $overloadedNames = <|
 	HoldComplete[Take] -> {HoldComplete["arrayTake"]},
 	HoldComplete[Total] -> {HoldComplete["arrayTotal"]},
 	HoldComplete[ConstantArray] -> {HoldComplete["arrayConstant"]},
-	HoldComplete[Dimensions] -> {HoldComplete["matrixDimensions"]},
-	HoldComplete[Transpose] -> {HoldComplete["matrixTranspose"]},
+	HoldComplete[Dimensions] -> {HoldComplete["arrayDimensions"]},
+	HoldComplete[Transpose] -> {HoldComplete["arrayTranspose"]},
 	HoldComplete[Minus] -> {HoldComplete["integerNegation"], HoldComplete["rationalNegation"]}
 |>
 

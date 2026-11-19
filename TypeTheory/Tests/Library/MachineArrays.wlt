@@ -150,13 +150,13 @@ rowsOf = Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> Typed["left"[m[["ro
 dimensionsOf = Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |->
 	Typed["left"["matrixDimensions"[m]], {NonNegativeIntegers} | Failure];
 
-(* a matrix is the array of rank 2, and keeps its columns; the array of a rank above is a list a machine holds of
-   arrays of the rank below. Transpose twice is the identity on every matrix with no axiom; the leaves and Partition
+(* a matrix is the array of rank 2, and keeps its columns; the array of a rank above is a "Tensor", the matrix of its
+   first two levels over the levels below. Transpose twice is the identity on every matrix with no axiom; the leaves and Partition
    rest on the integers' alone *)
 VerificationTest[
 	{
 		DefinitionallyEqualQ[TypeTheoryTerm["PackedArray"["Integer64", 2], machine], TypeTheoryTerm["Matrix"["Integer64"], machine]],
-		DefinitionallyEqualQ[TypeTheoryTerm["PackedArray"["Integer64", 3], machine], TypeTheoryTerm[Subtype["arrayLengthRange"["Matrix"["Integer64"]]], machine]],
+		DefinitionallyEqualQ[TypeTheoryTerm["PackedArray"["Integer64", 3], machine], TypeTheoryTerm["Tensor"["Integer64", 0], machine]],
 		Map[
 			Function[name, TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, machine}]],
 			{"matrixTransposeTwice", "matrixDimensionsOfTranspose", "matrixOfPartitionOfNatural", "matrixRowLeave", "matrixPartLeave"}
@@ -289,11 +289,48 @@ VerificationTest[
    overloaded, that of its first meaning, the lists', which elaboration takes where nothing decides *)
 VerificationTest[
 	{
-		MatchQ[First[TypeTheoryType[Dimensions, machine]], "PackedArray"[_, 2] -> {NonNegativeIntegers}],
-		MatchQ[First[TypeTheoryType[Transpose, machine]], "PackedArray"[a_, 2] -> "PackedArray"[a_, 2]],
+		MatchQ[First[TypeTheoryType[Dimensions, machine]], "PackedArray"[_, _] -> {NonNegativeIntegers}],
+		MatchQ[First[TypeTheoryType[Transpose, machine]], "PackedArray"[a_, b_] -> "PackedArray"[a_, b_]],
 		MatchQ[First[TypeTheoryType[Length, machine]], {_} -> NonNegativeIntegers],
 		MatchQ[First[TypeTheoryType[Length]], {_} -> NonNegativeIntegers]
 	},
 	{True, True, True, True},
 	TestID -> "An-overloaded-name-on-its-own-has-the-type-of-its-first-meaning"
+]
+
+(* every rank: Dimensions takes an array of any rank and gives as many dimensions as the rank; Transpose takes a rank of
+   2 or more and swaps the first two levels, twice the identity, the dimensions of a transpose the first two swapped;
+   the theorems use no axiom of their own, and a rank above 2 is a matrix of the levels below *)
+VerificationTest[
+	{
+		Map[
+			Function[term, First[TypeTheoryType[term]]],
+			{
+				TypeTheoryTerm[Typed[a, "PackedArray"["Integer64", 4]] |-> Dimensions[a], machine],
+				TypeTheoryTerm[Typed[a, "PackedArray"["Integer64", 3]] |-> Transpose[a], machine]
+			}
+		],
+		Map[Head, {
+			TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[a, "PackedArray"["Integer64", n]]}, Length[Dimensions[a]] == n], machine,
+				{"Introduce"[n, a], "Exact"["arrayDimensionsLength"["Integer64", n, a]]}],
+			TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[a, "PackedArray"["Integer64", n + 2]]}, Transpose[Transpose[a]] == a], machine,
+				{"Introduce"[n, a], "Exact"["arrayTransposeTwice"["Integer64", n, a]]}],
+			TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[a, "PackedArray"["Integer64", n + 2]]}, Dimensions[Transpose[a]] == "dimensionsTransposed"[Dimensions[a]]], machine,
+				{"Introduce"[n, a], "Exact"["arrayDimensionsOfTranspose"["Integer64", n, a]]}],
+			TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Dimensions[Transpose[m]] == Reverse[Dimensions[m]]], machine,
+				{"Introduce"[m], "Exact"["arrayDimensionsOfTranspose"["Integer64", 0, m]]}]
+		}],
+		Map[
+			Function[name, TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, machine}]],
+			{"arrayDimensionsLength", "arrayTransposeTwice", "arrayDimensionsOfTranspose"}
+		],
+		DefinitionallyEqualQ[TypeTheoryTerm["PackedArray"["Integer64", 5], machine], TypeTheoryTerm["Tensor"["Integer64", 2], machine]]
+	},
+	{
+		{"PackedArray"["Integer64", 4] -> {NonNegativeIntegers}, "PackedArray"["Integer64", 3] -> "PackedArray"["Integer64", 3]},
+		{TypeTheoryProof, TypeTheoryProof, TypeTheoryProof, TypeTheoryProof},
+		{<||>, <||>, <||>},
+		True
+	},
+	TestID -> "Dimensions-and-Transpose-take-every-rank-and-their-theorems-hold-for-every-rank"
 ]

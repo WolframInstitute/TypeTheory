@@ -212,7 +212,7 @@ TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]], Typed[i, Intege
 
 <!-- => Proof complete -->
 
-[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics; in [TypeTheoryEnvironment]()`["Machine"]` the Wolfram Language names stand for its operations, as [Length](), [Partition](), [Take]() and [Total]() do. Transpose twice is the identity on every matrix, a theorem with no axiom,
+[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics, for arrays of every rank; in [TypeTheoryEnvironment]()`["Machine"]` the Wolfram Language names stand for its operations, as [Length](), [Partition](), [Take]() and [Total]() do. Transpose twice is the identity on every matrix, by the library's theorem, which uses no axiom of its own,
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Transpose[Transpose[m]] == m], "Machine",
@@ -226,6 +226,24 @@ and the dimensions of a transpose, the list `{rows, columns}` as [Dimensions]() 
 ```wl
 TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Dimensions[Transpose[m]] == Reverse[Dimensions[m]]], "Machine",
     {"Introduce"[m], "Exact"["matrixDimensionsOfTranspose"["Integer64", m]]}]
+```
+
+<!-- => Proof complete -->
+
+An array of a rank above 2 is rectangular too, the matrix of its first two levels over the levels below, and Dimensions and Transpose take every rank. For every rank `n`, an array has `n` dimensions:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[a, "PackedArray"["Integer64", n]]}, Length[Dimensions[a]] == n], "Machine",
+    {"Introduce"[n, a], "Exact"["arrayDimensionsLength"["Integer64", n, a]]}]
+```
+
+<!-- => Proof complete -->
+
+and for every rank of 2 or more, Transpose, which swaps the first two levels as the Wolfram Language's does, is undone by itself:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[a, "PackedArray"["Integer64", n + 2]]}, Transpose[Transpose[a]] == a], "Machine",
+    {"Introduce"[n, a], "Exact"["arrayTransposeTwice"["Integer64", n, a]]}]
 ```
 
 <!-- => Proof complete -->

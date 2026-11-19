@@ -21,7 +21,7 @@ VerificationTest[
 		DefinitionallyEqualQ[TypeTheoryTerm["MachineInteger", machine], TypeTheoryTerm["Integer64", machine]],
 		DefinitionallyEqualQ[TypeTheoryTerm["Boolean", machine], TypeTheoryTerm[Booleans, machine]]
 	},
-	{140, True, <|"quotientSoundness" -> "Proposition"|>, True, True},
+	{153, True, <|"quotientSoundness" -> "Proposition"|>, True, True},
 	TestID -> "The-machine-integers-extend-the-integers"
 ]
 
