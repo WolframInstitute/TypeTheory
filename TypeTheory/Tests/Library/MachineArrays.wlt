@@ -243,3 +243,44 @@ VerificationTest[
 	"TypeMismatch",
 	TestID -> "A-matrix-needs-the-proof-of-its-range"
 ]
+
+(* the Wolfram Language names of the operations on packed arrays: in the machine environment Length chooses among the
+   lists', the associations', the vectors' and the matrices' by the type, and Partition, Take, Total, ConstantArray,
+   Dimensions and Transpose are the library's, so theorems are stated as the Wolfram Language writes them; in the
+   prelude the names mean what they meant *)
+VerificationTest[
+	{
+		Map[
+			Function[term, First[TypeTheoryType[term]]],
+			{
+				TypeTheoryTerm[Typed[m, "PackedArray"["Integer64", 2]] |-> Transpose[m], machine],
+				TypeTheoryTerm[Typed[m, "PackedArray"["Integer64", 2]] |-> Dimensions[m], machine],
+				TypeTheoryTerm[Typed[m, "PackedArray"["Integer64", 2]] |-> Length[m], machine],
+				TypeTheoryTerm[Typed[v, "PackedArray"["Integer64", 1]] |-> Length[v], machine],
+				TypeTheoryTerm[Typed[l, {NonNegativeIntegers}] |-> Length[l], machine],
+				TypeTheoryTerm[Typed[a, Association[Strings, NonNegativeIntegers]] |-> Length[a], machine],
+				TypeTheoryTerm[Typed[v, "PackedArray"["Integer64", 1]] |-> Partition[v, 2], machine],
+				TypeTheoryTerm[Typed[v, "PackedArray"["Integer64", 1]] |-> Take[v, 2], machine],
+				TypeTheoryTerm[Typed[v, "PackedArray"["Integer64", 1]] |-> Total[v], machine],
+				TypeTheoryTerm[Transpose[x]]
+			}
+		],
+		Head[TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Transpose[Transpose[m]] == m], machine, {"Introduce"[m], "Exact"["matrixTransposeTwice"["Integer64", m]]}]]
+	},
+	{
+		{
+			"PackedArray"["Integer64", 2] -> "PackedArray"["Integer64", 2],
+			"PackedArray"["Integer64", 2] -> CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
+			"PackedArray"["Integer64", 2] -> "Integer64",
+			"PackedArray"["Integer64", 1] -> "Integer64",
+			{NonNegativeIntegers} -> NonNegativeIntegers,
+			Association[Strings, NonNegativeIntegers] -> NonNegativeIntegers,
+			"PackedArray"["Integer64", 1] -> DisjointUnionType["PackedArray"["Integer64", 2], Failure],
+			"PackedArray"["Integer64", 1] -> DisjointUnionType["PackedArray"["Integer64", 1], Failure],
+			"PackedArray"["Integer64", 1] -> DisjointUnionType["Integer64", Failure],
+			Expressions
+		},
+		TypeTheoryProof
+	},
+	TestID -> "The-Wolfram-Language-names-of-array-operations-are-the-librarys-in-the-machine-environment"
+]

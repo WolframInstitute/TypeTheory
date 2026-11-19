@@ -1644,7 +1644,7 @@ $overloadedNames = <|
 	HoldComplete[Or] -> {HoldComplete[Or], HoldComplete["or"]},
 	(* the operations on associations, where the prelude declares them, and the name's own meaning where one is declared,
 	   as Length of lists, or the axiom TypeTheoryFormalize gives Lookup over expressions *)
-	HoldComplete[Length] -> {HoldComplete[Length], HoldComplete["associationLength"]},
+	HoldComplete[Length] -> {HoldComplete[Length], HoldComplete["associationLength"], HoldComplete["arrayLength"], HoldComplete["matrixLength"]},
 	HoldComplete[Lookup] -> {HoldComplete[Lookup], HoldComplete["associationLookup"]},
 	HoldComplete[Keys] -> {HoldComplete[Keys], HoldComplete["associationKeys"]},
 	HoldComplete[Values] -> {HoldComplete[Values], HoldComplete["associationValues"]},
@@ -1660,6 +1660,14 @@ $overloadedNames = <|
 	HoldComplete[GreaterEqual] -> {HoldComplete[GreaterEqual], HoldComplete["integerGreaterEqual"], HoldComplete["rationalGreaterEqual"]},
 	HoldComplete[Greater] -> {HoldComplete[Greater], HoldComplete["integerGreater"], HoldComplete["rationalGreater"]},
 	HoldComplete[Prepend] -> {HoldComplete["Prepend"]},
+	(* the operations on the packed arrays of TypeTheoryEnvironment["Machine"], where its library declares them: Length
+	   above, and Partition, Take, Total, ConstantArray, Dimensions and Transpose, which name nothing elsewhere *)
+	HoldComplete[Partition] -> {HoldComplete["matrixOfPartition"]},
+	HoldComplete[Take] -> {HoldComplete["arrayTake"]},
+	HoldComplete[Total] -> {HoldComplete["arrayTotal"]},
+	HoldComplete[ConstantArray] -> {HoldComplete["arrayConstant"]},
+	HoldComplete[Dimensions] -> {HoldComplete["matrixDimensions"]},
+	HoldComplete[Transpose] -> {HoldComplete["matrixTranspose"]},
 	HoldComplete[Minus] -> {HoldComplete["integerNegation"], HoldComplete["rationalNegation"]}
 |>
 

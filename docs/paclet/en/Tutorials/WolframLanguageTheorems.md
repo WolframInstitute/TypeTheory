@@ -212,10 +212,10 @@ TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]], Typed[i, Intege
 
 <!-- => Proof complete -->
 
-[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics, named by strings: Transpose twice is the identity on every matrix, a theorem with no axiom,
+[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics; in [TypeTheoryEnvironment]()`["Machine"]` the Wolfram Language names stand for its operations, as [Length](), [Partition](), [Take]() and [Total]() do. Transpose twice is the identity on every matrix, a theorem with no axiom,
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, "matrixTranspose"["matrixTranspose"[m]] == m], "Machine",
+TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Transpose[Transpose[m]] == m], "Machine",
     {"Introduce"[m], "Exact"["matrixTransposeTwice"["Integer64", m]]}]
 ```
 
@@ -224,7 +224,7 @@ TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, "matrixTranspo
 and the dimensions of a transpose are the dimensions swapped:
 
 ```wl
-TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, "matrixDimensions"["matrixTranspose"[m]] == "pair"["matrixDimensions"[m][["second"]], "matrixDimensions"[m][["first"]]]], "Machine",
+TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Dimensions[Transpose[m]] == "pair"[Dimensions[m][["second"]], Dimensions[m][["first"]]]], "Machine",
     {"Introduce"[m], "Exact"["matrixDimensionsOfTranspose"["Integer64", m]]}]
 ```
 
