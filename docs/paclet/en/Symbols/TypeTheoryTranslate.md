@@ -245,7 +245,7 @@ A proposition about all propositions is a proposition only by impredicativity, w
 impredicative = TypeTheoryEnvironment[{TypeTheoryDefinition[Everything, Typed[ForAll[{Typed[p, TypeUniverse[0]]}, Implies[p, p]], TypeUniverse[0]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 TypeTheoryTranslate[impredicative, TypeTheoryRules["MartinLofTypeTheory"]]["Failures"][Everything]

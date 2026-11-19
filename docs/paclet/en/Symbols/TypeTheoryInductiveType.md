@@ -39,7 +39,7 @@ trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 The declaration adds the type, its constructors and its recursor:
 
@@ -63,7 +63,7 @@ Counting the nodes of a tree with it: a leaf has one, and a node one more than i
 counted = Append[trees, TypeTheoryDefinition[NodeCount, tree |-> InductiveRecursor[BinaryTree][Naturals &, 1, {left, right, l, r} |-> l + r + 1, tree]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 264 constants -->
+<!-- => TypeTheoryEnvironment summary box: 280 constants -->
 
 A node over a leaf and a node of two leaves has five nodes:
 
@@ -84,7 +84,7 @@ lights = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 265 constants -->
+<!-- => TypeTheoryEnvironment summary box: 281 constants -->
 
 Two steps after red:
 
@@ -113,7 +113,7 @@ labelled = TypeTheoryEnvironment[{TypeTheoryInductiveType[LabelledTree, ForAll[{
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 The parameter is found from the labels:
 
@@ -146,7 +146,7 @@ vectors = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 The length in a vector's type is checked by computation:
 
@@ -175,7 +175,7 @@ evens = TypeTheoryEnvironment[TypeTheoryInductiveType[EvenNumber, TypeSpecifier[
 }]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 6 is even, by the constructors applied in turn:
 
@@ -197,7 +197,7 @@ pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 262 constants -->
+<!-- => TypeTheoryEnvironment summary box: 278 constants -->
 
 Its fields are projections:
 
@@ -222,7 +222,7 @@ parity = TypeTheoryEnvironment[TypeTheoryInductiveType[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 266 constants -->
+<!-- => TypeTheoryEnvironment summary box: 282 constants -->
 
 Three is odd:
 
@@ -250,7 +250,7 @@ roses = TypeTheoryEnvironment[{TypeTheoryInductiveType[Rose, TypeUniverse[1], {
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 The declaration adds a recursor on the trees and one on their lists:
 
@@ -274,7 +274,7 @@ The sum of the labels of a tree, by that recursor:
 labelSums = Append[roses, TypeTheoryDefinition[LabelSum, r |-> InductiveRecursor[Rose][Naturals &, Naturals &, {label, children, s} |-> label + s, 0, {x, l, a, b} |-> a + b, r]]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 264 constants -->
+<!-- => TypeTheoryEnvironment summary box: 280 constants -->
 
 The labels of a tree of four nodes add up to 10:
 
@@ -296,7 +296,7 @@ indexed = TypeTheoryEnvironment[{TypeTheoryInductiveType[Labelled, ForAll[{Typed
 }, "Parameters" -> 0]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 262 constants -->
+<!-- => TypeTheoryEnvironment summary box: 278 constants -->
 
 Its declaration:
 
@@ -353,7 +353,7 @@ mirrored = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 264 constants -->
+<!-- => TypeTheoryEnvironment summary box: 280 constants -->
 
 The mirror image of a tree:
 
@@ -390,7 +390,7 @@ trees = TypeTheoryEnvironment[{TypeTheoryInductiveType[BinaryTree, TypeUniverse[
 }]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 A constructor is a function into its type:
 
@@ -420,7 +420,7 @@ pairs = TypeTheoryEnvironment[TypeTheoryInductiveType[NaturalPair, TypeUniverse[
 }]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 262 constants -->
+<!-- => TypeTheoryEnvironment summary box: 278 constants -->
 
 A pair is equal by computation to the pair of its fields:
 

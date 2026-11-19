@@ -104,7 +104,7 @@ parity = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 277 constants -->
 
 The classes of 1 and 7 are equal, since both numbers are odd by computation:
 

@@ -117,7 +117,7 @@ The first element of a list, if it has one, defined with the recursor of [List](
 heads = TypeTheoryEnvironment[{TypeTheoryDefinition[FirstOfList, l |-> InductiveRecursor[List][Option[Naturals] &, "none", {x, rest, r} |-> "some"[x], l]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 The list of 5 and 7 has the first element 5:
 
@@ -143,7 +143,7 @@ Subtraction that gives none instead of stopping at 0, by cases on the Boolean th
 checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, {m, n} |-> InductiveRecursor[Booleans][Option[Naturals] &, "none", "some"[m - n], Decide[n <= m]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 7 less 3:
 
@@ -174,7 +174,7 @@ lookups = TypeTheoryEnvironment[{TypeTheoryDefinition[LookupNumber, {key, l} |->
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 The key 2 has the value 20:
 
@@ -266,7 +266,7 @@ Subtraction that gives none instead of stopping at 0:
 checked = TypeTheoryEnvironment[{TypeTheoryDefinition[CheckedSubtract, {m, n} |-> InductiveRecursor[Booleans][Option[Naturals] &, "none", "some"[m - n], Decide[n <= m]]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 [WeakHeadNormalForm]() computes as far as the constructor; the value inside is the difference of two literals, which the reduction computes as it builds it:
 

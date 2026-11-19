@@ -44,7 +44,7 @@ parity = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 277 constants -->
 
 Their quotient, the two classes of even and odd numbers, is a type:
 

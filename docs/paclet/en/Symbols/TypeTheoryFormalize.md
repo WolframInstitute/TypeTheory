@@ -96,7 +96,7 @@ twice[x_] := 2 x;
 doubling = TypeTheoryEnvironment[TypeTheoryFormalize[twice]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 Its type:
 
@@ -130,7 +130,7 @@ TypeTheoryFormalize[next, "Integers"]
 formalized = TypeTheoryEnvironment["Integers", TypeTheoryFormalize[next, "Integers"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 360 constants -->
+<!-- => TypeTheoryEnvironment summary box: 376 constants -->
 
 ```wl
 TypeTheoryType[next, formalized]
@@ -198,7 +198,7 @@ size[{x_, rest___}] := 1 + size[{rest}];
 sized = TypeTheoryEnvironment[TypeTheoryFormalize[size]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 Its elements are of any type:
 
@@ -226,7 +226,7 @@ fact[n_] := n fact[n - 1];
 facts = TypeTheoryEnvironment[TypeTheoryFormalize[fact]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 TypeTheoryType[fact, facts]
@@ -250,7 +250,7 @@ power[x_, n_] := x power[x, n - 1];
 powers = TypeTheoryEnvironment[TypeTheoryFormalize[power]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 TypeTheoryType[power, powers]
@@ -290,7 +290,7 @@ The kernel computes the decision:
 clamped = TypeTheoryEnvironment[TypeTheoryFormalize[clamp, "Type" -> NonNegativeIntegers -> NonNegativeIntegers]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 WeakHeadNormalForm[TypeTheoryTerm[clamp[5], clamped]]
@@ -524,7 +524,7 @@ square[x_Integer] := x^2 + 1;
 TypeTheoryEnvironment["Integers", TypeTheoryFormalize[square, "Integers"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 359 constants -->
+<!-- => TypeTheoryEnvironment summary box: 375 constants -->
 
 ---
 
@@ -535,7 +535,7 @@ styled[x_] := Style[x, Bold];
 styling = TypeTheoryEnvironment[TypeTheoryFormalize[styled, "Type" -> NonNegativeIntegers -> NonNegativeIntegers]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 Information[TypeTheoryTerm[styled, styling], "Implementation"]
@@ -560,7 +560,7 @@ derivative[y_, x_] := D[y, x];
 differentiating = TypeTheoryEnvironment[TypeTheoryFormalize[derivative]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 277 constants -->
 
 ```wl
 TypeTheoryAxiomClosure[TypeTheoryTerm[derivative, differentiating]]

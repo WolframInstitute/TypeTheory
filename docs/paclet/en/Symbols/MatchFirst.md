@@ -89,7 +89,7 @@ swapped[x_, y__] := {{y}, x};
 swapping = TypeTheoryEnvironment[TypeTheoryFormalize[swapped, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 They are the first result of the sum of the rules, an option of an expression:
 

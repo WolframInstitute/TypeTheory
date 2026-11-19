@@ -36,7 +36,7 @@ The translated prelude:
 affinePrelude = translated["Environment"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 259 constants -->
+<!-- => TypeTheoryEnvironment summary box: 275 constants -->
 
 ## Binders with Quantities
 
@@ -80,7 +80,7 @@ An argument counts as often as the binder that takes it says. An affine function
 TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[ApplyOnce, {TypedImplicit[A, TypeUniverse[1], 0], Typed[f, TypeSpecifier[{A} -> A], 1], Typed[x, A]} |-> f[x]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 But not twice:
 
@@ -104,7 +104,7 @@ An erased variable may appear where it is dead. The parameters of `"equalityRefl
 TypeTheoryEnvironment[affinePrelude, {TypeTheoryTheorem[ErasedReflexivity, ForAll[{Typed[n, NonNegativeIntegers, 0]}, n == n], n |-> "equalityReflexivity"[n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ## Constructors and Recursors
 
@@ -145,7 +145,7 @@ affine = TypeTheoryEnvironment[affinePrelude, {
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 263 constants -->
+<!-- => TypeTheoryEnvironment summary box: 279 constants -->
 
 The type of the swap:
 
@@ -191,7 +191,7 @@ TypeTheoryEnvironment[affinePrelude, {TypeTheoryDefinition[Choose, Function[{Typ
 ]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ## Function Types and Their Quantities
 

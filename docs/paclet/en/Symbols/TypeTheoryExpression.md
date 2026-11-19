@@ -70,7 +70,7 @@ The value the kernel computes is read from the normal form, here the factorial o
 factorials = TypeTheoryEnvironment[{TypeTheoryDefinition[FactorialOf, n |-> InductiveRecursor[Naturals][Naturals &, 1, (#1 + 1) #2 &, n]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 TypeTheoryExpression[NormalForm[TypeTheoryTerm[FactorialOf[20], factorials]]]
@@ -155,7 +155,7 @@ square[x_Integer] := x^2 + 1;
 squares = TypeTheoryEnvironment[TypeTheoryFormalize[square]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 So the reading of a term, which the Wolfram Language evaluates, is the reading of its value, which the kernel computes:
 
@@ -194,7 +194,7 @@ A constant of your own is a symbol the Wolfram Language has no definition of, so
 doubling = TypeTheoryEnvironment[{TypeTheoryDefinition[Doubled, n |-> 2 n]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 ```wl
 doubled = TypeTheoryTerm[Doubled[21], doubling];

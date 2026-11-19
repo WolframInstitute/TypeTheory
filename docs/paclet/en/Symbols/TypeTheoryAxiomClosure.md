@@ -87,7 +87,7 @@ An environment with an axiom of a type and an axiom of a proposition:
 signed = TypeTheoryEnvironment[{TypeTheoryAxiom[Origin, Naturals], TypeTheoryAxiom[OriginPositive, 0 < Origin]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 277 constants -->
 
 A term with the constant `Origin` rests on it as a signature:
 
@@ -211,7 +211,7 @@ A theorem left as a hole:
 later = TypeTheoryEnvironment[{TypeTheoryTheorem[Later, ForAll[{k}, k + 0 == k], TypeTheoryHole["by induction"]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 261 constants -->
+<!-- => TypeTheoryEnvironment summary box: 277 constants -->
 
 A hole is no axiom, so it is left out of the closure:
 

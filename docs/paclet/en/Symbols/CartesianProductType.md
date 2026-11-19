@@ -141,7 +141,7 @@ fibonacci = TypeTheoryEnvironment[{TypeTheoryDefinition[Fibonacci,
 ]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 The first eight:
 

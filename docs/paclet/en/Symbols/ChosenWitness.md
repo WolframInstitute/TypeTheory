@@ -93,7 +93,7 @@ A function defined by choice: half of a number, given a proof that it has a half
 halves = TypeTheoryEnvironment[{TypeTheoryDefinition[Half, {n, Typed[h, Exists[k |-> k + k == n]]} |-> ChosenWitness[h]]}]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 Its declaration:
 
