@@ -81,6 +81,7 @@ PackageScoped[$levelGeneralization]
 PackageScoped[$generalizedLevels]
 PackageScoped[$propositionExpected]
 PackageScoped[overloadedNameQ]
+PackageScoped[nameMeaning]
 PackageScoped[$checkQueryAssignments]
 PackageScoped[$queryAssignmentChanges]
 PackageScoped[aliasResolvedName]
@@ -126,6 +127,7 @@ $propositionExpected::usage = "$propositionExpected is True while the statement 
 $generalizedLevels::usage = "$generalizedLevels is the list of universe parameters {HoldComplete[name], ...} elaboration made of unsolved levels."
 $checkQueryAssignments::usage = "$checkQueryAssignments is True where each elaboration checks that the kernel's caches it kept remember no term with a metavariable, as a test of them; False by default."
 $queryAssignmentChanges::usage = "$queryAssignmentChanges counts the elaborations whose kernel caches remembered a term with a metavariable while $checkQueryAssignments was True."
+nameMeaning::usage = "nameMeaning[environment, HoldComplete[name]] gives the constant a name on its own stands for: the first meaning declared for an overloaded name, the one elaboration takes where nothing decides, and otherwise the name itself."
 overloadedNameQ::usage = "overloadedNameQ[environment, HoldComplete[name]] gives True if name stands for more than one constant of environment, as True does for the proposition and the Boolean."
 settleOverloads::usage = "settleOverloads[term] decides the overloaded names still waiting for their type, and gives term with the solutions found."
 explicitTerm::usage = "explicitTerm[environment, HoldComplete[term], {HoldComplete[u], ...}] gives the core term of a term that gives every argument and every \
@@ -1681,6 +1683,11 @@ $defaultedNames = Join[$arithmeticNames, HoldComplete /@ Unevaluated[{Length, Lo
 
 (* a name with several meanings declared, or with one where the name itself is no constant, as -x where
    only the integers are declared *)
+(* the constant a name on its own stands for, as TypeTheoryType[Length] or TypeTheoryType[Dimensions] asks: an overloaded
+   name's first meaning, which elaboration takes where nothing decides *)
+nameMeaning[environment_, name_HoldComplete] := If[overloadedNameQ[environment, name], First[declaredMeanings[environment, name], name], name]
+nameMeaning[_, other_] := other
+
 overloadedNameQ[environment_, name_HoldComplete] := With[{meanings = declaredMeanings[environment, name]},
 	Length[meanings] > 1 || Length[meanings] == 1 && ! constantDeclaredQ[environment, name]
 ]

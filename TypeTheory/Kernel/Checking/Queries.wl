@@ -284,7 +284,8 @@ givenTerm[symbol_Symbol, None] /; MatchQ[OwnValues[symbol], {_ :> _TypeTheoryTer
 givenTerm[term_, None] := TypeTheoryTerm[term]
 givenTerm[term_, environment_] := TypeTheoryTerm[term, environment]
 
-(* a constant on its own has its declared type, with its implicit arguments and universe parameters *)
+(* a constant on its own has its declared type, with its implicit arguments and universe parameters, and an overloaded
+   name on its own that of its first meaning, the one elaboration takes where nothing decides *)
 typeOfTerm[failure_Failure] := failure
 (* an ascription, Typed[t, T], has the type T it is given, checked: the kernel's own
    type of t, as 4 == 4 for "equalityReflexivity"[4], is equal to it but no longer as written *)
@@ -297,8 +298,8 @@ typeOfTerm[term_TypeTheoryTerm] /; MatchQ[heldTerm[term], HoldComplete[Typed[_, 
 	]]
 ]
 typeOfTerm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
-	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]], {
-		name_ /; And[constantDeclaredQ[environment, name], ! overloadedNameQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
+	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[nameMeaning[environment, aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]]], {
+		name_ /; And[constantDeclaredQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
 			constantRecord[environment, name]["Type"],
 		_ :> Last @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]

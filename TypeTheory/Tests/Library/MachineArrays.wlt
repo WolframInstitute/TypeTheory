@@ -148,7 +148,7 @@ matrixSamples = TypeTheoryEnvironment[machine, {
 onMatrix[sample_String, function_] := TypeTheoryExpression[NormalForm[TypeTheoryTerm["confirmBind"[sample, function], matrixSamples]]]
 rowsOf = Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |-> Typed["left"[m[["rows"]]], {{NonNegativeIntegers}} | Failure];
 dimensionsOf = Typed[m, "PackedArray"[NonNegativeIntegers, 2]] |->
-	Typed["left"[Typed[{"matrixDimensions"[m][[1]], "matrixDimensions"[m][[2]]}, {NonNegativeIntegers}]], {NonNegativeIntegers} | Failure];
+	Typed["left"["matrixDimensions"[m]], {NonNegativeIntegers} | Failure];
 
 (* a matrix is the array of rank 2, and keeps its columns; the array of a rank above is a list a machine holds of
    arrays of the rank below. Transpose twice is the identity on every matrix with no axiom; the leaves and Partition
@@ -223,7 +223,7 @@ VerificationTest[
 		{
 			{"matrixTransposeTwice", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]}, "matrixTranspose"["matrixTranspose"[m]] == m], machine]},
 			{"matrixDimensionsOfTranspose", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]]},
-				"matrixDimensions"["matrixTranspose"[m]] == "pair"["matrixDimensions"[m][[2]], "matrixDimensions"[m][[1]]]], machine]},
+				"matrixDimensions"["matrixTranspose"[m]] == Reverse["matrixDimensions"[m]]], machine]},
 			{"matrixRowLeave", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[f, Failure]},
 				Implies["matrixRow"[m, i] == Typed["right"[f], "PackedArray"[A, 1] | Failure], f == Failure["PartRange", <||>]]], machine]},
 			{"matrixPartLeave", TypeTheoryTerm[ForAll[{Typed[A, TypeUniverse[1]], Typed[m, "PackedArray"[A, 2]], Typed[i, Integers], Typed[j, Integers], Typed[f, Failure]},
@@ -270,7 +270,7 @@ VerificationTest[
 	{
 		{
 			"PackedArray"["Integer64", 2] -> "PackedArray"["Integer64", 2],
-			"PackedArray"["Integer64", 2] -> CartesianProductType[NonNegativeIntegers, NonNegativeIntegers],
+			"PackedArray"["Integer64", 2] -> {NonNegativeIntegers},
 			"PackedArray"["Integer64", 2] -> "Integer64",
 			"PackedArray"["Integer64", 1] -> "Integer64",
 			{NonNegativeIntegers} -> NonNegativeIntegers,
@@ -283,4 +283,17 @@ VerificationTest[
 		TypeTheoryProof
 	},
 	TestID -> "The-Wolfram-Language-names-of-array-operations-are-the-librarys-in-the-machine-environment"
+]
+
+(* a name on its own has the type of the constant it stands for: Dimensions and Transpose the library's, and Length,
+   overloaded, that of its first meaning, the lists', which elaboration takes where nothing decides *)
+VerificationTest[
+	{
+		MatchQ[First[TypeTheoryType[Dimensions, machine]], "PackedArray"[_, 2] -> {NonNegativeIntegers}],
+		MatchQ[First[TypeTheoryType[Transpose, machine]], "PackedArray"[a_, 2] -> "PackedArray"[a_, 2]],
+		MatchQ[First[TypeTheoryType[Length, machine]], {_} -> NonNegativeIntegers],
+		MatchQ[First[TypeTheoryType[Length]], {_} -> NonNegativeIntegers]
+	},
+	{True, True, True, True},
+	TestID -> "An-overloaded-name-on-its-own-has-the-type-of-its-first-meaning"
 ]
