@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.55.0.
+Versions 0.50.0 to 0.55.1.
 
 ### Added
 
@@ -64,9 +64,16 @@ Versions 0.50.0 to 0.55.0.
   the prelude's coercion `"booleanProposition"`, which `"booleanPropositionDecidable"` decides, so `If[Head[e] ===
   Integer, a, b]` is written as the Wolfram Language writes it, with the Boolean that `SameQ` or `MatchQ` gives; a
   proposition such as `n == 0` is decided as before. The prelude has 259 constants.
+- **`Dimensions` of a matrix is a list.** `"matrixDimensions"[m]`, which `Dimensions[m]` names in
+  `TypeTheoryEnvironment["Machine"]`, is the list `{rows, columns}` as the Wolfram Language gives it, no longer a pair,
+  and the theorem of a transpose reads `Dimensions[Transpose[m]] == Reverse[Dimensions[m]]` (0.55.1).
 
 ### Fixed
 
+- **The type of an overloaded name on its own.** `TypeTheoryType[Length]` failed with an unsolved implicit argument,
+  in the prelude too, since `Length` is overloaded for associations, and so did `TypeTheoryType[Dimensions]` in the
+  machine environment; a name on its own has the type of its first meaning, the one elaboration takes where nothing
+  decides (0.55.1).
 - **Failure messages are plain text.** A failure's `"Message"` carried Wolfram's linear syntax for boxes,
   `\!\(\*TagBox[...]\)`, for each parameter, with the environments' session handles inside, wherever the string was read:
   a log, a test, an agent. The message template now inserts each parameter as the text of its boxes, so a type
