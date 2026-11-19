@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.55.1.
+Versions 0.50.0 to 0.56.0.
 
 ### Added
 
@@ -58,6 +58,14 @@ Versions 0.50.0 to 0.55.1.
   `Total`, `ConstantArray`, `Dimensions` and `Transpose` are the machine library's operations, so a theorem reads
   `Transpose[Transpose[m]] == m`; elsewhere the names mean what they meant (0.55.0).
 
+- **Packed arrays of every rank.** An array of rank 3 or more in the machine library is rectangular, a `"Tensor"`: the
+  matrix of its first two levels over the levels below, of one shape, `"Nested"[A, inner]`, and all its elements below
+  2^63; it was a list of arrays of the rank below, of any shapes. `Dimensions` takes every rank,
+  `PackedArray[A, n] -> {ℕ}`, and `Transpose` every rank of 2 or more, swapping the first two levels as the Wolfram
+  Language does; for every rank, `Length[Dimensions[a]] == n`, `Transpose[Transpose[a]] == a`, and the dimensions of a
+  transpose are the first two swapped, with no axiom. Typed code still has ranks 1 and 2; the path to higher ranks, by
+  views of the compiler's flat buffer, is in docs/notes/MachineArraysOfEveryRank.md (0.56.0).
+
 ### Changed
 
 - **`If` takes a Boolean condition.** A Boolean where a proposition is expected is the proposition that it is true, by
@@ -66,14 +74,14 @@ Versions 0.50.0 to 0.55.1.
   proposition such as `n == 0` is decided as before. The prelude has 259 constants.
 - **`Dimensions` of a matrix is a list.** `"matrixDimensions"[m]`, which `Dimensions[m]` names in
   `TypeTheoryEnvironment["Machine"]`, is the list `{rows, columns}` as the Wolfram Language gives it, no longer a pair,
-  and the theorem of a transpose reads `Dimensions[Transpose[m]] == Reverse[Dimensions[m]]` (0.55.1).
+  and the theorem of a transpose reads `Dimensions[Transpose[m]] == Reverse[Dimensions[m]]` (0.56.0).
 
 ### Fixed
 
 - **The type of an overloaded name on its own.** `TypeTheoryType[Length]` failed with an unsolved implicit argument,
   in the prelude too, since `Length` is overloaded for associations, and so did `TypeTheoryType[Dimensions]` in the
   machine environment; a name on its own has the type of its first meaning, the one elaboration takes where nothing
-  decides (0.55.1).
+  decides (0.56.0).
 - **Failure messages are plain text.** A failure's `"Message"` carried Wolfram's linear syntax for boxes,
   `\!\(\*TagBox[...]\)`, for each parameter, with the environments' session handles inside, wherever the string was read:
   a log, a test, an agent. The message template now inserts each parameter as the text of its boxes, so a type
