@@ -995,6 +995,15 @@ $machineArrayDeclarations = With[{upper = 9223372036854775808}, {
 		]],
 		ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]}, "PackedArray"[A, n] -> {NonNegativeIntegers}]
 	]],
+	(* a packed array has the dimensions of its shape, each level a List *)
+	TypeTheoryDefinition["packedArrayDimensional", Typed[
+		Function[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]},
+			"dimensional"[
+				Function[{Typed[a, "PackedArray"[A, n]]}, "arrayDimensions"[a]],
+				Function[{Typed[a, "PackedArray"[A, n]]}, "listConstant"["atom"["symbolAtom"["System`List"]], Length["arrayDimensions"[a]]]]
+			]],
+		ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[n, NonNegativeIntegers]}, "Dimensional"["PackedArray"[A, n]]]
+	], "Instance" -> True],
 	(* the transpose of an array of rank k + 3 is one: the outer matrix transposed has as many elements *)
 	machineTheorem["tensorTransposeRange",
 		ForAll[{Typed[A, TypeUniverse[1]], Typed[k, NonNegativeIntegers], Typed[t, "Tensor"[A, k]]},

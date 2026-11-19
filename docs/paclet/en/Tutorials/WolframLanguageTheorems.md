@@ -5,7 +5,7 @@ Title: Wolfram Language Theorems
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/WolframLanguageTheorems
-Keywords: [theorems, universal statements, Wolfram Language, expressions, Replace, SameQ, If, Booleans, associations, Lookup, Enclose, Confirm, DownValues, proof by cases]
+Keywords: [theorems, universal statements, Wolfram Language, expressions, Replace, SameQ, If, Booleans, associations, Lookup, Dimensions, classes, Enclose, Confirm, DownValues, proof by cases]
 RelatedGuides: [TypeTheory]
 RelatedTutorials: [TheWolframLanguage, PatternsAndRewriting, ThePrelude, ProgramsAndProofs]
 ---
@@ -106,7 +106,7 @@ decisions = TypeTheoryEnvironment[{
 }]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 [SameQ]() compares two natural numbers by deciding their equality, so every natural number is the same as itself, by the theorem applied to the reflexivity of equality:
 
@@ -149,7 +149,7 @@ paired[x_] := {x};
 pairing = TypeTheoryEnvironment[TypeTheoryFormalize[paired, "Meaning" -> "Rules"]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 260 constants -->
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
 
 Which rule applies is then a theorem about every call of that shape. Two arguments take the first rule:
 
@@ -167,6 +167,71 @@ TypeTheoryProof[ForAll[{Typed[a, Expressions], Typed[b, Expressions], Typed[c, E
 
 <!-- => Proof complete -->
 
+## Dimensions of Every Expression
+
+The Wolfram Language's [Dimensions]() takes every expression, and so does the prelude's. It is the method of a class, `"Dimensional"[T]`: a type has dimensions by an instance, and [Dimensions]() finds the instance from the type of its argument, as a [Lookup]() finds how to compare keys:
+
+```wl
+TypeTheoryType[Dimensions]
+```
+
+<!-- => ∀_{T ∶ Type u} ∀_[d ∶ Dimensional[T]] T → {ℕ} -->
+
+The prelude's instances are the expressions, the lists of values that have dimensions, the associations, and the natural numbers, strings and Booleans, which have none; the machine library adds its packed arrays. On an expression, a level counts while every subexpression at it has the head of the whole and the same length. So an expression whose arguments have another head has one dimension, as in the Wolfram Language, where `Dimensions[f[g[1, 2], g[3, 4]]]` is `{2}`:
+
+```wl
+NormalForm[TypeTheoryTerm[Dimensions[Typed[f[g[1, 2], g[3, 4]], Expressions]]]]
+```
+
+<!-- => {2} -->
+
+while the arguments of the same head give a second:
+
+```wl
+NormalForm[TypeTheoryTerm[Dimensions[Typed[f[f[1, 2], f[3, 4]], Expressions]]]]
+```
+
+<!-- => {2, 2} -->
+
+A ragged list stops where its elements' lengths differ:
+
+```wl
+NormalForm[TypeTheoryTerm[Dimensions[Typed[{{1, 2}, {3}}, Expressions]]]]
+```
+
+<!-- => {2} -->
+
+A list of a typed list is dimensioned through its elements' instance:
+
+```wl
+NormalForm[TypeTheoryTerm[Dimensions[Typed[{{1, 2}, {3, 4}, {5, 6}}, {{NonNegativeIntegers}}]]]]
+```
+
+<!-- => {3, 2} -->
+
+These are computations on one value. For every string the dimensions are none, and for every association they are its length alone, as the Wolfram Language gives them; both follow by computation from the instances:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[s, Strings]}, Dimensions[s] == {}], {"Introduce"[s], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+```wl
+TypeTheoryProof[ForAll[{Typed[a, Association[Strings, NonNegativeIntegers]]}, Dimensions[a] == {Length[a]}], {"Introduce"[a], "Reflexivity"}]
+```
+
+<!-- => Proof complete -->
+
+Every list has at least one dimension, its length, whatever its elements are. Once [Dimensions](), the lists' instance and [Length]() are unfolded, the length of the dimensions is one more than that of the levels the elements share, and linear arithmetic closes the goal:
+
+```wl
+TypeTheoryProof[ForAll[{Typed[l, {Expressions}]}, Length[Dimensions[l]] >= 1],
+    {"Introduce"[l], "RewriteRepeated"[Dimensions, "listDimensional", Length], "LinearArithmetic"}]
+```
+
+<!-- => Proof complete -->
+
 ## Vectors and Matrices of Typed Code
 
 [TypeTheoryFormalize]() reads a function that takes its types with it, as [FunctionCompile]() does, as the code the compiler makes of it: a vector is a `"PackedArray"[A, 1]`, a matrix made inside the function by [Partition]() is a `"PackedArray"[A, 2]`, and each operation is a result that may leave, as typed code does. One function reads an entry of the rows a vector is partitioned into, another takes the first two parts of a vector:
@@ -180,7 +245,7 @@ typed = TypeTheoryEnvironment["Machine", Join[
 ]]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 500 constants -->
+<!-- => TypeTheoryEnvironment summary box: 530 constants -->
 
 For every vector and every pair of indices, a count below 1 makes `entryOfRows` leave with [Failure]()`["Range", <||>]`, as [Partition]() does, whatever the rest would have done. The proof unfolds the function and rewrites its [Partition]() with the machine library's theorem about a count below 1:
 
@@ -212,7 +277,7 @@ TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]], Typed[i, Intege
 
 <!-- => Proof complete -->
 
-[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics, for arrays of every rank; in [TypeTheoryEnvironment]()`["Machine"]` the Wolfram Language names stand for its operations, as [Length](), [Partition](), [Take]() and [Total]() do. Transpose twice is the identity on every matrix, by the library's theorem, which uses no axiom of its own,
+[Transpose]() and [Dimensions]() are not typed code, and the machine library has them as mathematics, for arrays of every rank: in [TypeTheoryEnvironment]()`["Machine"]` [Transpose]() stands for its operation, as [Length](), [Partition](), [Take]() and [Total]() do, and a packed array is one more instance of the class [Dimensions]() belongs to, its dimensions its shape. Transpose twice is the identity on every matrix, by the library's theorem, which uses no axiom of its own,
 
 ```wl
 TypeTheoryProof[ForAll[{Typed[m, "PackedArray"["Integer64", 2]]}, Transpose[Transpose[m]] == m], "Machine",

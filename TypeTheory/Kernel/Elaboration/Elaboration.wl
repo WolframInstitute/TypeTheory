@@ -1663,12 +1663,11 @@ $overloadedNames = <|
 	HoldComplete[Greater] -> {HoldComplete[Greater], HoldComplete["integerGreater"], HoldComplete["rationalGreater"]},
 	HoldComplete[Prepend] -> {HoldComplete["Prepend"]},
 	(* the operations on the packed arrays of TypeTheoryEnvironment["Machine"], where its library declares them: Length
-	   above, and Partition, Take, Total, ConstantArray, Dimensions and Transpose, which name nothing elsewhere *)
+	   above, and Partition, Take, Total, ConstantArray and Transpose, which name nothing elsewhere; Dimensions is a class *)
 	HoldComplete[Partition] -> {HoldComplete["matrixOfPartition"]},
 	HoldComplete[Take] -> {HoldComplete["arrayTake"]},
 	HoldComplete[Total] -> {HoldComplete["arrayTotal"]},
 	HoldComplete[ConstantArray] -> {HoldComplete["arrayConstant"]},
-	HoldComplete[Dimensions] -> {HoldComplete["arrayDimensions"]},
 	HoldComplete[Transpose] -> {HoldComplete["arrayTranspose"]},
 	HoldComplete[Minus] -> {HoldComplete["integerNegation"], HoldComplete["rationalNegation"]}
 |>
@@ -1683,7 +1682,7 @@ $defaultedNames = Join[$arithmeticNames, HoldComplete /@ Unevaluated[{Length, Lo
 
 (* a name with several meanings declared, or with one where the name itself is no constant, as -x where
    only the integers are declared *)
-(* the constant a name on its own stands for, as TypeTheoryType[Length] or TypeTheoryType[Dimensions] asks: the one
+(* the constant a name on its own stands for, as TypeTheoryType[Length] or TypeTheoryType[Transpose] asks: the one
    meaning of an overloaded name that has one, the first of a name elaboration defaults, as Length; True, the
    proposition or the Boolean, stays ambiguous *)
 nameMeaning[environment_, name_HoldComplete] := With[{meanings = declaredMeanings[environment, name]}, Which[

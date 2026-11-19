@@ -44,6 +44,9 @@ environment of their own.
 	FromString, "IsString"[A]       the value of a type written by a string, FromString[s], for atoms, expressions and strings
 	Missing                         a value that is not there, Missing[reason, details...], as a lookup of a key gives
 	"Quotable"[K]                   the class of types whose values are expressions, by "quote": ℕ, Strings, Expressions
+	Dimensions, "Dimensional"[T]    the class of types whose values have dimensions, with the heads of their levels:
+	                                expressions, lists of such values, associations, scalars; a level counts while every
+	                                subexpression at it has the head of the whole and the same length
 	Association[K, V]               associations, <|k -> v, ...|>, each key once, in the order put in; Lookup gives
 	                                V | Missing, and Keys, Values, KeyExistsQ and Length are their meanings for them
 Match, MatchValue, MatchSum and MatchPart follow the match objects of the prototype paclet Wolfram/Patterns and the
@@ -128,7 +131,128 @@ $ifDeclaration = TypeTheoryDefinition[
 	]
 ]
 
-$wolframLanguageDeclarations = {
+(* Dimensions, as the Wolfram Language computes it on every expression, a class of the types whose values have
+   dimensions: each value has levels, a head and a length at each, and a level counts while every subexpression at it
+   has the head of the whole and the same length *)
+$dimensionDeclarations = With[
+	{
+		level = CartesianProductType[Expressions, NonNegativeIntegers],
+		listHead = "atom"["symbolAtom"["System`List"]],
+		associationHead = "atom"["symbolAtom"["System`Association"]]
+	},
+	{
+		(* the levels two shapes share: as long as each level has the same head and the same length *)
+		TypeTheoryDefinition["levelsCommon", Typed[
+			Function[{Typed[a, {level}]}, InductiveRecursor[List][
+				Function[{Typed[t, {level}]}, {level} -> {level}],
+				Function[{Typed[b, {level}]}, Typed[{}, {level}]],
+				Function[{Typed[p, level], Typed[ps, {level}], Typed[r, {level} -> {level}]}, Function[{Typed[b, {level}]}, InductiveRecursor[List][
+					Function[{Typed[t, {level}]}, {level}],
+					Typed[{}, {level}],
+					Function[{Typed[q, level], Typed[qs, {level}], Typed[s, {level}]},
+						InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, {level}], Typed[{}, {level}], Prepend[p][r[qs]],
+							"and"[SameQ[p[["first"]], q[["first"]]], "equal"[p[["second"]], q[["second"]]]]]],
+					b
+				]]],
+				a
+			]],
+			{level} -> {level} -> {level}
+		]],
+		(* the levels all the shapes of a list share, none for no shape *)
+		TypeTheoryDefinition["levelsOfAll", Typed[
+			Function[{Typed[ls, {{level}}]}, InductiveRecursor[Option][
+				Function[{Typed[o, Option[{level}]]}, {level}],
+				Typed[{}, {level}],
+				Function[{Typed[y, {level}]}, y],
+				InductiveRecursor[List][
+					Function[{Typed[t, {{level}}]}, Option[{level}]],
+					Typed["none", Option[{level}]],
+					Function[{Typed[x, {level}], Typed[rest, {{level}}], Typed[r, Option[{level}]]},
+						InductiveRecursor[Option][Function[{Typed[o, Option[{level}]]}, Option[{level}]], "some"[x], Function[{Typed[y, {level}]}, "some"["levelsCommon"[x, y]]], r]],
+					ls
+				]
+			]],
+			{{level}} -> {level}
+		]],
+		(* the levels as long as their head is h: the Wolfram Language counts a level only where every subexpression there
+		   has the head of the whole *)
+		TypeTheoryDefinition["levelsWithHead", Typed[
+			Function[{Typed[h, Expressions], Typed[ls, {level}]}, InductiveRecursor[List][
+				Function[{Typed[t, {level}]}, {level}],
+				Typed[{}, {level}],
+				Function[{Typed[p, level], Typed[ps, {level}], Typed[r, {level}]},
+					InductiveRecursor[Booleans][Function[{Typed[c, Booleans]}, {level}], Typed[{}, {level}], Prepend[p][r], SameQ[p[["first"]], h]]],
+				ls
+			]],
+			Expressions -> {level} -> {level}
+		]],
+		(* the levels of an expression: its head and its length, then the levels all its arguments share *)
+		TypeTheoryDefinition["expressionLevels", Typed[
+			Function[{Typed[e, Expressions]}, InductiveRecursor[Expressions][
+				Function[{Typed[x, Expressions]}, {level}],
+				Function[{Typed[xs, Expressions...]}, {{level}}],
+				Function[{Typed[a, Atoms]}, Typed[{}, {level}]],
+				Function[{Typed[h, Expressions], Typed[arguments, Expressions...], Typed[hr, {level}], Typed[ar, {{level}}]},
+					Prepend["pair"[h, Length[ar]]]["levelsWithHead"[h, "levelsOfAll"[ar]]]],
+				Typed[{}, {{level}}],
+				Function[{Typed[x, Expressions], Typed[rest, Expressions...], Typed[xr, {level}], Typed[rr, {{level}}]}, Prepend[xr][rr]],
+				e
+			]],
+			Expressions -> {level}
+		]],
+		(* the class: the dimensions of a value and the heads at each of its levels *)
+		TypeTheoryInductiveType["Dimensional", ForAll[{Typed[T, TypeUniverse[u + 1]]}, TypeUniverse[u + 1]], {
+			"dimensional" -> ForAll[{TypedImplicit[T, TypeUniverse[u + 1]], Typed[dimensions, T -> {NonNegativeIntegers}], Typed[heads, T -> {Expressions}]}, "Dimensional"[T]]
+		}],
+		TypeTheoryDefinition[Dimensions, Typed[
+			Function[{TypedImplicit[T, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[T]], "InstanceImplicit"], Typed[x, T]},
+				InductiveRecursor["Dimensional"][Typed[t, "Dimensional"[T]] |-> {NonNegativeIntegers}, {Typed[f, T -> {NonNegativeIntegers}], Typed[g, T -> {Expressions}]} |-> f[x], d]],
+			ForAll[{TypedImplicit[T, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[T]], "InstanceImplicit"]}, T -> {NonNegativeIntegers}]
+		]],
+		TypeTheoryDefinition["levelHeads", Typed[
+			Function[{TypedImplicit[T, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[T]], "InstanceImplicit"], Typed[x, T]},
+				InductiveRecursor["Dimensional"][Typed[t, "Dimensional"[T]] |-> {Expressions}, {Typed[f, T -> {NonNegativeIntegers}], Typed[g, T -> {Expressions}]} |-> g[x], d]],
+			ForAll[{TypedImplicit[T, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[T]], "InstanceImplicit"]}, T -> {Expressions}]
+		]],
+		(* the levels of a value, its heads and dimensions paired *)
+		TypeTheoryDefinition["levelsOf", Typed[
+			Function[{TypedImplicit[T, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[T]], "InstanceImplicit"], Typed[x, T]},
+				InductiveRecursor[List][
+					Function[{Typed[t, {Expressions}]}, {NonNegativeIntegers} -> {level}],
+					Function[{Typed[ns, {NonNegativeIntegers}]}, Typed[{}, {level}]],
+					Function[{Typed[h, Expressions], Typed[hs, {Expressions}], Typed[r, {NonNegativeIntegers} -> {level}]}, Function[{Typed[ns, {NonNegativeIntegers}]},
+						InductiveRecursor[List][Function[{Typed[t, {NonNegativeIntegers}]}, {level}], Typed[{}, {level}],
+							Function[{Typed[n, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[s, {level}]}, Prepend["pair"[h, n]][r[rest]]], ns]]],
+					"levelHeads"[x]
+				][Dimensions[x]]],
+			ForAll[{TypedImplicit[T, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[T]], "InstanceImplicit"]}, T -> {level}]
+		]],
+		(* the instances: an expression by its levels; a list and an association by their length, then the levels their
+		   elements share; a scalar none *)
+		TypeTheoryDefinition["expressionDimensional", Typed[
+			"dimensional"[Function[{Typed[e, Expressions]}, Map[Function[{Typed[p, level]}, p[["second"]]], "expressionLevels"[e]]],
+				Function[{Typed[e, Expressions]}, Map[Function[{Typed[p, level]}, p[["first"]]], "expressionLevels"[e]]]],
+			"Dimensional"[Expressions]], "Instance" -> True],
+		TypeTheoryDefinition["naturalDimensional", Typed["dimensional"[Function[{Typed[n, NonNegativeIntegers]}, Typed[{}, {NonNegativeIntegers}]], Function[{Typed[n, NonNegativeIntegers]}, Typed[{}, {Expressions}]]], "Dimensional"[NonNegativeIntegers]], "Instance" -> True],
+		TypeTheoryDefinition["stringDimensional", Typed["dimensional"[Function[{Typed[s, Strings]}, Typed[{}, {NonNegativeIntegers}]], Function[{Typed[s, Strings]}, Typed[{}, {Expressions}]]], "Dimensional"[Strings]], "Instance" -> True],
+		TypeTheoryDefinition["booleanDimensional", Typed["dimensional"[Function[{Typed[b, Booleans]}, Typed[{}, {NonNegativeIntegers}]], Function[{Typed[b, Booleans]}, Typed[{}, {Expressions}]]], "Dimensional"[Booleans]], "Instance" -> True],
+		TypeTheoryDefinition["associationDimensional", Typed[
+			Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]]},
+				"dimensional"[Function[{Typed[a, Association[K, V]]}, Typed[{Length[a]}, {NonNegativeIntegers}]], Function[{Typed[a, Association[K, V]]}, Typed[{associationHead}, {Expressions}]]]],
+			ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]]}, "Dimensional"[Association[K, V]]]
+		], "Instance" -> True],
+		TypeTheoryDefinition["listDimensional", Typed[
+			Function[{TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[A]], "InstanceImplicit"]},
+				"dimensional"[
+					Function[{Typed[l, {A}]}, Prepend[Length[l]][Map[Function[{Typed[p, level]}, p[["second"]]], "levelsWithHead"[listHead, "levelsOfAll"[Map[Function[{Typed[x, A]}, "levelsOf"[x]], l]]]]]],
+					Function[{Typed[l, {A}]}, Prepend[listHead][Map[Function[{Typed[p, level]}, p[["first"]]], "levelsWithHead"[listHead, "levelsOfAll"[Map[Function[{Typed[x, A]}, "levelsOf"[x]], l]]]]]]
+				]],
+			ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], Annotation[Typed[d, "Dimensional"[A]], "InstanceImplicit"]}, "Dimensional"[{A}]]
+		], "Instance" -> True]
+	}
+]
+
+$wolframLanguageDeclarations = Join[{
 	(* a string is the list of the codes of its characters, so that two strings compare by computation; an atom is a
 	   symbol by its full name, a natural number, a negative integer, -(n + 1) for n, a string, or any other atom by its
 	   head and its InputForm *)
@@ -675,4 +799,4 @@ $wolframLanguageDeclarations = {
 		Function[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]], Typed[a, Association[K, V]]}, Length["associationKeys"[a]]],
 		ForAll[{TypedImplicit[K, TypeUniverse[u + 1]], TypedImplicit[V, TypeUniverse[v + 1]]}, Association[K, V] -> NonNegativeIntegers]
 	]]
-}
+}, $dimensionDeclarations]

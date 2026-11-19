@@ -310,3 +310,32 @@ VerificationTest[
 	{{}, "NotDefinitionallyEqual"},
 	TestID -> "An-equation-of-undecided-type-reads-applications-to-expressions-as-expressions"
 ]
+
+(* Dimensions is a class, as the Wolfram Language's is defined on every expression: a level counts while every
+   subexpression at it has the head of the whole and the same length, so a ragged list, a level of another head and an
+   association stop where the Wolfram Language's does; a list of a type that has dimensions, an association and a
+   scalar are its instances too *)
+VerificationTest[
+	With[
+		{
+			cases = {HoldComplete[{{1, 2}, {3, 4}}], HoldComplete[{{1, 2}, {3}}], HoldComplete[f[g[1, 2], g[3, 4]]], HoldComplete[f[g[1, 2], h[3, 4]]],
+				HoldComplete[f[g[k[1]], g[m[1]]]], HoldComplete[{}], HoldComplete[5], HoldComplete[f[]], HoldComplete[{{{1}, {2}}, {{3}, {4}}}],
+				HoldComplete[f[f[1, 2], f[3, 4]]], HoldComplete[f[f[g[1]], f[g[2]]]], HoldComplete[{f[1, 2], f[3, 4]}], HoldComplete[f[{1, 2}, {3, 4}]],
+				HoldComplete[{{}, {}}], HoldComplete[{{1, {2}}, {3, {4}}}], HoldComplete[f[f[], f[]]], HoldComplete[{1, {2}}], HoldComplete[{{{1, 2}}, {{3}}}]}
+		},
+		{
+			Select[cases, Function[held, Replace[held, HoldComplete[e_] :> TypeTheoryExpression[NormalForm[TypeTheoryTerm[Dimensions[Typed[e, Expressions]], wolfram]]]] =!= (Dimensions @@ held)]],
+			TypeTheoryExpression[NormalForm[TypeTheoryTerm[{
+				Dimensions[Typed[{{1, 2}, {3, 4}, {5, 6}}, {{NonNegativeIntegers}}]],
+				Dimensions[Typed[{{{1, 2}}, {{3}}}, {{{NonNegativeIntegers}}}]],
+				Dimensions[<|"a" -> {1, 2}, "b" -> {3, 4}|>],
+				Dimensions[Typed[{"ab", "cd"}, {Strings}]],
+				Dimensions[Typed[7, NonNegativeIntegers]],
+				Dimensions[Typed[{{1, 2}, {3, 4}}, {Expressions}]]
+			}, wolfram]]],
+			MatchQ[TypeTheoryType[Dimensions, wolfram], HoldPattern[TypeTheoryTerm[ForAll[{_, Annotation[Typed[_, "Dimensional"[_]], "InstanceImplicit"]}, _ -> {NonNegativeIntegers}], _]]]
+		}
+	],
+	{{}, {{3, 2}, {2, 1}, {2}, {2}, {}, {2, 2}}, True},
+	TestID -> "Dimensions-is-a-class-and-agrees-with-the-Wolfram-Languages-on-every-expression"
+]

@@ -285,11 +285,12 @@ VerificationTest[
 	TestID -> "The-Wolfram-Language-names-of-array-operations-are-the-librarys-in-the-machine-environment"
 ]
 
-(* a name on its own has the type of the constant it stands for: Dimensions and Transpose the library's, and Length,
-   overloaded, that of its first meaning, the lists', which elaboration takes where nothing decides *)
+(* a name on its own has the type of the constant it stands for: Dimensions the class's method, for every type that has
+   dimensions, Transpose the library's, and Length, overloaded, that of its first meaning, the lists', which elaboration
+   takes where nothing decides *)
 VerificationTest[
 	{
-		MatchQ[First[TypeTheoryType[Dimensions, machine]], "PackedArray"[_, _] -> {NonNegativeIntegers}],
+		MatchQ[TypeTheoryType[Dimensions, machine], HoldPattern[TypeTheoryTerm[ForAll[{_, Annotation[Typed[_, "Dimensional"[_]], "InstanceImplicit"]}, _ -> {NonNegativeIntegers}], _]]],
 		MatchQ[First[TypeTheoryType[Transpose, machine]], "PackedArray"[a_, b_] -> "PackedArray"[a_, b_]],
 		MatchQ[First[TypeTheoryType[Length, machine]], {_} -> NonNegativeIntegers],
 		MatchQ[First[TypeTheoryType[Length]], {_} -> NonNegativeIntegers]

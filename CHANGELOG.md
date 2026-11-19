@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.56.0.
+Versions 0.50.0 to 0.57.0.
 
 ### Added
 
@@ -75,6 +75,15 @@ Versions 0.50.0 to 0.56.0.
 - **`Dimensions` of a matrix is a list.** `"matrixDimensions"[m]`, which `Dimensions[m]` names in
   `TypeTheoryEnvironment["Machine"]`, is the list `{rows, columns}` as the Wolfram Language gives it, no longer a pair,
   and the theorem of a transpose reads `Dimensions[Transpose[m]] == Reverse[Dimensions[m]]` (0.56.0).
+- **`Dimensions` is a class, for every expression.** The Wolfram Language's `Dimensions` takes every expression, and
+  so does the prelude's: `Dimensions` is the method of the class `"Dimensional"[T]`, typed `T -> {ℕ}` for every type
+  with an instance. The prelude's instances are the expressions, the lists of values that have dimensions, the
+  associations, and the natural numbers, strings and Booleans, which have none; the machine library's packed arrays
+  are one more instance, giving the shape as before, and their theorems are unchanged. On an expression it computes
+  as the Wolfram Language does: a level counts while every subexpression at it has the head of the whole and the
+  same length, so `f[g[1, 2], g[3, 4]]` has `{2}` and the ragged `{{1, 2}, {3}}` has `{2}`. The suite compares it with
+  the Wolfram Language's own `Dimensions` on ragged lists, mixed heads, empty levels and nesting. The prelude has
+  275 constants (0.57.0).
 
 ### Fixed
 
