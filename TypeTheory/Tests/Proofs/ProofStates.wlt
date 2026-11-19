@@ -687,6 +687,32 @@ VerificationTest[
 	TestID -> "Classical-refuses-a-goal-its-hypotheses-do-not-imply"
 ]
 
+(* intuitionistic propositional logic by a search that always ends: the proof uses the hypotheses and the rules of the
+   connectives alone, so its closure has no axiom; a statement that needs the excluded middle is refused, and Automatic
+   tries "Intuitionistic" before "Classical", so it proves S, which held only classically before, with no axiom *)
+VerificationTest[
+	With[
+		{
+			s = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[c, TypeUniverse[0]]},
+				Implies[Implies[a, Implies[b, c]], Implies[Implies[a, b], Implies[a, c]]]], prelude, {"Introduce"[a, b, c], "Intuitionistic"}],
+			excludedMiddle = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]]}, Not[Not[Or[a, Not[a]]]]], prelude, {"Introduce"[a], "Intuitionistic"}],
+			distributivity = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[c, TypeUniverse[0]]},
+				Implies[And[a, Or[b, c]], Or[And[a, b], And[a, c]]]], prelude, {"Introduce"[a, b, c], "Intuitionistic"}],
+			peirce = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]]}, Implies[Implies[Implies[a, b], a], a]], prelude,
+				{"Introduce"[a, b], "Intuitionistic"}],
+			automatic = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[c, TypeUniverse[0]]},
+				Implies[Implies[a, Implies[b, c]], Implies[Implies[a, b], Implies[a, c]]]], prelude, Automatic]
+		},
+		{
+			TypeTheoryAxiomClosure[s], Head[Append[prelude, TypeTheoryTheorem[IntuitionisticS, s]]],
+			TypeTheoryAxiomClosure[excludedMiddle], TypeTheoryAxiomClosure[distributivity],
+			First[peirce], TypeTheoryAxiomClosure[automatic]
+		}
+	],
+	{<||>, TypeTheoryEnvironment, <||>, <||>, "NotIntuitionistic", <||>},
+	TestID -> "Intuitionistic-proves-with-no-axiom-and-refuses-what-needs-the-excluded-middle"
+]
+
 (* "RewriteRepeated" unfolds a definition applied to another before the outer one, so the inner one's recursive call folds back
    too: total[Join[Prepend[x][l], m]] is x + total[Join[l, m]], where the induction hypothesis applies *)
 VerificationTest[
@@ -1138,8 +1164,8 @@ VerificationTest[
 		"NoProofFound",
 		2,
 		{
-			{"Assumption", "Decide", "Counterexample", "Classical"},
-			{"Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic", "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof", "Witness", "Classical"}
+			{"Assumption", "Decide", "Counterexample", "Intuitionistic", "Classical"},
+			{"Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic", "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof", "Witness", "Intuitionistic", "Classical"}
 		}
 	},
 	TestID -> "Automatic-gives-what-each-tactic-gave-when-none-proves-the-goal"

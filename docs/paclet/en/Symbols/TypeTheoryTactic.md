@@ -43,6 +43,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"RewriteRepeated", h, ...` | rewrites with the equations `h, ...` until none applies, as [ReplaceRepeated]() does where `"Rewrite"` is [Replace](); unfolds each definition among them where it computes, then closes an equation whose sides are equal by computation; the equations may also be one list |
 | `"Decide"` | proves a statement by computing its decision, the instance of [Decidable]() that elaboration finds: the prelude's instances decide `==` and `<=` of natural numbers, `==` of Booleans, [And](), [Or](), [Not](), [True]() and [False](). A closed statement always computes; one with variables computes only where its decision does not depend on them |
 | `"Ring"` | proves an equation of natural numbers that holds in every commutative semiring, normalizing each side to a polynomial in its atoms with a proof from the prelude's laws; in <code>[TypeTheoryEnvironment]()["Integers"]</code>, an equation of integers that holds in every commutative ring, by normal forms with proofs from the integers' laws, and in <code>[TypeTheoryEnvironment]()["Rationals"]</code> an equation of rationals likewise, from the rationals' laws, with numbers for coefficients; an equation that holds by the arithmetic of fractions, as *x*/2 + *x*/2 == *x*, is proved through the pairs the rationals are classes of |
+| `"Intuitionistic"` | proves a statement of intuitionistic propositional logic from the hypotheses that are propositions, by a search in a sequent calculus without contraction, which always ends: the proof uses the hypotheses and the rules of the connectives alone, never `"excludedMiddle"`, so its axiom closure is empty; a statement that needs the excluded middle is refused with `"NotIntuitionistic"` |
 | `"Classical"` | proves a statement of classical propositional logic from the hypotheses that are propositions, by a truth table: each atom, a proposition that no connective builds, is split by `"excludedMiddle"`, and the goal is built from the cases under every assignment that makes the hypotheses true |
 | `"FindInstance"` | proves <code>[Exists]()[{[Typed]()[*x*, [Naturals]()], ...}, *p*]</code> with witnesses that Wolfram's [FindInstance]() finds, proving *p* of them by `"Decide"` |
 | `"Witness"` | proves <code>[Exists]()[{[Typed]()[*x*, *domain*], ...}, *p*]</code>, each *domain* [Naturals]() or, in <code>[TypeTheoryEnvironment]()["Integers"]</code>, [Integers](), with values that Wolfram finds: [FindInstance]() over the integers, or else the first values, smallest first, at which *p* is [True](); `"Decide"` proves *p* of them, or *p* of them is left as the goal where its decision does not compute |
@@ -54,7 +55,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | `"NonlinearArithmetic"` | proves what `"LinearArithmetic"` proves from the inequalities among the hypotheses and their products: each inequality a <= b times each side k of each, a k <= b k, so that n <= m gives n n <= m m |
 | `"FindEquationalProof"` | proves an equation from the hypotheses that are equations of its type for all values of their variables, by replaying the proof that Wolfram's [FindEquationalProof]() finds, step by step |
 | `"SumOfSquares"` | in <code>[TypeTheoryEnvironment]()["Integers"]</code>, proves an inequality of integers or of natural numbers whose larger side less the smaller, times a positive integer, is a sum of squares of polynomials that Wolfram finds with exact linear algebra, linear inequalities and [SemidefiniteOptimization](); `"integerLessEqualOfMultiple"` takes the equation, which `"Ring"` proves, and the proof that the sum is at least 0 |
-| [Automatic]() | tries the tactics of a portfolio in turn until one closes the goal: `"Assumption"`, `"Decide"`, `"Counterexample"` and `"Classical"` on the goal as stated, then, with its variables and hypotheses introduced, `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`, `"Witness"` and `"Classical"` |
+| [Automatic]() | tries the tactics of a portfolio in turn until one closes the goal: `"Assumption"`, `"Decide"`, `"Counterexample"`, `"Intuitionistic"` and `"Classical"` on the goal as stated, then, with its variables and hypotheses introduced, `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`, `"Witness"`, `"Intuitionistic"` and `"Classical"` |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
 - In a list of tactics written out in [TypeTheoryProof](), a tactic is written as its name, or its name applied to its arguments: <code>{"Introduce"[n], "Reflexivity"}</code> is <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, and its arguments are held as well.
@@ -894,6 +895,25 @@ TypeTheoryTactic["Classical"][proof]
 ```
 
 <!-- => Proof complete -->
+
+---
+
+`"Intuitionistic"` proves the combinator S, `(a ⇒ b ⇒ c) ⇒ (a ⇒ b) ⇒ a ⇒ c`, by building the term that applies `x` to `z` and to `y z`, with no axiom, where a truth table would rest on the excluded middle:
+
+```wl
+intuitionisticS = TypeTheoryProof[ForAll[{Typed[a, TypeUniverse[0]], Typed[b, TypeUniverse[0]], Typed[c, TypeUniverse[0]]},
+    Implies[Implies[a, Implies[b, c]], Implies[Implies[a, b], Implies[a, c]]]], {"Introduce"[a, b, c], "Intuitionistic"}]
+```
+
+<!-- => Proof complete -->
+
+The proof uses no axiom:
+
+```wl
+TypeTheoryAxiomClosure[intuitionisticS]
+```
+
+<!-- => <||> -->
 
 ---
 

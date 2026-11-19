@@ -53,6 +53,9 @@ The tactics:
 	                        definition among them unfolds where it computes; the equations may be given as a list
 	"Decide"                proves a closed statement by computing its decision, the instance of Decidable found:
 	                        the prelude's decide equations and inequalities of natural numbers and the connectives
+	"Intuitionistic"        proves a statement of intuitionistic propositional logic from the hypotheses that are
+	                        propositions, by a search in a sequent calculus without contraction that always ends: the
+	                        proof uses the hypotheses and the rules of the connectives alone, never "excludedMiddle"
 	"Classical"             proves a statement of classical propositional logic from the hypotheses that are
 	                        propositions, by a truth table: each atom split by "excludedMiddle", the goal built from
 	                        its cases under every assignment that makes the hypotheses true
@@ -87,10 +90,10 @@ The tactics:
 	                        premises and the negation are proved by "Decide" or left as goals; "Counterexample", v1, ...
 	                        takes the values given
 	Automatic               tries the tactics of a portfolio in turn until one closes the goal: "Assumption", "Decide",
-	                        "Counterexample" and "Classical" on the goal as stated, then, its variables and hypotheses
-	                        introduced, "Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic",
-	                        "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof", "Witness"
-	                        and "Classical"
+	                        "Counterexample", "Intuitionistic" and "Classical" on the goal as stated, then, its
+	                        variables and hypotheses introduced, "Reflexivity", "Assumption", "Decide", "Ring",
+	                        "LinearArithmetic", "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares",
+	                        "FindEquationalProof", "Witness", "Intuitionistic" and "Classical"
 
 The other open goals may occur in a goal's type. Unification may then solve them while elaborating a
 term for the goal, and the proof keeps those solutions.
@@ -425,6 +428,7 @@ runTactic["RewriteRepeated", Hold[lemmas__], data_, goal_] := rewriteRepeated[da
 runTactic["Simplify", _, _, _] := kernelFailure["UnknownTactic", "The tactic \"Simplify\" is named \"RewriteRepeated\" now, beside \"Rewrite\" as ReplaceRepeated is beside Replace.", {}]
 runTactic["Decide", Hold[], data_, goal_] := decide[data, goal]
 runTactic["Classical", Hold[], data_, goal_] := classical[data, goal]
+runTactic["Intuitionistic", Hold[], data_, goal_] := intuitionistic[data, goal]
 runTactic["FindInstance", Hold[], data_, goal_] := findInstance[data, goal]
 runTactic["Ring", Hold[], data_, goal_] := ring[data, goal]
 runTactic["PolynomialReduce", Hold[], data_, goal_] := polynomialReduce[data, goal]
@@ -1195,6 +1199,218 @@ classicalNegative[{"Or", term_, left_, right_}, assignment_] := classicalLambda[
 classicalNegative[{"Not", term_, negated_}, assignment_] := classicalLambda[n, term, Function[proof, makeApplication[proof, {classicalPositive[negated, assignment]}]]]
 classicalNegative[{"Implies", term_, domain_, codomain_}, assignment_] :=
 	classicalLambda[g, term, Function[proof, makeApplication[classicalNegative[codomain, assignment], {makeApplication[proof, {classicalPositive[domain, assignment]}]}]]]
+
+
+(* ::Subsection:: *)
+(*Intuitionistic*)
+
+
+(* A goal of intuitionistic propositional logic, from the hypotheses that are propositions, by a search for a proof in
+   Dyckhoff's sequent calculus without contraction, in which every search ends. The rules that lose nothing come first:
+   a conjunction among the hypotheses is taken apart, False proves the goal, an implication from an atom that a
+   hypothesis proves is applied to it, and an implication from True, a conjunction or a disjunction is applied, curried
+   or split. Then the goal is taken apart, a disjunction among the hypotheses is split into cases, and an atom is
+   proved by a hypothesis. Last come the rules that choose: a side of a disjunction to prove, or an implication from an
+   implication, (c => d) => b, to use: from d => b, c is to give d, and then b is known. Each rule builds its part of
+   the proof, so the proof uses the hypotheses and the prelude's rules of the connectives alone, never
+   "excludedMiddle". *)
+intuitionistic[data_, goal_] := With[{current = currentGoal[data, goal], environment = data["Environment"]},
+	If[ ! AllTrue[$intuitionisticConstants, Function[name, constantDeclaredQ[environment, name]]],
+		tacticFailure["IntuitionisticUnavailable", "The environment of the goal `1` lacks the connectives of the prelude.", data, goal]
+	];
+	If[ ! propositionTermQ[environment, current["Context"], current["Type"]],
+		tacticFailure["NotAProposition", "The goal `1` is not a proposition.", data, goal]
+	];
+	Replace[
+		Catch[
+			Block[{$intuitionisticSteps = 0},
+				intuitionisticSearch[classicalHypotheses[environment, current["Context"]], classicalFormula[environment, current["Context"], current["Type"]]]
+			],
+			$intuitionisticTag
+		],
+		{
+			None :> tacticFailure["NotIntuitionistic", "The goal `1` does not follow from its hypotheses in intuitionistic propositional logic.", data, goal],
+			"SearchLimit" :> tacticFailure["SearchLimit", "The search for a proof of `1` took more than `2` steps.", data, goal, {$intuitionisticLimit}],
+			proof_ :> solveGoal[data, goal, proof, {}]
+		}
+	]
+]
+
+$intuitionisticConstants = HoldComplete /@ Unevaluated[{
+	True, False, And, Or, Not, "trueIntroduction", "andIntroduction", "andEliminationLeft", "andEliminationRight", "orIntroductionLeft", "orIntroductionRight",
+	"falseElimination"
+}]
+
+$intuitionisticLimit = 100000
+$intuitionisticTag = "TypeTheoryIntuitionisticSearch"
+
+(* a proof of the goal from the hypotheses, each {formula, proof}, or None *)
+intuitionisticSearch[hypotheses_List, goal_] := (
+	$intuitionisticSteps++;
+	If[$intuitionisticSteps > $intuitionisticLimit, Throw["SearchLimit", $intuitionisticTag]];
+	Replace[FixedPoint[intuitionisticLeftStep, hypotheses], {
+		{"Absurd", proof_} :> makeApplication[preludeConstant["falseElimination"], {formulaTerm[goal], proof}],
+		simple_List :> intuitionisticRight[simple, goal]
+	}]
+)
+
+formulaTerm[{_, term_, ___}] := term
+
+$falseFormula := {"False", preludeConstant[False]}
+
+(* one rule that loses nothing applied to the hypotheses, or the hypotheses as they are where none applies; False among
+   them makes {"Absurd", proof} *)
+intuitionisticLeftStep[absurd : {"Absurd", _}] := absurd
+intuitionisticLeftStep[hypotheses_List] := Replace[hypotheses, {
+	{___, {{"False", _}, proof_}, ___} :> {"Absurd", proof},
+	{before___, {{"True", _}, _}, after___} :> {before, after},
+	{before___, {{"And", _, left_, right_}, proof_}, after___} :> {
+		before,
+		{left, makeApplication[preludeConstant["andEliminationLeft"], {formulaTerm[left], formulaTerm[right], proof}]},
+		{right, makeApplication[preludeConstant["andEliminationRight"], {formulaTerm[left], formulaTerm[right], proof}]},
+		after
+	},
+	{before___, {{"Not", term_, negated_}, proof_}, after___} :> {before, {{"Implies", term, negated, $falseFormula}, proof}, after},
+	{before___, {{"Implies", term_, {"Not", negation_, negated_}, conclusion_}, proof_}, after___} :>
+		{before, {{"Implies", term, {"Implies", negation, negated, $falseFormula}, conclusion}, proof}, after},
+	{before___, {{"Implies", _, {"True", _}, conclusion_}, proof_}, after___} :>
+		{before, {conclusion, makeApplication[proof, {preludeConstant["trueIntroduction"]}]}, after},
+	{before___, {{"Implies", _, {"False", _}, _}, _}, after___} :> {before, after},
+	{before___, {{"Implies", _, {"Atom", atom_}, conclusion_}, proof_}, after___} /; atomProof[{before, after}, atom] =!= None :>
+		{before, {conclusion, makeApplication[proof, {atomProof[{before, after}, atom]}]}, after},
+	{before___, {{"Implies", _, {"And", _, left_, right_}, conclusion_}, proof_}, after___} :> {
+		before,
+		{
+			impliesFormula[left, impliesFormula[right, conclusion]],
+			intuitionisticFunction[x, formulaTerm[left], Function[first, intuitionisticFunction[y, formulaTerm[right], Function[second,
+				makeApplication[proof, {makeApplication[preludeConstant["andIntroduction"], {formulaTerm[left], formulaTerm[right], first, second}]}]
+			]]]]
+		},
+		after
+	},
+	{before___, {{"Implies", _, {"Or", _, left_, right_}, conclusion_}, proof_}, after___} :> {
+		before,
+		{
+			impliesFormula[left, conclusion],
+			intuitionisticFunction[x, formulaTerm[left], Function[side,
+				makeApplication[proof, {makeApplication[preludeConstant["orIntroductionLeft"], {formulaTerm[left], formulaTerm[right], side}]}]
+			]]
+		},
+		{
+			impliesFormula[right, conclusion],
+			intuitionisticFunction[y, formulaTerm[right], Function[side,
+				makeApplication[proof, {makeApplication[preludeConstant["orIntroductionRight"], {formulaTerm[left], formulaTerm[right], side}]}]
+			]]
+		},
+		after
+	},
+	other_ :> other
+}]
+
+(* the proof of the atom among the hypotheses, or None *)
+atomProof[hypotheses_List, atom_] := FirstCase[hypotheses, {{"Atom", atom}, proof_} :> proof, None]
+
+(* the formula domain => codomain, with its term *)
+impliesFormula[domain_, codomain_] := {"Implies", arrowTerm[formulaTerm[domain], formulaTerm[codomain]], domain, codomain}
+
+arrowTerm[domain_, codomain_] := With[{id = freshFreeVariable[]},
+	makeDependentFunctionType[<|id -> <|"Name" -> HoldComplete[x], "Type" -> domain, "Binder" -> "Explicit"|>|>, {id}, codomain]
+]
+
+(* a function of a fresh variable of type domain, its body what body gives of the variable, or None where body gives
+   None *)
+SetAttributes[intuitionisticFunction, HoldFirst]
+intuitionisticFunction[name_, domain_, body_] := With[{id = freshFreeVariable[]},
+	Replace[body[freeVariable[id]], {
+		None -> None,
+		term_ :> makeLambda[<|id -> <|"Name" -> HoldComplete[name], "Type" -> domain, "Binder" -> "Explicit"|>|>, {id}, term]
+	}]
+]
+
+(* the goal from hypotheses that no rule losing nothing takes apart: the goal taken apart, a disjunction split, an atom
+   assumed, and then the rules that choose *)
+intuitionisticRight[hypotheses_, {"True", _}] := preludeConstant["trueIntroduction"]
+intuitionisticRight[hypotheses_, {"And", _, left_, right_}] := With[{first = intuitionisticSearch[hypotheses, left]},
+	If[ first === None,
+		None,
+		With[{second = intuitionisticSearch[hypotheses, right]},
+			If[second === None, None, makeApplication[preludeConstant["andIntroduction"], {formulaTerm[left], formulaTerm[right], first, second}]]
+		]
+	]
+]
+intuitionisticRight[hypotheses_, {"Implies", _, domain_, codomain_}] :=
+	intuitionisticFunction[x, formulaTerm[domain], Function[proof, intuitionisticSearch[Append[hypotheses, {domain, proof}], codomain]]]
+intuitionisticRight[hypotheses_, {"Not", _, negated_}] :=
+	intuitionisticFunction[x, formulaTerm[negated], Function[proof, intuitionisticSearch[Append[hypotheses, {negated, proof}], $falseFormula]]]
+intuitionisticRight[hypotheses_, goal_] := Replace[hypotheses, {
+	{before___, {{"Or", term_, left_, right_}, proof_}, after___} :> intuitionisticCases[{before, after}, term, left, right, proof, goal],
+	_ :> Replace[goal, {
+		{"Atom", atom_} /; atomProof[hypotheses, atom] =!= None :> atomProof[hypotheses, atom],
+		_ :> intuitionisticChoices[hypotheses, goal]
+	}]
+}]
+
+(* the goal in each case of a disjunction, by the recursor of Or *)
+intuitionisticCases[hypotheses_, term_, left_, right_, proof_, goal_] := With[
+	{first = intuitionisticFunction[h, formulaTerm[left], Function[side, intuitionisticSearch[Append[hypotheses, {left, side}], goal]]]},
+	If[ first === None,
+		None,
+		With[{second = intuitionisticFunction[h, formulaTerm[right], Function[side, intuitionisticSearch[Append[hypotheses, {right, side}], goal]]]},
+			If[ second === None,
+				None,
+				makeApplication[constantReference[HoldComplete[InductiveRecursor[Or]], {}], {
+					formulaTerm[left],
+					formulaTerm[right],
+					makeLambda[<|# -> <|"Name" -> HoldComplete[t], "Type" -> term, "Binder" -> "Explicit"|>|>, {#}, formulaTerm[goal]] &[freshFreeVariable[]],
+					first,
+					second,
+					proof
+				}]
+			]
+		]
+	]
+]
+
+(* the rules that choose, in turn until one gives a proof: a side of a disjunction to prove, and each implication from an
+   implication among the hypotheses *)
+intuitionisticChoices[hypotheses_, goal_] := Catch[
+	If[ MatchQ[goal, {"Or", __}],
+		With[{proof = intuitionisticDisjunction[hypotheses, goal]}, If[proof =!= None, Throw[proof, intuitionisticChoices]]]
+	];
+	Scan[
+		Function[position, With[{proof = intuitionisticNested[Delete[hypotheses, position], Extract[hypotheses, position], goal]},
+			If[proof =!= None, Throw[proof, intuitionisticChoices]]
+		]],
+		Position[hypotheses, {{"Implies", _, {"Implies", __}, _}, _}, {1}, Heads -> False]
+	];
+	None,
+	intuitionisticChoices
+]
+
+intuitionisticDisjunction[hypotheses_, {"Or", _, left_, right_}] := Replace[intuitionisticSearch[hypotheses, left], {
+	None :> Replace[intuitionisticSearch[hypotheses, right], {
+		None -> None,
+		proof_ :> makeApplication[preludeConstant["orIntroductionRight"], {formulaTerm[left], formulaTerm[right], proof}]
+	}],
+	proof_ :> makeApplication[preludeConstant["orIntroductionLeft"], {formulaTerm[left], formulaTerm[right], proof}]
+}]
+
+(* from (c => d) => b: with d => b, the function fun y => proof[fun z => y], c => d is to prove, and then b is known as
+   proof applied to it *)
+intuitionisticNested[hypotheses_, {{"Implies", _, inner : {"Implies", _, domain_, codomain_}, conclusion_}, proof_}, goal_] := With[
+	{
+		weaker = {
+			impliesFormula[codomain, conclusion],
+			intuitionisticFunction[y, formulaTerm[codomain], Function[value,
+				makeApplication[proof, {intuitionisticFunction[z, formulaTerm[domain], Function[ignored, value]]}]
+			]]
+		}
+	},
+	Replace[intuitionisticSearch[Append[hypotheses, weaker], inner], {
+		None -> None,
+		function_ :> intuitionisticSearch[Append[hypotheses, {conclusion, makeApplication[proof, {function}]}], goal]
+	}]
+]
 
 
 (* ::Subsection:: *)
@@ -2046,11 +2262,11 @@ portfolioProof[data_, goal_] := With[{introduced = introducedHypotheses[data, go
 (* the tactics tried once the goal's variables and hypotheses are introduced, the cheapest and most specific first *)
 $portfolioTactics = {
 	"Reflexivity", "Assumption", "Decide", "Ring", "LinearArithmetic", "NonlinearArithmetic", "PolynomialReduce", "SumOfSquares", "FindEquationalProof",
-	"Witness", "Classical"
+	"Witness", "Intuitionistic", "Classical"
 }
 
 (* the tactics tried first, on the goal as stated, which read its binders as they stand *)
-$portfolioTacticsOnBinders = {"Assumption", "Decide", "Counterexample", "Classical"}
+$portfolioTacticsOnBinders = {"Assumption", "Decide", "Counterexample", "Intuitionistic", "Classical"}
 
 (* the proof of the first attempt whose tactics close its goal, or the outcomes of the tactics by the goals tried *)
 portfolioAttempts[{}, _List, tried_Association] := tried
