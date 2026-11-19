@@ -299,7 +299,7 @@ typeOfTerm[term_TypeTheoryTerm] /; MatchQ[heldTerm[term], HoldComplete[Typed[_, 
 ]
 typeOfTerm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[nameMeaning[environment, aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]]], {
-		name_ /; And[constantDeclaredQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
+		name_HoldComplete /; And[constantDeclaredQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
 			constantRecord[environment, name]["Type"],
 		_ :> Last @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]
