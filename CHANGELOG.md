@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.54.1.
+Versions 0.50.0 to 0.55.0.
 
 ### Added
 
@@ -46,6 +46,17 @@ Versions 0.50.0 to 0.54.1.
   for 0^0 first, then on the final value only: `"NotFinite"` for an infinity and `"Underflow"` below 2^-1022, so
   10.^-400 leaves as an underflow, the reciprocal of a power past the largest real. From 2^25 typed code calls the C
   library's pow, a fifth axiom of the reals, `"real64LibraryPower"`, about whose values nothing is assumed.
+
+- **The tactic `"Intuitionistic"`.** It proves a statement of intuitionistic propositional logic from the hypotheses
+  that are propositions, by a search in a sequent calculus without contraction, which always ends; the proof uses the
+  hypotheses and the prelude's rules of the connectives alone, so its axiom closure is empty, and a statement that needs
+  the excluded middle is refused with `"NotIntuitionistic"`. `Automatic` tries it before `"Classical"`, so it proves the
+  combinator S with no axiom, where the truth table rested on the excluded middle. It takes up what PureMath's
+  FindTypeInhabitant did, which left with its type theory layer (0.55.0).
+- **The Wolfram Language names of the operations on packed arrays.** In `TypeTheoryEnvironment["Machine"]`, `Length`
+  chooses among the lists', the associations', the vectors' and the matrices' by the type, and `Partition`, `Take`,
+  `Total`, `ConstantArray`, `Dimensions` and `Transpose` are the machine library's operations, so a theorem reads
+  `Transpose[Transpose[m]] == m`; elsewhere the names mean what they meant (0.55.0).
 
 ### Changed
 
