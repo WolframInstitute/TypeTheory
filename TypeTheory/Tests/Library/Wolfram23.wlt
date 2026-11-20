@@ -20,11 +20,12 @@ VerificationTest[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
 				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "passOutAlignedPairs", "passOutShiftedPairs", "tagRoundEven", "tagRoundOddBefore", "tagRoundOddFirst", "tagRoundEvenWhole",
-				"minskyRound1", "minskyRound2", "minskyRound3Right", "minskyRound3Left", "minskyRound4", "minskyRound5", "minskyStep", "minskySimulation"},
+				"minskyRound1", "minskyRound2", "minskyRound3Right", "minskyRound3Left", "minskyRound4", "minskyRound5", "minskyStep", "minskySimulation",
+				"divideMultiple", "minskyDecodeEncode", "minskyNumbersSimulation", "divideSpecification", "minskyNumbersBelow", "machineToCyclicTag"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 435, {}},
+	{TypeTheoryEnvironment, 468, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -169,4 +170,23 @@ VerificationTest[
 	},
 	{True, True, True},
 	TestID -> "A-binary-machine-step-is-three-or-five-rounds-of-the-tag-system"
+]
+
+(* rungs 1 and 2 joined: a symbol is the number 84 q + 4 kind + 2 h + b + 1, which decodes back, and a step of the tag
+   system on numbers is the step on symbols, encoded *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm["minskyEncode"["symbolJ"[2, "true", "false"]], wolfram23], TypeTheoryTerm[84 * 2 + 76 + 2 + 1, wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["minskyDecode"[84 * 2 + 76 + 2 + 1], wolfram23], TypeTheoryTerm["symbolJ"[2, "true", "false"], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["divideBy"[84, 200], wolfram23], TypeTheoryTerm["quotientRemainder"[2, 32], wolfram23]],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["tagStep"["minskyNumbers"[Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "machineTransition"[0, "true", "moveRight"]]],
+				Map["minskyEncode", "binaryWord"["binaryConfiguration"[1, Typed[{}, {Booleans}], "false", Typed[{}, {Booleans}]]]]], wolfram23],
+			TypeTheoryTerm["optionMap"[Function[{Typed[v, {"MinskySymbol"}]}, Map["minskyEncode", v]],
+				"tagStep"["minskyProductions"[Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "machineTransition"[0, "true", "moveRight"]]],
+					"binaryWord"["binaryConfiguration"[1, Typed[{}, {Booleans}], "false", Typed[{}, {Booleans}]]]]], wolfram23]
+		]
+	},
+	{True, True, True, True},
+	TestID -> "A-symbol-is-a-number-that-decodes-back-and-the-tag-system-on-numbers-follows"
 ]

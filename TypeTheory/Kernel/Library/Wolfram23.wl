@@ -27,6 +27,8 @@ docs/notes/Wolfram23Universality.md; this file holds rungs 6, 2 and 1 so far.
 	"MinskySymbol",                    Cocke and Minsky's symbols, their productions for a machine tm, and the word of a
 	"minskyProductions"[tm],           configuration: the tag system follows the machine, a step being 3 or 5 rounds
 	"binaryWord"[c]
+	"minskyEncode", "minskyDecode",    the symbols as numbers, 84 q + 4 kind + 2 h + b + 1, and back through a division
+	"divideBy"[d, n]                   that computes; "machineToCyclicTag": rungs 1 and 2 composed
 
 The three theorems of the relabelings are proved by cases on the whole zipper (its state, its head, its right side and
 the first cell there, its left side), each case computed by the kernel; the case trees are generated below. That System
@@ -1191,6 +1193,375 @@ $minskyDeclarations = {
 	]
 }
 
+(* rungs 1 and 2 joined: Cocke and Minsky's symbols as numbers, decoded by a division that computes, the tag system on
+   numbers as a relabeling, the bounds that rung 2 asks for, and the composition *)
+$glueDeclarations = {
+	TypeTheoryInductiveType["QuotientRemainder", TypeUniverse[1], {
+		"quotientRemainder" -> ForAll[{Typed[quotient, NonNegativeIntegers], Typed[remainder, NonNegativeIntegers]}, "QuotientRemainder"]
+	}],
+	(* one more: the remainder grows, and past d - 1 it carries into the quotient *)
+	TypeTheoryDefinition["carryDigit", Typed[
+		Function[{Typed[d, NonNegativeIntegers], Typed[x, "QuotientRemainder"]}, InductiveRecursor["QuotientRemainder"][Function[{Typed[t, "QuotientRemainder"]}, "QuotientRemainder"],
+			Function[{Typed[q, NonNegativeIntegers], Typed[r, NonNegativeIntegers]},
+				InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "QuotientRemainder"], "quotientRemainder"[q, r + 1], "quotientRemainder"[q + 1, 0], Decide[r + 1 == d]]],
+			x]],
+		NonNegativeIntegers -> "QuotientRemainder" -> "QuotientRemainder"
+	]],
+	TypeTheoryDefinition["divideBy", Typed[
+		Function[{Typed[d, NonNegativeIntegers], Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[t, NonNegativeIntegers]}, "QuotientRemainder"],
+			"quotientRemainder"[0, 0], Function[{Typed[k, NonNegativeIntegers], Typed[previous, "QuotientRemainder"]}, "carryDigit"[d, previous]], n]],
+		NonNegativeIntegers -> NonNegativeIntegers -> "QuotientRemainder"
+	]],
+	TypeTheoryDefinition["iterate", Typed[
+		Function[{TypedImplicit[S, TypeUniverse[1]], Typed[f, S -> S], Typed[n, NonNegativeIntegers], Typed[x, S]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[t, NonNegativeIntegers]}, S],
+			x, Function[{Typed[k, NonNegativeIntegers], Typed[previous, S]}, f[previous]], n]],
+		ForAll[{TypedImplicit[S, TypeUniverse[1]]}, (S -> S) -> NonNegativeIntegers -> S -> S]
+	]],
+	machineTheorem["divideAdd",
+		ForAll[{Typed[d, NonNegativeIntegers], Typed[n, NonNegativeIntegers], Typed[c, NonNegativeIntegers]},
+			"divideBy"[d, n + c] == "iterate"["carryDigit"[d], c, "divideBy"[d, n]]],
+		{
+			"Introduce"[d, n, c], "Induction"[c], "Reflexivity",
+			"Introduce"[k, induction],
+			"Change"["carryDigit"[d, "divideBy"[d, n + k]] == "carryDigit"[d, "iterate"["carryDigit"[d], k, "divideBy"[d, n]]]],
+			"Rewrite"[induction]
+		}
+	],
+	machineTheorem["divideMultiple",
+		ForAll[{Typed[q, NonNegativeIntegers]}, "divideBy"[84, 84 * q] == "quotientRemainder"[q, 0]],
+		{
+			"Introduce"[q], "Induction"[q], "Reflexivity",
+			"Introduce"[k, induction],
+			"Change"["divideBy"[84, 84 * k + 84] == "quotientRemainder"[k + 1, 0]],
+			"Rewrite"["divideAdd"[84, 84 * k, 84]],
+			"Rewrite"[induction],
+			"Reflexivity"
+		}
+	],
+	(* the symbols as numbers: the pad 0, and a symbol 84 q + 4 kind + 2 h + b + 1, decoded through the table of the 84 symbols
+	   of state q; the tag system on numbers is then a relabeling of the tag system on symbols *)
+	TypeTheoryDefinition["minskyEncode", Typed[
+		Function[{Typed[s, "MinskySymbol"]}, InductiveRecursor["MinskySymbol"][Function[{Typed[t, "MinskySymbol"]}, NonNegativeIntegers],
+			0,
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (0) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (4) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (8) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (12) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (16) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (20) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (24) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (28) + 1],
+			Function[{Typed[q, NonNegativeIntegers]}, 84 * q + (32) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (36 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (40 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (44 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (48 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (52 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (56 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (60 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, 84 * q + (64 + 2 * "bitValue"[h]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, 84 * q + (68 + 2 * "bitValue"[h] + "bitValue"[b]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, 84 * q + (72 + 2 * "bitValue"[h] + "bitValue"[b]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, 84 * q + (76 + 2 * "bitValue"[h] + "bitValue"[b]) + 1],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, 84 * q + (80 + 2 * "bitValue"[h] + "bitValue"[b]) + 1],
+			s]],
+		"MinskySymbol" -> NonNegativeIntegers
+	]],
+	(* the element at an index, the pad past the end *)
+	TypeTheoryDefinition["symbolAt", Typed[
+		Function[{Typed[l, {"MinskySymbol"}], Typed[i, NonNegativeIntegers]}, InductiveRecursor[List][Function[{Typed[t, {"MinskySymbol"}]}, NonNegativeIntegers -> "MinskySymbol"],
+			Function[{Typed[j, NonNegativeIntegers]}, "pad"],
+			Function[{Typed[a, "MinskySymbol"], Typed[rest, {"MinskySymbol"}], Typed[previous, NonNegativeIntegers -> "MinskySymbol"]},
+				Function[{Typed[j, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[t, NonNegativeIntegers]}, "MinskySymbol"], a,
+					Function[{Typed[k, NonNegativeIntegers], Typed[ignored, "MinskySymbol"]}, previous[k]], j]]],
+			l][i]],
+		{"MinskySymbol"} -> NonNegativeIntegers -> "MinskySymbol"
+	]],
+	TypeTheoryDefinition["minskyTable", Typed[Function[{Typed[q, NonNegativeIntegers]}, {"symbolA"[q], "symbolA"[q], "symbolA"[q], "symbolA"[q], "symbolAlpha"[q], "symbolAlpha"[q], "symbolAlpha"[q], "symbolAlpha"[q], "symbolB"[q], "symbolB"[q], "symbolB"[q], "symbolB"[q], "symbolBeta"[q], "symbolBeta"[q], "symbolBeta"[q], "symbolBeta"[q], "symbolP1"[q], "symbolP1"[q], "symbolP1"[q], "symbolP1"[q], "symbolP0"[q], "symbolP0"[q], "symbolP0"[q], "symbolP0"[q], "symbolSmallP"[q], "symbolSmallP"[q], "symbolSmallP"[q], "symbolSmallP"[q], "symbolQ"[q], "symbolQ"[q], "symbolQ"[q], "symbolQ"[q], "symbolR"[q], "symbolR"[q], "symbolR"[q], "symbolR"[q], "symbolE"[q, "false"], "symbolE"[q, "false"], "symbolE"[q, "true"], "symbolE"[q, "true"], "symbolSmallE"[q, "false"], "symbolSmallE"[q, "false"], "symbolSmallE"[q, "true"], "symbolSmallE"[q, "true"], "symbolF"[q, "false"], "symbolF"[q, "false"], "symbolF"[q, "true"], "symbolF"[q, "true"], "symbolSmallF"[q, "false"], "symbolSmallF"[q, "false"], "symbolSmallF"[q, "true"], "symbolSmallF"[q, "true"], "symbolG"[q, "false"], "symbolG"[q, "false"], "symbolG"[q, "true"], "symbolG"[q, "true"], "symbolSmallG"[q, "false"], "symbolSmallG"[q, "false"], "symbolSmallG"[q, "true"], "symbolSmallG"[q, "true"], "symbolH"[q, "false"], "symbolH"[q, "false"], "symbolH"[q, "true"], "symbolH"[q, "true"], "symbolK"[q, "false"], "symbolK"[q, "false"], "symbolK"[q, "true"], "symbolK"[q, "true"], "symbolI"[q, "false", "false"], "symbolI"[q, "false", "true"], "symbolI"[q, "true", "false"], "symbolI"[q, "true", "true"], "symbolSmallI"[q, "false", "false"], "symbolSmallI"[q, "false", "true"], "symbolSmallI"[q, "true", "false"], "symbolSmallI"[q, "true", "true"], "symbolJ"[q, "false", "false"], "symbolJ"[q, "false", "true"], "symbolJ"[q, "true", "false"], "symbolJ"[q, "true", "true"], "symbolSmallJ"[q, "false", "false"], "symbolSmallJ"[q, "false", "true"], "symbolSmallJ"[q, "true", "false"], "symbolSmallJ"[q, "true", "true"]}], NonNegativeIntegers -> {"MinskySymbol"}]],
+	TypeTheoryDefinition["decodeBody", Typed[
+		Function[{Typed[x, "QuotientRemainder"]}, InductiveRecursor["QuotientRemainder"][Function[{Typed[t, "QuotientRemainder"]}, "MinskySymbol"],
+			Function[{Typed[q, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, "symbolAt"["minskyTable"[q], c]], x]],
+		"QuotientRemainder" -> "MinskySymbol"
+	]],
+	TypeTheoryDefinition["minskyDecode", Typed[
+		Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[t, NonNegativeIntegers]}, "MinskySymbol"], "pad",
+			Function[{Typed[m, NonNegativeIntegers], Typed[previous, "MinskySymbol"]}, "decodeBody"["divideBy"[84, m]]], n]],
+		NonNegativeIntegers -> "MinskySymbol"
+	]],
+	machineTheorem["minskyDecodeEncode",
+		ForAll[{Typed[s, "MinskySymbol"]}, "minskyDecode"["minskyEncode"[s]] == s],
+		{
+			"Introduce"[s], "Cases"[s],
+			"Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 0]] == "symbolA"[q]], "Rewrite"["divideAdd"[84, 84 * q, 0]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 4]] == "symbolAlpha"[q]], "Rewrite"["divideAdd"[84, 84 * q, 4]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 8]] == "symbolB"[q]], "Rewrite"["divideAdd"[84, 84 * q, 8]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 12]] == "symbolBeta"[q]], "Rewrite"["divideAdd"[84, 84 * q, 12]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 16]] == "symbolP1"[q]], "Rewrite"["divideAdd"[84, 84 * q, 16]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 20]] == "symbolP0"[q]], "Rewrite"["divideAdd"[84, 84 * q, 20]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 24]] == "symbolSmallP"[q]], "Rewrite"["divideAdd"[84, 84 * q, 24]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 28]] == "symbolQ"[q]], "Rewrite"["divideAdd"[84, 84 * q, 28]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q], "Change"["decodeBody"["divideBy"[84, 84 * q + 32]] == "symbolR"[q]], "Rewrite"["divideAdd"[84, 84 * q, 32]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 36]] == "symbolE"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 36]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 38]] == "symbolE"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 38]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 40]] == "symbolSmallE"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 40]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 42]] == "symbolSmallE"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 42]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 44]] == "symbolF"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 44]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 46]] == "symbolF"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 46]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 48]] == "symbolSmallF"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 48]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 50]] == "symbolSmallF"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 50]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 52]] == "symbolG"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 52]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 54]] == "symbolG"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 54]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 56]] == "symbolSmallG"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 56]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 58]] == "symbolSmallG"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 58]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 60]] == "symbolH"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 60]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 62]] == "symbolH"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 62]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h], "Cases"[h], "Change"["decodeBody"["divideBy"[84, 84 * q + 64]] == "symbolK"[q, "false"]], "Rewrite"["divideAdd"[84, 84 * q, 64]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 66]] == "symbolK"[q, "true"]], "Rewrite"["divideAdd"[84, 84 * q, 66]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h, b], "Cases"[h], "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 68]] == "symbolI"[q, "false", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 68]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 69]] == "symbolI"[q, "false", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 69]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 70]] == "symbolI"[q, "true", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 70]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 71]] == "symbolI"[q, "true", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 71]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h, b], "Cases"[h], "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 72]] == "symbolSmallI"[q, "false", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 72]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 73]] == "symbolSmallI"[q, "false", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 73]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 74]] == "symbolSmallI"[q, "true", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 74]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 75]] == "symbolSmallI"[q, "true", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 75]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h, b], "Cases"[h], "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 76]] == "symbolJ"[q, "false", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 76]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 77]] == "symbolJ"[q, "false", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 77]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 78]] == "symbolJ"[q, "true", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 78]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 79]] == "symbolJ"[q, "true", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 79]], "Rewrite"["divideMultiple"[q]], "Reflexivity",
+			"Introduce"[q, h, b], "Cases"[h], "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 80]] == "symbolSmallJ"[q, "false", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 80]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 81]] == "symbolSmallJ"[q, "false", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 81]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Cases"[b], "Change"["decodeBody"["divideBy"[84, 84 * q + 82]] == "symbolSmallJ"[q, "true", "false"]], "Rewrite"["divideAdd"[84, 84 * q, 82]], "Rewrite"["divideMultiple"[q]], "Reflexivity", "Change"["decodeBody"["divideBy"[84, 84 * q + 83]] == "symbolSmallJ"[q, "true", "true"]], "Rewrite"["divideAdd"[84, 84 * q, 83]], "Rewrite"["divideMultiple"[q]], "Reflexivity"
+		}
+	],
+	(* the productions on numbers: decode, produce, encode *)
+	TypeTheoryDefinition["minskyNumbers", Typed[
+		Function[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[n, NonNegativeIntegers]}, Map["minskyEncode", "minskyProductions"[tm, "minskyDecode"[n]]]],
+		(NonNegativeIntegers -> Booleans -> "MachineTransition") -> NonNegativeIntegers -> {NonNegativeIntegers}
+	]],
+	machineTheorem["minskyNumbersCommute",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[w, {"MinskySymbol"}]},
+			"tagStep"["minskyNumbers"[tm], Map["minskyEncode", w]] == "optionMap"[Function[{Typed[v, {"MinskySymbol"}]}, Map["minskyEncode", v]], "tagStep"["minskyProductions"[tm], w]]],
+		{
+			"Introduce"[tm, w], "Cases"[w], "Reflexivity",
+			"Introduce"[a, rest], "Cases"[rest], "Reflexivity",
+			"Introduce"[b, rest2],
+			"Change"["some"[Join[Map["minskyEncode", rest2], Map["minskyEncode", "minskyProductions"[tm, "minskyDecode"["minskyEncode"[a]]]]]] ==
+				"some"[Map["minskyEncode", Join[rest2, "minskyProductions"[tm, a]]]]],
+			"Rewrite"["minskyDecodeEncode"[a]],
+			"Rewrite"["mapJoin"["minskyEncode", rest2, "minskyProductions"[tm, a]]]
+		}
+	],
+	(* the tag system on numbers follows the tag system on symbols, step for step *)
+	machineTheorem["minskyNumbersSimulation",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")]},
+			"forwardSimulation"["tagStep"["minskyProductions"[tm]], "tagStep"["minskyNumbers"[tm]],
+				Function[{Typed[w, {"MinskySymbol"}], Typed[v, {NonNegativeIntegers}]}, v == Map["minskyEncode", w]]]],
+		{
+			"Introduce"[tm],
+			"Exact"["relabelingSimulation"[{"MinskySymbol"}, {NonNegativeIntegers}, "tagStep"["minskyProductions"[tm]], "tagStep"["minskyNumbers"[tm]],
+				Function[{Typed[v, {"MinskySymbol"}]}, Map["minskyEncode", v]], "minskyNumbersCommute"[tm]]]
+		}
+	],
+	(* division's specification: 84 quotient + remainder is the number, the remainder below 84 *)
+	machineTheorem["carrySpecification",
+		ForAll[{Typed[q, NonNegativeIntegers], Typed[r, NonNegativeIntegers], Typed[m, NonNegativeIntegers]},
+			Implies[84 * q + r == m, Implies[r + 1 <= 84, And[
+				84 * "carryDigit"[84, "quotientRemainder"[q, r]][["quotient"]] + "carryDigit"[84, "quotientRemainder"[q, r]][["remainder"]] == m + 1,
+				"carryDigit"[84, "quotientRemainder"[q, r]][["remainder"]] + 1 <= 84]]]],
+		{
+			"Introduce"[q, r, m, sum, below],
+			"Change"[And[84 * InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "QuotientRemainder"], "quotientRemainder"[q, r + 1], "quotientRemainder"[q + 1, 0], Decide[r + 1 == 84]][["quotient"]] + InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "QuotientRemainder"], "quotientRemainder"[q, r + 1], "quotientRemainder"[q + 1, 0], Decide[r + 1 == 84]][["remainder"]] == m + 1, InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, "QuotientRemainder"], "quotientRemainder"[q, r + 1], "quotientRemainder"[q + 1, 0], Decide[r + 1 == 84]][["remainder"]] + 1 <= 84]],
+			"Cases"["naturalNumberEqualityDecidable"[r + 1, 84]],
+			"Introduce"[different],
+			"Change"[And[84 * q + (r + 1) == m + 1, r + 1 + 1 <= 84]],
+			"Have"[first, 84 * q + (r + 1) == m + 1], "LinearArithmetic",
+			"Have"[split, Or[r + 1 + 1 <= 84, 84 < r + 1 + 1]], "Exact"["lessEqualTotality"[r + 1 + 1, 84]],
+			"Cases"[split],
+			"Introduce"[second], "Exact"["andIntroduction"[first, second]],
+			"Introduce"[over],
+			"Have"[atLeast, 84 <= r + 1], "LinearArithmetic",
+			"Exact"["falseElimination"[different["lessEqualAntisymmetry"[below, atLeast]]]],
+			"Introduce"[same],
+			"Change"[And[84 * (q + 1) + 0 == m + 1, 0 + 1 <= 84]],
+			"Have"[first, 84 * (q + 1) + 0 == m + 1], "LinearArithmetic",
+			"Have"[second, 0 + 1 <= 84], "LinearArithmetic",
+			"Exact"["andIntroduction"[first, second]]
+		}
+	],
+	machineTheorem["divideSpecification",
+		ForAll[{Typed[m, NonNegativeIntegers]}, And[84 * "divideBy"[84, m][["quotient"]] + "divideBy"[84, m][["remainder"]] == m, "divideBy"[84, m][["remainder"]] + 1 <= 84]],
+		{
+			"Introduce"[m], "Induction"[m],
+			"Change"[And[84 * 0 + 0 == 0, 0 + 1 <= 84]],
+			"Have"[second, 0 + 1 <= 84], "LinearArithmetic",
+			"Exact"["andIntroduction"["equalityReflexivity"[0], second]],
+			"Introduce"[k, induction], "Cases"[induction], "Introduce"[sum, below],
+			"Exact"["carrySpecification"["divideBy"[84, k][["quotient"]], "divideBy"[84, k][["remainder"]], k, sum, below]]
+		}
+	],
+	(* bounds: for a machine whose transitions keep the states below S, every number of the tag system on numbers is below
+	   84 S + 1, as rung 2 asks; then rungs 1 and 2 compose *)
+	TypeTheoryDefinition["machineBelow", Typed[
+		Function[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[S, NonNegativeIntegers]}, ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, Implies[q + 1 <= S, tm[q][h][["next"]] + 1 <= S]]],
+		(NonNegativeIntegers -> Booleans -> "MachineTransition") -> NonNegativeIntegers -> TypeUniverse[0]
+	]],
+	TypeTheoryDefinition["symbolBelow", Typed[
+		Function[{Typed[S, NonNegativeIntegers], Typed[s, "MinskySymbol"]}, InductiveRecursor["MinskySymbol"][Function[{Typed[t, "MinskySymbol"]}, TypeUniverse[0]], True,
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, q + 1 <= S],
+			Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, q + 1 <= S],
+			s]],
+		NonNegativeIntegers -> "MinskySymbol" -> TypeUniverse[0]
+	]],
+	TypeTheoryDefinition["statesBelow", Typed[
+		Function[{Typed[S, NonNegativeIntegers], Typed[w, {"MinskySymbol"}]}, InductiveRecursor[List][Function[{Typed[t, {"MinskySymbol"}]}, TypeUniverse[0]], True,
+			Function[{Typed[a, "MinskySymbol"], Typed[rest, {"MinskySymbol"}], Typed[previous, TypeUniverse[0]]}, And["symbolBelow"[S, a], previous]], w]],
+		NonNegativeIntegers -> {"MinskySymbol"} -> TypeUniverse[0]
+	]],
+	machineTheorem["statesBelowJoin",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[u, {"MinskySymbol"}], Typed[v, {"MinskySymbol"}]}, Implies["statesBelow"[S, u], Implies["statesBelow"[S, v], "statesBelow"[S, Join[u, v]]]]],
+		{
+			"Introduce"[S, u, v], "Induction"[u],
+			"Introduce"[uBelow, vBelow], vBelow,
+			"Introduce"[a, rest, induction, uBelow, vBelow], "Cases"[uBelow], "Introduce"[aBelow, restBelow],
+			"andIntroduction"[aBelow, induction[restBelow, vBelow]]
+		}
+	],
+	machineTheorem["statesBelowPairs",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[a, "MinskySymbol"], Typed[b, "MinskySymbol"], Typed[m, NonNegativeIntegers]},
+			Implies["symbolBelow"[S, a], Implies["symbolBelow"[S, b], "statesBelow"[S, "pairs"[a, b, m]]]]],
+		{
+			"Introduce"[S, a, b, m, aBelow, bBelow], "Induction"[m], "trueIntroduction",
+			"Introduce"[k, induction], "andIntroduction"[aBelow, "andIntroduction"[bBelow, induction]]
+		}
+	],
+	machineTheorem["padBelow",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[h, Booleans]}, "statesBelow"[S, "padUnless"[h]]],
+		{"Introduce"[S, h], "Cases"[h], "Exact"["andIntroduction"["trueIntroduction", "trueIntroduction"]], "Exact"["trueIntroduction"]}
+	],
+	machineTheorem["productionsBelow",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[S, NonNegativeIntegers], Typed[machine, "machineBelow"[tm, S]], Typed[s, "MinskySymbol"]},
+			Implies["symbolBelow"[S, s], "statesBelow"[S, "minskyProductions"[tm, s]]]],
+		{
+			"Introduce"[tm, S, machine, s], "Cases"[s],
+			"Introduce"[below], "Exact"["trueIntroduction"],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "trueIntroduction"]],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "trueIntroduction"]],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, below], "Exact"["trueIntroduction"],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, h, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Have"[directions, Or[tm[q][h][["direction"]] == "moveLeft", tm[q][h][["direction"]] == "moveRight"]], "Exact"["directionCases"[tm[q][h][["direction"]]]], "Cases"[directions], "Introduce"[moved], "Rewrite"["productionELeft"[tm, q, h, moved]], "Exact"["statesBelowJoin"[S, "padUnless"[h], {"symbolG"[q, h]}, "padBelow"[S, h], "andIntroduction"[below, "trueIntroduction"]]], "Introduce"[moved], "Rewrite"["productionERight"[tm, q, h, moved]], "Exact"["statesBelowJoin"[S, "padUnless"[h], Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]]]]], "padBelow"[S, h], "andIntroduction"[next, "andIntroduction"["trueIntroduction", "statesBelowPairs"[S, "symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]], next, "trueIntroduction"]]]]],
+			"Introduce"[q, h, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Have"[directions, Or[tm[q][h][["direction"]] == "moveLeft", tm[q][h][["direction"]] == "moveRight"]], "Exact"["directionCases"[tm[q][h][["direction"]]]], "Cases"[directions], "Introduce"[moved], "Rewrite"["productionSmallELeft"[tm, q, h, moved]], "Exact"["andIntroduction"[below, "trueIntroduction"]], "Introduce"[moved], "Rewrite"["productionSmallERight"[tm, q, h, moved]], "Exact"["andIntroduction"[next, "andIntroduction"["trueIntroduction", "andIntroduction"[next, "andIntroduction"["trueIntroduction", "trueIntroduction"]]]]],
+			"Introduce"[q, h, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Have"[directions, Or[tm[q][h][["direction"]] == "moveLeft", tm[q][h][["direction"]] == "moveRight"]], "Exact"["directionCases"[tm[q][h][["direction"]]]], "Cases"[directions], "Introduce"[moved], "Rewrite"["productionFLeft"[tm, q, h, moved]], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]], "Introduce"[moved], "Rewrite"["productionFRight"[tm, q, h, moved]], "Exact"["andIntroduction"[next, "andIntroduction"["trueIntroduction", "trueIntroduction"]]],
+			"Introduce"[q, h, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Have"[directions, Or[tm[q][h][["direction"]] == "moveLeft", tm[q][h][["direction"]] == "moveRight"]], "Exact"["directionCases"[tm[q][h][["direction"]]]], "Cases"[directions], "Introduce"[moved], "Rewrite"["productionSmallFLeft"[tm, q, h, moved]], "Exact"["andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]]]], "Introduce"[moved], "Rewrite"["productionSmallFRight"[tm, q, h, moved]], "Exact"["andIntroduction"[next, "andIntroduction"["trueIntroduction", "trueIntroduction"]]],
+			"Introduce"[q, h, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, h, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, h, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, h, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]],
+			"Introduce"[q, h, b, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Exact"["statesBelowJoin"[S, "padUnless"[b], {"symbolA"[tm[q][h][["next"]]], "pad"}, "padBelow"[S, b], "andIntroduction"[next, "andIntroduction"["trueIntroduction", "trueIntroduction"]]]],
+			"Introduce"[q, h, b, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Exact"["andIntroduction"[next, "andIntroduction"["trueIntroduction", "trueIntroduction"]]],
+			"Introduce"[q, h, b, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Exact"["andIntroduction"[next, "andIntroduction"["trueIntroduction", "statesBelowPairs"[S, "symbolBeta"[tm[q][h][["next"]]], "pad", 2 * "bitValue"[tm[q][h][["write"]]] + "bitValue"[b], next, "trueIntroduction"]]]],
+			"Introduce"[q, h, b, below], "Have"[next, tm[q][h][["next"]] + 1 <= S], "Exact"[machine[q, h, below]], "Exact"["andIntroduction"[next, "andIntroduction"["trueIntroduction", "andIntroduction"[next, "andIntroduction"["trueIntroduction", "trueIntroduction"]]]]]
+		}
+	],
+	machineTheorem["encodeBelow",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[s, "MinskySymbol"]}, Implies["symbolBelow"[S, s], "minskyEncode"[s] + 1 <= 84 * S + 1]],
+		{
+			"Introduce"[S, s], "Cases"[s],
+			"Introduce"[below], "Change"[0 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 0 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 4 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 8 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 12 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 16 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 20 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 24 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 28 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, below], "Change"[84 * q + 32 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 36 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 38 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 40 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 42 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 44 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 46 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 48 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 50 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 52 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 54 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 56 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 58 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 60 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 62 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, below], "Cases"[h], "Introduce"[below], "Change"[84 * q + 64 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 66 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, b, below], "Cases"[h], "Cases"[b], "Introduce"[below], "Change"[84 * q + 68 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 69 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Cases"[b], "Introduce"[below], "Change"[84 * q + 70 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 71 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, b, below], "Cases"[h], "Cases"[b], "Introduce"[below], "Change"[84 * q + 72 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 73 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Cases"[b], "Introduce"[below], "Change"[84 * q + 74 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 75 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, b, below], "Cases"[h], "Cases"[b], "Introduce"[below], "Change"[84 * q + 76 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 77 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Cases"[b], "Introduce"[below], "Change"[84 * q + 78 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 79 + 1 + 1 <= 84 * S + 1], "LinearArithmetic",
+			"Introduce"[q, h, b, below], "Cases"[h], "Cases"[b], "Introduce"[below], "Change"[84 * q + 80 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 81 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Cases"[b], "Introduce"[below], "Change"[84 * q + 82 + 1 + 1 <= 84 * S + 1], "LinearArithmetic", "Introduce"[below], "Change"[84 * q + 83 + 1 + 1 <= 84 * S + 1], "LinearArithmetic"
+		}
+	],
+	machineTheorem["mapEncodeBelow",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[w, {"MinskySymbol"}]}, Implies["statesBelow"[S, w], "allBelow"[84 * S + 1, Map["minskyEncode", w]]]],
+		{
+			"Introduce"[S, w], "Induction"[w],
+			"Introduce"[below], "trueIntroduction",
+			"Introduce"[a, rest, induction, below], "Cases"[below], "Introduce"[aBelow, restBelow],
+			"andIntroduction"["encodeBelow"[S, a, aBelow], induction[restBelow]]
+		}
+	],
+	machineTheorem["symbolAtBelow",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[l, {"MinskySymbol"}]}, ForAll[{Typed[c, NonNegativeIntegers]}, Implies["statesBelow"[S, l], "symbolBelow"[S, "symbolAt"[l, c]]]]],
+		{
+			"Introduce"[S, l], "Induction"[l],
+			"Introduce"[c, below], "trueIntroduction",
+			"Introduce"[a, rest, induction, c, below], "Cases"[below], "Introduce"[aBelow, restBelow],
+			"Cases"[c], "Exact"[aBelow],
+			"Introduce"[j], "Exact"[induction[j, restBelow]]
+		}
+	],
+	machineTheorem["tableBelow",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[q, NonNegativeIntegers]}, Implies[q + 1 <= S, "statesBelow"[S, "minskyTable"[q]]]],
+		{"Introduce"[S, q, below], "Exact"["andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "andIntroduction"[below, "trueIntroduction"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]}
+	],
+	machineTheorem["decodeBelow",
+		ForAll[{Typed[S, NonNegativeIntegers], Typed[i, NonNegativeIntegers]}, Implies[i + 1 <= 84 * S + 1, "symbolBelow"[S, "minskyDecode"[i]]]],
+		{
+			"Introduce"[S, i], "Cases"[i],
+			"Introduce"[bound], "Exact"["trueIntroduction"],
+			"Introduce"[m, bound],
+			"Have"[specified, And[84 * "divideBy"[84, m][["quotient"]] + "divideBy"[84, m][["remainder"]] == m, "divideBy"[84, m][["remainder"]] + 1 <= 84]], "Exact"["divideSpecification"[m]],
+			"Cases"[specified], "Introduce"[sum, remainderBelow],
+			"Have"[split, Or["divideBy"[84, m][["quotient"]] + 1 <= S, S < "divideBy"[84, m][["quotient"]] + 1]], "Exact"["lessEqualTotality"["divideBy"[84, m][["quotient"]] + 1, S]],
+			"Cases"[split],
+			"Introduce"[quotientBelow],
+			"Exact"["symbolAtBelow"[S, "minskyTable"["divideBy"[84, m][["quotient"]]], "divideBy"[84, m][["remainder"]], "tableBelow"[S, "divideBy"[84, m][["quotient"]], quotientBelow]]],
+			"Introduce"[over],
+			"Have"[impossible, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[impossible]]
+		}
+	],
+	(* rung 2's condition: the productions of every number below 84 S + 1 stay below it *)
+	machineTheorem["minskyNumbersBelow",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[S, NonNegativeIntegers], Typed[machine, "machineBelow"[tm, S]], Typed[i, NonNegativeIntegers]},
+			Implies[i + 1 <= 84 * S + 1, "allBelow"[84 * S + 1, "minskyNumbers"[tm, i]]]],
+		{
+			"Introduce"[tm, S, machine, i, bound],
+			"Exact"["mapEncodeBelow"[S, "minskyProductions"[tm, "minskyDecode"[i]], "productionsBelow"[tm, S, machine, "minskyDecode"[i], "decodeBelow"[S, i, bound]]]]
+		}
+	],
+	(* rungs 1 and 2: a cyclic tag system follows any binary machine whose states stay below S, through the tag system on
+	   numbers below 84 S + 1 *)
+	machineTheorem["machineToCyclicTag",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[S, NonNegativeIntegers], Typed[machine, "machineBelow"[tm, S]]},
+			"forwardSimulation"["binaryStep"[tm], "cyclicTagStep", Function[{Typed[c, "BinaryConfiguration"], Typed[x, "CyclicTagConfiguration"]},
+				Exists[{Typed[v, {NonNegativeIntegers}]}, And[Exists[{Typed[w, {"MinskySymbol"}]}, And[w == "binaryWord"[c], v == Map["minskyEncode", w]]],
+					And[x == "cookConfiguration"[84 * S + 1, "minskyNumbers"[tm], v], "allBelow"[84 * S + 1, v]]]]]]],
+		{
+			"Introduce"[tm, S, machine],
+			"Exact"["forwardSimulationCompose"["BinaryConfiguration", {NonNegativeIntegers}, "CyclicTagConfiguration", "binaryStep"[tm], "tagStep"["minskyNumbers"[tm]], "cyclicTagStep", Function[{Typed[c, "BinaryConfiguration"], Typed[v, {NonNegativeIntegers}]}, Exists[{Typed[w, {"MinskySymbol"}]}, And[w == "binaryWord"[c], v == Map["minskyEncode", w]]]], Function[{Typed[v, {NonNegativeIntegers}], Typed[x, "CyclicTagConfiguration"]}, And[x == "cookConfiguration"[84 * S + 1, "minskyNumbers"[tm], v], "allBelow"[84 * S + 1, v]]],
+				"forwardSimulationCompose"["BinaryConfiguration", {"MinskySymbol"}, {NonNegativeIntegers}, "binaryStep"[tm], "tagStep"["minskyProductions"[tm]], "tagStep"["minskyNumbers"[tm]], Function[{Typed[c, "BinaryConfiguration"], Typed[w, {"MinskySymbol"}]}, w == "binaryWord"[c]], Function[{Typed[w, {"MinskySymbol"}], Typed[v, {NonNegativeIntegers}]}, v == Map["minskyEncode", w]],
+					"minskySimulation"[tm], "minskyNumbersSimulation"[tm]],
+				"cookSimulation"[84 * S + 1, "minskyNumbers"[tm], "minskyNumbersBelow"[tm, S, machine]]]]
+		}
+	]
+}
+
 $wolfram23Declarations = Join[With[
 	{
 		configuration = "LookaheadConfiguration", optional = Option["LookaheadConfiguration"], machine = "LookaheadState" -> "Color" -> "Color" -> "LookaheadRule",
@@ -1575,4 +1946,4 @@ $wolfram23Declarations = Join[With[
 			}
 		]]
 	}
-], $cookDeclarations, $roundDeclarations, $minskyDeclarations]
+], $cookDeclarations, $roundDeclarations, $minskyDeclarations, $glueDeclarations]

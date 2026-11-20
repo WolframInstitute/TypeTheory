@@ -80,6 +80,9 @@ Versions 0.50.0 to 0.58.0.
     the machine is three rounds of the tag system for a move to the right and five for a move to the left
     (`minskyStep`). A round reads every other symbol, and over a word of odd length its last symbol takes the first
     symbol appended as its partner (0.58.0).
+  - rungs 1 and 2 joined: the symbols become numbers below 84 S + 1 for a machine of S states, decoded by a division
+    that computes, and Cook's cyclic tag system follows every binary Turing machine whose states stay below S
+    (`machineToCyclicTag`) (0.58.0).
 
 ### Changed
 

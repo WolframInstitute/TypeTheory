@@ -154,11 +154,19 @@ How rung 1 is built:
 - **The transition** is read through its fields, `t[["next"]]`, `t[["write"]]`, `t[["direction"]]`, behind a named
   `byDirection`, so the productions of a move follow from the direction's equation alone (`productionERight`, ...).
 
-Next: the glue between rungs 1 and 2. Rung 2's symbols are numbers below k, so `"MinskySymbol"` needs an encoding into
-the numbers below 1 + 84 S for a machine of S states, with a decoding that inverts it on the symbols a run can reach
-(states below S), and the relabeling of the tag system along it. The prelude has no division, so the decoding is a
-structural quotient and remainder whose step on a literal remainder computes; the inverse needs one induction and the
-84 symbol shapes as a generated table, as rung 6's tables are.
+Rungs 1 and 2 are joined (`machineToCyclicTag`): for a machine whose transitions keep the states below S, Cook's
+cyclic tag system follows it.
+- **Symbols as numbers.** A symbol is 84 q + 4 kind + 2 h + b + 1, the pad 0. The prelude has no division, so
+  `divideBy` is a structural recursion that carries one at a time; dividing 84 q + c is c carries after `(q, 0)`
+  (`divideAdd`, `divideMultiple`), which computes for every literal c, and the inverse (`minskyDecodeEncode`) is 42
+  generated cases, each by two rewrites and reflexivity.
+- **The relabeling.** The tag system on numbers decodes, produces and encodes, so it commutes with the encoding
+  (`minskyNumbersCommute`) and follows the tag system on symbols step for step (`relabelingSimulation`).
+- **Bounds.** Rung 2 asks that the productions of every number below k stay below k. Division's specification
+  (`divideSpecification`) needs both sides of a decision: a case split on the decidability instance gives `Decide` its
+  value in each branch.
+
+Next: rungs 3 to 5 (cyclic tag to System 5, System 5 to 4, System 4 to 3), then rung 7 and the tutorial.
 
 ## Files
 
