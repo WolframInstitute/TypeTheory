@@ -1011,3 +1011,79 @@ VerificationTest[
 	{True, ConstantArray[{"assumed"}, 3], {"TypeMismatch", "TypeMismatch"}, {"TypeMismatch", "TypeMismatch"}},
 	TestID -> "A-batch-on-given-constants-gives-the-records-and-axioms-it-gives-with-their-proofs"
 ]
+
+(* eta for a proposition's structure whose fields are all proofs, as in TypeChecking.wlt: both kernels check that the
+   decoder through the proof a theorem gives is the identity, and both refuse the statement forged to another value *)
+VerificationTest[
+	With[
+		{
+			both = TypeTheoryEnvironment["Prelude", {
+				TypeTheoryInductiveType["Both", ForAll[{Typed["P", TypeUniverse[0]], Typed["Q", TypeUniverse[0]]}, TypeUniverse[0]], {
+					"bothIntroduction" -> ForAll[{Typed["P", TypeUniverse[0]], Typed["Q", TypeUniverse[0]], Typed["l", "P"], Typed["r", "Q"]}, Construct["Both", "P", "Q"]]
+				}, "Parameters" -> 2],
+				TypeTheoryInductiveType["R", TypeUniverse[1], {"rMake" -> ForAll[{Typed[n, NonNegativeIntegers], Typed[p, Construct["Both", n == n, n == n]]}, "R"]}],
+				TypeTheoryTheorem["rProof", ForAll[{Typed[n, NonNegativeIntegers]}, Construct["Both", n == n, n == n]],
+					Function[{Typed[n, NonNegativeIntegers]}, "bothIntroduction"[n == n, n == n, "equalityReflexivity"[n], "equalityReflexivity"[n]]]
+				],
+				TypeTheoryDefinition["rDecode", Typed[
+					Function[{Typed[x, "R"]}, InductiveRecursor["R"][
+						Function[{Typed[t, "R"]}, "R"],
+						Function[{Typed[n, NonNegativeIntegers], Typed[p, Construct["Both", n == n, n == n]]},
+							InductiveRecursor["Both"][n == n, n == n, Function[{Typed[t, Construct["Both", n == n, n == n]]}, "R"],
+								Function[{Typed[l, n == n], Typed[r, n == n]}, "rMake"[n, "bothIntroduction"[n == n, n == n, l, r]]],
+								"rProof"[n]
+							]
+						],
+						x
+					]],
+					"R" -> "R"
+				]],
+				TypeTheoryTheorem["rDecodeInverse", ForAll[{Typed[x, "R"]}, "rDecode"[x] == x], Function[{Typed[x, "R"]}, "equalityReflexivity"[x]]]
+			}]
+		},
+		{
+			bothKernels[both],
+			First @ TypeTheoryEnvironment[both, {TypeTheoryTheorem["rDecodeForged", ForAll[{Typed[x, "R"]}, "rDecode"[x] == "rMake"[0, "rProof"[0]]], Function[{Typed[x, "R"]}, "equalityReflexivity"[x]]]}],
+			First @ TypeTheoryEnvironment[both, {TypeTheoryTheorem["rDecodeForged", ForAll[{Typed[x, "R"]}, "rDecode"[x] == "rMake"[0, "rProof"[0]]], Function[{Typed[x, "R"]}, "equalityReflexivity"[x]]]}, Method -> compiledMethod]
+		}
+	],
+	{{"EnvironmentChecked", "EnvironmentChecked"}, "TypeMismatch", "TypeMismatch"},
+	TestID -> "Both-kernels-compute-a-match-on-a-proof-of-a-conjunction-that-a-theorem-gives"
+]
+
+(* no eta for a proposition with a data field, nor for an indexed and recursive family of proofs, as in
+   TypeChecking.wlt: both kernels check the environment, and both refuse the statement that the family's match on the
+   proof a theorem gives unrolls to its case *)
+VerificationTest[
+	With[
+		{
+			others = TypeTheoryEnvironment["Prelude", {
+				TypeTheoryInductiveType["Some", TypeUniverse[0], {"someIntroduction" -> ForAll[{Typed[n, NonNegativeIntegers], Typed[h, n == n]}, "Some"]}],
+				TypeTheoryTheorem["someProof", "Some", "someIntroduction"[0, "equalityReflexivity"[0]]],
+				TypeTheoryInductiveType["Accessible", ForAll[{Typed[x, NonNegativeIntegers]}, TypeUniverse[0]], {
+					"accessibleIntroduction" -> ForAll[{Typed[x, NonNegativeIntegers], Typed[h, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, Construct["Accessible", y]]]}, Construct["Accessible", x]]
+				}, "Parameters" -> 0],
+				TypeTheoryTheorem["accessibleZero", Construct["Accessible", 0],
+					"accessibleIntroduction"[0, Function[{Typed[y, NonNegativeIntegers], Typed[f, False]}, InductiveRecursor[False][Function[{Typed[t, False]}, Construct["Accessible", y]], f]]]
+				]
+			}]
+		},
+		{
+			bothKernels[others],
+			First @ TypeTheoryEnvironment[others, {TypeTheoryTheorem["accessibleUnrolls", InductiveRecursor["Accessible"][
+					Function[{Typed[x, NonNegativeIntegers], Typed[a, Construct["Accessible", x]]}, NonNegativeIntegers],
+					Function[{Typed[x, NonNegativeIntegers], Typed[h, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, Construct["Accessible", y]]], Typed[r, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, NonNegativeIntegers]]}, 7],
+					0,
+					"accessibleZero"
+				] == 7, "equalityReflexivity"[7]]}],
+			First @ TypeTheoryEnvironment[others, {TypeTheoryTheorem["accessibleUnrolls", InductiveRecursor["Accessible"][
+					Function[{Typed[x, NonNegativeIntegers], Typed[a, Construct["Accessible", x]]}, NonNegativeIntegers],
+					Function[{Typed[x, NonNegativeIntegers], Typed[h, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, Construct["Accessible", y]]], Typed[r, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, NonNegativeIntegers]]}, 7],
+					0,
+					"accessibleZero"
+				] == 7, "equalityReflexivity"[7]]}, Method -> compiledMethod]
+		}
+	],
+	{{"EnvironmentChecked", "EnvironmentChecked"}, "TypeMismatch", "TypeMismatch"},
+	TestID -> "Both-kernels-leave-a-match-on-a-proposition-with-data-or-on-an-indexed-recursive-family-alone"
+]

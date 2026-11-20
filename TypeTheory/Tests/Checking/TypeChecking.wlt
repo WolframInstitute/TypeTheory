@@ -626,3 +626,72 @@ VerificationTest[
 	{True, False, True, True, True, True},
 	TestID -> "Beta-reduction-takes-a-projection-of-a-constructor-as-its-field"
 ]
+
+(* eta for a proposition's structure whose fields are all proofs, where its recursor reduces: a match on the proof that a
+   theorem gives computes, since the proof equals the constructor applied to its projections, and the theorem is never
+   unfolded (Rat.instEncodable of Mathlib decodes so). A decoder that gives another value is still refused. *)
+VerificationTest[
+	With[
+		{
+			both = TypeTheoryEnvironment["Prelude", {
+				TypeTheoryInductiveType["Both", ForAll[{Typed["P", TypeUniverse[0]], Typed["Q", TypeUniverse[0]]}, TypeUniverse[0]], {
+					"bothIntroduction" -> ForAll[{Typed["P", TypeUniverse[0]], Typed["Q", TypeUniverse[0]], Typed["l", "P"], Typed["r", "Q"]}, Construct["Both", "P", "Q"]]
+				}, "Parameters" -> 2],
+				TypeTheoryInductiveType["R", TypeUniverse[1], {"rMake" -> ForAll[{Typed[n, NonNegativeIntegers], Typed[p, Construct["Both", n == n, n == n]]}, "R"]}],
+				TypeTheoryTheorem["rProof", ForAll[{Typed[n, NonNegativeIntegers]}, Construct["Both", n == n, n == n]],
+					Function[{Typed[n, NonNegativeIntegers]}, "bothIntroduction"[n == n, n == n, "equalityReflexivity"[n], "equalityReflexivity"[n]]]
+				],
+				TypeTheoryDefinition["rDecode", Typed[
+					Function[{Typed[x, "R"]}, InductiveRecursor["R"][
+						Function[{Typed[t, "R"]}, "R"],
+						Function[{Typed[n, NonNegativeIntegers], Typed[p, Construct["Both", n == n, n == n]]},
+							InductiveRecursor["Both"][n == n, n == n, Function[{Typed[t, Construct["Both", n == n, n == n]]}, "R"],
+								Function[{Typed[l, n == n], Typed[r, n == n]}, "rMake"[n, "bothIntroduction"[n == n, n == n, l, r]]],
+								"rProof"[n]
+							]
+						],
+						x
+					]],
+					"R" -> "R"
+				]]
+			}]
+		},
+		{
+			Length[First[TypeTheoryProof[ForAll[{Typed[x, "R"]}, "rDecode"[x] == x], both, {"Introduce"[x], "Reflexivity"}]]["Goals"]],
+			Head[TypeTheoryProof[ForAll[{Typed[x, "R"]}, "rDecode"[x] == "rMake"[0, "rProof"[0]]], both, {"Introduce"[x], "Reflexivity"}]]
+		}
+	],
+	{0, Failure},
+	TestID -> "A-match-on-a-proof-of-a-conjunction-that-a-theorem-gives-computes-by-eta"
+]
+
+(* no eta for a proposition that eliminates only into propositions, whose field n is data, nor for an indexed and
+   recursive family of proofs, where eta with proof irrelevance would unroll the recursor without end: a match on a
+   proof that a theorem gives keeps its recursor at the head *)
+VerificationTest[
+	With[
+		{
+			others = TypeTheoryEnvironment["Prelude", {
+				TypeTheoryInductiveType["Some", TypeUniverse[0], {"someIntroduction" -> ForAll[{Typed[n, NonNegativeIntegers], Typed[h, n == n]}, "Some"]}],
+				TypeTheoryTheorem["someProof", "Some", "someIntroduction"[0, "equalityReflexivity"[0]]],
+				TypeTheoryInductiveType["Accessible", ForAll[{Typed[x, NonNegativeIntegers]}, TypeUniverse[0]], {
+					"accessibleIntroduction" -> ForAll[{Typed[x, NonNegativeIntegers], Typed[h, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, Construct["Accessible", y]]]}, Construct["Accessible", x]]
+				}, "Parameters" -> 0],
+				TypeTheoryTheorem["accessibleZero", Construct["Accessible", 0],
+					"accessibleIntroduction"[0, Function[{Typed[y, NonNegativeIntegers], Typed[f, False]}, InductiveRecursor[False][Function[{Typed[t, False]}, Construct["Accessible", y]], f]]]
+				]
+			}]
+		},
+		{
+			MatchQ[WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor["Some"][Function[{Typed[t, "Some"]}, 0 == 0], Function[{Typed[n, NonNegativeIntegers], Typed[h, n == n]}, "equalityReflexivity"[0]], "someProof"], others]], TypeTheoryTerm[InductiveRecursor["Some"][___], _]],
+			MatchQ[WeakHeadNormalForm[TypeTheoryTerm[InductiveRecursor["Accessible"][
+					Function[{Typed[x, NonNegativeIntegers], Typed[a, Construct["Accessible", x]]}, NonNegativeIntegers],
+					Function[{Typed[x, NonNegativeIntegers], Typed[h, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, Construct["Accessible", y]]], Typed[r, ForAll[{Typed[y, NonNegativeIntegers], Typed[f, False]}, NonNegativeIntegers]]}, 7],
+					0,
+					"accessibleZero"
+				], others]], TypeTheoryTerm[InductiveRecursor["Accessible"][___], _]]
+		}
+	],
+	{True, True},
+	TestID -> "No-eta-for-a-proposition-with-data-nor-for-an-indexed-recursive-family-of-proofs"
+]

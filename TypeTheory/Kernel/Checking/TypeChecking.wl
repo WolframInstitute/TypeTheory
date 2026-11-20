@@ -16,8 +16,9 @@ inside a declaration's check, where those terms are checked or reducts of checke
 them without checking: the infer-only mode.
 
 Reduction implements beta, zeta (local definitions), delta (unfolding definitions; theorems are never
-unfolded), iota (a recursor applied to a constructor, natural literals read as constructors, and
-K-like recursors such as that of Equal), a quotient's lift or induction applied to a class
+unfolded), iota (a recursor applied to a constructor, natural literals read as constructors,
+K-like recursors such as that of Equal, and a structure's recursor applied to any term of the structure,
+a proposition's only where every field is a proof), a quotient's lift or induction applied to a class
 (Quotients.wl), and addition of natural literals on Wolfram Language integers when the environment
 registers an addition, and the rewrite rules of an axiom where the environment's rules allow them.
 Definitional equality adds eta for functions and proof irrelevance: two proofs of the same proposition
@@ -695,13 +696,16 @@ structureReduct[term_, _, _, _, _, _, _, None] := term
 
 (* Eta for structures, where a recursor reduces: a major premise of a structure type that is
    not a constructor application is the constructor applied to its projections, so a match on a pair p
-   computes with p.1 and p.2. A proposition is left alone, since data cannot be projected out of a proof. *)
+   computes with p.1 and p.2. A proposition is left alone, since data cannot be projected out of a proof,
+   unless its recursor eliminates into every universe: a structure has no indices, so then every field is a
+   proof, and the major premise equals the constructor applied to its projections by proof irrelevance. So a
+   match on a proof of P && Q that a theorem gives computes, though the theorem is never unfolded. *)
 structureFields[environment_, context_, record_, major_] := If[ ! structureLikeQ[environment, record["InductiveType"]],
 	None,
 	projectionsOf[environment, context, record, record["InductiveType"], major, weakHeadNormalForm[environment, context, typeQuery[environment, context, major]]]
 ]
 
-projectionsOf[environment_, context_, record_, name_, major_, majorType_] := If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || propositionTypeQ[environment, context, majorType],
+projectionsOf[environment_, context_, record_, name_, major_, majorType_] := If[ ! MatchQ[First[applicationSpine[majorType]], constantReference[name, _]] || (propositionTypeQ[environment, context, majorType] && ! TrueQ[record["EliminationUniverse"]]),
 	None,
 	Table[Construct[projection, name, index, major], {index, 0, record["Rules"][First[Keys[record["Rules"]]]]["NumberOfFields"] - 1}]
 ]

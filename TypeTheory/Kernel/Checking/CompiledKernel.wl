@@ -1111,7 +1111,7 @@ $program = Hold[{
 		majorType = arenaWhnf[m, arenaInferType[m, major, 1]];
 		hd = arenaSpineHead[m, majorType];
 		If[arenaTagOf[m, hd] != tConst || arenaF1Of[m, hd] != ind, Return[e]];
-		If[arenaPropositionQ[m, majorType] == 1, Return[e]];
+		If[arenaConstCell[m, c, cG] != 1 && arenaPropositionQ[m, majorType] == 1, Return[e]];
 		nf = arenaFlatAt[m, rule + 2];
 		s3 = arenaReserve[m, nf];
 		If[s3 < 0, Return[0]];

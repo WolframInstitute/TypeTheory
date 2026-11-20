@@ -134,6 +134,12 @@ Versions 0.50.0 to 0.58.0.
 - **Text for a terminal.** Failure messages and the text of a term wrote ℕ, 𝔹, `==` and a few other symbols as
   characters of Unicode's private use area, which only a front end draws: a terminal showed `k ∶ ,`. They are written in
   Unicode and ASCII now, and notebooks are unchanged (0.58.0).
+- **A match on a proof of a conjunction that a theorem gives.** Both kernels left a recursor stuck on a proof of a
+  proposition such as `P && Q` that was no constructor, since a theorem is never unfolded, so the decoder of Mathlib's
+  `Rat.instEncodable` did not compute and the replay refused it. Where a proposition is a structure whose recursor
+  eliminates into every universe, every field is a proof, and the proof equals its constructor applied to its
+  projections by proof irrelevance: the recursor now reduces on those projections. A proposition with data, as
+  `Exists`, and an indexed recursive family, as `Acc`, are left alone (0.58.0).
 
 ### Performance
 

@@ -96,6 +96,20 @@ compared in full. Proof irrelevance is not asked again between steps, since unfo
 proof of the same proposition. The kernel remembers inferred types, weak head normal forms and
 definitional equalities for the length of a check.
 
+ι takes the major premise of a structure's recursor that is no constructor application as the constructor
+applied to its projections (η for structures where a recursor reduces), so a match on a pair `p` computes with
+`p.1` and `p.2`. A proposition is a structure for this rule only where its recursor eliminates into every universe.
+A structure has no indices, so then every field is a proof, each projection is a proof (`projectionType` projects no
+data out of a proof), and the major premise `h` equals the constructor applied to `h.1, …, h.n` by proof
+irrelevance, both being proofs of one proposition. The reduct is one the theory already derives, by proof
+irrelevance under the recursor and then ι; the rule only lets reduction find it. With it a match on a proof of
+`P && Q` that a theorem gives computes, though a theorem is never unfolded, as the decoder of Mathlib's
+`Rat.instEncodable` needs. Lean's kernel finds that equality by unfolding the theorem, and none where the proof is
+a variable: there TypeTheory's definitional equality is larger than Lean's kernel's, and sound relative to the
+theory. A proposition that eliminates only into propositions, as `Exists` with its data field, is left alone,
+and so is an inductive family such as `Acc`, indexed and recursive, where η with proof irrelevance would unroll
+the recursor without end. `Checking/TypeChecking.wlt` and `Checking/CompiledKernel.wlt` test the four cases.
+
 A kernel failure is `Throw[Failure[tag, ...], $kernelFailureTag]`. Every exported function catches it
 with `catchKernelFailure`, so a user sees a `Failure` and never a message.
 
