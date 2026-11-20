@@ -76,7 +76,8 @@ Versions 0.50.0 to 0.58.0.
   - rung 2: cyclic tag systems that carry their appendants rotated in the configuration, and Cook's encoding of a
     2-tag system's symbols as one-hot blocks. Where every production keeps its symbols below k, the cyclic tag system
     follows the tag system, k + k steps for each step (`cookSimulation`);
-  - the round lemma that begins Cocke and Minsky's rung 1 (0.58.0).
+  - the rounds of a 2-tag system over any symbols, which begin Cocke and Minsky's rung 1: a round reads every other
+    symbol, and over a word of odd length its last symbol takes the first symbol appended as its partner (0.58.0).
 
 ### Changed
 

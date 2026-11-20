@@ -19,11 +19,11 @@ VerificationTest[
 		Select[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
-				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "tagRound"},
+				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "passOutAlignedPairs", "passOutShiftedPairs", "tagRoundEven", "tagRoundOdd"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 359, {}},
+	{TypeTheoryEnvironment, 363, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -133,14 +133,15 @@ VerificationTest[
 	TestID -> "A-tag-step-is-k-plus-k-steps-of-Cooks-cyclic-tag-system"
 ]
 
-(* a round of the tag system 0 -> 1, 1 -> 0 0 over the pairs (0, 1) (1, 1): two steps read 0 and 1 *)
+(* a round of the tag system 0 -> 1, 1 -> 0 0 over 0 1 1 1: two steps read 0 and 1, and append what the round reads *)
 VerificationTest[
 	With[{productions = productions},
-		DefinitionallyEqualQ[
-			TypeTheoryTerm["steps"["tagStep"[productions], 2, {0, 1, 1, 1}], wolfram23],
-			TypeTheoryTerm["some"[{1, 0, 0}], wolfram23]
-		]
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm["steps"["tagStep"[productions], 2, {0, 1, 1, 1}], wolfram23], TypeTheoryTerm["some"[{1, 0, 0}], wolfram23]],
+			DefinitionallyEqualQ[TypeTheoryTerm["passOutFrom"[productions, {0, 1, 1, 1}, "true"], wolfram23], TypeTheoryTerm[{1, 0, 0}, wolfram23]],
+			DefinitionallyEqualQ[TypeTheoryTerm["passOutFrom"[productions, {0, 1, 1, 1}, "false"], wolfram23], TypeTheoryTerm[{0, 0, 0, 0}, wolfram23]]
+		}
 	],
-	True,
+	{True, True, True},
 	TestID -> "A-round-of-a-tag-system-reads-the-first-symbol-of-each-pair"
 ]

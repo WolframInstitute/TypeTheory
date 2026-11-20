@@ -193,14 +193,14 @@ $cookDeclarations = With[{bits = {Booleans}, appendantList = {{Booleans}}}, {
 	]],
 	(* a step of a 2-tag system: the first symbol's production appended, the first two symbols deleted *)
 	TypeTheoryDefinition["tagStep", Typed[
-		Function[{Typed[productions, NonNegativeIntegers -> {NonNegativeIntegers}], Typed[w, {NonNegativeIntegers}]},
-			InductiveRecursor[List][Function[{Typed[q, {NonNegativeIntegers}]}, Option[{NonNegativeIntegers}]], Typed["none", Option[{NonNegativeIntegers}]],
-				Function[{Typed[a, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[previous, Option[{NonNegativeIntegers}]]},
-					InductiveRecursor[List][Function[{Typed[q, {NonNegativeIntegers}]}, Option[{NonNegativeIntegers}]], Typed["none", Option[{NonNegativeIntegers}]],
-						Function[{Typed[b, NonNegativeIntegers], Typed[rest2, {NonNegativeIntegers}], Typed[previous2, Option[{NonNegativeIntegers}]]}, "some"[Join[rest2, productions[a]]]],
+		Function[{TypedImplicit[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[w, {S}]},
+			InductiveRecursor[List][Function[{Typed[q, {S}]}, Option[{S}]], Typed["none", Option[{S}]],
+				Function[{Typed[a, S], Typed[rest, {S}], Typed[previous, Option[{S}]]},
+					InductiveRecursor[List][Function[{Typed[q, {S}]}, Option[{S}]], Typed["none", Option[{S}]],
+						Function[{Typed[b, S], Typed[rest2, {S}], Typed[previous2, Option[{S}]]}, "some"[Join[rest2, productions[a]]]],
 						rest]],
 				w]],
-		(NonNegativeIntegers -> {NonNegativeIntegers}) -> {NonNegativeIntegers} -> Option[{NonNegativeIntegers}]
+		ForAll[{TypedImplicit[S, TypeUniverse[1]]}, (S -> {S}) -> {S} -> Option[{S}]]
 	]],
 	(* Cook's cyclic tag system: the k symbols' productions encoded, then k empty appendants *)
 	TypeTheoryDefinition["cookAppendants", Typed[
@@ -363,42 +363,110 @@ $cookDeclarations = With[{bits = {Booleans}, appendantList = {{Booleans}}}, {
 	]
 }]
 
-(* rung 1: a round of a 2-tag system reads the first symbol of each pair of a prefix *)
-$roundDeclarations = With[{pair = CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], word = {NonNegativeIntegers}, productionsType = NonNegativeIntegers -> {NonNegativeIntegers}}, {
-		(* the pairs written out: a1 b1 a2 b2 ... *)
-		TypeTheoryDefinition["pairsWord", Typed[
-			Function[{Typed[ps, {pair}]}, InductiveRecursor[List][Function[{Typed[q, {pair}]}, word], Typed[{}, word],
-				Function[{Typed[p, pair], Typed[others, {pair}], Typed[previous, word]}, Prepend[p[["first"]]][Prepend[p[["second"]]][previous]]], ps]],
-			{pair} -> word
-		]],
-		(* the productions of the first symbols of the pairs, in order *)
-		TypeTheoryDefinition["roundProduct", Typed[
-			Function[{Typed[productions, productionsType], Typed[ps, {pair}]}, InductiveRecursor[List][Function[{Typed[q, {pair}]}, word], Typed[{}, word],
-				Function[{Typed[p, pair], Typed[others, {pair}], Typed[previous, word]}, Join[productions[p[["first"]]], previous]], ps]],
-			productionsType -> {pair} -> word
-		]],
-		(* a round: as many tag steps as pairs read the first symbol of each pair and append its production *)
-		machineTheorem["tagRound",
-			ForAll[{Typed[productions, productionsType], Typed[ps, {pair}], Typed[rest, word]},
-				"steps"["tagStep"[productions], Length[ps], Join["pairsWord"[ps], rest]] == "some"[Join[rest, "roundProduct"[productions, ps]]]],
-			{
-				"Introduce"[productions, ps], "Induction"[ps],
-				"Introduce"[rest],
-				"Change"["some"[rest] == "some"[Join[rest, Typed[{}, word]]]],
-				"Rewrite"["joinEmptyRight"[rest]],
-				"Introduce"[p, others, induction, rest],
-				"Change"["steps"["tagStep"[productions], Length[others] + 1, Prepend[p[["first"]]][Prepend[p[["second"]]][Join["pairsWord"[others], rest]]]] ==
-					"some"[Join[rest, Join[productions[p[["first"]]], "roundProduct"[productions, others]]]]],
-				"Rewrite"["additionCommutativity"[Length[others], 1]],
-				"Rewrite"["stepsAdd"[word, "tagStep"[productions], 1, Length[others], Prepend[p[["first"]]][Prepend[p[["second"]]][Join["pairsWord"[others], rest]]]]],
-				"Change"["steps"["tagStep"[productions], Length[others], Join[Join["pairsWord"[others], rest], productions[p[["first"]]]]] ==
-					"some"[Join[rest, Join[productions[p[["first"]]], "roundProduct"[productions, others]]]]],
-				"Rewrite"["joinAssociativity"["pairsWord"[others], rest, productions[p[["first"]]]]],
-				"Rewrite"[induction[Join[rest, productions[p[["first"]]]]]],
-				"Rewrite"["joinAssociativity"[rest, productions[p[["first"]]], "roundProduct"[productions, others]]]
-			}
-		]
-	}]
+(* rung 1: a round of a 2-tag system reads every other symbol of the word, from the first, and appends their productions.
+   Words are over any type of symbols, so that Cocke and Minsky's symbols compute as they are written. *)
+$roundDeclarations = {
+	(* m copies of a word *)
+	TypeTheoryDefinition["repeated", Typed[
+		Function[{TypedImplicit[S, TypeUniverse[1]], Typed[w, {S}], Typed[m, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, {S}], Typed[{}, {S}],
+				Function[{Typed[k, NonNegativeIntegers], Typed[previous, {S}]}, Join[w, previous]], m]],
+		ForAll[{TypedImplicit[S, TypeUniverse[1]]}, {S} -> NonNegativeIntegers -> {S}]
+	]],
+	(* m copies of the pair a b *)
+	TypeTheoryDefinition["pairs", Typed[
+		Function[{TypedImplicit[S, TypeUniverse[1]], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, {S}], Typed[{}, {S}],
+				Function[{Typed[k, NonNegativeIntegers], Typed[previous, {S}]}, Prepend[a][Prepend[b][previous]]], m]],
+		ForAll[{TypedImplicit[S, TypeUniverse[1]]}, S -> S -> NonNegativeIntegers -> {S}]
+	]],
+	(* the productions of every other symbol of a word, from the first where read is true, from the second where false:
+	   what a round appends *)
+	TypeTheoryDefinition["passOutFrom", Typed[
+		Function[{TypedImplicit[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[w, {S}]},
+			InductiveRecursor[List][Function[{Typed[q, {S}]}, Booleans -> {S}], Function[{Typed[read, Booleans]}, Typed[{}, {S}]],
+				Function[{Typed[a, S], Typed[rest, {S}], Typed[previous, Booleans -> {S}]},
+					Function[{Typed[read, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[q, Booleans]}, {S}], previous["true"], Join[productions[a], previous["false"]], read]]],
+				w]],
+		ForAll[{TypedImplicit[S, TypeUniverse[1]]}, (S -> {S}) -> {S} -> Booleans -> {S}]
+	]],
+	(* pairs read from their first symbols, and from their second *)
+	machineTheorem["passOutAlignedPairs",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers], Typed[l, {S}]},
+			"passOutFrom"[productions, Join["pairs"[a, b, m], l], "true"] == Join["repeated"[productions[a], m], "passOutFrom"[productions, l, "true"]]],
+		{
+			"Introduce"[S, productions, a, b, m, l], "Induction"[m],
+			"Reflexivity",
+			"Introduce"[k, induction],
+			"Change"[Join[productions[a], "passOutFrom"[productions, Join["pairs"[a, b, k], l], "true"]] ==
+				Join[Join[productions[a], "repeated"[productions[a], k]], "passOutFrom"[productions, l, "true"]]],
+			"Rewrite"[induction],
+			"Rewrite"["joinAssociativity"[productions[a], "repeated"[productions[a], k], "passOutFrom"[productions, l, "true"]]]
+		}
+	],
+	machineTheorem["passOutShiftedPairs",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers], Typed[l, {S}]},
+			"passOutFrom"[productions, Join["pairs"[a, b, m], l], "false"] == Join["repeated"[productions[b], m], "passOutFrom"[productions, l, "false"]]],
+		{
+			"Introduce"[S, productions, a, b, m, l], "Induction"[m],
+			"Reflexivity",
+			"Introduce"[k, induction],
+			"Change"[Join[productions[b], "passOutFrom"[productions, Join["pairs"[a, b, k], l], "false"]] ==
+				Join[Join[productions[b], "repeated"[productions[b], k]], "passOutFrom"[productions, l, "false"]]],
+			"Rewrite"[induction],
+			"Rewrite"["joinAssociativity"[productions[b], "repeated"[productions[b], k], "passOutFrom"[productions, l, "false"]]]
+		}
+	],
+	(* a round over a word of even length 2 n: n steps append what it reads, after whatever came after it *)
+	machineTheorem["tagRoundEven",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[n, NonNegativeIntegers]},
+			ForAll[{Typed[u, {S}], Typed[t, {S}]}, Implies[Length[u] == 2 * n,
+				"steps"["tagStep"[productions], n, Join[u, t]] == "some"[Join[t, "passOutFrom"[productions, u, "true"]]]]]],
+		{
+			"Introduce"[S, productions, n], "Induction"[n],
+			"Introduce"[u, t, length], "Cases"[u],
+			"Introduce"[length],
+			"Change"["some"[t] == "some"[Join[t, Typed[{}, {S}]]]],
+			"Rewrite"["joinEmptyRight"[t]],
+			"Introduce"[a, rest, length], "Exact"["falseElimination"["successorNotZero"[Length[rest], length]]],
+			"Introduce"[k, induction, u, t, length], "Cases"[u],
+			"Introduce"[length],
+			"Have"[zero, Length[Typed[{}, {S}]] == 0], "Reflexivity",
+			"Have"[impossible, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[impossible]],
+			"Introduce"[a, rest, length], "Cases"[rest],
+			"Introduce"[length],
+			"Have"[one, Length[{a}] == 1], "Reflexivity",
+			"Have"[impossible, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[impossible]],
+			"Introduce"[b, rest2, length],
+			"Have"[expanded, Length[Prepend[a][Prepend[b][rest2]]] == Length[rest2] + 2], "Reflexivity",
+			"Have"[restLength, Length[rest2] == 2 * k], "LinearArithmetic",
+			"Change"["steps"["tagStep"[productions], k + 1, Prepend[a][Prepend[b][Join[rest2, t]]]] ==
+				"some"[Join[t, Join[productions[a], "passOutFrom"[productions, rest2, "true"]]]]],
+			"Rewrite"["additionCommutativity"[k, 1]],
+			"Rewrite"["stepsAdd"[{S}, "tagStep"[productions], 1, k, Prepend[a][Prepend[b][Join[rest2, t]]]]],
+			"Change"["steps"["tagStep"[productions], k, Join[Join[rest2, t], productions[a]]] ==
+				"some"[Join[t, Join[productions[a], "passOutFrom"[productions, rest2, "true"]]]]],
+			"Rewrite"["joinAssociativity"[rest2, t, productions[a]]],
+			"Rewrite"[induction[rest2, Join[t, productions[a]], restLength]],
+			"Rewrite"["joinAssociativity"[t, productions[a], "passOutFrom"[productions, rest2, "true"]]]
+		}
+	],
+	(* a round over a word of odd length 2 n + 1: its last symbol is read with the first symbol appended as its partner,
+	   so the next round reads from the second symbol of what this one appends *)
+	machineTheorem["tagRoundOdd",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[n, NonNegativeIntegers], Typed[u, {S}], Typed[z, S], Typed[c, S], Typed[rest, {S}]},
+			Implies[Length[u] == 2 * n, Implies["passOutFrom"[productions, u, "true"] == Prepend[c][rest],
+				"steps"["tagStep"[productions], n + 1, Join[u, {z}]] == "some"[Join[rest, productions[z]]]]]],
+		{
+			"Introduce"[S, productions, n, u, z, c, rest, length, split],
+			"Rewrite"["stepsAdd"[{S}, "tagStep"[productions], n, 1, Join[u, {z}]]],
+			"Rewrite"["tagRoundEven"[S, productions, n, u, {z}, length]],
+			"Change"["steps"["tagStep"[productions], 1, Prepend[z]["passOutFrom"[productions, u, "true"]]] == "some"[Join[rest, productions[z]]]],
+			"Rewrite"[split],
+			"Reflexivity"
+		}
+	]
+}
 
 $wolfram23Declarations = Join[With[
 	{
