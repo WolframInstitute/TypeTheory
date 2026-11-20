@@ -16,9 +16,13 @@ VerificationTest[
 	{
 		Head[wolfram23],
 		Length[Information[wolfram23, "Constants"]],
-		Select[{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "phi3Step", "phi2Step", "system0FollowsSystem1"}, ! MemberQ[Keys[wolfram23], #] &]
+		Select[
+			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
+				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3"},
+			! MemberQ[Keys[wolfram23], #] &
+		]
 	},
-	{TypeTheoryEnvironment, 317, {}},
+	{TypeTheoryEnvironment, 322, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 

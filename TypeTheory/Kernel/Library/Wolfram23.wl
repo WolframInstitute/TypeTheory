@@ -114,11 +114,17 @@ $threeStepsScript = Join[
 	colorSplit[head, $rightSplit]
 ]
 
+(* System 0's steps for a step of System 1 are 1 or 3, decided by computation in each case *)
+$positiveScript = Join[
+	{"Introduce"[c], "Cases"[c], "Introduce"[left, head, right, state], "Cases"[state], "Decide", "Cases"[head], "Decide", "Decide",
+		"Cases"[right], "Decide", "Introduce"[neighbour, beyond], "Cases"[neighbour], "Decide", "Decide", "Decide", "Decide"}
+]
+
 $wolfram23Declarations = With[
 	{
 		configuration = "LookaheadConfiguration", optional = Option["LookaheadConfiguration"], machine = "LookaheadState" -> "Color" -> "Color" -> "LookaheadRule",
 		table0 = ruleTable[$system0Table], table1 = ruleTable[$system1Table], table2 = ruleTable[$system2Table], table3 = ruleTable[$system3Table],
-		configurationScript = $configurationScript, threeStepsScript = $threeStepsScript
+		configurationScript = $configurationScript, threeStepsScript = $threeStepsScript, positiveScript = $positiveScript
 	},
 	{
 		(* systems: a step function and its iteration *)
@@ -313,6 +319,70 @@ $wolfram23Declarations = With[
 			ForAll[{Typed[c, "LookaheadConfiguration"]},
 				"steps"["lookaheadStep"["system0"], "system0Steps"[c], c] == "orElse"["lookaheadStep"["system1", c], "steps"["lookaheadStep"["system0"], "system0Steps"[c], c]]],
 			threeStepsScript
+		],
+		machineTheorem["system0StepsPositive", ForAll[{Typed[c, "LookaheadConfiguration"]}, 1 <= "system0Steps"[c]], positiveScript],
+		(* simulations compose: a step of f is k >= 1 steps of g, and those are j >= k steps of h *)
+		machineTheorem["forwardSimulationCompose",
+			ForAll[{Typed[S, TypeUniverse[1]], Typed[T, TypeUniverse[1]], Typed[U, TypeUniverse[1]], Typed[f, S -> Option[S]], Typed[g, T -> Option[T]], Typed[h, U -> Option[U]],
+				Typed[R, S -> T -> TypeUniverse[0]], Typed[R2, T -> U -> TypeUniverse[0]], Typed[first, "forwardSimulation"[f, g, R]], Typed[second, "forwardSimulation"[g, h, R2]]},
+				"forwardSimulation"[f, h, Function[{Typed[s, S], Typed[u, U]}, Exists[{Typed[t, T]}, And[R[s, t], R2[t, u]]]]]],
+			{
+				"Introduce"[S, T, U, f, g, h, R, R2, first, second, s, u, s2, related, stepped],
+				"Cases"[related], "Introduce"[t, both], "Cases"[both], "Introduce"[relatedFirst, relatedSecond],
+				"Have"[middle, Exists[{Typed[k, NonNegativeIntegers]}, And[1 <= k, Exists[{Typed[t2, T]}, And["steps"[g, k, t] == "some"[t2], R[s2, t2]]]]]],
+				"Exact"[first[s, t, s2, relatedFirst, stepped]],
+				"Cases"[middle], "Introduce"[k, middleSteps], "Cases"[middleSteps], "Introduce"[positive, middleTarget], "Cases"[middleTarget],
+				"Introduce"[t2, middleReached], "Cases"[middleReached], "Introduce"[middleRun, middleRelated],
+				"Have"[last, Exists[{Typed[j, NonNegativeIntegers]}, And[k <= j, Exists[{Typed[u2, U]}, And["steps"[h, j, u] == "some"[u2], R2[t2, u2]]]]]],
+				"Exact"["forwardSimulationSteps"[T, U, g, h, R2, second, k, t, u, t2, relatedSecond, middleRun]],
+				"Cases"[last], "Introduce"[j, lastSteps], "Cases"[lastSteps], "Introduce"[atLeast, lastTarget], "Cases"[lastTarget],
+				"Introduce"[u2, lastReached], "Cases"[lastReached], "Introduce"[lastRun, lastRelated],
+				"Have"[jPositive, 1 <= j], "LinearArithmetic",
+				"Exact"["existsIntroduction"[j, "andIntroduction"[jPositive, "existsIntroduction"[u2, "andIntroduction"[lastRun,
+					"existsIntroduction"[t2, "andIntroduction"[middleRelated, lastRelated]]]]]]]
+			}
+		],
+		(* a map that turns each step of f into one step of g makes g follow f along it *)
+		machineTheorem["relabelingSimulation",
+			ForAll[{Typed[S, TypeUniverse[1]], Typed[T, TypeUniverse[1]], Typed[f, S -> Option[S]], Typed[g, T -> Option[T]], Typed[phi, S -> T],
+				Typed[commutes, ForAll[{Typed[c, S]}, g[phi[c]] == "optionMap"[phi, f[c]]]]},
+				"forwardSimulation"[f, g, Function[{Typed[c, S], Typed[d, T]}, d == phi[c]]]],
+			{
+				"Introduce"[S, T, f, g, phi, commutes, s, t, s2, related, stepped],
+				"Exact"["existsIntroduction"[1, "andIntroduction"["lessEqualReflexivity", "existsIntroduction"[phi[s2], "andIntroduction"[
+					"equalityTransitivity"["equalityTransitivity"["equalityCongruence"[g, related], commutes[s]],
+						"equalityCongruence"[Function[{Typed[o, Option[S]]}, "optionMap"[phi, o]], stepped]],
+					"equalityReflexivity"[phi[s2]]]]]]]
+			}
+		],
+		machineTheorem["system0Simulates1",
+			"forwardSimulation"["lookaheadStep"["system1"], "lookaheadStep"["system0"], Function[{Typed[c, configuration], Typed[d, configuration]}, d == c]],
+			{
+				"Introduce"[s, t, s2, related, stepped],
+				"Exact"["existsIntroduction"["system0Steps"[s], "andIntroduction"["system0StepsPositive"[s], "existsIntroduction"[s2, "andIntroduction"[
+					"equalityTransitivity"["equalityTransitivity"[
+						"equalityCongruence"[Function[{Typed[x, configuration]}, "steps"["lookaheadStep"["system0"], "system0Steps"[s], x]], related],
+						"system0FollowsSystem1"[s]],
+						"equalityCongruence"[Function[{Typed[o, optional]}, "orElse"[o, "steps"["lookaheadStep"["system0"], "system0Steps"[s], s]]], stepped]],
+					"equalityReflexivity"[s2]]]]]]
+			}
+		],
+		(* rung 6: System 0, Wolfram's (2,3) machine, follows System 3 through phi3, then phi2, then 1 or 3 steps *)
+		machineTheorem["system0Simulates3",
+			"forwardSimulation"["lookaheadStep"["system3"], "lookaheadStep"["system0"], Function[{Typed[c, configuration], Typed[e, configuration]},
+				Exists[{Typed[d1, configuration]}, And[
+					Exists[{Typed[d2, configuration]}, And[d2 == "phi3"[c], d1 == "phi2"[d2]]],
+					e == d1]]]],
+			{
+				"Exact"["forwardSimulationCompose"[configuration, configuration, configuration, "lookaheadStep"["system3"], "lookaheadStep"["system1"], "lookaheadStep"["system0"],
+					Function[{Typed[c, configuration], Typed[d1, configuration]}, Exists[{Typed[d2, configuration]}, And[d2 == "phi3"[c], d1 == "phi2"[d2]]]],
+					Function[{Typed[c, configuration], Typed[d, configuration]}, d == c],
+					"forwardSimulationCompose"[configuration, configuration, configuration, "lookaheadStep"["system3"], "lookaheadStep"["system2"], "lookaheadStep"["system1"],
+						Function[{Typed[c, configuration], Typed[d, configuration]}, d == "phi3"[c]], Function[{Typed[c, configuration], Typed[d, configuration]}, d == "phi2"[c]],
+						"relabelingSimulation"[configuration, configuration, "lookaheadStep"["system3"], "lookaheadStep"["system2"], "phi3", "phi3Step"],
+						"relabelingSimulation"[configuration, configuration, "lookaheadStep"["system2"], "lookaheadStep"["system1"], "phi2", "phi2Step"]],
+					"system0Simulates1"]]
+			}
 		]
 	}
 ]
