@@ -19,11 +19,11 @@ VerificationTest[
 		Select[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
-				"wolfram23Simulates3"},
+				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 326, {}},
+	{TypeTheoryEnvironment, 333, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -101,4 +101,15 @@ VerificationTest[
 	},
 	{False, Failure},
 	TestID -> "A-relabeling-to-the-wrong-system-is-refused"
+]
+
+(* a cyclic tag system: data 1 0 with appendants 1 and 0 0; the 1 appends the first appendant, the 0 nothing, and the
+   appendants come round again after two steps *)
+VerificationTest[
+	DefinitionallyEqualQ[
+		TypeTheoryTerm["steps"["cyclicTagStep", 2, "cyclicTagConfiguration"[{"true", "false"}, {{"true"}, {"false", "false"}}]], wolfram23],
+		TypeTheoryTerm["some"["cyclicTagConfiguration"[{"true"}, {{"true"}, {"false", "false"}}]], wolfram23]
+	],
+	True,
+	TestID -> "A-cyclic-tag-system-appends-under-its-ones-and-rotates-its-appendants"
 ]

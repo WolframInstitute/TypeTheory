@@ -436,6 +436,72 @@ $wolfram23Declarations = With[
 					"system0Simulates3",
 					"agreementSimulation"[configuration, "lookaheadStep"["system0"], "turingMachineStep"["system0"], "turingMachineFollowsSystem0"]]]
 			}
-		]
+		],
+		(* rung 2: cyclic tag systems, the appendants carried in the configuration and rotated at each step *)
+		TypeTheoryInductiveType["CyclicTagConfiguration", TypeUniverse[1], {
+			"cyclicTagConfiguration" -> ForAll[{Typed[data, {Booleans}], Typed[appendants, {{Booleans}}]}, "CyclicTagConfiguration"]
+		}],
+		(* the appendant where the bit is true, nothing where it is false *)
+		TypeTheoryDefinition["appendantIf", Typed[
+			Function[{Typed[b, Booleans], Typed[a, {Booleans}]}, InductiveRecursor[Booleans][Function[{Typed[q, Booleans]}, {Booleans}], Typed[{}, {Booleans}], a, b]],
+			Booleans -> {Booleans} -> {Booleans}
+		]],
+		(* one step: the first bit off the data, the first appendant appended where the bit is true, and the appendants rotated *)
+		TypeTheoryDefinition["cyclicTagStep", Typed[
+			Function[{Typed[c, "CyclicTagConfiguration"]}, InductiveRecursor["CyclicTagConfiguration"][Function[{Typed[q, "CyclicTagConfiguration"]}, Option["CyclicTagConfiguration"]],
+				Function[{Typed[data, {Booleans}], Typed[appendants, {{Booleans}}]},
+					InductiveRecursor[List][Function[{Typed[q, {Booleans}]}, Option["CyclicTagConfiguration"]], Typed["none", Option["CyclicTagConfiguration"]],
+						Function[{Typed[b, Booleans], Typed[rest, {Booleans}], Typed[previous, Option["CyclicTagConfiguration"]]},
+							InductiveRecursor[List][Function[{Typed[q, {{Booleans}}]}, Option["CyclicTagConfiguration"]], Typed["none", Option["CyclicTagConfiguration"]],
+								Function[{Typed[a, {Booleans}], Typed[others, {{Booleans}}], Typed[previous2, Option["CyclicTagConfiguration"]]},
+									"some"["cyclicTagConfiguration"[Join[rest, "appendantIf"[b, a]], Join[others, {a}]]]],
+								appendants]],
+						data]],
+				c]],
+			"CyclicTagConfiguration" -> Option["CyclicTagConfiguration"]
+		]],
+		(* the appendants a block of bits selects, in order *)
+		TypeTheoryDefinition["selected", Typed[
+			Function[{Typed[bits, {Booleans}], Typed[as, {{Booleans}}]},
+				InductiveRecursor[List][Function[{Typed[q, {Booleans}]}, {{Booleans}} -> {Booleans}],
+					Function[{Typed[x, {{Booleans}}]}, Typed[{}, {Booleans}]],
+					Function[{Typed[b, Booleans], Typed[rest, {Booleans}], Typed[recurse, {{Booleans}} -> {Booleans}]},
+						Function[{Typed[x, {{Booleans}}]}, InductiveRecursor[List][Function[{Typed[q, {{Booleans}}]}, {Booleans}], Typed[{}, {Booleans}],
+							Function[{Typed[a, {Booleans}], Typed[others, {{Booleans}}], Typed[previous, {Booleans}]}, Join["appendantIf"[b, a], recurse[others]]], x]]],
+					bits][as]],
+			{Booleans} -> {{Booleans}} -> {Booleans}
+		]],
+		(* a block of bits as long as the next appendants appends the appendants under its 1s, in order, and rotates them *)
+		With[{configuration = "cyclicTagConfiguration"}, machineTheorem["cyclicTagBlock",
+			ForAll[{Typed[bits, {Booleans}], Typed[as, {{Booleans}}], Typed[r, {Booleans}], Typed[q, {{Booleans}}]},
+				Implies[Length[as] == Length[bits],
+					"steps"["cyclicTagStep", Length[bits], configuration[Join[bits, r], Join[as, q]]] == "some"[configuration[Join[r, "selected"[bits, as]], Join[q, as]]]]],
+			{
+				"Introduce"[bits], "Induction"[bits],
+				(* no bits: no appendants, nothing appended *)
+				"Introduce"[as, r, q, lengths], "Cases"[as], "Introduce"[lengths],
+				"Change"["some"[configuration[r, q]] == "some"[configuration[Join[r, Typed[{}, {Booleans}]], Join[q, Typed[{}, {{Booleans}}]]]]],
+				"Rewrite"["joinEmptyRight"[r]], "Rewrite"["joinEmptyRight"[q]],
+				"Introduce"[a, others, lengths], "Exact"["falseElimination"["successorNotZero"[Length[others], lengths]]],
+				(* a bit more: one step, the rest by induction *)
+				"Introduce"[b, rest, induction, as, r, q, lengths], "Cases"[as], "Introduce"[lengths],
+				"Exact"["falseElimination"["successorNotZero"[Length[rest], "equalitySymmetry"[lengths]]]],
+				"Introduce"[a, others, lengths],
+				"Have"[expanded, Length[others] + 1 == Length[rest] + 1], "Exact"[lengths],
+				"Have"[restLengths, Length[others] == Length[rest]], "LinearArithmetic",
+				"Change"["steps"["cyclicTagStep", Length[rest] + 1, configuration[Prepend[b][Join[rest, r]], Prepend[a][Join[others, q]]]] ==
+					"some"[configuration[Join[r, Join["appendantIf"[b, a], "selected"[rest, others]]], Join[q, Prepend[a][others]]]]],
+				"Rewrite"["additionCommutativity"[Length[rest], 1]],
+				"Rewrite"["stepsAdd"["CyclicTagConfiguration", "cyclicTagStep", 1, Length[rest], configuration[Prepend[b][Join[rest, r]], Prepend[a][Join[others, q]]]]],
+				"Change"["steps"["cyclicTagStep", Length[rest], configuration[Join[Join[rest, r], "appendantIf"[b, a]], Join[Join[others, q], {a}]]] ==
+					"some"[configuration[Join[r, Join["appendantIf"[b, a], "selected"[rest, others]]], Join[q, Prepend[a][others]]]]],
+				"Rewrite"["joinAssociativity"[rest, r, "appendantIf"[b, a]]],
+				"Rewrite"["joinAssociativity"[others, q, {a}]],
+				"Rewrite"[induction[others, Join[r, "appendantIf"[b, a]], Join[q, {a}], restLengths]],
+				"Rewrite"["joinAssociativity"[r, "appendantIf"[b, a], "selected"[rest, others]]],
+				"Rewrite"["joinAssociativity"[q, {a}, others]],
+				"Reflexivity"
+			}
+		]]
 	}
 ]
