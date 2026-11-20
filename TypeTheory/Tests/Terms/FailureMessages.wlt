@@ -66,3 +66,21 @@ VerificationTest[
 	True,
 	TestID -> "A-failure-message-is-the-same-text-for-a-notebook-and-a-terminal"
 ]
+
+(* text for a terminal has no character of Unicode's private use area, which a terminal shows as nothing: ℕ, 𝔹 and ==
+   are written as Unicode and ASCII *)
+VerificationTest[
+	With[
+		{
+			failure = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[b, Booleans]}, n == n + 1], {"Introduce"[n, b], "Reflexivity"}],
+			text = ToString[TypeTheoryTerm[ForAll[{Typed[k, NonNegativeIntegers]}, k == k]]]
+		},
+		{
+			Select[ToCharacterCode[failure["Message"] <> text], 57344 <= # <= 63743 &],
+			StringContainsQ[failure["Message"], "\:2115"] && StringContainsQ[failure["Message"], "\|01d539"] && StringContainsQ[failure["Message"], "=="],
+			StringContainsQ[text, "\:2115"] && StringContainsQ[text, "=="]
+		}
+	],
+	{{}, True, True},
+	TestID -> "Text-for-a-terminal-has-no-private-use-characters"
+]

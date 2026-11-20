@@ -162,7 +162,11 @@ TypeTheoryTerm /: Format[term : TypeTheoryTerm[expression_, environment___], Out
 	OutputForm[ToString[Unevaluated[term], InputForm]]
 ]
 
-textDisplay[syntax_] := displayed[syntax, OutputForm, shownForm[heldFromSyntax[displaySyntax[syntax]]]]
+textDisplay[syntax_] := Replace[
+	displayed[syntax, OutputForm, shownForm[heldFromSyntax[displaySyntax[syntax]]]],
+	text_String :> With[{plain = plainText[text]}, plain /; True],
+	{0, Infinity}
+]
 shownForm[HoldComplete[shown_]] := HoldForm[shown]
 
 (* a name that is a string shows without its quotes in an input cell too, where a document shows a term as written in
@@ -179,13 +183,32 @@ TypeTheoryTerm /: MakeBoxes[term : TypeTheoryTerm[expression_, environment___], 
 	InterpretationBox[boxes, term]
 ]
 
-textBoxes[boxes_] := boxes //. {
-	DynamicModuleBox[_, TemplateBox[_, "SummaryPanel", ___], ___] :> "\[Ellipsis]",
-	TemplateBox[{separator_, _, items___}, "RowWithSeparators", ___] :> RowBox[Riffle[{items}, separator]],
-	TemplateBox[{items___}, "RowDefault", ___] :> RowBox[{items}],
-	SubscriptBox[quantifier : "\[ForAll]" | "\[Exists]", binder_, ___] :> RowBox[{quantifier, binder, " "}],
-	(TooltipBox | StyleBox | TagBox | InterpretationBox)[shown_, ___] :> shown
-}
+textBoxes[boxes_] := Replace[
+	boxes //. {
+		DynamicModuleBox[_, TemplateBox[_, "SummaryPanel", ___], ___] :> "\[Ellipsis]",
+		TemplateBox[{separator_, _, items___}, "RowWithSeparators", ___] :> RowBox[Riffle[{items}, separator]],
+		TemplateBox[{items___}, "RowDefault", ___] :> RowBox[{items}],
+		SubscriptBox[quantifier : "\[ForAll]" | "\[Exists]", binder_, ___] :> RowBox[{quantifier, binder, " "}],
+		(TooltipBox | StyleBox | TagBox | InterpretationBox)[shown_, ___] :> shown
+	},
+	text_String :> plainText[text],
+	{0, Infinity}
+]
+
+(* the characters of the Wolfram Language that are code points of Unicode's private use area, which only a front end
+   draws, as their Unicode or ASCII counterparts in text: a terminal shows nothing for them. One without a counterpart
+   here is written by its name, \[Name] *)
+$plainCharacters = <|
+	"Equal" -> "==", "Application" -> "\[Bullet]", "Cross" -> "\[Times]", "LeftAssociation" -> "<|", "RightAssociation" -> "|>",
+	"DoubleStruckCapitalN" -> "\:2115", "DoubleStruckCapitalZ" -> "\:2124", "DoubleStruckCapitalQ" -> "\:211a", "DoubleStruckCapitalR" -> "\:211d",
+	"DoubleStruckCapitalC" -> "\:2102", "DoubleStruckCapitalB" -> "\|01d539", "DoubleStruckCapitalS" -> "\|01d54a"
+|>
+plainText[text_String] := If[StringFreeQ[text, privateUseCharacter], text, StringJoin[Map[plainCharacter, Characters[text]]]]
+privateUseCharacter = _?(Function[character, 57344 <= First[ToCharacterCode[character]] <= 63743])
+plainCharacter[character_String] := If[StringMatchQ[character, privateUseCharacter],
+	Lookup[$plainCharacters, CharacterName[character], "\\[" <> CharacterName[character] <> "]"],
+	character
+]
 
 (* the natural numbers a display shows as 0 and n + 1: those of the environment shown, and outside one, as
    in a declaration, the default environment's *)
