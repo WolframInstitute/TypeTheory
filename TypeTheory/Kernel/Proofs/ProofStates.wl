@@ -219,12 +219,31 @@ preparedArgument[tactics_List] := Map[preparedTactic, Unevaluated[tactics]]
 preparedArgument[option : (Rule | RuleDelayed)[_String, _]] := option
 preparedArgument[other_] := Replace[other, tactics_List :> Map[preparedTactic, tactics]]
 
+(* an element of a list of tactics is a tactic where it names one; any other element is a term that proves the goal, as
+   "Exact" takes it, so a proof can be written in place: {"Introduce"[n], "equalityReflexivity"[n]}. An element held in
+   a symbol is read by its value *)
 SetAttributes[preparedTactic, HoldAllComplete]
-preparedTactic[name_String] := TypeTheoryTactic[name]
-preparedTactic[name_String[arguments___]] := TypeTheoryTactic[name, arguments]
+preparedTactic[name_String] /; tacticNameQ[name] := TypeTheoryTactic[name]
+preparedTactic[name_String[arguments___]] /; tacticNameQ[name] := TypeTheoryTactic[name, arguments]
 preparedTactic[Automatic] := TypeTheoryTactic[Automatic]
 preparedTactic[tactic_TypeTheoryTactic] := tactic
-preparedTactic[other_] := Replace[other, {name_String :> TypeTheoryTactic[name], name_String[arguments___] :> TypeTheoryTactic[name, arguments]}]
+preparedTactic[term : (_String | _String[___])] := TypeTheoryTactic["Exact", term]
+preparedTactic[other_] := Replace[other, {
+	name_String /; tacticNameQ[name] :> TypeTheoryTactic[name],
+	name_String[arguments___] /; tacticNameQ[name] :> TypeTheoryTactic[name, arguments],
+	tactic_TypeTheoryTactic :> tactic,
+	Automatic :> TypeTheoryTactic[Automatic],
+	_ :> TypeTheoryTactic["Exact", other]
+}]
+
+(* the names of the tactics, as their definitions give them, alone or as alternatives, mode : "Induction" | "Cases", and
+   with or without a condition, which the left side of a definition holds *)
+tacticNameQ[name_String] := MemberQ[tacticNames[], name]
+tacticNames[] := tacticNames[] = DeleteDuplicates[Flatten[Cases[
+	Map[First, DownValues[runTactic]],
+	HoldPattern[runTactic[first_, ___]] :> Cases[HoldComplete[first], _String, {0, Infinity}],
+	{0, Infinity}
+]]]
 
 proofFrom[held_, Hold[environment_?environmentQ, tactics : {___TypeTheoryTactic}, options : OptionsPattern[]]] :=
 	runTactics[proofFrom[held, Hold[environment, options]], tactics]
@@ -411,7 +430,16 @@ runTactic["Introduce", Hold[names : (_Symbol | _String) ..], data_, goal_] := Fo
 	data,
 	HoldComplete /@ Unevaluated[{names}]
 ]
+(* a term whose head is a string that names no constant and no hypothesis is most likely a tactic misspelled, since a
+   term can stand in place of a tactic *)
+runTactic["Exact", Hold[term : (name_String | name_String[___])], data_, goal_] /; unknownNameQ[data, goal, name] :=
+	kernelFailure["UnknownTactic", "`1` is not a tactic, nor a constant or a hypothesis of the proof.", {name}]
 runTactic["Exact", Hold[term_], data_, goal_] := exactTerm[data, goal, HoldComplete[term]]
+
+unknownNameQ[data_, goal_, name_String] := And[
+	! constantDeclaredQ[data["Environment"], HoldComplete[name]],
+	! MemberQ[Lookup[Values[currentGoal[data, goal]["Context"]], "Name"], HoldComplete[name]]
+]
 runTactic["Apply", Hold[term_], data_, goal_] := applyTerm[data, goal, HoldComplete[term]]
 runTactic["Reflexivity", Hold[], data_, goal_] := reflexivity[data, goal]
 (* a hypothesis by its name, and any other term by its copies in the goal *)

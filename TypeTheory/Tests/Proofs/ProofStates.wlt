@@ -189,6 +189,22 @@ VerificationTest[
 	TestID -> "A-tactic-that-does-not-apply-gives-a-Failure"
 ]
 
+(* a term in place of a tactic proves the goal as "Exact" does: a theorem applied, a hypothesis, a hypothesis applied, a
+   constant alone; a name that is neither a tactic, nor a constant, nor a hypothesis is an unknown tactic *)
+VerificationTest[
+	{
+		Lookup[First[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers], Typed[m, NonNegativeIntegers]}, n + m == m + n], prelude,
+			{"Introduce"[n, m], "additionCommutativity"[n, m]}]], "Goals"],
+		Lookup[First[TypeTheoryProof[ForAll[{Typed[p, TypeUniverse[0]], Typed[q, TypeUniverse[0]]}, Implies[Implies[p, q], Implies[p, q]]], prelude,
+			{"Introduce"[p, q, f, x], f[x]}]], "Goals"],
+		Lookup[First[TypeTheoryProof[True, prelude, {"trueIntroduction"}]], "Goals"],
+		First[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n == n], prelude, {"Introduce"[n], "Reflexivty"}]],
+		First[TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n == n], prelude, {"Introdce"[n], "Reflexivity"}]]
+	},
+	{{}, {}, {}, "UnknownTactic", "UnknownTactic"},
+	TestID -> "A-term-in-place-of-a-tactic-proves-the-goal-and-a-misspelled-tactic-is-unknown"
+]
+
 VerificationTest[
 	First @ Append[prelude, TypeTheoryTheorem[Absurd, TypeTheoryProof[False, prelude]]],
 	"ProofIncomplete",

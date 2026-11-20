@@ -58,7 +58,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 | [Automatic]() | tries the tactics of a portfolio in turn until one closes the goal: `"Assumption"`, `"Decide"`, `"Counterexample"`, `"Intuitionistic"` and `"Classical"` on the goal as stated, then, with its variables and hypotheses introduced, `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`, `"Witness"`, `"Intuitionistic"` and `"Classical"` |
 
 - [TypeTheoryTactic]() holds its arguments, so a term in `"Exact"` or `"Apply"` is not evaluated.
-- In a list of tactics written out in [TypeTheoryProof](), a tactic is written as its name, or its name applied to its arguments: <code>{"Introduce"[n], "Reflexivity"}</code> is <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, and its arguments are held as well.
+- In a list of tactics written out in [TypeTheoryProof](), a tactic is written as its name, or its name applied to its arguments: <code>{"Introduce"[n], "Reflexivity"}</code> is <code>{[TypeTheoryTactic]()["Introduce", n], [TypeTheoryTactic]()["Reflexivity"]}</code>, and its arguments are held as well. An element that names no tactic is a term, which proves the goal as `"Exact"` does: a hypothesis `h`, or a theorem applied, `"additionCommutativity"[n, m]`. A constant named as a tactic is written in `"Exact"`; a name that is neither a tactic, nor a constant, nor a hypothesis is an unknown tactic.
 - A definition by recursion on one of its arguments, such as [Join]() on its first, computes where that argument is a constructor applied; `"RewriteRepeated"` then folds each recursive call back into the definition, so `Join[Prepend[x][l], m]` becomes `Prepend[x][Join[l, m]]`. A definition applied to another unfolds after the inner one, so for a sum `total` defined by recursion on lists, `total[Join[Prepend[x][l], m]]` becomes `x + total[Join[l, m]]`, where an induction hypothesis about `total[Join[l, m]]` applies. An argument `k + 1` is the successor of `k`, which it shows as, so `f[k + 1]` unfolds as `f` of a successor does, and a rewrite finds `f[k + 1]` where the goal has the successor. A recursion that gives a function, applied in the definition to its last variables, as a loop is to the locals it sets, unfolds the same way.
 - `"FindInstance"`, `"Witness"`, `"Counterexample"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"` ask Wolfram for what the proof needs, and the kernel checks the proof built from the answer: a wrong answer can make the tactic fail, never prove a false statement.
 - `"Witness"` and `"Counterexample"` read a statement built from `==`, `<=`, `<`, `>=`, `>`, [And](), [Or]() and [Not]() of arithmetic on the variables and number literals. Each of their searches takes at most 10 seconds: [FindInstance]() over the integers, and about 10,000 tuples of values, by their largest absolute value first. `"Witness"` asks [FindInstance]() first, and `"Counterexample"` tries the smallest values first. A counterexample not found is no evidence that the statement holds.
@@ -169,6 +169,16 @@ TypeTheoryTactic["Exact", hnp[hp]][proof]
 
 ```wl
 TypeTheoryProof[ForAll[{n, m}, n + m == m + n], {"Introduce"[n, m], "Exact"["additionCommutativity"[n, m]]}]
+```
+
+<!-- => Proof complete -->
+
+---
+
+In a list of tactics, the term can stand in place of `"Exact"`:
+
+```wl
+TypeTheoryProof[ForAll[{n, m}, n + m == m + n], {"Introduce"[n, m], "additionCommutativity"[n, m]}]
 ```
 
 <!-- => Proof complete -->
