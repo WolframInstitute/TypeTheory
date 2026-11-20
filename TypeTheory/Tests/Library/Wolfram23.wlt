@@ -19,11 +19,11 @@ VerificationTest[
 		Select[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
-				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation"},
+				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "tagRound"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 356, {}},
+	{TypeTheoryEnvironment, 359, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -131,4 +131,16 @@ VerificationTest[
 	],
 	{True, True},
 	TestID -> "A-tag-step-is-k-plus-k-steps-of-Cooks-cyclic-tag-system"
+]
+
+(* a round of the tag system 0 -> 1, 1 -> 0 0 over the pairs (0, 1) (1, 1): two steps read 0 and 1 *)
+VerificationTest[
+	With[{productions = productions},
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["steps"["tagStep"[productions], 2, {0, 1, 1, 1}], wolfram23],
+			TypeTheoryTerm["some"[{1, 0, 0}], wolfram23]
+		]
+	],
+	True,
+	TestID -> "A-round-of-a-tag-system-reads-the-first-symbol-of-each-pair"
 ]

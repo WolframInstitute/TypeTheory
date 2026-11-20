@@ -363,6 +363,43 @@ $cookDeclarations = With[{bits = {Booleans}, appendantList = {{Booleans}}}, {
 	]
 }]
 
+(* rung 1: a round of a 2-tag system reads the first symbol of each pair of a prefix *)
+$roundDeclarations = With[{pair = CartesianProductType[NonNegativeIntegers, NonNegativeIntegers], word = {NonNegativeIntegers}, productionsType = NonNegativeIntegers -> {NonNegativeIntegers}}, {
+		(* the pairs written out: a1 b1 a2 b2 ... *)
+		TypeTheoryDefinition["pairsWord", Typed[
+			Function[{Typed[ps, {pair}]}, InductiveRecursor[List][Function[{Typed[q, {pair}]}, word], Typed[{}, word],
+				Function[{Typed[p, pair], Typed[others, {pair}], Typed[previous, word]}, Prepend[p[["first"]]][Prepend[p[["second"]]][previous]]], ps]],
+			{pair} -> word
+		]],
+		(* the productions of the first symbols of the pairs, in order *)
+		TypeTheoryDefinition["roundProduct", Typed[
+			Function[{Typed[productions, productionsType], Typed[ps, {pair}]}, InductiveRecursor[List][Function[{Typed[q, {pair}]}, word], Typed[{}, word],
+				Function[{Typed[p, pair], Typed[others, {pair}], Typed[previous, word]}, Join[productions[p[["first"]]], previous]], ps]],
+			productionsType -> {pair} -> word
+		]],
+		(* a round: as many tag steps as pairs read the first symbol of each pair and append its production *)
+		machineTheorem["tagRound",
+			ForAll[{Typed[productions, productionsType], Typed[ps, {pair}], Typed[rest, word]},
+				"steps"["tagStep"[productions], Length[ps], Join["pairsWord"[ps], rest]] == "some"[Join[rest, "roundProduct"[productions, ps]]]],
+			{
+				"Introduce"[productions, ps], "Induction"[ps],
+				"Introduce"[rest],
+				"Change"["some"[rest] == "some"[Join[rest, Typed[{}, word]]]],
+				"Rewrite"["joinEmptyRight"[rest]],
+				"Introduce"[p, others, induction, rest],
+				"Change"["steps"["tagStep"[productions], Length[others] + 1, Prepend[p[["first"]]][Prepend[p[["second"]]][Join["pairsWord"[others], rest]]]] ==
+					"some"[Join[rest, Join[productions[p[["first"]]], "roundProduct"[productions, others]]]]],
+				"Rewrite"["additionCommutativity"[Length[others], 1]],
+				"Rewrite"["stepsAdd"[word, "tagStep"[productions], 1, Length[others], Prepend[p[["first"]]][Prepend[p[["second"]]][Join["pairsWord"[others], rest]]]]],
+				"Change"["steps"["tagStep"[productions], Length[others], Join[Join["pairsWord"[others], rest], productions[p[["first"]]]]] ==
+					"some"[Join[rest, Join[productions[p[["first"]]], "roundProduct"[productions, others]]]]],
+				"Rewrite"["joinAssociativity"["pairsWord"[others], rest, productions[p[["first"]]]]],
+				"Rewrite"[induction[Join[rest, productions[p[["first"]]]]]],
+				"Rewrite"["joinAssociativity"[rest, productions[p[["first"]]], "roundProduct"[productions, others]]]
+			}
+		]
+	}]
+
 $wolfram23Declarations = Join[With[
 	{
 		configuration = "LookaheadConfiguration", optional = Option["LookaheadConfiguration"], machine = "LookaheadState" -> "Color" -> "Color" -> "LookaheadRule",
@@ -747,4 +784,4 @@ $wolfram23Declarations = Join[With[
 			}
 		]]
 	}
-], $cookDeclarations]
+], $cookDeclarations, $roundDeclarations]
