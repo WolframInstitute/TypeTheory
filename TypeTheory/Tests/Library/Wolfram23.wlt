@@ -19,11 +19,12 @@ VerificationTest[
 		Select[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
-				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "passOutAlignedPairs", "passOutShiftedPairs", "tagRoundEven", "tagRoundOddBefore", "tagRoundOddFirst", "tagRoundEvenWhole"},
+				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "passOutAlignedPairs", "passOutShiftedPairs", "tagRoundEven", "tagRoundOddBefore", "tagRoundOddFirst", "tagRoundEvenWhole",
+				"minskyRound1", "minskyRound2", "minskyRound3Right", "minskyRound3Left", "minskyRound4", "minskyRound5", "minskyStep", "minskySimulation"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 365, {}},
+	{TypeTheoryEnvironment, 435, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -144,4 +145,28 @@ VerificationTest[
 	],
 	{True, True, True},
 	TestID -> "A-round-of-a-tag-system-reads-the-first-symbol-of-each-pair"
+]
+
+(* rung 1: a binary machine's step is rounds of the tag system that follows it, from the word of the configuration to the
+   word of the next. A move to the right from state 1 on a blank tape is three rounds, 2 + 2 + 2 steps; a move to the left
+   with a 1 on the left is five, 3 + 3 + 3 + 2 + 2 *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["binaryStep"[Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "machineTransition"[0, "true", "moveRight"]], "binaryConfiguration"[1, Typed[{}, {Booleans}], "false", Typed[{}, {Booleans}]]], wolfram23],
+			TypeTheoryTerm["some"["binaryConfiguration"[0, {"true"}, "false", Typed[{}, {Booleans}]]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["steps"["tagStep"["minskyProductions"[Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "machineTransition"[0, "true", "moveRight"]]]], 6,
+				"binaryWord"["binaryConfiguration"[1, Typed[{}, {Booleans}], "false", Typed[{}, {Booleans}]]]], wolfram23],
+			TypeTheoryTerm["some"["binaryWord"["binaryConfiguration"[0, {"true"}, "false", Typed[{}, {Booleans}]]]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["steps"["tagStep"["minskyProductions"[Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "machineTransition"[0, "true", "moveLeft"]]]], 13,
+				"binaryWord"["binaryConfiguration"[1, {"true"}, "false", Typed[{}, {Booleans}]]]], wolfram23],
+			TypeTheoryTerm["some"["binaryWord"["binaryConfiguration"[0, Typed[{}, {Booleans}], "true", {"true"}]]], wolfram23]
+		]
+	},
+	{True, True, True},
+	TestID -> "A-binary-machine-step-is-three-or-five-rounds-of-the-tag-system"
 ]

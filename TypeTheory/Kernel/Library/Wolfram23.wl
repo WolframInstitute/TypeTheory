@@ -3,7 +3,7 @@
 (*
 Wolfram's (2,3) Turing machine and Smith's chain of emulations: TypeTheoryEnvironment["Wolfram23"] is the prelude with
 the systems of the chain, built and checked the first time it is asked for. The design is in
-docs/notes/Wolfram23Universality.md; this file holds its first milestone.
+docs/notes/Wolfram23Universality.md; this file holds rungs 6, 2 and 1 so far.
 
 	"steps"[step, n, s]                n steps of a step function step : S -> Option[S], the last step taken at the end
 	"optionBind", "optionMap",         the option's monad, and the first of two options where it has a value
@@ -18,6 +18,15 @@ docs/notes/Wolfram23Universality.md; this file holds its first milestone.
 	"system0" ... "system3"            Smith's Systems 0 to 3 (p. 45); System 0 is Wolfram's (2,3) machine
 	"phi3", "phi2"                     the relabelings from System 3 to System 2 and from System 2 to System 1
 	"system0Steps"[c]                  the steps of System 0 that make one step of System 1: 3 on B21 and B22, else 1
+	"CyclicTagConfiguration"           rung 2: a cyclic tag system's data and its appendants, rotated at each step
+	"cookConfiguration"[k, p, w]       Cook's encoding of a 2-tag system's word, its symbols one-hot blocks of k bits
+	"tagStep"[p, w]                    a step of a 2-tag system over any type of symbols
+	"passOutFrom"[p, w, read]          what a round of it appends: the productions of every other symbol of w
+	"BinaryConfiguration",             rung 1: a binary Turing machine, its configuration and step; state 0 halts
+	"binaryStep"[tm, c]
+	"MinskySymbol",                    Cocke and Minsky's symbols, their productions for a machine tm, and the word of a
+	"minskyProductions"[tm],           configuration: the tag system follows the machine, a step being 3 or 5 rounds
+	"binaryWord"[c]
 
 The three theorems of the relabelings are proved by cases on the whole zipper (its state, its head, its right side and
 the first cell there, its left side), each case computed by the kernel; the case trees are generated below. That System
@@ -522,6 +531,666 @@ $roundDeclarations = {
 	]
 }
 
+(* rung 1, after Cocke and Minsky: a binary Turing machine, the 2-tag system that follows it, its symbols and their
+   productions, the words of the five rounds of a step, and the step as rounds of the tag system *)
+$minskyDeclarations = {
+	(* a binary machine: in state q reading h, it goes to a state, writes a bit and moves; state 0 halts *)
+	TypeTheoryInductiveType["MachineTransition", TypeUniverse[1], {
+		"machineTransition" -> ForAll[{Typed[next, NonNegativeIntegers], Typed[write, Booleans], Typed[direction, "Direction"]}, "MachineTransition"]
+	}],
+	TypeTheoryInductiveType["BinaryConfiguration", TypeUniverse[1], {
+		"binaryConfiguration" -> ForAll[{Typed[state, NonNegativeIntegers], Typed[left, {Booleans}], Typed[head, Booleans], Typed[right, {Booleans}]}, "BinaryConfiguration"]
+	}],
+	(* a bit as a number *)
+	TypeTheoryDefinition["bitValue", Typed[Function[{Typed[h, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[q, Booleans]}, NonNegativeIntegers], 0, 1, h]], Booleans -> NonNegativeIntegers]],
+	(* the symbols: the pad, and each kind with a state, and the scanned bit h and the parity b of the left number where
+	   the kind carries them *)
+	TypeTheoryInductiveType["MinskySymbol", TypeUniverse[1], {
+		"pad" -> "MinskySymbol",
+		"symbolA" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolAlpha" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolB" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolBeta" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolP1" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolP0" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolSmallP" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolQ" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolR" -> ForAll[{Typed[q, NonNegativeIntegers]}, "MinskySymbol"],
+		"symbolE" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolSmallE" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolF" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolSmallF" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolG" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolSmallG" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolH" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolK" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "MinskySymbol"],
+		"symbolI" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, "MinskySymbol"],
+		"symbolSmallI" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, "MinskySymbol"],
+		"symbolJ" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, "MinskySymbol"],
+		"symbolSmallJ" -> ForAll[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, "MinskySymbol"]
+	}],
+	(* the pad where a bit is false: it restores the frame a round of odd length shifted *)
+	TypeTheoryDefinition["padUnless", Typed[
+		Function[{Typed[h, Booleans]}, InductiveRecursor[Booleans][Function[{Typed[q, Booleans]}, {"MinskySymbol"}], {"pad"}, Typed[{}, {"MinskySymbol"}], h]],
+		Booleans -> {"MinskySymbol"}
+	]],
+	(* the case of a direction *)
+	TypeTheoryDefinition["byDirection", Typed[
+		Function[{TypedImplicit[S, TypeUniverse[1]], Typed[d, "Direction"], Typed[leftCase, S], Typed[rightCase, S]}, InductiveRecursor["Direction"][Function[{Typed[t, "Direction"]}, S], leftCase, rightCase, d]],
+		ForAll[{TypedImplicit[S, TypeUniverse[1]]}, "Direction" -> S -> S -> S]
+	]],
+	(* the productions: rounds 1 and 2 copy the word and read the scanned bit, round 3 makes the transition, rounds 4 and 5
+	   halve the left number for a move to the left *)
+	TypeTheoryDefinition["minskyProductions", Typed[
+		Function[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[s, "MinskySymbol"]}, InductiveRecursor["MinskySymbol"][Function[{Typed[t, "MinskySymbol"]}, {"MinskySymbol"}],
+				Typed[{}, {"MinskySymbol"}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolP1"[q], "symbolP0"[q]}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolSmallP"[q], "symbolSmallP"[q]}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolQ"[q]}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolR"[q]}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolE"[q, "true"], "symbolE"[q, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers]}, Typed[{}, {"MinskySymbol"}]],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolF"[q, "true"], "symbolF"[q, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers]}, {"symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "byDirection"[tm[q][h][["direction"]], Join["padUnless"[h], {"symbolG"[q, h]}], Join["padUnless"[h], Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]]]]]]]],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "byDirection"[tm[q][h][["direction"]], {"symbolSmallG"[q, h]}, {"symbolAlpha"[tm[q][h][["next"]]], "pad", "symbolAlpha"[tm[q][h][["next"]]], "pad"}]],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "byDirection"[tm[q][h][["direction"]], {"symbolH"[q, h], "symbolH"[q, h]}, {"symbolB"[tm[q][h][["next"]]], "pad"}]],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, "byDirection"[tm[q][h][["direction"]], {"symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h]}, {"symbolBeta"[tm[q][h][["next"]]], "pad"}]],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, {"symbolI"[q, h, "true"], "symbolI"[q, h, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, {"symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, {"symbolJ"[q, h, "true"], "symbolJ"[q, h, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans]}, {"symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"]}],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, Join["padUnless"[b], {"symbolA"[tm[q][h][["next"]]], "pad"}]],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, {"symbolAlpha"[tm[q][h][["next"]]], "pad"}],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * "bitValue"[tm[q][h][["write"]]] + "bitValue"[b]]]]],
+				Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans]}, {"symbolBeta"[tm[q][h][["next"]]], "pad", "symbolBeta"[tm[q][h][["next"]]], "pad"}],
+				s]],
+		(NonNegativeIntegers -> Booleans -> "MachineTransition") -> "MinskySymbol" -> {"MinskySymbol"}
+	]],
+	(* helper lemmas: lengths of pairs, m copies of a pair are pairs, 2 n copies of a symbol are n pairs, and a round over
+	   pairs alone *)
+	machineTheorem["lengthPairs",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers]}, Length["pairs"[a, b, m]] == 2 * m],
+		{
+			"Introduce"[S, a, b, m], "Induction"[m], "Reflexivity",
+			"Introduce"[k, induction],
+			"Change"[Length["pairs"[a, b, k]] + 1 + 1 == 2 * k + 2],
+			"Rewrite"[induction],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["repeatedPair",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers]}, "repeated"[{a, b}, m] == "pairs"[a, b, m]],
+		{
+			"Introduce"[S, a, b, m], "Induction"[m], "Reflexivity",
+			"Introduce"[k, induction],
+			"Change"[Prepend[a][Prepend[b]["repeated"[{a, b}, k]]] == Prepend[a][Prepend[b]["pairs"[a, b, k]]]],
+			"Rewrite"[induction]
+		}
+	],
+	machineTheorem["repeatedDouble",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[a, S], Typed[n, NonNegativeIntegers]}, "repeated"[{a}, 2 * n] == "pairs"[a, a, n]],
+		{
+			"Introduce"[S, a, n], "Induction"[n], "Reflexivity",
+			"Introduce"[k, induction],
+			"Change"[Prepend[a][Prepend[a]["repeated"[{a}, 2 * k]]] == Prepend[a][Prepend[a]["pairs"[a, a, k]]]],
+			"Rewrite"[induction]
+		}
+	],
+	machineTheorem["passOutPairs",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers]},
+			And["passOutFrom"[productions, "pairs"[a, b, m], "true"] == "repeated"[productions[a], m], "passOutFrom"[productions, "pairs"[a, b, m], "false"] == "repeated"[productions[b], m]]],
+		{
+			"Introduce"[S, productions, a, b, m],
+			"Exact"["andIntroduction"[
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[x, {S}]}, "passOutFrom"[productions, x, "true"]], "equalitySymmetry"["joinEmptyRight"["pairs"[a, b, m]]]],
+					"equalityTransitivity"["passOutAlignedPairs"[S, productions, a, b, m, Typed[{}, {S}]], "joinEmptyRight"["repeated"[productions[a], m]]]],
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[x, {S}]}, "passOutFrom"[productions, x, "false"]], "equalitySymmetry"["joinEmptyRight"["pairs"[a, b, m]]]],
+					"equalityTransitivity"["passOutShiftedPairs"[S, productions, a, b, m, Typed[{}, {S}]], "joinEmptyRight"["repeated"[productions[b], m]]]]
+			]]
+		}
+	],
+	(* the word of a configuration in state q with left number m and right number N, and the word after round 1 *)
+	TypeTheoryDefinition["minskyWord", Typed[
+		Function[{Typed[q, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Prepend["symbolA"[q]][Prepend["pad"][Join["pairs"["symbolAlpha"[q], "pad", m], Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]]]]],
+		NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers -> {"MinskySymbol"}
+	]],
+	TypeTheoryDefinition["afterRound1", Typed[
+		Function[{Typed[q, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Prepend["symbolP1"[q]][Prepend["symbolP0"[q]][Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]]["repeated"[{"symbolR"[q]}, n]]]]]],
+		NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers -> {"MinskySymbol"}
+	]],
+	(* round 1 copies the word: A -> P1 P0, alpha -> p p, B -> Q, beta -> r *)
+	machineTheorem["minskyRound1",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			"steps"["tagStep"["minskyProductions"[tm]], m + n + 2, "minskyWord"[q, m, n]] == "some"["afterRound1"[q, m, n]]],
+		{
+			"Introduce"[tm, q, m, n],
+			"Have"[left, Length["pairs"["symbolAlpha"[q], "pad", m]] == 2 * m], "Exact"["lengthPairs"["MinskySymbol", "symbolAlpha"[q], "pad", m]],
+			"Have"[right, Length["pairs"["symbolBeta"[q], "pad", n]] == 2 * n], "Exact"["lengthPairs"["MinskySymbol", "symbolBeta"[q], "pad", n]],
+			"Have"[joined, Length[Join["pairs"["symbolAlpha"[q], "pad", m], Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]]] ==
+				Length["pairs"["symbolAlpha"[q], "pad", m]] + Length[Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]]],
+			"Exact"["lengthJoin"["pairs"["symbolAlpha"[q], "pad", m], Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]]],
+			"Have"[middle, Length[Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]] == Length["pairs"["symbolBeta"[q], "pad", n]] + 2], "Reflexivity",
+			"Have"[whole, Length["minskyWord"[q, m, n]] == Length[Join["pairs"["symbolAlpha"[q], "pad", m], Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]]] + 2], "Reflexivity",
+			"Have"[length, Length["minskyWord"[q, m, n]] == 2 * (m + n + 2)], "LinearArithmetic",
+			"Rewrite"["tagRoundEvenWhole"["MinskySymbol", "minskyProductions"[tm], m + n + 2, "minskyWord"[q, m, n], length]],
+			"Change"["some"[Join[{"symbolP1"[q], "symbolP0"[q]}, "passOutFrom"["minskyProductions"[tm],
+				Join["pairs"["symbolAlpha"[q], "pad", m], Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]], "true"]]] == "some"["afterRound1"[q, m, n]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolAlpha"[q], "pad", m, Prepend["symbolB"[q]][Prepend["pad"]["pairs"["symbolBeta"[q], "pad", n]]]]],
+			"Change"["some"[Join[{"symbolP1"[q], "symbolP0"[q]}, Join["repeated"[{"symbolSmallP"[q], "symbolSmallP"[q]}, m],
+				Prepend["symbolQ"[q]]["passOutFrom"["minskyProductions"[tm], "pairs"["symbolBeta"[q], "pad", n], "true"]]]]] == "some"["afterRound1"[q, m, n]]],
+			"Rewrite"["andEliminationLeft"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolBeta"[q], "pad", n]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallP"[q], "symbolSmallP"[q], m]],
+			"Reflexivity"
+		}
+	],
+	(* the word after round 2: the scanned bit h read off the right number, n the rest of it *)
+	TypeTheoryDefinition["afterRound2", Typed[
+		Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Join[InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, {"MinskySymbol"}], Typed[{}, {"MinskySymbol"}], {"symbolE"[q, "true"]}, h],
+				Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]],
+		NonNegativeIntegers -> Booleans -> NonNegativeIntegers -> NonNegativeIntegers -> {"MinskySymbol"}
+	]],
+	(* round 2 reads P1, the p of every pair, Q, and every other r: the right number 2 n + h loses its lowest bit h, which
+	   decides whether the round has odd length and E1 its partner *)
+	machineTheorem["minskyRound2",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[m, NonNegativeIntegers], Typed[h, Booleans], Typed[n, NonNegativeIntegers]},
+			"steps"["tagStep"["minskyProductions"[tm]], m + n + 2, "afterRound1"[q, m, 2 * n + "bitValue"[h]]] == "some"["afterRound2"[q, h, m, n]]],
+		{
+			"Introduce"[tm, q, m, h, n],
+			"Have"[left, Length["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m]] == 2 * m], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallP"[q], "symbolSmallP"[q], m]],
+			"Have"[right, Length["pairs"["symbolR"[q], "symbolR"[q], n]] == 2 * n], "Exact"["lengthPairs"["MinskySymbol", "symbolR"[q], "symbolR"[q], n]],
+			"Cases"[h],
+			(* h false: odd length, E1 is the partner of the last r *)
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], m + n + 2, Prepend["symbolP1"[q]][Prepend["symbolP0"[q]][Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]]["repeated"[{"symbolR"[q]}, 2 * n]]]]]] ==
+				"some"[Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]],
+			"Rewrite"["repeatedDouble"["MinskySymbol", "symbolR"[q], n]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]] == Length["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m]] + Length[Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]],
+			"Exact"["lengthJoin"["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]],
+			"Have"[middle, Length[Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]] == Length["pairs"["symbolR"[q], "symbolR"[q], n]] + 1], "Reflexivity",
+			"Have"[length, Length[Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]] == 2 * (m + n) + 1], "LinearArithmetic",
+			"Rewrite"["tagRoundOddFirst"["MinskySymbol", "minskyProductions"[tm], m + n, "symbolP1"[q], "symbolP0"[q], Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]], "symbolE"[q, "true"], {"symbolE"[q, "false"]}, length,
+				"equalityReflexivity"[{"symbolE"[q, "true"], "symbolE"[q, "false"]}]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallP"[q], "symbolSmallP"[q], m, Prepend["symbolQ"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]],
+			"Change"["some"[Join[{"symbolE"[q, "false"]}, Join["repeated"[{"symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"]}, m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["passOutFrom"["minskyProductions"[tm], "pairs"["symbolR"[q], "symbolR"[q], n], "false"]]]]]] ==
+				"some"[Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]],
+			"Rewrite"["andEliminationRight"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolR"[q], "symbolR"[q], n]]],
+			"Change"["some"[Join[{"symbolE"[q, "false"]}, Join["repeated"[{"symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"]}, m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["repeated"[{"symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"]}, n]]]]]] ==
+				"some"[Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]],
+			"Reflexivity",
+			(* h true: even length *)
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], m + n + 2, Prepend["symbolP1"[q]][Prepend["symbolP0"[q]][Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["repeated"[{"symbolR"[q]}, 2 * n]]]]]]] ==
+				"some"[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]]],
+			"Rewrite"["repeatedDouble"["MinskySymbol", "symbolR"[q], n]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]] ==
+				Length["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m]] + Length[Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]],
+			"Exact"["lengthJoin"["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]],
+			"Have"[middle, Length[Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]] == Length["pairs"["symbolR"[q], "symbolR"[q], n]] + 2], "Reflexivity",
+			"Have"[whole, Length[Prepend["symbolP1"[q]][Prepend["symbolP0"[q]][Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]]]] ==
+				Length[Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]] + 2], "Reflexivity",
+			"Have"[length, Length[Prepend["symbolP1"[q]][Prepend["symbolP0"[q]][Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]]]] == 2 * (m + n + 2)], "LinearArithmetic",
+			"Rewrite"["tagRoundEvenWhole"["MinskySymbol", "minskyProductions"[tm], m + n + 2, Prepend["symbolP1"[q]][Prepend["symbolP0"[q]][Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]]], length]],
+			"Change"["some"[Join[{"symbolE"[q, "true"], "symbolE"[q, "false"]}, "passOutFrom"["minskyProductions"[tm], Join["pairs"["symbolSmallP"[q], "symbolSmallP"[q], m], Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]], "true"]]] ==
+				"some"[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallP"[q], "symbolSmallP"[q], m, Prepend["symbolQ"[q]][Prepend["symbolR"[q]]["pairs"["symbolR"[q], "symbolR"[q], n]]]]],
+			"Change"["some"[Join[{"symbolE"[q, "true"], "symbolE"[q, "false"]}, Join["repeated"[{"symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"]}, m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["passOutFrom"["minskyProductions"[tm], "pairs"["symbolR"[q], "symbolR"[q], n], "true"]]]]]] ==
+				"some"[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]]],
+			"Rewrite"["andEliminationLeft"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolR"[q], "symbolR"[q], n]]],
+			"Change"["some"[Join[{"symbolE"[q, "true"], "symbolE"[q, "false"]}, Join["repeated"[{"symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"]}, m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["repeated"[{"symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"]}, n]]]]]] ==
+				"some"[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]],
+			"Reflexivity"
+		}
+	],
+	(* an odd round from its head, pairs of a sum, a pair of pairs repeated, and the productions of a move *)
+	(* a round over a word a :: l of odd length whose first production is c :: d *)
+	machineTheorem["tagRoundOddHead",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[n, NonNegativeIntegers], Typed[a, S], Typed[l, {S}], Typed[c, S], Typed[d, {S}]},
+			Implies[Length[l] == 2 * n + 2, Implies[productions[a] == Prepend[c][d],
+				"steps"["tagStep"[productions], n + 2, Prepend[a][l]] == "some"[Join[d, "passOutFrom"[productions, l, "false"]]]]]],
+		{
+			"Introduce"[S, productions, n, a, l, c, d, length, first], "Cases"[l],
+			"Introduce"[length], "Exact"["falseElimination"["successorNotZero"[2 * n + 1, "equalitySymmetry"[length]]]],
+			"Introduce"[b, rest, length],
+			"Have"[restLength, Length[rest] == 2 * n + 1],
+			"Have"[expanded, Length[Prepend[b][rest]] == Length[rest] + 1], "Reflexivity",
+			"LinearArithmetic",
+			"Exact"["tagRoundOddFirst"[S, productions, n, a, b, rest, c, d, restLength, first]]
+		}
+	],
+	machineTheorem["pairsAdd",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[a, S], Typed[b, S], Typed[k, NonNegativeIntegers], Typed[j, NonNegativeIntegers]},
+			"pairs"[a, b, k + j] == Join["pairs"[a, b, j], "pairs"[a, b, k]]],
+		{
+			"Introduce"[S, a, b, k, j], "Induction"[j], "Reflexivity",
+			"Introduce"[i, induction],
+			"Change"[Prepend[a][Prepend[b]["pairs"[a, b, k + i]]] == Prepend[a][Prepend[b][Join["pairs"[a, b, i], "pairs"[a, b, k]]]]],
+			"Rewrite"[induction]
+		}
+	],
+	machineTheorem["repeatedPairTwice",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[a, S], Typed[b, S], Typed[m, NonNegativeIntegers]}, "repeated"[{a, b, a, b}, m] == "pairs"[a, b, 2 * m]],
+		{
+			"Introduce"[S, a, b, m], "Induction"[m], "Reflexivity",
+			"Introduce"[k, induction],
+			"Change"[Prepend[a][Prepend[b][Prepend[a][Prepend[b]["repeated"[{a, b, a, b}, k]]]]] == Prepend[a][Prepend[b][Prepend[a][Prepend[b]["pairs"[a, b, 2 * k]]]]]],
+			"Rewrite"[induction]
+		}
+	],
+	machineTheorem["productionERight",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveRight", "minskyProductions"[tm]["symbolE"[q, h]] == Join["padUnless"[h], Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]]]]]]]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], Join["padUnless"[h], {"symbolG"[q, h]}], Join["padUnless"[h], Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]]]]]]] == Join["padUnless"[h], Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]]]]]]],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionELeft",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveLeft", "minskyProductions"[tm]["symbolE"[q, h]] == Join["padUnless"[h], {"symbolG"[q, h]}]]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], Join["padUnless"[h], {"symbolG"[q, h]}], Join["padUnless"[h], Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", "bitValue"[tm[q][h][["write"]]]]]]]] == Join["padUnless"[h], {"symbolG"[q, h]}]],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionSmallERight",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveRight", "minskyProductions"[tm]["symbolSmallE"[q, h]] == {"symbolAlpha"[tm[q][h][["next"]]], "pad", "symbolAlpha"[tm[q][h][["next"]]], "pad"}]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], {"symbolSmallG"[q, h]}, {"symbolAlpha"[tm[q][h][["next"]]], "pad", "symbolAlpha"[tm[q][h][["next"]]], "pad"}] == {"symbolAlpha"[tm[q][h][["next"]]], "pad", "symbolAlpha"[tm[q][h][["next"]]], "pad"}],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionSmallELeft",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveLeft", "minskyProductions"[tm]["symbolSmallE"[q, h]] == {"symbolSmallG"[q, h]}]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], {"symbolSmallG"[q, h]}, {"symbolAlpha"[tm[q][h][["next"]]], "pad", "symbolAlpha"[tm[q][h][["next"]]], "pad"}] == {"symbolSmallG"[q, h]}],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionFRight",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveRight", "minskyProductions"[tm]["symbolF"[q, h]] == {"symbolB"[tm[q][h][["next"]]], "pad"}]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], {"symbolH"[q, h], "symbolH"[q, h]}, {"symbolB"[tm[q][h][["next"]]], "pad"}] == {"symbolB"[tm[q][h][["next"]]], "pad"}],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionFLeft",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveLeft", "minskyProductions"[tm]["symbolF"[q, h]] == {"symbolH"[q, h], "symbolH"[q, h]}]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], {"symbolH"[q, h], "symbolH"[q, h]}, {"symbolB"[tm[q][h][["next"]]], "pad"}] == {"symbolH"[q, h], "symbolH"[q, h]}],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionSmallFRight",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveRight", "minskyProductions"[tm]["symbolSmallF"[q, h]] == {"symbolBeta"[tm[q][h][["next"]]], "pad"}]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], {"symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h]}, {"symbolBeta"[tm[q][h][["next"]]], "pad"}] == {"symbolBeta"[tm[q][h][["next"]]], "pad"}],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	machineTheorem["productionSmallFLeft",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans]},
+			Implies[tm[q][h][["direction"]] == "moveLeft", "minskyProductions"[tm]["symbolSmallF"[q, h]] == {"symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h]}]],
+		{
+			"Introduce"[tm, q, h, moved],
+			"Change"["byDirection"[tm[q][h][["direction"]], {"symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h]}, {"symbolBeta"[tm[q][h][["next"]]], "pad"}] == {"symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h], "symbolK"[q, h]}],
+			"Rewrite"[moved],
+			"Reflexivity"
+		}
+	],
+	(* the word after round 3 of a move to the right is the next configuration's: the written bit joins the left number *)
+	machineTheorem["minskyRound3Right",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Implies[tm[q][h][["direction"]] == "moveRight",
+				"steps"["tagStep"["minskyProductions"[tm]], m + n + 2, "afterRound2"[q, h, m, n]] == "some"["minskyWord"[tm[q][h][["next"]], 2 * m + "bitValue"[tm[q][h][["write"]]], n]]]],
+		{
+			"Introduce"[tm, q, h, m, n],
+			"Have"[left, Length["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]] == 2 * m], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]],
+			"Have"[right, Length["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]] == 2 * n], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]],
+			"Cases"[h],
+			(* h false: odd length, the pad that E0 writes first is the partner of the last f *)
+			"Introduce"[moved],
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], m + n + 2, Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]] == "some"[Prepend["symbolA"[tm[q]["false"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["false"][["write"]]]], Prepend["symbolB"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["false"][["next"]]], "pad", n]]]]]]]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] == Length["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]] + Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]], "Exact"["lengthJoin"["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Have"[tail, Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]] == Length["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]] + 2], "Reflexivity",
+			"Have"[length, Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] == 2 * (m + n) + 2], "LinearArithmetic",
+			"Rewrite"["tagRoundOddHead"["MinskySymbol", "minskyProductions"[tm], m + n, "symbolE"[q, "false"], Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]], "pad", Prepend["symbolA"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", "bitValue"[tm[q]["false"][["write"]]]]]], length,
+				"productionERight"[tm, q, "false", moved]]],
+			"Rewrite"["passOutShiftedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m, Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Change"["some"[Join[Prepend["symbolA"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", "bitValue"[tm[q]["false"][["write"]]]]]], Join["repeated"["minskyProductions"[tm]["symbolSmallE"[q, "false"]], m], Join["minskyProductions"[tm]["symbolF"[q, "false"]], "passOutFrom"["minskyProductions"[tm], "pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n], "false"]]]]] == "some"[Prepend["symbolA"[tm[q]["false"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["false"][["write"]]]], Prepend["symbolB"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["false"][["next"]]], "pad", n]]]]]]]],
+			"Rewrite"["andEliminationRight"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]],
+			"Rewrite"["productionSmallERight"[tm, q, "false", moved]],
+			"Rewrite"["productionFRight"[tm, q, "false", moved]],
+			"Rewrite"["productionSmallFRight"[tm, q, "false", moved]],
+			"Change"["some"[Join[Prepend["symbolA"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", "bitValue"[tm[q]["false"][["write"]]]]]], Join["repeated"[{"symbolAlpha"[tm[q]["false"][["next"]]], "pad", "symbolAlpha"[tm[q]["false"][["next"]]], "pad"}, m], Join[{"symbolB"[tm[q]["false"][["next"]]], "pad"}, "repeated"[{"symbolBeta"[tm[q]["false"][["next"]]], "pad"}, n]]]]] == "some"[Prepend["symbolA"[tm[q]["false"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["false"][["write"]]]], Prepend["symbolB"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["false"][["next"]]], "pad", n]]]]]]]],
+			"Rewrite"["repeatedPairTwice"["MinskySymbol", "symbolAlpha"[tm[q]["false"][["next"]]], "pad", m]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolBeta"[tm[q]["false"][["next"]]], "pad", n]],
+			"Rewrite"["pairsAdd"["MinskySymbol", "symbolAlpha"[tm[q]["false"][["next"]]], "pad", 2 * m, "bitValue"[tm[q]["false"][["write"]]]]],
+			"Rewrite"["joinAssociativity"["pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", "bitValue"[tm[q]["false"][["write"]]]], "pairs"["symbolAlpha"[tm[q]["false"][["next"]]], "pad", 2 * m], Prepend["symbolB"[tm[q]["false"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["false"][["next"]]], "pad", n]]]]],
+			"Reflexivity",
+			(* h true: even length *)
+			"Introduce"[moved],
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], m + n + 2, Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]] == "some"[Prepend["symbolA"[tm[q]["true"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["true"][["write"]]]], Prepend["symbolB"[tm[q]["true"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["true"][["next"]]], "pad", n]]]]]]]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] == Length["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]] + Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]], "Exact"["lengthJoin"["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Have"[tail, Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]] == Length["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]] + 2], "Reflexivity",
+			"Have"[whole, Length[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]] == Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] + 2], "Reflexivity",
+			"Have"[length, Length[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]] == 2 * (m + n + 2)], "LinearArithmetic",
+			"Rewrite"["tagRoundEvenWhole"["MinskySymbol", "minskyProductions"[tm], m + n + 2, Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]], length]],
+			"Change"["some"[Join["minskyProductions"[tm]["symbolE"[q, "true"]], "passOutFrom"["minskyProductions"[tm], Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]], "true"]]] == "some"[Prepend["symbolA"[tm[q]["true"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["true"][["write"]]]], Prepend["symbolB"[tm[q]["true"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["true"][["next"]]], "pad", n]]]]]]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m, Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Change"["some"[Join["minskyProductions"[tm]["symbolE"[q, "true"]], Join["repeated"["minskyProductions"[tm]["symbolSmallE"[q, "true"]], m], Join["minskyProductions"[tm]["symbolF"[q, "true"]], "passOutFrom"["minskyProductions"[tm], "pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n], "true"]]]]] == "some"[Prepend["symbolA"[tm[q]["true"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["true"][["write"]]]], Prepend["symbolB"[tm[q]["true"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["true"][["next"]]], "pad", n]]]]]]]],
+			"Rewrite"["andEliminationLeft"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]],
+			"Rewrite"["productionERight"[tm, q, "true", moved]],
+			"Rewrite"["productionSmallERight"[tm, q, "true", moved]],
+			"Rewrite"["productionFRight"[tm, q, "true", moved]],
+			"Rewrite"["productionSmallFRight"[tm, q, "true", moved]],
+			"Change"["some"[Join[Prepend["symbolA"[tm[q]["true"][["next"]]]][Prepend["pad"]["pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", "bitValue"[tm[q]["true"][["write"]]]]]], Join["repeated"[{"symbolAlpha"[tm[q]["true"][["next"]]], "pad", "symbolAlpha"[tm[q]["true"][["next"]]], "pad"}, m], Join[{"symbolB"[tm[q]["true"][["next"]]], "pad"}, "repeated"[{"symbolBeta"[tm[q]["true"][["next"]]], "pad"}, n]]]]] == "some"[Prepend["symbolA"[tm[q]["true"][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", 2 * m + "bitValue"[tm[q]["true"][["write"]]]], Prepend["symbolB"[tm[q]["true"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["true"][["next"]]], "pad", n]]]]]]]],
+			"Rewrite"["repeatedPairTwice"["MinskySymbol", "symbolAlpha"[tm[q]["true"][["next"]]], "pad", m]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolBeta"[tm[q]["true"][["next"]]], "pad", n]],
+			"Rewrite"["pairsAdd"["MinskySymbol", "symbolAlpha"[tm[q]["true"][["next"]]], "pad", 2 * m, "bitValue"[tm[q]["true"][["write"]]]]],
+			"Rewrite"["joinAssociativity"["pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", "bitValue"[tm[q]["true"][["write"]]]], "pairs"["symbolAlpha"[tm[q]["true"][["next"]]], "pad", 2 * m], Prepend["symbolB"[tm[q]["true"][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q]["true"][["next"]]], "pad", n]]]]],
+			"Reflexivity"
+		}
+	],
+	(* the word after round 3 of a move to the left: G (g)^m H H (k k)^(2 n), from which rounds 4 and 5 halve the left number *)
+	TypeTheoryDefinition["afterRound3", Typed[
+		Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Prepend["symbolG"[q, h]][Join["repeated"[{"symbolSmallG"[q, h]}, m], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]]],
+		NonNegativeIntegers -> Booleans -> NonNegativeIntegers -> NonNegativeIntegers -> {"MinskySymbol"}
+	]],
+	machineTheorem["minskyRound3Left",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[m, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Implies[tm[q][h][["direction"]] == "moveLeft",
+				"steps"["tagStep"["minskyProductions"[tm]], m + n + 2, "afterRound2"[q, h, m, n]] == "some"["afterRound3"[q, h, m, n]]]],
+		{
+			"Introduce"[tm, q, h, m, n],
+			"Have"[left, Length["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]] == 2 * m], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]],
+			"Have"[right, Length["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]] == 2 * n], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]],
+			"Cases"[h],
+			(* h false: odd length, the pad that E0 writes first is the partner of the last f *)
+			"Introduce"[moved],
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], m + n + 2, Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]] == "some"[Prepend["symbolG"[q, "false"]][Join["repeated"[{"symbolSmallG"[q, "false"]}, m], Prepend["symbolH"[q, "false"]][Prepend["symbolH"[q, "false"]]["pairs"["symbolK"[q, "false"], "symbolK"[q, "false"], 2 * n]]]]]]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] == Length["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]] + Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]], "Exact"["lengthJoin"["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Have"[tail, Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]] == Length["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]] + 2], "Reflexivity",
+			"Have"[length, Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] == 2 * (m + n) + 2], "LinearArithmetic",
+			"Rewrite"["tagRoundOddHead"["MinskySymbol", "minskyProductions"[tm], m + n, "symbolE"[q, "false"], Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]], "pad", {"symbolG"[q, "false"]}, length, "productionELeft"[tm, q, "false", moved]]],
+			"Rewrite"["passOutShiftedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m, Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Change"["some"[Join[{"symbolG"[q, "false"]}, Join["repeated"["minskyProductions"[tm]["symbolSmallE"[q, "false"]], m], Join["minskyProductions"[tm]["symbolF"[q, "false"]], "passOutFrom"["minskyProductions"[tm], "pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n], "false"]]]]] == "some"[Prepend["symbolG"[q, "false"]][Join["repeated"[{"symbolSmallG"[q, "false"]}, m], Prepend["symbolH"[q, "false"]][Prepend["symbolH"[q, "false"]]["pairs"["symbolK"[q, "false"], "symbolK"[q, "false"], 2 * n]]]]]]],
+			"Rewrite"["andEliminationRight"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]],
+			"Rewrite"["productionSmallELeft"[tm, q, "false", moved]],
+			"Rewrite"["productionFLeft"[tm, q, "false", moved]],
+			"Rewrite"["productionSmallFLeft"[tm, q, "false", moved]],
+			"Change"["some"[Join[{"symbolG"[q, "false"]}, Join["repeated"[{"symbolSmallG"[q, "false"]}, m], Join[{"symbolH"[q, "false"], "symbolH"[q, "false"]}, "repeated"[{"symbolK"[q, "false"], "symbolK"[q, "false"], "symbolK"[q, "false"], "symbolK"[q, "false"]}, n]]]]] == "some"[Prepend["symbolG"[q, "false"]][Join["repeated"[{"symbolSmallG"[q, "false"]}, m], Prepend["symbolH"[q, "false"]][Prepend["symbolH"[q, "false"]]["pairs"["symbolK"[q, "false"], "symbolK"[q, "false"], 2 * n]]]]]]],
+			"Rewrite"["repeatedPairTwice"["MinskySymbol", "symbolK"[q, "false"], "symbolK"[q, "false"], n]],
+			"Reflexivity",
+			(* h true: even length *)
+			"Introduce"[moved],
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], m + n + 2, Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]] == "some"[Prepend["symbolG"[q, "true"]][Join["repeated"[{"symbolSmallG"[q, "true"]}, m], Prepend["symbolH"[q, "true"]][Prepend["symbolH"[q, "true"]]["pairs"["symbolK"[q, "true"], "symbolK"[q, "true"], 2 * n]]]]]]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] == Length["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m]] + Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]], "Exact"["lengthJoin"["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Have"[tail, Length[Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]] == Length["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]] + 2], "Reflexivity",
+			"Have"[whole, Length[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]] == Length[Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]] + 2], "Reflexivity",
+			"Have"[length, Length[Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]]] == 2 * (m + n + 2)], "LinearArithmetic",
+			"Rewrite"["tagRoundEvenWhole"["MinskySymbol", "minskyProductions"[tm], m + n + 2, Prepend["symbolE"[q, "true"]][Prepend["symbolE"[q, "false"]][Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]]], length]],
+			"Change"["some"[Join["minskyProductions"[tm]["symbolE"[q, "true"]], "passOutFrom"["minskyProductions"[tm], Join["pairs"["symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m], Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]], "true"]]] == "some"[Prepend["symbolG"[q, "true"]][Join["repeated"[{"symbolSmallG"[q, "true"]}, m], Prepend["symbolH"[q, "true"]][Prepend["symbolH"[q, "true"]]["pairs"["symbolK"[q, "true"], "symbolK"[q, "true"], 2 * n]]]]]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallE"[q, "true"], "symbolSmallE"[q, "false"], m, Prepend["symbolF"[q, "true"]][Prepend["symbolF"[q, "false"]]["pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]]]],
+			"Change"["some"[Join["minskyProductions"[tm]["symbolE"[q, "true"]], Join["repeated"["minskyProductions"[tm]["symbolSmallE"[q, "true"]], m], Join["minskyProductions"[tm]["symbolF"[q, "true"]], "passOutFrom"["minskyProductions"[tm], "pairs"["symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n], "true"]]]]] == "some"[Prepend["symbolG"[q, "true"]][Join["repeated"[{"symbolSmallG"[q, "true"]}, m], Prepend["symbolH"[q, "true"]][Prepend["symbolH"[q, "true"]]["pairs"["symbolK"[q, "true"], "symbolK"[q, "true"], 2 * n]]]]]]],
+			"Rewrite"["andEliminationLeft"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallF"[q, "true"], "symbolSmallF"[q, "false"], n]]],
+			"Rewrite"["productionELeft"[tm, q, "true", moved]],
+			"Rewrite"["productionSmallELeft"[tm, q, "true", moved]],
+			"Rewrite"["productionFLeft"[tm, q, "true", moved]],
+			"Rewrite"["productionSmallFLeft"[tm, q, "true", moved]],
+			"Change"["some"[Join[{"symbolG"[q, "true"]}, Join["repeated"[{"symbolSmallG"[q, "true"]}, m], Join[{"symbolH"[q, "true"], "symbolH"[q, "true"]}, "repeated"[{"symbolK"[q, "true"], "symbolK"[q, "true"], "symbolK"[q, "true"], "symbolK"[q, "true"]}, n]]]]] == "some"[Prepend["symbolG"[q, "true"]][Join["repeated"[{"symbolSmallG"[q, "true"]}, m], Prepend["symbolH"[q, "true"]][Prepend["symbolH"[q, "true"]]["pairs"["symbolK"[q, "true"], "symbolK"[q, "true"], 2 * n]]]]]]],
+			"Rewrite"["repeatedPairTwice"["MinskySymbol", "symbolK"[q, "true"], "symbolK"[q, "true"], n]],
+			"Reflexivity"
+		}
+	],
+	(* the word after round 4, and rounds 4 and 5 of a move to the left *)
+	TypeTheoryDefinition["afterRound4", Typed[
+		Function[{Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			Join[InductiveRecursor[Booleans][Function[{Typed[t, Booleans]}, {"MinskySymbol"}], Typed[{}, {"MinskySymbol"}], {"symbolI"[q, h, "true"]}, b], Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]],
+		NonNegativeIntegers -> Booleans -> Booleans -> NonNegativeIntegers -> NonNegativeIntegers -> {"MinskySymbol"}
+	]],
+	(* round 4 reads G, every other g and every other k: the left number 2 i + b loses its lowest bit b, which decides
+	   whether the round has odd length and I1 its partner *)
+	machineTheorem["minskyRound4",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			"steps"["tagStep"["minskyProductions"[tm]], i + 2 * n + 2, "afterRound3"[q, h, 2 * i + "bitValue"[b], n]] == "some"["afterRound4"[q, h, b, i, n]]],
+		{
+			"Introduce"[tm, q, h, b, i, n],
+			"Have"[left, Length["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i]] == 2 * i], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallG"[q, h], "symbolSmallG"[q, h], i]],
+			"Have"[right, Length["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]] == 2 * (2 * n)], "Exact"["lengthPairs"["MinskySymbol", "symbolK"[q, h], "symbolK"[q, h], 2 * n]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]] == Length["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i]] + Length[Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]], "Exact"["lengthJoin"["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]],
+			"Have"[tail, Length[Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]] == Length["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]] + 2], "Reflexivity",
+			"Cases"[b],
+			(* b false: odd length *)
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], i + 2 * n + 2, Prepend["symbolG"[q, h]][Join["repeated"[{"symbolSmallG"[q, h]}, 2 * i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]]] == "some"[Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]],
+			"Rewrite"["repeatedDouble"["MinskySymbol", "symbolSmallG"[q, h], i]],
+			"Have"[length, Length[Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]] == 2 * (i + 2 * n) + 2], "LinearArithmetic",
+			"Rewrite"["tagRoundOddHead"["MinskySymbol", "minskyProductions"[tm], i + 2 * n, "symbolG"[q, h], Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]], "symbolI"[q, h, "true"], {"symbolI"[q, h, "false"]}, length, "equalityReflexivity"[{"symbolI"[q, h, "true"], "symbolI"[q, h, "false"]}]]],
+			"Rewrite"["passOutShiftedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallG"[q, h], "symbolSmallG"[q, h], i, Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]],
+			"Change"["some"[Join[{"symbolI"[q, h, "false"]}, Join["repeated"[{"symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"]}, i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["passOutFrom"["minskyProductions"[tm], "pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n], "false"]]]]]] == "some"[Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]],
+			"Rewrite"["andEliminationRight"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolK"[q, h], "symbolK"[q, h], 2 * n]]],
+			"Change"["some"[Join[{"symbolI"[q, h, "false"]}, Join["repeated"[{"symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"]}, i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["repeated"[{"symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"]}, 2 * n]]]]]] == "some"[Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]],
+			"Reflexivity",
+			(* b true: even length *)
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], i + 2 * n + 2, Prepend["symbolG"[q, h]][Prepend["symbolSmallG"[q, h]][Join["repeated"[{"symbolSmallG"[q, h]}, 2 * i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]]]] == "some"[Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]]],
+			"Rewrite"["repeatedDouble"["MinskySymbol", "symbolSmallG"[q, h], i]],
+			"Have"[whole, Length[Prepend["symbolG"[q, h]][Prepend["symbolSmallG"[q, h]][Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]]]] == Length[Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]] + 2], "Reflexivity",
+			"Have"[length, Length[Prepend["symbolG"[q, h]][Prepend["symbolSmallG"[q, h]][Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]]]] == 2 * (i + 2 * n + 2)], "LinearArithmetic",
+			"Rewrite"["tagRoundEvenWhole"["MinskySymbol", "minskyProductions"[tm], i + 2 * n + 2, Prepend["symbolG"[q, h]][Prepend["symbolSmallG"[q, h]][Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]]], length]],
+			"Change"["some"[Join[{"symbolI"[q, h, "true"], "symbolI"[q, h, "false"]}, "passOutFrom"["minskyProductions"[tm], Join["pairs"["symbolSmallG"[q, h], "symbolSmallG"[q, h], i], Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]], "true"]]] == "some"[Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallG"[q, h], "symbolSmallG"[q, h], i, Prepend["symbolH"[q, h]][Prepend["symbolH"[q, h]]["pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n]]]]],
+			"Change"["some"[Join[{"symbolI"[q, h, "true"], "symbolI"[q, h, "false"]}, Join["repeated"[{"symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"]}, i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["passOutFrom"["minskyProductions"[tm], "pairs"["symbolK"[q, h], "symbolK"[q, h], 2 * n], "true"]]]]]] == "some"[Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]]],
+			"Rewrite"["andEliminationLeft"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolK"[q, h], "symbolK"[q, h], 2 * n]]],
+			"Change"["some"[Join[{"symbolI"[q, h, "true"], "symbolI"[q, h, "false"]}, Join["repeated"[{"symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"]}, i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["repeated"[{"symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"]}, 2 * n]]]]]] == "some"[Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]],
+			"Reflexivity"
+		}
+	],
+
+	(* round 5 reads I, every other i, J and every other j: the next configuration's word, the left number halved and the
+	   written bit and the left number's lowest bit joining the right number *)
+	machineTheorem["minskyRound5",
+		ForAll[{Typed[tm, NonNegativeIntegers -> Booleans -> "MachineTransition"], Typed[q, NonNegativeIntegers], Typed[h, Booleans], Typed[b, Booleans], Typed[i, NonNegativeIntegers], Typed[n, NonNegativeIntegers]},
+			"steps"["tagStep"["minskyProductions"[tm]], i + 2 * n + 2, "afterRound4"[q, h, b, i, n]] == "some"["minskyWord"[tm[q][h][["next"]], i, 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + "bitValue"[b]]]],
+		{
+			"Introduce"[tm, q, h, b, i, n],
+			"Have"[left, Length["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i]] == 2 * i], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i]],
+			"Have"[right, Length["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]] == 2 * (2 * n)], "Exact"["lengthPairs"["MinskySymbol", "symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]],
+			"Have"[joined, Length[Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]] == Length["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i]] + Length[Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]], "Exact"["lengthJoin"["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]],
+			"Have"[tail, Length[Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]] == Length["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]] + 2], "Reflexivity",
+			"Cases"[b],
+			(* b false: odd length, the pad that I0 writes first is the partner of the last j *)
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], i + 2 * n + 2, Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 0]]]]]]]],
+			"Have"[length, Length[Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]] == 2 * (i + 2 * n) + 2], "LinearArithmetic",
+			"Rewrite"["tagRoundOddHead"["MinskySymbol", "minskyProductions"[tm], i + 2 * n, "symbolI"[q, h, "false"], Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]], "pad", {"symbolA"[tm[q][h][["next"]]], "pad"}, length, "equalityReflexivity"[{"pad", "symbolA"[tm[q][h][["next"]]], "pad"}]]],
+			"Rewrite"["passOutShiftedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i, Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]],
+			"Change"["some"[Join[{"symbolA"[tm[q][h][["next"]]], "pad"}, Join["repeated"[{"symbolAlpha"[tm[q][h][["next"]]], "pad"}, i], Join["minskyProductions"[tm]["symbolJ"[q, h, "false"]], "passOutFrom"["minskyProductions"[tm], "pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n], "false"]]]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 0]]]]]]]],
+			"Rewrite"["andEliminationRight"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]],
+			"Change"["some"[Join[{"symbolA"[tm[q][h][["next"]]], "pad"}, Join["repeated"[{"symbolAlpha"[tm[q][h][["next"]]], "pad"}, i], Join[Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * "bitValue"[tm[q][h][["write"]]] + 0]]], "repeated"[{"symbolBeta"[tm[q][h][["next"]]], "pad", "symbolBeta"[tm[q][h][["next"]]], "pad"}, 2 * n]]]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 0]]]]]]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolAlpha"[tm[q][h][["next"]]], "pad", i]],
+			"Rewrite"["repeatedPairTwice"["MinskySymbol", "symbolBeta"[tm[q][h][["next"]]], "pad", 2 * n]],
+			"Have"[count, 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 0 == 2 * (2 * n) + (2 * "bitValue"[tm[q][h][["write"]]] + 0)], "LinearArithmetic",
+			"Rewrite"[count],
+			"Rewrite"["pairsAdd"["MinskySymbol", "symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n), 2 * "bitValue"[tm[q][h][["write"]]] + 0]],
+			"Reflexivity",
+			(* b true: even length *)
+			"Change"["steps"["tagStep"["minskyProductions"[tm]], i + 2 * n + 2, Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 1]]]]]]]],
+			"Have"[whole, Length[Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]] == Length[Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]] + 2], "Reflexivity",
+			"Have"[length, Length[Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]]] == 2 * (i + 2 * n + 2)], "LinearArithmetic",
+			"Rewrite"["tagRoundEvenWhole"["MinskySymbol", "minskyProductions"[tm], i + 2 * n + 2, Prepend["symbolI"[q, h, "true"]][Prepend["symbolI"[q, h, "false"]][Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]]], length]],
+			"Change"["some"[Join[{"symbolA"[tm[q][h][["next"]]], "pad"}, "passOutFrom"["minskyProductions"[tm], Join["pairs"["symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i], Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]], "true"]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 1]]]]]]]],
+			"Rewrite"["passOutAlignedPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallI"[q, h, "true"], "symbolSmallI"[q, h, "false"], i, Prepend["symbolJ"[q, h, "true"]][Prepend["symbolJ"[q, h, "false"]]["pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]]]],
+			"Change"["some"[Join[{"symbolA"[tm[q][h][["next"]]], "pad"}, Join["repeated"[{"symbolAlpha"[tm[q][h][["next"]]], "pad"}, i], Join["minskyProductions"[tm]["symbolJ"[q, h, "true"]], "passOutFrom"["minskyProductions"[tm], "pairs"["symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n], "true"]]]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 1]]]]]]]],
+			"Rewrite"["andEliminationLeft"["passOutPairs"["MinskySymbol", "minskyProductions"[tm], "symbolSmallJ"[q, h, "true"], "symbolSmallJ"[q, h, "false"], 2 * n]]],
+			"Change"["some"[Join[{"symbolA"[tm[q][h][["next"]]], "pad"}, Join["repeated"[{"symbolAlpha"[tm[q][h][["next"]]], "pad"}, i], Join[Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * "bitValue"[tm[q][h][["write"]]] + 1]]], "repeated"[{"symbolBeta"[tm[q][h][["next"]]], "pad", "symbolBeta"[tm[q][h][["next"]]], "pad"}, 2 * n]]]]] == "some"[Prepend["symbolA"[tm[q][h][["next"]]]][Prepend["pad"][Join["pairs"["symbolAlpha"[tm[q][h][["next"]]], "pad", i], Prepend["symbolB"[tm[q][h][["next"]]]][Prepend["pad"]["pairs"["symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 1]]]]]]]],
+			"Rewrite"["repeatedPair"["MinskySymbol", "symbolAlpha"[tm[q][h][["next"]]], "pad", i]],
+			"Rewrite"["repeatedPairTwice"["MinskySymbol", "symbolBeta"[tm[q][h][["next"]]], "pad", 2 * n]],
+			"Have"[count, 2 * (2 * n + "bitValue"[tm[q][h][["write"]]]) + 1 == 2 * (2 * n) + (2 * "bitValue"[tm[q][h][["write"]]] + 1)], "LinearArithmetic",
+			"Rewrite"[count],
+			"Rewrite"["pairsAdd"["MinskySymbol", "symbolBeta"[tm[q][h][["next"]]], "pad", 2 * (2 * n), 2 * "bitValue"[tm[q][h][["write"]]] + 1]],
+			"Reflexivity"
+		}
+	],
+	(* the binary machine: its step, the tape halves as numbers, nearest cell least significant, and the word of a
+	   configuration; then one step of the machine is three or five rounds of the tag system *)
+	TypeTheoryDefinition["tapeFirst", Typed[
+		Function[{Typed[l, {Booleans}]}, InductiveRecursor[List][Function[{Typed[t, {Booleans}]}, Booleans], "false", Function[{Typed[a, Booleans], Typed[rest, {Booleans}], Typed[previous, Booleans]}, a], l]],
+		{Booleans} -> Booleans
+	]],
+	TypeTheoryDefinition["tapeRest", Typed[
+		Function[{Typed[l, {Booleans}]}, InductiveRecursor[List][Function[{Typed[t, {Booleans}]}, {Booleans}], Typed[{}, {Booleans}], Function[{Typed[a, Booleans], Typed[rest, {Booleans}], Typed[previous, {Booleans}]}, rest], l]],
+		{Booleans} -> {Booleans}
+	]],
+	TypeTheoryDefinition["tapeValue", Typed[
+		Function[{Typed[l, {Booleans}]}, InductiveRecursor[List][Function[{Typed[t, {Booleans}]}, NonNegativeIntegers], 0,
+			Function[{Typed[a, Booleans], Typed[rest, {Booleans}], Typed[previous, NonNegativeIntegers]}, 2 * previous + "bitValue"[a]], l]],
+		{Booleans} -> NonNegativeIntegers
+	]],
+	(* in state q reading the head, the machine writes, moves and changes state; state 0 halts *)
+	TypeTheoryDefinition["binaryStep", Typed[
+		Function[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[c, "BinaryConfiguration"]}, InductiveRecursor["BinaryConfiguration"][Function[{Typed[x, "BinaryConfiguration"]}, Option["BinaryConfiguration"]],
+			Function[{Typed[q, NonNegativeIntegers], Typed[left, {Booleans}], Typed[head, Booleans], Typed[right, {Booleans}]},
+				InductiveRecursor[NonNegativeIntegers][Function[{Typed[x, NonNegativeIntegers]}, Option["BinaryConfiguration"]], Typed["none", Option["BinaryConfiguration"]],
+					Function[{Typed[j, NonNegativeIntegers], Typed[previous, Option["BinaryConfiguration"]]},
+						"some"[Function[{Typed[t, "MachineTransition"]}, "byDirection"[t[["direction"]], "binaryConfiguration"[t[["next"]], "tapeRest"[left], "tapeFirst"[left], Prepend[t[["write"]]][right]], "binaryConfiguration"[t[["next"]], Prepend[t[["write"]]][left], "tapeFirst"[right], "tapeRest"[right]]]][tm[q][head]]]],
+					q]],
+			c]],
+		(NonNegativeIntegers -> Booleans -> "MachineTransition") -> "BinaryConfiguration" -> Option["BinaryConfiguration"]
+	]],
+	TypeTheoryDefinition["binaryWord", Typed[
+		Function[{Typed[c, "BinaryConfiguration"]}, InductiveRecursor["BinaryConfiguration"][Function[{Typed[x, "BinaryConfiguration"]}, {"MinskySymbol"}],
+			Function[{Typed[q, NonNegativeIntegers], Typed[left, {Booleans}], Typed[head, Booleans], Typed[right, {Booleans}]},
+				"minskyWord"[q, "tapeValue"[left], 2 * "tapeValue"[right] + "bitValue"[head]]],
+			c]],
+		"BinaryConfiguration" -> {"MinskySymbol"}
+	]],
+	machineTheorem["tapeSplit",
+		ForAll[{Typed[l, {Booleans}]}, "tapeValue"[l] == 2 * "tapeValue"["tapeRest"[l]] + "bitValue"["tapeFirst"[l]]],
+		{"Introduce"[l], "Cases"[l], "Reflexivity", "Introduce"[a, rest], "Reflexivity"}
+	],
+	machineTheorem["directionCases",
+		ForAll[{Typed[d, "Direction"]}, Or[d == "moveLeft", d == "moveRight"]],
+		{
+			"Introduce"[d], "Cases"[d],
+			"Exact"["orIntroductionLeft"["equalityReflexivity"["moveLeft"]]],
+			"Exact"["orIntroductionRight"["equalityReflexivity"["moveRight"]]]
+		}
+	],
+	(* a run of a steps, then a run of b steps, is a run of a + b steps *)
+	machineTheorem["stepsThen",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[step, S -> Option[S]], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[x, S], Typed[y, S], Typed[z, S]},
+			Implies["steps"[step, a, x] == "some"[y], Implies["steps"[step, b, y] == "some"[z], "steps"[step, a + b, x] == "some"[z]]]],
+		{
+			"Introduce"[S, step, a, b, x, y, z, first, second],
+			"Rewrite"["stepsAdd"[S, step, a, b, x]],
+			"Rewrite"[first],
+			"Exact"[second]
+		}
+	],
+	(* one step of the machine is three rounds of the tag system for a move to the right, five for a move to the left *)
+	machineTheorem["minskyStep",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")], Typed[c, "BinaryConfiguration"], Typed[c2, "BinaryConfiguration"]},
+			Implies["binaryStep"[tm, c] == "some"[c2],
+				Exists[{Typed[s, NonNegativeIntegers]}, And[1 <= s, "steps"["tagStep"["minskyProductions"[tm]], s, "binaryWord"[c]] == "some"["binaryWord"[c2]]]]]],
+		{
+			"Introduce"[tm, c], "Cases"[c], "Introduce"[q, left, head, right, c2, stepped], "Cases"[q],
+			(* state 0 halts *)
+			"Introduce"[stepped], "Exact"["falseElimination"["noneNotSome"["BinaryConfiguration", c2, stepped]]],
+			"Introduce"[k, stepped],
+			"Have"[directions, Or[tm[k + 1][head][["direction"]] == "moveLeft", tm[k + 1][head][["direction"]] == "moveRight"]], "Exact"["directionCases"[tm[k + 1][head][["direction"]]]],
+			"Cases"[directions],
+			(* a move to the left: five rounds *)
+			"Introduce"[moved],
+			"Have"[next, "binaryConfiguration"[tm[k + 1][head][["next"]], "tapeRest"[left], "tapeFirst"[left], Prepend[tm[k + 1][head][["write"]]][right]] == c2],
+			"Exact"["someInjective"["BinaryConfiguration", "binaryConfiguration"[tm[k + 1][head][["next"]], "tapeRest"[left], "tapeFirst"[left], Prepend[tm[k + 1][head][["write"]]][right]], c2, "equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[d, "Direction"]}, "some"["byDirection"[d, "binaryConfiguration"[tm[k + 1][head][["next"]], "tapeRest"[left], "tapeFirst"[left], Prepend[tm[k + 1][head][["write"]]][right]], "binaryConfiguration"[tm[k + 1][head][["next"]], Prepend[tm[k + 1][head][["write"]]][left], "tapeFirst"[right], "tapeRest"[right]]]]], "equalitySymmetry"[moved]], stepped]]],
+			"Rewrite"["equalitySymmetry"[next]],
+			"Have"[split, "tapeValue"[left] == 2 * "tapeValue"["tapeRest"[left]] + "bitValue"["tapeFirst"[left]]], "Exact"["tapeSplit"[left]],
+			"Have"[round3, "steps"["tagStep"["minskyProductions"[tm]], "tapeValue"[left] + "tapeValue"[right] + 2, "afterRound2"[(k + 1), head, "tapeValue"[left], "tapeValue"[right]]] == "some"["afterRound3"[(k + 1), head, 2 * "tapeValue"["tapeRest"[left]] + "bitValue"["tapeFirst"[left]], "tapeValue"[right]]]],
+			"Rewrite"["equalitySymmetry"[split]],
+			"Exact"["minskyRound3Left"[tm, (k + 1), head, "tapeValue"[left], "tapeValue"[right], moved]],
+			"Have"[positive, 1 <= ((("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2)) + ("tapeValue"[left] + "tapeValue"[right] + 2) + ("tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2)) + ("tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2)], "LinearArithmetic",
+			"Exact"["existsIntroduction"[((("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2)) + ("tapeValue"[left] + "tapeValue"[right] + 2) + ("tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2)) + ("tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2), "andIntroduction"[positive,
+				"stepsThen"[{"MinskySymbol"}, "tagStep"["minskyProductions"[tm]], (("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2)) + ("tapeValue"[left] + "tapeValue"[right] + 2) + ("tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2), "tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2,
+					"binaryWord"["binaryConfiguration"[(k + 1), left, head, right]], "afterRound4"[(k + 1), head, "tapeFirst"[left], "tapeValue"["tapeRest"[left]], "tapeValue"[right]], "binaryWord"["binaryConfiguration"[tm[k + 1][head][["next"]], "tapeRest"[left], "tapeFirst"[left], Prepend[tm[k + 1][head][["write"]]][right]]],
+					"stepsThen"[{"MinskySymbol"}, "tagStep"["minskyProductions"[tm]], (("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2)) + ("tapeValue"[left] + "tapeValue"[right] + 2), "tapeValue"["tapeRest"[left]] + 2 * "tapeValue"[right] + 2,
+						"binaryWord"["binaryConfiguration"[(k + 1), left, head, right]], "afterRound3"[(k + 1), head, 2 * "tapeValue"["tapeRest"[left]] + "bitValue"["tapeFirst"[left]], "tapeValue"[right]], "afterRound4"[(k + 1), head, "tapeFirst"[left], "tapeValue"["tapeRest"[left]], "tapeValue"[right]],
+						"stepsThen"[{"MinskySymbol"}, "tagStep"["minskyProductions"[tm]], ("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2), "tapeValue"[left] + "tapeValue"[right] + 2,
+							"binaryWord"["binaryConfiguration"[(k + 1), left, head, right]], "afterRound2"[(k + 1), head, "tapeValue"[left], "tapeValue"[right]], "afterRound3"[(k + 1), head, 2 * "tapeValue"["tapeRest"[left]] + "bitValue"["tapeFirst"[left]], "tapeValue"[right]],
+							"stepsThen"[{"MinskySymbol"}, "tagStep"["minskyProductions"[tm]], "tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2, "tapeValue"[left] + "tapeValue"[right] + 2,
+								"binaryWord"["binaryConfiguration"[(k + 1), left, head, right]], "afterRound1"[(k + 1), "tapeValue"[left], 2 * "tapeValue"[right] + "bitValue"[head]], "afterRound2"[(k + 1), head, "tapeValue"[left], "tapeValue"[right]],
+								"minskyRound1"[tm, (k + 1), "tapeValue"[left], 2 * "tapeValue"[right] + "bitValue"[head]],
+								"minskyRound2"[tm, (k + 1), "tapeValue"[left], head, "tapeValue"[right]]],
+							round3],
+						"minskyRound4"[tm, (k + 1), head, "tapeFirst"[left], "tapeValue"["tapeRest"[left]], "tapeValue"[right]]],
+					"minskyRound5"[tm, (k + 1), head, "tapeFirst"[left], "tapeValue"["tapeRest"[left]], "tapeValue"[right]]]]]],
+			(* a move to the right: three rounds *)
+			"Introduce"[moved],
+			"Have"[next, "binaryConfiguration"[tm[k + 1][head][["next"]], Prepend[tm[k + 1][head][["write"]]][left], "tapeFirst"[right], "tapeRest"[right]] == c2],
+			"Exact"["someInjective"["BinaryConfiguration", "binaryConfiguration"[tm[k + 1][head][["next"]], Prepend[tm[k + 1][head][["write"]]][left], "tapeFirst"[right], "tapeRest"[right]], c2, "equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[d, "Direction"]}, "some"["byDirection"[d, "binaryConfiguration"[tm[k + 1][head][["next"]], "tapeRest"[left], "tapeFirst"[left], Prepend[tm[k + 1][head][["write"]]][right]], "binaryConfiguration"[tm[k + 1][head][["next"]], Prepend[tm[k + 1][head][["write"]]][left], "tapeFirst"[right], "tapeRest"[right]]]]], "equalitySymmetry"[moved]], stepped]]],
+			"Rewrite"["equalitySymmetry"[next]],
+			"Have"[split, "tapeValue"[right] == 2 * "tapeValue"["tapeRest"[right]] + "bitValue"["tapeFirst"[right]]], "Exact"["tapeSplit"[right]],
+			"Have"[round3, "steps"["tagStep"["minskyProductions"[tm]], "tapeValue"[left] + "tapeValue"[right] + 2, "afterRound2"[(k + 1), head, "tapeValue"[left], "tapeValue"[right]]] ==
+				"some"["minskyWord"[tm[k + 1][head][["next"]], 2 * "tapeValue"[left] + "bitValue"[tm[k + 1][head][["write"]]], 2 * "tapeValue"["tapeRest"[right]] + "bitValue"["tapeFirst"[right]]]]],
+			"Rewrite"["equalitySymmetry"[split]],
+			"Exact"["minskyRound3Right"[tm, (k + 1), head, "tapeValue"[left], "tapeValue"[right], moved]],
+			"Have"[positive, 1 <= (("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2)) + ("tapeValue"[left] + "tapeValue"[right] + 2)], "LinearArithmetic",
+			"Exact"["existsIntroduction"[(("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2)) + ("tapeValue"[left] + "tapeValue"[right] + 2), "andIntroduction"[positive,
+				"stepsThen"[{"MinskySymbol"}, "tagStep"["minskyProductions"[tm]], ("tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2) + ("tapeValue"[left] + "tapeValue"[right] + 2), "tapeValue"[left] + "tapeValue"[right] + 2,
+					"binaryWord"["binaryConfiguration"[(k + 1), left, head, right]], "afterRound2"[(k + 1), head, "tapeValue"[left], "tapeValue"[right]], "binaryWord"["binaryConfiguration"[tm[k + 1][head][["next"]], Prepend[tm[k + 1][head][["write"]]][left], "tapeFirst"[right], "tapeRest"[right]]],
+					"stepsThen"[{"MinskySymbol"}, "tagStep"["minskyProductions"[tm]], "tapeValue"[left] + (2 * "tapeValue"[right] + "bitValue"[head]) + 2, "tapeValue"[left] + "tapeValue"[right] + 2,
+						"binaryWord"["binaryConfiguration"[(k + 1), left, head, right]], "afterRound1"[(k + 1), "tapeValue"[left], 2 * "tapeValue"[right] + "bitValue"[head]], "afterRound2"[(k + 1), head, "tapeValue"[left], "tapeValue"[right]],
+						"minskyRound1"[tm, (k + 1), "tapeValue"[left], 2 * "tapeValue"[right] + "bitValue"[head]],
+						"minskyRound2"[tm, (k + 1), "tapeValue"[left], head, "tapeValue"[right]]],
+					round3]]]]
+		}
+	],
+	(* rung 1 as a simulation: the tag system follows the machine, a configuration related to its word *)
+	machineTheorem["minskySimulation",
+		ForAll[{Typed[tm, (NonNegativeIntegers -> Booleans -> "MachineTransition")]},
+			"forwardSimulation"["binaryStep"[tm], "tagStep"["minskyProductions"[tm]], Function[{Typed[c, "BinaryConfiguration"], Typed[w, {"MinskySymbol"}]}, w == "binaryWord"[c]]]],
+		{
+			"Introduce"[tm, s, t, s2, related, stepped],
+			"Have"[run, Exists[{Typed[k, NonNegativeIntegers]}, And[1 <= k, "steps"["tagStep"["minskyProductions"[tm]], k, "binaryWord"[s]] == "some"["binaryWord"[s2]]]]],
+			"Exact"["minskyStep"[tm, s, s2, stepped]],
+			"Cases"[run], "Introduce"[k, both], "Cases"[both], "Introduce"[positive, reached],
+			"Exact"["existsIntroduction"[k, "andIntroduction"[positive, "existsIntroduction"["binaryWord"[s2], "andIntroduction"[
+				"equalityTransitivity"["equalityCongruence"[Function[{Typed[w, {"MinskySymbol"}]}, "steps"["tagStep"["minskyProductions"[tm]], k, w]], related], reached],
+				"equalityReflexivity"["binaryWord"[s2]]]]]]]
+		}
+	]
+}
+
 $wolfram23Declarations = Join[With[
 	{
 		configuration = "LookaheadConfiguration", optional = Option["LookaheadConfiguration"], machine = "LookaheadState" -> "Color" -> "Color" -> "LookaheadRule",
@@ -906,4 +1575,4 @@ $wolfram23Declarations = Join[With[
 			}
 		]]
 	}
-], $cookDeclarations, $roundDeclarations]
+], $cookDeclarations, $roundDeclarations, $minskyDeclarations]

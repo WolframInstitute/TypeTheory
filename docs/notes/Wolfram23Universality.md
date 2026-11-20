@@ -128,7 +128,7 @@ T8's last two conclusions need, besides the simulations:
   symmetric difference of the finite sets. Also iteration's law `steps (m + n) = steps m ∘ steps n`, and the rule-60
   identity, by induction on `w`.
 
-## Progress and the plan for rung 1
+## Progress
 
 On main by 2026-11-21:
 - the framework (steps, forwardSimulation, the lifting and composition lemmas);
@@ -136,18 +136,29 @@ On main by 2026-11-21:
 - rung 2 complete, `cookSimulation`: a cyclic tag configuration carries its appendants rotated, so there is no phase
   index, and a block lemma (`cyclicTagBlock`) selects the appendants under the 1s of a block. One tag step is k + k
   cyclic tag steps.
+- rung 1 complete, `minskySimulation`: the 2-tag system follows any binary Turing machine, one step of the machine being
+  three rounds of the tag system for a move to the right and five for a move to the left (`minskyStep`).
 
-Rung 1 (Cocke and Minsky) follows the Lean `Wolfram23/TMToTag/CockeMinsky.lean`.
-- **Symbols.** Its 21 kinds of symbol, each with a state and up to two bits, become numbers: the pad is 0, and the kind,
-  state and bits are packed above it. This numbering, 1 + 84S symbols for S states, is the Lean glue `enc`/`dec` of
-  `TagToCTS/TMToCTS`. Rung 2's symbols are numbers below k, so its encoding applies unchanged.
-- **Productions.** They become a function on numbers that unpacks the symbol and gives the Lean `prod`, packed.
-- **Rounds.** A round of the tag system reads every other symbol of the word. It gets a block lemma of its own, with the
-  same shape as the cyclic tag one: from `a1 b1 ... an bn ++ rest`, n tag steps reach `rest ++ prod a1 ++ ... ++ prod
-  an`. The five rounds of a machine step (`W1`, `W2`, `W3`, ...) are then instances of it, plus the parity bookkeeping
-  of the Lean `TagRounds` (an odd-length round shifts the frame by one symbol, which the pad absorbs).
-- **The theorem** is `tm_step_tag`: one machine step is k >= 1 tag steps, from `word c` to `word c'`, as a
-  `forwardSimulation` along `t == word c`.
+How rung 1 is built:
+- **Symbols as a type.** `"MinskySymbol"` has the pad and one constructor for each of the 21 kinds, with the state and
+  the bits the kind carries. Its productions are a recursor over it, so each computes with a symbolic state and
+  machine, and the tag system takes words over any type of symbols (`tagStep` with an implicit type).
+- **Rounds.** `passOutFrom` is what a round appends: the productions of every other symbol, with a flag for whether the
+  next symbol is read, a structural recursion that computes. Pairs read from their first or second symbols give
+  repeated productions (`passOutAlignedPairs`, `passOutShiftedPairs`). A round over an even word is `tagRoundEven`; over
+  an odd word `a :: l`, whose first production is `c :: d`, the last symbol takes `c` as its partner
+  (`tagRoundOddHead`). No parity function and no last-symbol split are needed.
+- **Numbers as the machine reads them.** The right number is written `2 n + h` and the left `2 i + b`, the low bit last,
+  since addition recurses on its second argument: `2 n + 0` and `2 n + 1` compute, and each round's case on a bit
+  reduces without parity lemmas.
+- **The transition** is read through its fields, `t[["next"]]`, `t[["write"]]`, `t[["direction"]]`, behind a named
+  `byDirection`, so the productions of a move follow from the direction's equation alone (`productionERight`, ...).
+
+Next: the glue between rungs 1 and 2. Rung 2's symbols are numbers below k, so `"MinskySymbol"` needs an encoding into
+the numbers below 1 + 84 S for a machine of S states, with a decoding that inverts it on the symbols a run can reach
+(states below S), and the relabeling of the tag system along it. The prelude has no division, so the decoding is a
+structural quotient and remainder whose step on a literal remainder computes; the inverse needs one induction and the
+84 symbol shapes as a generated table, as rung 6's tables are.
 
 ## Files
 
