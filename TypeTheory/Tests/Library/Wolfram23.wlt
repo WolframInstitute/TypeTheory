@@ -19,11 +19,11 @@ VerificationTest[
 		Select[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
-				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock"},
+				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 333, {}},
+	{TypeTheoryEnvironment, 351, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -112,4 +112,23 @@ VerificationTest[
 	],
 	True,
 	TestID -> "A-cyclic-tag-system-appends-under-its-ones-and-rotates-its-appendants"
+]
+
+(* Cook's construction on a 2-tag system of two symbols, 0 -> 1 and 1 -> 0 0: the tag step from 0 1 1 to 1 1 is 2 + 2 steps
+   of the cyclic tag system between the encoded words *)
+productions = Function[{Typed[i, NonNegativeIntegers]},
+	InductiveRecursor[NonNegativeIntegers][Function[{Typed[q, NonNegativeIntegers]}, {NonNegativeIntegers}], {1}, Function[{Typed[j, NonNegativeIntegers], Typed[r, {NonNegativeIntegers}]}, {0, 0}], i]]
+
+VerificationTest[
+	With[{productions = productions},
+		{
+			DefinitionallyEqualQ[TypeTheoryTerm["tagStep"[productions, {0, 1, 1}], wolfram23], TypeTheoryTerm["some"[{1, 1}], wolfram23]],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["steps"["cyclicTagStep", 4, "cookConfiguration"[2, productions, {0, 1, 1}]], wolfram23],
+				TypeTheoryTerm["some"["cookConfiguration"[2, productions, {1, 1}]], wolfram23]
+			]
+		}
+	],
+	{True, True},
+	TestID -> "A-tag-step-is-k-plus-k-steps-of-Cooks-cyclic-tag-system"
 ]

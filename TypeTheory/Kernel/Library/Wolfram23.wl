@@ -120,7 +120,189 @@ $positiveScript = Join[
 		"Cases"[right], "Decide", "Introduce"[neighbour, beyond], "Cases"[neighbour], "Decide", "Decide", "Decide", "Decide"}
 ]
 
-$wolfram23Declarations = With[
+(* rung 2: Cook's encoding of a 2-tag system, each symbol a one-hot block of k bits, and one tag step as k + k steps of
+   the cyclic tag system *)
+$cookDeclarations = With[{bits = {Booleans}, appendantList = {{Booleans}}}, {
+	(* k bits, all false *)
+	TypeTheoryDefinition["allFalse", Typed[
+		Function[{Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[q, NonNegativeIntegers]}, bits], Typed[{}, bits],
+			Function[{Typed[j, NonNegativeIntegers], Typed[previous, bits]}, Prepend["false"][previous]], k]],
+		NonNegativeIntegers -> bits
+	]],
+	(* the symbol i as k bits, true at position i alone *)
+	TypeTheoryDefinition["oneHot", Typed[
+		Function[{Typed[k, NonNegativeIntegers], Typed[i, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][Function[{Typed[q, NonNegativeIntegers]}, NonNegativeIntegers -> bits],
+				Function[{Typed[x, NonNegativeIntegers]}, Typed[{}, bits]],
+				Function[{Typed[j, NonNegativeIntegers], Typed[previous, NonNegativeIntegers -> bits]},
+					Function[{Typed[x, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[q, NonNegativeIntegers]}, bits],
+						Prepend["true"]["allFalse"[j]],
+						Function[{Typed[y, NonNegativeIntegers], Typed[unused, bits]}, Prepend["false"][previous[y]]],
+						x]]],
+				k][i]],
+		NonNegativeIntegers -> NonNegativeIntegers -> bits
+	]],
+	(* the appendants f[0], ..., f[k - 1] *)
+	TypeTheoryDefinition["appendantsFrom", Typed[
+		Function[{Typed[f, NonNegativeIntegers -> bits], Typed[k, NonNegativeIntegers]},
+			InductiveRecursor[NonNegativeIntegers][Function[{Typed[q, NonNegativeIntegers]}, (NonNegativeIntegers -> bits) -> appendantList],
+				Function[{Typed[g, NonNegativeIntegers -> bits]}, Typed[{}, appendantList]],
+				Function[{Typed[j, NonNegativeIntegers], Typed[previous, (NonNegativeIntegers -> bits) -> appendantList]},
+					Function[{Typed[g, NonNegativeIntegers -> bits]}, Prepend[g[0]][previous[Function[{Typed[x, NonNegativeIntegers]}, g[x + 1]]]]]],
+				k][f]],
+		(NonNegativeIntegers -> bits) -> NonNegativeIntegers -> appendantList
+	]],
+	machineTheorem["selectedAllFalse",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[as, appendantList]}, "selected"["allFalse"[k], as] == Typed[{}, bits]],
+		{
+			"Introduce"[k], "Induction"[k],
+			"Introduce"[as], "Reflexivity",
+			"Introduce"[j, induction, as], "Cases"[as], "Reflexivity",
+			"Introduce"[a, others],
+			"Change"["selected"["allFalse"[j], others] == Typed[{}, bits]],
+			induction[others]
+		}
+	],
+	machineTheorem["selectedOneHot",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[i, NonNegativeIntegers], Typed[f, NonNegativeIntegers -> bits]},
+			Implies[i + 1 <= k, "selected"["oneHot"[k, i], "appendantsFrom"[f, k]] == f[i]]],
+		{
+			"Introduce"[k], "Induction"[k],
+			"Introduce"[i, f, below], "Exact"["falseElimination"["successorNotZero"[i, "lessEqualAntisymmetry"[below, "lessEqualZero"[i + 1]]]]],
+			"Introduce"[j, induction, i, f, below], "Cases"[i], "Introduce"[below],
+			"Change"[Join[f[0], "selected"["allFalse"[j], "appendantsFrom"[Function[{Typed[x, NonNegativeIntegers]}, f[x + 1]], j]]] == f[0]],
+			"Rewrite"["selectedAllFalse"[j, "appendantsFrom"[Function[{Typed[x, NonNegativeIntegers]}, f[x + 1]], j]]],
+			"Rewrite"["joinEmptyRight"[f[0]]],
+			"Introduce"[y, below],
+			"Change"["selected"["oneHot"[j, y], "appendantsFrom"[Function[{Typed[x, NonNegativeIntegers]}, f[x + 1]], j]] == f[y + 1]],
+			"Have"[yBelow, y + 1 <= j], "LinearArithmetic",
+			induction[y, Function[{Typed[x, NonNegativeIntegers]}, f[x + 1]], yBelow]
+		}
+	],
+	(* k empty appendants, which append nothing *)
+	TypeTheoryDefinition["emptyAppendants", Typed[
+		Function[{Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][Function[{Typed[q, NonNegativeIntegers]}, appendantList], Typed[{}, appendantList],
+			Function[{Typed[j, NonNegativeIntegers], Typed[previous, appendantList]}, Prepend[Typed[{}, bits]][previous]], k]],
+		NonNegativeIntegers -> appendantList
+	]],
+	(* a word of the tag system, each symbol as its block *)
+	TypeTheoryDefinition["encodeWord", Typed[
+		Function[{Typed[k, NonNegativeIntegers], Typed[w, {NonNegativeIntegers}]}, InductiveRecursor[List][Function[{Typed[q, {NonNegativeIntegers}]}, bits], Typed[{}, bits],
+			Function[{Typed[a, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[previous, bits]}, Join["oneHot"[k, a], previous]], w]],
+		NonNegativeIntegers -> {NonNegativeIntegers} -> bits
+	]],
+	(* a step of a 2-tag system: the first symbol's production appended, the first two symbols deleted *)
+	TypeTheoryDefinition["tagStep", Typed[
+		Function[{Typed[productions, NonNegativeIntegers -> {NonNegativeIntegers}], Typed[w, {NonNegativeIntegers}]},
+			InductiveRecursor[List][Function[{Typed[q, {NonNegativeIntegers}]}, Option[{NonNegativeIntegers}]], Typed["none", Option[{NonNegativeIntegers}]],
+				Function[{Typed[a, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[previous, Option[{NonNegativeIntegers}]]},
+					InductiveRecursor[List][Function[{Typed[q, {NonNegativeIntegers}]}, Option[{NonNegativeIntegers}]], Typed["none", Option[{NonNegativeIntegers}]],
+						Function[{Typed[b, NonNegativeIntegers], Typed[rest2, {NonNegativeIntegers}], Typed[previous2, Option[{NonNegativeIntegers}]]}, "some"[Join[rest2, productions[a]]]],
+						rest]],
+				w]],
+		(NonNegativeIntegers -> {NonNegativeIntegers}) -> {NonNegativeIntegers} -> Option[{NonNegativeIntegers}]
+	]],
+	(* Cook's cyclic tag system: the k symbols' productions encoded, then k empty appendants *)
+	TypeTheoryDefinition["cookAppendants", Typed[
+		Function[{Typed[k, NonNegativeIntegers], Typed[productions, NonNegativeIntegers -> {NonNegativeIntegers}]},
+			Join["appendantsFrom"[Function[{Typed[i, NonNegativeIntegers]}, "encodeWord"[k, productions[i]]], k], "emptyAppendants"[k]]],
+		NonNegativeIntegers -> (NonNegativeIntegers -> {NonNegativeIntegers}) -> appendantList
+	]],
+	TypeTheoryDefinition["cookConfiguration", Typed[
+		Function[{Typed[k, NonNegativeIntegers], Typed[productions, NonNegativeIntegers -> {NonNegativeIntegers}], Typed[w, {NonNegativeIntegers}]},
+			"cyclicTagConfiguration"["encodeWord"[k, w], "cookAppendants"[k, productions]]],
+		NonNegativeIntegers -> (NonNegativeIntegers -> {NonNegativeIntegers}) -> {NonNegativeIntegers} -> "CyclicTagConfiguration"
+	]],
+	machineTheorem["lengthAllFalse", ForAll[{Typed[k, NonNegativeIntegers]}, Length["allFalse"[k]] == k],
+		{"Introduce"[k], "Induction"[k], "Reflexivity", "Introduce"[j, induction], "Change"[Length["allFalse"[j]] + 1 == j + 1], "Rewrite"[induction]}
+	],
+	machineTheorem["lengthOneHot", ForAll[{Typed[k, NonNegativeIntegers], Typed[i, NonNegativeIntegers]}, Length["oneHot"[k, i]] == k],
+		{
+			"Introduce"[k], "Induction"[k], "Introduce"[i], "Reflexivity",
+			"Introduce"[j, induction, i], "Cases"[i],
+			"Change"[Length["allFalse"[j]] + 1 == j + 1], "Rewrite"["lengthAllFalse"[j]],
+			"Introduce"[y], "Change"[Length["oneHot"[j, y]] + 1 == j + 1], "Rewrite"[induction[y]]
+		}
+	],
+	machineTheorem["lengthAppendantsFrom", ForAll[{Typed[k, NonNegativeIntegers], Typed[f, NonNegativeIntegers -> bits]}, Length["appendantsFrom"[f, k]] == k],
+		{
+			"Introduce"[k], "Induction"[k], "Introduce"[f], "Reflexivity",
+			"Introduce"[j, induction, f],
+			"Change"[Length["appendantsFrom"[Function[{Typed[x, NonNegativeIntegers]}, f[x + 1]], j]] + 1 == j + 1],
+			"Rewrite"[induction[Function[{Typed[x, NonNegativeIntegers]}, f[x + 1]]]]
+		}
+	],
+	machineTheorem["lengthEmptyAppendants", ForAll[{Typed[k, NonNegativeIntegers]}, Length["emptyAppendants"[k]] == k],
+		{"Introduce"[k], "Induction"[k], "Reflexivity", "Introduce"[j, induction], "Change"[Length["emptyAppendants"[j]] + 1 == j + 1], "Rewrite"[induction]}
+	],
+	machineTheorem["selectedEmptyAppendants", ForAll[{Typed[k, NonNegativeIntegers], Typed[blocks, bits]}, "selected"[blocks, "emptyAppendants"[k]] == Typed[{}, bits]],
+		{
+			"Introduce"[k], "Induction"[k],
+			"Introduce"[blocks], "Cases"[blocks], "Reflexivity", "Introduce"[b, rest], "Reflexivity",
+			"Introduce"[j, induction, blocks], "Cases"[blocks], "Reflexivity", "Introduce"[b, rest],
+			"Change"[Join["appendantIf"[b, Typed[{}, bits]], "selected"[rest, "emptyAppendants"[j]]] == Typed[{}, bits]],
+			"Rewrite"[induction[rest]],
+			"Cases"[b], "Reflexivity", "Reflexivity"
+		}
+	],
+	machineTheorem["encodeWordJoin",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[u, {NonNegativeIntegers}], Typed[v, {NonNegativeIntegers}]},
+			"encodeWord"[k, Join[u, v]] == Join["encodeWord"[k, u], "encodeWord"[k, v]]],
+		{
+			"Introduce"[k, u, v], "Induction"[u], "Reflexivity",
+			"Introduce"[a, rest, induction],
+			"Change"[Join["oneHot"[k, a], "encodeWord"[k, Join[rest, v]]] == Join[Join["oneHot"[k, a], "encodeWord"[k, rest]], "encodeWord"[k, v]]],
+			"Rewrite"[induction],
+			"Rewrite"["joinAssociativity"["oneHot"[k, a], "encodeWord"[k, rest], "encodeWord"[k, v]]]
+		}
+	],
+	(* the block lemma with the count of steps named *)
+	machineTheorem["cyclicTagBlockSteps",
+		ForAll[{Typed[n, NonNegativeIntegers], Typed[blocks, bits], Typed[as, appendantList], Typed[r, bits], Typed[q, appendantList]},
+			Implies[Length[blocks] == n, Implies[Length[as] == n,
+				"steps"["cyclicTagStep", n, "cyclicTagConfiguration"[Join[blocks, r], Join[as, q]]] == "some"["cyclicTagConfiguration"[Join[r, "selected"[blocks, as]], Join[q, as]]]]]],
+		{
+			"Introduce"[n, blocks, as, r, q, blockLength, appendantsLength],
+			"Rewrite"["equalitySymmetry"[blockLength]],
+			"cyclicTagBlock"[blocks, as, r, q, "equalityTransitivity"[appendantsLength, "equalitySymmetry"[blockLength]]]
+		}
+	],
+	(* rung 2: one step of a 2-tag system is k + k steps of Cook's cyclic tag system, where the first two symbols are below k *)
+	With[
+		{
+			encoded = Function[{Typed[i, NonNegativeIntegers]}, "encodeWord"[k, productions[i]]]
+		},
+		machineTheorem["cookStep",
+			ForAll[{Typed[k, NonNegativeIntegers], Typed[productions, NonNegativeIntegers -> {NonNegativeIntegers}], Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers],
+				Typed[rest, {NonNegativeIntegers}]},
+				Implies[a + 1 <= k, Implies[b + 1 <= k,
+					"steps"["cyclicTagStep", k + k, "cookConfiguration"[k, productions, Prepend[a][Prepend[b][rest]]]] ==
+						"some"["cookConfiguration"[k, productions, Join[rest, productions[a]]]]]]],
+			{
+				"Introduce"[k, productions, a, b, rest, aBelow, bBelow],
+				"Change"["steps"["cyclicTagStep", k + k, "cyclicTagConfiguration"[Join["oneHot"[k, a], Join["oneHot"[k, b], "encodeWord"[k, rest]]],
+					Join["appendantsFrom"[encoded, k], "emptyAppendants"[k]]]] ==
+						"some"["cyclicTagConfiguration"["encodeWord"[k, Join[rest, productions[a]]], Join["appendantsFrom"[encoded, k], "emptyAppendants"[k]]]]],
+				"Rewrite"["encodeWordJoin"[k, rest, productions[a]]],
+				"Rewrite"["stepsAdd"["CyclicTagConfiguration", "cyclicTagStep", k, k, "cyclicTagConfiguration"[Join["oneHot"[k, a], Join["oneHot"[k, b], "encodeWord"[k, rest]]],
+					Join["appendantsFrom"[encoded, k], "emptyAppendants"[k]]]]],
+				"Rewrite"["cyclicTagBlockSteps"[k, "oneHot"[k, a], "appendantsFrom"[encoded, k], Join["oneHot"[k, b], "encodeWord"[k, rest]], "emptyAppendants"[k],
+					"lengthOneHot"[k, a], "lengthAppendantsFrom"[k, encoded]]],
+				"Rewrite"["selectedOneHot"[k, a, encoded, aBelow]],
+				"Change"["steps"["cyclicTagStep", k, "cyclicTagConfiguration"[Join[Join["oneHot"[k, b], "encodeWord"[k, rest]], "encodeWord"[k, productions[a]]],
+					Join["emptyAppendants"[k], "appendantsFrom"[encoded, k]]]] ==
+						"some"["cyclicTagConfiguration"[Join["encodeWord"[k, rest], "encodeWord"[k, productions[a]]], Join["appendantsFrom"[encoded, k], "emptyAppendants"[k]]]]],
+				"Rewrite"["joinAssociativity"["oneHot"[k, b], "encodeWord"[k, rest], "encodeWord"[k, productions[a]]]],
+				"Rewrite"["cyclicTagBlockSteps"[k, "oneHot"[k, b], "emptyAppendants"[k], Join["encodeWord"[k, rest], "encodeWord"[k, productions[a]]], "appendantsFrom"[encoded, k],
+					"lengthOneHot"[k, b], "lengthEmptyAppendants"[k]]],
+				"Rewrite"["selectedEmptyAppendants"[k, "oneHot"[k, b]]],
+				"Rewrite"["joinEmptyRight"[Join["encodeWord"[k, rest], "encodeWord"[k, productions[a]]]]]
+			}
+		]
+	]
+}]
+
+$wolfram23Declarations = Join[With[
 	{
 		configuration = "LookaheadConfiguration", optional = Option["LookaheadConfiguration"], machine = "LookaheadState" -> "Color" -> "Color" -> "LookaheadRule",
 		table0 = ruleTable[$system0Table], table1 = ruleTable[$system1Table], table2 = ruleTable[$system2Table], table3 = ruleTable[$system3Table],
@@ -504,4 +686,4 @@ $wolfram23Declarations = With[
 			}
 		]]
 	}
-]
+], $cookDeclarations]
