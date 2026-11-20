@@ -299,6 +299,67 @@ $cookDeclarations = With[{bits = {Booleans}, appendantList = {{Booleans}}}, {
 				"Rewrite"["joinEmptyRight"[Join["encodeWord"[k, rest], "encodeWord"[k, productions[a]]]]]
 			}
 		]
+	],
+	machineTheorem["someInjective",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[x, S], Typed[y, S]}, Implies["some"[x] == "some"[y], x == y]],
+		{
+			"Introduce"[S, x, y, same],
+			"equalityCongruence"[Function[{Typed[o, Option[S]]}, InductiveRecursor[Option][Function[{Typed[q, Option[S]]}, S], x, Function[{Typed[z, S]}, z], o]], same]
+		}
+	],
+	machineTheorem["noneNotSome",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[x, S]}, Implies[Typed["none", Option[S]] == "some"[x], False]],
+		{
+			"Introduce"[S, x, same],
+			Construct["equalitySubstitution", Option[S],
+				Function[{Typed[o, Option[S]]}, InductiveRecursor[Option][Function[{Typed[q, Option[S]]}, TypeUniverse[0]], True, Function[{Typed[z, S]}, False], o]],
+				Typed["none", Option[S]], "some"[x], same, "trueIntroduction"]
+		}
+	],
+	(* every symbol of a word is below k *)
+	TypeTheoryDefinition["allBelow", Typed[
+		Function[{Typed[k, NonNegativeIntegers], Typed[w, {NonNegativeIntegers}]},
+			InductiveRecursor[List][Function[{Typed[q, {NonNegativeIntegers}]}, TypeUniverse[0]], True,
+				Function[{Typed[a, NonNegativeIntegers], Typed[rest, {NonNegativeIntegers}], Typed[previous, TypeUniverse[0]]}, And[a + 1 <= k, previous]], w]],
+		NonNegativeIntegers -> {NonNegativeIntegers} -> TypeUniverse[0]
+	]],
+	machineTheorem["allBelowJoin",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[u, {NonNegativeIntegers}], Typed[v, {NonNegativeIntegers}]},
+			Implies["allBelow"[k, u], Implies["allBelow"[k, v], "allBelow"[k, Join[u, v]]]]],
+		{
+			"Introduce"[k, u, v], "Induction"[u],
+			"Introduce"[uBelow, vBelow], vBelow,
+			"Introduce"[a, rest, induction, uBelow, vBelow], "Cases"[uBelow], "Introduce"[aBelow, restBelow],
+			"andIntroduction"[aBelow, induction[restBelow, vBelow]]
+		}
+	],
+	(* rung 2: where every production keeps its symbols below k, Cook's cyclic tag system follows the tag system *)
+	machineTheorem["cookSimulation",
+		ForAll[{Typed[k, NonNegativeIntegers], Typed[productions, NonNegativeIntegers -> {NonNegativeIntegers}],
+			Typed[good, ForAll[{Typed[i, NonNegativeIntegers]}, Implies[i + 1 <= k, "allBelow"[k, productions[i]]]]]},
+			"forwardSimulation"["tagStep"[productions], "cyclicTagStep",
+				Function[{Typed[w, {NonNegativeIntegers}], Typed[c, "CyclicTagConfiguration"]}, And[c == "cookConfiguration"[k, productions, w], "allBelow"[k, w]]]]],
+		{
+			"Introduce"[k, productions, good, s, t, s2, related, stepped],
+			"Cases"[related], "Introduce"[encoded, below],
+			"Cases"[s],
+			(* the empty word and a word of one symbol make no step *)
+			"Introduce"[stepped, encoded, below], "Exact"["falseElimination"["noneNotSome"[{NonNegativeIntegers}, s2, stepped]]],
+			"Introduce"[a, rest, stepped, encoded, below], "Cases"[rest],
+			"Introduce"[stepped, encoded, below], "Exact"["falseElimination"["noneNotSome"[{NonNegativeIntegers}, s2, stepped]]],
+			"Introduce"[b, rest2, stepped, encoded, below],
+			"Cases"[below], "Introduce"[aBelow, restBelow], "Cases"[restBelow], "Introduce"[bBelow, rest2Below],
+			"Have"[next, Join[rest2, productions[a]] == s2], "someInjective"[{NonNegativeIntegers}, Join[rest2, productions[a]], s2, stepped],
+			"Have"[positive, 1 <= k + k], "LinearArithmetic",
+			"existsIntroduction"[k + k, "andIntroduction"[positive, "existsIntroduction"["cookConfiguration"[k, productions, s2], "andIntroduction"[
+				"equalityTransitivity"["equalityTransitivity"[
+					"equalityCongruence"[Function[{Typed[c, "CyclicTagConfiguration"]}, "steps"["cyclicTagStep", k + k, c]], encoded],
+					"cookStep"[k, productions, a, b, rest2, aBelow, bBelow]],
+					"equalityCongruence"[Function[{Typed[w, {NonNegativeIntegers}]}, "some"["cookConfiguration"[k, productions, w]]], next]],
+				"andIntroduction"["equalityReflexivity"["cookConfiguration"[k, productions, s2]],
+					Construct["equalitySubstitution", {NonNegativeIntegers}, Function[{Typed[w, {NonNegativeIntegers}]}, "allBelow"[k, w]], Join[rest2, productions[a]], s2, next,
+						"allBelowJoin"[k, rest2, productions[a], rest2Below, good[a, aBelow]]]]]]]]
+		}
 	]
 }]
 
