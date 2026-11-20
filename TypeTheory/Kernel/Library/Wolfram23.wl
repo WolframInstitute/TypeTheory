@@ -451,19 +451,73 @@ $roundDeclarations = {
 			"Rewrite"["joinAssociativity"[t, productions[a], "passOutFrom"[productions, rest2, "true"]]]
 		}
 	],
-	(* a round over a word of odd length 2 n + 1: its last symbol is read with the first symbol appended as its partner,
-	   so the next round reads from the second symbol of what this one appends *)
-	machineTheorem["tagRoundOdd",
-		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[n, NonNegativeIntegers], Typed[u, {S}], Typed[z, S], Typed[c, S], Typed[rest, {S}]},
-			Implies[Length[u] == 2 * n, Implies["passOutFrom"[productions, u, "true"] == Prepend[c][rest],
-				"steps"["tagStep"[productions], n + 1, Join[u, {z}]] == "some"[Join[rest, productions[z]]]]]],
+	(* an odd word followed by c :: d: its last symbol is read with c as its partner *)
+	machineTheorem["tagRoundOddBefore",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[c, S], Typed[m, NonNegativeIntegers]},
+			ForAll[{Typed[v, {S}], Typed[d, {S}]}, Implies[Length[v] == 2 * m + 1,
+				"steps"["tagStep"[productions], m + 1, Join[v, Prepend[c][d]]] == "some"[Join[d, "passOutFrom"[productions, v, "true"]]]]]],
 		{
-			"Introduce"[S, productions, n, u, z, c, rest, length, split],
-			"Rewrite"["stepsAdd"[{S}, "tagStep"[productions], n, 1, Join[u, {z}]]],
-			"Rewrite"["tagRoundEven"[S, productions, n, u, {z}, length]],
-			"Change"["steps"["tagStep"[productions], 1, Prepend[z]["passOutFrom"[productions, u, "true"]]] == "some"[Join[rest, productions[z]]]],
-			"Rewrite"[split],
-			"Reflexivity"
+			"Introduce"[S, productions, c, m], "Induction"[m],
+			(* one symbol: it is read with c as its partner *)
+			"Introduce"[v, d, length], "Cases"[v],
+			"Introduce"[length], "Exact"["falseElimination"["successorNotZero"[0, "equalitySymmetry"[length]]]],
+			"Introduce"[z, rest, length], "Cases"[rest],
+			"Introduce"[length],
+			"Change"["some"[Join[d, productions[z]]] == "some"[Join[d, Join[productions[z], Typed[{}, {S}]]]]],
+			"Rewrite"["joinEmptyRight"[productions[z]]],
+			"Introduce"[y, rest2, length],
+			"Have"[expanded, Length[Prepend[z][Prepend[y][rest2]]] == Length[rest2] + 2], "Reflexivity",
+			"Have"[impossible, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[impossible]],
+			(* two symbols more: one step, the rest by induction *)
+			"Introduce"[k, induction, v, d, length], "Cases"[v],
+			"Introduce"[length],
+			"Have"[zero, Length[Typed[{}, {S}]] == 0], "Reflexivity",
+			"Have"[impossible, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[impossible]],
+			"Introduce"[x, rest, length], "Cases"[rest],
+			"Introduce"[length],
+			"Have"[one, Length[{x}] == 1], "Reflexivity",
+			"Have"[impossible, Typed[False, TypeUniverse[0]]], "LinearArithmetic", "Exact"["falseElimination"[impossible]],
+			"Introduce"[y, rest2, length],
+			"Have"[expanded, Length[Prepend[x][Prepend[y][rest2]]] == Length[rest2] + 2], "Reflexivity",
+			"Have"[restLength, Length[rest2] == 2 * k + 1], "LinearArithmetic",
+			"Change"["steps"["tagStep"[productions], k + 1 + 1, Prepend[x][Prepend[y][Join[rest2, Prepend[c][d]]]]] ==
+				"some"[Join[d, Join[productions[x], "passOutFrom"[productions, rest2, "true"]]]]],
+			"Rewrite"["additionCommutativity"[k + 1, 1]],
+			"Rewrite"["stepsAdd"[{S}, "tagStep"[productions], 1, k + 1, Prepend[x][Prepend[y][Join[rest2, Prepend[c][d]]]]]],
+			"Change"["steps"["tagStep"[productions], k + 1, Join[Join[rest2, Prepend[c][d]], productions[x]]] ==
+				"some"[Join[d, Join[productions[x], "passOutFrom"[productions, rest2, "true"]]]]],
+			"Rewrite"["joinAssociativity"[rest2, Prepend[c][d], productions[x]]],
+			"Change"["steps"["tagStep"[productions], k + 1, Join[rest2, Prepend[c][Join[d, productions[x]]]]] ==
+				"some"[Join[d, Join[productions[x], "passOutFrom"[productions, rest2, "true"]]]]],
+			"Rewrite"[induction[rest2, Join[d, productions[x]], restLength]],
+			"Rewrite"["joinAssociativity"[d, productions[x], "passOutFrom"[productions, rest2, "true"]]]
+		}
+	],
+	(* a round over a word a :: b :: l of odd length whose first production is c :: d: its last symbol is read with c as
+	   its partner, so the next round reads from the second symbol of what this one appends *)
+	machineTheorem["tagRoundOddFirst",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[n, NonNegativeIntegers], Typed[a, S], Typed[b, S], Typed[l, {S}], Typed[c, S], Typed[d, {S}]},
+			Implies[Length[l] == 2 * n + 1, Implies[productions[a] == Prepend[c][d],
+				"steps"["tagStep"[productions], n + 2, Prepend[a][Prepend[b][l]]] == "some"[Join[d, "passOutFrom"[productions, l, "true"]]]]]],
+		{
+			"Introduce"[S, productions, n, a, b, l, c, d, length, first],
+			"Change"["steps"["tagStep"[productions], n + 1 + 1, Prepend[a][Prepend[b][l]]] == "some"[Join[d, "passOutFrom"[productions, l, "true"]]]],
+			"Rewrite"["additionCommutativity"[n + 1, 1]],
+			"Rewrite"["stepsAdd"[{S}, "tagStep"[productions], 1, n + 1, Prepend[a][Prepend[b][l]]]],
+			"Change"["steps"["tagStep"[productions], n + 1, Join[l, productions[a]]] == "some"[Join[d, "passOutFrom"[productions, l, "true"]]]],
+			"Rewrite"[first],
+			"Exact"["tagRoundOddBefore"[S, productions, c, n, l, d, length]]
+		}
+	],
+	(* a round over a whole word of even length *)
+	machineTheorem["tagRoundEvenWhole",
+		ForAll[{Typed[S, TypeUniverse[1]], Typed[productions, S -> {S}], Typed[n, NonNegativeIntegers], Typed[u, {S}]},
+			Implies[Length[u] == 2 * n, "steps"["tagStep"[productions], n, u] == "some"["passOutFrom"[productions, u, "true"]]]],
+		{
+			"Introduce"[S, productions, n, u, length],
+			"Exact"["equalityTransitivity"[
+				"equalityCongruence"[Function[{Typed[x, {S}]}, "steps"["tagStep"[productions], n, x]], "equalitySymmetry"["joinEmptyRight"[u]]],
+				"tagRoundEven"[S, productions, n, u, Typed[{}, {S}], length]]]
 		}
 	]
 }
