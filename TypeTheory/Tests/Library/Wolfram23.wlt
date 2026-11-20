@@ -1,0 +1,83 @@
+(* ::Package:: *)
+
+(* Tests for Library/Wolfram23.wl: the systems of Smith's chain of emulations to Wolfram's (2,3) Turing machine, the
+   framework of step functions and simulations, and the relabelings from System 3 to System 0, every theorem checked
+   when the environment is built. *)
+
+PacletDirectoryLoad[Directory[]]
+
+Needs["WolframInstitute`TypeTheory`"]
+
+wolfram23 = TypeTheoryEnvironment["Wolfram23"]
+
+configuration[left_List, head_, right_List, state_] := "lookaheadConfiguration"[left, head, right, state]
+
+VerificationTest[
+	{
+		Head[wolfram23],
+		Length[Information[wolfram23, "Constants"]],
+		Select[{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "phi3Step", "phi2Step", "system0FollowsSystem1"}, ! MemberQ[Keys[wolfram23], #] &]
+	},
+	{TypeTheoryEnvironment, 317, {}},
+	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
+]
+
+(* System 0 is Wolfram's (2,3) machine: A0 -> B1>, and a move off the left end is none *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["lookaheadStep"["system0", "lookaheadConfiguration"[{}, "color0", {"color0", "color0"}, "stateA"]], wolfram23],
+			TypeTheoryTerm["some"["lookaheadConfiguration"[{"color1"}, "color0", {"color0"}, "stateB"]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["lookaheadStep"["system0", "lookaheadConfiguration"[{}, "color1", {"color0"}, "stateA"]], wolfram23],
+			TypeTheoryTerm[Typed["none", Option["LookaheadConfiguration"]], wolfram23]
+		]
+	},
+	{True, True},
+	TestID -> "System-0-steps-as-Wolframs-2-3-machine-and-stops-at-the-left-end"
+]
+
+(* System 1's B21 is three steps of System 0, B2 -> A0>, A1 -> A2<, A0 -> B1>, to where System 1's B12> goes *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["system0Steps"["lookaheadConfiguration"[{}, "color2", {"color1", "color0"}, "stateB"]], wolfram23],
+			TypeTheoryTerm[3, wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["steps"["lookaheadStep"["system0"], 3, "lookaheadConfiguration"[{"color0"}, "color2", {"color1", "color0"}, "stateB"]], wolfram23],
+			TypeTheoryTerm["lookaheadStep"["system1", "lookaheadConfiguration"[{"color0"}, "color2", {"color1", "color0"}, "stateB"]], wolfram23]
+		]
+	},
+	{True, True},
+	TestID -> "System-1s-B21-is-three-steps-of-System-0"
+]
+
+(* the case tree proves only what holds: phi3 does not turn a step of System 3 into one of System 1. In state C at the
+   left end, System 3's C0 moves left off the tape, while System 1's C0 moves right *)
+caseTree = With[
+	{
+		leftSplit = {"Cases"[left], "Reflexivity", "Introduce"[x, rest], "Reflexivity"},
+		colorSplit = Function[{variable, branch}, Join[{"Cases"[variable]}, branch, branch, branch]]
+	},
+	With[{rightSplit = Join[{"Cases"[right]}, leftSplit, {"Introduce"[neighbour, beyond]}, colorSplit[neighbour, leftSplit]]},
+		Join[{"Introduce"[c], "Cases"[c], "Introduce"[left, head, right, state], "Cases"[state]}, Flatten[ConstantArray[colorSplit[head, rightSplit], 3], 1]]
+	]
+]
+
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["lookaheadStep"["system1", "phi3"["lookaheadConfiguration"[{}, "color0", {"color0"}, "stateC"]]], wolfram23],
+			TypeTheoryTerm["optionMap"["phi3", "lookaheadStep"["system3", "lookaheadConfiguration"[{}, "color0", {"color0"}, "stateC"]]], wolfram23]
+		],
+		With[{script = caseTree}, Head[TypeTheoryProof[
+			ForAll[{Typed[c, "LookaheadConfiguration"]}, "lookaheadStep"["system1", "phi3"[c]] == "optionMap"["phi3", "lookaheadStep"["system3", c]]],
+			wolfram23,
+			script
+		]]]
+	},
+	{False, Failure},
+	TestID -> "A-relabeling-to-the-wrong-system-is-refused"
+]
