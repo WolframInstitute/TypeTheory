@@ -128,6 +128,27 @@ T8's last two conclusions need, besides the simulations:
   symmetric difference of the finite sets. Also iteration's law `steps (m + n) = steps m ∘ steps n`, and the rule-60
   identity, by induction on `w`.
 
+## Progress and the plan for rung 1
+
+On main by 2026-11-21:
+- the framework (steps, forwardSimulation, the lifting and composition lemmas);
+- rung 6 as one theorem, `system0Simulates3`, and the bridge to the standard machine, `wolfram23Simulates3`;
+- rung 2 complete, `cookSimulation`: a cyclic tag configuration carries its appendants rotated, so there is no phase
+  index, and a block lemma (`cyclicTagBlock`) selects the appendants under the 1s of a block. One tag step is k + k
+  cyclic tag steps.
+
+Rung 1 (Cocke and Minsky) follows the Lean `Wolfram23/TMToTag/CockeMinsky.lean`.
+- **Symbols.** Its 21 kinds of symbol, each with a state and up to two bits, become numbers: the pad is 0, and the kind,
+  state and bits are packed above it. This numbering, 1 + 84S symbols for S states, is the Lean glue `enc`/`dec` of
+  `TagToCTS/TMToCTS`. Rung 2's symbols are numbers below k, so its encoding applies unchanged.
+- **Productions.** They become a function on numbers that unpacks the symbol and gives the Lean `prod`, packed.
+- **Rounds.** A round of the tag system reads every other symbol of the word. It gets a block lemma of its own, with the
+  same shape as the cyclic tag one: from `a1 b1 ... an bn ++ rest`, n tag steps reach `rest ++ prod a1 ++ ... ++ prod
+  an`. The five rounds of a machine step (`W1`, `W2`, `W3`, ...) are then instances of it, plus the parity bookkeeping
+  of the Lean `TagRounds` (an odd-length round shifts the frame by one symbol, which the pad absorbs).
+- **The theorem** is `tm_step_tag`: one machine step is k >= 1 tag steps, from `word c` to `word c'`, as a
+  `forwardSimulation` along `t == word c`.
+
 ## Files
 
 - `TypeTheory/Kernel/Library/Wolfram23/*.wl`, one file per rung after a common `Systems.wl`, together building
