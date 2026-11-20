@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.57.0.
+Versions 0.50.0 to 0.58.0.
 
 ### Added
 
@@ -66,6 +66,18 @@ Versions 0.50.0 to 0.57.0.
   transpose are the first two swapped, with no axiom. Typed code still has ranks 1 and 2; the path to higher ranks, by
   views of the compiler's flat buffer, is in docs/notes/MachineArraysOfEveryRank.md (0.56.0).
 
+- **Wolfram's (2,3) machine, a port in progress.** `TypeTheoryEnvironment["Wolfram23"]` begins the proof that
+  Wolfram's (2,3) Turing machine is universal, after Smith's chain of emulations (design in
+  docs/notes/Wolfram23Universality.md). So far it has:
+  - step systems, forward simulations, their lifting to any number of steps, and their composition;
+  - rung 6: Smith's lookahead Systems 0 to 3 on one zipper tape, System 0 being Wolfram's machine, with the relabelings
+    between them. The standard machine, whose tape grows by blanks, follows System 3 (`wolfram23Simulates3`), every
+    table case computed by the kernel;
+  - rung 2: cyclic tag systems that carry their appendants rotated in the configuration, and Cook's encoding of a
+    2-tag system's symbols as one-hot blocks. Where every production keeps its symbols below k, the cyclic tag system
+    follows the tag system, k + k steps for each step (`cookSimulation`);
+  - the round lemma that begins Cocke and Minsky's rung 1 (0.58.0).
+
 ### Changed
 
 - **`If` takes a Boolean condition.** A Boolean where a proposition is expected is the proposition that it is true, by
@@ -84,6 +96,11 @@ Versions 0.50.0 to 0.57.0.
   same length, so `f[g[1, 2], g[3, 4]]` has `{2}` and the ragged `{{1, 2}, {3}}` has `{2}`. The suite compares it with
   the Wolfram Language's own `Dimensions` on ragged lists, mixed heads, empty levels and nesting. The prelude has
   275 constants (0.57.0).
+
+- **A term in place of a tactic.** In a list of tactics, an element that names no tactic is a term that proves the goal,
+  as `"Exact"` takes it: `{"Introduce"[n, m], "additionCommutativity"[n, m]}`, a hypothesis `h`, or `h[x]`. A constant
+  named as a tactic is written in `"Exact"`. A name that is neither a tactic, nor a constant, nor a hypothesis is still
+  an unknown tactic, so a misspelled tactic is not read as a term (0.58.0).
 
 ### Fixed
 
@@ -113,6 +130,10 @@ Versions 0.50.0 to 0.57.0.
 - A term read back from a core term a second time keeps the types its display shows on mouseover. The records of
   terms read back hold the most recent 1,024, and one read back again kept its old place among them, so it could go
   with the older half moments later and its display elaborated it again (since 0.47.0).
+
+- **Text for a terminal.** Failure messages and the text of a term wrote ℕ, 𝔹, `==` and a few other symbols as
+  characters of Unicode's private use area, which only a front end draws: a terminal showed `k ∶ ,`. They are written in
+  Unicode and ASCII now, and notebooks are unchanged (0.58.0).
 
 ### Performance
 
