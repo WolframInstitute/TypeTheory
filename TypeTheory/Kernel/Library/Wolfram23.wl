@@ -367,6 +367,44 @@ $wolfram23Declarations = With[
 					"equalityReflexivity"[s2]]]]]]
 			}
 		],
+		(* the standard machine of one-cell rules, whose tape grows by a blank, color0, where the head passes its end *)
+		TypeTheoryDefinition["turingMachineStep", Typed[
+			Function[{Typed[m, machine], Typed[c, configuration]}, InductiveRecursor[configuration][Function[{Typed[q, configuration]}, optional],
+				Function[{Typed[left, {"Color"}], Typed[head, "Color"], Typed[right, {"Color"}], Typed[state, "LookaheadState"]},
+					InductiveRecursor["LookaheadRule"][Function[{Typed[q, "LookaheadRule"]}, optional],
+						Function[{Typed[newState, "LookaheadState"], Typed[written, "Color"], Typed[d, "Direction"]},
+							InductiveRecursor["Direction"][Function[{Typed[q, "Direction"]}, optional],
+								InductiveRecursor[List][Function[{Typed[q, {"Color"}]}, optional],
+									"some"["lookaheadConfiguration"[{}, "color0", Prepend[written][right], newState]],
+									Function[{Typed[x, "Color"], Typed[rest, {"Color"}], Typed[previous, optional]}, "some"["lookaheadConfiguration"[rest, x, Prepend[written][right], newState]]],
+									left],
+								InductiveRecursor[List][Function[{Typed[q, {"Color"}]}, optional],
+									"some"["lookaheadConfiguration"[Prepend[written][left], "color0", {}, newState]],
+									Function[{Typed[x, "Color"], Typed[rest, {"Color"}], Typed[previous, optional]}, "some"["lookaheadConfiguration"[Prepend[written][left], x, rest, newState]]],
+									right],
+								d]],
+						Function[{Typed[newState, "LookaheadState"], Typed[written, "Color"], Typed[writtenNeighbour, "Color"], Typed[d, "Direction"]}, Typed["none", optional]],
+						m[state, head, "color0"]]],
+				c]],
+			machine -> configuration -> optional
+		]],
+		(* on the tape, System 0's lookahead step is the standard machine's step *)
+		machineTheorem["turingMachineFollowsSystem0",
+			ForAll[{Typed[c, "LookaheadConfiguration"]}, "turingMachineStep"["system0", c] == "orElse"["lookaheadStep"["system0", c], "turingMachineStep"["system0", c]]],
+			configurationScript
+		],
+		(* a step function that agrees with f wherever f is defined follows f step for step *)
+		machineTheorem["agreementSimulation",
+			ForAll[{Typed[S, TypeUniverse[1]], Typed[f, S -> Option[S]], Typed[g, S -> Option[S]], Typed[agrees, ForAll[{Typed[c, S]}, g[c] == "orElse"[f[c], g[c]]]]},
+				"forwardSimulation"[f, g, Function[{Typed[c, S], Typed[d, S]}, d == c]]],
+			{
+				"Introduce"[S, f, g, agrees, s, t, s2, related, stepped],
+				"Exact"["existsIntroduction"[1, "andIntroduction"["lessEqualReflexivity", "existsIntroduction"[s2, "andIntroduction"[
+					"equalityTransitivity"["equalityTransitivity"["equalityCongruence"[g, related], agrees[s]],
+						"equalityCongruence"[Function[{Typed[o, Option[S]]}, "orElse"[o, g[s]]], stepped]],
+					"equalityReflexivity"[s2]]]]]]
+			}
+		],
 		(* rung 6: System 0, Wolfram's (2,3) machine, follows System 3 through phi3, then phi2, then 1 or 3 steps *)
 		machineTheorem["system0Simulates3",
 			"forwardSimulation"["lookaheadStep"["system3"], "lookaheadStep"["system0"], Function[{Typed[c, configuration], Typed[e, configuration]},
@@ -382,6 +420,21 @@ $wolfram23Declarations = With[
 						"relabelingSimulation"[configuration, configuration, "lookaheadStep"["system3"], "lookaheadStep"["system2"], "phi3", "phi3Step"],
 						"relabelingSimulation"[configuration, configuration, "lookaheadStep"["system2"], "lookaheadStep"["system1"], "phi2", "phi2Step"]],
 					"system0Simulates1"]]
+			}
+		],
+		(* the standard (2,3) machine, whose tape grows by blanks, follows System 3 *)
+		machineTheorem["wolfram23Simulates3",
+			"forwardSimulation"["lookaheadStep"["system3"], "turingMachineStep"["system0"], Function[{Typed[c, configuration], Typed[g, configuration]},
+				Exists[{Typed[e, configuration]}, And[
+					Exists[{Typed[d1, configuration]}, And[Exists[{Typed[d2, configuration]}, And[d2 == "phi3"[c], d1 == "phi2"[d2]]], e == d1]],
+					g == e]]]],
+			{
+				"Exact"["forwardSimulationCompose"[configuration, configuration, configuration, "lookaheadStep"["system3"], "lookaheadStep"["system0"], "turingMachineStep"["system0"],
+					Function[{Typed[c, configuration], Typed[e, configuration]},
+						Exists[{Typed[d1, configuration]}, And[Exists[{Typed[d2, configuration]}, And[d2 == "phi3"[c], d1 == "phi2"[d2]]], e == d1]]],
+					Function[{Typed[c, configuration], Typed[d, configuration]}, d == c],
+					"system0Simulates3",
+					"agreementSimulation"[configuration, "lookaheadStep"["system0"], "turingMachineStep"["system0"], "turingMachineFollowsSystem0"]]]
 			}
 		]
 	}

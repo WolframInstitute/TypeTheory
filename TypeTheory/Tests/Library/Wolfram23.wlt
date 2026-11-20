@@ -18,11 +18,12 @@ VerificationTest[
 		Length[Information[wolfram23, "Constants"]],
 		Select[
 			{"stepsAdd", "optionCases", "forwardSimulation", "forwardSimulationSteps", "forwardSimulationCompose", "relabelingSimulation", "phi3Step", "phi2Step",
-				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3"},
+				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
+				"wolfram23Simulates3"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 322, {}},
+	{TypeTheoryEnvironment, 326, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -40,6 +41,22 @@ VerificationTest[
 	},
 	{True, True},
 	TestID -> "System-0-steps-as-Wolframs-2-3-machine-and-stops-at-the-left-end"
+]
+
+(* at the right end the lookahead machine stops, and the standard machine moves onto a new blank *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["lookaheadStep"["system0", "lookaheadConfiguration"[{"color2"}, "color0", {}, "stateA"]], wolfram23],
+			TypeTheoryTerm[Typed["none", Option["LookaheadConfiguration"]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["turingMachineStep"["system0", "lookaheadConfiguration"[{"color2"}, "color0", {}, "stateA"]], wolfram23],
+			TypeTheoryTerm["some"["lookaheadConfiguration"[{"color1", "color2"}, "color0", {}, "stateB"]], wolfram23]
+		]
+	},
+	{True, True},
+	TestID -> "The-standard-machine-extends-the-tape-where-the-lookahead-machine-stops"
 ]
 
 (* System 1's B21 is three steps of System 0, B2 -> A0>, A1 -> A2<, A0 -> B1>, to where System 1's B12> goes *)
