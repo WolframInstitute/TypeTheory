@@ -524,7 +524,9 @@ codeTerms[3, rows_] := MapThread[dependentFunctionType, {savedLabels[[rows[[All,
 codeTerms[4, rows_] := MapThread[localDefinition, {savedLabels[[rows[[All, 2]]]], partTerms[rows[[All, 3]]], partTerms[rows[[All, 4]]], partTerms[rows[[All, 5]]]}]
 codeTerms[5, rows_] := MapThread[projection, {savedLabels[[rows[[All, 2]]]], rows[[All, 3]], partTerms[rows[[All, 4]]]}]
 
-partTerms[parts_] := Block[{partValues = ConstantArray[Null, Length[parts]], rowPositions = Flatten[Position[UnitStep[parts - 1], 1]], leafPositions = Flatten[Position[UnitStep[-parts - 1], 1]]},
+(* the positions of the parts that are rows and of those that are leaves, picked from the packed array: Position on the
+   steps gave a list of lists, 49.4 s of reading 5,992,396 rows *)
+partTerms[parts_] := Block[{partValues = ConstantArray[Null, Length[parts]], rowPositions = Pick[Range[Length[parts]], UnitStep[parts - 1], 1], leafPositions = Pick[Range[Length[parts]], UnitStep[-parts - 1], 1]},
 	If[rowPositions =!= {}, partValues[[rowPositions]] = Extract[savedLevelTerms, Transpose[{savedDepths[[parts[[rowPositions]]]], savedIndexOf[[parts[[rowPositions]]]]}]]];
 	If[leafPositions =!= {}, partValues[[leafPositions]] = savedLeaves[[-parts[[leafPositions]]]]];
 	partValues
