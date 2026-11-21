@@ -235,6 +235,54 @@ VerificationTest[
 	TestID -> "A-file-over-a-base-whose-declarations-changed-reads-only-with-a-check"
 ]
 
+(* An environment read from a file keeps the file's table, and so does one extended from it: saving it writes the
+   table again and makes rows only of the records added. Its content hash, made from the records' hashes, is that of the
+   same declarations built without a file, and the file it writes reads back with them. *)
+VerificationTest[
+	Module[{read = TypeTheoryEnvironment[File[savedFile["arithmetic"]]], extended, built},
+		extended = TypeTheoryEnvironment[read, {TypeTheoryTheorem[ThreePlusThree, 3 + 3 == 6, "equalityReflexivity"[6]]}];
+		built = TypeTheoryEnvironment[arithmetic, {TypeTheoryTheorem[ThreePlusThree, 3 + 3 == 6, "equalityReflexivity"[6]]}];
+		Export[savedFile["extended"], extended];
+		Export[savedFile["built"], built];
+		{
+			AssociationQ[First[read]["SavedTable"]],
+			AssociationQ[First[extended]["SavedTable"]],
+			savedData["extended"]["Hash"] === savedData["built"]["Hash"],
+			Keys[TypeTheoryEnvironment[File[savedFile["extended"]]]] === Keys[built]
+		}
+	],
+	{True, True, True, True},
+	TestID -> "An-environment-read-and-extended-is-written-from-its-table-with-the-hash-of-one-built"
+]
+
+(* A record changed in the store after it was read from a file is not the record its kept table holds, and a table
+   changed in the store no longer gives the records' hashes: either way the environment is not written *)
+VerificationTest[
+	Module[{changedRecord = TypeTheoryEnvironment[File[savedFile["arithmetic"]]], changedTable = TypeTheoryEnvironment[File[savedFile["arithmetic"]]]},
+		With[{store = First[changedRecord], name = Last[First[changedRecord]["Names"]]},
+			store["Records"] = Append[store["Records"], name -> Append[store["Records"][name], "Value" -> store["Records"][name]["Type"]]]
+		];
+		With[{store = First[changedTable]},
+			store["SavedTable"] = Append[store["SavedTable"], "Leaves" -> ReplacePart[store["SavedTable"]["Leaves"], 1 -> WolframInstitute`TypeTheory`PackageScope`naturalLiteral[12345]]]
+		];
+		{Export[savedFile["changedRecord"], changedRecord]["Tag"], Export[savedFile["changedTable"], changedTable]["Tag"]}
+	],
+	{"SavedTableChanged", "SavedTableChanged"},
+	TestID -> "A-record-or-a-kept-table-changed-after-reading-is-not-written"
+]
+
+(* A file whose records do not give the content hash it records is refused, and read with a check *)
+VerificationTest[
+	Module[{data = savedData["arithmetic"], other = savedFile["otherHash"]},
+		data["Hash"] = StringRepeat["0", 64];
+		BinaryWrite[other, BinarySerialize[data]];
+		Close[other];
+		{TypeTheoryEnvironment[File[other]]["Tag"], Keys[TypeTheoryEnvironment[File[other], "Check" -> True]] === Keys[arithmetic]}
+	],
+	{"SavedEnvironmentInvalid", True},
+	TestID -> "A-file-whose-records-do-not-give-its-hash-reads-only-with-a-check"
+]
+
 DeleteDirectory[directory, DeleteContents -> True]
 
 (* The kernel hash is of the trusted sources alone, the trust boundary listed once: every file of Checking is among them,

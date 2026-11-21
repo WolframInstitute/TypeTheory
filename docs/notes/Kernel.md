@@ -313,7 +313,7 @@ the records and the base, and then never taken from a file and compared with the
 | `"RewriteRuleIndex"` | the rewrite rules among the records | reduction | compared with the replay's |
 | `"OverloadIndex"` | the records' `"Overloads"` | elaboration | compared with the replay's |
 | `"Library"` | the base | saving, which names it | its records must be the store's first |
-| `"ContentHash"` | the packed contents, once a save asks for it, or the hash a saved file recorded | saving, and reading a file saved over this one | made again and compared where kept |
+| `"ContentHash"` | the records' hashes, once a save asks for it or a file is read | saving, and reading a file saved over this one | made again and compared where kept |
 | `"Identifier"`, `"LibraryName"`, `"Provenance"` | bookkeeping | neither checking nor reduction | not compared |
 
 **An index the kernel trusted.** From 0.6.0 to 0.42.2 an axiom's rewrite rules were found through the store's index
@@ -353,6 +353,28 @@ over, a hash of the base's declarations, and reading compares it with the base's
 declarations changed is refused in the same way. The tests (Tests/Checking/SavedEnvironments.wlt): every file of
 Checking is in the list, and nothing of the library, the proofs or elaboration; the kernel hash is the one made from
 those files; a file whose recorded base hash differs reads only with a check.
+
+**The content hash and the kept table.** A record's hash is a fingerprint of its terms' structure: each row of a
+term's table gets four residues modulo primes below 2^31, a Horner sum of its code and its parts, a part that is a row
+counting by that row's fingerprint and a leaf or a label by the fingerprint of its serialized bytes. A record's hash is
+the fingerprint of the record's bytes with its rows written as their fingerprints, and the content hash is the SHA-256
+of the rules, the natural numbers, the rewrite-rule index and the records' hashes by name. It does not depend on how a
+table numbers its rows or which subterms it shares, so an environment read from a file and extended has the hash of
+the same declarations built without one. An environment read from a file keeps the file's table, the records read
+from it and their hashes, and so does every environment extended from it. Saving it writes the kept table again and
+makes rows only of the records added, after two checks: every record read must still be the very expression read, and
+the kept table's fingerprints, made again, must give the hashes taken when it was read. Either failing refuses the
+write. Reading a file without a check also asks that its records give the content hash it records.
+
+**The threat model of saved files.** The fingerprint guards consistency, not forgery: it shows that a table and its
+records still agree, and that a file's records are the ones whose hash it records, but whoever can change a store or a
+file can make the hashes along with it. The content hash decides whether a file is read without a check, so it is
+wide, four residues of 31 bits at each row with the SHA-256 on top: polynomial residues over structured input collide
+more often than the birthday bound says, and a collision there would skip a check. Only a file this checker wrote to
+local storage may be read without a check; a file from anywhere else is read with `"Check" -> True`, which checks every
+declaration again. The tests (Tests/Checking/SavedEnvironments.wlt): an environment read and extended writes the hash of
+one built; a record or a kept table changed after reading is not written; a file whose records do not give its hash is
+read only with a check.
 
 **A seed the batch path did not check.** The batch path takes one thing from its caller besides declarations:
 `$compiledKernelSeed`, a table of the terms the records hold with the row each makes. An import gives it so that the

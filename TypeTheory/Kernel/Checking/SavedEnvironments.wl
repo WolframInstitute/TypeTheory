@@ -131,11 +131,10 @@ TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : 
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "WXF"] :=
 	saveEnvironment[Replace[file, File[path_] :> path], environment]
 
-saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], saveContents, fileContents, saveStream},
-	saveContents = environmentContents[environment, saveBase];
-	fileContents = packedContents[saveContents];
-	(* with no base, the packed contents are those the content hash is taken of *)
-	If[saveBase === None, rememberContentHash[environment, fileContents]];
+saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], fileContents, saveStream},
+	fileContents = savedContents[environment, saveBase];
+	(* with no base, the file holds every record, whose hashes give the content hash *)
+	If[saveBase === None, rememberContentHash[environment, fileContents["RecordHashes"]]];
 	saveStream = OpenWrite[file, BinaryFormat -> True];
 	BinaryWrite[saveStream, BinarySerialize[
 		Join[
@@ -147,7 +146,7 @@ saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBa
 				"Host" -> <|"VersionNumber" -> $VersionNumber, "ReleaseNumber" -> $ReleaseNumber, "Version" -> $Version|>,
 				"Base" -> Replace[saveBase, {None -> None, {name_, base_} :> <|"Name" -> name, "Hash" -> environmentContentHash[base]|>}]
 			|>,
-			KeyDrop[fileContents, "FormatVersion"],
+			KeyDrop[fileContents, {"FormatVersion", "RecordHashes"}],
 			<|"Hash" -> environmentContentHash[environment]|>
 		],
 		PerformanceGoal -> "Size"
@@ -177,21 +176,201 @@ environmentContents[environment : TypeTheoryEnvironment[store_Symbol], base_] :=
 	|>
 ]
 
-(* the hash of all of an environment's contents, the same in every session for an environment built the same way *)
+(* the hash of all of an environment's contents, the same in every session for an environment with the same declarations *)
 environmentContentHash[environment : TypeTheoryEnvironment[store_Symbol]] := Replace[
 	store["ContentHash"],
 	_store :> (store["ContentHash"] = contentHashOf[environment])
 ]
 
-(* The hash is taken of the packed contents, the form a file holds: the same contents packed the same way, a bijection of
-   the node table, so the same hash for the same environment in every session. Serializing the packed table costs
-   seconds where the nodes as lists cost minutes: on 53,712 constants of Mathlib, 2.2 s against 172.7 s. *)
-contentHashOf[environment_] := packedContentHash[packedContents[environmentContents[environment, None]]]
+(* The content hash is structural: the SHA-256 of the rules, the natural numbers, the rewrite-rule index and each record's
+   hash by name, a record's hash being the fingerprint of the bytes of the record with each of its terms' rows written
+   as the row's fingerprint. A fingerprint is of a term's structure alone, however the rows are numbered and whether a subterm is
+   shared, so an environment read from a file and extended has the hash of one built from the same declarations.
+   contentHashOf makes it again from the records' terms, as TypeTheoryCheck compares it. *)
+contentHashOf[environment_] := contentHashFromRecords[environment, freshContents[environment, None]["RecordHashes"]]
 
-packedContentHash[packed_Association] := Hash[BinarySerialize[packed], "SHA256", "HexString"]
+contentHashFromRecords[environment : TypeTheoryEnvironment[store_Symbol], recordHashes_Association] := Hash[
+	BinarySerialize[<|
+		"Rules" -> environmentRules[environment],
+		"NaturalNumbers" -> store["NaturalNumbers"],
+		"RewriteRuleIndex" -> store["RewriteRuleIndex"],
+		"Records" -> recordHashes
+	|>],
+	"SHA256",
+	"HexString"
+]
 
-rememberContentHash[TypeTheoryEnvironment[store_Symbol], packed_Association] :=
-	If[! StringQ[store["ContentHash"]], store["ContentHash"] = packedContentHash[packed]]
+rememberContentHash[environment : TypeTheoryEnvironment[store_Symbol], recordHashes_Association] :=
+	If[! StringQ[store["ContentHash"]], store["ContentHash"] = contentHashFromRecords[environment, recordHashes]]
+
+(* every record's hash by name, kept once made: a base's, which reading a file saved over it joins its own to *)
+environmentRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := Replace[
+	store["RecordHashes"],
+	Except[_Association] :> (store["RecordHashes"] = freshContents[environment, None]["RecordHashes"])
+]
+
+(* the contents a file holds of environment beyond base, packed, with each record's hash: written from the table the
+   environment kept when it was read, where it has one, and otherwise made from the records' terms *)
+savedContents[environment_, base_] := Replace[keptContents[environment, base], None :> freshContents[environment, base]]
+
+freshContents[environment_, base_] := With[{packed = packedContents[environmentContents[environment, base]]},
+	Append[
+		packed,
+		"RecordHashes" -> If[ packed["FormatVersion"] === 1,
+			AssociationThread[packed["Names"], Transpose[bytesFingerprints[Map[Function[name, BinarySerialize[constantRecord[environment, name]]], packed["Names"]]]]],
+			recordHashesOf[packed["Records"], tableFingerprints[packed]]
+		]
+	]
+]
+
+(* The contents from the kept table. The records read with it must be the very records read, and the table's
+   fingerprints, made again, must give the hashes taken when it was read; otherwise nothing is written. Only the records
+   added since are made into rows, after the table's. None where the environment kept no table, the table is not of the
+   records the contents begin with, or a record added holds a cubical system, which only format 1 writes. *)
+keptContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
+	{kept = store["SavedTable"], contentNames, coveredNames, addedNames, addedRecords, addedNodes, addedRows, keptLeaves, keptLabels, keptTable, keptDepths, keptPrints, changed},
+	If[ ! AssociationQ[kept],
+		None,
+		contentNames = Drop[environmentNames[environment], Replace[base, {None -> 0, {_, baseEnvironment_} :> Length[environmentNames[baseEnvironment]]}]];
+		coveredNames = Keys[kept["Records"]];
+		If[ kept["BaseCount"] =!= Length[environmentNames[environment]] - Length[contentNames] || Take[contentNames, UpTo[Length[coveredNames]]] =!= coveredNames,
+			None,
+			changed = Select[coveredNames, Function[name, ! SameQ[constantRecord[environment, name], kept["Records"][name]]], 1];
+			If[ changed =!= {},
+				kernelFailure["SavedTableChanged", "The record of `1` is not the one read with the table it was saved in, so the environment is not written.", {HoldForm @@ First[changed]}]
+			];
+			addedNames = Drop[contentNames, Length[coveredNames]];
+			{addedRecords, addedNodes} = Block[{$nodeIndex = <||>, $nodeCount = Length[kept["Table"]]},
+				Reap[AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], addedNames], $nodeTag]
+			];
+			addedNodes = Replace[addedNodes, {{nodes_List} :> nodes, {} -> {}}];
+			If[ MemberQ[addedNodes, {"c", _}],
+				None,
+				Block[{packedLeaves = AssociationThread[kept["Leaves"], Range[Length[kept["Leaves"]]]], packedLabels = AssociationThread[kept["Labels"], Range[Length[kept["Labels"]]]]},
+					addedRows = packedRow /@ addedNodes;
+					keptLeaves = Keys[packedLeaves];
+					keptLabels = Keys[packedLabels]
+				];
+				keptTable = If[addedRows === {}, kept["Table"], Join[kept["Table"], Developer`ToPackedArray[addedRows]]];
+				keptDepths = If[addedRows === {}, kept["Depths"], Developer`ToPackedArray[rowDepths[keptTable]]];
+				keptPrints = rowFingerprints[keptTable, keptDepths, valueFingerprints[keptLeaves], valueFingerprints[keptLabels]];
+				changed = With[{again = recordHashesOf[kept["Refs"], keptPrints]}, Select[coveredNames, Function[name, again[name] =!= kept["Hashes"][name]], 1]];
+				If[ changed =!= {},
+					kernelFailure["SavedTableChanged", "The table kept with `1` no longer gives its record, so the environment is not written.", {HoldForm @@ First[changed]}]
+				];
+				<|
+					"Rules" -> environmentRules[environment],
+					"Names" -> contentNames,
+					"Records" -> Join[kept["Refs"], addedRecords],
+					"NaturalNumbers" -> store["NaturalNumbers"],
+					"RewriteRuleIndex" -> store["RewriteRuleIndex"],
+					"FormatVersion" -> $formatVersion,
+					"Leaves" -> keptLeaves,
+					"Labels" -> keptLabels,
+					"Table" -> keptTable,
+					"Depths" -> keptDepths,
+					"RecordHashes" -> Join[kept["Hashes"], recordHashesOf[addedRecords, keptPrints]]
+				|>
+			]
+		]
+	]
+]
+
+(* A record's hash: the fingerprint of the record's bytes, each of its terms' rows written as the row's fingerprint *)
+recordHashesOf[records_Association, rowPrints_] := AssociationThread[
+	Keys[records],
+	Transpose[bytesFingerprints[Map[Function[record, BinarySerialize[fingerprinted[record, rowPrints]]], Values[records]]]]
+]
+
+(* each row a record names written as its fingerprint, mapped through the record as termsFromRefs maps, so that each
+   comes out evaluated: a replacement inside an association is left unevaluated *)
+fingerprinted[termRef[row_Integer], rowPrints_] := rowFingerprint @@ rowPrints[[All, row]]
+fingerprinted[association_Association, rowPrints_] := Map[Function[value, fingerprinted[value, rowPrints]], association]
+fingerprinted[list_List, rowPrints_] := Map[Function[value, fingerprinted[value, rowPrints]], list]
+fingerprinted[other_, _] := other
+
+tableFingerprints[packed_Association] := rowFingerprints[packed["Table"], packed["Depths"], valueFingerprints[packed["Leaves"]], valueFingerprints[packed["Labels"]]]
+
+(* A row's fingerprint is four residues modulo primes below 2^31, each a Horner sum of the row's code and its four parts:
+   a part that is a row counts by that row's fingerprint, a leaf or a label by the fingerprint of its serialized bytes,
+   an index by itself. It is of the structure alone. The rows of a depth are fingerprinted at once
+   from those of the depths before; every product stays below 2^62, so the arrays stay packed. It guards that a table
+   and its records agree, not against a forger, who could make the hashes along with the table. *)
+$fingerprintModuli = {2147483647, 2147483629, 2147483587, 2147483579}
+$fingerprintBases = {1592653589, 1414213562, 1732050807, 1234567891}
+
+valueFingerprints[values_List] := bytesFingerprints[Map[BinarySerialize, values]]
+
+(* The four residues of each of a list of byte strings: a Horner sum of its bytes modulo each prime, its length folded in
+   last, in one compiled pass over the bytes joined; a SHA-256 call for each took about 200 µs, 28.4 s for the 132,769
+   leaves of RH's batch-6 *)
+bytesFingerprints[{}] := ConstantArray[0, {4, 0}]
+bytesFingerprints[byteStrings_List] := With[{bytes = Developer`ToPackedArray[Normal[Join @@ byteStrings]], ends = Accumulate[Map[Length, byteStrings]]},
+	Developer`ToPackedArray[MapThread[Function[{modulus, base}, compiledByteResidues[bytes, ends, modulus, base]], {$fingerprintModuli, $fingerprintBases}]]
+]
+
+compiledByteResidues = Compile[{{bytes, _Integer, 1}, {ends, _Integer, 1}, {modulus, _Integer}, {base, _Integer}},
+	Module[{residues = Table[0, {Length[ends]}], start = 1, residue = 0},
+		Do[
+			residue = 0;
+			Do[residue = Mod[residue * base + bytes[[position]] + 1, modulus], {position, start, ends[[string]]}];
+			residues[[string]] = Mod[residue * base + ends[[string]] - start + 1, modulus];
+			start = ends[[string]] + 1,
+			{string, Length[ends]}
+		];
+		residues
+	]
+]
+
+rowFingerprints[{}, _, _, _] := ConstantArray[0, {4, 0}]
+rowFingerprints[table_, depths_, leafPrints_, labelPrints_] := Block[
+	{
+		rowPrints = ConstantArray[0, {4, Length[table]}], leafFingerprints = leafPrints, labelFingerprints = labelPrints,
+		rowCount = Length[table], leafCount = Last[Dimensions[leafPrints]], labelCount = Last[Dimensions[labelPrints]],
+		order = Ordering[depths], starts = Prepend[Accumulate[BinCounts[depths, {1, Max[depths] + 1, 1}]], 0]
+	},
+	Do[
+		With[{rows = order[[starts[[depth]] + 1 ;; starts[[depth + 1]]]]},
+			rowPrints[[All, rows]] = depthFingerprints[table[[rows]]]
+		],
+		{depth, Length[starts] - 1}
+	];
+	rowPrints
+]
+
+(* the fingerprints of the rows of a depth, four by the rows; which parts of a row are rows, leaves, labels or an index
+   is said by its code: an application's two parts, a binder's name label, domain, body and binder label, a local
+   definition's name label and three parts, a projection's structure label, index and part *)
+depthFingerprints[block_] := Block[{codes = block[[All, 1]], one, four, five, twoThree},
+	one = 1 - Unitize[codes - 1];
+	four = 1 - Unitize[codes - 4];
+	five = 1 - Unitize[codes - 5];
+	twoThree = 1 - one - four - five;
+	Fold[
+		Function[{print, part}, Mod[print * $fingerprintBases + part, $fingerprintModuli]],
+		spreadResidues[codes],
+		{
+			masked[one, referenceFingerprints[block[[All, 2]]]] + masked[1 - one, labelFingerprintsOf[block[[All, 2]]]],
+			masked[1 - five, referenceFingerprints[block[[All, 3]]]] + masked[five, spreadResidues[block[[All, 3]]]],
+			masked[1 - one, referenceFingerprints[block[[All, 4]]]],
+			masked[twoThree, labelFingerprintsOf[block[[All, 5]]]] + masked[four, referenceFingerprints[block[[All, 5]]]]
+		}
+	]
+]
+
+masked[mask_, prints_] := Map[Function[residues, residues * mask], prints]
+
+spreadResidues[values_] := Mod[ConstantArray[values, 4], $fingerprintModuli]
+
+referenceFingerprints[references_] := Plus[
+	masked[UnitStep[references - 1], rowPrints[[All, Clip[references, {1, Max[1, rowCount]}]]]],
+	If[leafCount == 0, 0, masked[UnitStep[-references - 1], leafFingerprints[[All, Clip[-references, {1, leafCount}]]]]]
+]
+
+labelFingerprintsOf[ids_] := If[ labelCount == 0,
+	ConstantArray[0, {4, Length[ids]}],
+	masked[UnitStep[ids - 1], labelFingerprints[[All, Clip[ids, {1, labelCount}]]]]
+]
 
 (* The contents in the table form of format 2, the rows as integers with the leaves and labels they name, each row's depth
    worked out. A cubical system's row has a form of its own, which only format 1 holds. *)
@@ -305,6 +484,9 @@ loadEnvironment[file_String, check_] := Block[{loadData = readEnvironmentFile[fi
 		]
 	];
 	loaded = environmentFromContents[loadBase, loadData, File[file]];
+	If[ ! TrueQ[check] && First[loaded]["ContentHash"] =!= loadData["Hash"],
+		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
+	];
 	If[ TrueQ[check],
 		Replace[TypeTheoryCheck[loaded], failure_Failure :> throwFailure[failure]];
 		With[{loadedStore = First[loaded]}, loadedStore["Provenance"] = Append[loadedStore["Provenance"], "Checked" -> True]]
@@ -328,7 +510,10 @@ savedLibraryEnvironment[name_String, base_] := Quiet @ Block[{libraryFile = File
 	If[ ! AssociationQ[libraryData] || libraryData["KernelHash"] =!= $kernelHash || libraryData["Rules"] =!= environmentRules[base], Return[None, Block]];
 	If[ Lookup[Replace[libraryData["Base"], None -> <||>], "Name", None] =!= Replace[First[base]["LibraryName"], Except[_String] -> None], Return[None, Block]];
 	If[ AssociationQ[libraryData["Base"]] && libraryData["Base"]["Hash"] =!= environmentContentHash[base], Return[None, Block]];
-	Replace[catchKernelFailure[environmentFromContents[base, libraryData, File[libraryFile]]], _Failure -> None]
+	Replace[
+		catchKernelFailure[environmentFromContents[base, libraryData, File[libraryFile]]],
+		{library : TypeTheoryEnvironment[libraryStore_Symbol] /; libraryStore["ContentHash"] === libraryData["Hash"] :> library, _ -> None}
+	]
 ]
 
 (* The file's data, read held and checked before anything in it evaluates: taking an association out of HoldComplete
@@ -502,15 +687,27 @@ inertQ[value_, _] := nameQ[value] || levelQ[value] || leafTermQ[value]
 
 (* the environment of base extended with the file's constants, its terms built once from their rows *)
 environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Association, source_] := Block[
-	{$rowTerms = If[data["FormatVersion"] === 2, tableTerms[data], rowTerms[data["Nodes"]]], loadedRecords, loadedEnvironment},
+	{$rowTerms = If[data["FormatVersion"] === 2, tableTerms[data], rowTerms[data["Nodes"]]], loadedRecords, loadedEnvironment, loadedHashes},
 	loadedRecords = Map[termsFromRefs, data["Records"]];
 	loadedEnvironment = addConstantRecords[base, loadedRecords];
+	(* each record's hash, from the table's fingerprints, which are of the terms rebuilt from it *)
+	loadedHashes = If[ data["FormatVersion"] === 2,
+		recordHashesOf[data["Records"], rowFingerprints[data["Table"], data["Depths"], valueFingerprints[data["Leaves"]], valueFingerprints[data["Labels"]]]],
+		AssociationThread[Keys[loadedRecords], Transpose[bytesFingerprints[Map[BinarySerialize, Values[loadedRecords]]]]]
+	];
 	With[{loadedStore = First[loadedEnvironment]},
 		(* the file's rewrite-rule index is not read: the store makes it from the records, as every derived key *)
 		loadedStore["NaturalNumbers"] = data["NaturalNumbers"];
-		(* the content hash the file recorded, kept as made, which TypeTheoryCheck compares with the hash made again; an
-		   environment saved over this one is compared with it on reading *)
-		If[StringQ[data["Hash"]], loadedStore["ContentHash"] = data["Hash"]];
+		(* the content hash made from the records read, which reading compares with the one the file recorded *)
+		loadedStore["RecordHashes"] = Join[environmentRecordHashes[base], loadedHashes];
+		loadedStore["ContentHash"] = contentHashFromRecords[loadedEnvironment, loadedStore["RecordHashes"]];
+		(* the table, kept with the records read from it and their hashes, from which saving writes them again *)
+		If[ data["FormatVersion"] === 2,
+			loadedStore["SavedTable"] = <|
+				"Leaves" -> data["Leaves"], "Labels" -> data["Labels"], "Table" -> data["Table"], "Depths" -> data["Depths"],
+				"Refs" -> data["Records"], "Records" -> loadedRecords, "Hashes" -> loadedHashes, "BaseCount" -> Length[environmentNames[base]]
+			|>
+		];
 		loadedStore["Provenance"] = <|"Source" -> source, "Hash" -> data["Hash"], "Checked" -> False|>
 	];
 	loadedEnvironment

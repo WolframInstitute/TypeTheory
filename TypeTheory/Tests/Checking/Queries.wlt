@@ -842,7 +842,7 @@ VerificationTest[
      type, and only then runs the program, so it makes the store the declarations one at a time make;
    - a saved file read with "Check" -> True is checked by TypeTheoryCheck;
    - an import of Lean's constants goes through the batch path.
-   A recursor's rule forged in memory and in a saved file is refused. *)
+   A recursor's rule forged in memory and in a saved file is refused, the file's even unchecked. *)
 VerificationTest[
 	Module[{directory = CreateDirectory[], saved, forgedFile, recursor = HoldComplete[InductiveRecursor[Equal]], forgedRule, result},
 		saved = FileNameJoin[{directory, "keyed.wxf"}];
@@ -859,14 +859,13 @@ VerificationTest[
 				storeContents[TypeTheoryEnvironment[TypeTheoryEnvironment[], keyedDeclarations, Method -> "Symbolic"]],
 			methodVerdict /@ {TypeTheoryCheck[forge[keyedEnvironment, recursor, forgedRule]], TypeTheoryCheck[forge[keyedEnvironment, recursor, forgedRule], Method -> "Symbolic"]},
 			methodVerdict[TypeTheoryEnvironment[File[forgedFile], "Check" -> True]],
-			With[{unchecked = TypeTheoryEnvironment[File[forgedFile]]},
-				{Information[unchecked, "Provenance"]["Checked"], methodVerdict[TypeTheoryCheck[unchecked]]}
-			]
+			(* read without a check, the file is refused: its records no longer give the content hash it records *)
+			TypeTheoryEnvironment[File[forgedFile]]["Tag"]
 		};
 		DeleteDirectory[directory, DeleteContents -> True];
 		result
 	],
-	{True, {"DeclarationMismatch", "DeclarationMismatch"}, "DeclarationMismatch", {False, "DeclarationMismatch"}},
+	{True, {"DeclarationMismatch", "DeclarationMismatch"}, "DeclarationMismatch", "SavedEnvironmentInvalid"},
 	TestID -> "Each-caller-of-the-compiled-program-checks-records-TypeTheory-makes"
 ]
 

@@ -170,6 +170,8 @@ newEnvironment[base_, records_Association, naturalNumbers_] := Module[{store},
 	store["NaturalNumbers"] = naturalNumbers;
 	store["OverloadIndex"] = Merge[{Replace[base["OverloadIndex"], Except[_Association] -> <||>], overloadIndexOf[records]}, Apply[Join]];
 	store["Library"] = libraryOf[base];
+	(* the table a file was read from, kept for saving the records it holds again; the records only grow *)
+	store["SavedTable"] = Replace[base["SavedTable"], Except[_Association] -> None];
 	store["Identifier"] = ++$storeCounter;
 	Sow[store, $storeTag];
 	TypeTheoryEnvironment[store]
