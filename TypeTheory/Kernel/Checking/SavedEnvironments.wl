@@ -60,6 +60,9 @@ PackageScoped[saveEnvironment]
 PackageScoped[environmentProvenance]
 PackageScoped[environmentContentHash]
 PackageScoped[contentHashOf]
+PackageScoped[environmentRecordHashes]
+PackageScoped[recordFingerprints]
+PackageScoped[recordDigests]
 PackageScoped[$kernelHash]
 PackageScoped[$trustedSources]
 PackageScoped[kernelSourcesHash]
@@ -75,6 +78,9 @@ directory over the environment base if this kernel wrote the file there, and oth
 environmentProvenance::usage = "environmentProvenance[environment] gives where environment came from: its declarations, checked, or a file."
 saveEnvironment::usage = "saveEnvironment[file, environment] writes environment to file and gives File[file]."
 contentHashOf::usage = "contentHashOf[environment] gives the content hash of environment made again, which environmentContentHash keeps once made."
+environmentRecordHashes::usage = "environmentRecordHashes[environment] gives <|HoldComplete[name] -> hash, ...|>, each record's structural hash, a list of four residues, in the order the constants were declared, kept once made."
+recordFingerprints::usage = "recordFingerprints[<|key -> record, ...|>] gives <|key -> hash, ...|>, the structural hash of each record, as environmentRecordHashes gives those of an environment's records."
+recordDigests::usage = "recordDigests[<|key -> record, ...|>] gives <|key -> digest, ...|>, the SHA-256 of each record over a table of its own terms, as a string of hexadecimal digits."
 environmentContentHash::usage = "environmentContentHash[environment] gives the content hash of environment, the same in every session."
 $kernelHash::usage = "$kernelHash is the SHA-256 of the save format's version and the trusted sources, which a saved environment records."
 $trustedSources::usage = "$trustedSources is the list of the kernel sources that decide what is accepted, as paths under Kernel/, whose hash a saved environment records."
@@ -207,6 +213,30 @@ rememberContentHash[environment : TypeTheoryEnvironment[store_Symbol], recordHas
 environmentRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := Replace[
 	store["RecordHashes"],
 	Except[_Association] :> (store["RecordHashes"] = freshContents[environment, None]["RecordHashes"])
+]
+
+(* The structural hash of records that are in no environment, as a theorem's read as an axiom of its statement: the
+   records' terms in a table of their own, fingerprinted as an environment's are. *)
+recordFingerprints[<||>] := <||>
+recordFingerprints[records_Association] := Block[{$nodeIndex = <||>, $nodeCount = 0, printedRecords, printedNodes},
+	{printedRecords, printedNodes} = Reap[Map[recordRefs, records], $nodeTag];
+	With[{packed = packedContents[<|"Nodes" -> Replace[printedNodes, {{nodes_List} :> nodes, {} -> {}}], "Records" -> printedRecords|>]},
+		If[ packed["FormatVersion"] === 1,
+			AssociationThread[Keys[records], Transpose[bytesFingerprints[Map[BinarySerialize, Values[records]]]]],
+			recordHashesOf[packed["Records"], tableFingerprints[packed]]
+		]
+	]
+]
+
+(* The SHA-256 of each record over a table of its own terms: their rows numbered as the record's terms reach them, and
+   the record with each term its row. A record's table is walked apart from every other's, so a subterm two records share
+   is written in both, but within a record each subterm once. It is a digest against a forger, where the structural hash
+   shows only that a table and its records agree. *)
+recordDigests[records_Association] := Map[recordDigest, records]
+
+recordDigest[record_] := Block[{$nodeIndex = <||>, $nodeCount = 0, digestRefs, digestNodes},
+	{digestRefs, digestNodes} = Reap[recordRefs[record], $nodeTag];
+	Hash[BinarySerialize[{digestRefs, Replace[digestNodes, {{nodes_List} :> nodes, {} -> {}}]}], "SHA256", "HexString"]
 ]
 
 (* the contents a file holds of environment beyond base, packed, with each record's hash: written from the table the

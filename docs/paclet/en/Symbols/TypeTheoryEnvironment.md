@@ -50,7 +50,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers]
 - The prelude is classical: it assumes `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and proves `"functionExtensionality"` and `"excludedMiddle"` from them. Its fourth axiom, [ExpressionEvaluate](), is the evaluation of the Wolfram Language. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
 - An environment never changes: adding declarations gives a new one and leaves the old one as it was.
 - An environment behaves like an [Association]() of its constants. <code>*env*[*name*]</code> gives the declaration that introduced the constant *name*, and [Keys](), [Length](), [KeyExistsQ]() and [Normal]() work as for an [Association](). [Normal]() gives all the declarations, the prelude's included, written out exactly, so <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[[Information]()[*env*, "Rules"]], [Normal]()[*env*]]</code> rebuilds *env* on the empty environment of its rules.
-- <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Theorems"`, `"Axioms"`, `"Holes"`, the open theorems with their holes, `"Annotations"`, the annotation of each constant whose declaration gives one, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"` and `"Provenance"`, which says whether *env* was read from a file without checking it. `"Properties"` lists them, and any other property gives a [Failure]().
+- <code>[Information]()[*env*, *property*]</code> gives `"Constants"`, `"Kinds"`, `"Theorems"`, `"Axioms"`, `"Holes"`, the open theorems with their holes, `"Annotations"`, the annotation of each constant whose declaration gives one, `"RewriteRules"`, `"NaturalNumbers"`, `"Rules"`, `"Provenance"`, which says whether *env* was read from a file without checking it, and `"Signature"`, the rules, the natural numbers and each record's structural hash, with a theorem read as an axiom of its statement, or `"StrongSignature"` with each record's SHA-256. `"Properties"` lists them, and any other property gives a [Failure]().
 - An environment is a handle to a store: a symbol whose definitions, its [DownValues](), hold the constants. The handle is small, so terms and proofs carry their environment with them, and a store lasts for the session. A library environment is built once a session, the first time it is asked for.
 - <code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of *env* again from scratch.
 - <code>[TypeTheoryEnvironment]()[*env*, {*declaration1*, ...}, [Method]() -> "Compiled"]</code> adds the declarations without checking them, inductive types aside, and then checks them all at once with the compiled kernel (see [TypeTheoryCheck]()), which is faster for many declarations, as an imported library has. Where the compiled kernel cannot check them, or one does not check, the declarations are added again with each one checked, so the result is the same as without the option.
@@ -343,6 +343,36 @@ Information[TypeTheoryEnvironment["HomotopyTypeTheory"], "Rules"]["Name"]
 ```
 
 <!-- => "MartinLofTypeTheory" -->
+
+---
+
+The signature of an environment reads each theorem as an axiom of its statement, which is how the declarations after it see it. An environment with a theorem and one with an axiom of the same statement:
+
+```wl
+withAxiom = TypeTheoryEnvironment[{TypeTheoryAxiom["twoTwo", 2 + 2 == 4]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
+
+```wl
+withTheorem = TypeTheoryEnvironment[{TypeTheoryTheorem["twoTwo", 2 + 2 == 4, "equalityReflexivity"[4]]}]
+```
+
+<!-- => TypeTheoryEnvironment summary box: 276 constants -->
+
+They have the same signature, so a development too large to check at once can be checked as its signature, and its proofs in environments cut from it in its order, each compared with it:
+
+```wl
+Information[withTheorem, "Signature"] === Information[withAxiom, "Signature"]
+```
+
+<!-- => True -->
+
+```wl
+Keys[Information[withTheorem, "Signature"]]
+```
+
+<!-- => {"Rules", "NaturalNumbers", "Records"} -->
 
 ### Saved environments
 

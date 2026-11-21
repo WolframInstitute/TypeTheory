@@ -885,3 +885,97 @@ VerificationTest[
 	{<|"cited" -> <|"LeanName" -> "rfl"|>|>, {"opened"}, {TypeTheoryHole["opened", 1], <|"Citation" -> "left open"|>}, <||>, True, {"UnknownProperty", {"NoSuchProperty"}}},
 	TestID -> "An-environment-lists-its-annotations-and-open-theorems-and-refuses-a-property-it-does-not-have"
 ]
+
+
+
+(* ::Section:: *)
+(*Signatures and checking in shards*)
+
+
+(* A development checked in shards: the whole of it with its theorems as axioms of their statements, and shards cut
+   from it in its order, each with the theorems of a batch proved. A shard checks as any environment does, each proof
+   against what comes before it, and its signature, a theorem read as an axiom of its statement, agrees with the
+   whole one's where the shard is the development's. *)
+wholeSignature = TypeTheoryEnvironment[prelude, {
+	TypeTheoryAxiom["twoTwo", 2 + 2 == 4],
+	TypeTheoryDefinition["late", 7],
+	TypeTheoryAxiom["middle", 1 == 1 || ! 1 == 1]
+}]
+
+(* the signature's records agree with the whole one's, in its order *)
+agreesQ[shard_, whole_] := With[{shardRecords = shard["Records"], wholeRecords = whole["Records"]},
+	shard["Rules"] === whole["Rules"] && SubsetQ[Keys[wholeRecords], Keys[shardRecords]] &&
+		KeyTake[wholeRecords, Keys[shardRecords]] === shardRecords &&
+		OrderedQ[Lookup[AssociationThread[Keys[wholeRecords], Range[Length[wholeRecords]]], Keys[shardRecords]]]
+]
+
+VerificationTest[
+	With[
+		{
+			shard = TypeTheoryEnvironment[prelude, {
+				TypeTheoryTheorem["twoTwo", 2 + 2 == 4, "equalityReflexivity"[4]],
+				TypeTheoryDefinition["late", 7],
+				TypeTheoryTheorem["middle", 1 == 1 || ! 1 == 1, "excludedMiddle"[1 == 1]]
+			}]
+		},
+		{
+			Head[TypeTheoryCheck[shard]],
+			agreesQ[Information[shard, "Signature"], Information[wholeSignature, "Signature"]],
+			agreesQ[Information[shard, "StrongSignature"], Information[wholeSignature, "StrongSignature"]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["middle", wholeSignature]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["middle", shard]]
+		}
+	],
+	{
+		Success, True, True,
+		<|"middle" -> "Proposition"|>,
+		<|"choice" -> "Signature", "quotientSoundness" -> "Proposition", "propositionalExtensionality" -> "Proposition"|>
+	},
+	TestID -> "A-shard-with-proofs-agrees-with-the-signature-of-its-development"
+]
+
+(* a proof can cite only what comes before it in the development's order: cut in that order, a proof citing a later
+   constant does not check; cut in another, the shard's signature does not agree *)
+VerificationTest[
+	{
+		First[TypeTheoryEnvironment[prelude, {
+			TypeTheoryTheorem["twoTwo", 2 + 2 == 4, Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"[4]]["late"]],
+			TypeTheoryDefinition["late", 7]
+		}]],
+		agreesQ[
+			Information[TypeTheoryEnvironment[prelude, {
+				TypeTheoryDefinition["late", 7],
+				TypeTheoryTheorem["twoTwo", 2 + 2 == 4, Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"[4]]["late"]]
+			}], "Signature"],
+			Information[wholeSignature, "Signature"]
+		]
+	},
+	{"ElaborationFailed", False},
+	TestID -> "A-proof-in-a-shard-cites-only-what-comes-before-it-in-the-development"
+]
+
+VerificationTest[
+	With[
+		{
+			otherStatement = TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["twoTwo", 4 == 4, "equalityReflexivity"[4]]}],
+			otherRules = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory"], {TypeTheoryAxiom["twoTwo", TypeUniverse[0]]}]
+		},
+		Flatten[Function[property, {
+			agreesQ[Information[otherStatement, property], Information[wholeSignature, property]],
+			agreesQ[Information[otherRules, property], Information[wholeSignature, property]]
+		}] /@ {"Signature", "StrongSignature"}]
+	],
+	{False, False, False, False},
+	TestID -> "A-shard-with-another-statement-or-other-rules-does-not-agree"
+]
+
+VerificationTest[
+	Module[{file = FileNameJoin[{$TemporaryDirectory, "signature-" <> CreateUUID[] <> ".wxf"}], read},
+		Export[file, wholeSignature];
+		read = TypeTheoryEnvironment[File[file]];
+		DeleteFile[file];
+		{Information[read, "Signature"] === Information[wholeSignature, "Signature"], MemberQ[Information[read, "Properties"], "StrongSignature"]}
+	],
+	{True, True},
+	TestID -> "An-environment-read-from-a-file-keeps-its-signature"
+]

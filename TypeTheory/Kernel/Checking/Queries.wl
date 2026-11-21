@@ -679,12 +679,39 @@ registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ he
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
-environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "Holes", "Annotations", "RewriteRules", "NaturalNumbers", "Rules", "Provenance"}
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "Holes", "Annotations", "RewriteRules", "NaturalNumbers", "Rules", "Provenance", "Signature", "StrongSignature"}
 (* the theorems by name, each with its statement, in the order they were declared *)
 environmentInformation[environment_, "Theorems"] := Association[
 	Function[name, theoremKey[name] -> coreToTypeTheoryTerm[environment, <||>, constantRecord[environment, name]["Type"]]] /@
 		Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Theorem"]]
 ]
+
+(* The signature of an environment: its rules, its natural numbers, and each record's structural hash by name, in the
+   order they were declared, a theorem's record read as that of an axiom of its statement. The kernel never unfolds a
+   theorem, so its proof changes no check of what comes after it: a development whose theorems are axioms checks as the
+   development does, and so does an environment cut from it, in its order, with some of the theorems proved. Where the
+   signatures of the two agree, name by name and in order, the cut is the development's, and a proof that checks in it
+   is a proof of the development's statement, checked against what comes before it there. "StrongSignature" gives each
+   record's SHA-256 in place of its structural hash, for a cut that may come from anywhere (SavedEnvironments.wl). *)
+environmentInformation[environment_, "Signature"] :=
+	environmentSignature[environment, Join[environmentRecordHashes[environment], recordFingerprints[theoremStatements[environment]]]]
+environmentInformation[environment_, "StrongSignature"] := environmentSignature[
+	environment,
+	recordDigests[Join[AssociationMap[Function[name, constantRecord[environment, name]], environmentNames[environment]], theoremStatements[environment]]]
+]
+
+environmentSignature[environment_, records_Association] := <|
+	"Rules" -> environmentRules[environment],
+	"NaturalNumbers" -> naturalNumberSettings[environment],
+	"Records" -> records
+|>
+
+(* each theorem's record as the record of an axiom of its statement, by name, its keys in an axiom's order: a record's
+   hash is of its bytes, which follow the order of its keys *)
+theoremStatements[environment_] := Association[Map[
+	Function[name, name -> Join[<|"Kind" -> "Axiom"|>, KeyDrop[constantRecord[environment, name], {"Kind", "Value"}]]],
+	Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Theorem"]]
+]]
 
 (* a theorem's name as a key: its string, or its symbol held; a rule of its own, as an enclosing -> would scope the pattern *)
 theoremKey[HoldComplete[text_String]] := text

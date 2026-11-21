@@ -388,6 +388,31 @@ describe. One that is not is named by the message `$compiledKernelSeed::mismatch
 not match, and the records' terms are read as without a seed. The check costs 0.18 s on the seed of the import of 24 modules of Mathlib (316,377 terms, 5,072 constants) and
 0.65 to 0.69 s on that of 36 (1,096,916 terms, 11,899 constants), and LeanLink's seeds pass it (at nice 19).
 
+## Checking in shards
+
+The kernel never unfolds a theorem, so a theorem's proof changes no check of what comes after it: a development whose
+theorems are axioms of their statements, its signature, checks as the development does. A development too large to
+check in one chain of batches is checked as its signature, once, and in shards: each an ordinary environment cut from
+the development in its order, holding what a batch of proofs needs, the batch's theorems with their proofs and every
+other theorem as an axiom. A shard is checked as any environment is, each declaration against those before it, so a
+proof cites only what comes before its theorem: two theorems whose proofs cite each other cannot both check, a literal
+needs its natural numbers registered before it, and a rewrite rule declared later is not there yet.
+
+`Information[environment, "Signature"]` gives an environment's rules, its natural numbers and each record's
+structural hash by name, in order, a theorem's record read as that of an axiom of its statement. Where a shard's
+signature agrees with the development's, name by name, with the same hashes and in the same order, the shard is cut
+from the development, and each proof that checks in it proves the development's statement from what comes before it
+there. The assumptions of a statement are then the axioms of its closure in the signature that are no theorem of the
+development, with the closures, in their shards, of the theorems it reaches.
+
+**The threat model of shards.** The structural hashes are the fingerprints of saved environments, which guard
+consistency, not forgery: they show that a shard cut by this pipeline from one export agrees with it, and whoever makes
+a shard could make the hashes along with it. `Information[environment, "StrongSignature"]` gives each record's
+SHA-256 over a table of its own terms in place of its structural hash, for a shard from anywhere else, at the cost of a
+walk of each record's terms. The tests (Tests/Checking/Queries.wlt): a shard with proofs agrees with its development's
+signature under both, and carries its proofs' closures; a proof citing what comes after it does not check, or its shard
+does not agree; a shard with another statement or other rules does not agree; a signature survives a saved file.
+
 ## The compiled kernel's memory
 
 The compiled program's memory is one array, whose regions the header of `CompiledKernel.wl` lists. Two measurements on
