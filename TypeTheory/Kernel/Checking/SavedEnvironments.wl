@@ -61,6 +61,7 @@ PackageScoped[environmentProvenance]
 PackageScoped[environmentContentHash]
 PackageScoped[contentHashOf]
 PackageScoped[$kernelHash]
+PackageScoped[$trustedSources]
 PackageScoped[kernelSourcesHash]
 PackageScoped[termRef]
 
@@ -75,8 +76,9 @@ environmentProvenance::usage = "environmentProvenance[environment] gives where e
 saveEnvironment::usage = "saveEnvironment[file, environment] writes environment to file and gives File[file]."
 contentHashOf::usage = "contentHashOf[environment] gives the content hash of environment made again, which environmentContentHash keeps once made."
 environmentContentHash::usage = "environmentContentHash[environment] gives the content hash of environment, the same in every session."
-$kernelHash::usage = "$kernelHash is the SHA-256 of the paclet's version and kernel sources, which a saved environment records."
-kernelSourcesHash::usage = "kernelSourcesHash[version, {{path, hash}, ...}] gives the SHA-256, in hexadecimal digits, of the bytes of the version and a line for each source file, its hash and its path: the same string on every engine."
+$kernelHash::usage = "$kernelHash is the SHA-256 of the save format's version and the trusted sources, which a saved environment records."
+$trustedSources::usage = "$trustedSources is the list of the kernel sources that decide what is accepted, as paths under Kernel/, whose hash a saved environment records."
+kernelSourcesHash::usage = "kernelSourcesHash[label, {{path, hash}, ...}] gives the SHA-256, in hexadecimal digits, of the bytes of the label and a line for each source file, its hash and its path: the same string on every engine."
 termRef::usage = "termRef[row] stands in a saved environment for the term of a row of its table."
 
 
@@ -88,14 +90,25 @@ $formatVersion = 2
 
 $pacletDirectory = ParentDirectory[DirectoryName[$InputFileName], 2]
 
-(* FileHash reads each file itself: ReadByteArray would read FinalEvaluations.wl, which is being loaded when the prelude
-   is read, from where the loader's open stream has got to. A path is written with /, whatever the system's separator. *)
+(* The trust boundary, listed once: the sources whose code decides what is accepted, the core terms and everything in
+   Checking (the kernel, inductive types and their recursors, quotients, declarations and axioms, the rules, the compiled
+   kernel, and the save and load format itself). A saved environment records their hash and is read without a check only
+   by a kernel with the same; a change anywhere else, a library lemma, a tactic, elaboration or display, keeps it
+   readable, and a change in the declarations of its base is caught by the base's content hash. A test asks that every
+   file of Checking is listed. docs/notes/Kernel.md names this list. *)
+$trustedSources = {
+	"Terms/CoreTerms.wl",
+	"Checking/CompiledKernel.wl", "Checking/Cubical.wl", "Checking/Declarations.wl", "Checking/Environment.wl", "Checking/Holes.wl",
+	"Checking/InductiveTypes.wl", "Checking/NaturalNumbers.wl", "Checking/Quantities.wl", "Checking/Queries.wl", "Checking/Quotients.wl",
+	"Checking/Rules.wl", "Checking/SavedEnvironments.wl", "Checking/TypeChecking.wl"
+}
+
+(* FileHash reads each file itself: ReadByteArray would read a file being loaded from where the loader's open stream has
+   got to. The paths are written with /, whatever the system's separator, and the save format's version stands where a
+   release's version would, so a release that changes no trusted source keeps saved environments readable. *)
 $kernelHash := $kernelHash = kernelSourcesHash[
-	PacletObject[File[$pacletDirectory]]["Version"],
-	Map[
-		Function[file, {StringRiffle[FileNameSplit[FileNameDrop[file, FileNameDepth[$pacletDirectory]]], "/"], FileHash[file, "SHA256", All, "HexString"]}],
-		FileNames["*.wl", FileNameJoin[{$pacletDirectory, "Kernel"}], Infinity]
-	]
+	"format " <> ToString[$formatVersion],
+	Map[Function[path, {path, FileHash[FileNameJoin[Prepend[StringSplit[path, "/"], FileNameJoin[{$pacletDirectory, "Kernel"}]]], "SHA256", All, "HexString"]}], $trustedSources]
 ]
 
 (* The hash is of bytes. The hash of an expression is each engine's own, and with it a file saved on one engine read on
@@ -283,6 +296,14 @@ loadEnvironment[file_String, check_] := Block[{loadData = readEnvironmentFile[fi
 	If[ ! environmentQ[loadBase] || environmentRules[loadBase] =!= loadData["Rules"],
 		kernelFailure["SavedEnvironmentBase", "`1` extends the environment `2`, which this TypeTheory does not have.", {file, loadData["Base"]["Name"]}]
 	];
+	(* the base is compared by its declarations, the content hash recorded when the file was written *)
+	If[ AssociationQ[loadData["Base"]] && loadData["Base"]["Hash"] =!= environmentContentHash[loadBase] && ! TrueQ[check],
+		kernelFailure[
+			"SavedEnvironmentBaseChanged",
+			"`1` was saved over the environment `2` as it was then, and its declarations have changed since; read it with \"Check\" -> True to check its `3` constants again.",
+			{file, loadData["Base"]["Name"], Length[loadData["Names"]]}
+		]
+	];
 	loaded = environmentFromContents[loadBase, loadData, File[file]];
 	If[ TrueQ[check],
 		Replace[TypeTheoryCheck[loaded], failure_Failure :> throwFailure[failure]];
@@ -306,6 +327,7 @@ savedLibraryEnvironment[name_String, base_] := Quiet @ Block[{libraryFile = File
 	libraryData = catchKernelFailure[readEnvironmentFile[libraryFile]];
 	If[ ! AssociationQ[libraryData] || libraryData["KernelHash"] =!= $kernelHash || libraryData["Rules"] =!= environmentRules[base], Return[None, Block]];
 	If[ Lookup[Replace[libraryData["Base"], None -> <||>], "Name", None] =!= Replace[First[base]["LibraryName"], Except[_String] -> None], Return[None, Block]];
+	If[ AssociationQ[libraryData["Base"]] && libraryData["Base"]["Hash"] =!= environmentContentHash[base], Return[None, Block]];
 	Replace[catchKernelFailure[environmentFromContents[base, libraryData, File[libraryFile]]], _Failure -> None]
 ]
 
@@ -486,6 +508,9 @@ environmentFromContents[base : TypeTheoryEnvironment[baseStore_Symbol], data_Ass
 	With[{loadedStore = First[loadedEnvironment]},
 		(* the file's rewrite-rule index is not read: the store makes it from the records, as every derived key *)
 		loadedStore["NaturalNumbers"] = data["NaturalNumbers"];
+		(* the content hash the file recorded, kept as made, which TypeTheoryCheck compares with the hash made again; an
+		   environment saved over this one is compared with it on reading *)
+		If[StringQ[data["Hash"]], loadedStore["ContentHash"] = data["Hash"]];
 		loadedStore["Provenance"] = <|"Source" -> source, "Hash" -> data["Hash"], "Checked" -> False|>
 	];
 	loadedEnvironment

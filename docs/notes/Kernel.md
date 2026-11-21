@@ -313,7 +313,7 @@ the records and the base, and then never taken from a file and compared with the
 | `"RewriteRuleIndex"` | the rewrite rules among the records | reduction | compared with the replay's |
 | `"OverloadIndex"` | the records' `"Overloads"` | elaboration | compared with the replay's |
 | `"Library"` | the base | saving, which names it | its records must be the store's first |
-| `"ContentHash"` | the contents, once a save asks for it | saving | made again and compared where kept |
+| `"ContentHash"` | the packed contents, once a save asks for it, or the hash a saved file recorded | saving, and reading a file saved over this one | made again and compared where kept |
 | `"Identifier"`, `"LibraryName"`, `"Provenance"` | bookkeeping | neither checking nor reduction | not compared |
 
 **An index the kernel trusted.** From 0.6.0 to 0.42.2 an axiom's rewrite rules were found through the store's index
@@ -343,6 +343,16 @@ A saved file read with `"Check" -> True` goes through `TypeTheoryCheck`, and an 
 batch path. So the replay and the declarations' generation are part of the trusted path, as the declaration functions
 are. The tests (Tests/Checking/Queries.wlt): the batch path makes the store that declaring one at a time makes, and a
 recursor's rule forged in a store or in a saved file is refused.
+
+**Reading a file without a check.** A saved file records `$kernelHash`, the hash of the trusted sources, listed once in
+`$trustedSources` (Checking/SavedEnvironments.wl): Terms/CoreTerms.wl and every file of Checking, the kernel and
+everything that decides what is accepted, the save and load format among them. The library, the tactics, elaboration
+and display are outside it: a changed lemma or tactic keeps saved environments readable, and a changed trusted source
+refuses them until they are read with `"Check" -> True`. A file also records the content hash of the base it was saved
+over, a hash of the base's declarations, and reading compares it with the base's hash now, so a file over a base whose
+declarations changed is refused in the same way. The tests (Tests/Checking/SavedEnvironments.wlt): every file of
+Checking is in the list, and nothing of the library, the proofs or elaboration; the kernel hash is the one made from
+those files; a file whose recorded base hash differs reads only with a check.
 
 **A seed the batch path did not check.** The batch path takes one thing from its caller besides declarations:
 `$compiledKernelSeed`, a table of the terms the records hold with the row each makes. An import gives it so that the

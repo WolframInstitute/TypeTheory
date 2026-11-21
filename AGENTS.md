@@ -26,7 +26,9 @@ umbrella file `TypeTheory/Kernel/TypeTheory.wl` calls `PackageInitialize`, and e
   `Checking/Quantities.wl`, `Checking/Cubical.wl`, `Checking/Environment.wl` and the core declaration functions in
   `Checking/Declarations.wl` decide what is a theorem. A change there needs a
   test that a forged proof or declaration is still rejected. Elaboration and tactics are untrusted:
-  everything they produce is checked again by the kernel.
+  everything they produce is checked again by the kernel. The kernel hash a saved environment records covers
+  exactly the trusted sources, listed once in `$trustedSources` (Checking/SavedEnvironments.wl): a new file that
+  decides acceptance goes in that list.
 - **Terms must stay held.** Surface terms are built from built-in symbols that evaluate (`ForAll`,
   `Equal`, `Plus`); never let one evaluate. Functions that take surface terms have `Hold*` attributes,
   and names are kept as `HoldComplete[name]`. A pattern such as `TypeTheoryProof[_Association]` must not

@@ -215,7 +215,44 @@ VerificationTest[
 	TestID -> "A-trusted-quotient-is-named-alike-before-and-after-saving"
 ]
 
+(* A file records the content hash of the base it was saved over, and is read without a check only over a base with the
+   same declarations: a change in the base, here the recorded hash made another, refuses it, and a check reads it *)
+VerificationTest[
+	Module[{over = TypeTheoryEnvironment["Prelude", {TypeTheoryDefinition[BaseCheckNumber, Typed[2, NonNegativeIntegers]]}], data, changed = savedFile["changedBase"]},
+		Export[savedFile["overPrelude"], over];
+		data = savedData["overPrelude"];
+		data["Base"] = Append[data["Base"], "Hash" -> StringRepeat["0", 64]];
+		BinaryWrite[changed, BinarySerialize[data]];
+		Close[changed];
+		{
+			Head[TypeTheoryEnvironment[File[savedFile["overPrelude"]]]],
+			data["Base"]["Name"],
+			TypeTheoryEnvironment[File[changed]]["Tag"],
+			Head[TypeTheoryEnvironment[File[changed], "Check" -> True]]
+		}
+	],
+	{TypeTheoryEnvironment, "Prelude", "SavedEnvironmentBaseChanged", TypeTheoryEnvironment},
+	TestID -> "A-file-over-a-base-whose-declarations-changed-reads-only-with-a-check"
+]
+
 DeleteDirectory[directory, DeleteContents -> True]
+
+(* The kernel hash is of the trusted sources alone, the trust boundary listed once: every file of Checking is among them,
+   nothing of the library, the proofs or elaboration, so a changed library lemma or tactic keeps saved environments
+   readable, and the hash is the one made from those files *)
+VerificationTest[
+	With[{trusted = WolframInstitute`TypeTheory`PackageScope`$trustedSources, kernel = FileNameJoin[{Directory[], "TypeTheory", "Kernel"}]},
+		{
+			Complement[Map[StringJoin["Checking/", FileNameTake[#]] &, FileNames["*.wl", FileNameJoin[{kernel, "Checking"}]]], trusted],
+			Select[trusted, StringStartsQ[#, "Library/" | "Proofs/" | "Elaboration/"] &],
+			AllTrue[trusted, FileExistsQ[FileNameJoin[Prepend[StringSplit[#, "/"], kernel]]] &],
+			WolframInstitute`TypeTheory`PackageScope`$kernelHash ===
+				WolframInstitute`TypeTheory`PackageScope`kernelSourcesHash["format 2", Map[{#, FileHash[FileNameJoin[Prepend[StringSplit[#, "/"], kernel]], "SHA256", All, "HexString"]} &, trusted]]
+		}
+	],
+	{{}, {}, True, True},
+	TestID -> "The-kernel-hash-is-of-the-trusted-sources-alone-every-file-of-Checking-among-them"
+]
 
 (* The hash that names the kernel which saved a file is of bytes, the version and a line for each source file, so every
    engine gives the same string for the same sources, where the hash of an expression is each engine's own: the value
