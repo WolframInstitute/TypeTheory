@@ -218,7 +218,7 @@ defaultEnvironment[] := Which[
 		preludeEnvironment[]
 ]
 
-$environmentNames = {"Prelude", "Constructive", "HomotopyTypeTheory", "Integers", "Rationals", "Machine", "MachineReals", "Cubical", "WolframLanguage"}
+$environmentNames = {"Prelude", "Constructive", "HomotopyTypeTheory", "Integers", "Rationals", "Machine", "MachineReals", "Cubical", "WolframLanguage", "Wolfram23"}
 
 SetTypeTheoryEnvironment[environment_?environmentQ] := ($TypeTheoryEnvironment = environment)
 

@@ -190,3 +190,14 @@ VerificationTest[
 	{True, True, True, True},
 	TestID -> "A-symbol-is-a-number-that-decodes-back-and-the-tag-system-on-numbers-follows"
 ]
+
+(* the environment by its name, as every library environment is named: a term and a type in it, and the default *)
+VerificationTest[
+	{
+		Head[TypeTheoryTerm["minskySimulation", "Wolfram23"]],
+		TypeTheoryType["minskySimulation", "Wolfram23"] === TypeTheoryType[TypeTheoryTerm["minskySimulation", wolfram23]],
+		Block[{$TypeTheoryEnvironment = "Wolfram23"}, Head[TypeTheoryType["cookSimulation"]]]
+	},
+	{TypeTheoryTerm, True, TypeTheoryTerm},
+	TestID -> "A-term-and-a-type-in-the-Wolfram23-environment-by-its-name"
+]
