@@ -10,9 +10,9 @@ RelatedGuides: [TypeTheory]
 RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, ProgramsAndProofs, WolframLanguageTheorems]
 ---
 
-Wolfram's 2-state, 3-color Turing machine is universal: for any well-formed binary Turing machine, any valid starting configuration and any finite run of `n` steps, there exist a starting configuration of Wolfram's (2,3) machine in state A, decoding parameters, a strictly increasing sequence of step times and a final time `T` such that the run stays on its tape through time `T`, decodes at each scheduled time to the binary machine's corresponding configuration (up to trailing blanks), and exits cleanly to the right at time `T + 1`. Alex Smith's proof reaches the machine through a chain of emulations, six rungs from binary Turing machines down to the (2,3) machine, each proved as a forward simulation between step systems.
+The goal of this formalization is Alex Smith's theorem that Wolfram's 2-state, 3-color Turing machine is universal: for any well-formed binary Turing machine, any valid starting configuration and any finite run of `n` steps, there exist a starting configuration of Wolfram's (2,3) machine in state A, decoding parameters, a strictly increasing sequence of step times and a final time `T` such that the run stays on its tape through time `T`, decodes at each scheduled time to the binary machine's corresponding configuration (up to trailing blanks), and exits cleanly to the right at time `T + 1`. Smith's proof reaches the machine through a chain of emulations, six rungs from binary Turing machines down to the (2,3) machine, each a forward simulation between step systems, and a seventh that composes them.
 
-All definitions and theorems of the formalization live in <code>[TypeTheoryEnvironment]()["Wolfram23"]</code>, checked by TypeTheory's kernel with no axioms beyond the kernel itself.
+All definitions and theorems of the formalization live in <code>[TypeTheoryEnvironment]()["Wolfram23"]</code>, checked by TypeTheory's kernel. The environment extends the prelude, axioms included; each theorem's [TypeTheoryAxiomClosure]() shows what it rests on, and every theorem shown here rests on the kernel alone.
 
 | Rung | Emulation | Target steps per source step | Status |
 |---|---|---|---|
@@ -520,7 +520,7 @@ wolfram23["tagRoundOddHead"]
 
 <!-- => theorem tagRoundOddHead : ∀_S∶Type ∀_productions∶S → {S} ∀_n∶ℕ ∀_a∶S ∀_l∶{S} ∀_c∶S ∀_d∶S Length[l] == 2 n + 2 ⇒ productions[a] == Prepend•c•d ⇒ steps[tagStep[productions], n + 2, Prepend•a•l] == some[Join[d, passOutFrom[productions, l, false]]] -->
 
-Each round of Cocke and Minsky's machine step is one theorem. Round 1 copies `"minskyWord"[q, m, n]` into `"afterRound1"[q, m, n]` (`P1 P0 (p p)^m Q r^n`):
+Each round of Cocke and Minsky's machine step is one theorem. Round 1 rewrites `"minskyWord"[q, m, n]` into `"afterRound1"[q, m, n]`:
 
 ```wl
 wolfram23["minskyRound1"]
@@ -528,7 +528,7 @@ wolfram23["minskyRound1"]
 
 <!-- => theorem minskyRound1 : ∀_tm∶ℕ → 𝔹 → MachineTransition ∀_q∶ℕ ∀_m∶ℕ ∀_n∶ℕ steps[tagStep[minskyProductions[tm]], (m + n) + 2, minskyWord[q, m, n]] == some[afterRound1[q, m, n]] -->
 
-Round 2 halves the right number `2 n + h`: when `h` is `"false"`, the word has odd length, so `E1` is consumed as the partner of the last `r`, shifting the reading frame of round 3 to the `false` symbols:
+Round 2 halves the right number `2 n + h`. The bit `h` decides whether the word it reads has even or odd length, and over an odd word the last symbol takes the first symbol of the next production as its partner (`"tagRoundOddHead"`), which shifts the reading frame of round 3:
 
 ```wl
 wolfram23["minskyRound2"]
@@ -724,14 +724,6 @@ TypeTheoryProofTree[wolfram23["machineToCyclicTag"]["Term"]]
 
 <!-- => derivation of machineToCyclicTag by ∀I and →I from forwardSimulationCompose over forwardSimulationCompose[minskySimulation, minskyNumbersSimulation] and cookSimulation[minskyNumbersBelow] -->
 
-Counting the rules of that derivation confirms it takes only nine inference steps:
-
-```wl
-Counts[Cases[TypeTheoryProofTree[wolfram23["machineToCyclicTag"]["Term"]], TypeTheoryProofTree[rule_, __] :> rule, {0, Infinity}]]
-```
-
-<!-- => <|"minskySimulation" -> 1, "minskyNumbersSimulation" -> 1, "forwardSimulationCompose" -> 2, "Assumption" -> 1, "minskyNumbersBelow" -> 1, "cookSimulation" -> 1, "ImpliesIntro" -> 1, "ForAllIntro" -> 2|> -->
-
 ## What Remains
 
 Four rungs remain to close the gap between `"machineToCyclicTag"` and `"wolfram23Simulates3"` and complete the universality theorem:
@@ -739,4 +731,4 @@ Four rungs remain to close the gap between `"machineToCyclicTag"` and `"wolfram2
 - **Rung 3 (cyclic tag systems to System 5)**: encode a cyclic tag system into System 5's bag and rules with the doubling folded into the encoder, prove the two-doubled-step simulation lemma, and settle the representation of finite sets and their truncated-subtraction invariants.
 - **Rung 4 (System 5 to System 4)**: emulate System 5 by System 4 for a finite run, choosing the parameter `f` large enough for the run's length and establishing System 5's terminal event and System 4's exit in state C.
 - **Rung 5 (System 4 to System 3)**: encode System 4's sets as parity blocks of width `2^w`, prove the prefix-XOR scan and the rule-60 period-`2^w` identity by induction on `w`, and prove left confinement together with System 3's exit lemma.
-- **Rung 7 (full composition and universality)**: compose rungs 1 through 6 into the existential finite universality theorem for Wolfram's (2,3) Turing machine, prove the decoding lemmas for each layer of `decodeTM`, and combine confinement with the terminal exit configuration (followed later by the infinite form, one tape for all `n`).
+- **Rung 7 (full composition and universality)**: compose rungs 1 through 6 into the existential finite universality theorem for Wolfram's (2,3) Turing machine, prove the decoding lemmas for the decoder of each layer, and combine confinement with the terminal exit configuration (followed later by the infinite form, one tape for all `n`).
