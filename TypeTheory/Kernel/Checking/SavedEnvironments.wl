@@ -228,29 +228,25 @@ freshContents[environment_, base_] := With[{packed = packedContents[environmentC
    added since are made into rows, after the table's. None where the environment kept no table, the table is not of the
    records the contents begin with, or a record added holds a cubical system, which only format 1 writes. *)
 keptContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
-	{kept = store["SavedTable"], contentNames, coveredNames, addedNames, addedRecords, addedNodes, addedRows, keptLeaves, keptLabels, keptTable, keptDepths, keptPrints, changed},
+	{kept = store["SavedTable"], keptNames, coveredNames, addedNames, addedRecords, addedNodes, addedRows, keptLeaves, keptLabels, keptTable, keptDepths, keptPrints, changed},
 	If[ ! AssociationQ[kept],
 		None,
-		contentNames = Drop[environmentNames[environment], Replace[base, {None -> 0, {_, baseEnvironment_} :> Length[environmentNames[baseEnvironment]]}]];
+		keptNames = Drop[environmentNames[environment], Replace[base, {None -> 0, {_, baseEnvironment_} :> Length[environmentNames[baseEnvironment]]}]];
 		coveredNames = Keys[kept["Records"]];
-		If[ kept["BaseCount"] =!= Length[environmentNames[environment]] - Length[contentNames] || Take[contentNames, UpTo[Length[coveredNames]]] =!= coveredNames,
+		If[ kept["BaseCount"] =!= Length[environmentNames[environment]] - Length[keptNames] || Take[keptNames, UpTo[Length[coveredNames]]] =!= coveredNames,
 			None,
 			changed = Select[coveredNames, Function[name, ! SameQ[constantRecord[environment, name], kept["Records"][name]]], 1];
 			If[ changed =!= {},
 				kernelFailure["SavedTableChanged", "The record of `1` is not the one read with the table it was saved in, so the environment is not written.", {HoldForm @@ First[changed]}]
 			];
-			addedNames = Drop[contentNames, Length[coveredNames]];
+			addedNames = Drop[keptNames, Length[coveredNames]];
 			{addedRecords, addedNodes} = Block[{$nodeIndex = <||>, $nodeCount = Length[kept["Table"]]},
 				Reap[AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], addedNames], $nodeTag]
 			];
 			addedNodes = Replace[addedNodes, {{nodes_List} :> nodes, {} -> {}}];
 			If[ MemberQ[addedNodes, {"c", _}],
 				None,
-				Block[{packedLeaves = AssociationThread[kept["Leaves"], Range[Length[kept["Leaves"]]]], packedLabels = AssociationThread[kept["Labels"], Range[Length[kept["Labels"]]]]},
-					addedRows = packedRow /@ addedNodes;
-					keptLeaves = Keys[packedLeaves];
-					keptLabels = Keys[packedLabels]
-				];
+				{addedRows, keptLeaves, keptLabels} = packedRowsOver[addedNodes, kept["Leaves"], kept["Labels"]];
 				keptTable = If[addedRows === {}, kept["Table"], Join[kept["Table"], Developer`ToPackedArray[addedRows]]];
 				keptDepths = If[addedRows === {}, kept["Depths"], Developer`ToPackedArray[rowDepths[keptTable]]];
 				keptPrints = rowFingerprints[keptTable, keptDepths, valueFingerprints[keptLeaves], valueFingerprints[keptLabels]];
@@ -260,7 +256,7 @@ keptContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
 				];
 				<|
 					"Rules" -> environmentRules[environment],
-					"Names" -> contentNames,
+					"Names" -> keptNames,
 					"Records" -> Join[kept["Refs"], addedRecords],
 					"NaturalNumbers" -> store["NaturalNumbers"],
 					"RewriteRuleIndex" -> store["RewriteRuleIndex"],
@@ -326,14 +322,14 @@ rowFingerprints[{}, _, _, _] := ConstantArray[0, {4, 0}]
 rowFingerprints[table_, depths_, leafPrints_, labelPrints_] := Block[
 	{
 		rowPrints = ConstantArray[0, {4, Length[table]}], leafFingerprints = leafPrints, labelFingerprints = labelPrints,
-		rowCount = Length[table], leafCount = Last[Dimensions[leafPrints]], labelCount = Last[Dimensions[labelPrints]],
-		order = Ordering[depths], starts = Prepend[Accumulate[BinCounts[depths, {1, Max[depths] + 1, 1}]], 0]
+		fingerprintRowCount = Length[table], fingerprintLeafCount = Last[Dimensions[leafPrints]], fingerprintLabelCount = Last[Dimensions[labelPrints]],
+		fingerprintOrder = Ordering[depths], fingerprintStarts = Prepend[Accumulate[BinCounts[depths, {1, Max[depths] + 1, 1}]], 0]
 	},
 	Do[
-		With[{rows = order[[starts[[depth]] + 1 ;; starts[[depth + 1]]]]},
+		With[{rows = fingerprintOrder[[fingerprintStarts[[depth]] + 1 ;; fingerprintStarts[[depth + 1]]]]},
 			rowPrints[[All, rows]] = depthFingerprints[table[[rows]]]
 		],
-		{depth, Length[starts] - 1}
+		{depth, Length[fingerprintStarts] - 1}
 	];
 	rowPrints
 ]
@@ -341,14 +337,14 @@ rowFingerprints[table_, depths_, leafPrints_, labelPrints_] := Block[
 (* the fingerprints of the rows of a depth, four by the rows; which parts of a row are rows, leaves, labels or an index
    is said by its code: an application's two parts, a binder's name label, domain, body and binder label, a local
    definition's name label and three parts, a projection's structure label, index and part *)
-depthFingerprints[block_] := Block[{codes = block[[All, 1]], one, four, five, twoThree},
-	one = 1 - Unitize[codes - 1];
-	four = 1 - Unitize[codes - 4];
-	five = 1 - Unitize[codes - 5];
+depthFingerprints[block_] := Block[{rowCodes = block[[All, 1]], one, four, five, twoThree},
+	one = 1 - Unitize[rowCodes - 1];
+	four = 1 - Unitize[rowCodes - 4];
+	five = 1 - Unitize[rowCodes - 5];
 	twoThree = 1 - one - four - five;
 	Fold[
 		Function[{print, part}, Mod[print * $fingerprintBases + part, $fingerprintModuli]],
-		spreadResidues[codes],
+		spreadResidues[rowCodes],
 		{
 			masked[one, referenceFingerprints[block[[All, 2]]]] + masked[1 - one, labelFingerprintsOf[block[[All, 2]]]],
 			masked[1 - five, referenceFingerprints[block[[All, 3]]]] + masked[five, spreadResidues[block[[All, 3]]]],
@@ -363,32 +359,40 @@ masked[mask_, prints_] := Map[Function[residues, residues * mask], prints]
 spreadResidues[values_] := Mod[ConstantArray[values, 4], $fingerprintModuli]
 
 referenceFingerprints[references_] := Plus[
-	masked[UnitStep[references - 1], rowPrints[[All, Clip[references, {1, Max[1, rowCount]}]]]],
-	If[leafCount == 0, 0, masked[UnitStep[-references - 1], leafFingerprints[[All, Clip[-references, {1, leafCount}]]]]]
+	masked[UnitStep[references - 1], rowPrints[[All, Clip[references, {1, Max[1, fingerprintRowCount]}]]]],
+	If[fingerprintLeafCount == 0, 0, masked[UnitStep[-references - 1], leafFingerprints[[All, Clip[-references, {1, fingerprintLeafCount}]]]]]
 ]
 
-labelFingerprintsOf[ids_] := If[ labelCount == 0,
+labelFingerprintsOf[ids_] := If[ fingerprintLabelCount == 0,
 	ConstantArray[0, {4, Length[ids]}],
-	masked[UnitStep[ids - 1], labelFingerprints[[All, Clip[ids, {1, labelCount}]]]]
+	masked[UnitStep[ids - 1], labelFingerprints[[All, Clip[ids, {1, fingerprintLabelCount}]]]]
 ]
 
 (* The contents in the table form of format 2, the rows as integers with the leaves and labels they name, each row's depth
    worked out. A cubical system's row has a form of its own, which only format 1 holds. *)
-packedContents[contents_Association] := Block[{packedLabels = <||>, packedLeaves = <||>, packedTable},
+packedContents[contents_Association] := Block[{packedTable, packedLeafList, packedLabelList},
 	If[ MemberQ[contents["Nodes"], {"c", _}],
 		Append[contents, "FormatVersion" -> 1],
-		packedTable = Developer`ToPackedArray[packedRow /@ contents["Nodes"]];
+		{packedTable, packedLeafList, packedLabelList} = packedRowsOver[contents["Nodes"], {}, {}];
+		packedTable = Developer`ToPackedArray[packedTable];
 		Join[
 			KeyDrop[contents, "Nodes"],
 			<|
 				"FormatVersion" -> $formatVersion,
-				"Leaves" -> Keys[packedLeaves],
-				"Labels" -> Keys[packedLabels],
+				"Leaves" -> packedLeafList,
+				"Labels" -> packedLabelList,
 				"Table" -> packedTable,
 				"Depths" -> Developer`ToPackedArray[rowDepths[packedTable]]
 			|>
 		]
 	]
+]
+
+(* the rows of nodes as integers, numbering their leaves and labels after those given: {rows, leaves, labels} *)
+packedRowsOver[nodes_List, leaves_List, labels_List] := Block[
+	{packedLeaves = AssociationThread[leaves, Range[Length[leaves]]], packedLabels = AssociationThread[labels, Range[Length[labels]]], packedRows},
+	packedRows = packedRow /@ nodes;
+	{packedRows, Keys[packedLeaves], Keys[packedLabels]}
 ]
 
 packedRow[{"a", function_, argument_}] := {1, packedPart[function], packedPart[argument], 0, 0}
