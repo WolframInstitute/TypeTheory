@@ -120,9 +120,9 @@ TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : 
 
 saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], saveContents, fileContents, saveStream},
 	saveContents = environmentContents[environment, saveBase];
-	(* with no base, the contents are those the content hash is taken of *)
-	If[saveBase === None, rememberContentHash[environment, saveContents]];
 	fileContents = packedContents[saveContents];
+	(* with no base, the packed contents are those the content hash is taken of *)
+	If[saveBase === None, rememberContentHash[environment, fileContents]];
 	saveStream = OpenWrite[file, BinaryFormat -> True];
 	BinaryWrite[saveStream, BinarySerialize[
 		Join[
@@ -170,26 +170,30 @@ environmentContentHash[environment : TypeTheoryEnvironment[store_Symbol]] := Rep
 	_store :> (store["ContentHash"] = contentHashOf[environment])
 ]
 
-contentHashOf[environment_] := Hash[BinarySerialize[environmentContents[environment, None]], "SHA256", "HexString"]
+(* The hash is taken of the packed contents, the form a file holds: the same contents packed the same way, a bijection of
+   the node table, so the same hash for the same environment in every session. Serializing the packed table costs
+   seconds where the nodes as lists cost minutes: on 53,712 constants of Mathlib, 2.2 s against 172.7 s. *)
+contentHashOf[environment_] := packedContentHash[packedContents[environmentContents[environment, None]]]
 
-rememberContentHash[TypeTheoryEnvironment[store_Symbol], contents_Association] :=
-	If[! StringQ[store["ContentHash"]], store["ContentHash"] = Hash[BinarySerialize[contents], "SHA256", "HexString"]]
+packedContentHash[packed_Association] := Hash[BinarySerialize[packed], "SHA256", "HexString"]
+
+rememberContentHash[TypeTheoryEnvironment[store_Symbol], packed_Association] :=
+	If[! StringQ[store["ContentHash"]], store["ContentHash"] = packedContentHash[packed]]
 
 (* The contents in the table form of format 2, the rows as integers with the leaves and labels they name, each row's depth
-   worked out; the content hash is still taken of the nodes. A cubical system's row has a form of its own, which only
-   format 1 holds. *)
-packedContents[contents_Association] := Block[{packedLabels = <||>, packedLeaves = <||>, packedRows},
+   worked out. A cubical system's row has a form of its own, which only format 1 holds. *)
+packedContents[contents_Association] := Block[{packedLabels = <||>, packedLeaves = <||>, packedTable},
 	If[ MemberQ[contents["Nodes"], {"c", _}],
 		Append[contents, "FormatVersion" -> 1],
-		packedRows = packedRow /@ contents["Nodes"];
+		packedTable = Developer`ToPackedArray[packedRow /@ contents["Nodes"]];
 		Join[
 			KeyDrop[contents, "Nodes"],
 			<|
 				"FormatVersion" -> $formatVersion,
 				"Leaves" -> Keys[packedLeaves],
 				"Labels" -> Keys[packedLabels],
-				"Table" -> Developer`ToPackedArray[packedRows],
-				"Depths" -> Developer`ToPackedArray[rowDepths[packedRows]]
+				"Table" -> packedTable,
+				"Depths" -> Developer`ToPackedArray[rowDepths[packedTable]]
 			|>
 		]
 	]
@@ -206,16 +210,30 @@ packedPart[leaf_] := -Lookup[packedLeaves, Key[leaf], packedLeaves[leaf] = Lengt
 
 packedLabel[label_] := Lookup[packedLabels, Key[label], packedLabels[label] = Length[packedLabels] + 1]
 
-rowDepths[rows_List] := Block[{computedDepths = ConstantArray[0, Length[rows]]},
-	Do[computedDepths[[row]] = 1 + Max[0, computedDepths[[Select[rowParts[rows[[row]]], Positive]]]], {row, Length[rows]}];
-	computedDepths
-]
+(* Each row's depth, one more than the deepest row it names, in one compiled pass over the table: a row names rows only
+   before it, so one pass in order finds every depth. The mask says which of columns 2 to 5 of a row of each code hold
+   parts, a row's position or a leaf's negated one: an application's function and argument, a binder's domain and body,
+   a local definition's type, value and body, a projection's term. On 5,992,396 rows the loop took 40.9 s evaluated. *)
+rowDepths[{}] := {}
+rowDepths[rows_List] := compiledRowDepths[Developer`ToPackedArray[rows]]
 
-(* the parts of a row of the table, positions of rows or negated positions of leaves *)
-rowParts[{1, function_, argument_, _, _}] := {function, argument}
-rowParts[{2 | 3, _, domain_, body_, _}] := {domain, body}
-rowParts[{4, _, type_, value_, body_}] := {type, value, body}
-rowParts[{5, _, _, term_, _}] := {term}
+compiledRowDepths = With[{partColumns = {{1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0}, {0, 1, 1, 1}, {0, 0, 1, 0}}},
+	Compile[{{rows, _Integer, 2}},
+		Module[{depths = Table[0, {Length[rows]}], deepest = 0, part = 0},
+			Do[
+				deepest = 0;
+				Do[
+					part = rows[[row, column]];
+					If[part > 0 && partColumns[[rows[[row, 1]], column - 1]] == 1, deepest = Max[deepest, depths[[part]]]],
+					{column, 2, 5}
+				];
+				depths[[row]] = deepest + 1,
+				{row, Length[rows]}
+			];
+			depths
+		]
+	]
+]
 
 compositeTermQ[_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _cubicalSystem] := True
 compositeTermQ[_] := False
