@@ -39,8 +39,8 @@ closure in it.
 
 The structural hashes are the fingerprints of saved environments: they show that a shard cut by this pipeline from one
 export agrees with it, not that a shard from anywhere else does, since whoever makes a shard could make the hashes
-along with it. `Information[environment, "StrongSignature"]` gives each record's SHA-256 over a table of its own terms
-instead, for such a shard.
+along with it. Every shard here is cut by this pipeline; one from elsewhere would need a cryptographic digest of each
+record, which is left out until something needs it.
 
 ## What it does not need
 
@@ -51,6 +51,6 @@ and the rewrite rules after a theorem, names no proof may cite. A shard in the d
 
 ## Tests
 
-In Tests/Checking/Queries.wlt: a shard with proofs agrees with its development's signature, structurally and by
-SHA-256, and carries its proofs' closures; a proof citing what comes after it does not check, or its shard does not
+In Tests/Checking/Queries.wlt: a theorem read as an axiom hashes as the axiom of its statement, annotated or not; a
+shard with proofs agrees with its development's signature, and carries its proofs' closures; a proof citing what comes after it does not check, or its shard does not
 agree; a shard with another statement or other rules does not agree; a signature survives a saved file.

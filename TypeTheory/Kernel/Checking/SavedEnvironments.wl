@@ -62,7 +62,6 @@ PackageScoped[environmentContentHash]
 PackageScoped[contentHashOf]
 PackageScoped[environmentRecordHashes]
 PackageScoped[recordFingerprints]
-PackageScoped[recordDigests]
 PackageScoped[$kernelHash]
 PackageScoped[$trustedSources]
 PackageScoped[kernelSourcesHash]
@@ -80,7 +79,6 @@ saveEnvironment::usage = "saveEnvironment[file, environment] writes environment 
 contentHashOf::usage = "contentHashOf[environment] gives the content hash of environment made again, which environmentContentHash keeps once made."
 environmentRecordHashes::usage = "environmentRecordHashes[environment] gives <|HoldComplete[name] -> hash, ...|>, each record's structural hash, a list of four residues, in the order the constants were declared, kept once made."
 recordFingerprints::usage = "recordFingerprints[<|key -> record, ...|>] gives <|key -> hash, ...|>, the structural hash of each record, as environmentRecordHashes gives those of an environment's records."
-recordDigests::usage = "recordDigests[<|key -> record, ...|>] gives <|key -> digest, ...|>, the SHA-256 of each record over a table of its own terms, as a string of hexadecimal digits."
 environmentContentHash::usage = "environmentContentHash[environment] gives the content hash of environment, the same in every session."
 $kernelHash::usage = "$kernelHash is the SHA-256 of the save format's version and the trusted sources, which a saved environment records."
 $trustedSources::usage = "$trustedSources is the list of the kernel sources that decide what is accepted, as paths under Kernel/, whose hash a saved environment records."
@@ -226,17 +224,6 @@ recordFingerprints[records_Association] := Block[{$nodeIndex = <||>, $nodeCount 
 			recordHashesOf[packed["Records"], tableFingerprints[packed]]
 		]
 	]
-]
-
-(* The SHA-256 of each record over a table of its own terms: their rows numbered as the record's terms reach them, and
-   the record with each term its row. A record's table is walked apart from every other's, so a subterm two records share
-   is written in both, but within a record each subterm once. It is a digest against a forger, where the structural hash
-   shows only that a table and its records agree. *)
-recordDigests[records_Association] := Map[recordDigest, records]
-
-recordDigest[record_] := Block[{$nodeIndex = <||>, $nodeCount = 0, digestRefs, digestNodes},
-	{digestRefs, digestNodes} = Reap[recordRefs[record], $nodeTag];
-	Hash[BinarySerialize[{digestRefs, Replace[digestNodes, {{nodes_List} :> nodes, {} -> {}}]}], "SHA256", "HexString"]
 ]
 
 (* the contents a file holds of environment beyond base, packed, with each record's hash: written from the table the

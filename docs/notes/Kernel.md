@@ -407,11 +407,11 @@ development, with the closures, in their shards, of the theorems it reaches.
 
 **The threat model of shards.** The structural hashes are the fingerprints of saved environments, which guard
 consistency, not forgery: they show that a shard cut by this pipeline from one export agrees with it, and whoever makes
-a shard could make the hashes along with it. `Information[environment, "StrongSignature"]` gives each record's
-SHA-256 over a table of its own terms in place of its structural hash, for a shard from anywhere else, at the cost of a
-walk of each record's terms. The tests (Tests/Checking/Queries.wlt): a shard with proofs agrees with its development's
-signature under both, and carries its proofs' closures; a proof citing what comes after it does not check, or its shard
-does not agree; a shard with another statement or other rules does not agree; a signature survives a saved file.
+a shard could make the hashes along with it. A shard from anywhere else is not compared this way; it would need a
+cryptographic digest of each record, which nothing asks for yet. The tests (Tests/Checking/Queries.wlt): a theorem
+read as an axiom hashes as the axiom of its statement, annotated or not; a shard with proofs agrees with its
+development's signature and carries its proofs' closures; a proof citing what comes after it does not check, or its
+shard does not agree; a shard with another statement or other rules does not agree; a signature survives a saved file.
 
 ## The compiled kernel's memory
 

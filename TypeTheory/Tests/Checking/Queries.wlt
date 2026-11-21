@@ -909,6 +909,28 @@ agreesQ[shard_, whole_] := With[{shardRecords = shard["Records"], wholeRecords =
 		OrderedQ[Lookup[AssociationThread[Keys[wholeRecords], Range[Length[wholeRecords]]], Keys[shardRecords]]]
 ]
 
+(* what the comparison rests on: a theorem's record, read as an axiom of its statement, hashes as the record of that
+   axiom declared, with an annotation and without, and with a universe parameter; another statement does not *)
+VerificationTest[
+	With[
+		{
+			signatureRecord = Function[{declaration, name}, Information[TypeTheoryEnvironment[prelude, {declaration}], "Signature"]["Records"][HoldComplete[name]]]
+		},
+		{
+			signatureRecord[TypeTheoryTheorem["twoTwo", 2 + 2 == 4, "equalityReflexivity"[4]], "twoTwo"] ===
+				signatureRecord[TypeTheoryAxiom["twoTwo", 2 + 2 == 4], "twoTwo"],
+			signatureRecord[TypeTheoryTheorem["cited", 3 == 3, "equalityReflexivity"[3], "Annotation" -> <|"LeanName" -> "rfl"|>], "cited"] ===
+				signatureRecord[TypeTheoryAxiom["cited", 3 == 3, "Annotation" -> <|"LeanName" -> "rfl"|>], "cited"],
+			signatureRecord[TypeTheoryTheorem["reflexive", ForAll[{Typed[A, TypeUniverse[u]], Typed[a, A]}, a == a], Function[{Typed[A, TypeUniverse[u]], Typed[a, A]}, "equalityReflexivity"[a]]], "reflexive"] ===
+				signatureRecord[TypeTheoryAxiom["reflexive", ForAll[{Typed[A, TypeUniverse[u]], Typed[a, A]}, a == a]], "reflexive"],
+			signatureRecord[TypeTheoryTheorem["twoTwo", 2 + 2 == 4, "equalityReflexivity"[4]], "twoTwo"] ===
+				signatureRecord[TypeTheoryAxiom["twoTwo", 4 == 4], "twoTwo"]
+		}
+	],
+	{True, True, True, False},
+	TestID -> "A-theorem-read-as-an-axiom-hashes-as-the-axiom-of-its-statement"
+]
+
 VerificationTest[
 	With[
 		{
@@ -921,13 +943,12 @@ VerificationTest[
 		{
 			Head[TypeTheoryCheck[shard]],
 			agreesQ[Information[shard, "Signature"], Information[wholeSignature, "Signature"]],
-			agreesQ[Information[shard, "StrongSignature"], Information[wholeSignature, "StrongSignature"]],
 			TypeTheoryAxiomClosure[TypeTheoryTerm["middle", wholeSignature]],
 			TypeTheoryAxiomClosure[TypeTheoryTerm["middle", shard]]
 		}
 	],
 	{
-		Success, True, True,
+		Success, True,
 		<|"middle" -> "Proposition"|>,
 		<|"choice" -> "Signature", "quotientSoundness" -> "Proposition", "propositionalExtensionality" -> "Proposition"|>
 	},
@@ -960,12 +981,12 @@ VerificationTest[
 			otherStatement = TypeTheoryEnvironment[prelude, {TypeTheoryTheorem["twoTwo", 4 == 4, "equalityReflexivity"[4]]}],
 			otherRules = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory"], {TypeTheoryAxiom["twoTwo", TypeUniverse[0]]}]
 		},
-		Flatten[Function[property, {
-			agreesQ[Information[otherStatement, property], Information[wholeSignature, property]],
-			agreesQ[Information[otherRules, property], Information[wholeSignature, property]]
-		}] /@ {"Signature", "StrongSignature"}]
+		{
+			agreesQ[Information[otherStatement, "Signature"], Information[wholeSignature, "Signature"]],
+			agreesQ[Information[otherRules, "Signature"], Information[wholeSignature, "Signature"]]
+		}
 	],
-	{False, False, False, False},
+	{False, False},
 	TestID -> "A-shard-with-another-statement-or-other-rules-does-not-agree"
 ]
 
@@ -974,7 +995,7 @@ VerificationTest[
 		Export[file, wholeSignature];
 		read = TypeTheoryEnvironment[File[file]];
 		DeleteFile[file];
-		{Information[read, "Signature"] === Information[wholeSignature, "Signature"], MemberQ[Information[read, "Properties"], "StrongSignature"]}
+		{Information[read, "Signature"] === Information[wholeSignature, "Signature"], MemberQ[Information[read, "Properties"], "Signature"]}
 	],
 	{True, True},
 	TestID -> "An-environment-read-from-a-file-keeps-its-signature"

@@ -679,7 +679,7 @@ registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ he
 
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
-environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "Holes", "Annotations", "RewriteRules", "NaturalNumbers", "Rules", "Provenance", "Signature", "StrongSignature"}
+environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "Holes", "Annotations", "RewriteRules", "NaturalNumbers", "Rules", "Provenance", "Signature"}
 (* the theorems by name, each with its statement, in the order they were declared *)
 environmentInformation[environment_, "Theorems"] := Association[
 	Function[name, theoremKey[name] -> coreToTypeTheoryTerm[environment, <||>, constantRecord[environment, name]["Type"]]] /@
@@ -691,14 +691,11 @@ environmentInformation[environment_, "Theorems"] := Association[
    theorem, so its proof changes no check of what comes after it: a development whose theorems are axioms checks as the
    development does, and so does an environment cut from it, in its order, with some of the theorems proved. Where the
    signatures of the two agree, name by name and in order, the cut is the development's, and a proof that checks in it
-   is a proof of the development's statement, checked against what comes before it there. "StrongSignature" gives each
-   record's SHA-256 in place of its structural hash, for a cut that may come from anywhere (SavedEnvironments.wl). *)
+   is a proof of the development's statement, checked against what comes before it there. The hashes are structural
+   (SavedEnvironments.wl): they show that a cut made by this pipeline is the development's, not that one from anywhere
+   else is. *)
 environmentInformation[environment_, "Signature"] :=
 	environmentSignature[environment, Join[environmentRecordHashes[environment], recordFingerprints[theoremStatements[environment]]]]
-environmentInformation[environment_, "StrongSignature"] := environmentSignature[
-	environment,
-	recordDigests[Join[AssociationMap[Function[name, constantRecord[environment, name]], environmentNames[environment]], theoremStatements[environment]]]
-]
 
 environmentSignature[environment_, records_Association] := <|
 	"Rules" -> environmentRules[environment],

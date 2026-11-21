@@ -13,7 +13,7 @@ Versions 0.50.0 to 0.58.0.
 
 - **The signature of an environment, for checking a large development in shards.** `Information[environment,
   "Signature"]` gives an environment's rules, its natural numbers and each record's structural hash, a theorem read as an
-  axiom of its statement, and `"StrongSignature"` each record's SHA-256. A development too large to check at once is
+  axiom of its statement. A development too large to check at once is
   checked as its signature, its theorems as axioms, and its proofs in ordinary environments cut from it in its order, a
   batch's theorems proved in each; where a shard's signature agrees with the development's, name by name and in order,
   each proof that checks in it proves the development's statement from what comes before it (docs/notes/ShardedChecking.md).
