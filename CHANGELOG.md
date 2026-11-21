@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.58.0.
+Versions 0.50.0 to 0.59.0.
 
 ### Added
 
@@ -92,6 +92,12 @@ Versions 0.50.0 to 0.58.0.
 
 ### Changed
 
+- **Saved environments are tied to the trust boundary alone.** The kernel hash a saved file records is of the trusted
+  sources, listed once in `$trustedSources`, so a release that changes only a library, a tactic or the display keeps
+  saved files readable. A file's base is compared by its declarations' content hash, and a base that changed refuses
+  the file (`"SavedEnvironmentBaseChanged"`). The content hash is structural, a fingerprint of each record's terms
+  whatever the table's numbering, so an environment read from a file and extended has the hash of one built from the
+  same declarations, and reading a file without a check asks that its records give the hash it records.
 - **`If` takes a Boolean condition.** A Boolean where a proposition is expected is the proposition that it is true, by
   the prelude's coercion `"booleanProposition"`, which `"booleanPropositionDecidable"` decides, so `If[Head[e] ===
   Integer, a, b]` is written as the Wolfram Language writes it, with the Boolean that `SameQ` or `MatchQ` gives; a
@@ -155,6 +161,12 @@ Versions 0.50.0 to 0.58.0.
 
 ### Performance
 
+- **Saving and reading large environments.** An environment read from a file keeps the file's table, and saving it
+  again writes that table and makes rows only of the records added, after checking that the records read are the very
+  ones read and that the table still gives their hashes. The table is hashed and its depths found as packed arrays, and
+  reading picks the parts of rows from them. On a chain of seven batches of Mathlib, growing to 53,712 constants, a
+  save takes 26 to 42 s instead of 60 to 275 s, the largest memory is 2.15 GiB instead of 5.14 GiB, and the whole chain
+  takes 15 minutes instead of about 70.
 - **The compiled kernel gives up what its checks make.** The nodes, levels and free variables made while checking are
   a scratch region, given up once they fill half its room; every cell that names one carries the epoch that wrote it,
   so nothing given up is read again. The room is twice the input instead of 16 times. On the 36-module cone of 11,899
