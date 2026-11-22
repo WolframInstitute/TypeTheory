@@ -20,13 +20,13 @@ All definitions and theorems of the formalization live in <code>[TypeTheoryEnvir
 | 1 | Binary Turing machine to 2-tag system (Cocke and Minsky) | 3 tag rounds per right move, 5 per left move | Proved |
 | 2 | 2-tag system to cyclic tag system (Cook) | `k + k` cyclic tag steps (one full cycle of `2 k` appendants) | Proved |
 | Glue (1 and 2) | Binary Turing machine to cyclic tag system (`"machineToCyclicTag"`) | Composition of rungs 1 and 2 over `84 S + 1` symbols | Proved |
-| 3 | Cyclic tag system to System 5 | `x + 1` or `x + 2` (two doubled steps per source step) | Planned |
+| 3 | Cyclic tag system to System 5 | `x2 + 1` or `x2 + 2` (four rule pops per source step) | Proved |
 | 4 | System 5 to System 4 | Existential, for parameter `f` large enough | Planned |
 | 5 | System 4 to System 3 (parity blocks of width `2^w`) | At least 1 | Planned |
 | 6 | System 3 to Wolfram's (2,3) machine (Systems 3 to 0 and tape extension) | 1 or 3 | Proved |
 | 7 | Composition, decoders, confinement and exit | Composition of rungs 1 to 6 | Planned |
 
-This draft covers the rungs proved so far: the simulation framework, rung 6 (System 3 to Wolfram's (2,3) machine), rung 2 (2-tag systems to cyclic tag systems), rung 1 (binary Turing machines to 2-tag systems), and the glue that joins rungs 1 and 2 into `"machineToCyclicTag"`.
+This draft covers the rungs proved so far: the simulation framework, rung 6 (System 3 to Wolfram's (2,3) machine), rung 2 (2-tag systems to cyclic tag systems), rung 1 (binary Turing machines to 2-tag systems), the glue that joins rungs 1 and 2 into `"machineToCyclicTag"`, and rung 3 (cyclic tag systems to System 5).
 
 Load the environment:
 
@@ -34,7 +34,7 @@ Load the environment:
 wolfram23 = TypeTheoryEnvironment["Wolfram23"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 468 constants -->
+<!-- => TypeTheoryEnvironment summary box: 563 constants -->
 
 [Information]() shows the constants it declares on top of the prelude, by kind:
 
@@ -42,7 +42,7 @@ wolfram23 = TypeTheoryEnvironment["Wolfram23"]
 Information[wolfram23, "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 38, "Constructor" -> 79, "Recursor" -> 39, "Definition" -> 153, "Quotient" -> 4, "Theorem" -> 151, "Axiom" -> 4|> -->
+<!-- => <|"InductiveType" -> 40, "Constructor" -> 81, "Recursor" -> 41, "Definition" -> 177, "Quotient" -> 4, "Theorem" -> 216, "Axiom" -> 4|> -->
 
 ## The Framework
 
@@ -724,11 +724,101 @@ TypeTheoryProofTree[wolfram23["machineToCyclicTag"]["Term"]]
 
 <!-- => derivation of machineToCyclicTag by ∀I and →I from forwardSimulationCompose over forwardSimulationCompose[minskySimulation, minskyNumbersSimulation] and cookSimulation[minskyNumbersBelow] -->
 
+## Rung 3: Cyclic Tag Systems to System 5
+
+### The Two Systems
+
+Smith's System 5 operates on a pair of a bag of positive integers and a queue of rules (each a finite set of integers). Representing every bag and rule as a strictly increasing `{NonNegativeIntegers}` list lets symmetric difference (`"xorMerge"`) compute structurally with literal equality—no signed integers or permutation equivalence needed. Each step decrements every element of the bag by `1`: if the head was `1`, it is dropped and the first rule (shifted up by `1`) is XOR-merged into the bag; otherwise every rule in the queue is shifted up by `1`.
+
+```wl
+wolfram23["System5Configuration"]
+```
+
+<!-- => inductive type System5Configuration : Type with constructor system5Configuration : {ℕ} → {{ℕ}} → System5Configuration -->
+
+Because a finite System 5 rule queue always terminates when its rules run out, rung 3 emulates a *fueled* cyclic tag system (`"FueledCyclicTag"`), which carries a remaining step budget alongside its `"CyclicTagConfiguration"`:
+
+```wl
+wolfram23["FueledCyclicTag"]
+```
+
+<!-- => inductive type FueledCyclicTag : Type with constructor fueledCyclicTag : CyclicTagConfiguration → ℕ → FueledCyclicTag -->
+
+The encoder `"ctsToSystem5"[cfg, budget]` folds the doubling of each bit into the bag and rule queue: every bit `0` becomes a pair `{x, x + 1}` (gap `1`), every bit `1` becomes `{x, x + 2}` (gap `2`), and each scheduled appendant `a` in `"cycleAppendants"[cfg[["appendants"]], budget]` becomes a four-rule block `{"shiftUp"[2, r2], r2, {}, {}}` where `r2 = "encodeAppendantSnd"[a, i]`. On Smith's p. 29 example (`0 1` with appendants `1` and `1 0`, budget `2`), `"decodeBag"` reads back `0 0 1 1` at `t = 0`, `1 1` at `t = 4`, `1 1 0 0` at `t = 10`, and System 5 halts at `t = 11`:
+
+```wl
+Table[
+	With[{n = t},
+		NormalForm[TypeTheoryTerm[
+			"optionBind"[
+				"steps"["system5Step", n, "ctsToSystem5"["cyclicTagConfiguration"[{"false", "true"}, {{"true"}, {"true", "false"}}], 2]],
+				Function[{Typed[s, "System5Configuration"]}, "decodeBag"[s[["bag"]]]]
+			],
+			wolfram23
+		]]
+	],
+	{t, {0, 4, 10, 11}}
+]
+```
+
+<!-- => {some[{false, false, true, true}], some[{true, true}], some[{true, true, false, false}], Typed[none, Option[{𝔹}]]} -->
+
+### The Relation and the Theorem
+
+The relation `"system5Represents"[fc, s]` asserts that `s[["bag"]]` is `"pairsOf"["doubleWord"[fc[["config"]][["data"]]], starts]` for strictly ascending starts above `0` (`"pairsAsc"`), and that `s[["rules"]]` is the exact `"ruleBlocks"` for the remaining `budget`, shifted to `k + 3` above an upper bound `k` on the bag:
+
+```wl
+wolfram23["system5Represents"]
+```
+
+<!-- => definition system5Represents : FueledCyclicTag → System5Configuration → Prop := ... -->
+
+`"system5Simulation"` proves that System 5 forward-simulates any fueled cyclic tag system along `"system5Represents"`:
+
+```wl
+wolfram23["system5Simulation"]
+```
+
+<!-- => theorem system5Simulation : forwardSimulation[fueledCyclicTagStep, system5Step, system5Represents] -->
+
+Its axiom closure is empty:
+
+```wl
+TypeTheoryAxiomClosure[TypeTheoryTerm["system5Simulation", wolfram23]]
+```
+
+<!-- => <||> -->
+
+### The Proof
+
+The algebraic heart of rung 3 is `"xorMergeAppendant"`: XOR-merging a rule block's second rule `r2` with its shifted copy `shiftUp[2, r2]` produces the exact ascending pair encoding `"pairsOf"["doubleWord"[a], "startsOf"[a, i]]`:
+
+```wl
+wolfram23["xorMergeAppendant"]
+```
+
+<!-- => theorem xorMergeAppendant : ∀_a∶{𝔹} ∀_i∶ℕ xorMerge[encodeAppendantSnd[a, i], shiftUp[2, encodeAppendantSnd[a, i]]] == pairsOf[doubleWord[a], startsOf[a, i]] -->
+
+One fueled cyclic tag step consumes four rules of System 5. On a `false` head bit (`"representsStepFalse"`), `x2 + 1` steps insert `r1` into the bag and immediately cancel it with `r2` via `"xorMergeCancelTail"`, followed by two empty-rule pops. On a `true` head bit (`"representsStepTrue"`), `x2 + 2` steps land `r2` offset by `2` from `r1`, so `"xorMergeAppendant"` appends the encoded doubled appendant cleanly onto the bag:
+
+```wl
+{wolfram23["representsStepFalse"], wolfram23["representsStepTrue"]}
+```
+
+<!-- => {theorem representsStepFalse : ..., theorem representsStepTrue : ...} -->
+
+Rung 3 also supplies the interface theorems needed by rungs 4 and 7: `"ctsToSystem5Represents"`, `"representsDecode"` (decoding the bag back to `"doubleWord"[data]` with strict-increase, even-length, and gap-1/2 checks), `"representsRulesEmpty"`, `"representsBagNonEmpty"`, `"representsTerminal"`, and `"bound5Step"` (showing that the maximum entry in a System 5 configuration grows by at most `1` per step):
+
+```wl
+{wolfram23["representsDecode"], wolfram23["representsTerminal"], wolfram23["bound5Step"]}
+```
+
+<!-- => {theorem representsDecode : ..., theorem representsTerminal : ..., theorem bound5Step : ...} -->
+
 ## What Remains
 
-Four rungs remain to close the gap between `"machineToCyclicTag"` and `"wolfram23Simulates3"` and complete the universality theorem:
+Three rungs remain to close the gap between `"system5Simulation"` and `"wolfram23Simulates3"` and complete the universality theorem:
 
-- **Rung 3 (cyclic tag systems to System 5)**: encode a cyclic tag system into System 5's bag and rules with the doubling folded into the encoder, prove the two-doubled-step simulation lemma, and settle the representation of finite sets and their truncated-subtraction invariants.
 - **Rung 4 (System 5 to System 4)**: emulate System 5 by System 4 for a finite run, choosing the parameter `f` large enough for the run's length and establishing System 5's terminal event and System 4's exit in state C.
 - **Rung 5 (System 4 to System 3)**: encode System 4's sets as parity blocks of width `2^w`, prove the prefix-XOR scan and the rule-60 period-`2^w` identity by induction on `w`, and prove left confinement together with System 3's exit lemma.
 - **Rung 7 (full composition and universality)**: compose rungs 1 through 6 into the existential finite universality theorem for Wolfram's (2,3) Turing machine, prove the decoding lemmas for the decoder of each layer, and combine confinement with the terminal exit configuration (followed later by the infinite form, one tape for all `n`).
