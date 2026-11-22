@@ -54,6 +54,7 @@ PackageScoped[reducedHeadWithoutUnfolding]
 PackageScoped[definitionallyEqualQ]
 PackageScoped[sortLevel]
 PackageScoped[propositionQ]
+PackageScoped[fastPropositionTypeQ]
 PackageScoped[checkHasType]
 PackageScoped[freshFreeVariable]
 PackageScoped[extendContext]
@@ -78,6 +79,7 @@ reducedHeadWithoutUnfolding::usage = "reducedHeadWithoutUnfolding[environment, c
 definitionallyEqualQ::usage = "definitionallyEqualQ[environment, context, a, b] gives True if a and b are equal by computation, eta and proof irrelevance."
 sortLevel::usage = "sortLevel[environment, context, type] gives the level of the sort type belongs to, or throws a kernel failure if type is not a type."
 propositionQ::usage = "propositionQ[environment, context, type] gives True if the inferred type of type reduces to universeSort[0]."
+fastPropositionTypeQ::usage = "fastPropositionTypeQ[environment, type] gives True or False when the syntactic return sort of the checked type type decides whether it lives in universeSort[0], or Indeterminate otherwise."
 checkHasType::usage = "checkHasType[environment, context, term, type] throws a kernel failure unless term has a type definitionally equal to type."
 freshFreeVariable::usage = "freshFreeVariable[] gives an identifier no free variable has used."
 kernelCachesClosedQ::usage = "kernelCachesClosedQ[] gives True if the kernel's caches remember no term with a metavariable, as they must while $cacheClosedTermsOnly is True."
@@ -983,3 +985,54 @@ proofIrrelevanceOf[environment_, context_, b_, typeA_] := If[ propositionQ[envir
 ]
 
 propositionQ[environment_, context_, type_] := MatchQ[weakHeadNormalForm[environment, context, typeQuery[environment, context, type]], universeSort[0]]
+
+(* Iterative syntactic sort check for a well-typed type. Outside cubical environments (where a function type over the
+   interval has intervalUniverse[]), impredicative maximum is 0 iff the codomain's sort is 0 and a local definition
+   keeps its body's sort, so peeling binders and matching the head constant's declared return sort decides nearly every
+   theorem statement and Prop-structure field without calling inferType or recursing on deep Pi chains. *)
+fastPropositionTypeQ[environment_, _] /; ! rulesSetting[environment, "Prop"] := False
+fastPropositionTypeQ[environment_, _] /; cubicalDeclaredQ[environment] := Indeterminate
+fastPropositionTypeQ[environment_, type_] := Block[{propCursor = type, propArity = 0, propHead},
+	While[True,
+		propHead = Head[propCursor];
+		Which[
+			propHead === dependentFunctionType && Length[propCursor] == 4,
+				propCursor = Extract[propCursor, 3],
+			propHead === localDefinition && Length[propCursor] == 4,
+				propCursor = Extract[propCursor, 4],
+			True,
+				Break[]
+		]
+	];
+	If[ Head[propCursor] === universeSort && Length[propCursor] == 1,
+		False,
+		While[ Head[propCursor] === application && Length[propCursor] == 2,
+			propCursor = First[propCursor];
+			propArity++
+		];
+		fastConstantReturnPropositionQ[environment, propCursor, propArity]
+	]
+]
+
+fastConstantReturnPropositionQ[environment_, constantReference[constantName_, constantLevels_List], arity_Integer] /; constantDeclaredQ[environment, constantName] :=
+	fastRecordReturnPropositionQ[constantRecord[environment, constantName], constantLevels, arity]
+fastConstantReturnPropositionQ[_, _, _] := Indeterminate
+
+fastRecordReturnPropositionQ[record_Association, levels_List, arity_Integer] :=
+	If[ Length[levels] =!= Length[record["UniverseParameters"]] || MatchQ[record["Kind"], "RewriteRule" | "Cubical"],
+		Indeterminate,
+		Block[{returnCursor = record["Type"], remainingSteps = arity},
+			While[ remainingSteps > 0 && Head[returnCursor] === dependentFunctionType && Length[returnCursor] == 4,
+				returnCursor = Extract[returnCursor, 3];
+				remainingSteps--
+			];
+			Which[
+				remainingSteps > 0,
+					Indeterminate,
+				Head[returnCursor] === universeSort && Length[returnCursor] == 1,
+					levelEquivalentQ[First[instantiateUniverseParameters[returnCursor, record["UniverseParameters"], levels]], 0],
+				True,
+					Indeterminate
+			]
+		]
+	]

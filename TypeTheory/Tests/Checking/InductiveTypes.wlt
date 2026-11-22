@@ -426,3 +426,52 @@ VerificationTest[
 	"NestedParameters",
 	TestID -> "A-nested-inductive-parameter-depending-on-a-constructor-field-is-refused"
 ]
+
+(* Large elimination on Prop structures uses fastPropositionTypeQ with sortLevel fallback:
+   (a) a Prop structure whose fields live in Prop (And, Equal, Prop-returning predicate) gets LargeElimination=True,
+   (b) a Prop structure with a Type field gets LargeElimination=False,
+   (c) a Prop structure whose field uses a type alias unfolding to Prop (Indeterminate fallback) gets LargeElimination=True,
+   (d) a forged constructor with an ill-typed Prop-headed field is still rejected by checking. *)
+VerificationTest[
+	Module[{base, propOk, propNo, propAlias, propVar, propBad, recRecord},
+		recRecord = WolframInstitute`TypeTheory`PackageScope`constantRecord;
+		base = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom[PropPred, TypeSpecifier[{NonNegativeIntegers} -> TypeUniverse[0]]],
+			TypeTheoryDefinition[PropAlias, Function[{Typed[n, NonNegativeIntegers]}, n == n]]
+		}];
+		propOk = TypeTheoryEnvironment[base, {
+			TypeTheoryInductiveType[PropStructOk, TypeUniverse[0], {
+				PropStructOkMake -> ForAll[{Typed[a, And[True, True]], Typed[b, 0 == 0], Typed[c, ForAll[{Typed[n, NonNegativeIntegers]}, PropPred[n]]]}, PropStructOk]
+			}]
+		}];
+		propNo = TypeTheoryEnvironment[base, {
+			TypeTheoryInductiveType[PropStructNo, TypeUniverse[0], {
+				PropStructNoMake -> ForAll[{Typed[n, NonNegativeIntegers], Typed[p, 0 == 0]}, PropStructNo]
+			}]
+		}];
+		propAlias = TypeTheoryEnvironment[base, {
+			TypeTheoryInductiveType[PropStructAlias, TypeUniverse[0], {
+				PropStructAliasMake -> ForAll[{Typed[h, PropAlias[0]]}, PropStructAlias]
+			}]
+		}];
+		propVar = TypeTheoryEnvironment[base, {
+			TypeTheoryInductiveType[PropStructVar, TypeSpecifier[{TypeUniverse[0]} -> TypeUniverse[0]], {
+				PropStructVarMake -> ForAll[{Typed[P, TypeUniverse[0]], Typed[h, P]}, PropStructVar[P]]
+			}, "Parameters" -> 1]
+		}];
+		propBad = TypeTheoryEnvironment[base, {
+			TypeTheoryInductiveType[PropStructBad, TypeUniverse[0], {
+				PropStructBadMake -> ForAll[{Typed[h, PropPred[True]]}, PropStructBad]
+			}]
+		}];
+		{
+			Head[propOk] === TypeTheoryEnvironment && TrueQ[recRecord[propOk, HoldComplete[PropStructOk]]["LargeElimination"]],
+			Head[propNo] === TypeTheoryEnvironment && ! TrueQ[recRecord[propNo, HoldComplete[PropStructNo]]["LargeElimination"]],
+			Head[propAlias] === TypeTheoryEnvironment && TrueQ[recRecord[propAlias, HoldComplete[PropStructAlias]]["LargeElimination"]],
+			Head[propVar] === TypeTheoryEnvironment && TrueQ[recRecord[propVar, HoldComplete[PropStructVar]]["LargeElimination"]],
+			FailureQ[propBad]
+		}
+	],
+	{True, True, True, True, True},
+	TestID -> "Prop-structure-large-elimination-decides-Prop-non-Prop-alias-fields-and-refuses-ill-typed-fields"
+]

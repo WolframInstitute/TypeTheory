@@ -584,10 +584,16 @@ largeEliminationQ[environment_, resultLevel_, blockTypes_, checkedConstructors_L
 largeEliminationConstructorQ[environment_, constructor_] := AllTrue[
 	constructor["FieldIds"],
 	Or[
-		levelEquivalentQ[sortLevel[environment, constructor["FieldContext"], constructor["FieldContext"][#]["Type"]], 0],
-		MemberQ[constructor["ConclusionIndices"], freeVariable[#]]
+		MemberQ[constructor["ConclusionIndices"], freeVariable[#]],
+		fieldPropositionQ[environment, constructor["FieldContext"], constructor["FieldContext"][#]["Type"]]
 	] &
 ]
+
+fieldPropositionQ[environment_, context_, fieldType_] := fieldPropositionResult[environment, context, fieldType, fastPropositionTypeQ[environment, fieldType]]
+
+fieldPropositionResult[_, _, _, True] := True
+fieldPropositionResult[_, _, _, False] := False
+fieldPropositionResult[environment_, context_, fieldType_, _] := levelEquivalentQ[sortLevel[environment, context, fieldType], 0]
 
 (* the universe the recursor eliminates into is named apart from the type's own universe parameters, so
    the two never show the same name *)

@@ -1085,7 +1085,7 @@ VerificationTest[
 	Module[
 		{
 			propTypeQ = queriesPrivate["propositionTypeQ"],
-			fastPropQ = queriesPrivate["fastPropositionTypeQ"],
+			fastPropQ = WolframInstitute`TypeTheory`PackageScope`fastPropositionTypeQ,
 			propFallbackQ = WolframInstitute`TypeTheory`PackageScope`propositionQ,
 			withChecked = WolframInstitute`TypeTheory`PackageScope`withCheckedTerms,
 			pi = WolframInstitute`TypeTheory`PackageScope`dependentFunctionType,
@@ -1165,7 +1165,7 @@ VerificationTest[
 		Indeterminate,
 		Indeterminate,
 		True,
-		Indeterminate,
+		False,
 		False,
 		<|"polyAt0" -> "Proposition", "polyAt1" -> "Signature", "polyParam" -> "Signature", "aliasProp" -> "Proposition", "aliasSig" -> "Signature", "letProp" -> "Proposition", "letSig" -> "Signature", "letFastProp" -> "Proposition"|>,
 		<|"a" -> "Signature", "A" -> "Signature"|>,
