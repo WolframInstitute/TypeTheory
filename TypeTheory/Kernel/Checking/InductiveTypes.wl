@@ -94,10 +94,10 @@ typeTelescope[environment_, context_, type_] := Block[{telescopeChain = NestWhil
 	]
 ]
 
-telescopeFrom[environment_, context_, ids_List, dependentFunctionType[name_, domain_, codomain_, binder_]] := With[{id = freshFreeVariable[]},
-	With[{extended = extendContext[context, id, name, domain, binder]},
-		telescopeFrom[environment, extended, Append[ids, id], weakHeadNormalForm[environment, extended, instantiateBoundVariable[codomain, freeVariable[id]]]]
-	]
+telescopeFrom[environment_, context_, ids_List, dependentFunctionType[name_, domain_, codomain_, binder_]] := Block[
+	{telescopeId = freshFreeVariable[], telescopeExtended},
+	telescopeExtended = extendContext[context, telescopeId, name, domain, binder];
+	telescopeFrom[environment, telescopeExtended, Append[ids, telescopeId], weakHeadNormalForm[environment, telescopeExtended, instantiateBoundVariable[codomain, freeVariable[telescopeId]]]]
 ]
 telescopeFrom[_, context_, ids_List, rest_] := {context, ids, rest}
 
@@ -106,9 +106,45 @@ recursorName[HoldComplete[name_]] := HoldComplete[InductiveRecursor[name]]
 
 auxiliaryRecursorName[HoldComplete[name_], index_Integer] := HoldComplete[InductiveRecursor[name, index]]
 
-occursQ[term_, names_List] := ! FreeQ[term, constantReference[Alternatives @@ names, _]]
+(* Iterative DAG-memoized occurrence check: shared subterms are visited at most once per call, avoiding
+   exponential tree expansion on large shared-DAG structure and constructor types. *)
+occursQ[{}, _List] := False
+occursQ[_, {}] := False
+occursQ[roots_, names_List] := Block[
+	{
+		seenOccursTerms = <||>,
+		targetOccursNames = AssociationThread[names, True],
+		occursStack = If[ListQ[roots], Fold[{#2, #1} &, {}, Reverse[roots]], {roots, {}}],
+		currentOccursTerm,
+		occursFound = False
+	},
+	While[occursStack =!= {} && ! occursFound,
+		currentOccursTerm = First[occursStack];
+		occursStack = Last[occursStack];
+		If[ ! KeyExistsQ[seenOccursTerms, currentOccursTerm],
+			seenOccursTerms[currentOccursTerm] = True;
+			occursStack = Replace[currentOccursTerm, {
+				constantReference[constant_, _] :> (If[KeyExistsQ[targetOccursNames, constant], occursFound = True]; occursStack),
+				application[function_, argument_] :> {function, {argument, occursStack}},
+				(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _] :> {domain, {body, occursStack}},
+				localDefinition[_, type_, definedValue_, body_] :> {type, {definedValue, {body, occursStack}}},
+				projection[_, _, structureTerm_] :> {structureTerm, occursStack},
+				cubicalSystem[branches_List] :> Fold[{#2, #1} &, occursStack, Flatten[branches, 1]],
+				_ :> occursStack
+			}]
+		]
+	];
+	occursFound
+]
 
-looseBoundVariablesQ[term_] := liftBoundVariables[term, 1, 0] =!= term
+looseBoundVariablesQ[terms_List] := If[ AssociationQ[$looseBoundRangeCache],
+	AnyTrue[terms, looseBoundVariablesQ],
+	Block[{$looseBoundRangeCache = <||>}, AnyTrue[terms, looseBoundVariablesQ]]
+]
+looseBoundVariablesQ[term_] := If[ AssociationQ[$looseBoundRangeCache],
+	looseBoundRange[term] > 0,
+	Block[{$looseBoundRangeCache = <||>}, looseBoundRange[term] > 0]
+]
 
 
 declareInductiveType[environment_, name_HoldComplete, universeParameters_List, numberOfParameters_Integer, type_, constructors_List] :=
@@ -117,43 +153,44 @@ declareInductiveType[environment_, name_HoldComplete, universeParameters_List, n
 declareInductiveTypes[environment_, universeParameters_List, numberOfParameters_Integer, types : {(_HoldComplete -> _) ..}, constructors_List] :=
 	withCheckedTerms[declareBlock[environment, universeParameters, numberOfParameters, types, constructors]]
 
-declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, types_List, constructors_List] := Module[
+declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, types_List, constructors_List] := Block[
 	{
-		names = Keys[types], levels = levelParameter /@ universeParameters, typeContext, parameterIds, originals, provisional,
-		originalConstructors, blockConstructors, auxiliaries, blockTypes, resultLevel, checkedProvisional, checkedConstructors
+		blockNames = Keys[types], blockLevels = levelParameter /@ universeParameters,
+		blockTypeContext, blockParameterIds, blockOriginals, blockProvisional, blockOwnedConstructors,
+		blockOriginalConstructors, blockAllConstructors, blockAuxiliaries, blockAllTypes,
+		blockResultLevel, blockCheckedProvisional, blockCheckedConstructors
 	},
-	checkUniverseParameters[First[names], universeParameters, Join[Values[types], Values[constructors]]];
-	If[ ! DuplicateFreeQ[Join[names, recursorName /@ names, Keys[constructors]]],
-		kernelFailure["DuplicateConstructor", "The constructors of `1` must have distinct names, different from the types and their recursors.", {HoldForm @@ First[names]}]
+	checkUniverseParameters[First[blockNames], universeParameters, Join[Values[types], Values[constructors]]];
+	If[ ! DuplicateFreeQ[Join[blockNames, recursorName /@ blockNames, Keys[constructors]]],
+		kernelFailure["DuplicateConstructor", "The constructors of `1` must have distinct names, different from the types and their recursors.", {HoldForm @@ First[blockNames]}]
 	];
 	(* that the types and the constructors' types are types the compiled kernel checks of their records, when it checks a
 	   batch, and so are the universes of the constructors' fields; the levels of the fields large elimination takes are
 	   found here either way *)
-	If[! $deferKernelChecks, Scan[Function[type, sortLevel[environment, <||>, type]], Values[types]]];
-	{typeContext, parameterIds} = blockParameters[environment, First[types], numberOfParameters];
-	originals = Function[entry, blockType[environment, typeContext, parameterIds, First[entry], Last[entry], constantReference[First[entry], levels], None]] /@ types;
+	If[! $deferKernelChecks, Scan[sortLevel[environment, <||>, #] &, Values[types]]];
+	{blockTypeContext, blockParameterIds} = blockParameters[environment, First[types], numberOfParameters];
+	blockOriginals = blockType[environment, blockTypeContext, blockParameterIds, First[#], Last[#], constantReference[First[#], blockLevels], None] & /@ types;
 	(* the constructor types may mention the types being declared *)
-	provisional = addConstantRecords[environment, Association[Function[type, type["Name"] -> provisionalRecord[type, universeParameters, numberOfParameters]] /@ originals]];
+	blockProvisional = addConstantRecords[environment, Association[(#["Name"] -> provisionalRecord[#, universeParameters, numberOfParameters]) & /@ blockOriginals]];
 	(* the constructors of the first type come first, then the second's, and so on, each in the order given *)
-	originalConstructors = With[{owned = Function[constructor, originalConstructor[provisional, typeContext, parameterIds, originals, constructor]] /@ constructors},
-		Catenate[Function[name, Select[owned, Function[constructor, constructor["Owner"] === name]]] /@ names]
+	blockOwnedConstructors = originalConstructor[blockProvisional, blockTypeContext, blockParameterIds, blockOriginals, #] & /@ constructors;
+	blockOriginalConstructors = Catenate[selectConstructorsByOwner[blockOwnedConstructors, #] & /@ blockNames];
+	{blockAllConstructors, blockAuxiliaries} = eliminateNested[environment, universeParameters, blockTypeContext, blockParameterIds, blockNames, blockOriginalConstructors];
+	blockAllTypes = Join[
+		blockOriginals,
+		blockType[blockProvisional, blockTypeContext, blockParameterIds, #["Name"], #["Type"], constantReference[#["Name"], blockLevels], #] & /@ blockAuxiliaries
 	];
-	{blockConstructors, auxiliaries} = eliminateNested[environment, universeParameters, typeContext, parameterIds, names, originalConstructors];
-	blockTypes = Join[
-		originals,
-		Function[auxiliary, blockType[provisional, typeContext, parameterIds, auxiliary["Name"], auxiliary["Type"], constantReference[auxiliary["Name"], levels], auxiliary]] /@ auxiliaries
-	];
-	resultLevel = blockLevel[names, blockTypes];
-	checkedProvisional = addConstantRecords[provisional, Association[Function[type, type["Name"] -> provisionalRecord[type, universeParameters, numberOfParameters]] /@ Drop[blockTypes, Length[names]]]];
-	checkedConstructors = Function[constructor,
-		checkConstructor[checkedProvisional, typeContext, parameterIds, blockTypes, resultLevel, constructor]
-	] /@ blockConstructors;
+	blockResultLevel = blockLevel[blockNames, blockAllTypes];
+	blockCheckedProvisional = addConstantRecords[blockProvisional, Association[(#["Name"] -> provisionalRecord[#, universeParameters, numberOfParameters]) & /@ Drop[blockAllTypes, Length[blockNames]]]];
+	blockCheckedConstructors = checkConstructor[blockCheckedProvisional, blockTypeContext, blockParameterIds, blockAllTypes, blockResultLevel, #] & /@ blockAllConstructors;
 	(* a recursive field's sort mentions the types themselves, as Acc's does, so they must be declared to find it *)
 	addBlockRecords[
-		environment, universeParameters, numberOfParameters, typeContext, parameterIds, names, blockTypes, resultLevel, checkedConstructors,
-		largeEliminationQ[checkedProvisional, resultLevel, blockTypes, checkedConstructors]
+		environment, universeParameters, numberOfParameters, blockTypeContext, blockParameterIds, blockNames, blockAllTypes, blockResultLevel, blockCheckedConstructors,
+		largeEliminationQ[blockCheckedProvisional, blockResultLevel, blockAllTypes, blockCheckedConstructors]
 	]
 ]
+
+selectConstructorsByOwner[constructors_List, ownerName_] := Select[constructors, #["Owner"] === ownerName &]
 
 
 (* ::Subsection:: *)
@@ -161,32 +198,32 @@ declareBlock[environment_, universeParameters_List, numberOfParameters_Integer, 
 
 
 (* the parameters are the first type's leading binders, which every type of the block shares *)
-blockParameters[environment_, name_ -> type_, numberOfParameters_Integer] := Module[{typeContext, binderIds, resultType},
-	{typeContext, binderIds, resultType} = typeTelescope[environment, <||>, type];
-	If[ Length[binderIds] < numberOfParameters,
+blockParameters[environment_, name_ -> type_, numberOfParameters_Integer] := Block[{paramTypeContext, paramBinderIds, paramResultType},
+	{paramTypeContext, paramBinderIds, paramResultType} = typeTelescope[environment, <||>, type];
+	If[ Length[paramBinderIds] < numberOfParameters,
 		kernelFailure["InductiveParameters", "The type of `1` has fewer than `2` binders for its parameters.", {HoldForm @@ name, numberOfParameters}]
 	];
-	{KeyTake[typeContext, Take[binderIds, numberOfParameters]], Take[binderIds, numberOfParameters]}
+	{KeyTake[paramTypeContext, Take[paramBinderIds, numberOfParameters]], Take[paramBinderIds, numberOfParameters]}
 ]
 
-blockType[environment_, typeContext_, parameterIds_, name_, type_, constant_, nested_] := Module[{afterParameters, context, indexIds, result},
-	afterParameters = leadingParametersInstantiated[environment, typeContext, type, parameterIds, Function[
-		kernelFailure["InductiveParameters", "The types of a block must take the same parameters first, and `1` does not.", {HoldForm @@ name}]
-	]];
-	{context, indexIds, result} = typeTelescope[environment, typeContext, afterParameters];
+blockType[environment_, typeContext_, parameterIds_, name_, type_, constant_, nested_] := Block[{btAfterParameters, btContext, btIndexIds, btResult},
+	btAfterParameters = leadingParametersInstantiated[environment, typeContext, type, parameterIds,
+		kernelFailure["InductiveParameters", "The types of a block must take the same parameters first, and `1` does not.", {HoldForm @@ name}] &
+	];
+	{btContext, btIndexIds, btResult} = typeTelescope[environment, typeContext, btAfterParameters];
 	<|
 		"Name" -> name,
 		"Type" -> type,
 		"Constant" -> constant,
-		"IndexIds" -> indexIds,
-		"Context" -> context,
-		"Level" -> Replace[result, {
-			universeSort[level_] :> level,
-			_ :> kernelFailure["InductiveTypeSort", "The type of an inductive type must end in a sort.", {}]
-		}],
+		"IndexIds" -> btIndexIds,
+		"Context" -> btContext,
+		"Level" -> extractSortLevel[btResult],
 		"Nested" -> nested
 	|>
 ]
+
+extractSortLevel[universeSort[level_]] := level
+extractSortLevel[_] := kernelFailure["InductiveTypeSort", "The type of an inductive type must end in a sort.", {}]
 
 (* The leading binders of type take the parameters' places when their types agree. The binders type has as it stands
    are compared at once, each binder's type instantiated with the parameters before it, and what follows them instantiated
@@ -201,7 +238,7 @@ leadingParametersInstantiated[environment_, typeContext_, type_, parameterIds_Li
 		{k, standingCount}
 	];
 	Fold[
-		Function[{remaining, parameterId}, instantiateLeadingParameter[environment, typeContext, remaining, parameterId, failure]],
+		instantiateLeadingParameter[environment, typeContext, #1, #2, failure] &,
 		If[standingCount == 0, type, instantiateBoundVariables[Last[parameterChain], freeVariable /@ Take[parameterIds, standingCount]]],
 		Drop[parameterIds, standingCount]
 	]
@@ -209,20 +246,19 @@ leadingParametersInstantiated[environment_, typeContext_, type_, parameterIds_Li
 
 (* a leading binder takes the parameter's place when their types agree; both are binder types of the block's
    types, checked first in declareBlock, or of the auxiliary types built from them *)
-instantiateLeadingParameter[environment_, typeContext_, remaining_, parameterId_, failure_] := Replace[
-	weakHeadNormalForm[environment, typeContext, remaining],
-	{
-		dependentFunctionType[_, domain_, codomain_, _] /; definitionallyEqualQ[environment, typeContext, domain, typeContext[parameterId]["Type"]] :>
-			instantiateBoundVariable[codomain, freeVariable[parameterId]],
-		_ :> failure[]
-	}
-]
+instantiateLeadingParameter[environment_, typeContext_, remaining_, parameterId_, failure_] :=
+	matchLeadingParameter[environment, typeContext, weakHeadNormalForm[environment, typeContext, remaining], parameterId, failure]
 
-blockLevel[names_, blockTypes_] := With[{level = First[blockTypes]["Level"]},
-	If[ ! AllTrue[blockTypes, Function[type, levelEquivalentQ[type["Level"], level]]],
+matchLeadingParameter[environment_, typeContext_, dependentFunctionType[_, domain_, codomain_, _], parameterId_, _] /;
+	definitionallyEqualQ[environment, typeContext, domain, typeContext[parameterId]["Type"]] :=
+	instantiateBoundVariable[codomain, freeVariable[parameterId]]
+matchLeadingParameter[_, _, _, _, failure_] := failure[]
+
+blockLevel[names_, blockTypes_] := Block[{firstBlockLevel = First[blockTypes]["Level"]},
+	If[ ! AllTrue[blockTypes, levelEquivalentQ[#["Level"], firstBlockLevel] &],
 		kernelFailure["InductiveUniverse", "The types of the block of `1` must live in the same universe.", {HoldForm @@ First[names]}]
 	];
-	level
+	firstBlockLevel
 ]
 
 provisionalRecord[type_, universeParameters_, numberOfParameters_] := <|
@@ -243,61 +279,64 @@ provisionalRecord[type_, universeParameters_, numberOfParameters_] := <|
 
 
 (* a constructor with its parameters instantiated, and the type of the block it ends in *)
-originalConstructor[environment_, typeContext_, parameterIds_, originals_, constructorName_ -> constructorType_] := Module[
-	{afterParameters, conclusion, owner},
+originalConstructor[environment_, typeContext_, parameterIds_, originals_, constructorName_ -> constructorType_] := Block[
+	{ocAfterParameters, ocConclusion, ocOwner},
 	If[! $deferKernelChecks, sortLevel[environment, <||>, constructorType]];
-	afterParameters = leadingParametersInstantiated[environment, typeContext, constructorType, parameterIds, Function[
-		kernelFailure["ConstructorParameters", "The constructor `1` must take the parameters of its type first.", {HoldForm @@ constructorName}]
-	]];
+	ocAfterParameters = leadingParametersInstantiated[environment, typeContext, constructorType, parameterIds,
+		kernelFailure["ConstructorParameters", "The constructor `1` must take the parameters of its type first.", {HoldForm @@ constructorName}] &
+	];
 	(* the type it ends in, after the binders it has as it stands, names its owner: a type of the block applied to
 	   arguments is in weak head normal form; anything else is put in it, as a telescope does *)
-	conclusion = Last[NestWhileList[#[[3]] &, afterParameters, Head[#] === dependentFunctionType &]];
-	owner = SelectFirst[originals, Function[type, First[applicationSpine[conclusion]] === type["Constant"]], None];
-	If[ owner === None,
-		conclusion = Last @ typeTelescope[environment, typeContext, afterParameters];
-		owner = SelectFirst[originals, Function[type, First[applicationSpine[conclusion]] === type["Constant"]], None]
+	ocConclusion = Last[NestWhileList[#[[3]] &, ocAfterParameters, Head[#] === dependentFunctionType &]];
+	ocOwner = findOwnerType[originals, First[applicationSpine[ocConclusion]]];
+	If[ ocOwner === None,
+		ocConclusion = Last @ typeTelescope[environment, typeContext, ocAfterParameters];
+		ocOwner = findOwnerType[originals, First[applicationSpine[ocConclusion]]]
 	];
-	If[ owner === None,
+	If[ ocOwner === None,
 		kernelFailure[
 			"ConstructorResult",
 			"The constructor `1` must end in `2` applied to its parameters and indices.",
-			{HoldForm @@ constructorName, If[Length[originals] == 1, HoldForm @@ First[originals]["Name"], Function[name, HoldForm @@ name] /@ Lookup[originals, "Name"]]}
+			{HoldForm @@ constructorName, If[Length[originals] == 1, HoldForm @@ First[originals]["Name"], (HoldForm @@ #) & /@ Lookup[originals, "Name"]]}
 		]
 	];
-	<|"Name" -> constructorName, "Type" -> constructorType, "Owner" -> owner["Name"], "AfterParameters" -> afterParameters, "Original" -> None|>
+	<|"Name" -> constructorName, "Type" -> constructorType, "Owner" -> ocOwner["Name"], "AfterParameters" -> ocAfterParameters, "Original" -> None|>
 ]
 
-checkConstructor[environment_, typeContext_, parameterIds_, blockTypes_, resultLevel_, constructor_] := Module[
+findOwnerType[originals_List, head_] := SelectFirst[originals, #["Constant"] === head &, None]
+
+checkConstructor[environment_, typeContext_, parameterIds_, blockTypes_, resultLevel_, constructor_] := Block[
 	{
-		names = Lookup[blockTypes, "Name"], owner = SelectFirst[blockTypes, Function[type, type["Name"] === constructor["Owner"]]],
-		fieldContext, fieldIds, conclusion, conclusionHead, conclusionArguments, conclusionIndices, recursiveFields
+		ccNames = Lookup[blockTypes, "Name"], ccOwner,
+		ccFieldContext, ccFieldIds, ccConclusion, ccConclusionHead, ccConclusionArguments, ccConclusionIndices, ccRecursiveFields
 	},
+	ccOwner = SelectFirst[blockTypes, #["Name"] === constructor["Owner"] &];
 	If[! $deferKernelChecks, sortLevel[environment, typeContext, constructor["AfterParameters"]]];
-	{fieldContext, fieldIds, conclusion} = typeTelescope[environment, typeContext, constructor["AfterParameters"]];
-	{conclusionHead, conclusionArguments} = applicationSpine[conclusion];
-	If[ conclusionHead =!= owner["Constant"] || Length[conclusionArguments] =!= Length[parameterIds] + Length[owner["IndexIds"]],
+	{ccFieldContext, ccFieldIds, ccConclusion} = typeTelescope[environment, typeContext, constructor["AfterParameters"]];
+	{ccConclusionHead, ccConclusionArguments} = applicationSpine[ccConclusion];
+	If[ ccConclusionHead =!= ccOwner["Constant"] || Length[ccConclusionArguments] =!= Length[parameterIds] + Length[ccOwner["IndexIds"]],
 		kernelFailure["ConstructorResult", "The constructor `1` must end in `2` applied to its parameters and indices.", {HoldForm @@ displayedConstructorName[constructor], HoldForm @@ displayedOwner[blockTypes, constructor]}]
 	];
-	If[ Take[conclusionArguments, Length[parameterIds]] =!= (freeVariable /@ parameterIds),
+	If[ Take[ccConclusionArguments, Length[parameterIds]] =!= (freeVariable /@ parameterIds),
 		kernelFailure["ConstructorParameters", "The constructor `1` must end in `2` applied to the same parameters.", {HoldForm @@ displayedConstructorName[constructor], HoldForm @@ displayedOwner[blockTypes, constructor]}]
 	];
-	conclusionIndices = Drop[conclusionArguments, Length[parameterIds]];
-	If[ occursQ[conclusionIndices, names],
+	ccConclusionIndices = Drop[ccConclusionArguments, Length[parameterIds]];
+	If[ occursQ[ccConclusionIndices, ccNames],
 		kernelFailure["NonPositiveOccurrence", "`1` occurs in an index of the result of the constructor `2`.", {HoldForm @@ displayedOwner[blockTypes, constructor], HoldForm @@ displayedConstructorName[constructor]}]
 	];
-	recursiveFields = Flatten[
-		Function[fieldId, recursiveFieldData[environment, fieldContext, blockTypes, parameterIds, constructor, fieldId]] /@ fieldIds
+	ccRecursiveFields = Flatten[
+		recursiveFieldData[environment, ccFieldContext, blockTypes, parameterIds, constructor, #] & /@ ccFieldIds
 	];
 	(* an auxiliary type's constructor has no record for the compiled kernel to check *)
 	If[ ! $deferKernelChecks || constructor["Original"] =!= None,
-		checkFieldUniverses[environment, fieldContext, fieldIds, resultLevel, displayedConstructorName[constructor]]
+		checkFieldUniverses[environment, ccFieldContext, ccFieldIds, resultLevel, displayedConstructorName[constructor]]
 	];
 	<|
 		constructor,
-		"FieldIds" -> fieldIds,
-		"FieldContext" -> fieldContext,
-		"ConclusionIndices" -> conclusionIndices,
-		"RecursiveFields" -> recursiveFields
+		"FieldIds" -> ccFieldIds,
+		"FieldContext" -> ccFieldContext,
+		"ConclusionIndices" -> ccConclusionIndices,
+		"RecursiveFields" -> ccRecursiveFields
 	|>
 ]
 
@@ -310,37 +349,40 @@ displayedOwner[blockTypes_, constructor_] := If[constructor["Original"] === None
 (* A field is recursive when its type is (ys) -> I_k parameters indices with the block absent from the ys
    and the indices; it is non-recursive when the block does not occur at all; anything else is not
    strictly positive. *)
-recursiveFieldData[environment_, fieldContext_, blockTypes_, parameterIds_, constructor_, fieldId_] := Module[
-	{names = Lookup[blockTypes, "Name"], fieldType = fieldContext[fieldId]["Type"], innerContext, binderIds, result, resultHead, resultArguments, target},
-	If[ ! occursQ[fieldType, names],
+recursiveFieldData[environment_, fieldContext_, blockTypes_, parameterIds_, constructor_, fieldId_] := Block[
+	{rfNames = Lookup[blockTypes, "Name"], rfFieldType = fieldContext[fieldId]["Type"], rfInnerContext, rfBinderIds, rfResult, rfResultHead, rfResultArguments, rfTarget},
+	If[ ! occursQ[rfFieldType, rfNames],
 		{},
-		{innerContext, binderIds, result} = typeTelescope[environment, fieldContext, fieldType];
-		{resultHead, resultArguments} = applicationSpine[result];
-		target = FirstPosition[Lookup[blockTypes, "Constant"], Verbatim[resultHead], {None}, {1}, Heads -> False];
+		{rfInnerContext, rfBinderIds, rfResult} = typeTelescope[environment, fieldContext, rfFieldType];
+		{rfResultHead, rfResultArguments} = applicationSpine[rfResult];
+		rfTarget = FirstPosition[Lookup[blockTypes, "Constant"], Verbatim[rfResultHead], {None}, {1}, Heads -> False];
 		If[ Or[
-				AnyTrue[binderIds, Function[id, occursQ[innerContext[id]["Type"], names]]],
-				First[target] === None,
-				Take[resultArguments, UpTo[Length[parameterIds]]] =!= (freeVariable /@ parameterIds),
-				occursQ[Drop[resultArguments, Length[parameterIds]], names]
+				AnyTrue[rfBinderIds, occursQ[rfInnerContext[#]["Type"], rfNames] &],
+				First[rfTarget] === None,
+				Take[rfResultArguments, UpTo[Length[parameterIds]]] =!= (freeVariable /@ parameterIds),
+				occursQ[Drop[rfResultArguments, Length[parameterIds]], rfNames]
 			],
 			kernelFailure[
 				"NonPositiveOccurrence",
 				"`1` does not occur strictly positively in the constructor `2`.",
 				{HoldForm @@ displayedOwner[blockTypes, constructor], HoldForm @@ displayedConstructorName[constructor]}
 			],
-			{<|"Id" -> fieldId, "Binders" -> binderIds, "Context" -> innerContext, "Indices" -> Drop[resultArguments, Length[parameterIds]], "Target" -> First[target]|>}
+			{<|"Id" -> fieldId, "Binders" -> rfBinderIds, "Context" -> rfInnerContext, "Indices" -> Drop[rfResultArguments, Length[parameterIds]], "Target" -> First[rfTarget]|>}
 		]
 	]
 ]
 
 checkFieldUniverses[environment_, fieldContext_, fieldIds_, resultLevel_, constructorName_] := If[ ! levelEquivalentQ[resultLevel, 0],
 	Scan[
-		Function[fieldId, With[{fieldLevel = sortLevel[environment, fieldContext, fieldContext[fieldId]["Type"]]},
-			If[ ! levelLessEqualQ[fieldLevel, resultLevel],
-				kernelFailure["UniverseTooLarge", "A field of the constructor `1` lives in a larger universe than its type.", {HoldForm @@ constructorName}]
-			]
-		]],
+		checkOneFieldUniverse[environment, fieldContext, #, resultLevel, constructorName] &,
 		fieldIds
+	]
+]
+
+checkOneFieldUniverse[environment_, fieldContext_, fieldId_, resultLevel_, constructorName_] := Block[
+	{checkedFieldLevel = sortLevel[environment, fieldContext, fieldContext[fieldId]["Type"]]},
+	If[ ! levelLessEqualQ[checkedFieldLevel, resultLevel],
+		kernelFailure["UniverseTooLarge", "A field of the constructor `1` lives in a larger universe than its type.", {HoldForm @@ constructorName}]
 	]
 ]
 
@@ -357,55 +399,77 @@ checkFieldUniverses[environment_, fieldContext_, fieldIds_, resultLevel_, constr
    constructors mention none of its types there, as a structure's do, has nothing nested, and its constructors go on as
    the replacement below would rebuild them *)
 eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, names_, originalConstructors_] /;
-	AllTrue[originalConstructors, Function[constructor, FreeQ[constructorFieldsAndIndices[constructor["AfterParameters"]], constantReference[Alternatives @@ names, _]]]] :=
+	! occursQ[Catenate[constructorFieldsAndIndices[#["AfterParameters"]] & /@ originalConstructors], names] :=
 	{originalConstructors, {}}
 
-constructorFieldsAndIndices[dependentFunctionType[_, domain_, body_, _]] := {domain, constructorFieldsAndIndices[body]}
-constructorFieldsAndIndices[conclusion_] := Last[applicationSpine[conclusion]]
+constructorFieldsAndIndices[term_] := Block[
+	{fieldChain = NestWhileList[dependentBody, term, dependentFunctionTypeQ]},
+	Join[dependentDomain /@ Most[fieldChain], Last[applicationSpine[Last[fieldChain]]]]
+]
 
-(* The local functions of nested elimination are defined in terms of one another, which would keep their symbols, with
-   the auxiliary types, after the Module: their definitions are cleared when it ends, after a failure too, with Clear,
-   which keeps them Temporary, where ClearAll would take that attribute and keep the symbols for good. *)
-eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, names_, originalConstructors_] := Module[
-	{auxiliaries = {}, replaceNested, replaceParts, nestedApplication, replaced, index = 1},
-	WithCleanup[
-		replaceNested[term_] := Replace[applicationSpine[term], {
-			{constantReference[inductive_, inductiveLevels_], arguments_} /; nestedOccurrenceQ[environment, names, inductive, arguments] :>
-				nestedApplication[inductive, inductiveLevels, arguments],
-			{head_, {}} :> replaceParts[head],
-			{head_, arguments_} :> makeApplication[replaceParts[head], replaceNested /@ arguments]
-		}];
-		replaceParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, replaceNested[domain], replaceNested[body], binder];
-		replaceParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, replaceNested[type], replaceNested[value], replaceNested[body]];
-		replaceParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, replaceNested[structureTerm]];
-		replaceParts[other_] := other;
-		nestedApplication[inductive_, inductiveLevels_, arguments_] := Module[
-			{numberOfNestedParameters = constantRecord[environment, inductive]["NumberOfParameters"], parameters, auxiliary},
-			parameters = Take[arguments, numberOfNestedParameters];
-			If[ occursQ[Drop[arguments, numberOfNestedParameters], names],
-				kernelFailure["NonPositiveOccurrence", "`1` occurs in an index of the nested type `2`.", {HoldForm @@ First[names], HoldForm @@ inductive}]
-			];
-			If[ looseBoundVariablesQ[parameters],
-				kernelFailure["NestedParameters", "The parameters of the nested type `1` must not depend on the fields of a constructor of `2`.", {HoldForm @@ inductive, HoldForm @@ First[names]}]
-			];
-			auxiliary = SelectFirst[auxiliaries, Function[candidate, candidate["Key"] === {inductive, inductiveLevels, parameters}], None];
-			If[ auxiliary === None,
-				If[ Length[auxiliaries] >= $maximumAuxiliaryTypes,
-					kernelFailure["NestingTooDeep", "`1` is nested more than `2` times.", {HoldForm @@ First[names], $maximumAuxiliaryTypes}]
-				];
-				auxiliary = auxiliaryType[environment, typeContext, parameterIds, First[names], Length[auxiliaries] + 1, inductive, inductiveLevels, parameters];
-				auxiliaries = Append[auxiliaries, auxiliary]
-			];
-			makeApplication[constantReference[auxiliary["Name"], levelParameter /@ universeParameters], Join[freeVariable /@ parameterIds, Drop[arguments, numberOfNestedParameters]]]
+dependentFunctionTypeQ[dependentFunctionType[_, _, _, _]] := True
+dependentFunctionTypeQ[_] := False
+dependentDomain[dependentFunctionType[_, domain_, _, _]] := domain
+dependentBody[dependentFunctionType[_, _, body_, _]] := body
+
+eliminateNested[environment_, universeParameters_, typeContext_, parameterIds_, names_, originalConstructors_] := Block[
+	{
+		$nestedEnvironment = environment,
+		$nestedUniverseParameters = universeParameters,
+		$nestedTypeContext = typeContext,
+		$nestedParameterIds = parameterIds,
+		$nestedNames = names,
+		$nestedAuxiliaries = {},
+		$nestedReplaceMemo = <||>,
+		nestedReplaced,
+		nestedIndex = 1
+	},
+	nestedReplaced = (Append[#, "AfterParameters" -> replaceNestedTerm[#["AfterParameters"]]] &) /@ originalConstructors;
+	While[ nestedIndex <= Length[$nestedAuxiliaries],
+		$nestedAuxiliaries[[nestedIndex, "Constructors"]] = (Append[#, "AfterParameters" -> replaceNestedTerm[#["AfterParameters"]]] &) /@ $nestedAuxiliaries[[nestedIndex, "Constructors"]];
+		nestedIndex++
+	];
+	{Join[nestedReplaced, Catenate[Lookup[$nestedAuxiliaries, "Constructors", {}]]], $nestedAuxiliaries}
+]
+
+replaceNestedTerm[term_] := Lookup[$nestedReplaceMemo, Key[term], $nestedReplaceMemo[term] = replaceNestedSpine[applicationSpine[term]]]
+
+replaceNestedSpine[{constantReference[inductive_, inductiveLevels_], arguments_}] /; nestedOccurrenceQ[$nestedEnvironment, $nestedNames, inductive, arguments] :=
+	nestedApplicationTerm[inductive, inductiveLevels, arguments]
+replaceNestedSpine[{head_, {}}] := replaceNestedParts[head]
+replaceNestedSpine[{head_, arguments_}] := makeApplication[replaceNestedParts[head], replaceNestedTerm /@ arguments]
+
+replaceNestedParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] :=
+	Construct[head, name, replaceNestedTerm[domain], replaceNestedTerm[body], binder]
+replaceNestedParts[localDefinition[name_, type_, value_, body_]] :=
+	Construct[localDefinition, name, replaceNestedTerm[type], replaceNestedTerm[value], replaceNestedTerm[body]]
+replaceNestedParts[projection[structure_, fieldIndex_, structureTerm_]] :=
+	Construct[projection, structure, fieldIndex, replaceNestedTerm[structureTerm]]
+replaceNestedParts[cubicalSystem[branches_List]] :=
+	Construct[cubicalSystem, Map[replaceNestedTerm, branches, {2}]]
+replaceNestedParts[other_] := other
+
+nestedApplicationTerm[inductive_, inductiveLevels_, arguments_] := Block[
+	{
+		nestedParamCount = constantRecord[$nestedEnvironment, inductive]["NumberOfParameters"],
+		nestedParams, nestedAux
+	},
+	nestedParams = Take[arguments, nestedParamCount];
+	If[ occursQ[Drop[arguments, nestedParamCount], $nestedNames],
+		kernelFailure["NonPositiveOccurrence", "`1` occurs in an index of the nested type `2`.", {HoldForm @@ First[$nestedNames], HoldForm @@ inductive}]
+	];
+	If[ looseBoundVariablesQ[nestedParams],
+		kernelFailure["NestedParameters", "The parameters of the nested type `1` must not depend on the fields of a constructor of `2`.", {HoldForm @@ inductive, HoldForm @@ First[$nestedNames]}]
+	];
+	nestedAux = SelectFirst[$nestedAuxiliaries, #["Key"] === {inductive, inductiveLevels, nestedParams} &, None];
+	If[ nestedAux === None,
+		If[ Length[$nestedAuxiliaries] >= $maximumAuxiliaryTypes,
+			kernelFailure["NestingTooDeep", "`1` is nested more than `2` times.", {HoldForm @@ First[$nestedNames], $maximumAuxiliaryTypes}]
 		];
-		replaced = Function[constructor, Append[constructor, "AfterParameters" -> replaceNested[constructor["AfterParameters"]]]] /@ originalConstructors;
-		While[ index <= Length[auxiliaries],
-			auxiliaries[[index, "Constructors"]] = Function[constructor, Append[constructor, "AfterParameters" -> replaceNested[constructor["AfterParameters"]]]] /@ auxiliaries[[index, "Constructors"]];
-			index++
-		];
-		{Join[replaced, Catenate[Lookup[auxiliaries, "Constructors", {}]]], auxiliaries},
-		Clear[replaceNested, replaceParts, nestedApplication]
-	]
+		nestedAux = auxiliaryType[$nestedEnvironment, $nestedTypeContext, $nestedParameterIds, First[$nestedNames], Length[$nestedAuxiliaries] + 1, inductive, inductiveLevels, nestedParams];
+		$nestedAuxiliaries = Append[$nestedAuxiliaries, nestedAux]
+	];
+	makeApplication[constantReference[nestedAux["Name"], levelParameter /@ $nestedUniverseParameters], Join[freeVariable /@ $nestedParameterIds, Drop[arguments, nestedParamCount]]]
 ]
 
 $maximumAuxiliaryTypes = 64
@@ -419,64 +483,83 @@ nestedOccurrenceQ[environment_, names_, inductive_, arguments_] := And[
 ]
 
 (* the auxiliary type for J ps: J's type and constructors for the parameters ps, after the block's own *)
-auxiliaryType[environment_, typeContext_, parameterIds_, firstName_, index_, inductive_, inductiveLevels_, parameters_] := With[
-	{record = constantRecord[environment, inductive], name = HoldComplete[nestedAuxiliary[firstName, index]]},
+auxiliaryType[environment_, typeContext_, parameterIds_, firstName_, index_, inductive_, inductiveLevels_, parameters_] := Block[
+	{auxRecord = constantRecord[environment, inductive], auxName = HoldComplete[nestedAuxiliary[firstName, index]]},
 	<|
 		"Key" -> {inductive, inductiveLevels, parameters},
-		"Name" -> name,
+		"Name" -> auxName,
 		"Inductive" -> inductive,
 		"Levels" -> inductiveLevels,
 		"Parameters" -> parameters,
-		"Type" -> makeDependentFunctionType[typeContext, parameterIds, instantiateParameters[record, inductiveLevels, record["Type"], parameters]],
+		"Type" -> makeDependentFunctionType[typeContext, parameterIds, instantiateParameters[auxRecord, inductiveLevels, auxRecord["Type"], parameters]],
 		"Constructors" -> MapIndexed[
-			Function[{constructor, position}, <|
-				"Name" -> HoldComplete[nestedAuxiliary[firstName, index, First[position]]],
+			<|
+				"Name" -> HoldComplete[nestedAuxiliary[firstName, index, First[#2]]],
 				"Type" -> None,
-				"Owner" -> name,
-				"AfterParameters" -> instantiateParameters[record, inductiveLevels, constantRecord[environment, constructor]["Type"], parameters],
-				"Original" -> constructor
-			|>],
-			record["Constructors"]
+				"Owner" -> auxName,
+				"AfterParameters" -> instantiateParameters[auxRecord, inductiveLevels, constantRecord[environment, #1]["Type"], parameters],
+				"Original" -> #1
+			|> &,
+			auxRecord["Constructors"]
 		]
 	|>
 ]
 
 (* a type of J's or of its constructors, at J's levels and with J's parameters instantiated *)
 instantiateParameters[record_, inductiveLevels_, type_, parameters_] := Fold[
-	Function[{remaining, parameter}, Replace[remaining, dependentFunctionType[_, _, codomain_, _] :> instantiateBoundVariable[codomain, parameter]]],
+	instantiateOneParameter,
 	instantiateUniverseParameters[type, record["UniverseParameters"], inductiveLevels],
 	parameters
 ]
 
+instantiateOneParameter[dependentFunctionType[_, _, codomain_, _], parameter_] := instantiateBoundVariable[codomain, parameter]
+instantiateOneParameter[remaining_, _] := remaining
+
 (* once the recursors are generated, the nested type and its constructors take each auxiliary's place *)
-restoreNested[blockTypes_, numberOfParameters_][term_] := Module[
-	{auxiliaries = Select[blockTypes, Function[type, type["Nested"] =!= None]], restore, restoreParts},
-	WithCleanup[
-		restore[subterm_] := Replace[applicationSpine[subterm], {
-			{constantReference[name_, _], arguments_} /; MemberQ[Lookup[auxiliaries, "Name"], name] :> With[
-				{nested = SelectFirst[auxiliaries, Function[type, type["Name"] === name]]["Nested"]},
-				makeApplication[constantReference[nested["Inductive"], nested["Levels"]], Join[nested["Parameters"], restore /@ Drop[arguments, numberOfParameters]]]
-			],
-			{constantReference[HoldComplete[nestedAuxiliary[_, auxiliaryIndex_, constructorIndex_]], _], arguments_} :> With[
-				{nested = auxiliaries[[auxiliaryIndex]]["Nested"]},
-				makeApplication[
-					constantReference[nested["Constructors"][[constructorIndex]]["Original"], nested["Levels"]],
-					Join[nested["Parameters"], restore /@ Drop[arguments, numberOfParameters]]
-				]
-			],
-			{head_, {}} :> restoreParts[head],
-			{head_, arguments_} :> makeApplication[restoreParts[head], restore /@ arguments]
-		}];
-		restoreParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] := Construct[head, name, restore[domain], restore[body], binder];
-		restoreParts[localDefinition[name_, type_, value_, body_]] := Construct[localDefinition, name, restore[type], restore[value], restore[body]];
-		restoreParts[projection[structure_, fieldIndex_, structureTerm_]] := Construct[projection, structure, fieldIndex, restore[structureTerm]];
-		restoreParts[other_] := other;
-		restore[term],
-		Clear[restore, restoreParts]
+restoreNested[blockTypes_, numberOfParameters_][term_] := Block[
+	{
+		$restoreAuxiliaries = Select[blockTypes, #["Nested"] =!= None &],
+		$restoreAuxiliaryNames,
+		$restoreNumberOfParameters = numberOfParameters,
+		$restoreMemo = <||>
+	},
+	If[ $restoreAuxiliaries === {},
+		term,
+		$restoreAuxiliaryNames = AssociationThread[Lookup[$restoreAuxiliaries, "Name"], $restoreAuxiliaries];
+		restoreNestedTerm[term]
 	]
 ]
 
-restoredContext[restore_, context_Association] := Map[Function[entry, Append[entry, "Type" -> restore[entry["Type"]]]], context]
+restoreNestedTerm[subterm_] := Lookup[$restoreMemo, Key[subterm], $restoreMemo[subterm] = restoreNestedSpine[applicationSpine[subterm]]]
+
+restoreNestedSpine[{constantReference[name_, _], arguments_}] /; KeyExistsQ[$restoreAuxiliaryNames, name] :=
+	restoreAuxiliaryApplication[$restoreAuxiliaryNames[name]["Nested"], arguments]
+restoreNestedSpine[{constantReference[HoldComplete[nestedAuxiliary[_, auxiliaryIndex_, constructorIndex_]], _], arguments_}] :=
+	restoreAuxiliaryConstructor[$restoreAuxiliaries[[auxiliaryIndex]]["Nested"], constructorIndex, arguments]
+restoreNestedSpine[{head_, {}}] := restoreNestedParts[head]
+restoreNestedSpine[{head_, arguments_}] := makeApplication[restoreNestedParts[head], restoreNestedTerm /@ arguments]
+
+restoreAuxiliaryApplication[nested_, arguments_] := makeApplication[
+	constantReference[nested["Inductive"], nested["Levels"]],
+	Join[nested["Parameters"], restoreNestedTerm /@ Drop[arguments, $restoreNumberOfParameters]]
+]
+
+restoreAuxiliaryConstructor[nested_, constructorIndex_, arguments_] := makeApplication[
+	constantReference[nested["Constructors"][[constructorIndex]]["Original"], nested["Levels"]],
+	Join[nested["Parameters"], restoreNestedTerm /@ Drop[arguments, $restoreNumberOfParameters]]
+]
+
+restoreNestedParts[(head : lambdaAbstraction | dependentFunctionType)[name_, domain_, body_, binder_]] :=
+	Construct[head, name, restoreNestedTerm[domain], restoreNestedTerm[body], binder]
+restoreNestedParts[localDefinition[name_, type_, value_, body_]] :=
+	Construct[localDefinition, name, restoreNestedTerm[type], restoreNestedTerm[value], restoreNestedTerm[body]]
+restoreNestedParts[projection[structure_, fieldIndex_, structureTerm_]] :=
+	Construct[projection, structure, fieldIndex, restoreNestedTerm[structureTerm]]
+restoreNestedParts[cubicalSystem[branches_List]] :=
+	Construct[cubicalSystem, Map[restoreNestedTerm, branches, {2}]]
+restoreNestedParts[other_] := other
+
+restoredContext[restore_, context_Association] := Map[Append[#, "Type" -> restore[#["Type"]]] &, context]
 
 
 (* ::Subsection:: *)
@@ -493,14 +576,17 @@ largeEliminationQ[environment_, resultLevel_, blockTypes_, checkedConstructors_L
 	Length[checkedConstructors] == 0,
 		True,
 	Length[checkedConstructors] == 1,
-		With[{constructor = First[checkedConstructors]},
-			AllTrue[constructor["FieldIds"], Function[fieldId, Or[
-				levelEquivalentQ[sortLevel[environment, constructor["FieldContext"], constructor["FieldContext"][fieldId]["Type"]], 0],
-				MemberQ[constructor["ConclusionIndices"], freeVariable[fieldId]]
-			]]]
-		],
+		largeEliminationConstructorQ[environment, First[checkedConstructors]],
 	True,
 		False
+]
+
+largeEliminationConstructorQ[environment_, constructor_] := AllTrue[
+	constructor["FieldIds"],
+	Or[
+		levelEquivalentQ[sortLevel[environment, constructor["FieldContext"], constructor["FieldContext"][#]["Type"]], 0],
+		MemberQ[constructor["ConclusionIndices"], freeVariable[#]]
+	] &
 ]
 
 (* the universe the recursor eliminates into is named apart from the type's own universe parameters, so
@@ -516,184 +602,196 @@ motiveNames[count_Integer] := Table[With[{motive = Symbol[Context[m] <> "m" <> T
 addBlockRecords[environment_, universeParameters_, numberOfParameters_, typeContext_, parameterIds_, names_, blockTypes_, resultLevel_, rawConstructors_, largeElimination_] :=
 	Block[{$binderAbstractions = <||>}, blockRecords[environment, universeParameters, numberOfParameters, typeContext, parameterIds, names, blockTypes, resultLevel, rawConstructors, largeElimination]]
 
-blockRecords[environment_, universeParameters_, numberOfParameters_, typeContext_, parameterIds_, names_, blockTypes_, resultLevel_, rawConstructors_, largeElimination_] := Module[
+blockRecords[environment_, universeParameters_, numberOfParameters_, typeContext_, parameterIds_, names_, blockTypes_, resultLevel_, rawConstructors_, largeElimination_] := Block[
 	{
-		levels = levelParameter /@ universeParameters, restore, checkedConstructors, eliminationName, recursorUniverseParameters, eliminationLevel,
-		recursorConstants, motiveIds, majorIds, majorTypes, majorContexts, motiveContext, minorIds, ihIds, minorContext, minorTypes,
-		recursorContexts, recursorTypes, rules, inductiveRecords, constructorRecords, recursorRecords, extended, matchQuantity, matchBinder, premiseContext
+		brLevels = levelParameter /@ universeParameters, brRestore, brCheckedConstructors, brEliminationName, brRecursorUniverseParameters, brEliminationLevel,
+		brRecursorConstants, brMotiveIds, brMajorIds, brMajorTypes, brMajorContexts, brMotiveContext, brMinorIds, brIhIds, brMinorContext, brMinorTypes,
+		brRecursorContexts, brRecursorTypes, brRules, brInductiveRecords, brConstructorRecords, brRecursorRecords, brExtended, brMatchQuantity, brMatchBinder, brPremiseContext
 	},
-	restore = If[AllTrue[blockTypes, Function[type, type["Nested"] === None]], Identity, restoreNested[blockTypes, numberOfParameters]];
+	brRestore = If[AllTrue[blockTypes, #["Nested"] === None &], Identity, restoreNested[blockTypes, numberOfParameters]];
 	(* the auxiliary types give way to the nested types before anything is built from the constructors *)
-	checkedConstructors = Function[constructor, Join[constructor, <|
-		"FieldContext" -> restoredContext[restore, constructor["FieldContext"]],
-		"RecursiveFields" -> Function[recursive, Append[recursive, "Context" -> restoredContext[restore, recursive["Context"]]]] /@ constructor["RecursiveFields"],
-		"Application" -> restore[makeApplication[constantReference[constructor["Name"], levels], freeVariable /@ Join[parameterIds, constructor["FieldIds"]]]]
-	|>]] /@ rawConstructors;
-	eliminationName = eliminationUniverseName[universeParameters];
-	recursorUniverseParameters = If[largeElimination, Prepend[universeParameters, eliminationName], universeParameters];
+	brCheckedConstructors = restoreConstructorData[brRestore, brLevels, parameterIds, #] & /@ rawConstructors;
+	brEliminationName = eliminationUniverseName[universeParameters];
+	brRecursorUniverseParameters = If[largeElimination, Prepend[universeParameters, brEliminationName], universeParameters];
 	(* without Prop, the motive's universe is Type u, which is never Prop *)
-	eliminationLevel = Which[
+	brEliminationLevel = Which[
 		! largeElimination, 0,
-		rulesSetting[environment, "Prop"], levelParameter[eliminationName],
-		True, normalizeLevel[levelSuccessor[levelParameter[eliminationName], 1]]
+		rulesSetting[environment, "Prop"], levelParameter[brEliminationName],
+		True, normalizeLevel[levelSuccessor[levelParameter[brEliminationName], 1]]
 	];
-	recursorConstants = MapIndexed[
-		Function[{type, position}, constantReference[
-			If[First[position] <= Length[names], recursorName[type["Name"]], auxiliaryRecursorName[First[names], First[position] - Length[names]]],
-			levelParameter /@ recursorUniverseParameters
-		]],
+	brRecursorConstants = MapIndexed[
+		constantReference[
+			If[First[#2] <= Length[names], recursorName[#1["Name"]], auxiliaryRecursorName[First[names], First[#2] - Length[names]]],
+			levelParameter /@ brRecursorUniverseParameters
+		] &,
 		blockTypes
 	];
-	motiveIds = Table[freshFreeVariable[], Length[blockTypes]];
-	majorIds = Table[freshFreeVariable[], Length[blockTypes]];
-	majorTypes = Function[type, restore[makeApplication[type["Constant"], freeVariable /@ Join[parameterIds, type["IndexIds"]]]]] /@ blockTypes;
-	majorContexts = MapThread[
-		Function[{type, majorId, majorType}, extendContext[restoredContext[restore, type["Context"]], majorId, HoldComplete[t], majorType, "Explicit"]],
-		{blockTypes, majorIds, majorTypes}
+	brMotiveIds = Table[freshFreeVariable[], Length[blockTypes]];
+	brMajorIds = Table[freshFreeVariable[], Length[blockTypes]];
+	brMajorTypes = (brRestore[makeApplication[#["Constant"], freeVariable /@ Join[parameterIds, #["IndexIds"]]]] &) /@ blockTypes;
+	brMajorContexts = MapThread[
+		extendContext[restoredContext[brRestore, #1["Context"]], #2, HoldComplete[t], #3, "Explicit"] &,
+		{blockTypes, brMajorIds, brMajorTypes}
 	];
-	motiveContext = Fold[
-		Function[{context, entry}, extendContext[context, Sequence @@ entry, "Explicit"]],
-		Join @@ Prepend[majorContexts, typeContext],
+	brMotiveContext = Fold[
+		extendContext[#1, Sequence @@ #2, "Explicit"] &,
+		Join @@ Prepend[brMajorContexts, typeContext],
 		MapThread[
-			Function[{type, motiveId, majorId, majorContext, motiveName}, {
-				motiveId,
-				motiveName,
-				makeDependentFunctionType[majorContext, Append[type["IndexIds"], majorId], universeSort[eliminationLevel]]
-			}],
-			{blockTypes, motiveIds, majorIds, majorContexts, motiveNames[Length[blockTypes]]}
+			{#2, #5, makeDependentFunctionType[#4, Append[#1["IndexIds"], #3], universeSort[brEliminationLevel]]} &,
+			{blockTypes, brMotiveIds, brMajorIds, brMajorContexts, motiveNames[Length[blockTypes]]}
 		]
 	];
-	minorIds = Table[freshFreeVariable[], Length[checkedConstructors]];
-	ihIds = Function[constructor, Table[freshFreeVariable[], Length[constructor["RecursiveFields"]]]] /@ checkedConstructors;
-	minorContext = Fold[
-		Function[{context, pair}, inductionHypothesisContext[context, motiveIds, Sequence @@ pair]],
-		Join @@ Append[Function[constructor, constructor["FieldContext"]] /@ checkedConstructors, motiveContext],
-		Transpose[{checkedConstructors, ihIds}]
+	brMinorIds = Table[freshFreeVariable[], Length[brCheckedConstructors]];
+	brIhIds = (Table[freshFreeVariable[], Length[#["RecursiveFields"]]] &) /@ brCheckedConstructors;
+	brMinorContext = Fold[
+		inductionHypothesisContext[#1, brMotiveIds, Sequence @@ #2] &,
+		Join @@ Append[(#["FieldContext"] &) /@ brCheckedConstructors, brMotiveContext],
+		Transpose[{brCheckedConstructors, brIhIds}]
 	];
 	(* with quantities, a match uses its argument once, unless it recurses; without them every quantity is Infinity *)
-	matchQuantity = If[AnyTrue[checkedConstructors, Function[constructor, constructor["RecursiveFields"] =!= {}]], Infinity, 1];
-	matchBinder = If[rulesSetting[environment, "Quantities"], quantifiedBinder["Explicit", matchQuantity], "Explicit"];
-	premiseContext = Fold[
-		Function[{context, fieldId}, With[{binder = context[fieldId]["Binder"]},
-			Append[context, fieldId -> Append[context[fieldId], "Binder" -> quantifiedBinder[binderKind[binder], multiplyQuantities[matchQuantity, binderQuantity[binder]]]]]
-		]],
-		minorContext,
-		Catenate[Lookup[checkedConstructors, "FieldIds"]]
+	brMatchQuantity = If[AnyTrue[brCheckedConstructors, #["RecursiveFields"] =!= {} &], Infinity, 1];
+	brMatchBinder = If[rulesSetting[environment, "Quantities"], quantifiedBinder["Explicit", brMatchQuantity], "Explicit"];
+	brPremiseContext = Fold[
+		scaleFieldBinderQuantity[brMatchQuantity, #1, #2] &,
+		brMinorContext,
+		Catenate[Lookup[brCheckedConstructors, "FieldIds"]]
 	];
-	minorTypes = MapThread[
-		Function[{constructor, constructorIhIds},
-			makeDependentFunctionType[premiseContext, Join[constructor["FieldIds"], constructorIhIds], makeApplication[
-				freeVariable[motiveIds[[ownerPosition[blockTypes, constructor]]]],
-				Append[constructor["ConclusionIndices"], constructor["Application"]]
-			]]
-		],
-		{checkedConstructors, ihIds}
+	brMinorTypes = MapThread[
+		makeDependentFunctionType[brPremiseContext, Join[#1["FieldIds"], #2], makeApplication[
+			freeVariable[brMotiveIds[[ownerPosition[blockTypes, #1]]]],
+			Append[#1["ConclusionIndices"], #1["Application"]]
+		]] &,
+		{brCheckedConstructors, brIhIds}
 	];
-	recursorContexts = MapThread[
-		Function[{type, majorId},
-			Fold[
-				Function[{context, entry}, extendContext[context, First[entry], Last[entry]["Name"], Last[entry]["Type"], Last[entry]["Binder"]]],
-				minorContext,
-				Join[
-					Function[id, {id, Append[minorContext[id], "Binder" -> erasedBinder[environment, "Implicit"]]}] /@ Join[parameterIds, type["IndexIds"]],
-					Function[id, {id, Append[minorContext[id], "Binder" -> erasedBinder[environment, "Explicit"]]}] /@ motiveIds,
-					MapThread[
-						Function[{id, constructor, minorType}, {id, <|"Name" -> displayedConstructorName[constructor], "Type" -> minorType, "Binder" -> matchBinder|>}],
-						{minorIds, checkedConstructors, minorTypes}
-					],
-					{{majorId, Append[minorContext[majorId], "Binder" -> matchBinder]}}
-				]
-			]
-		],
-		{blockTypes, majorIds}
+	brRecursorContexts = MapThread[
+		buildRecursorContext[environment, brMinorContext, parameterIds, brMotiveIds, brMinorIds, brCheckedConstructors, brMinorTypes, brMatchBinder, #1, #2] &,
+		{blockTypes, brMajorIds}
 	];
-	recursorTypes = MapThread[
-		Function[{type, motiveId, majorId, recursorContext},
-			makeDependentFunctionType[
-				recursorContext,
-				Join[parameterIds, motiveIds, minorIds, type["IndexIds"], {majorId}],
-				makeApplication[freeVariable[motiveId], freeVariable /@ Append[type["IndexIds"], majorId]]
-			]
-		],
-		{blockTypes, motiveIds, majorIds, recursorContexts}
+	brRecursorTypes = MapThread[
+		makeDependentFunctionType[
+			#4,
+			Join[parameterIds, brMotiveIds, brMinorIds, #1["IndexIds"], {#3}],
+			makeApplication[freeVariable[#2], freeVariable /@ Append[#1["IndexIds"], #3]]
+		] &,
+		{blockTypes, brMotiveIds, brMajorIds, brRecursorContexts}
 	];
-	rules = MapIndexed[
-		Function[{type, position}, Association @ Map[
-			Function[constructorIndex, With[{constructor = checkedConstructors[[constructorIndex]]},
-				displayedConstructorName[constructor] -> <|
-					"NumberOfParameters" -> Replace[type["Nested"], {None -> numberOfParameters, nested_ :> Length[nested["Parameters"]]}],
-					"NumberOfFields" -> Length[constructor["FieldIds"]],
-					"RightHandSide" -> makeLambda[
-						First[recursorContexts],
-						Join[parameterIds, motiveIds, minorIds, constructor["FieldIds"]],
-						makeApplication[
-							freeVariable[minorIds[[constructorIndex]]],
-							Join[
-								freeVariable /@ constructor["FieldIds"],
-								Function[recursive, inductionHypothesisValue[recursorConstants[[recursive["Target"]]], parameterIds, motiveIds, minorIds, recursive]] /@ constructor["RecursiveFields"]
-							]
-						]
-					]
-				|>
-			]],
-			Select[Range[Length[checkedConstructors]], Function[constructorIndex, ownerPosition[blockTypes, checkedConstructors[[constructorIndex]]] == First[position]]]
-		]],
+	brRules = MapIndexed[
+		buildTypeRecursorRules[blockTypes, brCheckedConstructors, brRecursorConstants, First[brRecursorContexts], parameterIds, brMotiveIds, brMinorIds, numberOfParameters, #1, First[#2]] &,
 		blockTypes
 	];
-	inductiveRecords = Association[Function[type, With[{owned = Select[checkedConstructors, Function[constructor, constructor["Owner"] === type["Name"]]]},
-		type["Name"] -> <|
-			"Kind" -> "InductiveType",
-			"Type" -> type["Type"],
-			"UniverseParameters" -> universeParameters,
-			"NumberOfParameters" -> numberOfParameters,
-			"NumberOfIndices" -> Length[type["IndexIds"]],
-			"Constructors" -> Lookup[owned, "Name", {}],
-			"LargeElimination" -> largeElimination,
-			"Recursive" -> AnyTrue[owned, Function[constructor, constructor["RecursiveFields"] =!= {}]],
-			"Block" -> names
-		|>
-	]] /@ Take[blockTypes, Length[names]]];
-	constructorRecords = Association[Catenate[Function[type, MapIndexed[
-		Function[{constructor, position}, constructor["Name"] -> <|
-			"Kind" -> "Constructor",
-			"Type" -> If[rulesSetting[environment, "Quantities"], erasedParameters[constructor["Type"], numberOfParameters], constructor["Type"]],
-			"UniverseParameters" -> universeParameters,
-			"InductiveType" -> type["Name"],
-			"ConstructorIndex" -> First[position],
-			"NumberOfParameters" -> numberOfParameters,
-			"NumberOfFields" -> Length[constructor["FieldIds"]]
-		|>],
-		Select[checkedConstructors, Function[constructor, constructor["Owner"] === type["Name"]]]
-	]] /@ Take[blockTypes, Length[names]]]];
-	recursorRecords = Association @ MapThread[
-		Function[{type, recursorConstant, recursorType, typeRules}, First[recursorConstant] -> <|
-			"Kind" -> "Recursor",
-			"Type" -> recursorType,
-			"UniverseParameters" -> recursorUniverseParameters,
-			"InductiveType" -> Replace[type["Nested"], {None -> type["Name"], nested_ :> nested["Inductive"]}],
-			"NumberOfParameters" -> numberOfParameters,
-			"NumberOfMotives" -> Length[blockTypes],
-			"NumberOfIndices" -> Length[type["IndexIds"]],
-			"NumberOfMinors" -> Length[checkedConstructors],
-			"Rules" -> typeRules,
-			"EliminationUniverse" -> largeElimination,
-			"KLike" -> And[
-				Length[blockTypes] == 1,
-				levelEquivalentQ[resultLevel, 0],
-				Length[checkedConstructors] == 1,
-				AllTrue[checkedConstructors, Function[constructor, constructor["FieldIds"] === {}]]
-			]
-		|>],
-		{blockTypes, recursorConstants, recursorTypes, rules}
+	brInductiveRecords = Association[
+		buildInductiveRecord[brCheckedConstructors, universeParameters, numberOfParameters, largeElimination, names, #] & /@ Take[blockTypes, Length[names]]
 	];
-	extended = addConstantRecords[environment, Join[inductiveRecords, constructorRecords, recursorRecords]];
+	brConstructorRecords = Association[Catenate[
+		buildConstructorRecords[environment, brCheckedConstructors, universeParameters, numberOfParameters, #] & /@ Take[blockTypes, Length[names]]
+	]];
+	brRecursorRecords = Association @ MapThread[
+		buildRecursorRecord[blockTypes, brCheckedConstructors, brRecursorUniverseParameters, numberOfParameters, largeElimination, resultLevel, #1, #2, #3, #4] &,
+		{blockTypes, brRecursorConstants, brRecursorTypes, brRules}
+	];
+	brExtended = addConstantRecords[environment, Join[brInductiveRecords, brConstructorRecords, brRecursorRecords]];
 	(* the generated recursors and rules are checked like any other term, by the compiled kernel when it checks a batch *)
 	If[ ! $deferKernelChecks,
-		Scan[Function[recursorType, sortLevel[extended, <||>, recursorType]], recursorTypes];
-		Scan[Function[rule, inferType[extended, <||>, rule["RightHandSide"]]], Catenate[Values /@ rules]]
+		Scan[sortLevel[brExtended, <||>, #] &, brRecursorTypes];
+		Scan[inferType[brExtended, <||>, #["RightHandSide"]] &, Catenate[Values /@ brRules]]
 	];
-	extended
+	brExtended
 ]
+
+restoreConstructorData[restore_, levels_, parameterIds_, constructor_] := Join[constructor, <|
+	"FieldContext" -> restoredContext[restore, constructor["FieldContext"]],
+	"RecursiveFields" -> (Append[#, "Context" -> restoredContext[restore, #["Context"]]] &) /@ constructor["RecursiveFields"],
+	"Application" -> restore[makeApplication[constantReference[constructor["Name"], levels], freeVariable /@ Join[parameterIds, constructor["FieldIds"]]]]
+|>]
+
+scaleFieldBinderQuantity[matchQuantity_, context_, fieldId_] := Block[{scaledBinder = context[fieldId]["Binder"]},
+	Append[context, fieldId -> Append[context[fieldId], "Binder" -> quantifiedBinder[binderKind[scaledBinder], multiplyQuantities[matchQuantity, binderQuantity[scaledBinder]]]]]
+]
+
+buildRecursorContext[environment_, minorContext_, parameterIds_, motiveIds_, minorIds_, checkedConstructors_, minorTypes_, matchBinder_, type_, majorId_] := Fold[
+	extendContext[#1, First[#2], Last[#2]["Name"], Last[#2]["Type"], Last[#2]["Binder"]] &,
+	minorContext,
+	Join[
+		({#, Append[minorContext[#], "Binder" -> erasedBinder[environment, "Implicit"]]} &) /@ Join[parameterIds, type["IndexIds"]],
+		({#, Append[minorContext[#], "Binder" -> erasedBinder[environment, "Explicit"]]} &) /@ motiveIds,
+		MapThread[
+			{#1, <|"Name" -> displayedConstructorName[#2], "Type" -> #3, "Binder" -> matchBinder|>} &,
+			{minorIds, checkedConstructors, minorTypes}
+		],
+		{{majorId, Append[minorContext[majorId], "Binder" -> matchBinder]}}
+	]
+]
+
+buildTypeRecursorRules[blockTypes_, checkedConstructors_, recursorConstants_, firstRecursorContext_, parameterIds_, motiveIds_, minorIds_, numberOfParameters_, type_, typePosition_] :=
+	Association @ Map[
+		buildOneRecursorRule[type, checkedConstructors[[#]], #, recursorConstants, firstRecursorContext, parameterIds, motiveIds, minorIds, numberOfParameters] &,
+		Select[Range[Length[checkedConstructors]], ownerPosition[blockTypes, checkedConstructors[[#]]] == typePosition &]
+	]
+
+buildOneRecursorRule[type_, constructor_, constructorIndex_, recursorConstants_, firstRecursorContext_, parameterIds_, motiveIds_, minorIds_, numberOfParameters_] :=
+	displayedConstructorName[constructor] -> <|
+		"NumberOfParameters" -> If[type["Nested"] === None, numberOfParameters, Length[type["Nested"]["Parameters"]]],
+		"NumberOfFields" -> Length[constructor["FieldIds"]],
+		"RightHandSide" -> makeLambda[
+			firstRecursorContext,
+			Join[parameterIds, motiveIds, minorIds, constructor["FieldIds"]],
+			makeApplication[
+				freeVariable[minorIds[[constructorIndex]]],
+				Join[
+					freeVariable /@ constructor["FieldIds"],
+					inductionHypothesisValue[recursorConstants[[#["Target"]]], parameterIds, motiveIds, minorIds, #] & /@ constructor["RecursiveFields"]
+				]
+			]
+		]
+	|>
+
+buildInductiveRecord[checkedConstructors_, universeParameters_, numberOfParameters_, largeElimination_, names_, type_] := Block[
+	{ownedInductiveConstructors = Select[checkedConstructors, #["Owner"] === type["Name"] &]},
+	type["Name"] -> <|
+		"Kind" -> "InductiveType",
+		"Type" -> type["Type"],
+		"UniverseParameters" -> universeParameters,
+		"NumberOfParameters" -> numberOfParameters,
+		"NumberOfIndices" -> Length[type["IndexIds"]],
+		"Constructors" -> Lookup[ownedInductiveConstructors, "Name", {}],
+		"LargeElimination" -> largeElimination,
+		"Recursive" -> AnyTrue[ownedInductiveConstructors, #["RecursiveFields"] =!= {} &],
+		"Block" -> names
+	|>
+]
+
+buildConstructorRecords[environment_, checkedConstructors_, universeParameters_, numberOfParameters_, type_] := MapIndexed[
+	#1["Name"] -> <|
+		"Kind" -> "Constructor",
+		"Type" -> If[rulesSetting[environment, "Quantities"], erasedParameters[#1["Type"], numberOfParameters], #1["Type"]],
+		"UniverseParameters" -> universeParameters,
+		"InductiveType" -> type["Name"],
+		"ConstructorIndex" -> First[#2],
+		"NumberOfParameters" -> numberOfParameters,
+		"NumberOfFields" -> Length[#1["FieldIds"]]
+	|> &,
+	Select[checkedConstructors, #["Owner"] === type["Name"] &]
+]
+
+buildRecursorRecord[blockTypes_, checkedConstructors_, recursorUniverseParameters_, numberOfParameters_, largeElimination_, resultLevel_, type_, recursorConstant_, recursorType_, typeRules_] :=
+	First[recursorConstant] -> <|
+		"Kind" -> "Recursor",
+		"Type" -> recursorType,
+		"UniverseParameters" -> recursorUniverseParameters,
+		"InductiveType" -> If[type["Nested"] === None, type["Name"], type["Nested"]["Inductive"]],
+		"NumberOfParameters" -> numberOfParameters,
+		"NumberOfMotives" -> Length[blockTypes],
+		"NumberOfIndices" -> Length[type["IndexIds"]],
+		"NumberOfMinors" -> Length[checkedConstructors],
+		"Rules" -> typeRules,
+		"EliminationUniverse" -> largeElimination,
+		"KLike" -> And[
+			Length[blockTypes] == 1,
+			levelEquivalentQ[resultLevel, 0],
+			Length[checkedConstructors] == 1,
+			AllTrue[checkedConstructors, #["FieldIds"] === {} &]
+		]
+	|>
 
 (* with quantities, a constructor's parameters are erased: the value it builds does not hold them *)
 erasedParameters[dependentFunctionType[name_, domain_, codomain_, binder_], count_Integer?Positive] :=
@@ -705,15 +803,21 @@ ownerPosition[blockTypes_, constructor_] := First[FirstPosition[Lookup[blockType
 (* the induction hypotheses of a constructor, one per recursive field: (ys) -> motive_k indices (field ys),
    with the motive of the type the field ends in *)
 inductionHypothesisContext[context_, motiveIds_, constructor_, constructorIhIds_] := Fold[
-	Function[{accumulated, pair}, With[{recursive = First[pair], ihId = Last[pair]},
-		extendContext[accumulated, ihId, HoldComplete[h], makeDependentFunctionType[
-			Join[accumulated, recursive["Context"]],
-			recursive["Binders"],
-			makeApplication[freeVariable[motiveIds[[recursive["Target"]]]], Append[recursive["Indices"], makeApplication[freeVariable[recursive["Id"]], freeVariable /@ recursive["Binders"]]]]
-		], "Explicit"]
-	]],
+	addInductionHypothesis[motiveIds, #1, First[#2], Last[#2]] &,
 	context,
 	Transpose[{constructor["RecursiveFields"], constructorIhIds}]
+]
+
+addInductionHypothesis[motiveIds_, accumulated_, recursive_, ihId_] := extendContext[
+	accumulated,
+	ihId,
+	HoldComplete[h],
+	makeDependentFunctionType[
+		Join[accumulated, recursive["Context"]],
+		recursive["Binders"],
+		makeApplication[freeVariable[motiveIds[[recursive["Target"]]]], Append[recursive["Indices"], makeApplication[freeVariable[recursive["Id"]], freeVariable /@ recursive["Binders"]]]]
+	],
+	"Explicit"
 ]
 
 inductionHypothesisValue[recursorConstant_, parameterIds_, motiveIds_, minorIds_, recursive_] := makeLambda[

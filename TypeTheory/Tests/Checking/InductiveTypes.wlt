@@ -351,3 +351,78 @@ VerificationTest[
 	"InductiveUniverse",
 	TestID -> "The-types-of-a-block-live-in-one-universe"
 ]
+
+(* Iterative DAG-memoized occursQ: a 40-deep diamond shared-DAG constructor type (2^40 tree leaves) is accepted
+   when non-recursive, still rejected for NonPositiveOccurrence when the type occurs negatively at the bottom of
+   the diamond, and detects occurrences inside cubicalSystem without expanding the DAG. *)
+VerificationTest[
+	Module[
+		{
+			base, u1, dagPairRef, natRef, app, depFn, cref, csys, buildDiamond,
+			okFieldType, badFieldType, okEnv, badEnv, occursFn, cubicalDiamondYes, cubicalDiamondNo
+		},
+		base = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom[DagPair, TypeSpecifier[{TypeUniverse[1], TypeUniverse[1]} -> TypeUniverse[1]]]
+		}];
+		u1 = WolframInstitute`TypeTheory`PackageScope`universeSort[1];
+		app = WolframInstitute`TypeTheory`PackageScope`application;
+		depFn = WolframInstitute`TypeTheory`PackageScope`dependentFunctionType;
+		cref = WolframInstitute`TypeTheory`PackageScope`constantReference;
+		csys = WolframInstitute`TypeTheory`PackageScope`cubicalSystem;
+		occursFn = WolframInstitute`TypeTheory`Checking`InductiveTypes`Private`occursQ;
+		dagPairRef = cref[HoldComplete[DagPair], {}];
+		natRef = cref[HoldComplete[NonNegativeIntegers], {}];
+		buildDiamond[leaf_, depth_] := Nest[Function[t, app[app[dagPairRef, t], t]], leaf, depth];
+		okFieldType = buildDiamond[natRef, 40];
+		badFieldType = buildDiamond[depFn[HoldComplete[x], cref[HoldComplete[BadDiamond], {}], natRef, "Explicit"], 40];
+		okEnv = Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+			WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
+				base, HoldComplete[OkDiamond], {}, 0, u1,
+				{HoldComplete[OkDiamondMake] -> depFn[HoldComplete[f], okFieldType, cref[HoldComplete[OkDiamond], {}], "Explicit"]}
+			]
+		];
+		badEnv = Quiet[Catch[
+			Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+				WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
+					base, HoldComplete[BadDiamond], {}, 0, u1,
+					{HoldComplete[BadDiamondMake] -> depFn[HoldComplete[f], badFieldType, cref[HoldComplete[BadDiamond], {}], "Explicit"]}
+				]
+			],
+			WolframInstitute`TypeTheory`PackageScope`$kernelFailureTag
+		]];
+		cubicalDiamondYes = buildDiamond[csys[{{natRef, cref[HoldComplete[BadDiamond], {}]}}], 40];
+		cubicalDiamondNo = buildDiamond[csys[{{natRef, natRef}}], 40];
+		{
+			Head[okEnv],
+			KeyExistsQ[okEnv, OkDiamond],
+			FailureQ[badEnv] && First[badEnv] === "NonPositiveOccurrence",
+			occursFn[cubicalDiamondYes, {HoldComplete[BadDiamond]}],
+			occursFn[cubicalDiamondNo, {HoldComplete[BadDiamond]}],
+			occursFn[{}, {HoldComplete[BadDiamond]}],
+			occursFn[cubicalDiamondYes, {}]
+		}
+	],
+	{TypeTheoryEnvironment, True, True, True, False, False, False},
+	TestID -> "Shared-DAG-inductive-occurrence-checks-scale-and-still-reject-non-positive-occurrences"
+]
+
+(* A nested inductive type whose parameter depends on an earlier constructor field must be refused with
+   NestedParameters: looseBoundVariablesQ checks every parameter in the list. *)
+VerificationTest[
+	With[
+		{
+			containerEnv = TypeTheoryEnvironment[prelude, {
+				TypeTheoryInductiveType[Container, TypeSpecifier[{TypeUniverse[1], TypeUniverse[1]} -> TypeUniverse[1]], {
+					ContainerMake -> ForAll[{TypedImplicit[A, TypeUniverse[1]], TypedImplicit[B, TypeUniverse[1]], Typed[a, A], Typed[b, B]}, Container[A, B]]
+				}, "Parameters" -> 2]
+			}]
+		},
+		First @ TypeTheoryEnvironment[containerEnv, {
+			TypeTheoryInductiveType[BadNest, TypeUniverse[1], {
+				BadNestMake -> ForAll[{Typed[X, TypeUniverse[1]], Typed[c, Container[X, BadNest]]}, BadNest]
+			}]
+		}]
+	],
+	"NestedParameters",
+	TestID -> "A-nested-inductive-parameter-depending-on-a-constructor-field-is-refused"
+]

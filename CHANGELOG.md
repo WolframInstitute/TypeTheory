@@ -145,9 +145,11 @@ Versions 0.50.0 to 0.59.0.
 - **Compiled kernel capacity retries and DAG-memoized declaration checks.** `compiledCheckWith` (`CompiledKernel.wl`)
   now re-packs `Settings` via `` Developer`ToPackedArray `` after `ReplacePart` on an `eCapacity` retry so
   `programInputQ` accepts the retried input instead of falling back to the symbolic kernel. Definition-height
-  constant collection (`coreRecordOf`, `definitionHeight` in `Declarations.wl`) and universe-parameter checking
-  (`checkUniverseParameters` in `Environment.wl`) now walk shared-DAG core terms iteratively on a cons-list stack
-  with per-call memoization instead of expanding them into trees with `Cases`.
+  constant collection (`coreRecordOf`, `definitionHeight` in `Declarations.wl`), universe-parameter checking
+  (`checkUniverseParameters` in `Environment.wl`), and inductive occurrence checks (`occursQ`, `eliminateNested` in
+  `InductiveTypes.wl`) now walk shared-DAG core terms iteratively on a cons-list stack with per-call memoization
+  instead of expanding them into trees with `Cases` or `FreeQ`, and `looseBoundVariablesQ` in `InductiveTypes.wl` now
+  checks every parameter in a nested inductive's parameter list (`"NestedParameters"`).
 - **The type of an overloaded name on its own.** `TypeTheoryType[Length]` failed with an unsolved implicit argument,
   in the prelude too, since `Length` is overloaded for associations, and so did `TypeTheoryType[Dimensions]` in the
   machine environment; a name on its own has the type of its first meaning, the one elaboration takes where nothing
