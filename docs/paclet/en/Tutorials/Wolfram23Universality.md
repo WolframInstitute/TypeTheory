@@ -22,11 +22,11 @@ All definitions and theorems of the formalization live in <code>[TypeTheoryEnvir
 | Glue (1 and 2) | Binary Turing machine to cyclic tag system (`"machineToCyclicTag"`) | Composition of rungs 1 and 2 over `84 S + 1` symbols | Proved |
 | 3 | Cyclic tag system to System 5 | `x2 + 1` or `x2 + 2` (four rule pops per source step) | Proved |
 | 4 | System 5 to System 4 | Existential, for parameter `f` large enough | Proved |
-| 5 | System 4 to System 3 (parity blocks of width `2^w`) | At least 1 | Planned |
+| 5 | System 4 to System 3 (parity blocks of width `2^w`) | At least 1 | Proved |
 | 6 | System 3 to Wolfram's (2,3) machine (Systems 3 to 0 and tape extension) | 1 or 3 | Proved |
 | 7 | Composition, decoders, confinement and exit | Composition of rungs 1 to 6 | Planned |
 
-This draft covers the rungs proved so far: the simulation framework, rung 6 (System 3 to Wolfram's (2,3) machine), rung 2 (2-tag systems to cyclic tag systems), rung 1 (binary Turing machines to 2-tag systems), the glue that joins rungs 1 and 2 into `"machineToCyclicTag"`, rung 3 (cyclic tag systems to System 5), and rung 4 (System 5 to System 4).
+This draft covers the rungs proved so far: the simulation framework, rung 6 (System 3 to Wolfram's (2,3) machine), rung 2 (2-tag systems to cyclic tag systems), rung 1 (binary Turing machines to 2-tag systems), the glue that joins rungs 1 and 2 into `"machineToCyclicTag"`, rung 3 (cyclic tag systems to System 5), rung 4 (System 5 to System 4), and rung 5 (System 4 to System 3).
 
 Load the environment:
 
@@ -34,7 +34,7 @@ Load the environment:
 wolfram23 = TypeTheoryEnvironment["Wolfram23"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 722 constants -->
+<!-- => TypeTheoryEnvironment summary box: 998 constants -->
 
 [Information]() shows the constants it declares on top of the prelude, by kind:
 
@@ -42,7 +42,7 @@ wolfram23 = TypeTheoryEnvironment["Wolfram23"]
 Information[wolfram23, "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 44, "Constructor" -> 88, "Recursor" -> 45, "Definition" -> 214, "Quotient" -> 4, "Theorem" -> 323, "Axiom" -> 4|> -->
+<!-- => <|"InductiveType" -> 51, "Constructor" -> 102, "Recursor" -> 52, "Definition" -> 287, "Quotient" -> 4, "Theorem" -> 498, "Axiom" -> 4|> -->
 
 ## The Framework
 
@@ -917,9 +917,93 @@ Rung 4 also exports the full interface for rungs 5 and 7: `"system5ToSystem4Repr
 
 <!-- => {theorem system5ToSystem4WellFormed : ..., theorem repS4DecodeBand : ..., theorem repS4TurnStep : ..., theorem repS4Terminal : ...} -->
 
+## Rung 5: System 4 to System 3
+
+### The Two Systems
+
+Rung 5 bridges System 4's tape of finite sets and stars down to Smith's System 3, a 3-state, 3-color lookahead machine (`"lookaheadStep"["system3"]`). Each finite set `s` on the System 4 tape is encoded as a width-`2^w` bit vector (rendered in colors `"color1"` for `false` and `"color2"` for `true`, with `"color0"` marking stars) whose iterated Rule-60 prefix-XOR parities (`"parAt"[x, i]`) recover `"memNat"[i, s]`. The basis vectors `"rowBits"[2^w, i]` (for `i < 2^w`) are built from the unit vector `{true, false, ..., false}` by Rule-60 steps (`"stepR"`):
+
+```wl
+Table[
+	With[{j = i}, NormalForm[TypeTheoryTerm["rowBits"[4, j], wolfram23]]],
+	{i, 0, 3}
+]
+```
+
+<!-- => {{true, false, false, false}, {true, true, false, false}, {true, false, true, false}, {true, true, true, true}} -->
+
+Encoding a set `s` with `"encSet"[2^w, s]` XORs the basis vectors for `s` and, if the leading bit is `false`, adds `"rowBits"[2^w, 2^w - 2]` (out of the valid parity range) so that every initial block begins with `true` (`"firstTrueEncSet"`):
+
+```wl
+{
+	NormalForm[TypeTheoryTerm["encSet"[4, {0, 1}], wolfram23]],
+	Table[With[{k = i}, NormalForm[TypeTheoryTerm["parAt"["encSet"[4, {0, 1}], k], wolfram23]]], {i, 0, 1}]
+}
+```
+
+<!-- => {{true, true, true, false}, {true, true}} -->
+
+To track how a System 3 zipper corresponds to a System 4 configuration without index arithmetic, rung 5 introduces `"AbstractConfig"`—a zipper of encoded `"TapeItem"` blocks with a parametric `"LeftEnd"` (zero-padding reserve), a parametric right `"Closing"`, the System 4 state, and a five-constructor `"Focus3"` locating the System 3 head inside the active block—together with fueled System 4 (`"FueledSystem4"`):
+
+```wl
+{wolfram23["AbstractConfig"], wolfram23["FueledSystem4"]}
+```
+
+<!-- => {inductive type AbstractConfig : Type with constructor abstractConfig : {TapeItem} → {TapeItem} → LeftEnd → Closing → System4State → Focus3 → AbstractConfig, inductive type FueledSystem4 : Type with constructor fueledSystem4 : System4Configuration → ℕ → FueledSystem4} -->
+
+The Wolfram (2,3) tape decoder `"decodeW23"[N, b, cfg]` scans the non-zero cells from the head up to the first `"color0"` (the leading star), XOR-folds width-`N` chunks into a single parity vector, extracts the System 4 bag over positions `< b` (rejecting odd-position parity), and decodes the bag into bits. On a width-8 block encoding `{0, 2}` (the System 4 encoding of bag `{1, 2}`, which represents bit `false`):
+
+```wl
+NormalForm[TypeTheoryTerm[
+	"decodeW23"[8, 4, "phi2"["phi3"["acToSystem3"[
+		"abstractConfig"[Typed[{}, {"TapeItem"}], {"itemStar", "itemSet"["encSet"[8, Typed[{}, {NonNegativeIntegers}]], Typed[{}, {NonNegativeIntegers}]]},
+			"leftEndZeros"[1, 1], "closingOne", "state4B",
+			"focusSetB"["headBool"["encSet"[8, {0, 2}]], "tailList"["encSet"[8, {0, 2}]], {0, 2}]]
+	]]]],
+	wolfram23
+]]
+```
+
+<!-- => some[{false}] -->
+
+### The Relation and the Theorem
+
+The representation relation `"system3Represents"[w, rc, fs, c3]` asserts the existence of a well-formed `"AbstractConfig"` `a` with closing `rc` (`"acOk"[w, fs[["budget"]], a]`) projecting to `c3` under `"acToSystem3"` and to `fs[["config"]]` under `"acToSystem4"`. `"system3Simulation"` proves that System 3 forward-simulates fueled System 4 along `"system3Represents"[w, rc]`, and composing with rung 6 (`"system0Simulates3"`) yields `"system0SimulatesSystem4"` directly to Wolfram's (2,3) lookahead machine:
+
+```wl
+{wolfram23["system3Simulation"], wolfram23["system0SimulatesSystem4"]}
+```
+
+<!-- => {theorem system3Simulation : ∀_w∶ℕ ∀_rc∶Closing forwardSimulation[fueledSystem4Step, lookaheadStep[system3], system3Represents[w, rc]], theorem system0SimulatesSystem4 : ∀_w∶ℕ ∀_rc∶Closing forwardSimulation[fueledSystem4Step, lookaheadStep[system0], (fs ∶ FueledSystem4) (c0 ∶ LookaheadConfiguration) ↦ ∃_c3∶LookaheadConfiguration (system3Represents[w, rc, fs, c3] ∧ c0 == phi2[phi3[c3]])]} -->
+
+Its axiom closure is empty:
+
+```wl
+TypeTheoryAxiomClosure[TypeTheoryTerm["system0SimulatesSystem4", wolfram23]]
+```
+
+<!-- => <||> -->
+
+### The Proof
+
+Over `GF(2)`, Rule 60's step function `"stepR"` satisfies the Frobenius identity `"stepRIteratePow2"`: iterating `"stepR"` `2^w` times equals shifting right by `2^w` XOR the identity. From that identity, induction on `w` establishes orthogonality (`"parAtRowBits"`): `"parAt"["rowBits"[2^w, i], k] == Decide[k == i]` for all `i, k < 2^w`:
+
+```wl
+{wolfram23["stepRIteratePow2"], wolfram23["parAtRowBits"]}
+```
+
+<!-- => {theorem stepRIteratePow2 : ..., theorem parAtRowBits : ...} -->
+
+Five System 3 run macros (`"sys3WalkLeft"`, `"sys3TurnA"`, `"sys3StarB"`, and full block scans `"sys3ScanBlock"` in states B and C) lift to `"scanRun"`, `"turnRun"`, and all seven focus/state cases of `"acStep"`. Rung 5 also exports the complete interface needed by rung 7: `"rep3Init"` (encoding any well-formed initial System 4 tape with `h + 3 <= 2^w`), `"rep3Exit"` / `"phiExit"` / `"phi2StateNotC"` / `"wolfram23ExitStep"` (exiting cleanly off the right end in state B on `color2` into blank `color0` in state A), and `"rep3Decode"` (showing `"decodeW23"` matches `"decodeS4"` followed by `"decodeBag"` and that `"color0"` occurs on the right tape):
+
+```wl
+{wolfram23["rep3Init"], wolfram23["rep3Exit"], wolfram23["wolfram23ExitStep"], wolfram23["rep3Decode"]}
+```
+
+<!-- => {theorem rep3Init : ..., theorem rep3Exit : ..., theorem wolfram23ExitStep : ..., theorem rep3Decode : ...} -->
+
 ## What Remains
 
-Two rungs remain to close the gap between `"system4Simulation"` and `"wolfram23Simulates3"` and complete the universality theorem:
+One final rung remains to join rungs 1 through 6 and complete the universality theorem:
 
-- **Rung 5 (System 4 to System 3)**: encode System 4's sets as parity blocks of width `2^w`, prove the prefix-XOR scan and the rule-60 period-`2^w` identity by induction on `w`, and prove left confinement together with System 3's exit lemma.
-- **Rung 7 (full composition and universality)**: compose rungs 1 through 6 into the existential finite universality theorem for Wolfram's (2,3) Turing machine, prove the decoding lemmas for the decoder of each layer, and combine confinement with the terminal exit configuration (followed later by the infinite form, one tape for all `n`).
+- **Rung 7 (full composition and universality)**: compose rungs 1 through 6 into Smith's existential finite universality theorem (`"conjecture0Finite"` and `"wolfram23Universal"`), prove the binary Turing machine tape decoder (`"decodeCTS"`, `"decodeTM"`), and combine tape confinement on `"turingMachineStep"["system0"]` with the terminal exit step (followed later by the infinite form, one tape for all `n`).

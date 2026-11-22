@@ -25,11 +25,13 @@ VerificationTest[
 				"xorMergeAppendant", "bound5Step", "ctsToSystem5Represents", "ctsToSystem5BagStrictlyAbove", "ctsToSystem5RulesStrictlyAbove",
 				"representsDecode", "representsRulesEmpty", "representsBagNonEmpty", "representsTerminal", "representsStepFalse", "representsStepTrue", "system5Simulation",
 				"system4Step", "system4DStep", "system4PopPhase", "system5ToSystem4", "system5ToSystem4WellFormed", "system5ToSystem4Represents",
-				"decodeS4", "repS4DStep", "repS4PStep", "repS4TurnStep", "repS4DecodeBand", "repS4Exit", "repS4Terminal", "system4Simulation"},
+				"decodeS4", "repS4DStep", "repS4PStep", "repS4TurnStep", "repS4DecodeBand", "repS4Exit", "repS4Terminal", "system4Simulation",
+				"stepRIteratePow2", "parAtRowBits", "sys3ScanBlock", "encSet", "initAC", "rep3Init", "system3Simulation", "system0SimulatesSystem4",
+				"rep3Exit", "phiExit", "wolfram23ExitStep", "decodeBlocks", "decodeW23", "rep3Decode"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 722, {}},
+	{TypeTheoryEnvironment, 998, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -298,6 +300,66 @@ VerificationTest[
 	},
 	{True, True, <||>, <||>, <||>, <||>, <||>, <||>},
 	TestID -> "decodeS4-rejects-odd-parity-elements-and-rung-4-uses-no-axioms"
+]
+
+(* rung 5: System 4 to System 3 — Rule-60 parity blocks, encSet + decodeW23 round-trip, and exit step *)
+VerificationTest[
+	{
+		(* Rule-60 parity orthogonality at width 2^3 = 8 *)
+		DefinitionallyEqualQ[TypeTheoryTerm["parAt"["rowBits"[8, 2], 2], wolfram23], TypeTheoryTerm["true", wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["parAt"["rowBits"[8, 2], 5], wolfram23], TypeTheoryTerm["false", wolfram23]],
+		(* encSet always starts with true and decodes back to the System 5 bag {1, 2} *)
+		DefinitionallyEqualQ[TypeTheoryTerm["headBool"["encSet"[8, {0, 2}]], wolfram23], TypeTheoryTerm["true", wolfram23]],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeBlocks"[8, 6, "ofBits"["encSet"[8, {0, 2}]]], wolfram23],
+			TypeTheoryTerm["some"[{1, 2}], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeW23"[8, 6, "lookaheadConfiguration"[Typed[{}, {"Color"}],
+				"toCell"["headBool"["encSet"[8, {0, 2}]]],
+				Join["tailList"["ofBits"["encSet"[8, {0, 2}]]], {"color0", "color2"}],
+				"stateB"]], wolfram23],
+			TypeTheoryTerm["some"[{"false"}], wolfram23]
+		],
+		(* Final exit step of Wolfram's (2,3) machine from state B on color2 at the right end of the tape *)
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["turingMachineStep"["system0", "lookaheadConfiguration"[{"color1"}, "color2", Typed[{}, {"Color"}], "stateB"]], wolfram23],
+			TypeTheoryTerm["some"["lookaheadConfiguration"[{"color0", "color1"}, "color0", Typed[{}, {"Color"}], "stateA"]], wolfram23]
+		]
+	},
+	{True, True, True, True, True, True},
+	TestID -> "System-3-Rule-60-parity-blocks-decodeW23-round-trip-and-exit-step"
+]
+
+(* decodeW23 and decodeBlocks reject head == color0, empty tapes, non-multiple widths, and odd parity; rung 5 uses no axioms *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeW23"[4, 4, "lookaheadConfiguration"[Typed[{}, {"Color"}], "color0", {"color1", "color1", "color1", "color1"}, "stateB"]], wolfram23],
+			TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeBlocks"[4, 4, {"color1", "color2", "color1"}], wolfram23],
+			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeBlocks"[4, 4, Typed[{}, {"Color"}]], wolfram23],
+			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeBlocks"[8, 4, "ofBits"["rowBits"[8, 1]]], wolfram23],
+			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
+		],
+		TypeTheoryAxiomClosure[wolfram23["parAtRowBits"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["system3Simulation"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["system0SimulatesSystem4"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["rep3Init"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["rep3Exit"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["rep3Decode"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["wolfram23ExitStep"]["Term"]]
+	},
+	{True, True, True, True, <||>, <||>, <||>, <||>, <||>, <||>, <||>},
+	TestID -> "decodeW23-rejects-malformed-tapes-and-rung-5-uses-no-axioms"
 ]
 
 (* the environment by its name, as every library environment is named: a term and a type in it, and the default *)

@@ -199,7 +199,26 @@ System 4 follows any fueled System 5 configuration, with zero axioms (`TypeTheor
   independently of `state`/`left`, rejecting odd parity with `none`), `repS4DecodeBand`, `repS4TurnStep` (1-step turn
   into `state4B` preserving `decodeS4`), and `repS4Exit` / `repS4Terminal` (budgeted exit in `state4C` with `1 <= k`).
 
-Next: rung 5 (System 4 to System 3), then rung 7 (composition and T8 universality) and the tutorial.
+Rung 5 complete (`system3Simulation` and `system0SimulatesSystem4` in `TypeTheory/Kernel/Library/Wolfram23System3.wl`,
+998 constants total): Smith's System 3 emulates fueled System 4 via width-`2^w` Rule-60 parity blocks, with zero axioms
+(`TypeTheoryAxiomClosure` empty):
+- **GF(2) Rule-60 parity algebra.** `stepR` (Rule 60) satisfies the Frobenius identity `stepRIteratePow2`
+  (`stepR^(2^w) x == xorBits[shiftR^(2^w) x, x]`), giving period `2^w` on `rowBits[2^w, i]` and exact orthogonality
+  `parAtRowBits` (`parAt[rowBits[2^w, i], k] == Decide[k == i]`), proved purely structurally via `rowBitsTrailingZeros`
+  without indexed lookups.
+- **Direct zipper `AbstractConfig` and parametric ends.** `acToSystem4` maps `AbstractConfig` directly to
+  `System4Configuration` without `reverse` or `active` index bookkeeping, while `LeftEnd` (`leftEndZeros` /
+  `leftEndJunk`) and `Closing` (`closingOne` / `closingZero`) keep the T6 hooks parametric. All seven focus/state step
+  cases (`caseSetA`, `caseScanB`, `caseScanC`, `caseScanT`, `caseStarA`, `caseStarB`, `caseStarC`) combine via `scanRun`
+  and `turnRun` into `acStep`, `system3Simulation`, and `system0SimulatesSystem4` (on `lookaheadStep["system0"]` for
+  rung 7 confinement).
+- **Encoder, exit, and Wolfram (2,3) tape decoder.** `encSet` guarantees a leading `true` (`firstTrueEncSet`) while
+  preserving parity below `2^w - 2` (`decodesEncSet`), giving `rep3Init`; `rep3Exit`, `phiExit`, `phi2StateNotC`, and
+  `wolfram23ExitStep` prove the clean exit from state C on closing 1 through Wolfram (2,3)'s `B2 -> A0>`; and
+  `decodeBlocks` / `decodeW23` decode non-zero leading blocks structurally (rejecting `head == color0`, non-multiple
+  widths, and odd parity with `none`) with `rep3Decode`.
+
+Next: rung 7 (composition and T8 universality) and the tutorial.
 
 ## Files
 

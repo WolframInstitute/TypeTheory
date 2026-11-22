@@ -98,6 +98,11 @@ Versions 0.50.0 to 0.59.0.
     any fueled System 5 configuration (`system4Simulation`), together with the encoder (`system5ToSystem4`),
     well-formedness (`system5ToSystem4WellFormed`), odd-parity-guarded decoder (`decodeS4`, `repS4DecodeBand`,
     `repS4TurnStep`), and budgeted exit in state C (`repS4Exit`, `repS4Terminal`), all with empty axiom closure.
+  - rung 5 (`Library/Wolfram23System3.wl`): Smith's System 3 emulates fueled System 4 via width-2^w Rule-60 parity
+    blocks (`stepRIteratePow2` Frobenius identity, `parAtRowBits` orthogonality, `system3Simulation`, and the rung 5+6
+    composition `system0SimulatesSystem4`), together with the initial encoder (`encSet`, `initAC`, `rep3Init`), exit
+    lemmas (`rep3Exit`, `phiExit`, `phi2StateNotC`, `wolfram23ExitStep`), and the Wolfram (2,3) tape decoder
+    (`decodeBlocks`, `decodeW23`, `rep3Decode`), all with empty axiom closure.
 
 ### Changed
 
