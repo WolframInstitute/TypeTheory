@@ -695,7 +695,7 @@ environmentInformation[environment_, "Theorems"] := Association[
    (SavedEnvironments.wl): they show that a cut made by this pipeline is the development's, not that one from anywhere
    else is. *)
 environmentInformation[environment_, "Signature"] :=
-	environmentSignature[environment, Join[environmentRecordHashes[environment], recordFingerprints[theoremStatements[environment]]]]
+	environmentSignature[environment, signatureRecordHashes[environment]]
 
 environmentSignature[environment_, records_Association] := <|
 	"Rules" -> environmentRules[environment],
@@ -703,12 +703,30 @@ environmentSignature[environment_, records_Association] := <|
 	"Records" -> records
 |>
 
-(* each theorem's record as the record of an axiom of its statement, by name, its keys in an axiom's order: a record's
-   hash is of its bytes, which follow the order of its keys *)
+(* a theorem's record as the record of an axiom of its statement, its keys in an axiom's order: a record's hash is of
+   its bytes, which follow the order of its keys *)
+theoremAsAxiomRecord[record_Association] := Join[<|"Kind" -> "Axiom"|>, KeyDrop[record, {"Kind", "Value"}]]
+
 theoremStatements[environment_] := Association[Map[
-	Function[name, name -> Join[<|"Kind" -> "Axiom"|>, KeyDrop[constantRecord[environment, name], {"Kind", "Value"}]]],
+	Function[name, name -> theoremAsAxiomRecord[constantRecord[environment, name]]],
 	Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Theorem"]]
 ]]
+
+signatureRecords[environment_] := Association[Map[
+	Function[name, With[{record = constantRecord[environment, name]},
+		name -> If[record["Kind"] === "Theorem", theoremAsAxiomRecord[record], record]
+	]],
+	environmentNames[environment]
+]]
+
+(* On a non-cubical environment whose record hashes are already cached (e.g. read from a saved file), reuse the cached
+   non-theorem hashes and hash only the theorem statements; otherwise hash signatureRecords directly so proof Values are
+   never walked and cubical environments always use one consistent format version across all records. *)
+signatureRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := If[
+	! TrueQ[environmentRules[environment]["Cubical"]] && AssociationQ[store["RecordHashes"]],
+	Join[store["RecordHashes"], recordFingerprints[theoremStatements[environment]]],
+	recordFingerprints[signatureRecords[environment]]
+]
 
 (* a theorem's name as a key: its string, or its symbol held; a rule of its own, as an enclosing -> would scope the pattern *)
 theoremKey[HoldComplete[text_String]] := text
@@ -913,7 +931,7 @@ queryCoreTerm[environment_, term_] := Replace[aliasResolvedName[environment, hel
 (* {axioms, holes} a term rests on: the axioms as <|name -> kind|>, the holes as <|HoldComplete[hole] -> record|>; the
    subterms seen are shared by the whole closure, so a term the declarations share is walked once *)
 closureOf[environment_, term_] := Block[{$closureVisited = <||>, $closureAxioms = <||>, $closureHoles = <||>, $constantsSeen = <||>},
-	withKernelCaches[visitTerm[environment, term]];
+	withKernelCaches[visitConstants[environment, unseenConstants[term]]];
 	{KeyMap[ReleaseHold, $closureAxioms], $closureHoles}
 ]
 
@@ -946,36 +964,53 @@ holeGroups[environment_, holes_Association] := GroupBy[
 	Map[Function[hole, KeyDrop[hole, "Theorem"]]]
 ]
 
-visitConstant[environment_, name_] := If[ ! KeyExistsQ[$closureVisited, name],
-	$closureVisited[name] = True;
-	visitRecord[environment, name, constantRecord[environment, name]];
-	If[uncheckedRegistrationQ[environment, name], $closureAxioms[name] = "Registration"];
-	Scan[Function[rule, $closureAxioms[rule] = "RewriteRule"], rewriteRuleNames[environment, name]]
+(* iterative DFS over constants on a cons-list stack, preserving exact pre-order axiom/hole recording and post-order
+   registration/rewrite-rule recording so deep dependency chains never hit $RecursionLimit *)
+visitConstants[environment_, initialNames_List] := Block[
+	{visitStack = pushVisitNames[initialNames, None], visitEntry, visitName, visitDone},
+	While[ visitStack =!= None,
+		visitEntry = First[visitStack];
+		visitStack = Last[visitStack];
+		visitName = First[visitEntry];
+		visitDone = Last[visitEntry];
+		If[ visitDone,
+			If[uncheckedRegistrationQ[environment, visitName], $closureAxioms[visitName] = "Registration"];
+			Scan[Function[rule, $closureAxioms[rule] = "RewriteRule"], rewriteRuleNames[environment, visitName]],
+			If[ ! KeyExistsQ[$closureVisited, visitName],
+				$closureVisited[visitName] = True;
+				visitStack = pushRecordDependencies[environment, visitName, constantRecord[environment, visitName], {{visitName, True}, visitStack}]
+			]
+		]
+	]
 ]
 
-visitRecord[environment_, name_, record_] := Switch[record["Kind"],
+pushVisitNames[names_List, stack_] := Fold[
+	Function[{rest, name}, If[KeyExistsQ[$closureVisited, name], rest, {{name, False}, rest}]],
+	stack,
+	Reverse[names]
+]
+
+pushRecordDependencies[environment_, name_, record_, stack_] := Switch[record["Kind"],
 	"Axiom",
 		$closureAxioms[name] = If[propositionTypeQ[environment, record["Type"]], "Proposition", "Signature"];
-		visitTerm[environment, record["Type"]],
+		pushVisitNames[unseenConstants[record["Type"]], stack],
 	"Definition" | "Opaque" | "Theorem",
-		visitTerm[environment, record["Type"]];
-		visitTerm[environment, record["Value"]],
+		With[{typeNames = unseenConstants[record["Type"]]},
+			pushVisitNames[typeNames, pushVisitNames[unseenConstants[record["Value"]], stack]]
+		],
 	"InductiveType",
-		visitTerm[environment, record["Type"]];
-		Scan[Function[constructor, visitConstant[environment, constructor]], record["Constructors"]],
+		pushVisitNames[unseenConstants[record["Type"]], pushVisitNames[record["Constructors"], stack]],
 	"Constructor" | "Recursor",
-		visitTerm[environment, record["Type"]];
-		visitConstant[environment, record["InductiveType"]],
+		pushVisitNames[unseenConstants[record["Type"]], pushVisitNames[{record["InductiveType"]}, stack]],
 	"RewriteRule",
-		$closureAxioms[name] = "RewriteRule",
+		$closureAxioms[name] = "RewriteRule";
+		stack,
 	"Hole",
 		$closureHoles[name] = record;
-		visitTerm[environment, record["Type"]],
+		pushVisitNames[unseenConstants[record["Type"]], stack],
 	_,
-		visitTerm[environment, record["Type"]]
+		pushVisitNames[unseenConstants[record["Type"]], stack]
 ]
-
-visitTerm[environment_, term_] := Scan[Function[name, visitConstant[environment, name]], unseenConstants[term]]
 
 propositionTypeQ[environment_, type_] := MatchQ[weakHeadNormalForm[environment, <||>, inferType[environment, <||>, type]], universeSort[0]]
 
@@ -990,18 +1025,27 @@ typeAndValueConstants[environment_, term_] := Replace[queryCoreTerm[environment,
 (* the constants a core term mentions, each shared subterm visited once *)
 termConstants[term_] := Block[{$constantsSeen = <||>}, unseenConstants[term]]
 
-(* the constants in the subterms of term not seen yet *)
+(* the constants in the subterms of term not seen yet, walked iteratively on a cons-list stack *)
 unseenConstants[term_] := DeleteDuplicates @ Flatten @ Last @ Reap[collectConstants[term], $constantTag]
 
-collectConstants[term_] := If[ ! KeyExistsQ[$constantsSeen, term], $constantsSeen[term] = True; constantsOf[term]]
+collectConstants[root_] := Block[{constantStack = {root, None}, currentTerm},
+	While[ constantStack =!= None,
+		currentTerm = First[constantStack];
+		constantStack = Last[constantStack];
+		If[ ! KeyExistsQ[$constantsSeen, currentTerm],
+			$constantsSeen[currentTerm] = True;
+			constantStack = pushTermParts[currentTerm, constantStack]
+		]
+	]
+]
 
-constantsOf[constantReference[name_, _]] := Sow[name, $constantTag]
-constantsOf[application[function_, argument_]] := (collectConstants[function]; collectConstants[argument])
-constantsOf[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _]] := (collectConstants[domain]; collectConstants[body])
-constantsOf[localDefinition[_, type_, value_, body_]] := (collectConstants[type]; collectConstants[value]; collectConstants[body])
-constantsOf[projection[structure_, _, term_]] := (Sow[structure, $constantTag]; collectConstants[term])
-constantsOf[cubicalSystem[branches_List]] := Scan[collectConstants, Flatten[branches, 1]]
-constantsOf[_] := Null
+pushTermParts[constantReference[name_, _], stack_] := (Sow[name, $constantTag]; stack)
+pushTermParts[application[function_, argument_], stack_] := {function, {argument, stack}}
+pushTermParts[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _], stack_] := {domain, {body, stack}}
+pushTermParts[localDefinition[_, type_, value_, body_], stack_] := {type, {value, {body, stack}}}
+pushTermParts[projection[structure_, _, term_], stack_] := (Sow[structure, $constantTag]; {term, stack})
+pushTermParts[cubicalSystem[branches_List], stack_] := Fold[Function[{rest, branch}, {branch, rest}], stack, Reverse[Flatten[branches, 1]]]
+pushTermParts[_, stack_] := stack
 
 
 (* ::Subsection:: *)

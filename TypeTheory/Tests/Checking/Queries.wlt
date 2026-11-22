@@ -1000,3 +1000,81 @@ VerificationTest[
 	{True, True},
 	TestID -> "An-environment-read-from-a-file-keeps-its-signature"
 ]
+
+(* Deep terms (> 1,500 nested applications) and deep constant chains (> 300 definitions) never hit $RecursionLimit in
+   Information[env, "Signature"] or TypeTheoryAxiomClosure; Signature skips theorem proof Values when uncached and
+   agrees between cached (reloaded) and uncached environments, including cubical environments whose theorem proofs
+   contain cubicalSystem terms. *)
+VerificationTest[
+	Module[
+		{
+			base, thmRec, app = WolframInstitute`TypeTheory`PackageScope`application,
+			cref = WolframInstitute`TypeTheory`PackageScope`constantReference,
+			addRecs = WolframInstitute`TypeTheory`PackageScope`addConstantRecords,
+			fRef, aRef, deepProof, deepShard, deepWhole, chainEnv, file, reloaded,
+			cubicalBase, cubicalWhole, cubicalShard, cubicalFile, cubicalRead
+		},
+		base = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+			TypeTheoryAxiom["T", TypeUniverse[0]],
+			TypeTheoryAxiom["a", "T"],
+			TypeTheoryAxiom["f", "T" -> "T"],
+			TypeTheoryTheorem["small", "T", "a"]
+		}];
+		thmRec = First[base]["Records"][HoldComplete["small"]];
+		fRef = cref[HoldComplete["f"], {}];
+		aRef = cref[HoldComplete["a"], {}];
+		deepProof = Nest[Function[t, Construct[app, fRef, t]], aRef, 1600];
+		deepShard = addRecs[base, <|HoldComplete["deepThm"] -> Association[thmRec, "Value" -> deepProof]|>];
+		deepWhole = TypeTheoryEnvironment[base, {TypeTheoryAxiom["deepThm", "T"]}];
+		file = FileNameJoin[{$TemporaryDirectory, "deep-sig-" <> CreateUUID[] <> ".wxf"}];
+		Export[file, deepShard];
+		reloaded = TypeTheoryEnvironment[File[file]];
+		DeleteFile[file];
+		chainEnv = TypeTheoryEnvironment[prelude, Prepend[
+			Table[With[{name = "chain" <> ToString[k], rhs = If[k == 1, "seed", "chain" <> ToString[k - 1]]}, TypeTheoryDefinition[name, rhs]], {k, 350}],
+			TypeTheoryAxiom["seed", NonNegativeIntegers]
+		]];
+		cubicalBase = TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"], {
+			TypeTheoryInductiveType[DependentSum, ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]]}, TypeUniverse[Max[u + 1, v + 1]]], {
+				"dependentPair" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], Typed[first, A], Typed[second, B[first]]}, DependentSum[A, B]]
+			}],
+			TypeTheoryCubical[DependentSum],
+			TypeTheoryAxiom["A", TypeUniverse[1]],
+			TypeTheoryAxiom["x", "A"],
+			TypeTheoryAxiom["y", "A"],
+			TypeTheoryAxiom["z", "A"]
+		}];
+		cubicalWhole = TypeTheoryEnvironment[cubicalBase, {
+			TypeTheoryAxiom["comp", Path["A", "x", "y"] -> Path["A", "y", "z"] -> Path["A", "x", "z"]]
+		}];
+		cubicalShard = TypeTheoryEnvironment[cubicalBase, {
+			TypeTheoryTheorem[
+				"comp",
+				Path["A", "x", "y"] -> Path["A", "y", "z"] -> Path["A", "x", "z"],
+				Function[{Typed[p, Path["A", "x", "y"]], Typed[q, Path["A", "y", "z"]], Typed[i, Interval]},
+					CubicalComposition["A", Function[{j}, {i == 0 -> "x", i == 1 -> q[j]}], p[i]]]
+			]
+		}];
+		cubicalFile = FileNameJoin[{$TemporaryDirectory, "cubical-sig-" <> CreateUUID[] <> ".wxf"}];
+		Export[cubicalFile, cubicalShard];
+		cubicalRead = TypeTheoryEnvironment[File[cubicalFile]];
+		DeleteFile[cubicalFile];
+		{
+			Head[cubicalShard],
+			Information[deepShard, "Signature"] === Information[deepWhole, "Signature"],
+			Information[reloaded, "Signature"] === Information[deepShard, "Signature"],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["deepThm", deepShard]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["chain350", chainEnv]],
+			Information[cubicalShard, "Signature"] === Information[cubicalWhole, "Signature"],
+			Information[cubicalRead, "Signature"] === Information[cubicalShard, "Signature"]
+		}
+	],
+	{
+		TypeTheoryEnvironment,
+		True, True,
+		<|"T" -> "Signature", "f" -> "Proposition", "a" -> "Proposition"|>,
+		<|"seed" -> "Signature"|>,
+		True, True
+	},
+	TestID -> "Signature-and-axiom-closure-handle-deep-terms-deep-chains-and-cubical-shards"
+]

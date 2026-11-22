@@ -459,11 +459,44 @@ valueRefs[value_] := Which[
 	True, value
 ]
 
-(* the row of a composite term, its own added after the rows of its parts *)
-nodeRow[term_] := Lookup[$nodeIndex, Key[term], addNode[term]]
-addNode[term_] := Block[{node = termNode[term]}, Sow[node, $nodeTag]; $nodeIndex[term] = ++$nodeCount]
+(* the row of a composite term, its own added after the rows of its parts, iteratively on a cons-list stack so deep
+   terms never hit $RecursionLimit *)
+nodeRow[root_] := If[ KeyExistsQ[$nodeIndex, root],
+	Lookup[$nodeIndex, Key[root]],
+	Block[{nodeStack = {{root, False}, None}, stackEntry, currentNode, readyToEmit},
+		While[ nodeStack =!= None,
+			stackEntry = First[nodeStack];
+			nodeStack = Last[nodeStack];
+			currentNode = First[stackEntry];
+			readyToEmit = Last[stackEntry];
+			If[ ! KeyExistsQ[$nodeIndex, currentNode],
+				If[ readyToEmit,
+					Sow[termNode[currentNode], $nodeTag];
+					$nodeIndex[currentNode] = ++$nodeCount,
+					nodeStack = pushNodeChildren[currentNode, {{currentNode, True}, nodeStack}]
+				]
+			]
+		];
+		Lookup[$nodeIndex, Key[root]]
+	]
+]
 
-part[term_] := If[compositeTermQ[term], termRef[nodeRow[term]], term]
+pushNodeChild[child_, stack_] := If[compositeTermQ[child] && ! KeyExistsQ[$nodeIndex, child], {{child, False}, stack}, stack]
+
+(* children pushed in reverse order so left-to-right post-order matches recursive traversal bit-for-bit *)
+pushNodeChildren[application[function_, argument_], stack_] :=
+	pushNodeChild[function, pushNodeChild[argument, stack]]
+pushNodeChildren[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _], stack_] :=
+	pushNodeChild[domain, pushNodeChild[body, stack]]
+pushNodeChildren[localDefinition[_, type_, value_, body_], stack_] :=
+	pushNodeChild[type, pushNodeChild[value, pushNodeChild[body, stack]]]
+pushNodeChildren[projection[_, _, term_], stack_] :=
+	pushNodeChild[term, stack]
+pushNodeChildren[cubicalSystem[branches_List], stack_] :=
+	Fold[Function[{rest, branch}, pushNodeChild[branch, rest]], stack, Reverse[Flatten[branches, 1]]]
+pushNodeChildren[_, stack_] := stack
+
+part[term_] := If[compositeTermQ[term], termRef[Lookup[$nodeIndex, Key[term]]], term]
 
 termNode[application[function_, argument_]] := {"a", part[function], part[argument]}
 termNode[lambdaAbstraction[name_, domain_, body_, binder_]] := {"l", name, part[domain], part[body], binder}

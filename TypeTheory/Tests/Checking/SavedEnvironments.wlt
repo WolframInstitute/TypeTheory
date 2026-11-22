@@ -337,3 +337,51 @@ VerificationTest[
 	},
 	TestID -> "Every-library-environment-the-release-saves-is-an-asset-of-the-paclet"
 ]
+
+(* Iterative nodeRow: a term deeper than $RecursionLimit (1,600 nested applications) and a DAG with shared composite
+   subterms (application[x, x] nested 12 times = 4,096 tree leaves, 24 distinct DAG nodes) save, fingerprint, and
+   reload without hitting $RecursionLimit or duplicating shared rows. *)
+VerificationTest[
+	Module[
+		{
+			base, oneRecord, app = WolframInstitute`TypeTheory`PackageScope`application,
+			cref = WolframInstitute`TypeTheory`PackageScope`constantReference,
+			addRecs = WolframInstitute`TypeTheory`PackageScope`addConstantRecords,
+			fRef, aRef, gRef, deepTerm, dagTerm, deepEnv, dir, file, raw, reloaded
+		},
+		base = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+			TypeTheoryAxiom["T", TypeUniverse[1]],
+			TypeTheoryAxiom["a", "T"],
+			TypeTheoryAxiom["f", "T" -> "T"],
+			TypeTheoryAxiom["g", "T" -> "T" -> "T"],
+			TypeTheoryDefinition["one", "f"["a"]]
+		}];
+		oneRecord = First[base]["Records"][HoldComplete["one"]];
+		fRef = cref[HoldComplete["f"], {}];
+		aRef = cref[HoldComplete["a"], {}];
+		gRef = cref[HoldComplete["g"], {}];
+		deepTerm = Nest[Function[t, Construct[app, fRef, t]], aRef, 1600];
+		dagTerm = Nest[Function[t, Construct[app, Construct[app, gRef, t], t]], aRef, 12];
+		deepEnv = addRecs[base, <|
+			HoldComplete["deep"] -> Association[oneRecord, "Value" -> deepTerm],
+			HoldComplete["dag"] -> Association[oneRecord, "Value" -> dagTerm]
+		|>];
+		dir = CreateDirectory[];
+		file = FileNameJoin[{dir, "deep.wxf"}];
+		Export[file, deepEnv];
+		raw = First[BinaryDeserialize[ReadByteArray[file], HoldComplete]];
+		reloaded = TypeTheoryEnvironment[File[file]];
+		DeleteDirectory[dir, DeleteContents -> True];
+		{
+			Head[reloaded],
+			Max[raw["Depths"]],
+			(* 1 + 1600 + 24 + type rows <= 1650, proving DAG sharing is preserved (naive tree would be > 8000 rows) *)
+			Length[raw["Table"]] < 1650,
+			First[reloaded]["Records"][HoldComplete["deep"]]["Value"] === deepTerm,
+			First[reloaded]["Records"][HoldComplete["dag"]]["Value"] === dagTerm,
+			Information[reloaded, "Signature"] === Information[deepEnv, "Signature"]
+		}
+	],
+	{TypeTheoryEnvironment, 1600, True, True, True, True},
+	TestID -> "Deep-terms-and-shared-DAG-subterms-save-and-reload-without-hitting-RecursionLimit"
+]

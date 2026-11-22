@@ -171,6 +171,13 @@ Versions 0.50.0 to 0.59.0.
   non-canonical instance arguments by name (falling back to `Construct` where named arguments do not apply) and ascribes
   result-determined applications with `Typed` when no expected type reaches them, so every definition and theorem of the
   prelude and `minskySimulation` round-trip cleanly.
+- **Deep terms and deep dependency chains in saving, signatures, and axiom closures.** Term interning (`nodeRow` in
+  `Checking/SavedEnvironments.wl`) and dependency traversal (`collectConstants` and `visitConstants` in
+  `Checking/Queries.wl`) now walk iteratively on explicit cons-list stacks instead of the Wolfram Language recursion
+  stack, so saving, fingerprinting, and `TypeTheoryAxiomClosure` handle terms deeper than `$RecursionLimit` (1,024) and
+  long constant chains without overflow while preserving DAG sharing. `Information[env, "Signature"]` also hashes
+  theorem statements directly when hashes are not yet cached, avoiding walking theorem proof values and keeping cubical
+  shards consistent with their axiomatized whole.
 
 ### Performance
 
