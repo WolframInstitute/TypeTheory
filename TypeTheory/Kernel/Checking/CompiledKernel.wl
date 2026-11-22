@@ -2600,7 +2600,7 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 				"Constants" -> input["EnvironmentConstants"]
 			|>],
 		MemberQ[$capacityStatuses, result[[1]]] && capacityFactor < 16,
-			compiledCheckWith[function, MapAt[Function[settings, ReplacePart[settings, Thread[{1, 2, 10, 11} -> 4 settings[[{1, 2, 10, 11}]]]]], input, "Settings"], 4 capacityFactor],
+			compiledCheckWith[function, MapAt[Function[settings, Developer`ToPackedArray[ReplacePart[settings, Thread[{1, 2, 10, 11} -> 4 settings[[{1, 2, 10, 11}]]]]]], input, "Settings"], 4 capacityFactor],
 		(* in an environment with a literal the arena does not hold, a record of the environment that it does not accept,
 		   or on which a literal passes its limit, is undecided: it may need the value of such a literal *)
 		Or[

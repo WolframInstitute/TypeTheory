@@ -283,10 +283,39 @@ withoutStoreTracking[expr_] := First @ Reap[expr, $storeTag]
 checkUniverseParameters[name_HoldComplete, universeParameters_List, terms_List] := Which[
 	! DuplicateFreeQ[universeParameters],
 		kernelFailure["DuplicateUniverseParameter", "The universe parameters of `1` must be distinct.", {HoldForm @@ name}],
-	! SubsetQ[universeParameters, Cases[terms, levelParameter[parameter_] :> parameter, Infinity]],
+	! SubsetQ[universeParameters, termLevelParameters[terms]],
 		kernelFailure["UndeclaredUniverseParameter", "`1` mentions a universe parameter that it does not declare.", {HoldForm @@ name}],
 	True,
 		Null
+]
+
+(* the universe parameters mentioned in core terms, each shared subterm visited once on a cons-list stack *)
+termLevelParameters[roots_List] := Block[
+	{
+		seenLevelTerms = <||>,
+		foundLevelParameters = <||>,
+		levelTermStack = Fold[Function[{rest, root}, {root, rest}], None, Reverse[roots]],
+		currentLevelTerm
+	},
+	While[ levelTermStack =!= None,
+		currentLevelTerm = First[levelTermStack];
+		levelTermStack = Last[levelTermStack];
+		If[ ! KeyExistsQ[seenLevelTerms, currentLevelTerm],
+			seenLevelTerms[currentLevelTerm] = True;
+			levelTermStack = Replace[currentLevelTerm, {
+				universeSort[level_] :> (Scan[Function[parameter, foundLevelParameters[parameter] = True], Cases[level, levelParameter[parameter_] :> parameter, {0, Infinity}]]; levelTermStack),
+				constantReference[_, levels_] :> (Scan[Function[parameter, foundLevelParameters[parameter] = True], Cases[levels, levelParameter[parameter_] :> parameter, {0, Infinity}]]; levelTermStack),
+				levelParameter[parameter_] :> (foundLevelParameters[parameter] = True; levelTermStack),
+				application[function_, argument_] :> {function, {argument, levelTermStack}},
+				(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _] :> {domain, {body, levelTermStack}},
+				localDefinition[_, type_, value_, body_] :> {type, {value, {body, levelTermStack}}},
+				projection[_, _, term_] :> {term, levelTermStack},
+				cubicalSystem[branches_List] :> Fold[Function[{rest, branch}, {branch, rest}], levelTermStack, Reverse[Flatten[branches, 1]]],
+				_ -> levelTermStack
+			}]
+		]
+	];
+	Keys[foundLevelParameters]
 ]
 
 

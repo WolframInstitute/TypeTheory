@@ -1087,3 +1087,32 @@ VerificationTest[
 	{{"EnvironmentChecked", "EnvironmentChecked"}, "TypeMismatch", "TypeMismatch"},
 	TestID -> "Both-kernels-leave-a-match-on-a-proposition-with-data-or-on-an-indexed-recursive-family-alone"
 ]
+
+(* an eCapacity retry keeps Settings packed so programInputQ accepts the retried input instead of returning None,
+   and a failure reported on the retried run is still refused *)
+VerificationTest[
+	With[
+		{
+			input = WolframInstitute`TypeTheory`Checking`CompiledKernel`Private`environmentInput[matrixEnvironment, 0, 0, 1],
+			checkWith = WolframInstitute`TypeTheory`Checking`CompiledKernel`Private`compiledCheckWith
+		},
+		Module[{calls = {}, mockAccept, mockReject, accepted, rejected},
+			mockAccept[_, _, _, _, _, settings_] := (
+				AppendTo[calls, {Developer`PackedArrayQ[settings, Integer, 1], settings[[{1, 2, 10, 11}]]}];
+				If[Length[calls] == 1, {22, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}]
+			);
+			mockReject[_, _, _, _, _, settings_] := If[settings[[1]] == input["Settings"][[1]], {22, 1, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}];
+			accepted = checkWith[mockAccept, input, 1];
+			rejected = checkWith[mockReject, input, 1];
+			{
+				MatchQ[accepted, Success["EnvironmentChecked", _]],
+				Length[calls],
+				calls[[2, 1]],
+				calls[[2, 2]] === 4 calls[[1, 2]],
+				MatchQ[rejected, Failure["TypeMismatch", _]]
+			}
+		]
+	],
+	{True, 2, True, True, True},
+	TestID -> "A-capacity-retry-keeps-settings-packed-and-still-refuses-failures"
+]

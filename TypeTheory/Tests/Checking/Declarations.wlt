@@ -346,3 +346,69 @@ VerificationTest[
 	{TypeTheoryEnvironment, TypeTheoryEnvironment, True, "ElaborationFailed"},
 	TestID -> "A-proof-in-a-list-of-declarations-runs-in-the-environment-built-so-far"
 ]
+
+(* deep shared-DAG core terms (2^40 tree nodes, 41 DAG nodes) compute exact definition heights in both deferred
+   (coreRecordOf) and non-deferred (definitionHeight) paths, including cubicalSystem branches, and reject undeclared
+   universe parameters in bare sorts, compound levels and constant references without expanding the DAG *)
+VerificationTest[
+	With[
+		{
+			application = WolframInstitute`TypeTheory`PackageScope`application,
+			constantReference = WolframInstitute`TypeTheory`PackageScope`constantReference,
+			universeSort = WolframInstitute`TypeTheory`PackageScope`universeSort,
+			cubicalSystem = WolframInstitute`TypeTheory`PackageScope`cubicalSystem,
+			levelParameter = WolframInstitute`TypeTheory`PackageScope`levelParameter,
+			levelSuccessor = WolframInstitute`TypeTheory`PackageScope`levelSuccessor,
+			constantRecord = WolframInstitute`TypeTheory`PackageScope`constantRecord,
+			checkUniverseParameters = WolframInstitute`TypeTheory`PackageScope`checkUniverseParameters,
+			catchKernelFailure = WolframInstitute`TypeTheory`PackageScope`catchKernelFailure,
+			deferredDeclarations = WolframInstitute`TypeTheory`Checking`Declarations`Private`deferredDeclarations,
+			definitionHeight = WolframInstitute`TypeTheory`Checking`Declarations`Private`definitionHeight,
+			base = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom["combine", NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers],
+				TypeTheoryDefinition["baseZero", Typed[0, NonNegativeIntegers]],
+				TypeTheoryDefinition["baseOne", Typed["baseZero", NonNegativeIntegers]]
+			}]
+		},
+		With[
+			{
+				combineRef = constantReference[HoldComplete["combine"], {}],
+				baseOneRef = constantReference[HoldComplete["baseOne"], {}],
+				natRef = constantReference[HoldComplete[NonNegativeIntegers], {}],
+				diamond = Function[{op, leaf}, Nest[Function[t, Construct[application, Construct[application, op, t], t]], leaf, 40]]
+			},
+			With[
+				{
+					dagValue = diamond[combineRef, baseOneRef],
+					dagValue2 = diamond[combineRef, constantReference[HoldComplete["dagDef"], {}]],
+					cubicalDagValue = diamond[combineRef, Construct[cubicalSystem, {{baseOneRef, baseOneRef}}]],
+					bareLevelDag = diamond[combineRef, universeSort[levelParameter[HoldComplete["u"]]]],
+					compoundLevelDag = diamond[combineRef, universeSort[levelSuccessor[levelParameter[HoldComplete["u"]], 1]]],
+					constLevelDag = diamond[combineRef, constantReference[HoldComplete["poly"], {levelParameter[HoldComplete["u"]]}]]
+				},
+				With[
+					{
+						deferredEnv = Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+							deferredDeclarations[base, {
+								TypeTheoryDefinition["dagDef", Typed[dagValue, natRef], "UniverseParameters" -> {}],
+								TypeTheoryDefinition["dagDef2", Typed[dagValue2, natRef], "UniverseParameters" -> {}]
+							}]
+						]
+					},
+					{
+						definitionHeight[base, dagValue],
+						constantRecord[deferredEnv, HoldComplete["dagDef"]]["Height"],
+						constantRecord[deferredEnv, HoldComplete["dagDef2"]]["Height"],
+						definitionHeight[base, cubicalDagValue],
+						First @ catchKernelFailure[checkUniverseParameters[HoldComplete["badBare"], {}, {bareLevelDag}]],
+						First @ catchKernelFailure[checkUniverseParameters[HoldComplete["badCompound"], {}, {compoundLevelDag}]],
+						First @ catchKernelFailure[checkUniverseParameters[HoldComplete["badConst"], {}, {constLevelDag}]],
+						catchKernelFailure[checkUniverseParameters[HoldComplete["okAll"], {HoldComplete["u"]}, {bareLevelDag, compoundLevelDag, constLevelDag}]]
+					}
+				]
+			]
+		]
+	],
+	{3, 3, 4, 3, "UndeclaredUniverseParameter", "UndeclaredUniverseParameter", "UndeclaredUniverseParameter", Null},
+	TestID -> "Deep-shared-DAG-definitions-compute-height-and-check-universe-parameters-without-expanding"
+]

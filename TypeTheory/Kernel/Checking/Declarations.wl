@@ -324,7 +324,7 @@ coreRecordOf[environment_][name_, "Opaque", type_, value_, parameters_] := (
 )
 coreRecordOf[environment_][name_, "Definition", type_, value_, parameters_] := With[
 	{height = 1 + Max[0, Function[constant, Lookup[heights, Key[constant], heights[constant] = Lookup[constantRecord[environment, constant], "Height", 0]]] /@
-		DeleteDuplicates[Cases[value, constantReference[constant_, _] :> constant, {0, Infinity}]]]},
+		termConstantReferences[value]]},
 	heights[name] = height;
 	Join[
 		<|"Kind" -> "Definition", "Type" -> type, "UniverseParameters" -> parameters, "Value" -> value, "Height" -> height|>,
@@ -724,7 +724,29 @@ declareDefinition[environment_, name_HoldComplete, universeParameters_List, type
 (* a definition's height: one more than the greatest height of the definitions its value
    mentions, so a definition is higher than each definition it is defined by *)
 definitionHeight[environment_, value_] := 1 + Max[0, Function[constant, Lookup[constantRecord[environment, constant], "Height", 0]] /@
-	DeleteDuplicates[Cases[value, constantReference[name_, _] :> name, {0, Infinity}]]
+	termConstantReferences[value]
+]
+
+(* the constants referenced in a core term, each shared subterm visited once on a cons-list stack *)
+termConstantReferences[root_] := Block[
+	{seenTerms = <||>, foundConstants = <||>, termStack = {root, None}, currentSubterm},
+	While[ termStack =!= None,
+		currentSubterm = First[termStack];
+		termStack = Last[termStack];
+		If[ ! KeyExistsQ[seenTerms, currentSubterm],
+			seenTerms[currentSubterm] = True;
+			termStack = Replace[currentSubterm, {
+				constantReference[constant_, _] :> (foundConstants[constant] = True; termStack),
+				application[function_, argument_] :> {function, {argument, termStack}},
+				(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _] :> {domain, {body, termStack}},
+				localDefinition[_, type_, value_, body_] :> {type, {value, {body, termStack}}},
+				projection[_, _, term_] :> {term, termStack},
+				cubicalSystem[branches_List] :> Fold[Function[{rest, branch}, {branch, rest}], termStack, Reverse[Flatten[branches, 1]]],
+				_ -> termStack
+			}]
+		]
+	];
+	Keys[foundConstants]
 ]
 
 (* a theorem is a proposition, or under rules without Prop a type, and its proof is never unfolded *)
