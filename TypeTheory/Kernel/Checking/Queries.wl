@@ -931,7 +931,7 @@ queryCoreTerm[environment_, term_] := Replace[aliasResolvedName[environment, hel
 (* {axioms, holes} a term rests on: the axioms as <|name -> kind|>, the holes as <|HoldComplete[hole] -> record|>; the
    subterms seen are shared by the whole closure, so a term the declarations share is walked once *)
 closureOf[environment_, term_] := Block[{$closureVisited = <||>, $closureAxioms = <||>, $closureHoles = <||>, $constantsSeen = <||>},
-	withKernelCaches[visitConstants[environment, unseenConstants[term]]];
+	withCheckedTerms[visitConstants[environment, unseenConstants[term]]];
 	{KeyMap[ReleaseHold, $closureAxioms], $closureHoles}
 ]
 
@@ -1012,7 +1012,58 @@ pushRecordDependencies[environment_, name_, record_, stack_] := Switch[record["K
 		pushVisitNames[unseenConstants[record["Type"]], stack]
 ]
 
-propositionTypeQ[environment_, type_] := MatchQ[weakHeadNormalForm[environment, <||>, inferType[environment, <||>, type]], universeSort[0]]
+propositionTypeQ[environment_, _] /; ! rulesSetting[environment, "Prop"] := False
+propositionTypeQ[environment_, type_] := Replace[
+	fastPropositionTypeQ[environment, type],
+	Indeterminate :> propositionQ[environment, <||>, type]
+]
+
+(* Iterative syntactic sort check for an already checked closed type. Outside cubical environments (where a function
+   type over the interval has intervalUniverse[]), impredicative maximum is 0 iff the codomain's sort is 0 and a local
+   definition keeps its body's sort, so peeling binders and matching the head constant's declared return sort decides
+   nearly every axiom without calling inferType or recursing on deep Pi chains. *)
+fastPropositionTypeQ[environment_, _] /; cubicalDeclaredQ[environment] := Indeterminate
+fastPropositionTypeQ[environment_, type_] := Block[{propCursor = type, propArity = 0},
+	While[ MatchQ[propCursor, dependentFunctionType[_, _, _, _] | localDefinition[_, _, _, _]],
+		propCursor = Replace[propCursor, {
+			dependentFunctionType[_, _, codomain_, _] :> codomain,
+			localDefinition[_, _, _, body_] :> body
+		}]
+	];
+	If[ MatchQ[propCursor, _universeSort],
+		False,
+		While[ MatchQ[propCursor, application[_, _]],
+			propCursor = Replace[propCursor, application[head_, _] :> head];
+			propArity++
+		];
+		Replace[propCursor, {
+			constantReference[constantName_, constantLevels_List] :>
+				fastConstantReturnPropositionQ[environment, constantRecord[environment, constantName], constantLevels, propArity],
+			_ :> Indeterminate
+		}]
+	]
+]
+
+fastConstantReturnPropositionQ[_, record_Association, levels_List, arity_Integer] :=
+	If[ Length[levels] =!= Length[record["UniverseParameters"]] || MatchQ[record["Kind"], "RewriteRule" | "Cubical"],
+		Indeterminate,
+		Block[{returnCursor = record["Type"], remainingSteps = arity},
+			While[ remainingSteps > 0 && MatchQ[returnCursor, dependentFunctionType[_, _, _, _]],
+				returnCursor = Replace[returnCursor, dependentFunctionType[_, _, codomain_, _] :> codomain];
+				remainingSteps--
+			];
+			Which[
+				remainingSteps > 0,
+					Indeterminate,
+				MatchQ[returnCursor, _universeSort],
+					instantiateUniverseParameters[returnCursor, record["UniverseParameters"], levels] === universeSort[0],
+				MatchQ[returnCursor, _dependentFunctionType],
+					False,
+				True,
+					Indeterminate
+			]
+		]
+	]
 
 (* the constants the type and the value of a term mention: of a constant, those of its declaration *)
 typeAndValueConstants[environment_, term_] := Replace[queryCoreTerm[environment, term], {

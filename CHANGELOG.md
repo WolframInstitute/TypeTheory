@@ -181,7 +181,10 @@ Versions 0.50.0 to 0.59.0.
   stack, so saving, fingerprinting, and `TypeTheoryAxiomClosure` handle terms deeper than `$RecursionLimit` (1,024) and
   long constant chains without overflow while preserving DAG sharing. `Information[env, "Signature"]` also hashes
   theorem statements directly when hashes are not yet cached, avoiding walking theorem proof values and keeping cubical
-  shards consistent with their axiomatized whole.
+  shards consistent with their axiomatized whole. `TypeTheoryAxiomClosure` now classifies axioms with an iterative
+  syntactic sort check (`fastPropositionTypeQ`) that peels binders and inspects the head constant's declared return
+  sort without calling `inferType`, falling back to `propositionQ` inside `withCheckedTerms` only on type aliases,
+  redexes, or cubical environments.
 
 ### Performance
 

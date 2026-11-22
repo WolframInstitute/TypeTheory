@@ -53,6 +53,7 @@ PackageScoped[reduceHead]
 PackageScoped[reducedHeadWithoutUnfolding]
 PackageScoped[definitionallyEqualQ]
 PackageScoped[sortLevel]
+PackageScoped[propositionQ]
 PackageScoped[checkHasType]
 PackageScoped[freshFreeVariable]
 PackageScoped[extendContext]
@@ -76,6 +77,7 @@ reduceHead::usage = "reduceHead[environment, context, term] gives term reduced b
 reducedHeadWithoutUnfolding::usage = "reducedHeadWithoutUnfolding[environment, context, term] reduces the head of term as far as it reduces without unfolding a definition."
 definitionallyEqualQ::usage = "definitionallyEqualQ[environment, context, a, b] gives True if a and b are equal by computation, eta and proof irrelevance."
 sortLevel::usage = "sortLevel[environment, context, type] gives the level of the sort type belongs to, or throws a kernel failure if type is not a type."
+propositionQ::usage = "propositionQ[environment, context, type] gives True if the inferred type of type reduces to universeSort[0]."
 checkHasType::usage = "checkHasType[environment, context, term, type] throws a kernel failure unless term has a type definitionally equal to type."
 freshFreeVariable::usage = "freshFreeVariable[] gives an identifier no free variable has used."
 kernelCachesClosedQ::usage = "kernelCachesClosedQ[] gives True if the kernel's caches remember no term with a metavariable, as they must while $cacheClosedTermsOnly is True."
@@ -421,11 +423,11 @@ projectionType[environment_, context_, structure_, index_, structureTerm_] := Bl
 	}]
 ]
 
-instantiateEarlierField[environment_, context_, structure_, structureTerm_, propositionQ_, type_, earlier_Integer] := Replace[
+instantiateEarlierField[environment_, context_, structure_, structureTerm_, structureIsProposition_, type_, earlier_Integer] := Replace[
 	weakHeadNormalForm[environment, context, type],
 	{
 		dependentFunctionType[_, domain_, codomain_, _] /; boundVariableOccursQ[codomain, 0] :> (
-			If[ propositionQ && ! levelEquivalentQ[sortLevel[environment, context, domain], 0],
+			If[ structureIsProposition && ! levelEquivalentQ[sortLevel[environment, context, domain], 0],
 				projectionFromProofFailure[environment, context, structureTerm]
 			];
 			instantiateBoundVariable[codomain, projection[structure, earlier, structureTerm]]

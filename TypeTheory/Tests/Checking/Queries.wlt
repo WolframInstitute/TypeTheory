@@ -1078,3 +1078,99 @@ VerificationTest[
 	},
 	TestID -> "Signature-and-axiom-closure-handle-deep-terms-deep-chains-and-cubical-shards"
 ]
+
+(* propositionTypeQ fast path agrees with propositionQ across Prelude and handles universe-polymorphic constants,
+   Prop/Type aliases, let-bound type aliases, cubical interval function types, no-Prop rules, and >1,500-deep Pi chains. *)
+VerificationTest[
+	Module[
+		{
+			propTypeQ = queriesPrivate["propositionTypeQ"],
+			fastPropQ = queriesPrivate["fastPropositionTypeQ"],
+			propFallbackQ = WolframInstitute`TypeTheory`PackageScope`propositionQ,
+			withChecked = WolframInstitute`TypeTheory`PackageScope`withCheckedTerms,
+			pi = WolframInstitute`TypeTheory`PackageScope`dependentFunctionType,
+			localDef = WolframInstitute`TypeTheory`PackageScope`localDefinition,
+			bvar = WolframInstitute`TypeTheory`PackageScope`boundVariable,
+			usort = WolframInstitute`TypeTheory`PackageScope`universeSort,
+			natLit = WolframInstitute`TypeTheory`PackageScope`naturalLiteral,
+			cref = WolframInstitute`TypeTheory`PackageScope`constantReference,
+			addRecs = WolframInstitute`TypeTheory`PackageScope`addConstantRecords,
+			preludeMismatches, edgeEnv, noPropEnv, cubicalEnv, cubicalIntervalPi, deepBase, deepType, deepAxiomEnv
+		},
+		preludeMismatches = withChecked @ Select[
+			Values[First[prelude]["Records"]],
+			Function[rec, KeyExistsQ[rec, "Type"] && propTypeQ[prelude, rec["Type"]] =!= propFallbackQ[prelude, <||>, rec["Type"]]]
+		];
+		edgeEnv = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom["PolyBox", ForAll[{Typed[x, NonNegativeIntegers]}, TypeUniverse[u]]],
+			TypeTheoryAxiom["polyAt0", Typed["PolyBox"[0], TypeUniverse[0]]],
+			TypeTheoryAxiom["polyAt1", Typed["PolyBox"[0], TypeUniverse[1]]],
+			TypeTheoryAxiom["polyParam", "PolyBox"[0]],
+			TypeTheoryDefinition["MyProp", TypeUniverse[0]],
+			TypeTheoryDefinition["MyType", TypeUniverse[1]],
+			TypeTheoryAxiom["myPred", NonNegativeIntegers -> "MyProp"],
+			TypeTheoryAxiom["myFam", NonNegativeIntegers -> "MyType"],
+			TypeTheoryAxiom["aliasProp", "myPred"[0]],
+			TypeTheoryAxiom["aliasSig", "myFam"[0]]
+		}];
+		edgeEnv = addRecs[edgeEnv, <|
+			HoldComplete["letProp"] -> <|"Kind" -> "Axiom", "UniverseParameters" -> {}, "Type" -> Construct[localDef, HoldComplete["A"], usort[0], cref[HoldComplete[True], {}], bvar[0]]|>,
+			HoldComplete["letSig"] -> <|"Kind" -> "Axiom", "UniverseParameters" -> {}, "Type" -> Construct[localDef, HoldComplete["A"], usort[1], cref[HoldComplete[NonNegativeIntegers], {}], bvar[0]]|>,
+			HoldComplete["letFastProp"] -> <|"Kind" -> "Axiom", "UniverseParameters" -> {}, "Type" -> Construct[localDef, HoldComplete["x"], cref[HoldComplete[NonNegativeIntegers], {}], natLit[0], cref[HoldComplete[True], {}]]|>
+		|>];
+		noPropEnv = TypeTheoryEnvironment[TypeTheoryRules["MartinLofTypeTheory"], {
+			TypeTheoryAxiom["A", TypeUniverse[1]],
+			TypeTheoryAxiom["a", "A"]
+		}];
+		cubicalEnv = TypeTheoryEnvironment[TypeTheoryRules["CubicalTypeTheory"], {
+			TypeTheoryInductiveType[DependentSum, ForAll[{Typed[A, TypeUniverse[u + 1]], Typed[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]]}, TypeUniverse[Max[u + 1, v + 1]]], {
+				"dependentPair" -> ForAll[{TypedImplicit[A, TypeUniverse[u + 1]], TypedImplicit[B, TypeSpecifier[{A} -> TypeUniverse[v + 1]]], Typed[first, A], Typed[second, B[first]]}, DependentSum[A, B]]
+			}],
+			TypeTheoryCubical[DependentSum],
+			TypeTheoryAxiom["A", TypeUniverse[1]],
+			TypeTheoryAxiom["x", "A"],
+			TypeTheoryAxiom["loop", Path["A", "x", "x"]]
+		}];
+		cubicalIntervalPi = Construct[pi, HoldComplete["i"], cref[HoldComplete[Interval], {}], cref[HoldComplete["A"], {}], "Explicit"];
+		deepBase = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom["P", TypeUniverse[0]]
+		}];
+		deepType = Nest[
+			Function[body, Construct[pi, HoldComplete["x"], cref[HoldComplete[NonNegativeIntegers], {}], body, "Explicit"]],
+			cref[HoldComplete["P"], {}],
+			1600
+		];
+		deepAxiomEnv = addRecs[deepBase, <|HoldComplete["deepPi"] -> <|"Kind" -> "Axiom", "UniverseParameters" -> {}, "Type" -> deepType|>|>];
+		{
+			Length[preludeMismatches],
+			fastPropQ[edgeEnv, First[edgeEnv]["Records"][HoldComplete["polyAt0"]]["Type"]],
+			fastPropQ[edgeEnv, First[edgeEnv]["Records"][HoldComplete["polyAt1"]]["Type"]],
+			fastPropQ[edgeEnv, First[edgeEnv]["Records"][HoldComplete["polyParam"]]["Type"]],
+			fastPropQ[edgeEnv, First[edgeEnv]["Records"][HoldComplete["aliasProp"]]["Type"]],
+			fastPropQ[edgeEnv, First[edgeEnv]["Records"][HoldComplete["letProp"]]["Type"]],
+			fastPropQ[edgeEnv, First[edgeEnv]["Records"][HoldComplete["letFastProp"]]["Type"]],
+			fastPropQ[cubicalEnv, cubicalIntervalPi],
+			propTypeQ[cubicalEnv, cubicalIntervalPi],
+			AssociationMap[Function[n, TypeTheoryAxiomClosure[TypeTheoryTerm[n, edgeEnv]][n]], {"polyAt0", "polyAt1", "polyParam", "aliasProp", "aliasSig", "letProp", "letSig", "letFastProp"}],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["a", noPropEnv]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["loop", cubicalEnv]],
+			TypeTheoryAxiomClosure[TypeTheoryTerm["deepPi", deepAxiomEnv]]
+		}
+	],
+	{
+		0,
+		True,
+		False,
+		False,
+		Indeterminate,
+		Indeterminate,
+		True,
+		Indeterminate,
+		False,
+		<|"polyAt0" -> "Proposition", "polyAt1" -> "Signature", "polyParam" -> "Signature", "aliasProp" -> "Proposition", "aliasSig" -> "Signature", "letProp" -> "Proposition", "letSig" -> "Signature", "letFastProp" -> "Proposition"|>,
+		<|"a" -> "Signature", "A" -> "Signature"|>,
+		<|"loop" -> "Signature", "A" -> "Signature", "x" -> "Signature"|>,
+		<|"deepPi" -> "Proposition", "P" -> "Signature"|>
+	},
+	TestID -> "Fast-propositionTypeQ-matches-propositionQ-and-handles-aliases-cubical-and-deep-Pi-chains"
+]
