@@ -15,7 +15,7 @@ $docsDirectory = FileNameJoin[{$repoDirectory, "docs", "paclet", "en"}]
 
 $siteAccount = "wolframinstitute@wolframinstitute.org"
 
-$minimumPacletPage = "0.3.50"
+$minimumPacletPage = "0.3.87"
 
 $pacletPageResource = "https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/PacletPage"
 
@@ -28,7 +28,7 @@ newEnoughQ[_] := False
    files name this checkout's kernel and the archive carries them. TypeTheoryEnvironment is named in full: this
    file is read before TypeTheory is loaded. *)
 
-$libraryEnvironmentNames = {"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical"}
+$libraryEnvironmentNames = {"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical", "Wolfram23"}
 
 saveLibraryEnvironments[] := Module[{directory = FileNameJoin[{$pacletDirectory, "Environments"}]},
 	PacletDirectoryLoad[$pacletDirectory];

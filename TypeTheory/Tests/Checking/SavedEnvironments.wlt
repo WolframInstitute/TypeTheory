@@ -332,8 +332,8 @@ VerificationTest[
 		}
 	],
 	{
-		Sort[{"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical"}],
-		Sort[{"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical"}]
+		Sort[{"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical", "Wolfram23"}],
+		Sort[{"Constructive", "Prelude", "Integers", "Rationals", "Machine", "MachineReals", "HomotopyTypeTheory", "Cubical", "Wolfram23"}]
 	},
 	TestID -> "Every-library-environment-the-release-saves-is-an-asset-of-the-paclet"
 ]

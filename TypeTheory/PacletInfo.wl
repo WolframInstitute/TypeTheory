@@ -34,7 +34,8 @@ PacletObject[<|
 				{"Machine", "Machine.wxf"},
 				{"MachineReals", "MachineReals.wxf"},
 				{"HomotopyTypeTheory", "HomotopyTypeTheory.wxf"},
-				{"Cubical", "Cubical.wxf"}
+				{"Cubical", "Cubical.wxf"},
+				{"Wolfram23", "Wolfram23.wxf"}
 			}
 		},
 		{"LibraryLink", "Root" -> "LibraryResources"}

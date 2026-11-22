@@ -237,10 +237,10 @@ VerificationTest[
 		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{3, 4, 1, 2}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
 		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{1, 2, 5}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
 		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{1, 4}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
-		TypeTheoryAxiomClosure[wolfram23["system5Simulation"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["bound5Step"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["representsDecode"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["representsTerminal"]["Term"]]
+		TypeTheoryAxiomClosure[TypeTheoryTerm["system5Simulation", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["bound5Step", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["representsDecode", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["representsTerminal", wolfram23]]
 	},
 	{True, True, True, True, <||>, <||>, <||>, <||>},
 	TestID -> "decodeBag-rejects-malformed-bags-and-rung-3-uses-no-axioms"
@@ -294,12 +294,12 @@ VerificationTest[
 			TypeTheoryTerm["decodeS4"["system4Configuration"[Typed[{}, {"System4Element"}], {"set4"[{0, 3}], "star4"}, "state4B"], 4], wolfram23],
 			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
 		],
-		TypeTheoryAxiomClosure[wolfram23["system4Simulation"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["system5ToSystem4Represents"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["system5ToSystem4WellFormed"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["repS4DecodeBand"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["repS4TurnStep"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["repS4Terminal"]["Term"]]
+		TypeTheoryAxiomClosure[TypeTheoryTerm["system4Simulation", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["system5ToSystem4Represents", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["system5ToSystem4WellFormed", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["repS4DecodeBand", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["repS4TurnStep", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["repS4Terminal", wolfram23]]
 	},
 	{True, True, <||>, <||>, <||>, <||>, <||>, <||>},
 	TestID -> "decodeS4-rejects-odd-parity-elements-and-rung-4-uses-no-axioms"
@@ -353,13 +353,13 @@ VerificationTest[
 			TypeTheoryTerm["decodeBlocks"[8, 4, "ofBits"["rowBits"[8, 1]]], wolfram23],
 			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
 		],
-		TypeTheoryAxiomClosure[wolfram23["parAtRowBits"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["system3Simulation"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["system0SimulatesSystem4"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["rep3Init"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["rep3Exit"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["rep3Decode"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["wolfram23ExitStep"]["Term"]]
+		TypeTheoryAxiomClosure[TypeTheoryTerm["parAtRowBits", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["system3Simulation", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["system0SimulatesSystem4", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["rep3Init", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["rep3Exit", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["rep3Decode", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["wolfram23ExitStep", wolfram23]]
 	},
 	{True, True, True, True, <||>, <||>, <||>, <||>, <||>, <||>, <||>},
 	TestID -> "decodeW23-rejects-malformed-tapes-and-rung-5-uses-no-axioms"
@@ -413,11 +413,11 @@ VerificationTest[
 		DefinitionallyEqualQ[TypeTheoryTerm["parseWord"[{"symbolA"[1], "symbolB"[1]}], wolfram23], TypeTheoryTerm[Typed["none", Option["MinskyParsed"]], wolfram23]],
 		DefinitionallyEqualQ[TypeTheoryTerm["parseWord"[{"symbolA"[1], "pad", "symbolB"[2], "pad"}], wolfram23], TypeTheoryTerm[Typed["none", Option["MinskyParsed"]], wolfram23]],
 		DefinitionallyEqualQ[TypeTheoryTerm["parseWord"[{"symbolA"[1], "pad", "symbolB"[1], "pad", "pad"}], wolfram23], TypeTheoryTerm[Typed["none", Option["MinskyParsed"]], wolfram23]],
-		TypeTheoryAxiomClosure[wolfram23["forwardSimulationSchedule"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["turingMachineConfinement"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["conjecture0Finite"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["decodeCTSWord"]["Term"]],
-		TypeTheoryAxiomClosure[wolfram23["wolfram23Universal"]["Term"]]
+		TypeTheoryAxiomClosure[TypeTheoryTerm["forwardSimulationSchedule", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["turingMachineConfinement", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["conjecture0Finite", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["decodeCTSWord", wolfram23]],
+		TypeTheoryAxiomClosure[TypeTheoryTerm["wolfram23Universal", wolfram23]]
 	},
 	{True, True, True, True, True, True, True, True, True, <||>, <||>, <||>, <||>, <||>},
 	TestID -> "Rung-7-decoders-reject-malformed-inputs-and-universality-uses-no-axioms"
