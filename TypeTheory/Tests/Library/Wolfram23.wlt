@@ -21,11 +21,13 @@ VerificationTest[
 				"system0FollowsSystem1", "system0StepsPositive", "system0Simulates1", "system0Simulates3", "turingMachineFollowsSystem0", "agreementSimulation",
 				"wolfram23Simulates3", "cyclicTagStep", "selected", "cyclicTagBlock", "selectedOneHot", "encodeWordJoin", "cyclicTagBlockSteps", "cookStep", "someInjective", "noneNotSome", "allBelowJoin", "cookSimulation", "passOutAlignedPairs", "passOutShiftedPairs", "tagRoundEven", "tagRoundOddBefore", "tagRoundOddFirst", "tagRoundEvenWhole",
 				"minskyRound1", "minskyRound2", "minskyRound3Right", "minskyRound3Left", "minskyRound4", "minskyRound5", "minskyStep", "minskySimulation",
-				"divideMultiple", "minskyDecodeEncode", "minskyNumbersSimulation", "divideSpecification", "minskyNumbersBelow", "machineToCyclicTag"},
+				"divideMultiple", "minskyDecodeEncode", "minskyNumbersSimulation", "divideSpecification", "minskyNumbersBelow", "machineToCyclicTag",
+				"xorMergeAppendant", "bound5Step", "ctsToSystem5Represents", "ctsToSystem5BagStrictlyAbove", "ctsToSystem5RulesStrictlyAbove",
+				"representsDecode", "representsRulesEmpty", "representsBagNonEmpty", "representsTerminal", "representsStepFalse", "representsStepTrue", "system5Simulation"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 468, {}},
+	{TypeTheoryEnvironment, 563, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -189,6 +191,52 @@ VerificationTest[
 	},
 	{True, True, True, True},
 	TestID -> "A-symbol-is-a-number-that-decodes-back-and-the-tag-system-on-numbers-follows"
+]
+
+(* rung 3: cyclic tag system to System 5 — Smith's p. 29 example (data 0 1, appendants 1 and 1 0, budget 2):
+   t = 0 decodes to 0 0 1 1, t = 4 (after reading 0) to 1 1, t = 10 (after reading 1 and appending 1 0) to 1 1 0 0,
+   and t = 11 halts with empty rules and a non-empty bag *)
+smith29 = "ctsToSystem5"["cyclicTagConfiguration"[{"false", "true"}, {{"true"}, {"true", "false"}}], 2]
+
+VerificationTest[
+	With[{start = smith29},
+		{
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["optionBind"["steps"["system5Step", 0, start], Function[{Typed[s, "System5Configuration"]}, "decodeBag"[s[["bag"]]]]], wolfram23],
+				TypeTheoryTerm["some"[{"false", "false", "true", "true"}], wolfram23]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["optionBind"["steps"["system5Step", 4, start], Function[{Typed[s, "System5Configuration"]}, "decodeBag"[s[["bag"]]]]], wolfram23],
+				TypeTheoryTerm["some"[{"true", "true"}], wolfram23]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["optionBind"["steps"["system5Step", 10, start], Function[{Typed[s, "System5Configuration"]}, "decodeBag"[s[["bag"]]]]], wolfram23],
+				TypeTheoryTerm["some"[{"true", "true", "false", "false"}], wolfram23]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["steps"["system5Step", 11, start], wolfram23],
+				TypeTheoryTerm[Typed["none", Option["System5Configuration"]], wolfram23]
+			]
+		}
+	],
+	{True, True, True, True},
+	TestID -> "System-5-follows-Smiths-p-29-cyclic-tag-example-and-halts-at-budget-zero"
+]
+
+(* decodeBag checks strict increase above 0, even length, and gaps 1 or 2; invalid bags decode to none *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{0, 1}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{3, 4, 1, 2}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{1, 2, 5}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeBag"[{1, 4}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
+		TypeTheoryAxiomClosure[wolfram23["system5Simulation"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["bound5Step"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["representsDecode"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["representsTerminal"]["Term"]]
+	},
+	{True, True, True, True, <||>, <||>, <||>, <||>},
+	TestID -> "decodeBag-rejects-malformed-bags-and-rung-3-uses-no-axioms"
 ]
 
 (* the environment by its name, as every library environment is named: a term and a type in it, and the default *)

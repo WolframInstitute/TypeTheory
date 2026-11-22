@@ -166,7 +166,23 @@ cyclic tag system follows it.
   (`divideSpecification`) needs both sides of a decision: a case split on the decidability instance gives `Decide` its
   value in each branch.
 
-Next: rungs 3 to 5 (cyclic tag to System 5, System 5 to 4, System 4 to 3), then rung 7 and the tutorial.
+Rung 3 complete (`system5Simulation` in `TypeTheory/Kernel/Library/Wolfram23System5.wl`): System 5 follows any fueled
+cyclic tag system, with zero axioms (`TypeTheoryAxiomClosure` empty):
+- **Finite sets as strictly increasing `{NonNegativeIntegers}`.** Both bags and rules are strictly increasing lists of
+  positive natural numbers (`strictlyAbove`, `allBelowEqual`), merged structurally by `xorMerge` with literal equality
+  (no `Int`, no `List.Perm`, no `Nodup`). Turing verified this representation carries cleanly through rungs 4, 5 and 7.
+- **Direct 4-rule blocks.** `cycleAppendants[as, budget]` expands the rotating appendant schedule, and `ruleBlocks`
+  emits four rules per original appendant (`shiftUp[2, encodeAppendantSnd[a, i]]`, `encodeAppendantSnd[a, i]`, `{}`,
+  `{}`), eliminating any need for an unconstrained tail or a factor-of-2 phase wrapper.
+- **One step = 4 rule pops.** On a false head bit, `representsStepFalse` takes `x2 + 1` steps: rule 1 shifts into the
+  bag, rule 2 cancels it (`xorMergeCancelTail`), and two empty rules finish the doubled pair. On a true head bit,
+  `representsStepTrue` takes `x2 + 2` steps: rules 1 and 2 XOR-merge into `pairsOf[doubleWord[a], startsOf[a, ...]]`
+  (`xorMergeAppendant`).
+- **Downstream interface for rungs 4 and 7.** `ctsToSystem5Represents`, `ctsToSystem5BagStrictlyAbove`,
+  `ctsToSystem5RulesStrictlyAbove`, `representsDecode` (with `decodeBag` checking strict increase above 0, even length
+  and gap 1 or 2), `representsRulesEmpty`, `representsBagNonEmpty`, `representsTerminal`, and `bound5Step`.
+
+Next: rungs 4 and 5 (System 5 to 4, System 4 to 3), then rung 7 and the tutorial.
 
 ## Files
 

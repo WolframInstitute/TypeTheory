@@ -89,6 +89,11 @@ Versions 0.50.0 to 0.59.0.
   - rungs 1 and 2 joined: the symbols become numbers below 84 S + 1 for a machine of S states, decoded by a division
     that computes, and Cook's cyclic tag system follows every binary Turing machine whose states stay below S
     (`machineToCyclicTag`) (0.58.0).
+  - rung 3 (`Library/Wolfram23System5.wl`): Smith's System 5 on strictly increasing bags and rule queues of positive
+    natural numbers with structural `xorMerge` follows any fueled cyclic tag system (`system5Simulation`), together with
+    the encoder (`ctsToSystem5`), bag decoder (`decodeBag`, `representsDecode`), budget-zero termination
+    (`representsRulesEmpty`, `representsBagNonEmpty`, `representsTerminal`), and the per-step element bound
+    (`bound5Step`), all with empty axiom closure.
 
 ### Changed
 
