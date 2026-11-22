@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W47 (November 16 to 22), in progress
 
-Versions 0.50.0 to 0.59.0.
+Versions 0.50.0 to 0.60.0.
 
 ### Added
 
