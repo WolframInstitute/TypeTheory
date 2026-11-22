@@ -611,7 +611,10 @@ VerificationTest[
 	{
 		{},
 		TypeTheoryTerm[
-			"existsIntroduction"[3, "existsIntroduction"[4, "decideSoundness"["equalityReflexivity"["true"]]]],
+			Typed[
+				"existsIntroduction"[3, "existsIntroduction"[4, "decideSoundness"["equalityReflexivity"["true"]]]],
+				Exists[{Typed[x, NonNegativeIntegers]}, Exists[{Typed[y, NonNegativeIntegers]}, x^2 + y^2 == 25 && (x < y && 0 < x)]]
+			],
 			prelude
 		],
 		{},
@@ -1087,7 +1090,13 @@ VerificationTest[
 	],
 	{
 		{},
-		TypeTheoryTerm["existsIntroduction"[3, "existsIntroduction"[4, "decideSoundness"["equalityReflexivity"["true"]]]], prelude],
+		TypeTheoryTerm[
+			Typed[
+				"existsIntroduction"[3, "existsIntroduction"[4, "decideSoundness"["equalityReflexivity"["true"]]]],
+				Exists[{Typed[x, NonNegativeIntegers]}, Exists[{Typed[y, NonNegativeIntegers]}, x^2 + y^2 == 25 && (x < y && 0 < x)]]
+			],
+			prelude
+		],
 		TypeTheoryEnvironment,
 		{},
 		TypeTheoryEnvironment,

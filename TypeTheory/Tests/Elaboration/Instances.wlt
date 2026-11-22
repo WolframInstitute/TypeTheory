@@ -56,11 +56,11 @@ VerificationTest[
 	TestID -> "An-instance-implicit-argument-is-found-among-the-instances"
 ]
 
-(* the pair read back does not say which list is meant, ListsInhabited's element type being implicit, so it is
-   ascribed its type, and elaborates again *)
+(* ListsInhabited's element type is implicit, so display read-back ascribes ListsInhabited its type directly, and the
+   pair elaborates again *)
 VerificationTest[
 	WeakHeadNormalForm[TypeTheoryTerm[Typed[Default, CartesianProductType[NonNegativeIntegers, {Booleans}]], environment]],
-	TypeTheoryTerm[Typed["pair"[NaturalsInhabited[["x"]], ListsInhabited[["x"]]], CartesianProductType[NonNegativeIntegers, {Booleans}]], environment],
+	TypeTheoryTerm["pair"[NaturalsInhabited[["x"]], Typed[ListsInhabited, Inhabited[{Booleans}]][["x"]]], environment],
 	TestID -> "An-instance-finds-its-own-instance-arguments"
 ]
 

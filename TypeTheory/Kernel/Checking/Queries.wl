@@ -488,8 +488,9 @@ noted[normal_] := (
    which on its own names a constant, the empty list, or a value of a sum, "right"["text"], whose types the reading
    does not give; the type flows from the ascription into the parts, so one at the top is enough. A reading that
    elaborates is left as it is, with the type it elaborates to, as "none" is an option of any type. *)
-valueTerm[environment_, term_, type_] := With[{read = coreToTypeTheoryTerm[environment, <||>, term]},
-	If[ readBackQ[environment, read],
+valueTerm[environment_, term_, type_] := With[
+	{read = Block[{$topExpectedType = If[MatchQ[term, _application], type, None]}, coreToTypeTheoryTerm[environment, <||>, term]]},
+	If[ MatchQ[read, HoldPattern[TypeTheoryTerm[Typed[_, _], ___]]] || readBackQ[environment, read],
 		read,
 		Replace[{read, coreToTypeTheoryTerm[environment, <||>, type]}, {
 			{TypeTheoryTerm[value_, ___], TypeTheoryTerm[typeValue_, ___]} :> TypeTheoryTerm[Typed[value, typeValue], environment],

@@ -356,9 +356,9 @@ VerificationTest[
    when non-recursive, still rejected for NonPositiveOccurrence when the type occurs negatively at the bottom of
    the diamond, and detects occurrences inside cubicalSystem without expanding the DAG. *)
 VerificationTest[
-	Module[
+	Block[
 		{
-			base, u1, dagPairRef, natRef, app, depFn, cref, csys, buildDiamond,
+			base, u1, dagPairRef, natRef, app, depFn, cref, csys, buildDiamond, diamondDepth,
 			okFieldType, badFieldType, okEnv, badEnv, occursFn, cubicalDiamondYes, cubicalDiamondNo
 		},
 		base = TypeTheoryEnvironment[prelude, {
@@ -372,26 +372,27 @@ VerificationTest[
 		occursFn = WolframInstitute`TypeTheory`Checking`InductiveTypes`Private`occursQ;
 		dagPairRef = cref[HoldComplete[DagPair], {}];
 		natRef = cref[HoldComplete[NonNegativeIntegers], {}];
-		buildDiamond[leaf_, depth_] := Nest[Function[t, app[app[dagPairRef, t], t]], leaf, depth];
-		okFieldType = buildDiamond[natRef, 40];
-		badFieldType = buildDiamond[depFn[HoldComplete[x], cref[HoldComplete[BadDiamond], {}], natRef, "Explicit"], 40];
+		buildDiamond = Nest[Construct[app, Construct[app, dagPairRef, #], #] &, #1, #2] &;
+		diamondDepth = If[AssociationQ[WolframInstitute`TypeTheory`PackageScope`$termConstructionSites], 10, 40];
+		okFieldType = buildDiamond[natRef, diamondDepth];
+		badFieldType = buildDiamond[Construct[depFn, HoldComplete[x], cref[HoldComplete[BadDiamond], {}], natRef, "Explicit"], diamondDepth];
 		okEnv = Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
 			WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
 				base, HoldComplete[OkDiamond], {}, 0, u1,
-				{HoldComplete[OkDiamondMake] -> depFn[HoldComplete[f], okFieldType, cref[HoldComplete[OkDiamond], {}], "Explicit"]}
+				{HoldComplete[OkDiamondMake] -> Construct[depFn, HoldComplete[f], okFieldType, cref[HoldComplete[OkDiamond], {}], "Explicit"]}
 			]
 		];
 		badEnv = Quiet[Catch[
 			Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
 				WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
 					base, HoldComplete[BadDiamond], {}, 0, u1,
-					{HoldComplete[BadDiamondMake] -> depFn[HoldComplete[f], badFieldType, cref[HoldComplete[BadDiamond], {}], "Explicit"]}
+					{HoldComplete[BadDiamondMake] -> Construct[depFn, HoldComplete[f], badFieldType, cref[HoldComplete[BadDiamond], {}], "Explicit"]}
 				]
 			],
 			WolframInstitute`TypeTheory`PackageScope`$kernelFailureTag
 		]];
-		cubicalDiamondYes = buildDiamond[csys[{{natRef, cref[HoldComplete[BadDiamond], {}]}}], 40];
-		cubicalDiamondNo = buildDiamond[csys[{{natRef, natRef}}], 40];
+		cubicalDiamondYes = buildDiamond[Construct[csys, {{natRef, cref[HoldComplete[BadDiamond], {}]}}], diamondDepth];
+		cubicalDiamondNo = buildDiamond[Construct[csys, {{natRef, natRef}}], diamondDepth];
 		{
 			Head[okEnv],
 			KeyExistsQ[okEnv, OkDiamond],

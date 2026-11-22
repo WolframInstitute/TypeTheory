@@ -89,6 +89,7 @@ PackageScoped[slotFunctions]
 PackageScoped[$exactReadBack]
 PackageScoped[$fieldTelescope]
 PackageScoped[$expectedTypeKnown]
+PackageScoped[$topExpectedType]
 PackageScoped[nameSyntax]
 PackageScoped[displayedName]
 PackageScoped[structurePartNames]
@@ -131,6 +132,7 @@ shownRecord::usage = "shownRecord[{environment, HoldComplete[expression]}] gives
 $exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
 $fieldTelescope::usage = "$fieldTelescope is True while the type of a constructor is read back exactly for its declaration, as Normal reads it, along its binders and not inside their types: a field that the rest of the type does not mention keeps its name, as a binder, where an arrow would drop it."
 $expectedTypeKnown::usage = "$expectedTypeKnown is True while a core term is read back in a position where elaboration supplies a known expected type, so implicit arguments determined by the result type alone may be omitted."
+$topExpectedType::usage = "$topExpectedType, when not None, is a concise core type to ascribe at the outermost display application instead of delaborating its unfolded result type."
 nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
 displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbol or string shows as, without its context."
 structurePartNames::usage = "structurePartNames[environment, HoldComplete[structure]] gives the names of the fields of a structure in order, each the name of its binder in the constructor, or None for a field whose binder has no name or shares it with another field."
@@ -164,6 +166,8 @@ $exactReadBack = False
 $fieldTelescope = False
 
 $expectedTypeKnown = False
+
+$topExpectedType = None
 
 
 (* ::Subsection:: *)
@@ -583,23 +587,23 @@ propositionTermQ[environment_, context_, type_] := TrueQ[Quiet @ catchKernelFail
 delaborateApplication[environment_, context_, term_] /; TrueQ[$exactReadBack] := With[{spine = applicationSpine[term]},
 	exactApplication[environment, context, First[spine], Last[spine]]
 ]
-delaborateApplication[environment_, context_, term_] := With[{spine = applicationSpine[term]},
-	delaborateDisplayApplication[environment, context, First[spine], Last[spine]]
+delaborateApplication[environment_, context_, term_] := With[{spine = applicationSpine[term], topType = $topExpectedType},
+	Block[{$topExpectedType = None}, delaborateDisplayApplication[environment, context, First[spine], Last[spine], topType]]
 ]
 
-delaborateDisplayApplication[environment_, context_, head_, {}] := headSyntax[environment, context, head]
+delaborateDisplayApplication[environment_, context_, head_, {}, _] := headSyntax[environment, context, head]
 (* a beta-redex whose head is a function with explicit binders avoids inferring the body's type: elaborateHead checks
    the head with no expected type, while each argument checks against its binder's domain *)
-delaborateDisplayApplication[environment_, context_, head_lambdaAbstraction, arguments_List] /;
+delaborateDisplayApplication[environment_, context_, head_lambdaAbstraction, arguments_List, _] /;
 	With[{kinds = lambdaBinderKinds[head]}, Length[kinds] >= Length[arguments] && MatchQ[Take[kinds, Length[arguments]], {"Explicit" ...}]] :=
 	syntaxApplication[
 		headSyntax[environment, context, head],
 		Function[argument, Block[{$expectedTypeKnown = True}, delaborate[environment, context, argument]]] /@ arguments
 	]
-delaborateDisplayApplication[environment_, context_, head_, arguments_List] := Replace[
+delaborateDisplayApplication[environment_, context_, head_, arguments_List, topType_] := Replace[
 	Quiet @ catchKernelFailure[applicationTelescope[environment, context, head, Length[arguments]]],
 	{
-		telescope_Association :> delaborateWithTelescope[environment, context, head, arguments, telescope],
+		telescope_Association :> delaborateWithTelescope[environment, context, head, arguments, telescope, topType],
 		_ :> syntaxApplication[
 			headSyntax[environment, context, head],
 			Function[argument, Block[{$expectedTypeKnown = False}, delaborate[environment, context, argument]]] /@ arguments
@@ -607,13 +611,13 @@ delaborateDisplayApplication[environment_, context_, head_, arguments_List] := R
 	}
 ]
 
-delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope_Association] /;
+delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope_Association, _] /;
 	MatchQ[telescope["Kinds"], {"Explicit" ...}] :=
 	syntaxApplication[
 		headSyntax[environment, context, head],
 		Function[argument, Block[{$expectedTypeKnown = True}, delaborate[environment, context, argument]]] /@ arguments
 	]
-delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope_Association] := With[
+delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope_Association, topType_] := With[
 	{
 		kinds = telescope["Kinds"],
 		ids = telescope["Ids"],
@@ -659,7 +663,7 @@ delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope
 								keptPositions =!= {},
 									delaborateKeptApplication[
 										environment, context, head, arguments, telescope, substitutions,
-										explicitPositions, implicitPositions, instancePositions, keptPositions, resultImplicits, implicitIdSet
+										explicitPositions, implicitPositions, instancePositions, keptPositions, resultImplicits, implicitIdSet, topType
 									],
 								resultImplicits =!= {} && ! TrueQ[$expectedTypeKnown],
 									With[
@@ -668,7 +672,7 @@ delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope
 												environment, context, head, arguments, telescope,
 												explicitPositions, implicitPositions, instancePositions, {}, implicitIdSet, True
 											]],
-											resultTypeSyntax = Block[{$expectedTypeKnown = False}, delaborate[environment, context, ReplaceAll[rawResult, substitutions]]]
+											resultTypeSyntax = Block[{$expectedTypeKnown = False}, delaborate[environment, context, If[topType =!= None, topType, ReplaceAll[rawResult, substitutions]]]]
 										},
 										syntaxHead[Typed, {applicationSyntax, resultTypeSyntax}]
 									],
@@ -712,7 +716,7 @@ delaborateOrdinaryApplication[environment_, context_, head_, arguments_List, tel
    falling back to Construct otherwise. Elaboration gives collectArguments no expected type when named arguments are
    present, so positional arguments do not assume outer $expectedTypeKnown. *)
 delaborateKeptApplication[environment_, context_, head_, arguments_List, telescope_Association, substitutions_List,
-	explicitPositions_List, implicitPositions_List, instancePositions_List, keptPositions_List, resultImplicits_List, implicitIdSet_List] := With[
+	explicitPositions_List, implicitPositions_List, instancePositions_List, keptPositions_List, resultImplicits_List, implicitIdSet_List, topType_] := With[
 	{
 		knownMap = argumentExpectedKnownMap[telescope, explicitPositions, implicitPositions, instancePositions, keptPositions, implicitIdSet, False],
 		names = telescope["Names"],
@@ -734,7 +738,7 @@ delaborateKeptApplication[environment_, context_, head_, arguments_List, telesco
 				},
 				With[{applicationSyntax = syntaxApplication[headSyntax[environment, context, head], Join[explicitSyntaxes, namedSyntaxes]]},
 					If[ resultImplicits =!= {} && ! TrueQ[$expectedTypeKnown],
-						syntaxHead[Typed, {applicationSyntax, Block[{$expectedTypeKnown = False}, delaborate[environment, context, ReplaceAll[rawResult, substitutions]]]}],
+						syntaxHead[Typed, {applicationSyntax, Block[{$expectedTypeKnown = False}, delaborate[environment, context, If[topType =!= None, topType, ReplaceAll[rawResult, substitutions]]]]}],
 						applicationSyntax
 					]
 				]
@@ -850,7 +854,7 @@ instanceMatchesQ[environment_, context_, domain_, argument_] := Replace[
 	Quiet @ catchKernelFailure[findInstance[environment, context, domain]],
 	{
 		None | _Failure :> False,
-		synthesized_ :> TrueQ[Quiet @ catchKernelFailure[definitionallyEqualQ[environment, context, synthesized, argument]]]
+		synthesized_ :> TrueQ[Quiet @ catchKernelFailure[withKernelCaches[definitionallyEqualQ[environment, context, synthesized, argument]]]]
 	}
 ]
 
