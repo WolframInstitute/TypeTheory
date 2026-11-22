@@ -220,6 +220,31 @@ Rung 5 complete (`system3Simulation` and `system0SimulatesSystem4` in `TypeTheor
 
 Next: rung 7 (composition and T8 universality) and the tutorial.
 
+Rung 7 complete (`conjecture0Finite`, `decodeTM`, and `wolfram23Universal` in
+`TypeTheory/Kernel/Library/Wolfram23Universality.wl`, 1,089 constants total): all six rungs are now composed into
+Smith's finite-form Conjecture 0 and the full universality theorem for Wolfram's (2,3) Turing machine, with zero axioms
+(`TypeTheoryAxiomClosure` empty):
+- **Schedule lifting and confinement.** `forwardSimulationSchedule` lifts any `forwardSimulation` over a finite run to a
+  strictly increasing time schedule (`strictMonoOfSucc`, `monoOfSucc`). `turingMachineConfinement` proves that as long
+  as `lookaheadStep["system0"]` succeeds and the state is not `stateC`, `turingMachineStep["system0"]` agrees step for
+  step, keeps `configSize` invariant, and stays out of `stateC`.
+- **Smith's finite-form Conjecture 0 (`conjecture0Finite`).** Given any finite cyclic tag run ending in nonempty data,
+  computes initial System 5 bound `bound5Of`, budgets `H`, `f`, `bandB`, and parity width `w` with `T4 + bandB + 3 <= 2^w`,
+  chains the three schedules (`t5`, `t4`, `t0`), proves decoding to `some[doubleWord[ci.data]]` and `colorOccurs[color0, cfgi.right]`
+  at every step via `conjecture0DecodeStep`, proves tape confinement on `0..T`, and closes with the clean right exit into
+  `lookaheadConfiguration[L, color0, {}, stateA]` with `Length[L] == configSize[start]`.
+- **Computable TM decoder stack (`decodeTM`).** Undoes bit doubling (`undbl`, `undblDoubleWord`), Cook's one-hot cyclic
+  tag blocks (`decodeOneHot`, `decodeTagWord`, `decodeTagWordEncodeWord`), Minsky symbol words (`classifyMinskySymbol`,
+  `parseWord`, `parseWordMinskyWord`), and base-2 tape values (`divMod2`, `natToBits`, `trimTrailingFalse`, `canon`,
+  `cfgOfNums`, `decodeCTS`, `decodeCTSWord`).
+- **Headline universality theorem (`wolfram23Universal`, T8).** For every binary Turing machine `tm` with `machineBelow[tm, S]`,
+  starting configuration `c` with `c.state + 1 <= S`, and finite run `steps[binaryStep[tm], n, c] == some[c2]`, produces
+  a state-A starting configuration `start` of Wolfram's (2,3) machine, width `w`, band `b`, strictly increasing schedule
+  `times`, and time `T` such that `decodeTM[S, pow2[w], b, cfgi] == some[canon[ci]]` and `colorOccurs[color0, cfgi.right]`
+  at every `i <= n`, the run stays confined with invariant `configSize` through `T`, and exits cleanly at `T + 1`.
+
+Future work: the infinite form (T6, one tape for all `n`), reusing the parametric `LeftEnd` and `Closing` hooks in rung 5.
+
 ## Files
 
 - `TypeTheory/Kernel/Library/Wolfram23/*.wl`, one file per rung after a common `Systems.wl`, together building

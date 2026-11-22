@@ -72,9 +72,10 @@ Versions 0.50.0 to 0.59.0.
   transpose are the first two swapped, with no axiom. Typed code still has ranks 1 and 2; the path to higher ranks, by
   views of the compiler's flat buffer, is in docs/notes/MachineArraysOfEveryRank.md (0.56.0).
 
-- **Wolfram's (2,3) machine, a port in progress.** `TypeTheoryEnvironment["Wolfram23"]` begins the proof that
-  Wolfram's (2,3) Turing machine is universal, after Smith's chain of emulations (design in
-  docs/notes/Wolfram23Universality.md). So far it has:
+- **The universality of Wolfram's (2,3) Turing machine.** `TypeTheoryEnvironment["Wolfram23"]` formalizes Alex Smith's
+  proof that Wolfram's 2-state, 3-color Turing machine is universal, end-to-end across all seven rungs of his chain of
+  emulations (design in docs/notes/Wolfram23Universality.md, tutorial in Tutorials/Wolfram23Universality.md, 1,089
+  constants, zero axioms):
   - step systems, forward simulations, their lifting to any number of steps, and their composition;
   - rung 6: Smith's lookahead Systems 0 to 3 on one zipper tape, System 0 being Wolfram's machine, with the relabelings
     between them. The standard machine, whose tape grows by blanks, follows System 3 (`wolfram23Simulates3`), every
@@ -103,6 +104,11 @@ Versions 0.50.0 to 0.59.0.
     composition `system0SimulatesSystem4`), together with the initial encoder (`encSet`, `initAC`, `rep3Init`), exit
     lemmas (`rep3Exit`, `phiExit`, `phi2StateNotC`, `wolfram23ExitStep`), and the Wolfram (2,3) tape decoder
     (`decodeBlocks`, `decodeW23`, `rep3Decode`), all with empty axiom closure.
+  - rung 7 (`Library/Wolfram23Universality.wl`): schedule lifting (`forwardSimulationSchedule`), tape confinement for
+    the standard (2,3) machine (`turingMachineConfinement`), Smith's finite-form Conjecture 0 (`conjecture0Finite`), the
+    computable binary-machine decoder stack (`undbl`, `decodeOneHot`, `decodeTagWord`, `parseWord`, `natToBits`,
+    `trimTrailingFalse`, `canon`, `decodeCTS`, `decodeTM`), and the headline universality theorem
+    (`wolfram23Universal`), all with empty axiom closure.
 
 ### Changed
 

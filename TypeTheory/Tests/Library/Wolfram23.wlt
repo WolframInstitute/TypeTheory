@@ -27,11 +27,14 @@ VerificationTest[
 				"system4Step", "system4DStep", "system4PopPhase", "system5ToSystem4", "system5ToSystem4WellFormed", "system5ToSystem4Represents",
 				"decodeS4", "repS4DStep", "repS4PStep", "repS4TurnStep", "repS4DecodeBand", "repS4Exit", "repS4Terminal", "system4Simulation",
 				"stepRIteratePow2", "parAtRowBits", "sys3ScanBlock", "encSet", "initAC", "rep3Init", "system3Simulation", "system0SimulatesSystem4",
-				"rep3Exit", "phiExit", "wolfram23ExitStep", "decodeBlocks", "decodeW23", "rep3Decode"},
+				"rep3Exit", "phiExit", "wolfram23ExitStep", "decodeBlocks", "decodeW23", "rep3Decode",
+				"forwardSimulationSchedule", "configSize", "turingMachineConfinement", "conjecture0Finite",
+				"undbl", "decodeOneHot", "decodeTagWord", "parseWord", "natToBits", "trimTrailingFalse", "canon", "decodeCTS", "decodeTM",
+				"decodeCTSWord", "wolfram23Universal"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 998, {}},
+	{TypeTheoryEnvironment, 1089, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -360,6 +363,64 @@ VerificationTest[
 	},
 	{True, True, True, True, <||>, <||>, <||>, <||>, <||>, <||>, <||>},
 	TestID -> "decodeW23-rejects-malformed-tapes-and-rung-5-uses-no-axioms"
+]
+
+(* rung 7: computable decoder stack (undbl, decodeOneHot, decodeTagWord, parseWord, natToBits, canon, decodeCTS) *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["undbl"["doubleWord"[{"true", "false", "true"}]], wolfram23],
+			TypeTheoryTerm["some"[{"true", "false", "true"}], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeOneHot"["oneHot"[5, 3]], wolfram23],
+			TypeTheoryTerm["some"[3], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeTagWord"[4, "encodeWord"[4, {2, 0, 3}]], wolfram23],
+			TypeTheoryTerm["some"[{2, 0, 3}], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["parseWord"["binaryWord"["binaryConfiguration"[1, {"true", "false"}, "true", {"false", "true", "false"}]]], wolfram23],
+			TypeTheoryTerm["some"["minskyParsed"[1, 1, 5]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["canon"["binaryConfiguration"[1, {"true", "false", "false"}, "true", {"false", "true", "false"}]], wolfram23],
+			TypeTheoryTerm["binaryConfiguration"[1, {"true"}, "true", {"false", "true"}], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["cfgOfNums"[1, 1, 5], wolfram23],
+			TypeTheoryTerm["binaryConfiguration"[1, {"true"}, "true", {"false", "true"}], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeCTS"[1, "encodeWord"[84 * 1 + 1, Map["minskyEncode", "binaryWord"["binaryConfiguration"[0, Typed[{}, {Booleans}], "false", Typed[{}, {Booleans}]]]]]], wolfram23],
+			TypeTheoryTerm["some"["binaryConfiguration"[0, Typed[{}, {Booleans}], "false", Typed[{}, {Booleans}]]], wolfram23]
+		]
+	},
+	{True, True, True, True, True, True, True},
+	TestID -> "Rung-7-decoders-round-trip-doubling-one-hot-Minsky-words-and-binary-configurations"
+]
+
+(* rung 7 decoders reject malformed inputs with none, and Conjecture 0 + wolfram23Universal use zero axioms *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[TypeTheoryTerm["undbl"[{"true"}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["undbl"[{"true", "false"}], wolfram23], TypeTheoryTerm[Typed["none", Option[{Booleans}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeOneHot"[{"false", "false", "false"}], wolfram23], TypeTheoryTerm[Typed["none", Option[NonNegativeIntegers]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeOneHot"[{"true", "true", "false"}], wolfram23], TypeTheoryTerm[Typed["none", Option[NonNegativeIntegers]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeTagWord"[3, {"true", "false"}], wolfram23], TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["decodeTagWord"[3, {"false", "false", "false"}], wolfram23], TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["parseWord"[{"symbolA"[1], "symbolB"[1]}], wolfram23], TypeTheoryTerm[Typed["none", Option["MinskyParsed"]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["parseWord"[{"symbolA"[1], "pad", "symbolB"[2], "pad"}], wolfram23], TypeTheoryTerm[Typed["none", Option["MinskyParsed"]], wolfram23]],
+		DefinitionallyEqualQ[TypeTheoryTerm["parseWord"[{"symbolA"[1], "pad", "symbolB"[1], "pad", "pad"}], wolfram23], TypeTheoryTerm[Typed["none", Option["MinskyParsed"]], wolfram23]],
+		TypeTheoryAxiomClosure[wolfram23["forwardSimulationSchedule"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["turingMachineConfinement"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["conjecture0Finite"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["decodeCTSWord"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["wolfram23Universal"]["Term"]]
+	},
+	{True, True, True, True, True, True, True, True, True, <||>, <||>, <||>, <||>, <||>},
+	TestID -> "Rung-7-decoders-reject-malformed-inputs-and-universality-uses-no-axioms"
 ]
 
 (* the environment by its name, as every library environment is named: a term and a type in it, and the default *)

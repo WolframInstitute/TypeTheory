@@ -24,9 +24,9 @@ All definitions and theorems of the formalization live in <code>[TypeTheoryEnvir
 | 4 | System 5 to System 4 | Existential, for parameter `f` large enough | Proved |
 | 5 | System 4 to System 3 (parity blocks of width `2^w`) | At least 1 | Proved |
 | 6 | System 3 to Wolfram's (2,3) machine (Systems 3 to 0 and tape extension) | 1 or 3 | Proved |
-| 7 | Composition, decoders, confinement and exit | Composition of rungs 1 to 6 | Planned |
+| 7 | Composition, decoders, confinement and exit (`"conjecture0Finite"`, `"wolfram23Universal"`) | Composition of rungs 1 to 6 | Proved |
 
-This draft covers the rungs proved so far: the simulation framework, rung 6 (System 3 to Wolfram's (2,3) machine), rung 2 (2-tag systems to cyclic tag systems), rung 1 (binary Turing machines to 2-tag systems), the glue that joins rungs 1 and 2 into `"machineToCyclicTag"`, rung 3 (cyclic tag systems to System 5), rung 4 (System 5 to System 4), and rung 5 (System 4 to System 3).
+This tutorial covers all seven rungs of the complete proof: the simulation framework, rung 6 (System 3 to Wolfram's (2,3) machine), rung 2 (2-tag systems to cyclic tag systems), rung 1 (binary Turing machines to 2-tag systems), the glue that joins rungs 1 and 2 into `"machineToCyclicTag"`, rung 3 (cyclic tag systems to System 5), rung 4 (System 5 to System 4), rung 5 (System 4 to System 3), and rung 7 (Conjecture 0, the computable configuration decoder `"decodeTM"`, and the headline universality theorem `"wolfram23Universal"`).
 
 Load the environment:
 
@@ -34,7 +34,7 @@ Load the environment:
 wolfram23 = TypeTheoryEnvironment["Wolfram23"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: 998 constants -->
+<!-- => TypeTheoryEnvironment summary box: 1089 constants -->
 
 [Information]() shows the constants it declares on top of the prelude, by kind:
 
@@ -42,7 +42,7 @@ wolfram23 = TypeTheoryEnvironment["Wolfram23"]
 Information[wolfram23, "Kinds"]
 ```
 
-<!-- => <|"InductiveType" -> 51, "Constructor" -> 102, "Recursor" -> 52, "Definition" -> 287, "Quotient" -> 4, "Theorem" -> 498, "Axiom" -> 4|> -->
+<!-- => <|"InductiveType" -> 55, "Constructor" -> 111, "Recursor" -> 56, "Definition" -> 314, "Quotient" -> 4, "Theorem" -> 545, "Axiom" -> 4|> -->
 
 ## The Framework
 
@@ -1002,8 +1002,79 @@ Five System 3 run macros (`"sys3WalkLeft"`, `"sys3TurnA"`, `"sys3StarB"`, and fu
 
 <!-- => {theorem rep3Init : ..., theorem rep3Exit : ..., theorem wolfram23ExitStep : ..., theorem rep3Decode : ...} -->
 
-## What Remains
+## Rung 7: Conjecture 0 and Universality
 
-One final rung remains to join rungs 1 through 6 and complete the universality theorem:
+### Schedules, Confinement, and Conjecture 0
 
-- **Rung 7 (full composition and universality)**: compose rungs 1 through 6 into Smith's existential finite universality theorem (`"conjecture0Finite"` and `"wolfram23Universal"`), prove the binary Turing machine tape decoder (`"decodeCTS"`, `"decodeTM"`), and combine tape confinement on `"turingMachineStep"["system0"]` with the terminal exit step (followed later by the infinite form, one tape for all `n`).
+Rung 7 joins rungs 1 through 6 into two headline theorems: Smith's finite-form Conjecture 0 (`"conjecture0Finite"`) for arbitrary cyclic tag systems, and universality (`"wolfram23Universal"`) for arbitrary binary Turing machines.
+
+First, `"forwardSimulationSchedule"` turns any `"forwardSimulation"` over an `n`-step source run into a strictly increasing time schedule `times : ℕ -> ℕ` with `times[0] == 0` tracking every intermediate step `i <= n`. Second, `"turingMachineConfinement"` lifts runs of `"lookaheadStep"["system0"]` starting outside `"stateC"` to `"turingMachineStep"["system0"]`, proving that the tape size `"configSize"` stays invariant and the head never leaves the initial tape:
+
+```wl
+{wolfram23["forwardSimulationSchedule"], wolfram23["turingMachineConfinement"]}
+```
+
+<!-- => {theorem forwardSimulationSchedule : ..., theorem turingMachineConfinement : ...} -->
+
+Combining the schedules of rungs 3, 4, and 5+6 with `"rep3Init"`, `"repS4TurnStep"`, `"rep3Decode"`, `"repS4DecodeBand"`, `"representsDecode"`, `"repS4Terminal"`, `"rep3Exit"`, and `"wolfram23ExitStep"` yields Smith's finite-form Conjecture 0: any finite cyclic tag run ending in nonempty data is emulated by Wolfram's (2,3) machine from a state-A configuration, decodes via `"decodeW23"` to `"doubleWord"[ci[["data"]]]` at every step, stays confined through `T`, and exits cleanly off the right end at `T + 1`:
+
+```wl
+wolfram23["conjecture0Finite"]
+```
+
+<!-- => theorem conjecture0Finite : ∀_cfg∶CyclicTagConfiguration ∀_M∶ℕ ∀_cfgM∶CyclicTagConfiguration steps[cyclicTagStep, M, cfg] == some[cfgM] ⇒ ¬cfgM[[data]] == {} ⇒ ∃_start∶LookaheadConfiguration ∃_w∶ℕ ∃_b∶ℕ ∃_times∶ℕ → ℕ ∃_T∶ℕ ... -->
+
+### The Computable Binary-Machine Decoder
+
+To recover the simulated binary Turing machine configuration from Wolfram's (2,3) tape, rung 7 builds a completely computable decoder `"decodeTM"[S, N, b, cfg]` composing four exact inverse layers:
+
+- `"decodeW23"[N, b, cfg]` extracts the doubled cyclic tag data from the Wolfram (2,3) tape;
+- `"undbl"` undoes bit doubling (rejecting odd lengths or mismatched adjacent bits with `"none"`);
+- `"decodeTagWord"[84 S + 1, bits]` splits Cook's one-hot blocks of width `84 S + 1` back into symbol indices and maps `"minskyDecode"`;
+- `"parseWord"` parses the Minsky word `A_q pad (alpha_q pad)^m B_q pad (beta_q pad)^r` and `"cfgOfNums"` converts `(q, m, r)` back into a canonical `"BinaryConfiguration"` with trailing `"false"` blanks stripped (`"canon"`).
+
+Each layer computes directly in the kernel:
+
+```wl
+{
+	NormalForm[TypeTheoryTerm["undbl"["doubleWord"[{"true", "false", "true"}]], wolfram23]],
+	NormalForm[TypeTheoryTerm["decodeTagWord"[4, "encodeWord"[4, {2, 0, 3}]], wolfram23]],
+	NormalForm[TypeTheoryTerm["parseWord"["binaryWord"["binaryConfiguration"[1, {"true", "false"}, "true", {"false", "true", "false"}]]], wolfram23]],
+	NormalForm[TypeTheoryTerm["cfgOfNums"[1, 1, 5], wolfram23]]
+}
+```
+
+<!-- => {some[{true, false, true}], some[{2, 0, 3}], some[minskyParsed[1, 1, 5]], binaryConfiguration[1, {true}, true, {false, true}]} -->
+
+`"decodeTM"` combines the layers into one function:
+
+```wl
+wolfram23["decodeTM"]
+```
+
+<!-- => definition decodeTM : ℕ → ℕ → ℕ → LookaheadConfiguration → Option[BinaryConfiguration] := (S ∶ ℕ) (N ∶ ℕ) (b ∶ ℕ) (cfg ∶ LookaheadConfiguration) ↦ optionBind[decodeW23[N, b, cfg], (dw ∶ {𝔹}) ↦ optionBind[undbl[dw], decodeCTS[S]]] -->
+
+### The Universality Theorem
+
+Composing `"machineToCyclicTag"` (rungs 1 and 2) with `"conjecture0Finite"` (rungs 3 through 6) and `"decodeCTSWord"` yields the headline theorem `"wolfram23Universal"`: for any binary Turing machine `tm` whose states stay below `S`, any starting configuration `c` with state below `S`, and any finite `n`-step run of `tm`, there exist a state-A starting configuration `start` of Wolfram's (2,3) machine, decoding parameters `w` and `b`, a strictly increasing schedule `times`, and a final time `T` such that at every step `i <= n`, `"decodeTM"[S, "pow2"[w], b, cfgi] == "some"["canon"[ci]]` with `"color0"` present to the right of the head, the tape never grows through time `T`, and at `T + 1` the machine exits cleanly to the right into state A on a fresh blank cell:
+
+```wl
+wolfram23["wolfram23Universal"]
+```
+
+<!-- => theorem wolfram23Universal : ∀_tm∶ℕ → 𝔹 → MachineTransition ∀_S∶ℕ ∀_c∶BinaryConfiguration ∀_n∶ℕ ∀_c2∶BinaryConfiguration machineBelow[tm, S] ⇒ c[[state]] + 1 ≤ S ⇒ steps[binaryStep[tm], n, c] == some[c2] ⇒ ∃_start∶LookaheadConfiguration ∃_w∶ℕ ∃_b∶ℕ ∃_times∶ℕ → ℕ ∃_T∶ℕ ... -->
+
+Both `"conjecture0Finite"` and `"wolfram23Universal"` rest on the kernel alone, with empty axiom closures:
+
+```wl
+{
+	TypeTheoryAxiomClosure[TypeTheoryTerm["conjecture0Finite", wolfram23]],
+	TypeTheoryAxiomClosure[TypeTheoryTerm["wolfram23Universal", wolfram23]]
+}
+```
+
+<!-- => {<||>, <||>} -->
+
+## Future Directions
+
+The finite universality theorem `"wolfram23Universal"` is complete and checked with zero axioms. A natural extension is the infinite form—a single infinite periodic-background tape that simulates an arbitrary binary Turing machine for all `n` simultaneously—for which rung 5's `"AbstractConfig"` already keeps its left-end padding (`"LeftEnd"`) and right closing (`"Closing"`) parametric.
