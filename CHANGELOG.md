@@ -158,6 +158,14 @@ Versions 0.50.0 to 0.59.0.
   eliminates into every universe, every field is a proof, and the proof equals its constructor applied to its
   projections by proof irrelevance: the recursor now reduces on those projections. A proposition with data, as
   `Exists`, and an indexed recursive family, as `Acc`, are left alone (0.58.0).
+- **Display read-back keeps implicit arguments elaboration cannot recover.** Reading a declaration or term back for
+  display dropped every implicit and instance-implicit argument, so `env[name]["Term"]` and `TypeTheoryProofTree` failed
+  to re-elaborate proofs using `"equalitySubstitution"`'s predicate, a non-canonical `Decide` instance, or
+  result-determined implicits (`{}`, `"none"`, `"existsIntroduction"`) where no expected type reached the call (such as
+  `Length[{}]`, `ChosenWitness[...]`, or tactic beta-redexes). Display read-back now keeps unrecoverable implicit and
+  non-canonical instance arguments by name (falling back to `Construct` where named arguments do not apply) and ascribes
+  result-determined applications with `Typed` when no expected type reaches them, so every definition and theorem of the
+  prelude and `minskySimulation` round-trip cleanly.
 
 ### Performance
 

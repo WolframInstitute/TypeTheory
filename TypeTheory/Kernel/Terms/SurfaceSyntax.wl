@@ -88,6 +88,7 @@ PackageScoped[shownRecord]
 PackageScoped[slotFunctions]
 PackageScoped[$exactReadBack]
 PackageScoped[$fieldTelescope]
+PackageScoped[$expectedTypeKnown]
 PackageScoped[nameSyntax]
 PackageScoped[displayedName]
 PackageScoped[structurePartNames]
@@ -129,6 +130,7 @@ $readBackRecords::usage = "$readBackRecords associates {environment, HoldComplet
 shownRecord::usage = "shownRecord[{environment, HoldComplete[expression]}] gives the part of the core term and its local context that each node of the display of a term read back came from, keyed by the nodes as the display shows them, or None where the term has no record."
 $exactReadBack::usage = "$exactReadBack is True while core terms are read back exactly, with every argument and universe level written out."
 $fieldTelescope::usage = "$fieldTelescope is True while the type of a constructor is read back exactly for its declaration, as Normal reads it, along its binders and not inside their types: a field that the rest of the type does not mention keeps its name, as a binder, where an arrow would drop it."
+$expectedTypeKnown::usage = "$expectedTypeKnown is True while a core term is read back in a position where elaboration supplies a known expected type, so implicit arguments determined by the result type alone may be omitted."
 nameSyntax::usage = "nameSyntax[HoldComplete[name]] gives the syntax tree of a binder or constant name, a symbol or a string."
 displayedName::usage = "displayedName[HoldComplete[name]] gives the name a symbol or string shows as, without its context."
 structurePartNames::usage = "structurePartNames[environment, HoldComplete[structure]] gives the names of the fields of a structure in order, each the name of its binder in the constructor, or None for a field whose binder has no name or shares it with another field."
@@ -160,6 +162,8 @@ TypeTheoryTerm[term_, rest___] /; ! FreeQ[Unevaluated[term], HoldPattern[PacletS
 $exactReadBack = False
 
 $fieldTelescope = False
+
+$expectedTypeKnown = False
 
 
 (* ::Subsection:: *)
@@ -358,7 +362,7 @@ delaborateCases[environment_, context_, term_] := Replace[term, {
 	(* a hole of a theorem applied to the variables in scope reads back as the TypeTheoryHole it was written as *)
 	_application | _constantReference /; holeOfContextQ[environment, context, term] :> holeSyntax[environment, First[applicationSpine[term]]],
 	_application | _constantReference :> sequenceTypeSyntax[delaborateApplication[environment, context, term]],
-	cubicalSystem[branches_List] :> syntaxHead[List, Function[branch, syntaxHead[Rule, {faceSyntax[environment, context, First[branch]], delaborate[environment, context, Last[branch]]}]] /@ branches],
+	cubicalSystem[branches_List] :> syntaxHead[List, Function[branch, syntaxHead[Rule, {faceSyntax[environment, context, First[branch]], Block[{$expectedTypeKnown = False}, delaborate[environment, context, Last[branch]]]}]] /@ branches],
 	intervalUniverse[] :> syntaxString["IntervalUniverse"],
 	_ :> syntaxOther[HoldComplete[term]]
 }]
@@ -366,7 +370,7 @@ delaborateCases[environment_, context_, term_] := Replace[term, {
 (* A field of a structure reads back by its name, s[["element"]], where it has one of its own, and by its index, s[[1]],
    where it has none or the term is read back exactly. It is written as a part and not as s["element"], which reads
    too: an output shows a string without its quotes, and s[element] would look like s applied to a variable. *)
-partSyntax[environment_, context_, structure_, index_, structureTerm_] := With[{shown = delaborate[environment, context, structureTerm]},
+partSyntax[environment_, context_, structure_, index_, structureTerm_] := With[{shown = Block[{$expectedTypeKnown = False}, delaborate[environment, context, structureTerm]]},
 	Replace[
 		If[TrueQ[$exactReadBack], None, shownPartName[environment, context, structure, index, structureTerm]],
 		{
@@ -499,11 +503,13 @@ collectBinders[environment_, context_, current : head_[binderName_, domain_, bod
 		instantiateBoundVariable[body, freeVariable[id]],
 		head,
 		displayHead,
-		Append[binders, binderSyntax[name, Block[{$fieldTelescope = False}, delaborate[environment, context, domain]], binder]]
+		Append[binders, binderSyntax[name, Block[{$fieldTelescope = False, $expectedTypeKnown = False}, delaborate[environment, context, domain]], binder]]
 	]
 ]
-collectBinders[environment_, context_, current_, _, displayHead_, binders_List] :=
-	syntaxApplication[syntaxSymbol[HoldComplete[displayHead]], {syntaxHead[List, binders], delaborate[environment, context, current]}]
+collectBinders[environment_, context_, current_, _, displayHead_, binders_List] := syntaxApplication[
+	syntaxSymbol[HoldComplete[displayHead]],
+	{syntaxHead[List, binders], If[displayHead === Function, delaborate[environment, context, current], Block[{$expectedTypeKnown = False}, delaborate[environment, context, current]]]}
+]
 
 arrowBinderQ[type : dependentFunctionType[_, _, codomain_, "Explicit"]] := ! boundVariableOccursQ[codomain, 0] && ! namedFieldQ[type]
 arrowBinderQ[_] := False
@@ -553,10 +559,12 @@ numberedName[HoldComplete[symbol_Symbol], index_Integer] :=
 (* A -> B: Implies between propositions, a bare rule otherwise, as input takes it; TypeSpecifier[{A, ...} -> B], the
    compiler's form, is input only *)
 delaborateArrow[environment_, context_, domain_, codomain_] := With[
-	{result = liftedCodomain[codomain], domainSyntax = Block[{$fieldTelescope = False}, delaborate[environment, context, domain]]},
-	If[ propositionTermQ[environment, context, domain] && propositionTermQ[environment, context, result],
-		syntaxHead[Implies, {domainSyntax, delaborate[environment, context, result]}],
-		syntaxHead[Rule, {domainSyntax, delaborate[environment, context, result]}]
+	{result = liftedCodomain[codomain], domainSyntax = Block[{$fieldTelescope = False, $expectedTypeKnown = False}, delaborate[environment, context, domain]]},
+	With[{resultSyntax = Block[{$expectedTypeKnown = False}, delaborate[environment, context, result]]},
+		If[ propositionTermQ[environment, context, domain] && propositionTermQ[environment, context, result],
+			syntaxHead[Implies, {domainSyntax, resultSyntax}],
+			syntaxHead[Rule, {domainSyntax, resultSyntax}]
+		]
 	]
 ]
 
@@ -568,24 +576,324 @@ propositionTermQ[environment_, context_, type_] := TrueQ[Quiet @ catchKernelFail
 ]]
 
 
-(* an application, with its implicit arguments dropped, and Exists written with a binder; read back
-   exactly, every argument and level is written out *)
+(* an application, with recoverable implicit arguments dropped and Exists written with a binder; an implicit argument
+   that elaboration cannot recover is kept as a named argument (or Construct where named arguments do not apply), and an
+   application whose implicit arguments depend on the result type is ascribed with Typed where no expected type reaches
+   it. Read back exactly, every argument and level is written out. *)
 delaborateApplication[environment_, context_, term_] /; TrueQ[$exactReadBack] := With[{spine = applicationSpine[term]},
 	exactApplication[environment, context, First[spine], Last[spine]]
 ]
 delaborateApplication[environment_, context_, term_] := With[{spine = applicationSpine[term]},
-	Replace[{First[spine], explicitArguments[environment, context, First[spine], Last[spine]]}, {
-		{constantReference[HoldComplete[Exists], _], {lambdaAbstraction[name_, domain_, body_, binder_]}} :> Replace[
-			delaborateBinders[environment, context, lambdaAbstraction[name, domain, body, binder], lambdaAbstraction, Function],
-			syntaxApplication[_, {binders_, bodySyntax_}] :> syntaxHead[Exists, {binders, bodySyntax}]
-		],
-		{head_, {}} :> headSyntax[environment, context, head],
-		{head_, arguments_List} :> syntaxApplication[headSyntax[environment, context, head], Function[argument, delaborate[environment, context, argument]] /@ arguments]
-	}]
+	delaborateDisplayApplication[environment, context, First[spine], Last[spine]]
+]
+
+delaborateDisplayApplication[environment_, context_, head_, {}] := headSyntax[environment, context, head]
+(* a beta-redex whose head is a function with explicit binders avoids inferring the body's type: elaborateHead checks
+   the head with no expected type, while each argument checks against its binder's domain *)
+delaborateDisplayApplication[environment_, context_, head_lambdaAbstraction, arguments_List] /;
+	With[{kinds = lambdaBinderKinds[head]}, Length[kinds] >= Length[arguments] && MatchQ[Take[kinds, Length[arguments]], {"Explicit" ...}]] :=
+	syntaxApplication[
+		headSyntax[environment, context, head],
+		Function[argument, Block[{$expectedTypeKnown = True}, delaborate[environment, context, argument]]] /@ arguments
+	]
+delaborateDisplayApplication[environment_, context_, head_, arguments_List] := Replace[
+	Quiet @ catchKernelFailure[applicationTelescope[environment, context, head, Length[arguments]]],
+	{
+		telescope_Association :> delaborateWithTelescope[environment, context, head, arguments, telescope],
+		_ :> syntaxApplication[
+			headSyntax[environment, context, head],
+			Function[argument, Block[{$expectedTypeKnown = False}, delaborate[environment, context, argument]]] /@ arguments
+		]
+	}
+]
+
+delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope_Association] /;
+	MatchQ[telescope["Kinds"], {"Explicit" ...}] :=
+	syntaxApplication[
+		headSyntax[environment, context, head],
+		Function[argument, Block[{$expectedTypeKnown = True}, delaborate[environment, context, argument]]] /@ arguments
+	]
+delaborateWithTelescope[environment_, context_, head_, arguments_List, telescope_Association] := With[
+	{
+		kinds = telescope["Kinds"],
+		ids = telescope["Ids"],
+		domains = telescope["Domains"],
+		rawResult = telescope["Result"],
+		substitutions = MapThread[Rule, {freeVariable /@ telescope["Ids"], arguments}]
+	},
+	With[
+		{
+			explicitPositions = Flatten[Position[kinds, "Explicit", {1}, Heads -> False]],
+			instancePositions = Flatten[Position[kinds, "InstanceImplicit", {1}, Heads -> False]],
+			implicitPositions = Flatten[Position[kinds, "Implicit" | "StrictImplicit", {1}, Heads -> False]]
+		},
+		With[
+			{
+				implicitIdSet = Extract[ids, List /@ Join[implicitPositions, instancePositions]],
+				keptInstancePositions = Select[
+					instancePositions,
+					Function[position, ! instanceMatchesQ[
+						environment,
+						context,
+						ReplaceAll[Extract[domains, position], Take[substitutions, position - 1]],
+						Extract[arguments, position]
+					]]
+				]
+			},
+			With[
+				{
+					determinedByExplicit = closeKnownPositions[
+						Join[explicitPositions, keptInstancePositions],
+						implicitPositions, ids, domains, implicitIdSet
+					]
+				},
+				With[
+					{remainingImplicits = Complement[implicitPositions, determinedByExplicit]},
+					With[
+						{
+							resultImplicits = Select[remainingImplicits, Function[position, rigidFreeVariableOccursQ[rawResult, Extract[ids, position], implicitIdSet]]],
+							unrecoverableImplicits = Select[remainingImplicits, Function[position, ! rigidFreeVariableOccursQ[rawResult, Extract[ids, position], implicitIdSet]]]
+						},
+						With[{keptPositions = Sort[Join[keptInstancePositions, unrecoverableImplicits]]},
+							Which[
+								keptPositions =!= {},
+									delaborateKeptApplication[
+										environment, context, head, arguments, telescope, substitutions,
+										explicitPositions, implicitPositions, instancePositions, keptPositions, resultImplicits, implicitIdSet
+									],
+								resultImplicits =!= {} && ! TrueQ[$expectedTypeKnown],
+									With[
+										{
+											applicationSyntax = Block[{$expectedTypeKnown = True}, delaborateOrdinaryApplication[
+												environment, context, head, arguments, telescope,
+												explicitPositions, implicitPositions, instancePositions, {}, implicitIdSet, True
+											]],
+											resultTypeSyntax = Block[{$expectedTypeKnown = False}, delaborate[environment, context, ReplaceAll[rawResult, substitutions]]]
+										},
+										syntaxHead[Typed, {applicationSyntax, resultTypeSyntax}]
+									],
+								True,
+									delaborateOrdinaryApplication[
+										environment, context, head, arguments, telescope,
+										explicitPositions, implicitPositions, instancePositions, {}, implicitIdSet, TrueQ[$expectedTypeKnown]
+									]
+							]
+						]
+					]
+				]
+			]
+		]
+	]
+]
+
+(* an application whose kept implicit arguments are dropped in ordinary display: Exists writes a binder, and each
+   explicit argument receives $expectedTypeKnown according to whether earlier arguments or propagation settled every
+   implicit binder in its domain *)
+delaborateOrdinaryApplication[environment_, context_, constantReference[HoldComplete[Exists], _], arguments_List, _, {predicatePosition_}, _, _, _, _, _] /;
+	MatchQ[Extract[arguments, predicatePosition], _lambdaAbstraction] :=
+	Replace[
+		Block[{$expectedTypeKnown = False}, delaborateBinders[environment, context, Extract[arguments, predicatePosition], lambdaAbstraction, Function]],
+		syntaxApplication[_, {binders_, bodySyntax_}] :> syntaxHead[Exists, {binders, bodySyntax}]
+	]
+delaborateOrdinaryApplication[environment_, context_, head_, arguments_List, telescope_Association,
+	explicitPositions_List, implicitPositions_List, instancePositions_List, keptPositions_List, implicitIdSet_List, expectedAvailableQ_] :=
+	If[ explicitPositions === {},
+		headSyntax[environment, context, head],
+		With[
+			{knownMap = argumentExpectedKnownMap[telescope, explicitPositions, implicitPositions, instancePositions, keptPositions, implicitIdSet, expectedAvailableQ]},
+			syntaxApplication[
+				headSyntax[environment, context, head],
+				Function[position, Block[{$expectedTypeKnown = Lookup[knownMap, position, False]}, delaborate[environment, context, Extract[arguments, position]]]] /@ explicitPositions
+			]
+		]
+	]
+
+(* an application that must keep some implicit or instance arguments: named arguments where unambiguous and complete,
+   falling back to Construct otherwise. Elaboration gives collectArguments no expected type when named arguments are
+   present, so positional arguments do not assume outer $expectedTypeKnown. *)
+delaborateKeptApplication[environment_, context_, head_, arguments_List, telescope_Association, substitutions_List,
+	explicitPositions_List, implicitPositions_List, instancePositions_List, keptPositions_List, resultImplicits_List, implicitIdSet_List] := With[
+	{
+		knownMap = argumentExpectedKnownMap[telescope, explicitPositions, implicitPositions, instancePositions, keptPositions, implicitIdSet, False],
+		names = telescope["Names"],
+		domains = telescope["Domains"],
+		rawResult = telescope["Result"]
+	},
+	With[
+		{
+			explicitSyntaxes = Function[position, Block[{$expectedTypeKnown = Lookup[knownMap, position, False]}, delaborate[environment, context, Extract[arguments, position]]]] /@ explicitPositions,
+			rawNames = telescope["RawNames"]
+		},
+		If[ namedArgumentsAllowedQ[environment, telescope["Context"], head, rawNames, domains, rawResult, explicitPositions, keptPositions, explicitSyntaxes],
+			With[
+				{
+					namedSyntaxes = Function[position, syntaxHead[Rule, {
+						nameSyntax[Extract[names, position]],
+						Block[{$expectedTypeKnown = Lookup[knownMap, position, False]}, delaborate[environment, context, Extract[arguments, position]]]
+					}]] /@ keptPositions
+				},
+				With[{applicationSyntax = syntaxApplication[headSyntax[environment, context, head], Join[explicitSyntaxes, namedSyntaxes]]},
+					If[ resultImplicits =!= {} && ! TrueQ[$expectedTypeKnown],
+						syntaxHead[Typed, {applicationSyntax, Block[{$expectedTypeKnown = False}, delaborate[environment, context, ReplaceAll[rawResult, substitutions]]]}],
+						applicationSyntax
+					]
+				]
+			],
+			syntaxHead[Construct, Prepend[
+				Function[argument, Block[{$expectedTypeKnown = True}, delaborate[environment, context, argument]]] /@ arguments,
+				headSyntax[environment, context, head]
+			]]
+		]
+	]
+]
+
+namedArgumentsAllowedQ[environment_, context_, head_, rawNames_List, domains_List, rawResult_, explicitPositions_List, keptPositions_List, explicitSyntaxes_List] := And[
+	! MatchQ[head, constantReference[HoldComplete[Exists], _]],
+	Length[rawNames] >= Max[keptPositions],
+	AllTrue[keptPositions, Function[position, With[{text = Extract[rawNames, position]}, StringQ[text] && Count[rawNames, text] === 1]]],
+	! hasExplicitBinderQ[environment, context, rawResult],
+	NoneTrue[Extract[domains, List /@ explicitPositions], Function[domain, variadicOrSequenceDomainQ[environment, context, domain]]],
+	NoneTrue[explicitSyntaxes, ruleSyntaxQ]
+]
+
+ruleSyntaxQ[syntaxApplication[syntaxSymbol[HoldComplete[Rule | RuleDelayed]], {_, _}]] := True
+ruleSyntaxQ[_] := False
+
+variadicOrSequenceDomainQ[environment_, context_, domain_] := MatchQ[
+	weakHeadNormalForm[environment, context, domain],
+	application[constantReference[HoldComplete["sequenceOf" | Sequence], _], _]
+]
+
+hasExplicitBinderQ[environment_, context_, dependentFunctionType[_, _, codomain_, binder_]] :=
+	binderKind[binder] === "Explicit" || hasExplicitBinderQ[environment, context, codomain]
+hasExplicitBinderQ[environment_, context_, type_] := Replace[
+	weakHeadNormalForm[environment, context, type],
+	{unfolded_dependentFunctionType :> hasExplicitBinderQ[environment, context, unfolded], _ -> False}
+]
+
+rawBinderNames[dependentFunctionType[name_, _, codomain_, _]] := Prepend[rawBinderNames[codomain], binderNameTextOf[name]]
+rawBinderNames[_] := {}
+
+binderNameTextOf[HoldComplete[Null]] := None
+binderNameTextOf[HoldComplete[text_String]] := text
+binderNameTextOf[HoldComplete[symbol_Symbol]] := SymbolName[Unevaluated[symbol]]
+binderNameTextOf[_] := None
+
+(* the fixed point of implicit binder positions determined rigidly by the domains of known positions *)
+closeKnownPositions[known_List, implicitPositions_List, ids_List, domains_List, implicitIdSet_List] := FixedPoint[
+	Function[current, Union[current, Select[
+		implicitPositions,
+		Function[position, AnyTrue[current, Function[knownPosition, knownPosition > position && rigidFreeVariableOccursQ[Extract[domains, knownPosition], Extract[ids, position], implicitIdSet]]]]
+	]]],
+	Sort[known]
+]
+
+(* for each explicit or kept position p, whether every earlier non-explicit binder occurring in domain p is already
+   settled before elaboration checks argument p *)
+argumentExpectedKnownMap[telescope_Association, explicitPositions_List, implicitPositions_List, instancePositions_List, keptPositions_List, implicitIdSet_List, expectedAvailableQ_] := With[
+	{
+		ids = telescope["Ids"],
+		domains = telescope["Domains"],
+		rawResult = telescope["Result"],
+		nonExplicitPositions = Sort[Join[implicitPositions, instancePositions]],
+		suppliedPositions = Sort[Join[explicitPositions, keptPositions]]
+	},
+	With[
+		{
+			initialFromResult = If[
+				TrueQ[expectedAvailableQ] && FreeQ[rawResult, Alternatives @@ (freeVariable /@ Extract[ids, List /@ explicitPositions])],
+				Select[implicitPositions, Function[position, rigidFreeVariableOccursQ[rawResult, Extract[ids, position], implicitIdSet]]],
+				{}
+			]
+		},
+		Last @ Fold[
+			Function[{state, position}, With[{known = First[state], map = Last[state], domain = Extract[domains, position]},
+				With[
+					{
+						unknownBefore = Complement[Select[nonExplicitPositions, Function[earlier, earlier < position]], known],
+						suppliedQ = MemberQ[suppliedPositions, position],
+						instanceQ = MemberQ[instancePositions, position]
+					},
+					With[{domainKnownQ = FreeQ[domain, Alternatives @@ (freeVariable /@ Extract[ids, List /@ unknownBefore])]},
+						Which[
+							suppliedQ,
+								{
+									closeKnownPositions[Append[known, position], implicitPositions, ids, domains, implicitIdSet],
+									Append[map, position -> domainKnownQ]
+								},
+							instanceQ && domainKnownQ,
+								{Union[known, {position}], map},
+							True,
+								state
+						]
+					]
+				]
+			]],
+			{closeKnownPositions[initialFromResult, implicitPositions, ids, domains, implicitIdSet], <||>},
+			Range[Length[ids]]
+		]
+	]
+]
+
+rigidFreeVariableOccursQ[freeVariable[id_], target_, _] := id === target
+rigidFreeVariableOccursQ[dependentFunctionType[_, domain_, codomain_, _], target_, implicitIdSet_List] :=
+	rigidFreeVariableOccursQ[domain, target, implicitIdSet] || rigidFreeVariableOccursQ[codomain, target, implicitIdSet]
+rigidFreeVariableOccursQ[lambdaAbstraction[_, domain_, body_, _], target_, implicitIdSet_List] :=
+	rigidFreeVariableOccursQ[domain, target, implicitIdSet] || rigidFreeVariableOccursQ[body, target, implicitIdSet]
+rigidFreeVariableOccursQ[term_application, target_, implicitIdSet_List] := With[{spine = applicationSpine[term]},
+	(MatchQ[First[spine], _constantReference] || (MatchQ[First[spine], _freeVariable] && ! MemberQ[implicitIdSet, First[First[spine]]])) &&
+		AnyTrue[Last[spine], Function[argument, rigidFreeVariableOccursQ[argument, target, implicitIdSet]]]
+]
+rigidFreeVariableOccursQ[_, _, _] := False
+
+instanceMatchesQ[environment_, context_, domain_, argument_] := Replace[
+	Quiet @ catchKernelFailure[findInstance[environment, context, domain]],
+	{
+		None | _Failure :> False,
+		synthesized_ :> TrueQ[Quiet @ catchKernelFailure[definitionallyEqualQ[environment, context, synthesized, argument]]]
+	}
+]
+
+applicationTelescope[environment_, context_, constantReference[name_, levels_List], n_Integer] := With[
+	{record = constantRecord[environment, name]},
+	With[{headType = instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]},
+		Replace[peelTelescope[environment, context, headType, n, {}, {}, {}, {}],
+			telescope_Association :> Append[telescope, "RawNames" -> rawBinderNames[headType]]
+		]
+	]
+]
+applicationTelescope[environment_, context_, head_, n_Integer] := With[{headType = inferType[environment, context, head]},
+	Replace[peelTelescope[environment, context, headType, n, {}, {}, {}, {}],
+		telescope_Association :> Append[telescope, "RawNames" -> rawBinderNames[headType]]
+	]
+]
+
+peelTelescope[_, context_, type_, 0, names_List, ids_List, domains_List, kinds_List] := <|
+	"Names" -> names, "Ids" -> ids, "Domains" -> domains, "Kinds" -> kinds, "Result" -> type, "Context" -> context
+|>
+peelTelescope[environment_, context_, dependentFunctionType[name_, domain_, codomain_, binder_], n_Integer, names_List, ids_List, domains_List, kinds_List] := With[
+	{id = freshFreeVariable[]},
+	peelTelescope[
+		environment,
+		extendContext[context, id, name, domain, binder],
+		instantiateBoundVariable[codomain, freeVariable[id]],
+		n - 1,
+		Append[names, name],
+		Append[ids, id],
+		Append[domains, domain],
+		Append[kinds, binderKind[binder]]
+	]
+]
+peelTelescope[environment_, context_, type_, n_Integer, names_List, ids_List, domains_List, kinds_List] := Replace[
+	weakHeadNormalForm[environment, context, type],
+	{
+		unfolded_dependentFunctionType :> peelTelescope[environment, context, unfolded, n, names, ids, domains, kinds],
+		_ :> $Failed
+	}
 ]
 
 headSyntax[environment_, context_, constantReference[HoldComplete[name_], _]] := toSyntax[name]
-headSyntax[environment_, context_, head_] := delaborate[environment, context, head]
+headSyntax[environment_, context_, head_] := Block[{$expectedTypeKnown = False}, delaborate[environment, context, head]]
 
 (* Construct keeps elaboration from filling in implicit arguments again, which it would do for any
    implicit binder among the arguments given, or before a constant on its own *)
@@ -611,14 +919,6 @@ exactHeadSyntax[environment_, context_, head_] := delaborate[environment, contex
 implicitBinderAmongQ[environment_, context_, head_, n_Integer] := With[
 	{binders = Quiet @ catchKernelFailure[binderKinds[environment, context, head, n]]},
 	ListQ[binders] && ! MatchQ[binders, {"Explicit" ...}]
-]
-
-explicitArguments[environment_, context_, head_, arguments_List] := With[
-	{binders = Quiet @ catchKernelFailure[binderKinds[environment, context, head, Length[arguments]]]},
-	If[ ListQ[binders] && Length[binders] == Length[arguments],
-		Pick[arguments, binders, "Explicit"],
-		arguments
-	]
 ]
 
 (* the binder kinds of the first n arguments of head, read off its type: a function type as written gives

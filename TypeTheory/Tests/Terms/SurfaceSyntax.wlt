@@ -835,3 +835,87 @@ VerificationTest[
 	{True, True, True},
 	TestID -> "A-notation-of-the-user's-draws-a-function-argument-as-its-binders"
 ]
+
+
+(* === Display read-back round-trip === *)
+
+(* Display read-back keeps implicit arguments elaboration cannot recover: a higher-order predicate not rigid in any
+   explicit argument or the result ("equalitySubstitution"), a non-canonical instance argument (Decide's motive-bound
+   instance in "decideSoundness"), and a result-determined implicit where no expected type reaches the call
+   ("excludedMiddle", Length[{}], or a beta-redex body). Every definition and theorem of the prelude elaborates back
+   from its display term. *)
+VerificationTest[
+	With[
+		{
+			failed = Select[
+				Information[prelude, "Constants"],
+				Function[name, With[{declaration = prelude[name]},
+					MatchQ[declaration, _TypeTheoryTheorem | _TypeTheoryDefinition] && With[{term = declaration["Term"]}, FailureQ[TypeTheoryType[term]]]
+				]]
+			],
+			successorTerm = prelude["successorNotZero"]["Term"],
+			decideTerm = prelude["decideSoundness"]["Term"],
+			excludedTerm = prelude["excludedMiddle"]["Term"]
+		},
+		{
+			failed,
+			! FreeQ[successorTerm, HoldPattern[_Rule]] && FreeQ[successorTerm, Construct],
+			! FreeQ[decideTerm, HoldPattern[Decide[_, _Rule]]] && FreeQ[decideTerm, Construct],
+			FreeQ[WeakHeadNormalForm[TypeTheoryTerm[Function[{Typed[n, NonNegativeIntegers]}, Decide[n == 0]]]], HoldPattern[Decide[_, _Rule]]],
+			Head[TypeTheoryProofTree[successorTerm]],
+			Head[TypeTheoryProofTree[excludedTerm]]
+		}
+	],
+	{{}, True, True, True, TypeTheoryProofTree, TypeTheoryProofTree},
+	TestID -> "Display-read-back-round-trips-every-definition-and-theorem-of-the-prelude"
+]
+
+(* Result-determined implicits get Typed only when no expected type reaches them: a beta-redex body and Length[{}] keep
+   Typed, while {1, 2} drops it; and kept implicits fall back to Construct when named arguments do not apply (unnamed
+   binder, duplicate binder name, partial application, positional Rule argument, or a type alias hiding binder names). *)
+VerificationTest[
+	With[
+		{
+			coreToTerm = WolframInstitute`TypeTheory`PackageScope`coreToTypeTheoryTerm,
+			elaborate = WolframInstitute`TypeTheory`PackageScope`elaborateClosedTerm,
+			environment = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom["unnamedPredicate", ForAll[{TypedImplicit[Null, NonNegativeIntegers -> TypeUniverse[0]], Typed[x, NonNegativeIntegers]}, TypeUniverse[0]]],
+				TypeTheoryAxiom["duplicateName", ForAll[{TypedImplicit[p, NonNegativeIntegers -> TypeUniverse[0]], Typed[p, NonNegativeIntegers]}, TypeUniverse[0]]],
+				TypeTheoryAxiom["partialPredicate", ForAll[{TypedImplicit[p, NonNegativeIntegers -> TypeUniverse[0]], Typed[x, NonNegativeIntegers], Typed[y, NonNegativeIntegers]}, TypeUniverse[0]]],
+				TypeTheoryAxiom["ruleArgPredicate", ForAll[{TypedImplicit[p, NonNegativeIntegers -> TypeUniverse[0]], Typed[f, TypeUniverse[1]]}, TypeUniverse[0]]],
+				TypeTheoryDefinition["AliasType", Typed[ForAll[{TypedImplicit[p, NonNegativeIntegers -> TypeUniverse[0]], Typed[x, NonNegativeIntegers]}, TypeUniverse[0]], TypeUniverse[1]]],
+				TypeTheoryAxiom["aliasedPredicate", "AliasType"]
+			}]
+		},
+		With[
+			{
+				roundTrip = Function[held, With[{read = coreToTerm[environment, <||>, First[elaborate[environment, held, None, {}]]]}, {read, ! FailureQ[TypeTheoryType[read]]}]],
+				predicate = HoldComplete[Function[{Typed[n, NonNegativeIntegers]}, n == n]]
+			},
+			With[
+				{
+					redex = roundTrip[HoldComplete[Function[{Typed[n, NonNegativeIntegers]}, Typed["existsIntroduction"[n, "equalityReflexivity"[n]], Exists[{Typed[k, NonNegativeIntegers]}, k == n]]][2]]],
+					emptyLength = roundTrip[HoldComplete[Length[Typed[{}, {NonNegativeIntegers}]]]],
+					nonemptyList = roundTrip[HoldComplete[{1, 2}]],
+					unnamed = roundTrip[HoldComplete[Construct["unnamedPredicate", Function[{Typed[n, NonNegativeIntegers]}, n == n], 0]]],
+					duplicate = roundTrip[HoldComplete[Construct["duplicateName", Function[{Typed[n, NonNegativeIntegers]}, n == n], 0]]],
+					partial = roundTrip[HoldComplete[Construct["partialPredicate", Function[{Typed[n, NonNegativeIntegers]}, n == n], 0]]],
+					ruleArg = roundTrip[HoldComplete[Construct["ruleArgPredicate", Function[{Typed[n, NonNegativeIntegers]}, n == n], NonNegativeIntegers -> NonNegativeIntegers]]],
+					aliased = roundTrip[HoldComplete[Construct["aliasedPredicate", Function[{Typed[n, NonNegativeIntegers]}, n == n], 0]]]
+				},
+				{
+					Last[redex],
+					Last[emptyLength] && ! FreeQ[First[emptyLength], _Typed],
+					Last[nonemptyList] && FreeQ[First[nonemptyList], _Typed],
+					Last[unnamed] && ! FreeQ[First[unnamed], Construct],
+					Last[duplicate] && ! FreeQ[First[duplicate], Construct],
+					Last[partial] && ! FreeQ[First[partial], Construct],
+					Last[ruleArg] && ! FreeQ[First[ruleArg], Construct],
+					Last[aliased] && ! FreeQ[First[aliased], Construct]
+				}
+			]
+		]
+	],
+	ConstantArray[True, 8],
+	TestID -> "Display-read-back-uses-Typed-without-expected-type-and-Construct-where-named-arguments-do-not-apply"
+]

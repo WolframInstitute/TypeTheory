@@ -796,12 +796,12 @@ declarationSyntax[environment_, name_, record_, mode_] := With[
 		]],
 		"Axiom" :> syntaxHead[TypeTheoryAxiom, Join[{nameSyntax, typeSyntax}, universeOption, annotationOptionSyntax[record], overloadsOptionSyntax[record], implementationOptionSyntax[record]]],
 		"Definition" | "Opaque" :> syntaxHead[TypeTheoryDefinition, Join[
-			{nameSyntax, syntaxHead[Typed, {readBack[environment, record["Value"], mode], typeSyntax}]},
+			{nameSyntax, syntaxHead[Typed, {Block[{$expectedTypeKnown = True}, readBack[environment, record["Value"], mode]], typeSyntax}]},
 			universeOption,
 			Function[role, syntaxHead[Rule, {syntaxString[role], syntaxSymbol[HoldComplete[True]]}]] /@ Keys[Select[recordRoles[record], TrueQ]],
 			overloadsOptionSyntax[record]
 		]],
-		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, readBack[environment, record["Value"], mode]}, universeOption, annotationOptionSyntax[record]]],
+		"Theorem" :> syntaxHead[TypeTheoryTheorem, Join[{nameSyntax, typeSyntax, Block[{$expectedTypeKnown = True}, readBack[environment, record["Value"], mode]]}, universeOption, annotationOptionSyntax[record]]],
 		"InductiveType" :> syntaxHead[TypeTheoryInductiveType, Join[
 			{
 				nameSyntax,

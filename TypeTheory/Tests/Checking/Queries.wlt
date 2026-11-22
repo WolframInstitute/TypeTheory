@@ -637,14 +637,14 @@ VerificationTest[
 ]
 
 (* a value read back elaborates again to a term of its type: a lone string, the empty list and a value of a sum, whose
-   readings alone do not, are ascribed their types, and a reading that elaborates is left as it is; the reading in the
-   Wolfram Language is the same either way *)
+   readings alone do not, are ascribed their types, an empty list inside a pair is ascribed where it stands, and a
+   reading that elaborates is left as it is; the reading in the Wolfram Language is the same either way *)
 VerificationTest[
 	Map[
 		Function[term, With[{normal = NormalForm[term]}, {
 			DefinitionallyEqualQ[TypeTheoryType[normal], TypeTheoryType[term]],
 			TypeTheoryExpression[normal] === TypeTheoryExpression[term],
-			MatchQ[normal, TypeTheoryTerm[_Typed, ___]]
+			! FreeQ[normal, _Typed]
 		}]],
 		{
 			TypeTheoryTerm[FromString["Hi"]],

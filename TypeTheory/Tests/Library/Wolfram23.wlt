@@ -196,8 +196,9 @@ VerificationTest[
 	{
 		Head[TypeTheoryTerm["minskySimulation", "Wolfram23"]],
 		TypeTheoryType["minskySimulation", "Wolfram23"] === TypeTheoryType[TypeTheoryTerm["minskySimulation", wolfram23]],
-		Block[{$TypeTheoryEnvironment = "Wolfram23"}, Head[TypeTheoryType["cookSimulation"]]]
+		Block[{$TypeTheoryEnvironment = "Wolfram23"}, Head[TypeTheoryType["cookSimulation"]]],
+		Head[TypeTheoryProofTree[wolfram23["minskySimulation"]["Term"]]]
 	},
-	{TypeTheoryTerm, True, TypeTheoryTerm},
+	{TypeTheoryTerm, True, TypeTheoryTerm, TypeTheoryProofTree},
 	TestID -> "A-term-and-a-type-in-the-Wolfram23-environment-by-its-name"
 ]
