@@ -3,7 +3,8 @@
 (*
 Wolfram's (2,3) Turing machine and Smith's chain of emulations: TypeTheoryEnvironment["Wolfram23"] is the prelude with
 the systems of the chain, built and checked the first time it is asked for. The design is in
-docs/notes/Wolfram23Universality.md; this file holds rungs 6, 2 and 1, and Wolfram23System5.wl holds rung 3.
+docs/notes/Wolfram23Universality.md; this file holds rungs 6, 2 and 1, Wolfram23System5.wl holds rung 3, and
+Wolfram23System4.wl holds rung 4.
 
 	"steps"[step, n, s]                n steps of a step function step : S -> Option[S], the last step taken at the end
 	"optionBind", "optionMap",         the option's monad, and the first of two options where it has a value
@@ -66,7 +67,7 @@ $wolfram23Declarations::usage = "$wolfram23Declarations is the list of the decla
 TypeTheoryEnvironment["Wolfram23"] := wolfram23Environment[]
 
 wolfram23Environment[] := wolfram23Environment[] = withoutStoreTracking[
-	libraryEnvironment["Wolfram23", preludeEnvironment[], withStoreCleanup[Fold[addMachineDeclaration, preludeEnvironment[], Join[$wolfram23Declarations, $system5Declarations]]]]
+	libraryEnvironment["Wolfram23", preludeEnvironment[], withStoreCleanup[Fold[addMachineDeclaration, preludeEnvironment[], Join[$wolfram23Declarations, $system5Declarations, $system4Declarations]]]]
 ]
 
 (* the rule tables of p. 45, a rule by the state and the head, or by the right neighbour as well *)

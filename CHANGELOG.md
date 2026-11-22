@@ -94,6 +94,10 @@ Versions 0.50.0 to 0.59.0.
     the encoder (`ctsToSystem5`), bag decoder (`decodeBag`, `representsDecode`), budget-zero termination
     (`representsRulesEmpty`, `representsBagNonEmpty`, `representsTerminal`), and the per-step element bound
     (`bound5Step`), all with empty axiom closure.
+  - rung 4 (`Library/Wolfram23System4.wl`): Smith's System 4 as a zipper (`System4Configuration`, `system4Step`) follows
+    any fueled System 5 configuration (`system4Simulation`), together with the encoder (`system5ToSystem4`),
+    well-formedness (`system5ToSystem4WellFormed`), odd-parity-guarded decoder (`decodeS4`, `repS4DecodeBand`,
+    `repS4TurnStep`), and budgeted exit in state C (`repS4Exit`, `repS4Terminal`), all with empty axiom closure.
 
 ### Changed
 

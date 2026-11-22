@@ -23,11 +23,13 @@ VerificationTest[
 				"minskyRound1", "minskyRound2", "minskyRound3Right", "minskyRound3Left", "minskyRound4", "minskyRound5", "minskyStep", "minskySimulation",
 				"divideMultiple", "minskyDecodeEncode", "minskyNumbersSimulation", "divideSpecification", "minskyNumbersBelow", "machineToCyclicTag",
 				"xorMergeAppendant", "bound5Step", "ctsToSystem5Represents", "ctsToSystem5BagStrictlyAbove", "ctsToSystem5RulesStrictlyAbove",
-				"representsDecode", "representsRulesEmpty", "representsBagNonEmpty", "representsTerminal", "representsStepFalse", "representsStepTrue", "system5Simulation"},
+				"representsDecode", "representsRulesEmpty", "representsBagNonEmpty", "representsTerminal", "representsStepFalse", "representsStepTrue", "system5Simulation",
+				"system4Step", "system4DStep", "system4PopPhase", "system5ToSystem4", "system5ToSystem4WellFormed", "system5ToSystem4Represents",
+				"decodeS4", "repS4DStep", "repS4PStep", "repS4TurnStep", "repS4DecodeBand", "repS4Exit", "repS4Terminal", "system4Simulation"},
 			! MemberQ[Keys[wolfram23], #] &
 		]
 	},
-	{TypeTheoryEnvironment, 563, {}},
+	{TypeTheoryEnvironment, 722, {}},
 	TestID -> "The-Wolfram23-environment-has-the-framework-and-the-relabelings-from-System-3-to-System-0"
 ]
 
@@ -237,6 +239,65 @@ VerificationTest[
 	},
 	{True, True, True, True, <||>, <||>, <||>, <||>},
 	TestID -> "decodeBag-rejects-malformed-bags-and-rung-3-uses-no-axioms"
+]
+
+(* rung 4: System 5 to System 4 — Smith's five zipper transition rules, encoder + decoder round-trip, and odd-parity guard *)
+smith34 = "system4Configuration"[{"star4", "set4"[Typed[{}, {NonNegativeIntegers}]], "set4"[{0, 6, 8}]}, {"set4"[{3, 4}], "star4", "set4"[{8}], "set4"[{11, 20}]}, "state4B"]
+s4Encoded = "system5ToSystem4"["system5Configuration"[{1, 2}, {{0}}], 4]
+
+VerificationTest[
+	With[{trace = smith34, encoded = s4Encoded},
+		{
+			(* Smith p. 34: in state B on {3, 4} (no 0), decrement to {2, 3} and step right onto star4 *)
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["system4Step"[trace], wolfram23],
+				TypeTheoryTerm["some"["system4Configuration"[{"set4"[{2, 3}], "star4", "set4"[Typed[{}, {NonNegativeIntegers}]], "set4"[{0, 6, 8}]}, {"star4", "set4"[{8}], "set4"[{11, 20}]}, "state4B"]], wolfram23]
+			],
+			(* Next step: B on star4 drops star4, moves left to {2, 3}, and switches to A *)
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["steps"["system4Step", 2, trace], wolfram23],
+				TypeTheoryTerm["some"["system4Configuration"[{"star4", "set4"[Typed[{}, {NonNegativeIntegers}]], "set4"[{0, 6, 8}]}, {"set4"[{2, 3}], "set4"[{8}], "set4"[{11, 20}]}, "state4A"]], wolfram23]
+			],
+			(* C on star4 before {8}: steps right past star4, XOR-inserts 1 into {8} -> {1, 8}, stays in C *)
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["system4Step"["system4Configuration"[{"set4"[{2, 3}]}, {"star4", "set4"[{8}]}, "state4C"]], wolfram23],
+				TypeTheoryTerm["some"["system4Configuration"[{"star4", "set4"[{2, 3}]}, {"set4"[{1, 8}]}, "state4C"]], wolfram23]
+			],
+			(* Encoded System 5 bag {1, 2} decodes back before and after the 1-step turn into state4B *)
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["decodeS4"[encoded, 6], wolfram23],
+				TypeTheoryTerm["some"[{1, 2}], wolfram23]
+			],
+			DefinitionallyEqualQ[
+				TypeTheoryTerm["optionBind"["system4Step"[encoded], Function[{Typed[c, "System4Configuration"]}, "decodeS4"[c, 6]]], wolfram23],
+				TypeTheoryTerm["some"[{1, 2}], wolfram23]
+			]
+		}
+	],
+	{True, True, True, True, True},
+	TestID -> "System-4-follows-Smiths-zipper-rules-and-decodes-encoded-System-5-bags"
+]
+
+(* decodeS4 rejects odd-parity elements with none, and all rung 4 theorems use no axioms *)
+VerificationTest[
+	{
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeS4"["system4Configuration"[Typed[{}, {"System4Element"}], {"set4"[{1}], "star4"}, "state4B"], 4], wolfram23],
+			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
+		],
+		DefinitionallyEqualQ[
+			TypeTheoryTerm["decodeS4"["system4Configuration"[Typed[{}, {"System4Element"}], {"set4"[{0, 3}], "star4"}, "state4B"], 4], wolfram23],
+			TypeTheoryTerm[Typed["none", Option[{NonNegativeIntegers}]], wolfram23]
+		],
+		TypeTheoryAxiomClosure[wolfram23["system4Simulation"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["system5ToSystem4Represents"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["system5ToSystem4WellFormed"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["repS4DecodeBand"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["repS4TurnStep"]["Term"]],
+		TypeTheoryAxiomClosure[wolfram23["repS4Terminal"]["Term"]]
+	},
+	{True, True, <||>, <||>, <||>, <||>, <||>, <||>},
+	TestID -> "decodeS4-rejects-odd-parity-elements-and-rung-4-uses-no-axioms"
 ]
 
 (* the environment by its name, as every library environment is named: a term and a type in it, and the default *)

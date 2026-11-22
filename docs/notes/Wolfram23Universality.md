@@ -182,7 +182,24 @@ cyclic tag system, with zero axioms (`TypeTheoryAxiomClosure` empty):
   `ctsToSystem5RulesStrictlyAbove`, `representsDecode` (with `decodeBag` checking strict increase above 0, even length
   and gap 1 or 2), `representsRulesEmpty`, `representsBagNonEmpty`, `representsTerminal`, and `bound5Step`.
 
-Next: rungs 4 and 5 (System 5 to 4, System 4 to 3), then rung 7 and the tutorial.
+Rung 4 complete (`system4Simulation` in `TypeTheory/Kernel/Library/Wolfram23System4.wl`, 722 constants total): Smith's
+System 4 follows any fueled System 5 configuration, with zero axioms (`TypeTheoryAxiomClosure` empty):
+- **Zipper tape (`System4Configuration[left, right, state]`).** Matches rung 5's `AC` zipper directly and eliminates
+  index bookkeeping, `eraseIdx`, and `List.set`. All five rules of `system4Step` match Smith's paper verbatim, and the
+  nine run macros (`system4Sweep`, `system4WalkLeft`, `system4CPhase`, `system4PassNoZero`, `system4DStep`,
+  `system4PreLoop`, `system4LoopRun`, `system4FinalPass`, `system4PopPhase`) prove cleanly by structural induction.
+- **Strictly increasing sets with natural numbers.** `encodeBag4` maps positive bag elements to even positions
+  `2(e - 1)`, `allInts[3f + 1]` provides the toggle set, `rulePos[f, t, k] = 2k + f + 3 - t` stays positive with
+  `t = 2j < f`, and `decr4` drops `0` before subtracting `1`.
+- **D-step and double-pop P-step.** `repS4DStep` works even when `s.rules == {}` (so `repS4Terminal` iterates it);
+  `repS4PStep` decomposes `f == g0 + ((j + j) + 3)` to chain two `system4PopPhase` runs without truncated-subtraction
+  case splits, proving `system4Simulation : ForAll[f, forwardSimulation[fueledSystem5Step, system4Step, system4Represents[f]]]`.
+- **Downstream interface for rungs 5 and 7.** `system5ToSystem4Represents`, `system5ToSystem4WellFormed`
+  (`noAdjacentStarsFrom`, `endsWithSet4`, `allTapeSetsOk[3f + 2, ...]`), `decodeS4` (reading `leadSets4[c.right]`
+  independently of `state`/`left`, rejecting odd parity with `none`), `repS4DecodeBand`, `repS4TurnStep` (1-step turn
+  into `state4B` preserving `decodeS4`), and `repS4Exit` / `repS4Terminal` (budgeted exit in `state4C` with `1 <= k`).
+
+Next: rung 5 (System 4 to System 3), then rung 7 (composition and T8 universality) and the tutorial.
 
 ## Files
 
