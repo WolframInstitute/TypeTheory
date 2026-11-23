@@ -7,11 +7,15 @@ commits and releases that build one feature are one line.
 
 ## 2026-W48 (November 23 to 29), in progress
 
-Version 0.60.1.
+Versions 0.60.1 to 0.60.2.
+
+### Fixed
+
+- **Open large-literal natural-number arithmetic in the compiled kernel.** Registered natural-number definitions no longer force full delta reduction on their arguments while `arenaWhnfCore` runs without unfolding (`unfold == 0`), and binary literal evaluation checks the second (recursive) argument before the first, preventing open products such as `(x + 1) * 10^9` inside sums from unfolding one unit at a time to the recursion-depth limit.
 
 ### Performance
 
-- **Large reflective proofs and deep telescopes in the compiled kernel.** The compiled kernel now computes natural-number literals up to 1,024 limbs of 30 bits (30,720 bits, up from 64 limbs / 1,920 bits), scales its walk memo table with the input size (up to `2^24`, with prime-mixed hashing and leaf fast-paths so deep bound-variable sharing never clusters into probe overflow), batches consecutive `lambda`, dependent-function and `let` telescopes in a single instantiation/abstraction pass, compacts transient reduction scratch inside long `whnf` and lazy-delta loops, rolls back dead scratch nodes and local-context entries at completed zero-root type-checking and definitional-equality boundaries, and retries capacity overflows in `2x` steps with a compact initial local-context table.
+- **Large reflective proofs and deep telescopes in the compiled kernel.** The compiled kernel now computes natural-number literals up to 1,024 limbs of 30 bits (30,720 bits, up from 64 limbs / 1,920 bits), scales its walk memo table with the input size (up to `2^24`, with prime-mixed hashing and leaf fast-paths so deep bound-variable sharing never clusters into probe overflow), batches consecutive `lambda`, dependent-function and `let` telescopes in a single instantiation/abstraction pass, compacts transient reduction scratch inside long `whnf` and lazy-delta loops, rolls back dead scratch nodes and local-context entries at completed zero-root type-checking and definitional-equality boundaries (gated on 75% arena fill while preserving live `whnf`, `core` and `infer` cache entries for surviving scratch nodes across epochs), resets accumulated scratch between declarations at 65,536 nodes or 4,096 free variables, and retries capacity overflows in `2x` steps with a compact initial local-context table.
 
 ## 2026-W47 (November 16 to 22)
 
