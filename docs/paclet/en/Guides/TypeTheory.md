@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, instances, type classes, coercions]
-RelatedTutorials: [TypeTheoryIntroduction, Elaboration, ProgramsAndProofs, TheWolframLanguage, PatternsAndRewriting, WolframLanguageTheorems, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Paradoxes, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory, Wolfram23Universality]
+RelatedTutorials: [TypeTheoryIntroduction, Elaboration, ProgramsAndProofs, AutomatedAnalysisAndDiscovery, TheWolframLanguage, PatternsAndRewriting, WolframLanguageTheorems, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, RulesAndComputation, Paradoxes, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory, Wolfram23Universality]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 
@@ -60,7 +60,11 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 ### Proofs
 
 - [TypeTheoryProof]() a proof in progress, with its open goals
-- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Hole"`, `"Rewrite"`, `"Change"`, `"RewriteRepeated"`, `"Decide"`, `"Ring"`, `"Classical"`, the Wolfram oracles `"FindInstance"`, `"Witness"`, `"Counterexample"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`, and [Automatic](), which tries a portfolio of them in turn
+- [TypeTheoryTactic]() a tactic: `"Introduce"`, `"Exact"`, `"Apply"`, `"Reflexivity"`, `"Induction"`, `"Cases"`, `"Generalize"`, `"Constructor"`, `"Assumption"`, `"Hole"`, `"Rewrite"`, `"Change"`, `"RewriteRepeated"`, `"Decide"`, `"Ring"`, `"Classical"`, the Wolfram oracles `"FindInstance"`, `"Witness"`, `"Counterexample"`, `"PolynomialReduce"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"FindEquationalProof"` and `"SumOfSquares"`, and [Automatic](), which tries a portfolio of them in turn
+- [TypeTheoryDetermine]() determines whether a proposition is `"Proved"`, `"Refuted"`, `"Independent"` or `"Undetermined"`, with kernel-checked proofs, counterexamples or independence models, and optional [LLMFunction]() assistance
+- [TypeTheoryAssumptions]() discovers ranked, sensible, non-vacuous and non-trivial missing assumptions that turn an unprovable proposition into a kernel-checked theorem, or close the open goals of a [TypeTheoryProof]()
+- [TypeTheoryConsequences]() derives ranked, sensible, non-trivial consequences of an assumed proposition, each kernel-checked and verified to genuinely use the hypothesis, short-circuiting to [False]() on inconsistent propositions
+- [TypeTheoryTermination]() analyzes termination, conditional termination and non-termination of formalized Wolfram Language functions, loops and rewrite rules with kernel-checked certificates
 
 ### The prelude: logic and equality
 
