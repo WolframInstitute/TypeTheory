@@ -5,7 +5,15 @@ Each entry names the versions released in that week; releases are tagged `v<vers
 `git log v0.38.0..v0.39.0` gives the commits of one. An entry is a summary, not a list of commits: several
 commits and releases that build one feature are one line.
 
-## 2026-W47 (November 16 to 22), in progress
+## 2026-W48 (November 23 to 29), in progress
+
+Version 0.60.1.
+
+### Performance
+
+- **Large reflective proofs and deep telescopes in the compiled kernel.** The compiled kernel now computes natural-number literals up to 1,024 limbs of 30 bits (30,720 bits, up from 64 limbs / 1,920 bits), scales its walk memo table with the input size (up to `2^24`, with prime-mixed hashing and leaf fast-paths so deep bound-variable sharing never clusters into probe overflow), batches consecutive `lambda`, dependent-function and `let` telescopes in a single instantiation/abstraction pass, compacts transient reduction scratch inside long `whnf` and lazy-delta loops, rolls back dead scratch nodes and local-context entries at completed zero-root type-checking and definitional-equality boundaries, and retries capacity overflows in `2x` steps with a compact initial local-context table.
+
+## 2026-W47 (November 16 to 22)
 
 Versions 0.50.0 to 0.60.0.
 
