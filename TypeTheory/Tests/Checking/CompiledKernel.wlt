@@ -407,14 +407,14 @@ VerificationTest[
 	TestID -> "An-environment-the-compiled-kernel-does-not-handle-is-checked-by-the-other"
 ]
 
-(* a literal of 2^62 or more is the compiled kernel's up to 64 limbs of 30 bits, and past them a constant made for its
+(* a literal of 2^62 or more is the compiled kernel's up to 1024 limbs of 30 bits, and past them a constant made for its
    value: either way the theorem that it is itself is checked by the compiled kernel alone *)
 VerificationTest[
 	Function[large, {
 		First @ TypeTheoryCheck[Append[prelude, TypeTheoryTheorem[Large, large == large, "equalityReflexivity"[large]]], Method -> Automatic],
 		WolframInstitute`TypeTheory`PackageScope`$recheckedConstants
-	}] /@ {2^70 + 1, 2^2000 + 1},
-	ConstantArray[{"EnvironmentChecked", {}}, 2],
+	}] /@ {2^70 + 1, 2^2500 + 1, 2^31000 + 1},
+	ConstantArray[{"EnvironmentChecked", {}}, 3],
 	TestID -> "A-large-literal-is-checked-by-the-compiled-kernel-within-its-limbs-and-past-them"
 ]
 
@@ -487,9 +487,9 @@ VerificationTest[
 	TestID -> "Both-kernels-catch-a-forged-universe-of-an-inductive-type"
 ]
 
-(* A natural number literal of 2^62 or more is a chain of limbs of 30 bits in the compiled kernel, up to 64 limbs, below
-   2^1920. Past them it is an opaque constant there, one for each distinct value, and a record that the compiled kernel
-   then does not accept is checked by the kernel of TypeChecking.wl; so is a record on which a result passes 64 limbs.
+(* A natural number literal of 2^62 or more is a chain of limbs of 30 bits in the compiled kernel, up to 1024 limbs, below
+   2^30720. Past them it is an opaque constant there, one for each distinct value, and a record that the compiled kernel
+   then does not accept is checked by the kernel of TypeChecking.wl; so is a record on which a result passes 1024 limbs.
    Each case is a batch of declarations given as core terms, as an import gives them: a theorem left == right proved by
    the reflexivity of right, which holds where left computes to right. A case gives what the batch gives with the
    compiled kernel, the constants it left to the other kernel, and what the declarations give one at a time, which is
@@ -537,7 +537,7 @@ literalBatch[declarations_List] := With[{compiled = TypeTheoryEnvironment[litera
 rechecked[names___String] := If[available, {names}, "no library"]
 
 VerificationTest[
-	With[{big = 2^1950, other = 2^1950 + 1},
+	With[{big = 2^30750, other = 2^30750 + 1},
 		{
 			literalBatch[{namedNumber["big", big], claim["t", "big", "big"]}],
 			literalBatch[{claim["t", big, big]}],
@@ -549,12 +549,12 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{big = 2^1950, other = 2^1950 + 1, limit = 2^1950, half = 2^1949, root = 2^975},
+	With[{big = 2^30750, other = 2^30750 + 1, limit = 2^30750, half = 2^30749, root = 2^15375},
 		{
 			literalBatch[{claim["t", "squared"[root], big]}],
 			literalBatch[{claim["t", "squared"[root], other]}],
 			literalBatch[{claim["t", "doubled"[half], limit]}],
-			literalBatch[{claim["t", "powerOfTwo"[1950], big]}],
+			literalBatch[{claim["t", "powerOfTwo"[30750], big]}],
 			literalBatch[{claim["t", "difference"[big, big], 0]}],
 			literalBatch[{claim["t", "difference"[big, other], 1]}]
 		}
@@ -570,12 +570,12 @@ VerificationTest[
 	TestID -> "A-record-that-needs-the-value-of-a-large-literal-is-checked-by-the-other-kernel"
 ]
 
-(* A forged proof about a made-up constant past the limit is refused alike on both paths: the constant is 2^1950, and
-   the theorem says it is 2^1950 + 1, with the reflexivity of 2^1950 + 1 for its proof. The compiled kernel leaves the record
+(* A forged proof about a made-up constant past the limit is refused alike on both paths: the constant is 2^30750, and
+   the theorem says it is 2^30750 + 1, with the reflexivity of 2^30750 + 1 for its proof. The compiled kernel leaves the record
    undecided, the kernel of TypeChecking.wl refuses it, and the failure a batch reports is the one the declarations give
    one at a time, by its tag and by its message. *)
 VerificationTest[
-	With[{made = 2^1950, wrong = 2^1950 + 1},
+	With[{made = 2^30750, wrong = 2^30750 + 1},
 		With[{withMade = TypeTheoryEnvironment[literalBase, {namedNumber["madeUp", made]}, Method -> "Symbolic"]},
 			With[{declarations = {namedNumber["madeUp", made], claimOver[withMade, "forged", "madeUp", wrong]}},
 				With[{compiled = TypeTheoryEnvironment[literalBase, declarations, Method -> compiledMethod]},
@@ -598,24 +598,24 @@ VerificationTest[
 	TestID -> "A-forged-proof-about-a-made-up-large-constant-is-refused-alike-on-both-paths"
 ]
 
-(* The compiled kernel computes no literal past 64 limbs and never wraps: 2^1918 + 2^1918, 2^959 2^959 and 2^1919 are
-   computed and are not 0; 2^1919 doubled, 2^960 squared and 2^1920 are past the limit, where 64 limbs would give 0.
+(* The compiled kernel computes no literal past 1024 limbs and never wraps: 2^30718 + 2^30718, 2^15359 2^15359 and 2^30719 are
+   computed and are not 0; 2^30719 doubled, 2^15360 squared and 2^30720 are past the limit, where 1024 limbs would give 0.
    Such a record is left to the other kernel in any batch; with a constant past the limit in the batch, so is a record
    the compiled kernel refuses, since it may need the constant's value. *)
 VerificationTest[
-	With[{big = 2^1950, half = 2^1918, most = 2^1919, root = 2^959, larger = 2^960},
+	With[{big = 2^30750, half = 2^30718, most = 2^30719, root = 2^15359, larger = 2^15360},
 		{
 			literalBatch[{namedNumber["big", big], claim["t", "doubled"[half], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "doubled"[most], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "squared"[root], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "squared"[larger], 0]}],
-			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[1919], 0]}],
-			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[1920], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[30719], 0]}],
+			literalBatch[{namedNumber["big", big], claim["t", "powerOfTwo"[30720], 0]}],
 			literalBatch[{namedNumber["big", big], claim["t", "difference"[3, 5], 1]}],
 			literalBatch[{claim["t", "doubled"[half], 0]}],
 			literalBatch[{claim["t", "doubled"[most], 0]}],
 			literalBatch[{claim["t", "squared"[larger], 0]}],
-			literalBatch[{claim["t", "powerOfTwo"[1920], 0]}],
+			literalBatch[{claim["t", "powerOfTwo"[30720], 0]}],
 			literalBatch[{claim["t", "difference"[3, 5], 1]}]
 		}
 	],
@@ -633,24 +633,28 @@ VerificationTest[
 ]
 
 (* The other kernel is asked about a record only where the compiled kernel cannot decide it: a record on which a
-   literal passes 64 limbs, and in an environment with a constant made for a literal past them, a record the compiled
+   literal passes 1024 limbs, and in an environment with a constant made for a literal past them, a record the compiled
    kernel does not accept. Otherwise such a record is refused by the compiled kernel, and a result past 2^62 within the
    limbs is computed. The compiled kernel goes on after a record checked by the other kernel: a later theorem is
    accepted or refused on its own, and two records may be checked. *)
 VerificationTest[
-	With[{big = 2^1950, root = 2^975, over = 2^1919 + 1, within = 2^61 + 1},
+	With[{big = 2^30750, root = 2^15375, over = 2^30719 + 1, within = 2^61 + 1, wide = 2^2500},
 		{
 			literalBatch[{claim["t", "doubled"[3], 6]}],
 			literalBatch[{claim["t", "doubled"[3], 7]}],
 			literalBatch[{claim["t", "difference"["doubled"[within], "doubled"[within]], 0]}],
 			literalBatch[{claim["t", "difference"["doubled"[within], "doubled"[within]], 1]}],
+			literalBatch[{claim["t", "doubled"[wide], 2 wide]}],
+			literalBatch[{claim["t", "doubled"[wide], 2 wide + 1]}],
 			literalBatch[{claim["t", "difference"["doubled"[over], "doubled"[over]], 0]}],
 			literalBatch[{claim["t", "squared"[root], big], claim["u", "doubled"[2], 4]}],
 			literalBatch[{claim["t", "squared"[root], big], claim["u", "doubled"[2], 5]}],
-			literalBatch[{claim["t", "squared"[root], big], claim["u", "powerOfTwo"[1950], big], claim["v", "doubled"[2], 4]}]
+			literalBatch[{claim["t", "squared"[root], big], claim["u", "powerOfTwo"[30750], big], claim["v", "doubled"[2], 4]}]
 		}
 	],
 	{
+		{"accepted", rechecked[], "accepted"},
+		{"TypeMismatch", rechecked[], "TypeMismatch"},
 		{"accepted", rechecked[], "accepted"},
 		{"TypeMismatch", rechecked[], "TypeMismatch"},
 		{"accepted", rechecked[], "accepted"},
@@ -670,7 +674,7 @@ VerificationTest[
 VerificationTest[
 	If[ ! available,
 		{True, None, True},
-		With[{big = 2^1950, root = 2^975},
+		With[{big = 2^30750, root = 2^15375},
 			{
 				named = TypeTheoryEnvironment[literalBase, {namedNumber["big", big], claim["t", "big", "big"]}, Method -> "Symbolic"],
 				valued = TypeTheoryEnvironment[literalBase, {claim["t", "squared"[root], big]}, Method -> "Symbolic"]
@@ -764,7 +768,7 @@ checkedAndRechecked[environment_] := {
 }
 
 VerificationTest[
-	With[{big = 2^1950, limit = 2^1950, half = 2^1949, root = 2^975},
+	With[{big = 2^30750, limit = 2^30750, half = 2^30749, root = 2^15375},
 		With[
 			{
 				honest = recheckBase[{claim["t", "squared"[root], big], claim["u", "doubled"[half], limit]}],
@@ -876,13 +880,27 @@ VerificationTest[
 	TestID -> "Every-role-on-large-literals-is-decided-by-the-compiled-kernel-alone"
 ]
 
-(* past 64 limbs a result is no literal of the program: the record is left to the other kernel, which decides it *)
+(* past 1024 limbs a result is no literal of the program: the record is left to the other kernel, which decides it *)
 VerificationTest[
-	With[{power = 2^1950, shifted = 2^1964, square = 2^2000, half = 2^1000, big = 2^64},
-		{bigVerdicts[{bigClaim[2^1950, power]}], bigVerdicts[{bigClaim["shiftLeftOf"[big, 1900], shifted]}], bigVerdicts[{bigClaim[half half, square]}]}
+	With[{power = 2^30750, shifted = 2^30764, square = 2^30800, half = 2^15400, big = 2^64, mid = 2^2500, midRoot = 2^1250},
+		{
+			bigVerdicts[{bigClaim[2^2500, mid]}],
+			bigVerdicts[{bigClaim[midRoot midRoot, mid]}],
+			bigVerdicts[{bigClaim[midRoot midRoot, mid + 1]}],
+			bigVerdicts[{bigClaim[2^30750, power]}],
+			bigVerdicts[{bigClaim["shiftLeftOf"[big, 30700], shifted]}],
+			bigVerdicts[{bigClaim[half half, square]}]
+		}
 	],
-	ConstantArray[{"accepted", If[available, {"t"}, "no library"], "accepted"}, 3],
-	TestID -> "A-result-past-64-limbs-is-left-to-the-other-kernel"
+	Join[
+		{
+			{"accepted", If[available, {}, "no library"], "accepted"},
+			{"accepted", If[available, {}, "no library"], "accepted"},
+			{"TypeMismatch", If[available, {}, "no library"], "TypeMismatch"}
+		},
+		ConstantArray[{"accepted", If[available, {"t"}, "no library"], "accepted"}, 3]
+	],
+	TestID -> "A-result-past-1024-limbs-is-left-to-the-other-kernel"
 ]
 
 (* forged chain rows, refused by the guard before the program and by the program alone: a limb of 2^30, a top chain row
@@ -1089,7 +1107,7 @@ VerificationTest[
 ]
 
 (* an eCapacity retry keeps Settings packed so programInputQ accepts the retried input instead of returning None,
-   and a failure reported on the retried run is still refused *)
+   scales capacities by 2 and memoBits by +1 (capped at 25), and still refuses failures on the retried run *)
 VerificationTest[
 	With[
 		{
@@ -1098,7 +1116,7 @@ VerificationTest[
 		},
 		Module[{calls = {}, mockAccept, mockReject, accepted, rejected},
 			mockAccept[_, _, _, _, _, settings_] := (
-				AppendTo[calls, {Developer`PackedArrayQ[settings, Integer, 1], settings[[{1, 2, 10, 11}]]}];
+				AppendTo[calls, {Developer`PackedArrayQ[settings, Integer, 1], settings[[{1, 2, 10, 11}]], settings[[7]]}];
 				If[Length[calls] == 1, {22, 1, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}]
 			);
 			mockReject[_, _, _, _, _, settings_] := If[settings[[1]] == input["Settings"][[1]], {22, 1, 0, 0, 0, 0}, {1, 1, 0, 0, 0, 0}];
@@ -1108,11 +1126,254 @@ VerificationTest[
 				MatchQ[accepted, Success["EnvironmentChecked", _]],
 				Length[calls],
 				calls[[2, 1]],
-				calls[[2, 2]] === 4 calls[[1, 2]],
+				calls[[2, 2]] === 2 calls[[1, 2]],
+				calls[[2, 3]] === Min[calls[[1, 3]] + 1, 25],
 				MatchQ[rejected, Failure["TypeMismatch", _]]
 			}
 		]
 	],
-	{True, 2, True, True, True},
+	{True, 2, True, True, True, True},
 	TestID -> "A-capacity-retry-keeps-settings-packed-and-still-refuses-failures"
+]
+
+(* Batched lambda, dependent-function and chained local-definition telescopes:
+   - a 60-binder dependent lambda telescope (lam (x_0 : Nat) (p_0 : x_0 == x_0) ... ) exercises arenaLambdaType,
+     arenaAbstractFVars and arenaFunctionTypeSort; both kernels accept the honest term and reject a forged body;
+   - a 40-binder chained let telescope where each v_j refers to x_{j-1} exercises arenaLocalDefinitionType and
+     lazy recursive arenaSubstFVars (so no dangling fvar escapes into the returned type); both accept honest and reject forged;
+   - a 160-binder nested lambda where the same inner bound variable occurs across 160 depths verifies memo hash scattering. *)
+lambdaAbstraction = Symbol["WolframInstitute`TypeTheory`PackageScope`lambdaAbstraction"]
+dependentFunctionType = Symbol["WolframInstitute`TypeTheory`PackageScope`dependentFunctionType"]
+localDefinition = Symbol["WolframInstitute`TypeTheory`PackageScope`localDefinition"]
+
+VerificationTest[
+	Module[
+		{
+			nat = constantReference[HoldComplete[NonNegativeIntegers], {}],
+			eq = constantReference[HoldComplete[Equal], {1}],
+			refl = constantReference[HoldComplete["equalityReflexivity"], {1}],
+			plus = constantReference[HoldComplete[Plus], {}],
+			eqApp, reflApp, addApp, lamType, lamBody, lamWrong, letType, letBody, letWrong, deepLamType, deepLamBody,
+			honestEnv, forgedLamEnv, forgedLetEnv
+		},
+		eqApp[a_, b_] := Construct[application, Construct[application, Construct[application, eq, nat], a], b];
+		reflApp[a_] := Construct[application, Construct[application, refl, nat], a];
+		addApp[a_, b_] := Construct[application, Construct[application, plus, a], b];
+		(* 30 pairs of (x_i : Nat, p_i : x_i == x_i) = 60 consecutive dependent binders; body returns p_0 : x_0 == x_0 *)
+		lamType = Fold[
+			Function[{acc, idx},
+				Construct[dependentFunctionType, HoldComplete["x"], nat,
+					Construct[dependentFunctionType, HoldComplete["p"], eqApp[boundVariable[0], boundVariable[0]], acc, "Explicit"],
+					"Explicit"
+				]
+			],
+			eqApp[boundVariable[59], boundVariable[59]],
+			Range[30]
+		];
+		lamBody = Fold[
+			Function[{acc, idx},
+				Construct[lambdaAbstraction, HoldComplete["x"], nat,
+					Construct[lambdaAbstraction, HoldComplete["p"], eqApp[boundVariable[0], boundVariable[0]], acc, "Explicit"],
+					"Explicit"
+				]
+			],
+			boundVariable[58],
+			Range[30]
+		];
+		lamWrong = Fold[
+			Function[{acc, idx},
+				Construct[lambdaAbstraction, HoldComplete["x"], nat,
+					Construct[lambdaAbstraction, HoldComplete["p"], eqApp[boundVariable[0], boundVariable[0]], acc, "Explicit"],
+					"Explicit"
+				]
+			],
+			boundVariable[0],
+			Range[30]
+		];
+		(* 40 chained local definitions: x_0 := 1, x_j := x_{j-1} + 1; body has dependent type x_39 == 40 *)
+		letType = eqApp[naturalLiteral[40], naturalLiteral[40]];
+		letBody = Construct[localDefinition, HoldComplete["z"], nat, naturalLiteral[1],
+			Nest[
+				Function[inner, Construct[localDefinition, HoldComplete["z"], nat, addApp[boundVariable[0], naturalLiteral[1]], inner]],
+				reflApp[boundVariable[0]],
+				39
+			]
+		];
+		letWrong = Construct[localDefinition, HoldComplete["z"], nat, naturalLiteral[1],
+			Nest[
+				Function[inner, Construct[localDefinition, HoldComplete["z"], nat, addApp[boundVariable[0], naturalLiteral[1]], inner]],
+				reflApp[naturalLiteral[41]],
+				39
+			]
+		];
+		(* 160 nested lambdas where the inner body references bound variables across 160 distinct depths *)
+		deepLamType = Nest[
+			Function[inner, Construct[dependentFunctionType, HoldComplete["d"], nat, inner, "Explicit"]],
+			nat,
+			160
+		];
+		deepLamBody = Nest[
+			Function[inner, Construct[lambdaAbstraction, HoldComplete["d"], nat, inner, "Explicit"]],
+			Fold[addApp, boundVariable[159], boundVariable /@ Range[0, 158]],
+			160
+		];
+		honestEnv = TypeTheoryEnvironment[prelude, {
+			TypeTheoryTheorem["deepLamTelescope", #1, #2, "UniverseParameters" -> {}] &[lamType, lamBody],
+			TypeTheoryTheorem["chainedLetTelescope", #1, #2, "UniverseParameters" -> {}] &[letType, letBody],
+			TypeTheoryDefinition["deepBVarScatter", Typed[#2, #1], "UniverseParameters" -> {}] &[deepLamType, deepLamBody]
+		}, Method -> compiledMethod];
+		forgedLamEnv = TypeTheoryEnvironment[prelude, {
+			TypeTheoryTheorem["forgedLamTelescope", #1, #2, "UniverseParameters" -> {}] &[lamType, lamWrong]
+		}, Method -> compiledMethod];
+		forgedLetEnv = TypeTheoryEnvironment[prelude, {
+			TypeTheoryTheorem["forgedLetTelescope", #1, #2, "UniverseParameters" -> {}] &[letType, letWrong]
+		}, Method -> compiledMethod];
+		{
+			If[Head[honestEnv] === TypeTheoryEnvironment, bothKernels[honestEnv], honestEnv],
+			First[forgedLamEnv],
+			First[forgedLetEnv]
+		}
+	],
+	{{"EnvironmentChecked", "EnvironmentChecked"}, "TypeMismatch", "TypeMismatch"},
+	TestID -> "Batched-lambda-pi-and-chained-let-telescopes-check-and-reject-forgeries"
+]
+
+(* Memo overflow returns eCapacity cleanly instead of hanging, and compiledCheckWith retries with a larger memo table *)
+VerificationTest[
+	If[ ! available,
+		{True, True},
+		With[{input = compiledPrivate["environmentInput"][matrixEnvironment, 0, 0, 1]},
+			With[{tinyMemo = Append[input, "Settings" -> Developer`ToPackedArray[ReplacePart[Normal[input["Settings"]], 7 -> 5]]]},
+				{
+					programStatus[tinyMemo] === 22,
+					MatchQ[compiledPrivate["compiledCheckWith"][compiledPrivate["compiledKernelFunction"][], tinyMemo, 1], Success["EnvironmentChecked", _]]
+				}
+			]
+		]
+	],
+	{True, True},
+	TestID -> "Memo-overflow-returns-eCapacity-and-succeeds-on-retry"
+]
+
+(* Forced intra-declaration scratch compaction (settings[[14]] = 200):
+   - a recursive natural-number definition allocates >1,000 scratch nodes inside arenaWhnfCore so settings[[14]] = 200
+     triggers multiple intra-declaration compactions (epoch >= 4);
+   - >2^62 big-literal arithmetic and universe-polymorphic scratch levels created before compaction (TypeUniverse[u + 2])
+     survive compaction and still hash-cons identically in hLevelTableBase afterwards;
+   - forged proofs of both the arithmetic and polymorphic statements are still rejected after compaction. *)
+VerificationTest[
+	If[ ! available,
+		{True, True, True, True, True},
+		Module[
+			{
+				compEnv, forgedArith, forgedPoly, runCompact, resHonest, resArith, resPoly
+			},
+			compEnv = TypeTheoryEnvironment[literalBase, {
+				TypeTheoryDefinition["polyId", Typed[Function[{Typed[A, TypeUniverse[u + 1]], Typed[x, A]}, x], ForAll[{Typed[A, TypeUniverse[u + 1]]}, A -> A]]],
+				TypeTheoryDefinition["stepSum", Typed[
+					Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+						Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers],
+						2^70,
+						Function[{Typed[k, NonNegativeIntegers], Typed[acc, NonNegativeIntegers]}, acc + 1],
+						n
+					]],
+					NonNegativeIntegers -> NonNegativeIntegers
+				]],
+				TypeTheoryTheorem["compactBig", "stepSum"[150] == 2^70 + 150, "equalityReflexivity"[2^70 + 150]],
+				TypeTheoryTheorem["compactPoly",
+					ForAll[{Typed[A, TypeUniverse[u + 2]], Typed[x, A]}, "stepSum"[150] == 2^70 + 150 && "polyId"[A, x] == x],
+					Function[{Typed[A, TypeUniverse[u + 2]], Typed[x, A]}, "andIntroduction"["equalityReflexivity"[2^70 + 150], "equalityReflexivity"[x]]]
+				]
+			}, Method -> "Symbolic"];
+			forgedArith = forge[compEnv, HoldComplete["compactBig"], Function[record,
+				Association[record, "Value" -> First[TypeTheoryEnvironment[literalBase, {TypeTheoryTheorem["w", 2^70 + 151 == 2^70 + 151, "equalityReflexivity"[2^70 + 151]]}, Method -> "Symbolic"]]["Records"][HoldComplete["w"]]["Value"]]
+			]];
+			forgedPoly = forge[compEnv, HoldComplete["compactPoly"], Function[record,
+				Association[record, "Value" -> First[compEnv]["Records"][HoldComplete["compactBig"]]["Value"]]
+			]];
+			runCompact[env_] := With[{input = compiledPrivate["environmentInput"][env, 0, 0, 1]},
+				compiledPrivate["compiledKernelFunction"][][
+					input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"],
+					Developer`ToPackedArray[Join[Normal[input["Settings"]], {0, 200}]]
+				]
+			];
+			resHonest = runCompact[compEnv];
+			resArith = runCompact[forgedArith];
+			resPoly = runCompact[forgedPoly];
+			{
+				resHonest[[1]] === 0,
+				resHonest[[15]] >= 4,
+				resArith[[1]] =!= 0,
+				resPoly[[1]] =!= 0,
+				bothKernels[compEnv] === {"EnvironmentChecked", "EnvironmentChecked"}
+			}
+		]
+	],
+	{True, True, True, True, True},
+	TestID -> "Intra-declaration-scratch-compaction-preserves-levels-big-literals-and-rejects-forgeries"
+]
+
+(* Zero-root scratch rollback across sibling arguments in arenaSpineType (settings[[14]] = 1):
+   sibling 1 allocates fvar 1 with type NonNegativeIntegers (or let-value 3) and rolls back hLctx to 0;
+   sibling 2 reuses fvar 1 with type Booleans (or let-value 4). The honest declaration passes across rollback,
+   while forged second siblings that could only check with sibling 1's stale fvar type or let-value are rejected. *)
+VerificationTest[
+	If[ ! available,
+		{True, True, True, True, True},
+		Module[
+			{
+				nat = constantReference[HoldComplete[NonNegativeIntegers], {}],
+				bool = constantReference[HoldComplete[Booleans], {}],
+				eq = constantReference[HoldComplete[Equal], {1}],
+				refl = constantReference[HoldComplete["equalityReflexivity"], {1}],
+				eqApp, reflApp, letSib1, letSib2Honest, letSib2Forged,
+				rollBase, rollHonest, rollForgedType, rollForgedLet, runRoll, resH, resFT, resFL
+			},
+			eqApp[a_, b_] := Construct[application, Construct[application, Construct[application, eq, nat], a], b];
+			reflApp[a_] := Construct[application, Construct[application, refl, nat], a];
+			letSib1 = Construct[localDefinition, HoldComplete["z"], nat, naturalLiteral[3], reflApp[boundVariable[0]]];
+			letSib2Honest = Construct[localDefinition, HoldComplete["z"], nat, naturalLiteral[4], reflApp[boundVariable[0]]];
+			letSib2Forged = Construct[localDefinition, HoldComplete["z"], nat, naturalLiteral[4], reflApp[boundVariable[0]]];
+			rollBase = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom["pairTypes", TypeSpecifier[{NonNegativeIntegers -> NonNegativeIntegers, Booleans -> Booleans} -> NonNegativeIntegers]],
+				TypeTheoryAxiom["pairTypesWrong", TypeSpecifier[{NonNegativeIntegers -> NonNegativeIntegers, Booleans -> NonNegativeIntegers} -> NonNegativeIntegers]],
+				TypeTheoryAxiom["pairLets", TypeSpecifier[{3 == 3, 4 == 4} -> NonNegativeIntegers]],
+				TypeTheoryAxiom["pairLetsWrong", TypeSpecifier[{3 == 3, 3 == 3} -> NonNegativeIntegers]]
+			}, Method -> "Symbolic"];
+			rollHonest = TypeTheoryEnvironment[rollBase, {
+				TypeTheoryDefinition["sibTypesOk", Typed[
+					"pairTypes"[Function[{Typed[x, NonNegativeIntegers]}, x], Function[{Typed[y, Booleans]}, y]],
+					NonNegativeIntegers
+				]],
+				TypeTheoryDefinition["sibLetsOk", Typed[#1, #2], "UniverseParameters" -> {}] &[
+					Construct[application, Construct[application, constantReference[HoldComplete["pairLets"], {}], letSib1], letSib2Honest],
+					nat
+				]
+			}, Method -> "Symbolic"];
+			rollForgedType = forge[rollHonest, HoldComplete["sibTypesOk"], Function[record,
+				Association[record, "Value" -> (record["Value"] /. HoldComplete["pairTypes"] -> HoldComplete["pairTypesWrong"])]
+			]];
+			rollForgedLet = forge[rollHonest, HoldComplete["sibLetsOk"], Function[record,
+				Association[record, "Value" -> Construct[application, Construct[application, constantReference[HoldComplete["pairLetsWrong"], {}], letSib1], letSib2Forged]]
+			]];
+			runRoll[env_] := With[{input = compiledPrivate["environmentInput"][env, Length[rollBase], 0, 1]},
+				compiledPrivate["compiledKernelFunction"][][
+					input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"],
+					Developer`ToPackedArray[Join[Normal[input["Settings"]], {0, 1}]]
+				]
+			];
+			resH = runRoll[rollHonest];
+			resFT = runRoll[rollForgedType];
+			resFL = runRoll[rollForgedLet];
+			{
+				resH[[1]] === 0,
+				resH[[15]] >= 2,
+				resFT[[1]] === 1,
+				resFL[[1]] === 1,
+				bothKernels[rollHonest] === {"EnvironmentChecked", "EnvironmentChecked"}
+			}
+		]
+	],
+	{True, True, True, True, True},
+	TestID -> "Scratch-rollback-across-sibling-arguments-reuses-fvar-ids-without-stale-leakage"
 ]

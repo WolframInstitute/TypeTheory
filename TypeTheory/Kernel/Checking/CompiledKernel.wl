@@ -108,7 +108,7 @@ $codeConstants = {
 	hMarkBase -> 51, hMarkGen -> 52, hCurrent -> 53, hLazyX -> 54, hLazyY -> 55, hFailA -> 56, hFailB -> 57, hFailTerm -> 58,
 	hEpoch -> 59, hNodeMark -> 60, hLevelMark -> 61, hContextMark -> 62, hScratchStart -> 63, hLevelScratchStart -> 64,
 	hScratchPeak -> 65, hNodesMade -> 66, hLevelsMade -> 67, hLostEntries -> 68, hProbePassed -> 69, hDeclarationStart -> 70,
-	hResetThreshold -> 71,
+	hResetThreshold -> 71, hCompactThreshold -> 72,
 	hHeaderSize -> 80,
 	(* the scratch region: a stored node or level made while checking carries in its upper bits the epoch that wrote
 	   it, and is gone once the region is given up, when what the declarations made fills half its room; an epoch of 0
@@ -124,8 +124,8 @@ $codeConstants = {
 	eProjProof -> 10, eUndeclaredParam -> 11, eIllFormed -> 12, eDeclarationMismatch -> 13, eUniverseTooLarge -> 14, eConstructorParameters -> 15,
 	eUnsupported -> 20, eDepth -> 21, eCapacity -> 22, eStack -> 23, eLevelCapacity -> 24, eLctxCapacity -> 25, eLiteralOverflow -> 26,
 	eScratchInvariant -> 27,
-	mask40 -> 1099511627775, litLimit -> 4611686018427387904,
-	limbMask -> 1073741823, limbBase -> 1073741824, limbCap -> 64, limbWidth -> 132
+	mask30 -> 1073741823, mask40 -> 1099511627775, litLimit -> 4611686018427387904,
+	limbMask -> 1073741823, limbBase -> 1073741824, limbCap -> 1024, limbWidth -> 2052
 }
 
 SetAttributes[kfn, HoldAll]
@@ -191,6 +191,209 @@ $program = Hold[{
 		m["SetPart", hDeclarationStart, m["Part", hNodes]];
 		If[epoch >= 1073741824, Return[arenaFail[m, eCapacity]]];
 		m["SetPart", hEpoch, epoch];
+		1
+	]]],
+	(* intra-declaration scratch compaction: inside a closed reduction loop (arenaWhnfCore or arenaLazyDelta), every
+	   caller above only holds node ids <= baseNodes, so once scratch grows past the watermark with no new fvars or
+	   stack frames live, only the subgraph of the loop's 1 or 2 roots above baseNodes is kept *)
+	kfn[arenaCompactStep, Function[{m, baseNodes}, Module[{thresh = m["Part", hCompactThreshold]},
+		If[thresh > 0, thresh, Max[Min[200000, Quotient[m["Part", hCap], 4]], baseNodes - m["Part", hNodeMark]]]
+	]]],
+	kfn[arenaShouldCompactQ, Function[{m, compactAt, baseLctx, baseStack},
+		If[arenaDebug == 1 || m["Part", hLctx] != baseLctx || m["Part", hStackTop] != baseStack, 0,
+			If[m["Part", hNodes] >= compactAt, 1, 0]
+		]
+	]],
+	(* zero-root scratch rollback: after a completed check (arenaCheckHasType, arenaSpineType argument check, or
+	   arenaIsDefEq) that returns no node id > baseNodes and no fvar > baseLctx, reclaim scratch nodes and local-context
+	   entries made since baseNodes/baseLctx and re-insert surviving scratch nodes and levels under the new epoch *)
+	kfn[arenaRollbackScratch, Function[{m, baseNodes, baseLctx}, Module[
+		{
+			nodeBase = m["Part", hNodeBase], tableBase = m["Part", hTableBase], tableMask = m["Part", hTableMask],
+			levelBase = m["Part", hLevelBase], levelTableBase = m["Part", hLevelTableBase], levelMask = m["Part", hLevelTableMask],
+			epoch = m["Part", hEpoch] + 1, oldNodes = m["Part", hNodes],
+			cell = 0, tag = 0, a = 0, b = 0, c = 0, h = 0, id = 0, k = 0
+		},
+		If[epoch >= 1073741824, Return[1]];
+		If[oldNodes - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, oldNodes - m["Part", hDeclarationStart]]];
+		m["SetPart", hEpoch, epoch];
+		m["SetPart", hNodes, baseNodes];
+		m["SetPart", hLctx, baseLctx];
+		m["SetPart", hNodesMade, m["Part", hNodesMade] + oldNodes - baseNodes];
+		Do[
+			cell = nodeBase + 6 k - 6;
+			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3]; c = m["Part", cell + 4];
+			h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
+			h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
+			h = BitAnd[h * 1000003 + BitAnd[c, mask40], mask40];
+			h = BitAnd[BitXor[h, BitShiftRight[h, 17]], tableMask];
+			While[True,
+				id = m["Part", tableBase + 1 + h];
+				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
+				h = BitAnd[h + 1, tableMask]
+			];
+			m["SetPart", tableBase + 1 + h, k + stampUnit epoch],
+			{k, m["Part", hNodeMark] + 1, baseNodes}
+		];
+		Do[
+			cell = levelBase + 4 k - 4;
+			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3];
+			h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
+			h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
+			h = BitAnd[BitXor[h, BitShiftRight[h, 17]], levelMask];
+			While[True,
+				id = m["Part", levelTableBase + 1 + h];
+				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
+				h = BitAnd[h + 1, levelMask]
+			];
+			m["SetPart", levelTableBase + 1 + h, k + stampUnit epoch],
+			{k, m["Part", hLevelMark] + 1, m["Part", hLevels]}
+		];
+		1
+	]]],
+	kfn[arenaCompactScratch, Function[{m, baseNodes, root1, root2}, Module[
+		{
+			baseStack = m["Part", hStackTop], stackCap = m["Part", hStackCap], stackBase = m["Part", hStackBase],
+			markBase = m["Part", hMarkBase], nodeBase = m["Part", hNodeBase], tableBase = m["Part", hTableBase], tableMask = m["Part", hTableMask],
+			levelBase = m["Part", hLevelBase], levelTableBase = m["Part", hLevelTableBase], levelMask = m["Part", hLevelTableMask],
+			mg = m["Part", hMarkGen] + 1, mgStamp = 0, postBase = 0, postCount = 0, dfsTop = 0, tupleBase = 0,
+			cur = 0, id = 0, mark = 0, cell = 0, tag = 0, a = 0, b = 0, c = 0, h = 0,
+			mr1 = 0, mr2 = 0, nr1 = 0, nr2 = 0, epoch = 0, oldNodes = 0, nid = 0, i = 0, k = 0
+		},
+		If[mg >= 1073741824, Return[arenaFail[m, eCapacity]]];
+		m["SetPart", hMarkGen, mg];
+		mgStamp = mg stampUnit;
+		postBase = baseStack;
+		dfsTop = stackCap;
+		If[postBase + 8 >= dfsTop, Return[0]];
+		If[root2 > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, root2]];
+		If[root1 > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, root1]];
+		While[dfsTop < stackCap,
+			cur = m["Part", stackBase + 1 + dfsTop];
+			dfsTop++;
+			If[cur < 0,
+				id = -cur;
+				postCount++;
+				If[postBase + 5 postCount + 16 >= dfsTop || baseNodes + postCount >= m["Part", hCap] - 16,
+					Return[0]
+				];
+				m["SetPart", stackBase + 1 + postBase + postCount - 1, id];
+				m["SetPart", markBase + id, mgStamp + postCount],
+				mark = m["Part", markBase + cur];
+				If[BitShiftRight[mark, 32] != mg,
+					m["SetPart", markBase + cur, mgStamp];
+					If[postBase + postCount + 8 >= dfsTop, Return[0]];
+					dfsTop--;
+					m["SetPart", stackBase + 1 + dfsTop, -cur];
+					cell = nodeBase + 6 cur - 6;
+					tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3]; c = m["Part", cell + 4];
+					Which[
+						tag == tApp || tag == tLam || tag == tPi,
+							If[b > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, b]];
+							If[a > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, a]],
+						tag == tLet,
+							If[c > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, c]];
+							If[b > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, b]];
+							If[a > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, a]],
+						tag == tProj || tag == tLimbs,
+							If[c > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, c]],
+						tag == tBig,
+							If[a > baseNodes, dfsTop--; m["SetPart", stackBase + 1 + dfsTop, a]]
+					]
+				]
+			]
+		];
+		If[postBase + 5 postCount >= stackCap, Return[0]];
+		tupleBase = postBase + postCount;
+		Do[
+			id = m["Part", stackBase + 1 + postBase + i];
+			cell = nodeBase + 6 id - 6;
+			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3]; c = m["Part", cell + 4];
+			Which[
+				tag == tApp || tag == tLam || tag == tPi,
+					If[a > baseNodes, a = -BitAnd[m["Part", markBase + a], stampMask]];
+					If[b > baseNodes, b = -BitAnd[m["Part", markBase + b], stampMask]],
+				tag == tLet,
+					If[a > baseNodes, a = -BitAnd[m["Part", markBase + a], stampMask]];
+					If[b > baseNodes, b = -BitAnd[m["Part", markBase + b], stampMask]];
+					If[c > baseNodes, c = -BitAnd[m["Part", markBase + c], stampMask]],
+				tag == tProj || tag == tLimbs,
+					If[c > baseNodes, c = -BitAnd[m["Part", markBase + c], stampMask]],
+				tag == tBig,
+					If[a > baseNodes, a = -BitAnd[m["Part", markBase + a], stampMask]]
+			];
+			m["SetPart", stackBase + 1 + tupleBase + 4 i, tag];
+			m["SetPart", stackBase + 1 + tupleBase + 4 i + 1, a];
+			m["SetPart", stackBase + 1 + tupleBase + 4 i + 2, b];
+			m["SetPart", stackBase + 1 + tupleBase + 4 i + 3, c],
+			{i, 0, postCount - 1}
+		];
+		mr1 = If[root1 > baseNodes, -BitAnd[m["Part", markBase + root1], stampMask], root1];
+		mr2 = If[root2 > baseNodes, -BitAnd[m["Part", markBase + root2], stampMask], root2];
+		epoch = m["Part", hEpoch] + 1;
+		If[epoch >= 1073741824, Return[arenaFail[m, eCapacity]]];
+		oldNodes = m["Part", hNodes];
+		If[oldNodes - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, oldNodes - m["Part", hDeclarationStart]]];
+		m["SetPart", hEpoch, epoch];
+		m["SetPart", hNodes, baseNodes];
+		(* re-insert surviving scratch nodes and scratch levels into their hash-cons tables under the new epoch *)
+		Do[
+			cell = nodeBase + 6 k - 6;
+			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3]; c = m["Part", cell + 4];
+			h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
+			h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
+			h = BitAnd[h * 1000003 + BitAnd[c, mask40], mask40];
+			h = BitAnd[BitXor[h, BitShiftRight[h, 17]], tableMask];
+			While[True,
+				id = m["Part", tableBase + 1 + h];
+				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
+				h = BitAnd[h + 1, tableMask]
+			];
+			m["SetPart", tableBase + 1 + h, k + stampUnit epoch],
+			{k, m["Part", hNodeMark] + 1, baseNodes}
+		];
+		Do[
+			cell = levelBase + 4 k - 4;
+			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3];
+			h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
+			h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
+			h = BitAnd[BitXor[h, BitShiftRight[h, 17]], levelMask];
+			While[True,
+				id = m["Part", levelTableBase + 1 + h];
+				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
+				h = BitAnd[h + 1, levelMask]
+			];
+			m["SetPart", levelTableBase + 1 + h, k + stampUnit epoch],
+			{k, m["Part", hLevelMark] + 1, m["Part", hLevels]}
+		];
+		Do[
+			tag = m["Part", stackBase + 1 + tupleBase + 4 i];
+			a = m["Part", stackBase + 1 + tupleBase + 4 i + 1];
+			b = m["Part", stackBase + 1 + tupleBase + 4 i + 2];
+			c = m["Part", stackBase + 1 + tupleBase + 4 i + 3];
+			Which[
+				tag == tApp || tag == tLam || tag == tPi,
+					If[a < 0, a = m["Part", stackBase + 1 + postBase - a - 1]];
+					If[b < 0, b = m["Part", stackBase + 1 + postBase - b - 1]],
+				tag == tLet,
+					If[a < 0, a = m["Part", stackBase + 1 + postBase - a - 1]];
+					If[b < 0, b = m["Part", stackBase + 1 + postBase - b - 1]];
+					If[c < 0, c = m["Part", stackBase + 1 + postBase - c - 1]],
+				tag == tProj || tag == tLimbs,
+					If[c < 0, c = m["Part", stackBase + 1 + postBase - c - 1]],
+				tag == tBig,
+					If[a < 0, a = m["Part", stackBase + 1 + postBase - a - 1]]
+			];
+			nid = arenaMkNode[m, tag, a, b, c];
+			If[nid == 0, Return[0]];
+			m["SetPart", stackBase + 1 + postBase + i, nid],
+			{i, 0, postCount - 1}
+		];
+		m["SetPart", hNodesMade, m["Part", hNodesMade] + oldNodes - m["Part", hNodes]];
+		nr1 = If[mr1 < 0, m["Part", stackBase + 1 + postBase - mr1 - 1], mr1];
+		nr2 = If[mr2 < 0, m["Part", stackBase + 1 + postBase - mr2 - 1], mr2];
+		m["SetPart", hLazyX, nr1];
+		m["SetPart", hLazyY, nr2];
 		1
 	]]],
 
@@ -433,18 +636,19 @@ $program = Hold[{
 	(* Memo of the walks, by generation; the universe instantiation cache; the failure table; union-find *)
 
 	kfn[arenaNewGen, Function[{m}, Module[{g = m["Part", hGen] + 1}, m["SetPart", hGen, g]; g]]],
-	(* the slot holding the keys in generation gen as 1 + h, or the free slot for them as -1 - h, or 0 *)
+	(* the slot holding the keys in generation gen as 1 + h, or the free slot for them as -1 - h, or 0 after recording eCapacity *)
 	kfn[arenaMemoSlot, Function[{m, k1, k2, gen}, Module[{mask = m["Part", hMemoMask], base = m["Part", hMemoBase], h = 0, cell = 0},
-		h = BitAnd[BitAnd[k1, mask40] * 1000003 + BitAnd[k2, mask40], mask40];
-		h = BitAnd[BitXor[h, BitShiftRight[h, 15]], mask];
+		h = BitAnd[BitAnd[k1, mask30] * 1000003 + BitAnd[k2, mask30] * 1000033, mask40];
+		h = BitAnd[BitXor[h, BitShiftRight[h, 15]] * 1000037, mask40];
+		h = BitAnd[BitXor[h, BitShiftRight[h, 17]], mask];
 		Do[
 			cell = base + 4 h;
 			If[m["Part", cell + 3] != gen, Return[-1 - h]];
 			If[m["Part", cell + 1] == k1 && m["Part", cell + 2] == k2, Return[1 + h]];
 			h = BitAnd[h + 1, mask],
-			{64}
+			{128}
 		];
-		0
+		arenaFail[m, eCapacity]
 	]]],
 	kfn[arenaMemoValue, Function[{m, slot}, m["Part", m["Part", hMemoBase] + 4 (slot - 1) + 4]]],
 	kfn[arenaMemoStore, Function[{m, slot, k1, k2, gen, v}, Module[{cell = 0},
@@ -557,43 +761,52 @@ $program = Hold[{
 	(* the loose bound variables depth, depth + 1, ... of e replaced by the k values on the stack from vs, the last for depth *)
 	kfn[arenaInst, Function[{m, e, depth, vs, k, gen}, Module[{t = 0, slot = 0, r = 0, i = 0, v = 0},
 		If[arenaRangeOf[m, e] <= depth, Return[e]];
+		t = arenaTagOf[m, e];
+		If[t == tBVar,
+			i = arenaF1Of[m, e];
+			If[i < depth + k,
+				v = arenaStackGet[m, vs + k - 1 - (i - depth)];
+				If[depth == 0 || arenaRangeOf[m, v] == 0, Return[v]];
+				If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
+				Return[arenaLeave[m, arenaLiftLoose[m, v, depth]]],
+				Return[arenaMkNode[m, tBVar, i - k, 0, 0]]
+			]
+		];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, depth, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		If[slot > 0, Return[arenaLeave[m, arenaMemoValue[m, slot]]]];
-		t = arenaTagOf[m, e];
 		r = Which[
-			t == tBVar,
-				i = arenaF1Of[m, e];
-				If[i < depth + k,
-					v = arenaStackGet[m, vs + k - 1 - (i - depth)];
-					If[depth == 0 || arenaRangeOf[m, v] == 0, v, arenaLiftLoose[m, v, depth]],
-					arenaMkNode[m, tBVar, i - k, 0, 0]
-				],
 			t == tApp, arenaMkApp[m, arenaInst[m, arenaF1Of[m, e], depth, vs, k, gen], arenaInst[m, arenaF2Of[m, e], depth, vs, k, gen]],
 			t == tLam || t == tPi, arenaMkBinder[m, t, arenaInst[m, arenaF1Of[m, e], depth, vs, k, gen], arenaInst[m, arenaF2Of[m, e], depth + 1, vs, k, gen]],
 			t == tLet, arenaMkLet[m, arenaInst[m, arenaF1Of[m, e], depth, vs, k, gen], arenaInst[m, arenaF2Of[m, e], depth, vs, k, gen], arenaInst[m, arenaF3Of[m, e], depth + 1, vs, k, gen]],
 			t == tProj, arenaMkProj[m, arenaF1Of[m, e], arenaF2Of[m, e], arenaInst[m, arenaF3Of[m, e], depth, vs, k, gen]],
 			True, e
 		];
+		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, depth, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		arenaMemoStore[m, slot, e, depth, gen, r];
 		arenaLeave[m, r]
 	]]],
 	kfn[arenaLift, Function[{m, e, amount, cutoff, gen}, Module[{t = 0, slot = 0, r = 0, i = 0},
 		If[arenaRangeOf[m, e] <= cutoff, Return[e]];
+		t = arenaTagOf[m, e];
+		If[t == tBVar, i = arenaF1Of[m, e]; Return[arenaMkNode[m, tBVar, If[i >= cutoff, i + amount, i], 0, 0]]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, cutoff, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		If[slot > 0, Return[arenaLeave[m, arenaMemoValue[m, slot]]]];
-		t = arenaTagOf[m, e];
 		r = Which[
-			t == tBVar, i = arenaF1Of[m, e]; arenaMkNode[m, tBVar, If[i >= cutoff, i + amount, i], 0, 0],
 			t == tApp, arenaMkApp[m, arenaLift[m, arenaF1Of[m, e], amount, cutoff, gen], arenaLift[m, arenaF2Of[m, e], amount, cutoff, gen]],
 			t == tLam || t == tPi, arenaMkBinder[m, t, arenaLift[m, arenaF1Of[m, e], amount, cutoff, gen], arenaLift[m, arenaF2Of[m, e], amount, cutoff + 1, gen]],
 			t == tLet, arenaMkLet[m, arenaLift[m, arenaF1Of[m, e], amount, cutoff, gen], arenaLift[m, arenaF2Of[m, e], amount, cutoff, gen], arenaLift[m, arenaF3Of[m, e], amount, cutoff + 1, gen]],
 			t == tProj, arenaMkProj[m, arenaF1Of[m, e], arenaF2Of[m, e], arenaLift[m, arenaF3Of[m, e], amount, cutoff, gen]],
 			True, e
 		];
+		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, cutoff, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		arenaMemoStore[m, slot, e, cutoff, gen, r];
 		arenaLeave[m, r]
 	]]],
@@ -611,38 +824,124 @@ $program = Hold[{
 	]]],
 	kfn[arenaAbst, Function[{m, e, fv, depth, gen}, Module[{t = 0, slot = 0, r = 0},
 		If[BitAnd[arenaFlagsOf[m, e], 1] == 0, Return[e]];
+		t = arenaTagOf[m, e];
+		If[t == tFVar, Return[If[arenaF1Of[m, e] == fv, arenaMkNode[m, tBVar, depth, 0, 0], e]]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, depth, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		If[slot > 0, Return[arenaLeave[m, arenaMemoValue[m, slot]]]];
-		t = arenaTagOf[m, e];
 		r = Which[
-			t == tFVar, If[arenaF1Of[m, e] == fv, arenaMkNode[m, tBVar, depth, 0, 0], e],
 			t == tApp, arenaMkApp[m, arenaAbst[m, arenaF1Of[m, e], fv, depth, gen], arenaAbst[m, arenaF2Of[m, e], fv, depth, gen]],
 			t == tLam || t == tPi, arenaMkBinder[m, t, arenaAbst[m, arenaF1Of[m, e], fv, depth, gen], arenaAbst[m, arenaF2Of[m, e], fv, depth + 1, gen]],
 			t == tLet, arenaMkLet[m, arenaAbst[m, arenaF1Of[m, e], fv, depth, gen], arenaAbst[m, arenaF2Of[m, e], fv, depth, gen], arenaAbst[m, arenaF3Of[m, e], fv, depth + 1, gen]],
 			t == tProj, arenaMkProj[m, arenaF1Of[m, e], arenaF2Of[m, e], arenaAbst[m, arenaF3Of[m, e], fv, depth, gen]],
 			True, e
 		];
+		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, depth, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		arenaMemoStore[m, slot, e, depth, gen, r];
 		arenaLeave[m, r]
 	]]],
 	kfn[arenaAbstractFVar, Function[{m, e, fvNode}, If[e < 1 || fvNode < 1, arenaFail[m, eIllFormed], arenaAbst[m, e, arenaF1Of[m, fvNode], 0, arenaNewGen[m]]]]],
-	kfn[arenaOcc, Function[{m, e, target, gen}, Module[{t = 0, slot = 0, r = 0},
-		If[arenaRangeOf[m, e] <= target, Return[0]];
+	(* binary search for fvId in the strictly increasing fvIds[0..k-1] on the stack *)
+	kfn[arenaFindFVarIndex, Function[{m, fvIds, k, fvId}, Module[{lo = 0, hi = k - 1, mid = 0, cur = 0},
+		While[lo <= hi,
+			mid = BitShiftRight[lo + hi, 1];
+			cur = arenaStackGet[m, fvIds + mid];
+			Which[
+				cur == fvId, Return[mid],
+				cur < fvId, lo = mid + 1,
+				True, hi = mid - 1
+			]
+		];
+		-1
+	]]],
+	kfn[arenaAbstMany, Function[{m, e, fvIds, k, fvMin, fvMax, depth, gen}, Module[{t = 0, slot = 0, r = 0, fvId = 0, idx = 0},
+		If[BitAnd[arenaFlagsOf[m, e], 1] == 0, Return[e]];
+		t = arenaTagOf[m, e];
+		If[t == tFVar,
+			fvId = arenaF1Of[m, e];
+			If[fvId >= fvMin && fvId <= fvMax,
+				idx = arenaFindFVarIndex[m, fvIds, k, fvId];
+				Return[If[idx >= 0, arenaMkNode[m, tBVar, depth + (k - 1 - idx), 0, 0], e]],
+				Return[e]
+			]
+		];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
-		slot = arenaMemoSlot[m, e, target, gen];
+		slot = arenaMemoSlot[m, e, depth, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
+		If[slot > 0, Return[arenaLeave[m, arenaMemoValue[m, slot]]]];
+		r = Which[
+			t == tApp, arenaMkApp[m, arenaAbstMany[m, arenaF1Of[m, e], fvIds, k, fvMin, fvMax, depth, gen], arenaAbstMany[m, arenaF2Of[m, e], fvIds, k, fvMin, fvMax, depth, gen]],
+			t == tLam || t == tPi, arenaMkBinder[m, t, arenaAbstMany[m, arenaF1Of[m, e], fvIds, k, fvMin, fvMax, depth, gen], arenaAbstMany[m, arenaF2Of[m, e], fvIds, k, fvMin, fvMax, depth + 1, gen]],
+			t == tLet, arenaMkLet[m, arenaAbstMany[m, arenaF1Of[m, e], fvIds, k, fvMin, fvMax, depth, gen], arenaAbstMany[m, arenaF2Of[m, e], fvIds, k, fvMin, fvMax, depth, gen], arenaAbstMany[m, arenaF3Of[m, e], fvIds, k, fvMin, fvMax, depth + 1, gen]],
+			t == tProj, arenaMkProj[m, arenaF1Of[m, e], arenaF2Of[m, e], arenaAbstMany[m, arenaF3Of[m, e], fvIds, k, fvMin, fvMax, depth, gen]],
+			True, e
+		];
+		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
+		slot = arenaMemoSlot[m, e, depth, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
+		arenaMemoStore[m, slot, e, depth, gen, r];
+		arenaLeave[m, r]
+	]]],
+	kfn[arenaAbstractFVars, Function[{m, e, fvIds, k}, If[e < 1, arenaFail[m, eIllFormed], If[k == 0 || BitAnd[arenaFlagsOf[m, e], 1] == 0, e, arenaAbstMany[m, e, fvIds, k, arenaStackGet[m, fvIds], arenaStackGet[m, fvIds + k - 1], 0, arenaNewGen[m]]]]]],
+	(* single-pass lazy substitution of fvIds[0..k-1] -> vals[0..k-1] (each closed wrt bvars), memoizing resolved values *)
+	kfn[arenaSubstWalk, Function[{m, e, fvIds, vals, resolved, k, fvMin, fvMax, gen}, Module[{t = 0, slot = 0, r = 0, fvId = 0, idx = 0, rv = 0},
+		If[BitAnd[arenaFlagsOf[m, e], 1] == 0, Return[e]];
+		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
+		slot = arenaMemoSlot[m, e, 0, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		If[slot > 0, Return[arenaLeave[m, arenaMemoValue[m, slot]]]];
 		t = arenaTagOf[m, e];
 		r = Which[
-			t == tBVar, If[arenaF1Of[m, e] == target, 1, 0],
+			t == tFVar,
+				fvId = arenaF1Of[m, e];
+				If[fvId >= fvMin && fvId <= fvMax,
+					idx = arenaFindFVarIndex[m, fvIds, k, fvId];
+					If[idx >= 0,
+						rv = arenaStackGet[m, resolved + idx];
+						If[rv == 0,
+							rv = arenaSubstWalk[m, arenaStackGet[m, vals + idx], fvIds, vals, resolved, k, fvMin, fvMax, gen];
+							If[rv == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
+							arenaStackSet[m, resolved + idx, rv]
+						];
+						rv,
+						e
+					],
+					e
+				],
+			t == tApp, arenaMkApp[m, arenaSubstWalk[m, arenaF1Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen], arenaSubstWalk[m, arenaF2Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen]],
+			t == tLam || t == tPi, arenaMkBinder[m, t, arenaSubstWalk[m, arenaF1Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen], arenaSubstWalk[m, arenaF2Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen]],
+			t == tLet, arenaMkLet[m, arenaSubstWalk[m, arenaF1Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen], arenaSubstWalk[m, arenaF2Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen], arenaSubstWalk[m, arenaF3Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen]],
+			t == tProj, arenaMkProj[m, arenaF1Of[m, e], arenaF2Of[m, e], arenaSubstWalk[m, arenaF3Of[m, e], fvIds, vals, resolved, k, fvMin, fvMax, gen]],
+			True, e
+		];
+		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
+		slot = arenaMemoSlot[m, e, 0, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
+		arenaMemoStore[m, slot, e, 0, gen, r];
+		arenaLeave[m, r]
+	]]],
+	kfn[arenaSubstFVars, Function[{m, e, fvIds, vals, resolved, k}, If[e < 1, arenaFail[m, eIllFormed], If[k == 0 || BitAnd[arenaFlagsOf[m, e], 1] == 0, e, arenaSubstWalk[m, e, fvIds, vals, resolved, k, arenaStackGet[m, fvIds], arenaStackGet[m, fvIds + k - 1], arenaNewGen[m]]]]]],
+	kfn[arenaOcc, Function[{m, e, target, gen}, Module[{t = 0, slot = 0, r = 0},
+		If[arenaRangeOf[m, e] <= target, Return[0]];
+		t = arenaTagOf[m, e];
+		If[t == tBVar, Return[If[arenaF1Of[m, e] == target, 1, 0]]];
+		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
+		slot = arenaMemoSlot[m, e, target, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
+		If[slot > 0, Return[arenaLeave[m, arenaMemoValue[m, slot]]]];
+		r = Which[
 			t == tApp, If[arenaOcc[m, arenaF1Of[m, e], target, gen] == 1, 1, arenaOcc[m, arenaF2Of[m, e], target, gen]],
 			t == tLam || t == tPi, If[arenaOcc[m, arenaF1Of[m, e], target, gen] == 1, 1, arenaOcc[m, arenaF2Of[m, e], target + 1, gen]],
 			t == tLet, Which[arenaOcc[m, arenaF1Of[m, e], target, gen] == 1, 1, arenaOcc[m, arenaF2Of[m, e], target, gen] == 1, 1, True, arenaOcc[m, arenaF3Of[m, e], target + 1, gen]],
 			t == tProj, arenaOcc[m, arenaF3Of[m, e], target, gen],
 			True, 0
 		];
+		If[arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
 		slot = arenaMemoSlot[m, e, target, gen];
+		If[slot == 0, Return[arenaLeave[m, 0]]];
 		arenaMemoStore[m, slot, e, target, gen, r];
 		arenaLeave[m, r]
 	]]],
@@ -716,17 +1015,30 @@ $program = Hold[{
 		arenaRestore[m, top];
 		r
 	]]],
-	kfn[arenaWhnfCore, Function[{m, e, unfold}, Module[{cacheBase = 0, cached = 0, r = e, next = 0},
+	kfn[arenaWhnfCore, Function[{m, e, unfold}, Module[{cacheBase = 0, cached = 0, r = e, next = 0, baseNodes = 0, baseLctx = 0, baseStack = 0, compactStep = 0, compactAt = 0},
 		If[e < 1 || e > m["Part", hNodes], Return[arenaFail[m, eIllFormed]]];
 		cacheBase = If[unfold == 1, m["Part", hWhnfBase], m["Part", hCoreBase]];
 		cached = m["Part", cacheBase + e];
 		If[cached != 0 && arenaLiveQ[m, cached] == 1, Return[BitAnd[cached, stampMask]]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		m["SetPart", hWhnfCalls, m["Part", hWhnfCalls] + 1];
+		baseNodes = m["Part", hNodes];
+		baseLctx = m["Part", hLctx];
+		baseStack = m["Part", hStackTop];
+		compactStep = arenaCompactStep[m, baseNodes];
+		compactAt = baseNodes + compactStep;
 		While[True,
 			next = arenaWhnfStep[m, r, unfold];
 			If[next == r || next == 0, Break[]];
-			r = next
+			r = next;
+			If[arenaShouldCompactQ[m, compactAt, baseLctx, baseStack] == 1,
+				If[arenaCompactScratch[m, baseNodes, r, 0] == 1,
+					r = m["Part", hLazyX];
+					compactAt = m["Part", hNodes] + compactStep,
+					If[arenaFailed[m] == 1, next = 0; Break[]];
+					compactAt = m["Part", hNodes] + compactStep
+				]
+			]
 		];
 		If[next == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
 		m["SetPart", cacheBase + e, arenaStamped[m, e, r]];
@@ -1187,65 +1499,185 @@ $program = Hold[{
 			True, arenaInstUniv[m, arenaConstCell[m, c, cType], arenaConstCell[m, c, cParams], ls]
 		]
 	]],
-	kfn[arenaSpineType, Function[{m, e, inferOnly}, Module[{n = arenaSpineCount[m, e], h = arenaSpineHead[m, e], s = 0, type = 0, i = 0, p = 0, w = 0, r = 0, top = m["Part", hStackTop]},
+	kfn[arenaSpineType, Function[{m, e, inferOnly}, Module[
+		{n = arenaSpineCount[m, e], h = arenaSpineHead[m, e], s = 0, type = 0, i = 0, p = 0, w = 0, r = 0, top = m["Part", hStackTop], loopNodes = 0, loopLctx = 0, loopStack = 0, rollbackStep = 0},
 		s = arenaPushSpine[m, e, n];
 		If[s < 0, Return[0]];
 		type = arenaInferType[m, h, inferOnly];
 		If[type == 0, arenaRestore[m, top]; Return[0]];
+		loopNodes = m["Part", hNodes];
+		loopLctx = m["Part", hLctx];
+		loopStack = m["Part", hStackTop];
+		rollbackStep = arenaCompactStep[m, loopNodes];
 		While[i < n,
 			If[arenaTagOf[m, type] == tPi,
 				If[inferOnly == 0,
-					If[arenaCheckHasType[m, arenaStackGet[m, s + i], arenaInstantiateValues[m, arenaF1Of[m, type], s + p, i - p]] == 0, arenaRestore[m, top]; Return[0]]
+					If[arenaCheckHasType[m, arenaStackGet[m, s + i], arenaInstantiateValues[m, arenaF1Of[m, type], s + p, i - p]] == 0, arenaRestore[m, top]; Return[0]];
+					If[arenaDebug == 0 && m["Part", hStackTop] == loopStack && m["Part", hNodes] - loopNodes >= rollbackStep,
+						arenaRollbackScratch[m, loopNodes, loopLctx]
+					]
 				];
 				type = arenaF2Of[m, type];
 				i++,
 				w = arenaWhnf[m, arenaInstantiateValues[m, type, s + p, i - p]];
 				If[arenaTagOf[m, w] != tPi, arenaRestore[m, top]; Return[arenaFail[m, eNotFunction]]];
 				type = w;
-				p = i
+				p = i;
+				loopNodes = m["Part", hNodes];
+				loopLctx = m["Part", hLctx];
+				rollbackStep = arenaCompactStep[m, loopNodes]
 			]
 		];
 		r = arenaInstantiateValues[m, type, s + p, n - p];
 		arenaRestore[m, top];
 		r
 	]]],
-	kfn[arenaCheckHasType, Function[{m, e, expected}, Module[{actual = arenaInferType[m, e, 0]},
+	kfn[arenaCheckHasType, Function[{m, e, expected}, Module[
+		{baseNodes = m["Part", hNodes], baseLctx = m["Part", hLctx], baseStack = m["Part", hStackTop], actual = 0, ok = 0},
+		actual = arenaInferType[m, e, 0];
 		If[actual == 0, Return[0]];
 		If[expected < 1, Return[arenaFail[m, eIllFormed]]];
-		If[arenaIsDefEq[m, actual, expected] == 1, 1, If[m["Part", hStatus] == 0, m["SetPart", hFailA, actual]; m["SetPart", hFailB, expected]; m["SetPart", hFailTerm, e]]; arenaFail[m, eMismatch]]
+		ok = arenaIsDefEq[m, actual, expected];
+		If[ok == 1,
+			If[arenaDebug == 0 && m["Part", hStackTop] == baseStack && m["Part", hNodes] - baseNodes >= arenaCompactStep[m, baseNodes],
+				arenaRollbackScratch[m, baseNodes, baseLctx]
+			];
+			1,
+			If[m["Part", hStatus] == 0, m["SetPart", hFailA, actual]; m["SetPart", hFailB, expected]; m["SetPart", hFailTerm, e]];
+			arenaFail[m, eMismatch]
+		]
 	]]],
 	kfn[arenaSortLevel, Function[{m, t, inferOnly}, Module[{s = arenaInferType[m, t, inferOnly]},
 		If[s == 0, Return[0]];
 		s = arenaWhnf[m, s];
 		If[arenaTagOf[m, s] == tSort, arenaF1Of[m, s], arenaFail[m, eNotType]]
 	]]],
-	kfn[arenaLambdaType, Function[{m, e, inferOnly}, Module[{d = arenaF1Of[m, e], fv = 0, bt = 0},
-		If[inferOnly == 0, If[arenaSortLevel[m, d, 0] == 0, Return[0]]];
-		fv = arenaNewFVar[m, d, 0];
-		bt = arenaInferType[m, arenaInstantiate1[m, arenaF2Of[m, e], fv], inferOnly];
-		If[bt == 0, Return[0]];
-		arenaMkBinder[m, tPi, d, arenaAbstractFVar[m, bt, fv]]
-	]]],
-	kfn[arenaFunctionTypeSort, Function[{m, e, inferOnly}, Module[{l1 = 0, l2 = 0, fv = 0},
-		l1 = arenaSortLevel[m, arenaF1Of[m, e], inferOnly];
-		If[l1 == 0, Return[0]];
-		fv = arenaNewFVar[m, arenaF1Of[m, e], 0];
-		l2 = arenaSortLevel[m, arenaInstantiate1[m, arenaF2Of[m, e], fv], inferOnly];
-		If[l2 == 0, Return[0]];
-		arenaMkNode[m, tSort, arenaLevelIMax[m, l1, l2], 0, 0]
-	]]],
-	kfn[arenaLocalDefinitionType, Function[{m, e, inferOnly}, Module[{t = arenaF1Of[m, e], v = arenaF2Of[m, e], fv = 0, bt = 0},
-		If[inferOnly == 0,
-			If[arenaSortLevel[m, t, 0] == 0, Return[0]];
-			If[arenaCheckHasType[m, v, t] == 0, Return[0]]
+	kfn[arenaLambdaType, Function[{m, e, inferOnly}, Module[{d = 0, fv = 0, bt = 0, cur = e, k = 0, top = m["Part", hStackTop], s = 0, fvs = 0, fvIds = 0, rawDoms = 0, rawD = 0, body = 0, r = 0, j = 0},
+		While[arenaTagOf[m, cur] == tLam, k++; cur = arenaF2Of[m, cur]];
+		If[k <= 1 || arenaRangeOf[m, e] > 0,
+			d = arenaF1Of[m, e];
+			If[inferOnly == 0, If[arenaSortLevel[m, d, 0] == 0, Return[0]]];
+			fv = arenaNewFVar[m, d, 0];
+			If[fv == 0, Return[0]];
+			bt = arenaInferType[m, arenaInstantiate1[m, arenaF2Of[m, e], fv], inferOnly];
+			If[bt == 0, Return[0]];
+			Return[arenaMkBinder[m, tPi, d, arenaAbstractFVar[m, bt, fv]]]
 		];
-		fv = arenaNewFVar[m, t, v];
-		bt = arenaInferType[m, arenaInstantiate1[m, arenaF3Of[m, e], fv], inferOnly];
-		If[bt == 0, Return[0]];
-		arenaInstantiate1[m, arenaAbstractFVar[m, bt, fv], v]
+		s = arenaReserve[m, 3 k];
+		If[s < 0, Return[0]];
+		fvs = s; fvIds = s + k; rawDoms = s + 2 k;
+		cur = e;
+		Do[
+			rawD = arenaF1Of[m, cur];
+			arenaStackSet[m, rawDoms + j, rawD];
+			d = arenaInstantiateValues[m, rawD, fvs, j];
+			If[d == 0, arenaRestore[m, top]; Return[0]];
+			If[inferOnly == 0, If[arenaSortLevel[m, d, 0] == 0, arenaRestore[m, top]; Return[0]]];
+			fv = arenaNewFVar[m, d, 0];
+			If[fv == 0, arenaRestore[m, top]; Return[0]];
+			arenaStackSet[m, fvs + j, fv];
+			arenaStackSet[m, fvIds + j, arenaF1Of[m, fv]];
+			cur = arenaF2Of[m, cur],
+			{j, 0, k - 1}
+		];
+		body = arenaInstantiateValues[m, cur, fvs, k];
+		If[body == 0, arenaRestore[m, top]; Return[0]];
+		bt = arenaInferType[m, body, inferOnly];
+		If[bt == 0, arenaRestore[m, top]; Return[0]];
+		r = arenaAbstractFVars[m, bt, fvIds, k];
+		If[r == 0, arenaRestore[m, top]; Return[0]];
+		Do[
+			r = arenaMkBinder[m, tPi, arenaStackGet[m, rawDoms + j], r];
+			If[r == 0, arenaRestore[m, top]; Return[0]],
+			{j, k - 1, 0, -1}
+		];
+		arenaRestore[m, top];
+		r
+	]]],
+	kfn[arenaFunctionTypeSort, Function[{m, e, inferOnly}, Module[{l1 = 0, l2 = 0, fv = 0, cur = e, k = 0, top = m["Part", hStackTop], s = 0, fvs = 0, domLevels = 0, d = 0, body = 0, resL = 0, j = 0},
+		While[arenaTagOf[m, cur] == tPi, k++; cur = arenaF2Of[m, cur]];
+		If[k <= 1,
+			l1 = arenaSortLevel[m, arenaF1Of[m, e], inferOnly];
+			If[l1 == 0, Return[0]];
+			fv = arenaNewFVar[m, arenaF1Of[m, e], 0];
+			If[fv == 0, Return[0]];
+			l2 = arenaSortLevel[m, arenaInstantiate1[m, arenaF2Of[m, e], fv], inferOnly];
+			If[l2 == 0, Return[0]];
+			Return[arenaMkNode[m, tSort, arenaLevelIMax[m, l1, l2], 0, 0]]
+		];
+		s = arenaReserve[m, 2 k];
+		If[s < 0, Return[0]];
+		fvs = s; domLevels = s + k;
+		cur = e;
+		Do[
+			d = arenaInstantiateValues[m, arenaF1Of[m, cur], fvs, j];
+			If[d == 0, arenaRestore[m, top]; Return[0]];
+			l1 = arenaSortLevel[m, d, inferOnly];
+			If[l1 == 0, arenaRestore[m, top]; Return[0]];
+			fv = arenaNewFVar[m, d, 0];
+			If[fv == 0, arenaRestore[m, top]; Return[0]];
+			arenaStackSet[m, fvs + j, fv];
+			arenaStackSet[m, domLevels + j, l1];
+			cur = arenaF2Of[m, cur],
+			{j, 0, k - 1}
+		];
+		body = arenaInstantiateValues[m, cur, fvs, k];
+		If[body == 0, arenaRestore[m, top]; Return[0]];
+		resL = arenaSortLevel[m, body, inferOnly];
+		If[resL == 0, arenaRestore[m, top]; Return[0]];
+		Do[
+			resL = arenaLevelIMax[m, arenaStackGet[m, domLevels + j], resL];
+			If[resL == 0, arenaRestore[m, top]; Return[0]],
+			{j, k - 1, 0, -1}
+		];
+		arenaRestore[m, top];
+		arenaMkNode[m, tSort, resL, 0, 0]
+	]]],
+	kfn[arenaLocalDefinitionType, Function[{m, e, inferOnly}, Module[{t = 0, v = 0, fv = 0, bt = 0, cur = e, k = 0, top = m["Part", hStackTop], s = 0, fvs = 0, fvIds = 0, vals = 0, resolved = 0, body = 0, r = 0, j = 0},
+		While[arenaTagOf[m, cur] == tLet, k++; cur = arenaF3Of[m, cur]];
+		If[k <= 1 || arenaRangeOf[m, e] > 0,
+			t = arenaF1Of[m, e]; v = arenaF2Of[m, e];
+			If[inferOnly == 0,
+				If[arenaSortLevel[m, t, 0] == 0, Return[0]];
+				If[arenaCheckHasType[m, v, t] == 0, Return[0]]
+			];
+			fv = arenaNewFVar[m, t, v];
+			If[fv == 0, Return[0]];
+			bt = arenaInferType[m, arenaInstantiate1[m, arenaF3Of[m, e], fv], inferOnly];
+			If[bt == 0, Return[0]];
+			Return[arenaInstantiate1[m, arenaAbstractFVar[m, bt, fv], v]]
+		];
+		s = arenaReserve[m, 4 k];
+		If[s < 0, Return[0]];
+		fvs = s; fvIds = s + k; vals = s + 2 k; resolved = s + 3 k;
+		cur = e;
+		Do[
+			t = arenaInstantiateValues[m, arenaF1Of[m, cur], fvs, j];
+			v = arenaInstantiateValues[m, arenaF2Of[m, cur], fvs, j];
+			If[t == 0 || v == 0, arenaRestore[m, top]; Return[0]];
+			If[inferOnly == 0,
+				If[arenaSortLevel[m, t, 0] == 0, arenaRestore[m, top]; Return[0]];
+				If[arenaCheckHasType[m, v, t] == 0, arenaRestore[m, top]; Return[0]]
+			];
+			fv = arenaNewFVar[m, t, v];
+			If[fv == 0, arenaRestore[m, top]; Return[0]];
+			arenaStackSet[m, fvs + j, fv];
+			arenaStackSet[m, fvIds + j, arenaF1Of[m, fv]];
+			arenaStackSet[m, vals + j, v];
+			arenaStackSet[m, resolved + j, 0];
+			cur = arenaF3Of[m, cur],
+			{j, 0, k - 1}
+		];
+		body = arenaInstantiateValues[m, cur, fvs, k];
+		If[body == 0, arenaRestore[m, top]; Return[0]];
+		bt = arenaInferType[m, body, inferOnly];
+		If[bt == 0, arenaRestore[m, top]; Return[0]];
+		r = arenaSubstFVars[m, bt, fvIds, vals, resolved, k];
+		arenaRestore[m, top];
+		r
 	]]],
 	kfn[arenaProjectionType, Function[{m, e, inferOnly}, Module[
-		{struct = arenaF1Of[m, e], idx = arenaF2Of[m, e], term = arenaF3Of[m, e], pt = 0, hd = 0, np = 0, sp = 0, ctor = 0, ft = 0, j = 0, w = 0, fromProof = 0, l = 0, top = m["Part", hStackTop]},
+		{struct = arenaF1Of[m, e], idx = arenaF2Of[m, e], term = arenaF3Of[m, e], pt = 0, hd = 0, np = 0, sp = 0, ctor = 0, ft = 0, j = 0, w = 0, fromProof = 0, l = 0, occ = 0, top = m["Part", hStackTop]},
 		pt = arenaInferType[m, term, inferOnly];
 		If[pt == 0, Return[0]];
 		pt = arenaWhnf[m, pt];
@@ -1268,9 +1700,13 @@ $program = Hold[{
 		Do[
 			w = arenaWhnf[m, ft];
 			If[arenaTagOf[m, w] != tPi, arenaRestore[m, top]; Return[arenaFail[m, eNotFunction]]];
-			If[fromProof == 1 && arenaOccursBVar[m, arenaF2Of[m, w], 0] == 1,
-				l = arenaSortLevel[m, arenaF1Of[m, w], inferOnly];
-				If[l != m["Part", hLevelZero], arenaRestore[m, top]; Return[arenaFail[m, eProjProof]]]
+			If[fromProof == 1,
+				occ = arenaOccursBVar[m, arenaF2Of[m, w], 0];
+				If[arenaFailed[m] == 1, arenaRestore[m, top]; Return[0]];
+				If[occ == 1,
+					l = arenaSortLevel[m, arenaF1Of[m, w], inferOnly];
+					If[l != m["Part", hLevelZero], arenaRestore[m, top]; Return[arenaFail[m, eProjProof]]]
+				]
 			];
 			ft = arenaInstantiate1[m, arenaF2Of[m, w], arenaMkProj[m, struct, j, term]],
 			{j, 0, idx - 1}
@@ -1288,7 +1724,7 @@ $program = Hold[{
 	(* ::Subsection:: *)
 	(* Definitional equality *)
 
-	kfn[arenaIsDefEq, Function[{m, a, b}, Module[{r = 0, x = 0, y = 0},
+	kfn[arenaIsDefEq, Function[{m, a, b}, Module[{r = 0, x = 0, y = 0, baseNodes = 0, baseLctx = 0, baseStack = 0},
 		If[a < 1 || b < 1, Return[arenaFail[m, eIllFormed]]];
 		If[a == b, Return[1]];
 		If[arenaFindRoot[m, a] == arenaFindRoot[m, b], Return[1]];
@@ -1296,8 +1732,14 @@ $program = Hold[{
 		If[arenaFailSlot[m, x, y] > 0, Return[0]];
 		If[arenaEnter[m] == 0, Return[arenaLeave[m, 0]]];
 		m["SetPart", hDefeqCalls, m["Part", hDefeqCalls] + 1];
+		baseNodes = m["Part", hNodes];
+		baseLctx = m["Part", hLctx];
+		baseStack = m["Part", hStackTop];
 		r = arenaDefEqCases[m, a, b];
 		If[arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
+		If[arenaDebug == 0 && m["Part", hStackTop] == baseStack && m["Part", hNodes] - baseNodes >= arenaCompactStep[m, baseNodes],
+			arenaRollbackScratch[m, baseNodes, baseLctx]
+		];
 		If[r == 1, arenaUnite[m, a, b], arenaFailInsert[m, x, y]];
 		arenaLeave[m, r]
 	]]],
@@ -1330,7 +1772,9 @@ $program = Hold[{
 		If[ta == 0, Return[0]];
 		If[arenaPropositionQ[m, ta] == 1, arenaIsDefEq[m, ta, arenaInferType[m, b, 1]], -1]
 	]]],
-	kfn[arenaLazyDelta, Function[{m, a, b}, Module[{x = a, y = b, step = 0, moved = 0},
+	kfn[arenaLazyDelta, Function[{m, a, b}, Module[{x = a, y = b, step = 0, moved = 0, baseNodes = m["Part", hNodes], baseLctx = m["Part", hLctx], baseStack = m["Part", hStackTop], compactStep = 0, compactAt = 0},
+		compactStep = arenaCompactStep[m, baseNodes];
+		compactAt = baseNodes + compactStep;
 		While[True,
 			step = arenaLazyDeltaStep[m, x, y];
 			If[arenaFailed[m] == 1, Return[0]];
@@ -1338,7 +1782,16 @@ $program = Hold[{
 			If[m["Part", hLazyX] == m["Part", hLazyY], step = 1; Break[]];
 			x = m["Part", hLazyX];
 			y = m["Part", hLazyY];
-			moved = 1
+			moved = 1;
+			If[arenaShouldCompactQ[m, compactAt, baseLctx, baseStack] == 1,
+				If[arenaCompactScratch[m, baseNodes, x, y] == 1,
+					x = m["Part", hLazyX];
+					y = m["Part", hLazyY];
+					compactAt = m["Part", hNodes] + compactStep,
+					If[arenaFailed[m] == 1, Return[0]];
+					compactAt = m["Part", hNodes] + compactStep
+				]
+			]
 		];
 		Which[
 			step == 1, 1,
@@ -1608,7 +2061,7 @@ $program = Hold[{
 		},
 		Module[
 			{
-				cap = Min[settings[[1]], 2147483647], levelCap = Min[settings[[2]], 2147483647], tableSize = 2, levelTableSize = 2, memoSize = BitShiftLeft[1, settings[[7]]], univSize = BitShiftLeft[1, settings[[8]]],
+				cap = Min[settings[[1]], 2147483647], levelCap = Min[settings[[2]], 2147483647], tableSize = 2, levelTableSize = 2, memoSize = BitShiftLeft[1, Min[Max[settings[[7]], 1], 25]], univSize = BitShiftLeft[1, settings[[8]]],
 				failSize = BitShiftLeft[1, settings[[9]]], stackCap = settings[[10]], lctxCap = Min[settings[[11]], 2147483647], numNodes = Length[nodes], numLevels = Length[levels],
 				numConsts = Length[consts], numFlat = Length[flat], total = 0
 			},
@@ -1642,6 +2095,7 @@ $program = Hold[{
 			m["SetPart", hMarkBase, offset]; offset = offset + cap;
 			m["SetPart", hDepthLimit, settings[[3]]];
 			m["SetPart", hResetThreshold, If[Length[settings] >= 13, Max[settings[[13]], 0], 0]];
+			m["SetPart", hCompactThreshold, If[Length[settings] >= 14, Max[settings[[14]], 0], 0]];
 			m["SetPart", hGen, 1];
 			(* levels: each input row to its canonical level *)
 			m["SetPart", hLevelNil, arenaMkLevel[m, lNil, 0, 0]];
@@ -1969,7 +2423,7 @@ termRowOf[naturalLiteral[n_Integer]] /; 2^62 <= n < 2^(30 $limbCap) := {11, limb
 termRowOf[naturalLiteral[n_Integer]] /; n >= 2^(30 $limbCap) := largeLiteralRow[n]
 
 (* the most limbs of 30 bits a literal of the program has: one with more is a constant made for its value *)
-$limbCap = 64
+$limbCap = 1024
 
 (* the chain of a literal's limbs, pairs of limbs from the top down, each a row once *)
 limbChainRow[n_Integer] := With[{limbs = Reverse[IntegerDigits[n, 2^30]]},
@@ -2306,7 +2760,7 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 			If[AssociationQ[natural], $constantIndex[natural["Type"]], 0],
 			If[AssociationQ[natural], $constantIndex[natural["Zero"]], 0],
 			If[AssociationQ[natural], $constantIndex[natural["Successor"]], 0],
-			20, 20, 18, 2^20, capacity, 0
+			Min[24, Max[20, Ceiling[Log2[Max[Length[nodes], 1]]] + 1]], 20, 18, 2^20, capacityFactor 2^20, 0
 		}],
 		"Names" -> names,
 		"Records" -> records,
@@ -2505,13 +2959,13 @@ limbRowsQ[nodeTags_, nodeFirst_, nodeSecond_, nodeThird_, limbRows_] := With[{re
 	]
 ]
 
-(* a large literal's row: its chain a chain row before it, of at most 64 limbs, its value 2^62 or more *)
+(* a large literal's row: its chain a chain row before it, of at most $limbCap limbs, its value 2^62 or more *)
 largeLiteralRowQ[nodes_, row_] := With[{chain = nodes[[row, 2]]},
 	And[
 		1 <= chain < row && nodes[[chain, 1]] == 12 && nodes[[row, 3]] == 0 && nodes[[row, 4]] == 0,
-		With[{links = NestWhileList[Function[link, nodes[[link, 4]]], chain, Function[link, link != 0], 1, 33]},
+		With[{links = NestWhileList[Function[link, nodes[[link, 4]]], chain, Function[link, link != 0], 1, Quotient[$limbCap, 2] + 1]},
 			Last[links] == 0 && With[{length = Length[links] - 1},
-				2 length <= 64 && (length >= 3 || (length == 2 && nodes[[links[[2]], 2]] + 2^30 nodes[[links[[2]], 3]] >= 4))
+				2 length <= $limbCap && (length >= 3 || (length == 2 && nodes[[links[[2]], 2]] + 2^30 nodes[[links[[2]], 3]] >= 4))
 			]
 		]
 	]
@@ -2600,7 +3054,7 @@ compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
 				"Constants" -> input["EnvironmentConstants"]
 			|>],
 		MemberQ[$capacityStatuses, result[[1]]] && capacityFactor < 16,
-			compiledCheckWith[function, MapAt[Function[settings, Developer`ToPackedArray[ReplacePart[settings, Thread[{1, 2, 10, 11} -> 4 settings[[{1, 2, 10, 11}]]]]]], input, "Settings"], 4 capacityFactor],
+			compiledCheckWith[function, MapAt[Function[settings, Developer`ToPackedArray[ReplacePart[settings, Append[Thread[{1, 2, 10, 11} -> 2 settings[[{1, 2, 10, 11}]]], 7 -> Min[settings[[7]] + 1, 25]]]]], input, "Settings"], 2 capacityFactor],
 		(* in an environment with a literal the arena does not hold, a record of the environment that it does not accept,
 		   or on which a literal passes its limit, is undecided: it may need the value of such a literal *)
 		Or[
