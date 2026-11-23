@@ -424,3 +424,15 @@ VerificationTest[
 	{"Terminating", "StructuralRecursor", True},
 	TestID -> "Termination-certifies-total-formalized-function-by-structural-recursion"
 ]
+
+VerificationTest[
+	{
+		TypeTheoryDetermine[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, ProgressReporting -> False]["Status"],
+		TypeTheoryDetermine[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, ProgressReporting -> True]["Status"],
+		Length[TypeTheoryAssumptions[ForAll[{Typed[n, NonNegativeIntegers]}, n^2 <= 2^n], prelude, ProgressReporting -> False]] >= 1,
+		First[TypeTheoryConsequences[ForAll[{Typed[n, NonNegativeIntegers]}, n^2 <= 2^n], prelude, ProgressReporting -> False]]["Inconsistent"],
+		TypeTheoryTermination[rwA[rwB[0]], {rwA[rwB[x_]] :> rwB[rwA[x]]}, ProgressReporting -> False]["Status"]
+	},
+	{"Proved", "Proved", True, True, "Terminating"},
+	TestID -> "ProgressReporting-option-works-across-all-four-superfunctions"
+]

@@ -33,6 +33,7 @@ RelatedTutorials: [AutomatedAnalysisAndDiscovery, TypeTheoryIntroduction, Progra
 | [TimeConstraint]() | `15` | time budget in seconds for search and LLM calls |
 | `"MaxModelSize"` | `3` | maximum finite carrier size tried when constructing certified independence models |
 | `"LLMEvaluator"` | [Automatic]() | [Automatic]() for Wolfram AI's default model, an [LLMConfiguration](), or a prompt guidance string wrapped in [LLMConfiguration]() |
+| [ProgressReporting]() | [Automatic]() | whether to display live stage progress (`True`, `False`, or [Automatic]() following [$ProgressReporting]()) |
 
 - With `Method -> Automatic`, [TypeTheoryDetermine]() runs strictly offline using its symbolic and tactic heuristics and makes no network calls.
 - When [Method]() includes `"LLM"`, candidate tactic lists proposed by [LLMFunction]() are executed in [TypeTheoryProof]() and verified by the trusted kernel before `"Status" -> "Proved"` is ever returned.

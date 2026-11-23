@@ -39,6 +39,7 @@ RelatedTutorials: [AutomatedAnalysisAndDiscovery, TheWolframLanguage, PatternsAn
 | `"MaxSteps"` | `100` | maximum rewrite or simulation steps for pointwise probes |
 | [TimeConstraint]() | `15` | time budget in seconds |
 | `"LLMEvaluator"` | [Automatic]() | [Automatic]() for Wolfram AI's default model, an [LLMConfiguration](), or a prompt guidance string |
+| [ProgressReporting]() | [Automatic]() | whether to display live analyzer and kernel-verification progress (`True`, `False`, or [Automatic]() following [$ProgressReporting]()) |
 
 ## Basic Examples
 

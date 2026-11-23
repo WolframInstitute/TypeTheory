@@ -60,25 +60,25 @@ PackageScoped[enhancedProveCore]
 
 TypeTheoryDetermine::usage = "TypeTheoryDetermine[proposition] determines whether proposition is \"Proved\", \"Refuted\", \"Independent\" or \"Undetermined\" in the default environment, returning an Association with kernel-checked certificates.\n\
 TypeTheoryDetermine[proposition, environment] determines proposition in environment (a TypeTheoryEnvironment or library name).\n\
-Options: Method -> Automatic (strictly offline heuristic; \"LLM\" or {\"Heuristic\", \"LLM\"} enables optional LLMFunction assistance), TimeConstraint -> 15, \"MaxModelSize\" -> 3, \"LLMEvaluator\" -> Automatic."
+Options: Method -> Automatic (strictly offline heuristic; \"LLM\" or {\"Heuristic\", \"LLM\"} enables optional LLMFunction assistance), TimeConstraint -> 15, \"MaxModelSize\" -> 3, \"LLMEvaluator\" -> Automatic, ProgressReporting -> Automatic."
 
 TypeTheoryAssumptions::usage = "TypeTheoryAssumptions[proposition] finds ranked, sensible, non-vacuous, non-trivial assumptions that make proposition a kernel-checked theorem in the default environment.\n\
 TypeTheoryAssumptions[proposition, environment] searches in environment.\n\
 TypeTheoryAssumptions[openProof] extracts and simplifies sensible assumptions filling the open goals of an unfinished TypeTheoryProof.\n\
 Returns a list of Associations <|\"Assumption\" -> term, \"Statement\" -> implication, \"Proof\" -> proof, ...|>.\n\
-Options: Method -> Automatic, TimeConstraint -> 15, MaxItems -> 5, \"EquivalentConditions\" -> True, \"IncludeOpen\" -> False, \"LLMEvaluator\" -> Automatic."
+Options: Method -> Automatic, TimeConstraint -> 15, MaxItems -> 5, \"EquivalentConditions\" -> True, \"IncludeOpen\" -> False, \"LLMEvaluator\" -> Automatic, ProgressReporting -> Automatic."
 
 TypeTheoryConsequences::usage = "TypeTheoryConsequences[proposition] discovers ranked, sensible, non-trivial consequences of proposition in the default environment, each kernel-checked and verified to genuinely use proposition in its proof term.\n\
 TypeTheoryConsequences[proposition, environment] searches in environment.\n\
 If Not[proposition] is provable, short-circuits and returns False tagged with \"Inconsistent\" -> True.\n\
 Returns a list of Associations <|\"Consequence\" -> term, \"Statement\" -> implication, \"Proof\" -> proof, ...|>.\n\
-Options: Method -> Automatic, TimeConstraint -> 15, MaxItems -> 8, \"IncludeEquivalents\" -> False, \"LLMEvaluator\" -> Automatic."
+Options: Method -> Automatic, TimeConstraint -> 15, MaxItems -> 8, \"IncludeEquivalents\" -> False, \"LLMEvaluator\" -> Automatic, ProgressReporting -> Automatic."
 
 TypeTheoryTermination::usage = "TypeTheoryTermination[symbol] analyzes termination of a Wolfram Language function or rewrite symbol (formalized via TypeTheoryFormalize) and returns an Association with \"Status\" -> \"Terminating\" | \"NonTerminating\" | \"ConditionallyTerminating\" | \"Undetermined\" and kernel-checked certificates.\n\
 TypeTheoryTermination[symbol, environment] analyzes symbol in environment.\n\
 TypeTheoryTermination[expression, rules] checks pointwise termination or non-termination (lasso cycle) of expression under rules.\n\
 TypeTheoryTermination[rules] checks global termination of a list of rewrite rules via polynomial weight interpretations or divergence witnesses.\n\
-Options: Method -> Automatic, \"Meaning\" -> Automatic, \"MaxSteps\" -> 100, TimeConstraint -> 15, \"LLMEvaluator\" -> Automatic."
+Options: Method -> Automatic, \"Meaning\" -> Automatic, \"MaxSteps\" -> 100, TimeConstraint -> 15, \"LLMEvaluator\" -> Automatic, ProgressReporting -> Automatic."
 
 verifyProofInKernel::usage = "verifyProofInKernel[environment, coreStatement, universeParameters, proof] verifies with the trusted kernel that proof is finished and its proof term has type coreStatement in environment."
 enhancedProveCore::usage = "enhancedProveCore[environment, coreStatement, universeParameters, timeLimit] attempts to build a kernel-checked TypeTheoryProof of coreStatement using Automatic plus untrusted induction, cancellation, subtraction, integer linear arithmetic and Boolean case-splitting heuristics."
@@ -92,7 +92,8 @@ Options[TypeTheoryDetermine] = {
 	Method -> Automatic,
 	TimeConstraint -> 15,
 	"MaxModelSize" -> 3,
-	"LLMEvaluator" -> Automatic
+	"LLMEvaluator" -> Automatic,
+	ProgressReporting -> Automatic
 }
 
 Options[TypeTheoryAssumptions] = {
@@ -101,7 +102,8 @@ Options[TypeTheoryAssumptions] = {
 	MaxItems -> 5,
 	"EquivalentConditions" -> True,
 	"IncludeOpen" -> False,
-	"LLMEvaluator" -> Automatic
+	"LLMEvaluator" -> Automatic,
+	ProgressReporting -> Automatic
 }
 
 Options[TypeTheoryConsequences] = {
@@ -109,7 +111,8 @@ Options[TypeTheoryConsequences] = {
 	TimeConstraint -> 15,
 	MaxItems -> 8,
 	"IncludeEquivalents" -> False,
-	"LLMEvaluator" -> Automatic
+	"LLMEvaluator" -> Automatic,
+	ProgressReporting -> Automatic
 }
 
 Options[TypeTheoryTermination] = {
@@ -117,7 +120,8 @@ Options[TypeTheoryTermination] = {
 	"Meaning" -> Automatic,
 	"MaxSteps" -> 100,
 	TimeConstraint -> 15,
-	"LLMEvaluator" -> Automatic
+	"LLMEvaluator" -> Automatic,
+	ProgressReporting -> Automatic
 }
 
 SetAttributes[TypeTheoryDetermine, HoldFirst]
@@ -331,6 +335,57 @@ resolveMethodList[_] := {"Heuristic"}
 
 useHeuristicQ[method_] := MemberQ[resolveMethodList[method], "Heuristic"]
 useLLMQ[method_] := MemberQ[resolveMethodList[method], "LLM"]
+
+
+(* Native Wolfram Language progress bar and shared deadline guard *)
+$inSuperfunctionProgress = False
+$progressText = ""
+$progressFraction = Indeterminate
+$superfunctionDeadline = Infinity
+
+reportProgress[text_String, fraction_ : Indeterminate] := (
+	$progressText = text;
+	$progressFraction = fraction;
+)
+
+deadlineExceededQ[] := NumericQ[$superfunctionDeadline] && AbsoluteTime[] >= $superfunctionDeadline
+
+remainingBudget[fallback_ : 5] := If[ NumericQ[$superfunctionDeadline],
+	Max[0.2, Min[fallback, $superfunctionDeadline - AbsoluteTime[]]],
+	fallback
+]
+
+SetAttributes[withSuperfunctionProgress, HoldAll]
+withSuperfunctionProgress[title_String, progressOpt_, timeBudget_, body_] := Module[{effectiveProgress, deadline},
+	effectiveProgress = Replace[progressOpt, {
+		Automatic :> ($ProgressReporting =!= False),
+		True -> True,
+		_ -> False
+	}];
+	deadline = If[ NumericQ[timeBudget] && timeBudget > 0, AbsoluteTime[] + timeBudget, Infinity ];
+	Block[
+		{
+			$superfunctionDeadline = If[ NumericQ[$superfunctionDeadline], Min[$superfunctionDeadline, deadline], deadline ],
+			$progressText = "Starting...",
+			$progressFraction = Indeterminate
+		},
+		If[ TrueQ[effectiveProgress] && ! TrueQ[$inSuperfunctionProgress] && NameQ["Progress`EvaluateWithProgress"],
+			Block[{$inSuperfunctionProgress = True},
+				Progress`EvaluateWithProgress[
+					body,
+					<|
+						"Text" :> $progressText,
+						"Progress" :> $progressFraction,
+						"ElapsedTime" -> Automatic
+					|>,
+					ProgressReporting -> If[progressOpt === Automatic, Automatic, True],
+					Title -> title
+				]
+			],
+			body
+		]
+	]
+]
 
 
 (* Core term builders (always computing parts before wrapping held core heads). *)
@@ -1850,9 +1905,8 @@ TypeTheoryDetermine[proposition_, environment : Except[_Rule | _RuleDelayed], op
 
 SetAttributes[determineProposition, HoldFirst]
 determineProposition[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := Module[
-	{resolved, environment, coreStmt, uParams, surfaceTerm, methodOpt, timeBudget, maxModelSize, llmEval,
-	 compDecidable, negStmt, quickProof, posProof, negProof, modelResult, classicalResult, llmResult,
-	 triedDetails = <||>},
+	{resolved, environment, coreStmt, uParams, surfaceTerm, methodOpt, timeBudget, maxModelSize, llmEval, progressOpt,
+	 compDecidable, negStmt},
 	resolved = resolveProposition[proposition, environmentSpec];
 	If[ FailureQ[resolved],
 		resolved,
@@ -1865,9 +1919,13 @@ determineProposition[HoldComplete[proposition_], environmentSpec_, Hold[opts___]
 		timeBudget = Replace[OptionValue[TypeTheoryDetermine, {opts}, TimeConstraint], Except[_?Positive] -> 15];
 		maxModelSize = Replace[OptionValue[TypeTheoryDetermine, {opts}, "MaxModelSize"], Except[_Integer?Positive] -> 3];
 		llmEval = OptionValue[TypeTheoryDetermine, {opts}, "LLMEvaluator"];
-		compDecidable = decidableInstanceQ[environment, coreStmt, uParams];
-		negStmt = coreNegation[environment, coreStmt];
-		determinePipeline[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, methodOpt, timeBudget, maxModelSize, llmEval]
+		progressOpt = OptionValue[TypeTheoryDetermine, {opts}, ProgressReporting];
+		withSuperfunctionProgress["TypeTheoryDetermine", progressOpt, timeBudget,
+			reportProgress["Checking decidability...", 0.08];
+			compDecidable = decidableInstanceQ[environment, coreStmt, uParams];
+			negStmt = coreNegation[environment, coreStmt];
+			determinePipeline[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, methodOpt, timeBudget, maxModelSize, llmEval]
+		]
 	]
 ]
 
@@ -1876,6 +1934,7 @@ determinePipeline[environment_, coreStmt_, negStmt_, uParams_List, surfaceTerm_,
 	{result},
 	(* 1. Closed decision fast-path *)
 	result = If[ compDecidable && ! MatchQ[weakHeadNormalForm[environment, <||>, coreStmt], _dependentFunctionType],
+		reportProgress["Deciding closed proposition...", 0.15];
 		tryDecideBoth[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable],
 		None
 	];
@@ -1883,16 +1942,18 @@ determinePipeline[environment_, coreStmt_, negStmt_, uParams_List, surfaceTerm_,
 		result,
 
 		(* 2. Quick counterexample probe on universal statements *)
-		result = If[ useHeuristicQ[methodOpt] && MatchQ[weakHeadNormalForm[environment, <||>, coreStmt], _dependentFunctionType],
-			tryQuickCounterexample[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, Min[2, timeBudget / 4]],
+		result = If[ useHeuristicQ[methodOpt] && ! deadlineExceededQ[] && MatchQ[weakHeadNormalForm[environment, <||>, coreStmt], _dependentFunctionType],
+			reportProgress["Probing for counterexamples...", 0.25];
+			tryQuickCounterexample[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, remainingBudget[Min[2, timeBudget / 4]]],
 			None
 		];
 		If[ AssociationQ[result],
 			result,
 
 			(* 3. Positive proof portfolio *)
-			result = If[ useHeuristicQ[methodOpt],
-				With[{pos = enhancedProveCore[environment, coreStmt, uParams, Min[6, timeBudget / 2]]},
+			result = If[ useHeuristicQ[methodOpt] && ! deadlineExceededQ[],
+				reportProgress["Running proof portfolio...", 0.45];
+				With[{pos = enhancedProveCore[environment, coreStmt, uParams, remainingBudget[Min[6, timeBudget / 2]]]},
 					If[ ! FailureQ[pos],
 						determineResult["Proved", surfaceTerm, pos, None, extractWitnessFromProof[environment, coreStmt, pos], None, compDecidable, "Portfolio", <||>],
 						None
@@ -1904,8 +1965,9 @@ determinePipeline[environment_, coreStmt_, negStmt_, uParams_List, surfaceTerm_,
 				result,
 
 				(* 4. Negative proof portfolio *)
-				result = If[ useHeuristicQ[methodOpt],
-					With[{neg = enhancedProveCore[environment, negStmt, uParams, Min[5, timeBudget / 3]]},
+				result = If[ useHeuristicQ[methodOpt] && ! deadlineExceededQ[],
+					reportProgress["Running refutation portfolio...", 0.62];
+					With[{neg = enhancedProveCore[environment, negStmt, uParams, remainingBudget[Min[5, timeBudget / 3]]]},
 						If[ ! FailureQ[neg],
 							determineResult["Refuted", surfaceTerm, neg, extractCounterexampleFromProof[environment, coreStmt, neg], None, None, compDecidable, "NegationPortfolio", <||>],
 							None
@@ -1917,7 +1979,8 @@ determinePipeline[environment_, coreStmt_, negStmt_, uParams_List, surfaceTerm_,
 					result,
 
 					(* 5. Certified finite/concrete model independence for opaque signatures *)
-					result = If[ useHeuristicQ[methodOpt],
+					result = If[ useHeuristicQ[methodOpt] && ! deadlineExceededQ[],
+						reportProgress["Searching concrete and finite independence models...", 0.78];
 						tryModelIndependence[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, maxModelSize],
 						None
 					];
@@ -1926,13 +1989,15 @@ determinePipeline[environment_, coreStmt_, negStmt_, uParams_List, surfaceTerm_,
 
 						(* 6. Optional LLM tactic hint if Method includes "LLM" *)
 						result = If[ useLLMQ[methodOpt],
-							tryLLMDetermination[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, llmEval, timeBudget],
+							reportProgress["Querying LLMFunction for proof tactics...", 0.88];
+							tryLLMDetermination[environment, coreStmt, negStmt, uParams, surfaceTerm, compDecidable, llmEval, remainingBudget[timeBudget]],
 							None
 						];
 						If[ AssociationQ[result],
 							result,
 
 							(* 7. Axiom-sensitivity check (e.g. Constructive vs Prelude) + honest Undetermined *)
+							reportProgress["Checking classical axiom sensitivity...", 0.95];
 							buildUndeterminedResult[environment, coreStmt, uParams, surfaceTerm, compDecidable]
 						]
 					]
@@ -2379,8 +2444,8 @@ assumptionsFromOpenProof[TypeTheoryProof[data_Association], Hold[opts___]] := Mo
 
 SetAttributes[findAssumptions, HoldFirst]
 findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := Module[
-	{resolved, environment, coreStmt, uParams, methodOpt, timeBudget, maxItems, allowEquiv, includeOpen, llmEval,
-	 alreadyProved, unpacked, varContext, varIds, bodyCore, rawCandidates = {}, verified, ranked},
+	{resolved, environment, coreStmt, uParams, methodOpt, timeBudget, maxItems, allowEquiv, includeOpen, llmEval, progressOpt,
+	 alreadyProved, unpacked, varContext, varIds, bodyCore, rawCandidates = {}, deduped, totalCands, verified = {}, ranked},
 	resolved = resolveProposition[proposition, environmentSpec];
 	If[ FailureQ[resolved],
 		resolved,
@@ -2394,46 +2459,71 @@ findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := 
 		allowEquiv = TrueQ[OptionValue[TypeTheoryAssumptions, {opts}, "EquivalentConditions"]];
 		includeOpen = TrueQ[OptionValue[TypeTheoryAssumptions, {opts}, "IncludeOpen"]];
 		llmEval = OptionValue[TypeTheoryAssumptions, {opts}, "LLMEvaluator"];
+		progressOpt = OptionValue[TypeTheoryAssumptions, {opts}, ProgressReporting];
 
-		(* If already provable, no extra assumptions are needed *)
-		alreadyProved = enhancedProveCore[environment, coreStmt, uParams, 1.5];
-		If[ ! FailureQ[alreadyProved],
-			{},
+		withSuperfunctionProgress["TypeTheoryAssumptions", progressOpt, timeBudget,
+			(* If already provable, no extra assumptions are needed *)
+			reportProgress["Checking whether proposition is already provable...", 0.08];
+			alreadyProved = enhancedProveCore[environment, coreStmt, uParams, remainingBudget[1.5]];
+			If[ ! FailureQ[alreadyProved],
+				{},
 
-			unpacked = peelLeadingDataBinders[environment, <||>, coreStmt];
-			varContext = unpacked["Context"];
-			varIds = unpacked["VariableIds"];
-			bodyCore = unpacked["Body"];
+				unpacked = peelLeadingDataBinders[environment, <||>, coreStmt];
+				varContext = unpacked["Context"];
+				varIds = unpacked["VariableIds"];
+				bodyCore = unpacked["Body"];
 
-			If[ useHeuristicQ[methodOpt],
-				rawCandidates = Join[
-					(* E1: Symbolic domain abduction over N, Z, Q *)
-					abduceSymbolicDomain[environment, varContext, varIds, bodyCore, uParams],
-					(* E2: Tactic-residual / environment lemma abduction *)
-					abduceLemmaResiduals[environment, varContext, varIds, bodyCore, uParams],
-					(* E3: Axiom upgrade diff (e.g. excludedMiddle in Constructive) *)
-					abduceAxiomDiff[environment, coreStmt, uParams],
-					(* E4: Counterexample-guided refinement (CEGAR) *)
-					abduceCounterexampleGuards[environment, varContext, varIds, bodyCore, coreStmt, uParams],
-					(* E5: Algebraic property catalog *)
-					abduceAlgebraicProperties[environment, coreStmt, uParams]
-				]
-			];
+				If[ useHeuristicQ[methodOpt] && ! deadlineExceededQ[],
+					reportProgress["Running symbolic domain abduction...", 0.18];
+					rawCandidates = Join[rawCandidates, abduceSymbolicDomain[environment, varContext, varIds, bodyCore, uParams]];
+					If[ ! deadlineExceededQ[],
+						reportProgress["Running tactic-residual and axiom-diff abduction...", 0.30];
+						rawCandidates = Join[
+							rawCandidates,
+							abduceLemmaResiduals[environment, varContext, varIds, bodyCore, uParams],
+							abduceAxiomDiff[environment, coreStmt, uParams]
+						]
+					];
+					If[ ! deadlineExceededQ[],
+						reportProgress["Running counterexample refinement and algebraic catalog...", 0.42];
+						rawCandidates = Join[
+							rawCandidates,
+							abduceCounterexampleGuards[environment, varContext, varIds, bodyCore, coreStmt, uParams],
+							abduceAlgebraicProperties[environment, coreStmt, uParams]
+						]
+					]
+				];
 
-			If[ useLLMQ[methodOpt],
-				rawCandidates = Join[rawCandidates, abduceViaLLM[environment, coreStmt, varContext, varIds, bodyCore, uParams, llmEval, timeBudget]]
-			];
+				If[ useLLMQ[methodOpt],
+					reportProgress["Querying LLMFunction for candidate assumptions...", 0.50];
+					rawCandidates = Join[rawCandidates, abduceViaLLM[environment, coreStmt, varContext, varIds, bodyCore, uParams, llmEval, remainingBudget[timeBudget]]]
+				];
 
-			(* Gate 1-3: Kernel proof, non-vacuity, non-triviality *)
-			verified = DeleteCases[
-				Function[cand, verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen]] /@
-					deduplicateRawAssumptionCandidates[rawCandidates],
-				None
-			];
+				(* Gate 1-3: Kernel proof, non-vacuity, non-triviality with progress & deadline guard *)
+				deduped = SortBy[deduplicateRawAssumptionCandidates[rawCandidates], coreComplexity[#["CoreAssumption"]] &];
+				totalCands = Length[deduped];
+				MapIndexed[
+					Function[{cand, idx},
+						If[ ! deadlineExceededQ[] || verified === {},
+							reportProgress[
+								"Verifying assumption candidate " <> IntegerString[First[idx]] <> "/" <> IntegerString[totalCands] <> " in kernel...",
+								0.55 + 0.35 * (First[idx] / Max[1, totalCands])
+							];
+							With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen]},
+								If[ res =!= None,
+									AppendTo[verified, res]
+								]
+							]
+						]
+					],
+					deduped
+				];
 
-			(* Gate 4: Deduplication & Pareto weakness ranking *)
-			ranked = rankAndDeduplicateAssumptions[environment, varContext, varIds, uParams, verified];
-			Take[ranked, UpTo[maxItems]]
+				(* Gate 4: Deduplication & Pareto weakness ranking *)
+				reportProgress["Pruning and ranking verified assumptions...", 0.95];
+				ranked = rankAndDeduplicateAssumptions[environment, varContext, varIds, uParams, verified];
+				Take[ranked, UpTo[maxItems]]
+			]
 		]
 	]
 ]
@@ -3246,8 +3336,8 @@ TypeTheoryConsequences[proposition_, environment : Except[_Rule | _RuleDelayed],
 
 SetAttributes[findConsequences, HoldFirst]
 findConsequences[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := Module[
-	{resolved, environment, coreStmt, uParams, methodOpt, timeBudget, maxItems, includeEquiv, llmEval,
-	 negStmt, refProof, rawCandidates = {}, verified, pruned},
+	{resolved, environment, coreStmt, uParams, methodOpt, timeBudget, maxItems, includeEquiv, llmEval, progressOpt,
+	 negStmt, refProof, rawCandidates = {}, deduped, totalCands, verified = {}, pruned},
 	resolved = resolveProposition[proposition, environmentSpec];
 	If[ FailureQ[resolved],
 		resolved,
@@ -3260,48 +3350,71 @@ findConsequences[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] :=
 		maxItems = Replace[OptionValue[TypeTheoryConsequences, {opts}, MaxItems], Except[_Integer?Positive] -> 8];
 		includeEquiv = TrueQ[OptionValue[TypeTheoryConsequences, {opts}, "IncludeEquivalents"]];
 		llmEval = OptionValue[TypeTheoryConsequences, {opts}, "LLMEvaluator"];
+		progressOpt = OptionValue[TypeTheoryConsequences, {opts}, ProgressReporting];
 
-		(* Special case: Inconsistency short-circuit *)
-		negStmt = coreNegation[environment, coreStmt];
-		refProof = enhancedProveCore[environment, negStmt, uParams, Min[2.0, timeBudget / 5]];
-		If[ ! FailureQ[refProof],
-			{<|
-				"Consequence" -> coreToTypeTheoryTerm[environment, <||>, coreFalse[]],
-				"Statement" -> coreToTypeTheoryTerm[environment, <||>, coreImplication[coreStmt, coreFalse[]]],
-				"Proof" -> refProof,
-				"Inconsistent" -> True,
-				"Method" -> "InconsistencyShortCircuit",
-				"Verified" -> True
-			|>},
+		withSuperfunctionProgress["TypeTheoryConsequences", progressOpt, timeBudget,
+			(* Special case: Inconsistency short-circuit *)
+			reportProgress["Checking proposition consistency...", 0.08];
+			negStmt = coreNegation[environment, coreStmt];
+			refProof = enhancedProveCore[environment, negStmt, uParams, remainingBudget[Min[2.0, timeBudget / 5]]];
+			If[ ! FailureQ[refProof],
+				{<|
+					"Consequence" -> coreToTypeTheoryTerm[environment, <||>, coreFalse[]],
+					"Statement" -> coreToTypeTheoryTerm[environment, <||>, coreImplication[coreStmt, coreFalse[]]],
+					"Proof" -> refProof,
+					"Inconsistent" -> True,
+					"Method" -> "InconsistencyShortCircuit",
+					"Verified" -> True
+				|>},
 
-			(* Gather candidate consequences from heuristic engines *)
-			If[ useHeuristicQ[methodOpt],
-				rawCandidates = Join[
-					(* F1: Structural decomposition & canonical specialization *)
-					deriveStructuralConsequences[environment, coreStmt, uParams],
-					(* F2: Environment lemma forward-chaining & logical corollaries *)
-					deriveLemmaForwardConsequences[environment, coreStmt, uParams],
-					(* F3: Symbolic projection & quantifier elimination *)
-					deriveSymbolicProjections[environment, coreStmt, uParams],
-					(* F4: Equational & algebraic property discovery *)
-					deriveEquationalConsequences[environment, coreStmt, uParams]
-				]
-			];
+				(* Gather candidate consequences from heuristic engines *)
+				If[ useHeuristicQ[methodOpt] && ! deadlineExceededQ[],
+					reportProgress["Generating structural and forward-chaining consequences...", 0.22];
+					rawCandidates = Join[
+						rawCandidates,
+						deriveStructuralConsequences[environment, coreStmt, uParams],
+						deriveLemmaForwardConsequences[environment, coreStmt, uParams]
+					];
+					If[ ! deadlineExceededQ[],
+						reportProgress["Running symbolic projection and equational discovery...", 0.38];
+						rawCandidates = Join[
+							rawCandidates,
+							deriveSymbolicProjections[environment, coreStmt, uParams],
+							deriveEquationalConsequences[environment, coreStmt, uParams]
+						]
+					]
+				];
 
-			If[ useLLMQ[methodOpt],
-				rawCandidates = Join[rawCandidates, deriveConsequencesViaLLM[environment, coreStmt, uParams, llmEval, timeBudget]]
-			];
+				If[ useLLMQ[methodOpt],
+					reportProgress["Querying LLMFunction for candidate consequences...", 0.48];
+					rawCandidates = Join[rawCandidates, deriveConsequencesViaLLM[environment, coreStmt, uParams, llmEval, remainingBudget[timeBudget]]]
+				];
 
-			(* Gates 1-4: Kernel proof, proof-term relevance, non-background novelty, non-triviality *)
-			verified = DeleteCases[
-				Function[cand, verifyAndFilterConsequence[environment, coreStmt, uParams, cand, includeEquiv]] /@
-					DeleteDuplicatesBy[rawCandidates, #["CoreConsequence"] &],
-				None
-			];
+				(* Gates 1-4: Kernel proof, proof-term relevance, non-background novelty, non-triviality *)
+				deduped = SortBy[DeleteDuplicatesBy[rawCandidates, #["CoreConsequence"] &], coreComplexity[#["CoreConsequence"]] &];
+				totalCands = Length[deduped];
+				MapIndexed[
+					Function[{cand, idx},
+						If[ ! deadlineExceededQ[] || verified === {},
+							reportProgress[
+								"Verifying consequence candidate " <> IntegerString[First[idx]] <> "/" <> IntegerString[totalCands] <> " in kernel...",
+								0.52 + 0.38 * (First[idx] / Max[1, totalCands])
+							];
+							With[{res = verifyAndFilterConsequence[environment, coreStmt, uParams, cand, includeEquiv]},
+								If[ res =!= None,
+									AppendTo[verified, res]
+								]
+							]
+						]
+					],
+					deduped
+				];
 
-			(* Gate 5: Subsumption pruning (Hasse frontier) *)
-			pruned = pruneSubsumedConsequences[environment, uParams, verified];
-			Take[pruned, UpTo[maxItems]]
+				(* Gate 5: Subsumption pruning (Hasse frontier) *)
+				reportProgress["Pruning subsumed consequences...", 0.95];
+				pruned = pruneSubsumedConsequences[environment, uParams, verified];
+				Take[pruned, UpTo[maxItems]]
+			]
 		]
 	]
 ]
@@ -3774,31 +3887,40 @@ deriveEquationalConsequences[environment_, coreP_, uParams_List] := Module[
 
 (* Form 1: Pointwise termination of an expression under explicit rewrite rules *)
 TypeTheoryTermination[expr_, rules_List, opts : OptionsPattern[]] :=
-	catchKernelFailure @ terminationPointwiseRules[HoldComplete[expr], HoldComplete[rules], Automatic, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationPointwiseRules[HoldComplete[expr], HoldComplete[rules], Automatic, Hold[opts]]]
 
 TypeTheoryTermination[expr_, rules_List, environment : Except[_Rule | _RuleDelayed], opts : OptionsPattern[]] :=
-	catchKernelFailure @ terminationPointwiseRules[HoldComplete[expr], HoldComplete[rules], environment, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationPointwiseRules[HoldComplete[expr], HoldComplete[rules], environment, Hold[opts]]]
 
 (* Form 2: Global termination of an explicit rewrite rule list *)
 TypeTheoryTermination[rules : {(_Rule | _RuleDelayed) ..}, opts : OptionsPattern[]] :=
-	catchKernelFailure @ terminationGlobalRules[HoldComplete[rules], Automatic, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationGlobalRules[HoldComplete[rules], Automatic, Hold[opts]]]
 
 TypeTheoryTermination[rules : {(_Rule | _RuleDelayed) ..}, environment : Except[_Rule | _RuleDelayed], opts : OptionsPattern[]] :=
-	catchKernelFailure @ terminationGlobalRules[HoldComplete[rules], environment, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationGlobalRules[HoldComplete[rules], environment, Hold[opts]]]
 
 (* Form 3: Termination of a Wolfram Language symbol (DownValues / While / recursive function) *)
 TypeTheoryTermination[symbol_Symbol, opts : OptionsPattern[]] :=
-	catchKernelFailure @ terminationSymbol[HoldComplete[symbol], Automatic, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationSymbol[HoldComplete[symbol], Automatic, Hold[opts]]]
 
 TypeTheoryTermination[symbol_Symbol, environment : Except[_Rule | _RuleDelayed], opts : OptionsPattern[]] :=
-	catchKernelFailure @ terminationSymbol[HoldComplete[symbol], environment, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationSymbol[HoldComplete[symbol], environment, Hold[opts]]]
 
 (* Form 4: Pointwise termination of an expression head[args...] under head's DownValues *)
 TypeTheoryTermination[expr : head_Symbol[___], opts : OptionsPattern[]] /; statementQ[Unevaluated[expr]] :=
-	catchKernelFailure @ terminationPointwiseSymbol[HoldComplete[expr], HoldComplete[head], Automatic, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationPointwiseSymbol[HoldComplete[expr], HoldComplete[head], Automatic, Hold[opts]]]
 
 TypeTheoryTermination[expr : head_Symbol[___], environment : Except[_Rule | _RuleDelayed], opts : OptionsPattern[]] /; statementQ[Unevaluated[expr]] :=
-	catchKernelFailure @ terminationPointwiseSymbol[HoldComplete[expr], HoldComplete[head], environment, Hold[opts]]
+	catchKernelFailure @ withTerminationProgress[Hold[opts], terminationPointwiseSymbol[HoldComplete[expr], HoldComplete[head], environment, Hold[opts]]]
+
+SetAttributes[withTerminationProgress, HoldRest]
+withTerminationProgress[Hold[opts___], body_] := With[
+	{
+		progressOpt = OptionValue[TypeTheoryTermination, {opts}, ProgressReporting],
+		timeBudget = Replace[OptionValue[TypeTheoryTermination, {opts}, TimeConstraint], Except[_?Positive] -> 15]
+	},
+	withSuperfunctionProgress["TypeTheoryTermination", progressOpt, timeBudget, body]
+]
 
 
 (* --- Target 4A: Pointwise Termination / Lasso Detection for Explicit Rule Lists --- *)
@@ -3828,12 +3950,13 @@ terminationPointwiseRules[heldExpr_HoldComplete, heldRules_HoldComplete, environ
 							exprCore,
 
 							(* Simulate ReplaceAll[cur, "targetRules"] step by step using NormalForm *)
+							reportProgress["Simulating rewrite steps...", 0.25];
 							visited = <||>;
 							stepHistory = {};
 							curCore = exprCore;
 							k = 0;
 							cycleStart = None;
-							While[ k < maxSteps,
+							While[ k < maxSteps && ! deadlineExceededQ[],
 								If[ KeyExistsQ[visited, curCore],
 									cycleStart = visited[curCore];
 									Break[]
@@ -4495,6 +4618,7 @@ terminationGlobalRules[heldRules_HoldComplete, environmentSpec_, Hold[opts___]] 
 
 		(* First check M4: linear polynomial weight interpretation *)
 		weightResult = If[ useHeuristicQ[methodOpt],
+			reportProgress["Synthesizing polynomial weight interpretation...", 0.30];
 			certifyRewriteRulesByWeight[environment, rulesList, heldRules],
 			None
 		];
@@ -4502,6 +4626,7 @@ terminationGlobalRules[heldRules_HoldComplete, environmentSpec_, Hold[opts___]] 
 			weightResult,
 
 			(* Next check M1/M5: try finding a concrete non-terminating instance / self-embedding witness *)
+			reportProgress["Probing for rewrite non-termination witnesses...", 0.72];
 			With[{nonTermResult = findRulesNonTerminationWitness[environment, rulesList, heldRules, opts]},
 				If[ AssociationQ[nonTermResult],
 					nonTermResult,
@@ -4561,7 +4686,16 @@ certifyRewriteRulesByWeight[environment_, rulesList_List, heldRules_HoldComplete
 				None,
 
 				(* Prove ForAll[xs, expressionWeight[rhs] < expressionWeight[lhs]] for EVERY rule in the kernel! *)
-				ruleProofs = Function[rule, proveRuleWeightDecrease[measureEnv, rule]] /@ parsedRules;
+				ruleProofs = MapIndexed[
+					Function[{rule, idx},
+						reportProgress[
+							"Proving weight decrease for rule " <> IntegerString[First[idx]] <> "/" <> IntegerString[Length[parsedRules]] <> " in kernel...",
+							0.50 + 0.42 * (First[idx] / Max[1, Length[parsedRules]])
+						];
+						proveRuleWeightDecrease[measureEnv, rule]
+					],
+					parsedRules
+				];
 				If[ AnyTrue[ruleProofs, FailureQ],
 					None,
 
@@ -4868,6 +5002,7 @@ instantiatePatternWithZero[HoldComplete[lhs_]] := ReplaceAll[HoldComplete[lhs], 
 (* --- Target 4D: Termination of a Wolfram Language Symbol (DownValues / While / Recursive / Compiled) --- *)
 terminationSymbol[heldSym : HoldComplete[symbol_Symbol], environmentSpec_, Hold[opts___]] := Module[
 	{meaningOpt, methodOpt, maxSteps, llmEval, dvs, environment, loopSpec, res},
+	reportProgress["Inspecting symbol definitions...", 0.08];
 	meaningOpt = OptionValue[TypeTheoryTermination, {opts}, "Meaning"];
 	methodOpt = OptionValue[TypeTheoryTermination, {opts}, Method];
 	maxSteps = Replace[OptionValue[TypeTheoryTermination, {opts}, "MaxSteps"], Except[_Integer?Positive] -> 100];
@@ -4907,6 +5042,7 @@ terminationSymbol[heldSym : HoldComplete[symbol_Symbol], environmentSpec_, Hold[
 
 (* Formalize symbol with "Meaning" -> "Function": if CIC accepts a TypeTheoryDefinition (not an opaque axiom), it is structurally terminating! *)
 terminationSymbolAsFunction[heldSym : HoldComplete[symbol_Symbol], environmentSpec_] := Module[{env, decls, extEnv, mainDecl},
+	reportProgress["Formalizing function for structural recursion check...", 0.35];
 	env = If[environmentSpec === Automatic, TypeTheoryEnvironment["Integers"], resolveEnvironmentArg[environmentSpec]];
 	If[ FailureQ[env],
 		env,
@@ -5335,14 +5471,17 @@ parseIntegerRecursionDefinition[_, _] := None
 analyzeIntegerLoopOrRecursion[heldSym : HoldComplete[symbol_Symbol], spec_Association, methodOpt_, maxSteps_Integer, llmEval_] := Module[
 	{intsEnv, initExpr = spec["Init"], guardExpr = spec["Guard"], stepExpr = spec["Step"],
 	 ranking, descentProof, termSamples, divSamples, witnessN, precondResult, divResult, llmRank},
+	reportProgress["Loading Integers environment...", 0.15];
 	intsEnv = TypeTheoryEnvironment["Integers"];
 
 	(* Step 1 (M3): Try unconditional affine ranking function mu(n, i) = c0 + c1*n + c2*i *)
 	ranking = If[ useHeuristicQ[methodOpt],
+		reportProgress["Synthesizing Farkas affine ranking function...", 0.25];
 		synthesizeAffineRankingFunction[guardExpr, stepExpr, True],
 		None
 	];
 	If[ AssociationQ[ranking],
+		reportProgress["Verifying affine ranking descent in kernel...", 0.55];
 		descentProof = proveAffineRankingInKernel[intsEnv, guardExpr, stepExpr, True, ranking["Measure"]];
 		If[ ! FailureQ[descentProof],
 			<|
@@ -5367,6 +5506,7 @@ analyzeConditionalOrDivergentLoop[intsEnv_, heldSym : HoldComplete[symbol_Symbol
 	 samples, termInputs, divInputs, witnessN, precond, condRanking, condProof, divInv, divProof},
 
 	(* Probe integer inputs -6..6 to classify terminating vs diverging inputs *)
+	reportProgress["Analyzing conditional termination and divergence witnesses...", 0.65];
 	samples = Table[
 		{k, simulateIntegerLoop[initExpr, guardExpr, stepExpr, k, Min[maxSteps, 60]]},
 		{k, -6, 6}
@@ -5377,7 +5517,8 @@ analyzeConditionalOrDivergentLoop[intsEnv_, heldSym : HoldComplete[symbol_Symbol
 	If[ divInputs === {},
 		(* Try LLM ranking function if enabled *)
 		If[ useLLMQ[methodOpt],
-			With[{llmRes = tryLLMRankingFunction[intsEnv, heldSym, spec, llmEval, 30]},
+			reportProgress["Querying LLMFunction for candidate ranking function...", 0.85];
+			With[{llmRes = tryLLMRankingFunction[intsEnv, heldSym, spec, llmEval, remainingBudget[30]]},
 				If[ AssociationQ[llmRes],
 					llmRes,
 					<|"Status" -> "Undetermined", "Target" -> HoldForm[symbol], "Proof" -> None, "Method" -> "SearchExhausted", "Verified" -> False|>

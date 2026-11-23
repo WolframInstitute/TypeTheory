@@ -39,6 +39,7 @@ RelatedTutorials: [AutomatedAnalysisAndDiscovery, TypeTheoryIntroduction, Progra
 | [MaxItems]() | `8` | maximum number of ranked consequences to return |
 | `"IncludeEquivalents"` | [False]() | whether to keep consequences logically equivalent to *proposition* |
 | `"LLMEvaluator"` | [Automatic]() | [Automatic]() for Wolfram AI's default model, an [LLMConfiguration](), or a prompt guidance string |
+| [ProgressReporting]() | [Automatic]() | whether to display live stage and candidate-verification progress (`True`, `False`, or [Automatic]() following [$ProgressReporting]()) |
 
 ## Basic Examples
 

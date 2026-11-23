@@ -37,6 +37,7 @@ RelatedTutorials: [AutomatedAnalysisAndDiscovery, TypeTheoryIntroduction, Progra
 | `"EquivalentConditions"` | [True]() | whether to allow logically equivalent reformulations that are strictly simpler than the target |
 | `"IncludeOpen"` | [False]() | whether to include unverified candidates when no proof was found |
 | `"LLMEvaluator"` | [Automatic]() | [Automatic]() for Wolfram AI's default model, an [LLMConfiguration](), or a prompt guidance string |
+| [ProgressReporting]() | [Automatic]() | whether to display live stage and candidate-verification progress (`True`, `False`, or [Automatic]() following [$ProgressReporting]()) |
 
 ## Basic Examples
 
