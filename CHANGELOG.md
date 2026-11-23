@@ -7,7 +7,11 @@ commits and releases that build one feature are one line.
 
 ## 2026-W48 (November 23 to 29), in progress
 
-Versions 0.60.1 to 0.60.2.
+Versions 0.60.1 to 0.61.0.
+
+### Added
+
+- **Proof analysis and discovery superfunctions.** Four untrusted proof-search and analysis functions sit on top of `TypeTheoryProof` and `TypeTheoryTactic` (`Proofs/Superfunctions.wl`, outside `$trustedSources`), with every returned proof certificate checked again by the trusted kernel: `TypeTheoryDetermine` decides propositions as `"Proved"`, `"Refuted"` (with counterexample witness), `"Independent"` (with kernel-checked true and false models), or `"Undetermined"`; `TypeTheoryAssumptions` abducts ranked, sensible, non-vacuous missing assumptions that turn an unprovable statement into a kernel-checked theorem or close open goals of a `TypeTheoryProof`; `TypeTheoryConsequences` derives ranked, non-trivial consequences verified to genuinely use the hypothesis in their proof term (short-circuiting to `False` on inconsistent assumptions); and `TypeTheoryTermination` certifies termination, conditional termination, or divergence (lasso cycles, self-embedding invariants, polynomial weight interpretations, and Farkas affine ranking functions) of formalized Wolfram Language functions, loops, and rewrite rules. All four run strictly offline by default (`Method -> Automatic`) with optional `LLMFunction` assistance (`Method -> "LLM"` or `{"Heuristic", "LLM"}`), documented in four symbol reference pages and the tutorial `AutomatedAnalysisAndDiscovery`.
 
 ### Fixed
 
