@@ -169,8 +169,9 @@ $program = Hold[{
 		If[top - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, top - m["Part", hDeclarationStart]]];
 		If[ If[threshold > 0,
 				top - start < threshold && levelTop - levelStart < threshold && context < threshold,
-				2 (top - start) <= m["Part", hCap] - m["Part", hNodeMark] && 2 (levelTop - levelStart) <= m["Part", hLevelCap] - m["Part", hLevelMark]
-					&& 2 context <= m["Part", hLctxCap] - m["Part", hContextMark]
+				top - start < 65536 && 2 (top - start) <= m["Part", hCap] - m["Part", hNodeMark]
+					&& levelTop - levelStart < 4096 && 2 (levelTop - levelStart) <= m["Part", hLevelCap] - m["Part", hLevelMark]
+					&& context < 4096 && 2 context <= m["Part", hLctxCap] - m["Part", hContextMark]
 			],
 			m["SetPart", hDeclarationStart, top];
 			Return[1]
@@ -196,30 +197,34 @@ $program = Hold[{
 	(* intra-declaration scratch compaction: inside a closed reduction loop (arenaWhnfCore or arenaLazyDelta), every
 	   caller above only holds node ids <= baseNodes, so once scratch grows past the watermark with no new fvars or
 	   stack frames live, only the subgraph of the loop's 1 or 2 roots above baseNodes is kept *)
-	kfn[arenaCompactStep, Function[{m, baseNodes}, Module[{thresh = m["Part", hCompactThreshold]},
-		If[thresh > 0, thresh, Max[Min[200000, Quotient[m["Part", hCap], 4]], baseNodes - m["Part", hNodeMark]]]
+	kfn[arenaCompactStep, Function[{m, baseNodes}, Module[{thresh = m["Part", hCompactThreshold], room = m["Part", hCap] - baseNodes},
+		If[thresh > 0, thresh, Max[32768, Min[200000, Quotient[room, 4]]]]
 	]]],
-	kfn[arenaShouldCompactQ, Function[{m, compactAt, baseLctx, baseStack},
+	kfn[arenaShouldCompactQ, Function[{m, compactAt, baseLctx, baseStack}, Module[{thresh = m["Part", hCompactThreshold]},
 		If[arenaDebug == 1 || m["Part", hLctx] != baseLctx || m["Part", hStackTop] != baseStack, 0,
-			If[m["Part", hNodes] >= compactAt, 1, 0]
+			If[thresh > 0,
+				If[m["Part", hNodes] >= compactAt, 1, 0],
+				If[4 m["Part", hNodes] >= 3 m["Part", hCap] && m["Part", hNodes] >= compactAt, 1, 0]
+			]
 		]
-	]],
-	(* zero-root scratch rollback: after a completed check (arenaCheckHasType, arenaSpineType argument check, or
-	   arenaIsDefEq) that returns no node id > baseNodes and no fvar > baseLctx, reclaim scratch nodes and local-context
-	   entries made since baseNodes/baseLctx and re-insert surviving scratch nodes and levels under the new epoch *)
-	kfn[arenaRollbackScratch, Function[{m, baseNodes, baseLctx}, Module[
+	]]],
+	kfn[arenaShouldRollbackQ, Function[{m, baseNodes, baseStack, step}, Module[{thresh = m["Part", hCompactThreshold], cur = m["Part", hNodes]},
+		If[arenaDebug == 1 || m["Part", hStackTop] != baseStack, 0,
+			If[thresh > 0,
+				If[cur - baseNodes >= step, 1, 0],
+				If[4 cur >= 3 m["Part", hCap] && cur - baseNodes >= step, 1, 0]
+			]
+		]
+	]]],
+	(* re-insert surviving scratch nodes (hNodeMark + 1 .. baseNodes) and scratch levels into their hash-cons tables under
+	   epoch, and preserve live whnf/core/infer cache entries whose keys and values both stay <= baseNodes *)
+	kfn[arenaReinsertScratch, Function[{m, baseNodes, oldEpoch, epoch}, Module[
 		{
 			nodeBase = m["Part", hNodeBase], tableBase = m["Part", hTableBase], tableMask = m["Part", hTableMask],
 			levelBase = m["Part", hLevelBase], levelTableBase = m["Part", hLevelTableBase], levelMask = m["Part", hLevelTableMask],
-			epoch = m["Part", hEpoch] + 1, oldNodes = m["Part", hNodes],
-			cell = 0, tag = 0, a = 0, b = 0, c = 0, h = 0, id = 0, k = 0
+			whnfBase = m["Part", hWhnfBase], coreBase = m["Part", hCoreBase], inferBase = m["Part", hInferBase], inferOnlyBase = m["Part", hInferOnlyBase],
+			newStamp = stampUnit epoch, cell = 0, tag = 0, a = 0, b = 0, c = 0, h = 0, id = 0, k = 0, v = 0
 		},
-		If[epoch >= 1073741824, Return[1]];
-		If[oldNodes - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, oldNodes - m["Part", hDeclarationStart]]];
-		m["SetPart", hEpoch, epoch];
-		m["SetPart", hNodes, baseNodes];
-		m["SetPart", hLctx, baseLctx];
-		m["SetPart", hNodesMade, m["Part", hNodesMade] + oldNodes - baseNodes];
 		Do[
 			cell = nodeBase + 6 k - 6;
 			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3]; c = m["Part", cell + 4];
@@ -232,7 +237,15 @@ $program = Hold[{
 				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
 				h = BitAnd[h + 1, tableMask]
 			];
-			m["SetPart", tableBase + 1 + h, k + stampUnit epoch],
+			m["SetPart", tableBase + 1 + h, k + newStamp];
+			v = m["Part", whnfBase + k];
+			If[v >= stampUnit && BitShiftRight[v, 32] == oldEpoch && BitAnd[v, stampMask] <= baseNodes, m["SetPart", whnfBase + k, BitAnd[v, stampMask] + newStamp]];
+			v = m["Part", coreBase + k];
+			If[v >= stampUnit && BitShiftRight[v, 32] == oldEpoch && BitAnd[v, stampMask] <= baseNodes, m["SetPart", coreBase + k, BitAnd[v, stampMask] + newStamp]];
+			v = m["Part", inferBase + k];
+			If[v >= stampUnit && BitShiftRight[v, 32] == oldEpoch && BitAnd[v, stampMask] <= baseNodes, m["SetPart", inferBase + k, BitAnd[v, stampMask] + newStamp]];
+			v = m["Part", inferOnlyBase + k];
+			If[v >= stampUnit && BitShiftRight[v, 32] == oldEpoch && BitAnd[v, stampMask] <= baseNodes, m["SetPart", inferOnlyBase + k, BitAnd[v, stampMask] + newStamp]],
 			{k, m["Part", hNodeMark] + 1, baseNodes}
 		];
 		Do[
@@ -246,19 +259,31 @@ $program = Hold[{
 				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
 				h = BitAnd[h + 1, levelMask]
 			];
-			m["SetPart", levelTableBase + 1 + h, k + stampUnit epoch],
+			m["SetPart", levelTableBase + 1 + h, k + newStamp],
 			{k, m["Part", hLevelMark] + 1, m["Part", hLevels]}
 		];
 		1
 	]]],
+	(* zero-root scratch rollback: after a completed check (arenaCheckHasType, arenaSpineType argument check, or
+	   arenaIsDefEq) that returns no node id > baseNodes and no fvar > baseLctx, reclaim scratch nodes and local-context
+	   entries made since baseNodes/baseLctx *)
+	kfn[arenaRollbackScratch, Function[{m, baseNodes, baseLctx}, Module[
+		{oldEpoch = m["Part", hEpoch], epoch = m["Part", hEpoch] + 1, oldNodes = m["Part", hNodes]},
+		If[epoch >= 1073741824, Return[1]];
+		If[oldNodes - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, oldNodes - m["Part", hDeclarationStart]]];
+		m["SetPart", hEpoch, epoch];
+		m["SetPart", hNodes, baseNodes];
+		m["SetPart", hLctx, baseLctx];
+		m["SetPart", hNodesMade, m["Part", hNodesMade] + oldNodes - baseNodes];
+		arenaReinsertScratch[m, baseNodes, oldEpoch, epoch]
+	]]],
 	kfn[arenaCompactScratch, Function[{m, baseNodes, root1, root2}, Module[
 		{
 			baseStack = m["Part", hStackTop], stackCap = m["Part", hStackCap], stackBase = m["Part", hStackBase],
-			markBase = m["Part", hMarkBase], nodeBase = m["Part", hNodeBase], tableBase = m["Part", hTableBase], tableMask = m["Part", hTableMask],
-			levelBase = m["Part", hLevelBase], levelTableBase = m["Part", hLevelTableBase], levelMask = m["Part", hLevelTableMask],
+			markBase = m["Part", hMarkBase], nodeBase = m["Part", hNodeBase],
 			mg = m["Part", hMarkGen] + 1, mgStamp = 0, postBase = 0, postCount = 0, dfsTop = 0, tupleBase = 0,
-			cur = 0, id = 0, mark = 0, cell = 0, tag = 0, a = 0, b = 0, c = 0, h = 0,
-			mr1 = 0, mr2 = 0, nr1 = 0, nr2 = 0, epoch = 0, oldNodes = 0, nid = 0, i = 0, k = 0
+			cur = 0, id = 0, mark = 0, cell = 0, tag = 0, a = 0, b = 0, c = 0,
+			mr1 = 0, mr2 = 0, nr1 = 0, nr2 = 0, oldEpoch = 0, epoch = 0, oldNodes = 0, nid = 0, i = 0
 		},
 		If[mg >= 1073741824, Return[arenaFail[m, eCapacity]]];
 		m["SetPart", hMarkGen, mg];
@@ -330,42 +355,14 @@ $program = Hold[{
 		];
 		mr1 = If[root1 > baseNodes, -BitAnd[m["Part", markBase + root1], stampMask], root1];
 		mr2 = If[root2 > baseNodes, -BitAnd[m["Part", markBase + root2], stampMask], root2];
-		epoch = m["Part", hEpoch] + 1;
+		oldEpoch = m["Part", hEpoch];
+		epoch = oldEpoch + 1;
 		If[epoch >= 1073741824, Return[arenaFail[m, eCapacity]]];
 		oldNodes = m["Part", hNodes];
 		If[oldNodes - m["Part", hDeclarationStart] > m["Part", hScratchPeak], m["SetPart", hScratchPeak, oldNodes - m["Part", hDeclarationStart]]];
 		m["SetPart", hEpoch, epoch];
 		m["SetPart", hNodes, baseNodes];
-		(* re-insert surviving scratch nodes and scratch levels into their hash-cons tables under the new epoch *)
-		Do[
-			cell = nodeBase + 6 k - 6;
-			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3]; c = m["Part", cell + 4];
-			h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
-			h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
-			h = BitAnd[h * 1000003 + BitAnd[c, mask40], mask40];
-			h = BitAnd[BitXor[h, BitShiftRight[h, 17]], tableMask];
-			While[True,
-				id = m["Part", tableBase + 1 + h];
-				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
-				h = BitAnd[h + 1, tableMask]
-			];
-			m["SetPart", tableBase + 1 + h, k + stampUnit epoch],
-			{k, m["Part", hNodeMark] + 1, baseNodes}
-		];
-		Do[
-			cell = levelBase + 4 k - 4;
-			tag = m["Part", cell + 1]; a = m["Part", cell + 2]; b = m["Part", cell + 3];
-			h = BitAnd[tag * 1000003 + BitAnd[a, mask40], mask40];
-			h = BitAnd[h * 1000003 + BitAnd[b, mask40], mask40];
-			h = BitAnd[BitXor[h, BitShiftRight[h, 17]], levelMask];
-			While[True,
-				id = m["Part", levelTableBase + 1 + h];
-				If[id == 0 || (id >= stampUnit && BitShiftRight[id, 32] != epoch), Break[]];
-				h = BitAnd[h + 1, levelMask]
-			];
-			m["SetPart", levelTableBase + 1 + h, k + stampUnit epoch],
-			{k, m["Part", hLevelMark] + 1, m["Part", hLevels]}
-		];
+		arenaReinsertScratch[m, baseNodes, oldEpoch, epoch];
 		Do[
 			tag = m["Part", stackBase + 1 + tupleBase + 4 i];
 			a = m["Part", stackBase + 1 + tupleBase + 4 i + 1];
@@ -1052,13 +1049,13 @@ $program = Hold[{
 		   already set, which is sound only while an open application is reduced by unfolding its definition. A change
 		   that uses a role on an open term must first make a role active only from its registration's place in the order;
 		   the tests "The-compiled-kernel-alone-refuses-a-different-function-for-each-role" fail if it does not. *)
+		kind = arenaConstCell[m, c, cKind];
 		role = arenaConstCell[m, c, cNatRole];
-		If[role != 0,
+		If[role != 0 && (unfold == 1 || kind != kDefinition),
 			lit = arenaLiteralOperation[m, c, role, s, n];
 			If[lit != 0, Return[lit]];
 			If[arenaFailed[m] == 1, Return[0]]
 		];
-		kind = arenaConstCell[m, c, cKind];
 		Which[
 			kind == kDefinition, If[unfold == 1, arenaApplyArgs[m, arenaInstUniv[m, arenaConstCell[m, c, cValue], arenaConstCell[m, c, cParams], ls], s, n], e],
 			kind == kRecursor, arenaReduceRecursor[m, e, c, ls, s, n],
@@ -1100,9 +1097,9 @@ $program = Hold[{
 	   eLiteralOverflow and the record is left to the kernel of TypeChecking.wl *)
 	kfn[arenaLiteralOperation, Function[{m, c, role, s, n}, Module[{arity = If[role == 8, 1, 2], x = 0, y = 0, xv = 0, yv = 0, r = -1},
 		If[n != arity, Return[0]];
+		If[arity == 2, y = arenaLiteralNode[m, arenaStackGet[m, s + 1]]; If[y == 0, Return[0]]];
 		x = arenaLiteralNode[m, arenaStackGet[m, s]];
 		If[x == 0, Return[0]];
-		If[arity == 2, y = arenaLiteralNode[m, arenaStackGet[m, s + 1]]; If[y == 0, Return[0]]];
 		If[ arenaTagOf[m, x] == tLit && (arity == 1 || arenaTagOf[m, y] == tLit),
 			xv = arenaF1Of[m, x];
 			yv = If[arity == 2, arenaF1Of[m, y], 0];
@@ -1513,7 +1510,7 @@ $program = Hold[{
 			If[arenaTagOf[m, type] == tPi,
 				If[inferOnly == 0,
 					If[arenaCheckHasType[m, arenaStackGet[m, s + i], arenaInstantiateValues[m, arenaF1Of[m, type], s + p, i - p]] == 0, arenaRestore[m, top]; Return[0]];
-					If[arenaDebug == 0 && m["Part", hStackTop] == loopStack && m["Part", hNodes] - loopNodes >= rollbackStep,
+					If[arenaShouldRollbackQ[m, loopNodes, loopStack, rollbackStep] == 1,
 						arenaRollbackScratch[m, loopNodes, loopLctx]
 					]
 				];
@@ -1539,7 +1536,7 @@ $program = Hold[{
 		If[expected < 1, Return[arenaFail[m, eIllFormed]]];
 		ok = arenaIsDefEq[m, actual, expected];
 		If[ok == 1,
-			If[arenaDebug == 0 && m["Part", hStackTop] == baseStack && m["Part", hNodes] - baseNodes >= arenaCompactStep[m, baseNodes],
+			If[arenaShouldRollbackQ[m, baseNodes, baseStack, arenaCompactStep[m, baseNodes]] == 1,
 				arenaRollbackScratch[m, baseNodes, baseLctx]
 			];
 			1,
@@ -1737,7 +1734,7 @@ $program = Hold[{
 		baseStack = m["Part", hStackTop];
 		r = arenaDefEqCases[m, a, b];
 		If[arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
-		If[arenaDebug == 0 && m["Part", hStackTop] == baseStack && m["Part", hNodes] - baseNodes >= arenaCompactStep[m, baseNodes],
+		If[arenaShouldRollbackQ[m, baseNodes, baseStack, arenaCompactStep[m, baseNodes]] == 1,
 			arenaRollbackScratch[m, baseNodes, baseLctx]
 		];
 		If[r == 1, arenaUnite[m, a, b], arenaFailInsert[m, x, y]];
@@ -1805,10 +1802,17 @@ $program = Hold[{
 		If[arenaConstCell[m, c, cKind] != kDefinition, Return[0]];
 		1 + 2 arenaConstCell[m, c, cHeight] + arenaConstCell[m, c, cHint]
 	]]],
-	kfn[arenaUnfoldedHead, Function[{m, t}, Module[{h = arenaSpineHead[m, t], n = arenaSpineCount[m, t], s = 0, r = 0, top = m["Part", hStackTop]},
+	kfn[arenaUnfoldedHead, Function[{m, t}, Module[{h = arenaSpineHead[m, t], n = arenaSpineCount[m, t], c = 0, role = 0, lit = 0, s = 0, r = 0, top = m["Part", hStackTop]},
+		c = arenaF1Of[m, h];
 		s = arenaPushSpine[m, t, n];
 		If[s < 0, Return[0]];
-		r = arenaApplyArgs[m, arenaInstUniv[m, arenaConstCell[m, arenaF1Of[m, h], cValue], arenaConstCell[m, arenaF1Of[m, h], cParams], arenaF2Of[m, h]], s, n];
+		role = arenaConstCell[m, c, cNatRole];
+		If[role != 0,
+			lit = arenaLiteralOperation[m, c, role, s, n];
+			If[lit != 0, arenaRestore[m, top]; Return[lit]];
+			If[arenaFailed[m] == 1, arenaRestore[m, top]; Return[0]]
+		];
+		r = arenaApplyArgs[m, arenaInstUniv[m, arenaConstCell[m, c, cValue], arenaConstCell[m, c, cParams], arenaF2Of[m, h]], s, n];
 		arenaRestore[m, top];
 		arenaWhnfCore[m, r, 0]
 	]]],

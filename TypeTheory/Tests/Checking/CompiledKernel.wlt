@@ -1377,3 +1377,122 @@ VerificationTest[
 	{True, True, True, True, True},
 	TestID -> "Scratch-rollback-across-sibling-arguments-reuses-fvar-ids-without-stale-leakage"
 ]
+
+(* Cache preservation across forced intra-declaration compaction (settings[[14]] = 500):
+   a Pascal's-triangle binomial function relies on hWhnfBase memoization for overlapping subproblems.
+   Re-stamping surviving scratch whnf/core/infer entries <= baseNodes keeps evaluation fast even when
+   compaction fires repeatedly, while forged wrong values are still rejected. *)
+VerificationTest[
+	If[ ! available,
+		{True, True, True, True, True},
+		Module[
+			{
+				dagEnv, forgedDag, runCompact, resH, resF
+			},
+			dagEnv = TypeTheoryEnvironment[literalBase, {
+				TypeTheoryDefinition["pascal", Typed[
+					Function[{Typed[n, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+						Function[{Typed[i, NonNegativeIntegers]}, NonNegativeIntegers -> NonNegativeIntegers],
+						Function[{Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+							Function[{Typed[j, NonNegativeIntegers]}, NonNegativeIntegers],
+							1,
+							Function[{Typed[j, NonNegativeIntegers], Typed[acc, NonNegativeIntegers]}, 0],
+							k
+						]],
+						Function[{Typed[i, NonNegativeIntegers], Typed[prev, NonNegativeIntegers -> NonNegativeIntegers]},
+							Function[{Typed[k, NonNegativeIntegers]}, InductiveRecursor[NonNegativeIntegers][
+								Function[{Typed[j, NonNegativeIntegers]}, NonNegativeIntegers],
+								1,
+								Function[{Typed[j, NonNegativeIntegers], Typed[acc, NonNegativeIntegers]}, prev[j] + prev[j + 1]],
+								k
+							]]
+						],
+						n
+					]],
+					NonNegativeIntegers -> (NonNegativeIntegers -> NonNegativeIntegers)
+				]],
+				TypeTheoryTheorem["pascalOk", "pascal"[14][7] == 3432, "equalityReflexivity"[3432]]
+			}, Method -> "Symbolic"];
+			forgedDag = forge[dagEnv, HoldComplete["pascalOk"], Function[record,
+				Association[record, "Value" -> First[TypeTheoryEnvironment[literalBase, {TypeTheoryTheorem["w", 3433 == 3433, "equalityReflexivity"[3433]]}, Method -> "Symbolic"]]["Records"][HoldComplete["w"]]["Value"]]
+			]];
+			runCompact[env_] := With[{input = compiledPrivate["environmentInput"][env, Length[literalBase], 0, 1]},
+				compiledPrivate["compiledKernelFunction"][][
+					input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"],
+					Developer`ToPackedArray[Join[Normal[input["Settings"]], {0, 500}]]
+				]
+			];
+			resH = runCompact[dagEnv];
+			resF = runCompact[forgedDag];
+			{
+				resH[[1]] === 0,
+				resH[[15]] >= 2,
+				resH[[8]] < 200000,
+				resF[[1]] === 1,
+				bothKernels[dagEnv] === {"EnvironmentChecked", "EnvironmentChecked"}
+			}
+		]
+	],
+	{True, True, True, True, True},
+	TestID -> "Forced-compaction-preserves-surviving-whnf-cache-and-rejects-forgeries"
+]
+
+(* Open large-literal products inside registered Nat operations:
+   - with unfold == 0, arenaReduceConstant does not force delta unfolding on Nat.add arguments before same-head comparison;
+   - with unfold == 1 (recursor major premise ((x + 1) * 10^9) + 1), evaluating the second argument before the first in
+     arenaLiteralOperation breaks the Nat.mul -> Nat.add unfolding chain at depth 1 instead of recursing 10^9 times;
+   - forged unequal statements with open large-literal products are still rejected with eMismatch. *)
+VerificationTest[
+	If[ ! available,
+		{True, True, True, True},
+		Module[
+			{
+				natEnv, forgedNat, runDefault, resH, resF
+			},
+			natEnv = TypeTheoryEnvironment[literalBase, {
+				TypeTheoryTheorem["openMulAddSameHead",
+					ForAll[{Typed[x, NonNegativeIntegers]}, (Function[{Typed[z, NonNegativeIntegers]}, z][x + 1] * 1000000000) + (x + 1) == ((x + 1) * 1000000000) + (x + 1)],
+					Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"[((x + 1) * 1000000000) + (x + 1)]]
+				],
+				TypeTheoryTheorem["openMulAddWhnf",
+					ForAll[{Typed[x, NonNegativeIntegers]},
+						InductiveRecursor[NonNegativeIntegers][
+							Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers],
+							0,
+							Function[{Typed[k, NonNegativeIntegers], Typed[acc, NonNegativeIntegers]}, 42],
+							((x + 1) * 1000000000) + 1
+						] == 42
+					],
+					Function[{Typed[x, NonNegativeIntegers]}, "equalityReflexivity"[42]]
+				]
+			}, Method -> "Symbolic"];
+			forgedNat = forge[natEnv, HoldComplete["openMulAddWhnf"], Function[record,
+				Association[record, "Type" -> First[TypeTheoryEnvironment[literalBase, {
+					TypeTheoryAxiom["badType", ForAll[{Typed[x, NonNegativeIntegers]},
+						InductiveRecursor[NonNegativeIntegers][
+							Function[{Typed[k, NonNegativeIntegers]}, NonNegativeIntegers],
+							0,
+							Function[{Typed[k, NonNegativeIntegers], Typed[acc, NonNegativeIntegers]}, 42],
+							((x + 1) * 1000000000) + 1
+						] == 43
+					]]
+				}, Method -> "Symbolic"]]["Records"][HoldComplete["badType"]]["Type"]]
+			]];
+			runDefault[env_] := With[{input = compiledPrivate["environmentInput"][env, Length[literalBase], 0, 1]},
+				compiledPrivate["compiledKernelFunction"][][
+					input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], input["Settings"]
+				]
+			];
+			resH = runDefault[natEnv];
+			resF = runDefault[forgedNat];
+			{
+				resH[[1]] === 0,
+				resH[[5]] < 200,
+				resF[[1]] === 1,
+				bothKernels[natEnv] === {"EnvironmentChecked", "EnvironmentChecked"}
+			}
+		]
+	],
+	{True, True, True, True},
+	TestID -> "Open-large-literal-product-avoids-unfolding-cascade-and-rejects-forgeries"
+]
