@@ -2701,10 +2701,10 @@ givenWithoutProofs[records_List, _Integer] := records
 
 (* When checking an overlay on top of a lazy Format 3 base with CSR DepBlocks, pull only the transitive
    statement-dependency cone of the overlay declarations + natural-number registrations (zero proof I/O) *)
-lazyConeSelection[environment : TypeTheoryEnvironment[store_Symbol], trusted_Integer, natural_, equations_List] := Block[
+lazyConeSelection[environment : TypeTheoryEnvironment[store_Symbol], trusted_Integer, natural_, equations_List] := Module[
 	{source = store["LazySource"], overlay, seedNames, coneIds, coneLocalNames, baseNames},
 	If[ ! lazySourceQ[source] || ! lazyHasDepsQ[source] || trusted =!= lazyEnvironmentCount[source],
-		Return[None, Block]
+		Return[None, Module]
 	];
 	overlay = store["Overlay"];
 	seedNames = Join[

@@ -994,19 +994,19 @@ visitConstants[environment_, initialNames_List] := Block[
 ]
 
 pushVisitConstant[environment : TypeTheoryEnvironment[store_Symbol], name_HoldComplete, stack_] := Block[
-	{source = store["LazySource"], localId, kind, rec},
-	If[ lazySourceQ[source] && lazyHasDepsQ[source] && ! KeyExistsQ[store["Overlay"], name],
-		localId = lazyConstantIndex[source, name];
-		If[ localId > 0,
-			kind = lazyConstantKind[source, name];
-			If[ kind === "Axiom",
-				rec = lazyConstantRecord[source, name, False];
-				$closureAxioms[name] = If[propositionTypeQ[environment, rec["Type"]], "Proposition", "Signature"]
+	{visitSource = store["LazySource"], visitLocalId, visitKind, visitRec},
+	If[ lazySourceQ[visitSource] && lazyHasDepsQ[visitSource] && ! KeyExistsQ[store["Overlay"], name],
+		visitLocalId = lazyConstantIndex[visitSource, name];
+		If[ visitLocalId > 0,
+			visitKind = lazyConstantKind[visitSource, name];
+			If[ visitKind === "Axiom",
+				visitRec = lazyConstantRecord[visitSource, name, False];
+				$closureAxioms[name] = If[propositionTypeQ[environment, visitRec["Type"]], "Proposition", "Signature"]
 			];
-			If[ kind === "Hole",
-				$closureHoles[name] = lazyConstantRecord[source, name, False]
+			If[ visitKind === "Hole",
+				$closureHoles[name] = lazyConstantRecord[visitSource, name, False]
 			];
-			Return[pushVisitNames[lazyConstantDepNames[source, localId, True], stack], Block]
+			Return[pushVisitNames[lazyConstantDepNames[visitSource, visitLocalId, True], stack], Block]
 		]
 	];
 	pushRecordDependencies[environment, name, constantRecord[environment, name], stack]

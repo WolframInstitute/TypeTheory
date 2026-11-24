@@ -164,8 +164,8 @@ decodeUint64LE[bytes_List] := FromDigits[Reverse[bytes], 256]
 writeAllBytes[stream_, bytes_ByteArray] := BinaryWrite[stream, bytes]
 
 (* Read exactly length bytes starting at offset from stream using BinaryReadList["Byte"] for W15/v2 parity *)
-readExactBytes[stream_, offset_Integer, length_Integer] := Block[{raw},
-	If[length == 0, Return[ByteArray[{}], Block]];
+readExactBytes[stream_, offset_Integer, length_Integer] := Module[{raw},
+	If[length == 0, Return[ByteArray[{}], Module]];
 	If[offset < 0 || length < 0, kernelFailure["SavedEnvironmentInvalid", "Invalid block range in saved environment.", {}]];
 	If[Quiet[SetStreamPosition[stream, offset]] === $Failed, kernelFailure["SavedEnvironmentUnreadable", "Failed to seek in saved environment.", {}]];
 	raw = Quiet[BinaryReadList[stream, "Byte", length]];
@@ -177,7 +177,7 @@ readExactBytes[stream_, offset_Integer, length_Integer] := Block[{raw},
 
 format3FileQ[file_String] := If[ ! FileExistsQ[file] || Quiet[FileByteCount[file]] < 8 + $format3HeaderSize,
 	False,
-	Block[{stream},
+	Module[{stream},
 		WithCleanup[
 			stream = Quiet[OpenRead[file, BinaryFormat -> True]],
 			If[! MatchQ[stream, _InputStream], False, Quiet[BinaryReadList[stream, "Byte", 8]] === $format3Magic],
@@ -213,7 +213,7 @@ fileSnapshot[path_String] := With[{size = Quiet[FileByteCount[path]], date = Qui
 	]
 ]
 
-poolStreamFor[source_Symbol] := Block[
+poolStreamFor[source_Symbol] := Module[
 	{path = source["Path"], expectedSize = source["ByteCount"], expectedDate = source["FileDate"], current, entry, stream, oldestKey},
 	current = Quiet[{FileByteCount[path], FileDate[path]}];
 	If[ current =!= {expectedSize, expectedDate},
@@ -227,7 +227,7 @@ poolStreamFor[source_Symbol] := Block[
 		entry = $lazyStreamPool[path];
 		If[ entry["ByteCount"] === expectedSize && entry["FileDate"] === expectedDate && MemberQ[Streams[], entry["Stream"]],
 			$lazyStreamPool[path] = Append[entry, "LastUsed" -> ++$lazyStreamTick];
-			Return[entry["Stream"], Block]
+			Return[entry["Stream"], Module]
 		];
 		Quiet[Close[entry["Stream"]]];
 		KeyDropFrom[$lazyStreamPool, path]
@@ -245,7 +245,7 @@ poolStreamFor[source_Symbol] := Block[
 	stream
 ]
 
-readSourceRange[source_Symbol, offset_Integer, length_Integer] := Block[{path = source["Path"], expectedSize = source["ByteCount"], expectedDate = source["FileDate"], stream},
+readSourceRange[source_Symbol, offset_Integer, length_Integer] := Module[{path = source["Path"], expectedSize = source["ByteCount"], expectedDate = source["FileDate"], stream},
 	If[ offset < 8 || length < 0 || offset + length > expectedSize - $format3HeaderSize,
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]
 	];
@@ -270,7 +270,7 @@ readSourceRange[source_Symbol, offset_Integer, length_Integer] := Block[{path = 
 (*Header encoding / decoding & verified block reading*)
 
 
-encodeFormat3Header[fields_Association] := Block[{prefix, digest},
+encodeFormat3Header[fields_Association] := Module[{prefix, digest},
 	prefix = Join[
 		$format3Magic,
 		encodeUint64LE[$format3HeaderSize],
@@ -298,7 +298,7 @@ encodeFormat3Header[fields_Association] := Block[{prefix, digest},
 	ByteArray[Join[prefix, Normal[digest], ConstantArray[0, 8]]]
 ]
 
-decodeFormat3Header[headerBytes_ByteArray, file_String] := Block[{raw = Normal[headerBytes], expectedDigest, actualDigest, fields},
+decodeFormat3Header[headerBytes_ByteArray, file_String] := Module[{raw = Normal[headerBytes], expectedDigest, actualDigest, fields},
 	If[ Length[raw] =!= $format3HeaderSize || Take[raw, 8] =!= $format3Magic,
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
 	];
@@ -365,7 +365,7 @@ blankByteArrayValues[held : HoldComplete[association_Association]] /; AtomQ[Unev
 ]
 blankByteArrayValues[held_] := held
 
-deserializeHeldChecked[bytes_ByteArray, expectedDigest_ByteArray, blankKeys_, file_String] := Block[{held},
+deserializeHeldChecked[bytes_ByteArray, expectedDigest_ByteArray, blankKeys_, file_String] := Module[{held},
 	If[ sha256Bytes[bytes] =!= expectedDigest,
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
 	];
@@ -405,10 +405,10 @@ sectionRangeOf[source_Symbol, section_String, blockIndex_Integer] := With[{entri
 	]
 ]
 
-readVerifiedBlock[source_Symbol, section_String, blockIndex_Integer, blankKeys_] := Block[
+readVerifiedBlock[source_Symbol, section_String, blockIndex_Integer, blankKeys_] := Module[
 	{cacheKey = {section, blockIndex}, cache = source["BlockCache"], range, digest, bytes, value},
 	If[ KeyExistsQ[cache, cacheKey],
-		Return[cache[cacheKey], Block]
+		Return[cache[cacheKey], Module]
 	];
 	range = sectionRangeOf[source, section, blockIndex];
 	digest = manifestDigestOf[source, section, If[blockIndex == 0, 1, blockIndex]];
@@ -483,7 +483,7 @@ format3InertQ[value_, _] := nameQ[value] || levelQ[value] || leafTermQ[value]
 lazySourceQ[source_Symbol] := IntegerQ[source["Identifier"]]
 lazySourceQ[_] := False
 
-loadFormat3Environment[file_String, check_] := Block[
+loadFormat3Environment[file_String, check_] := Module[
 	{
 		snapshot = fileSnapshot[file], fileSize, fileDate, stream, headerBytes, header,
 		metaBytes, meta, manifestBytes, manifest, sectionDirBytes, sectionDir,
@@ -594,7 +594,7 @@ loadFormat3Environment[file_String, check_] := Block[
 (*Lazy lookup & DAG-cone decoding*)
 
 
-binarySearchFirstGE[array_, target_Integer] := Block[{lo = 1, hi = Length[array], mid, ans = Length[array] + 1},
+binarySearchFirstGE[array_, target_Integer] := Module[{lo = 1, hi = Length[array], mid, ans = Length[array] + 1},
 	While[ lo <= hi,
 		mid = Quotient[lo + hi, 2];
 		If[ array[[mid]] >= target,
@@ -617,12 +617,12 @@ readNameBucket[source_Symbol, bucketIndex_Integer] := With[{bucket = readVerifie
 	bucket
 ]
 
-lazyConstantIndex[source_Symbol, name_HoldComplete] := Block[
+lazyConstantIndex[source_Symbol, name_HoldComplete] := Module[
 	{count = source["ConstantCount"], coarse = source["NameCoarse"], hash, startBucket, bucketIndex, bucket, hashes, pos, found = 0},
-	If[count == 0, Return[0, Block]];
+	If[count == 0, Return[0, Module]];
 	hash = nameHash62[name];
 	startBucket = binarySearchFirstGE[coarse, hash];
-	If[startBucket > Length[coarse], Return[0, Block]];
+	If[startBucket > Length[coarse], Return[0, Module]];
 	bucketIndex = startBucket;
 	While[ bucketIndex <= Length[coarse] && found == 0,
 		bucket = readNameBucket[source, bucketIndex];
@@ -711,7 +711,7 @@ readCubicalBlock[source_Symbol, blockIndex_Integer] := With[{mat = readVerifiedB
 	mat
 ]
 
-fetchLeaf[source_Symbol, leafId_Integer] := Block[{blockSize = source["Header"]["LeafBlockSize"], block, pos},
+fetchLeaf[source_Symbol, leafId_Integer] := Module[{blockSize = source["Header"]["LeafBlockSize"], block, pos},
 	If[ leafId < 1 || leafId > source["LeafCount"],
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {source["Path"]}]
 	];
@@ -723,7 +723,7 @@ fetchLeaf[source_Symbol, leafId_Integer] := Block[{blockSize = source["Header"][
 	block[[pos]]
 ]
 
-fetchLabel[source_Symbol, labelId_Integer, test_] := Block[{blockSize = source["Header"]["LabelBlockSize"], block, pos, label},
+fetchLabel[source_Symbol, labelId_Integer, test_] := Module[{blockSize = source["Header"]["LabelBlockSize"], block, pos, label},
 	If[ labelId < 1 || labelId > source["LabelCount"],
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {source["Path"]}]
 	];
@@ -739,7 +739,7 @@ fetchLabel[source_Symbol, labelId_Integer, test_] := Block[{blockSize = source["
 	label
 ]
 
-fetchNodeRow[source_Symbol, rowId_Integer, allowProof_] := Block[
+fetchNodeRow[source_Symbol, rowId_Integer, allowProof_] := Module[
 	{stmtCount = source["StmtNodeCount"], proofCount = source["ProofNodeCount"], blockSize, block, pos},
 	Which[
 		1 <= rowId <= stmtCount,
@@ -759,7 +759,7 @@ fetchNodeRow[source_Symbol, rowId_Integer, allowProof_] := Block[
 	block[[pos]]
 ]
 
-fetchCubicalPairs[source_Symbol, start_Integer, count_Integer] := Block[
+fetchCubicalPairs[source_Symbol, start_Integer, count_Integer] := Module[
 	{blockSize = Lookup[source["Meta"]["BlockSizes"], "Cubical", 16384], pairs = {}, index, block, pos},
 	If[ BitAnd[source["Header"]["Flags"], $format3FlagCubical] == 0 || start < 1 || count < 0,
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {source["Path"]}]
@@ -782,75 +782,75 @@ validatePartRef[part_Integer, parentRow_Integer, leafCount_Integer, path_String]
    1 <= child < row acyclicity, leaf/label bounds, zero unused columns, and depth <= $kernelRecursionLimit *)
 decodeLazyPart[source_Symbol, rootPart_Integer, allowProof_] := Block[
 	{
-		path = source["Path"], leafCount = source["LeafCount"],
-		built = <||>, stack, entry, rowId, ready, depth, row, code, children, pairs, partVal
+		decPath = source["Path"], decLeafCount = source["LeafCount"],
+		decBuilt = <||>, decStack, decEntry, decRowId, decReady, decDepth, decRow, decCode, decChildren, decPairs, decPartVal
 	},
 	Which[
 		rootPart < 0,
 			Return[fetchLeaf[source, -rootPart], Block],
 		rootPart == 0,
-			kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]
+			kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {decPath}]
 	];
-	partVal = Function[p, If[p < 0, fetchLeaf[source, -p], built[p]]];
-	stack = {{rootPart, False, 1}, None};
-	While[ stack =!= None,
-		entry = First[stack];
-		stack = Last[stack];
-		rowId = entry[[1]];
-		ready = entry[[2]];
-		depth = entry[[3]];
-		If[ depth > $kernelRecursionLimit,
-			kernelFailure["SavedEnvironmentInvalid", "`1` exceeds maximum term depth `2`.", {path, $kernelRecursionLimit}]
+	decPartVal = Function[p, If[p < 0, fetchLeaf[source, -p], decBuilt[p]]];
+	decStack = {{rootPart, False, 1}, None};
+	While[ decStack =!= None,
+		decEntry = First[decStack];
+		decStack = Last[decStack];
+		decRowId = decEntry[[1]];
+		decReady = decEntry[[2]];
+		decDepth = decEntry[[3]];
+		If[ decDepth > $kernelRecursionLimit,
+			kernelFailure["SavedEnvironmentInvalid", "`1` exceeds maximum term depth `2`.", {decPath, $kernelRecursionLimit}]
 		];
-		If[ ! KeyExistsQ[built, rowId],
-			row = fetchNodeRow[source, rowId, allowProof];
-			code = row[[1]];
-			If[ ready,
-				built[rowId] = Switch[code,
+		If[ ! KeyExistsQ[decBuilt, decRowId],
+			decRow = fetchNodeRow[source, decRowId, allowProof];
+			decCode = decRow[[1]];
+			If[ decReady,
+				decBuilt[decRowId] = Switch[decCode,
 					1,
-						Construct[application, partVal[row[[2]]], partVal[row[[3]]]],
+						Construct[application, decPartVal[decRow[[2]]], decPartVal[decRow[[3]]]],
 					2,
-						Construct[lambdaAbstraction, fetchLabel[source, row[[2]], nameQ], partVal[row[[3]]], partVal[row[[4]]], fetchLabel[source, row[[5]], binderQ]],
+						Construct[lambdaAbstraction, fetchLabel[source, decRow[[2]], nameQ], decPartVal[decRow[[3]]], decPartVal[decRow[[4]]], fetchLabel[source, decRow[[5]], binderQ]],
 					3,
-						Construct[dependentFunctionType, fetchLabel[source, row[[2]], nameQ], partVal[row[[3]]], partVal[row[[4]]], fetchLabel[source, row[[5]], binderQ]],
+						Construct[dependentFunctionType, fetchLabel[source, decRow[[2]], nameQ], decPartVal[decRow[[3]]], decPartVal[decRow[[4]]], fetchLabel[source, decRow[[5]], binderQ]],
 					4,
-						Construct[localDefinition, fetchLabel[source, row[[2]], nameQ], partVal[row[[3]]], partVal[row[[4]]], partVal[row[[5]]]],
+						Construct[localDefinition, fetchLabel[source, decRow[[2]], nameQ], decPartVal[decRow[[3]]], decPartVal[decRow[[4]]], decPartVal[decRow[[5]]]],
 					5,
-						Construct[projection, fetchLabel[source, row[[2]], nameQ], row[[3]], partVal[row[[4]]]],
+						Construct[projection, fetchLabel[source, decRow[[2]], nameQ], decRow[[3]], decPartVal[decRow[[4]]]],
 					6,
-						pairs = fetchCubicalPairs[source, row[[2]], row[[3]]];
-						Construct[cubicalSystem, Map[partVal, pairs, {2}]],
+						decPairs = fetchCubicalPairs[source, decRow[[2]], decRow[[3]]];
+						Construct[cubicalSystem, Map[decPartVal, decPairs, {2}]],
 					_,
-						kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]
+						kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {decPath}]
 				],
 				(* Validate row structure and push unbuilt row children *)
-				children = Switch[code,
+				decChildren = Switch[decCode,
 					1,
-						If[row[[4]] =!= 0 || row[[5]] =!= 0, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]];
-						{row[[2]], row[[3]]},
+						If[decRow[[4]] =!= 0 || decRow[[5]] =!= 0, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {decPath}]];
+						{decRow[[2]], decRow[[3]]},
 					2 | 3,
-						{row[[3]], row[[4]]},
+						{decRow[[3]], decRow[[4]]},
 					4,
-						{row[[3]], row[[4]], row[[5]]},
+						{decRow[[3]], decRow[[4]], decRow[[5]]},
 					5,
-						If[row[[3]] < 0 || row[[5]] =!= 0, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]];
-						{row[[4]]},
+						If[decRow[[3]] < 0 || decRow[[5]] =!= 0, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {decPath}]];
+						{decRow[[4]]},
 					6,
-						If[row[[4]] =!= 0 || row[[5]] =!= 0, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]];
-						Flatten[fetchCubicalPairs[source, row[[2]], row[[3]]], 1],
+						If[decRow[[4]] =!= 0 || decRow[[5]] =!= 0, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {decPath}]];
+						Flatten[fetchCubicalPairs[source, decRow[[2]], decRow[[3]]], 1],
 					_,
-						kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]
+						kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {decPath}]
 				];
-				Scan[Function[c, validatePartRef[c, rowId, leafCount, path]], children];
-				stack = {{rowId, True, depth}, stack};
+				Scan[Function[c, validatePartRef[c, decRowId, decLeafCount, decPath]], decChildren];
+				decStack = {{decRowId, True, decDepth}, decStack};
 				Scan[
-					Function[c, If[c > 0 && ! KeyExistsQ[built, c], stack = {{c, False, depth + 1}, stack}]],
-					Reverse[children]
+					Function[c, If[c > 0 && ! KeyExistsQ[decBuilt, c], decStack = {{c, False, decDepth + 1}, decStack}]],
+					Reverse[decChildren]
 				]
 			]
 		]
 	];
-	built[rootPart]
+	decBuilt[rootPart]
 ]
 
 resolveLazyMetaTerms[source_Symbol, expr_, typeRoot_Integer, valueRoot_Integer, allowProof_] := Replace[expr, {
@@ -871,23 +871,23 @@ lazyConstantKind[source_Symbol, name_HoldComplete] := With[{localId = lazyConsta
 	]
 ]
 
-lazyConstantRecord[source_Symbol, name_HoldComplete, includeProof_] := Block[
+lazyConstantRecord[source_Symbol, name_HoldComplete, includeProof_] := Module[
 	{localId, cacheKey, cache, dir, kindCode, kind, typeRoot, valueRoot, metaPair, metaName, meta, omitProof, record},
 	localId = lazyConstantIndex[source, name];
 	If[ localId == 0,
 		Return[
 			If[TrueQ[includeProof], constantRecord[source["Base"], name], constantStatementRecord[source["Base"], name]],
-			Block
+			Module
 		]
 	];
 	cacheKey = If[TrueQ[includeProof], "FullCache", "StatementCache"];
 	cache = source[cacheKey];
 	If[ KeyExistsQ[cache, localId],
-		Return[cache[localId], Block]
+		Return[cache[localId], Module]
 	];
 	(* If FullCache already holds it, StatementCache can reuse it directly without disk I/O *)
 	If[ ! TrueQ[includeProof] && KeyExistsQ[source["FullCache"], localId],
-		Return[source["FullCache"][localId], Block]
+		Return[source["FullCache"][localId], Module]
 	];
 	dir = recordDirEntry[source, localId];
 	{kindCode, typeRoot, valueRoot} = Take[dir, 3];
@@ -928,22 +928,22 @@ lazyEnvironmentCount[source_Symbol] := source["BaseCount"] + source["ConstantCou
 
 lazyKindCounts[source_Symbol] := Merge[{environmentKindCounts[source["Base"]], source["Meta"]["KindCounts"]}, Total]
 
-lazyLocalNames[source_Symbol] := Block[
+lazyLocalNames[source_Symbol] := Module[
 	{count = source["ConstantCount"], blockSize = source["Header"]["RecordMetaBlockSize"], blockCount},
-	If[count == 0, Return[{}, Block]];
+	If[count == 0, Return[{}, Module]];
 	blockCount = Ceiling[count / blockSize];
 	Catenate[Table[readRecordMetaBlock[source, b]["Names"], {b, blockCount}]]
 ]
 
 lazyEnvironmentNames[source_Symbol] := Join[environmentNames[source["Base"]], lazyLocalNames[source]]
 
-lazyNamesOfKind[source_Symbol, kind_String] := Block[
+lazyNamesOfKind[source_Symbol, kind_String] := Module[
 	{
 		baseNames = Select[environmentNames[source["Base"]], Function[n, constantStatementRecord[source["Base"], n]["Kind"] === kind]],
 		count = source["ConstantCount"], targetCode = Lookup[$format3KindToCode, kind, 0],
 		dirBlockSize, dirBlocks, matchingIds = {}, b, mat, localHits, offset = 0
 	},
-	If[count == 0 || targetCode == 0, Return[baseNames, Block]];
+	If[count == 0 || targetCode == 0, Return[baseNames, Module]];
 	dirBlockSize = source["Meta"]["BlockSizes"]["RecordDir"];
 	dirBlocks = Ceiling[count / dirBlockSize];
 	Do[
@@ -957,9 +957,9 @@ lazyNamesOfKind[source_Symbol, kind_String] := Block[
 	Join[baseNames, Map[Function[id, First[recordMetaEntry[source, id]]], matchingIds]]
 ]
 
-lazyRecordHashes[source_Symbol] := Block[
+lazyRecordHashes[source_Symbol] := Module[
 	{baseHashes = environmentRecordHashes[source["Base"]], count = source["ConstantCount"], names, blockCount, rows},
-	If[count == 0, Return[baseHashes, Block]];
+	If[count == 0, Return[baseHashes, Module]];
 	names = lazyLocalNames[source];
 	If[ BitAnd[source["Header"]["Flags"], $format3FlagRecordHashes] =!= 0,
 		blockCount = Length[Lookup[source["SectionDirectory"], "RecordHashBlocks", {}]];
@@ -981,8 +981,8 @@ lazyRecordHashes[source_Symbol] := Block[
 	]
 ]
 
-lazyMaterializeRecords[store_Symbol] := Block[{source = store["LazySource"], names, baseRecords, localRecords},
-	If[! lazySourceQ[source], Return[store["Records"], Block]];
+lazyMaterializeRecords[store_Symbol] := Module[{source = store["LazySource"], names, baseRecords, localRecords},
+	If[! lazySourceQ[source], Return[store["Records"], Module]];
 	names = lazyLocalNames[source];
 	baseRecords = AssociationMap[Function[n, constantRecord[source["Base"], n]], environmentNames[source["Base"]]];
 	localRecords = AssociationMap[Function[n, lazyConstantRecord[source, n, True]], names];
@@ -1005,7 +1005,7 @@ readDepBlock[source_Symbol, blockIndex_Integer] := With[{block = readVerifiedBlo
 	block
 ]
 
-lazyConstantDeps[source_Symbol, localId_Integer, includeProof_] := Block[
+lazyConstantDeps[source_Symbol, localId_Integer, includeProof_] := Module[
 	{blockSize = source["Header"]["RecordMetaBlockSize"], block, pos, sStart, sEnd, pStart, pEnd, stmtIds, proofIds},
 	block = readDepBlock[source, Quotient[localId - 1, blockSize] + 1];
 	pos = Mod[localId - 1, blockSize] + 1;
@@ -1024,7 +1024,7 @@ lazyConstantDeps[source_Symbol, localId_Integer, includeProof_] := Block[
 	]
 ]
 
-lazyDependencyCone[source_Symbol, seedNames_List, includeProof_] := Block[
+lazyDependencyCone[source_Symbol, seedNames_List, includeProof_] := Module[
 	{visited = <||>, stack = None, id, deps, d},
 	Scan[
 		Function[name, With[{idx = lazyConstantIndex[source, name]},
@@ -1050,27 +1050,27 @@ lazyDependencyCone[source_Symbol, seedNames_List, includeProof_] := Block[
 ]
 
 (* Extract all constant names directly referenced by a record's statement fields vs proof value *)
-recordTermConstants[term_] := Block[{seen = <||>, found = <||>, stack = {term, None}, cur},
-	While[ stack =!= None,
-		cur = First[stack];
-		stack = Last[stack];
-		If[ ! KeyExistsQ[seen, cur],
-			seen[cur] = True;
-			stack = Replace[cur, {
-				constantReference[name_, _] :> (found[name] = True; stack),
-				application[f_, a_] :> {f, {a, stack}},
-				(lambdaAbstraction | dependentFunctionType)[_, dom_, body_, _] :> {dom, {body, stack}},
-				localDefinition[_, type_, val_, body_] :> {type, {val, {body, stack}}},
-				projection[struct_, _, t_] :> (found[struct] = True; {t, stack}),
-				cubicalSystem[branches_List] :> Fold[Function[{r, b}, {b, r}], stack, Reverse[Flatten[branches, 1]]],
-				_ -> stack
+recordTermConstants[term_] := Block[{rtcSeen = <||>, rtcFound = <||>, rtcStack = {term, None}, rtcCur},
+	While[ rtcStack =!= None,
+		rtcCur = First[rtcStack];
+		rtcStack = Last[rtcStack];
+		If[ ! KeyExistsQ[rtcSeen, rtcCur],
+			rtcSeen[rtcCur] = True;
+			rtcStack = Replace[rtcCur, {
+				constantReference[name_, _] :> (rtcFound[name] = True; rtcStack),
+				application[f_, a_] :> {f, {a, rtcStack}},
+				(lambdaAbstraction | dependentFunctionType)[_, dom_, body_, _] :> {dom, {body, rtcStack}},
+				localDefinition[_, type_, val_, body_] :> {type, {val, {body, rtcStack}}},
+				projection[struct_, _, t_] :> (rtcFound[struct] = True; {t, rtcStack}),
+				cubicalSystem[branches_List] :> Fold[Function[{r, b}, {b, r}], rtcStack, Reverse[Flatten[branches, 1]]],
+				_ -> rtcStack
 			}]
 		]
 	];
-	Keys[found]
+	Keys[rtcFound]
 ]
 
-recordDependencyNames[record_Association] := Block[{stmtDeps, proofDeps = {}},
+recordDependencyNames[record_Association] := Module[{stmtDeps, proofDeps = {}},
 	stmtDeps = Switch[record["Kind"],
 		"Axiom" | "Hole",
 			recordTermConstants[record["Type"]],
@@ -1107,7 +1107,7 @@ recordDependencyNames[record_Association] := Block[{stmtDeps, proofDeps = {}},
 
 lazyLocalName[source_Symbol, localId_Integer] := First[recordMetaEntry[source, localId]]
 
-lazyConstantDepNames[source_Symbol, localId_Integer, includeProof_] := Block[
+lazyConstantDepNames[source_Symbol, localId_Integer, includeProof_] := Module[
 	{ids = lazyConstantDeps[source, localId, includeProof], baseNames = environmentNames[source["Base"]]},
 	Map[
 		Function[depId,
@@ -1125,9 +1125,9 @@ lazyConstantDepNames[source_Symbol, localId_Integer, includeProof_] := Block[
 ]
 
 (* Trust-boundary check called by TypeTheoryCheck: ensures CSR DepBlocks cannot omit any dependency *)
-lazyVerifyDeps[TypeTheoryEnvironment[store_Symbol]] := Block[
+lazyVerifyDeps[TypeTheoryEnvironment[store_Symbol]] := Module[
 	{source = store["LazySource"], baseNames, names, nameToId, id, rec, expectedStmt, expectedProof, actualStmt, actualAll, reqStmt, reqProof},
-	If[! lazySourceQ[source] || ! lazyHasDepsQ[source], Return[True, Block]];
+	If[! lazySourceQ[source] || ! lazyHasDepsQ[source], Return[True, Module]];
 	baseNames = environmentNames[source["Base"]];
 	names = lazyLocalNames[source];
 	nameToId = Join[AssociationThread[baseNames, -Range[Length[baseNames]]], AssociationThread[names, Range[Length[names]]]];
@@ -1179,18 +1179,18 @@ format3EmitTerm[root_] := If[ ! compositeTermQ[root],
 	With[{existing = f3LookupNode[root]},
 		If[ existing > 0,
 			existing,
-			Block[{stack = {{root, False}, None}, entry, cur, ready, row},
-				While[ stack =!= None,
-					entry = First[stack];
-					stack = Last[stack];
-					cur = First[entry];
-					ready = Last[entry];
-					If[ f3LookupNode[cur] == 0,
-						If[ ready,
-							row = format3PackRow[cur];
-							Sow[row, $f3NodeSowTag];
-							$f3NodeIndex[cur] = ++$f3NodeCount,
-							stack = format3PushChildren[cur, {{cur, True}, stack}]
+			Block[{emitStack = {{root, False}, None}, emitEntry, emitCur, emitReady, emitRow},
+				While[ emitStack =!= None,
+					emitEntry = First[emitStack];
+					emitStack = Last[emitStack];
+					emitCur = First[emitEntry];
+					emitReady = Last[emitEntry];
+					If[ f3LookupNode[emitCur] == 0,
+						If[ emitReady,
+							emitRow = format3PackRow[emitCur];
+							Sow[emitRow, $f3NodeSowTag];
+							$f3NodeIndex[emitCur] = ++$f3NodeCount,
+							emitStack = format3PushChildren[emitCur, {{emitCur, True}, emitStack}]
 						]
 					]
 				];
@@ -1221,7 +1221,7 @@ format3PackRow[lambdaAbstraction[name_, dom_, body_, binder_]] := {2, format3Lab
 format3PackRow[dependentFunctionType[name_, dom_, cod_, binder_]] := {3, format3Label[name], format3Part[dom], format3Part[cod], format3Label[binder]}
 format3PackRow[localDefinition[name_, type_, val_, body_]] := {4, format3Label[name], format3Part[type], format3Part[val], format3Part[body]}
 format3PackRow[projection[struct_, index_, term_]] := {5, format3Label[struct], index, format3Part[term], 0}
-format3PackRow[cubicalSystem[branches_List]] := Block[{start = $f3CubicalCount + 1, pairs},
+format3PackRow[cubicalSystem[branches_List]] := Module[{start = $f3CubicalCount + 1, pairs},
 	If[ TrueQ[$f3StreamingProofQ],
 		kernelFailure["UnsupportedStreamingCubicalProof", "Cubical system terms inside theorem proofs are not supported by the streaming Format 3 writer; use Export directly.", {}]
 	];
@@ -1239,7 +1239,7 @@ format3EncodeMetaValue[value_] := Which[
 	True, value
 ]
 
-format3EncodeRecordStmt[record_Association, includeProofs_] := Block[
+format3EncodeRecordStmt[record_Association, includeProofs_] := Module[
 	{effective = record, kind, typeRoot = 0, meta, flags = 0},
 	If[ ! TrueQ[includeProofs] && MemberQ[{"Theorem", "Opaque"}, effective["Kind"]],
 		effective = Join[<|"Kind" -> "Axiom"|>, KeyDrop[effective, {"Kind", "Value"}]]
@@ -1274,14 +1274,14 @@ format3EncodeRecordStmt[record_Association, includeProofs_] := Block[
 	|>
 ]
 
-writeBlockToStream[stream_, expr_] := Block[{offset = StreamPosition[stream], bytes = BinarySerialize[expr, PerformanceGoal -> "Size"], digest},
+writeBlockToStream[stream_, expr_] := Module[{offset = StreamPosition[stream], bytes = BinarySerialize[expr, PerformanceGoal -> "Size"], digest},
 	digest = sha256Bytes[bytes];
 	writeAllBytes[stream, bytes];
 	{{offset, Length[bytes]}, digest}
 ]
 
-writePartitionedBlocks[stream_, items_List, blockSize_Integer, wrap_] := Block[{chunks, ranges = {}, digests = {}, res},
-	If[items === {}, Return[{{}, ByteArray[{}]}, Block]];
+writePartitionedBlocks[stream_, items_List, blockSize_Integer, wrap_] := Module[{chunks, ranges = {}, digests = {}, res},
+	If[items === {}, Return[{{}, ByteArray[{}]}, Module]];
 	chunks = Partition[items, UpTo[blockSize]];
 	Do[
 		res = writeBlockToStream[stream, wrap[chunk]];
@@ -1292,7 +1292,7 @@ writePartitionedBlocks[stream_, items_List, blockSize_Integer, wrap_] := Block[{
 	{Developer`ToPackedArray[ranges], ByteArray[Catenate[Normal /@ digests]]}
 ]
 
-buildDepBlock[localIds_List, effectiveRecords_List, nameToId_Association] := Block[
+buildDepBlock[localIds_List, effectiveRecords_List, nameToId_Association] := Module[
 	{stmtOffsets = {1}, stmtTargets = {}, proofOffsets = {1}, proofTargets = {}, sNames, pNames, sIds, pIds},
 	Do[
 		{sNames, pNames} = recordDependencyNames[rec];
@@ -1313,9 +1313,9 @@ buildDepBlock[localIds_List, effectiveRecords_List, nameToId_Association] := Blo
 ]
 
 (* Compute exact Format-2-identical record hashes (or Format 1 hashes when cubicalSystem is present) *)
-computeFormat3RecordHashes[names_List, encoded_List, stmtRows_List, proofRows_List, leaves_List, labels_List, hasCubical_] := Block[
+computeFormat3RecordHashes[names_List, encoded_List, stmtRows_List, proofRows_List, leaves_List, labels_List, hasCubical_] := Module[
 	{allRows, depths, rowPrints, refRecords},
-	If[names === {}, Return[<||>, Block]];
+	If[names === {}, Return[<||>, Module]];
 	If[ TrueQ[hasCubical],
 		AssociationThread[names, Transpose[bytesFingerprints[Map[Function[e, BinarySerialize[e["Effective"]]], encoded]]]],
 		allRows = Join[stmtRows, proofRows];
@@ -1330,7 +1330,7 @@ computeFormat3RecordHashes[names_List, encoded_List, stmtRows_List, proofRows_Li
 	]
 ]
 
-format3FingerprintRecord[entry_Association, leaves_List] := Block[
+format3FingerprintRecord[entry_Association, leaves_List] := Module[
 	{typePart = entry["TypeRoot"], valPart = entry["ValueRoot"], meta = entry["Meta"]},
 	Map[
 		Function[v, Replace[v, {
@@ -1343,13 +1343,16 @@ format3FingerprintRecord[entry_Association, leaves_List] := Block[
 
 saveFormat3Environment[file_String, environment : TypeTheoryEnvironment[store_Symbol], options : OptionsPattern[saveFormat3Environment]] := catchKernelFailure @ Block[
 	{
+		$f3NodeIndex = <||>, $f3SharedStmtIndex = <||>, $f3NodeCount = 0, $f3LeafIndex = <||>, $f3LabelIndex = <||>, $f3LeafCount = 0, $f3LabelCount = 0, $f3CubicalCount = 0,
+		$f3NodeSowTag, $f3LeafSowTag, $f3LabelSowTag, $f3CubicalTag, $f3StreamingProofQ = False
+	},
+	Module[
+	{
 		includeProofs = TrueQ[OptionValue[saveFormat3Environment, {options}, "IncludeProofs"]],
 		includeDeps = TrueQ[OptionValue[saveFormat3Environment, {options}, "IncludeDependencies"]],
 		standalone = TrueQ[OptionValue[saveFormat3Environment, {options}, "Standalone"]],
 		blockSizes = resolveBlockSizes[OptionValue[saveFormat3Environment, {options}, "BlockSizes"]],
 		saveBase, baseCount, allNames, localNames, localRecords,
-		$f3NodeIndex = <||>, $f3SharedStmtIndex = <||>, $f3NodeCount = 0, $f3LeafIndex = <||>, $f3LabelIndex = <||>, $f3LeafCount = 0, $f3LabelCount = 0, $f3CubicalCount = 0,
-		$f3NodeSowTag, $f3LeafSowTag, $f3LabelSowTag, $f3CubicalTag, $f3StreamingProofQ = False,
 		stmtPhase, encoded, stmtRows, cubicalPairs, proofPhase, proofRows,
 		leaves, labels, hasCubical, dirRows, recordHashes, allRecordHashes, contentHash,
 		localRewriteIndex, localOverloadIndex, kindCounts,
@@ -1562,6 +1565,7 @@ saveFormat3Environment[file_String, environment : TypeTheoryEnvironment[store_Sy
 		If[MatchQ[stream, _OutputStream], Quiet[Close[stream]]]
 	];
 	File[file]
+	]
 ]
 
 
@@ -1569,7 +1573,7 @@ saveFormat3Environment[file_String, environment : TypeTheoryEnvironment[store_Sy
 (*Zero-decode statement-only cut from an existing Format 3 file*)
 
 
-cutFormat3StatementFile[sourceFile_String, targetFile_String] := catchKernelFailure @ Block[
+cutFormat3StatementFile[sourceFile_String, targetFile_String] := catchKernelFailure @ Module[
 	{
 		loaded = loadFormat3Environment[ExpandFileName[sourceFile], False],
 		source, header, meta, sectionDir, manifest,
@@ -1597,7 +1601,7 @@ cutFormat3StatementFile[sourceFile_String, targetFile_String] := catchKernelFail
 							newSectionDir[secName] = {off, Length[bytes]};
 							newManifest[secName] = digest
 						],
-						Block[{ranges = {}, digests = {}},
+						Module[{ranges = {}, digests = {}},
 							Do[
 								With[{bytes = readSourceRange[source, entries[[i, 1]], entries[[i, 2]]], digest = manifestDigestOf[source, secName, i], off = StreamPosition[outStream]},
 									If[sha256Bytes[bytes] =!= digest, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {sourceFile}]];
@@ -1635,7 +1639,7 @@ cutFormat3StatementFile[sourceFile_String, targetFile_String] := catchKernelFail
 		];
 		(* Preserve statement-only CSR DepBlocks (empty ProofTargets) so CompiledKernel cone extraction stays O(cone) *)
 		If[ BitAnd[header["Flags"], $format3FlagDeps] =!= 0 && KeyExistsQ[sectionDir, "DepBlocks"],
-			Block[{depBlockCount = Length[sectionDir["DepBlocks"]], depRanges = {}, depDigests = {}, db, res},
+			Module[{depBlockCount = Length[sectionDir["DepBlocks"]], depRanges = {}, depDigests = {}, db, res},
 				Do[
 					db = readDepBlock[source, b];
 					res = writeBlockToStream[outStream, <|
@@ -1661,7 +1665,7 @@ cutFormat3StatementFile[sourceFile_String, targetFile_String] := catchKernelFail
 			If[stripped > 0, newKindCounts["Axiom"] = Lookup[newKindCounts, "Axiom", 0] + stripped]
 		];
 		(* Recompute record hashes for stripped theorem/opaque statements only (zero proof decoding!) *)
-		cutHashes = Block[{localNames = lazyLocalNames[source], baseHashes = environmentRecordHashes[source["Base"]], existing, strippedNames},
+		cutHashes = Module[{localNames = lazyLocalNames[source], baseHashes = environmentRecordHashes[source["Base"]], existing, strippedNames},
 			existing = If[ BitAnd[header["Flags"], $format3FlagRecordHashes] =!= 0,
 				KeyDrop[lazyRecordHashes[source], Keys[baseHashes]],
 				recordFingerprints[AssociationMap[Function[n, lazyConstantRecord[source, n, False]], localNames]]
@@ -1758,7 +1762,7 @@ Options[openFormat3Writer] = {
 }
 
 openFormat3Writer[file_String, options : OptionsPattern[openFormat3Writer]] := catchKernelFailure @ Module[{writer},
-	Block[{
+	Module[{
 			rules = Replace[OptionValue[openFormat3Writer, {options}, "Rules"], Automatic :> $defaultRules],
 			base = OptionValue[openFormat3Writer, {options}, "Base"],
 			natural = OptionValue[openFormat3Writer, {options}, "NaturalNumbers"],
@@ -1827,7 +1831,7 @@ openFormat3Writer[file_String, options : OptionsPattern[openFormat3Writer]] := c
 	]
 ]
 
-flushWriterBuffer[writer_Symbol, stream_, secName_String, bufKey_String, blockSize_Integer, wrap_, force_] := Block[{buf = writer[bufKey], chunk, res},
+flushWriterBuffer[writer_Symbol, stream_, secName_String, bufKey_String, blockSize_Integer, wrap_, force_] := Module[{buf = writer[bufKey], chunk, res},
 	While[ Length[buf] >= blockSize || (TrueQ[force] && Length[buf] > 0),
 		chunk = Take[buf, UpTo[blockSize]];
 		buf = Drop[buf, Length[chunk]];
@@ -1838,7 +1842,7 @@ flushWriterBuffer[writer_Symbol, stream_, secName_String, bufKey_String, blockSi
 	writer[bufKey] = buf;
 ]
 
-flushWriterMetaAndDeps[writer_Symbol, force_] := Block[
+flushWriterMetaAndDeps[writer_Symbol, force_] := Module[
 	{bs = writer["BlockSizes"]["RecordMeta"], names = writer["MetaNameBuffer"], recs = writer["MetaRecBuffer"], k, res},
 	While[ Length[names] >= bs || (TrueQ[force] && Length[names] > 0),
 		k = Min[bs, Length[names]];
@@ -1860,9 +1864,9 @@ resolvePendingDep[entry_List, nameToId_Association] := If[ Last[entry] === {},
 	]
 ]
 
-flushWriterDeps[writer_Symbol, force_] := Block[
+flushWriterDeps[writer_Symbol, force_] := Module[
 	{bs = writer["BlockSizes"]["RecordMeta"], sDeps = writer["DepStmtBuf"], pDeps = writer["DepProofBuf"], nameToId = writer["NameToId"], k, sc, pc, sOff, pOff, res},
-	If[! TrueQ[writer["IncludeDependencies"]], Return[Null, Block]];
+	If[! TrueQ[writer["IncludeDependencies"]], Return[Null, Module]];
 	While[ Length[sDeps] >= bs || (TrueQ[force] && Length[sDeps] > 0),
 		k = Min[bs, Length[sDeps]];
 		sc = Map[Function[e, resolvePendingDep[e, nameToId]], Take[sDeps, k]];
@@ -1892,8 +1896,8 @@ flushWriterDeps[writer_Symbol, force_] := Block[
 	writer["DepProofBuf"] = pDeps;
 ]
 
-flushWriterProofNodes[writer_Symbol, force_] := Block[{bs = writer["BlockSizes"]["ProofNode"], buf = writer["ProofNodeBuffer"], chunk, bytes, digest, off},
-	If[writer["ProofStream"] === None, Return[Null, Block]];
+flushWriterProofNodes[writer_Symbol, force_] := Module[{bs = writer["BlockSizes"]["ProofNode"], buf = writer["ProofNodeBuffer"], chunk, bytes, digest, off},
+	If[writer["ProofStream"] === None, Return[Null, Module]];
 	While[ Length[buf] >= bs || (TrueQ[force] && Length[buf] > 0),
 		chunk = Take[buf, UpTo[bs]];
 		buf = Drop[buf, Length[chunk]];
@@ -1921,19 +1925,22 @@ $streamProofTag = 2^40
 
 writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Block[
 	{
-		includeProofs = writer["IncludeProofs"], bs = writer["BlockSizes"], maxDedupe = writer["MaxDedupeNodes"],
 		$f3NodeIndex = writer["StmtNodeIndex"], $f3SharedStmtIndex = <||>, $f3NodeCount = writer["StmtNodeCount"],
 		$f3LeafIndex = writer["LeafIndex"], $f3LabelIndex = writer["LabelIndex"],
 		$f3LeafCount = writer["LeafCount"], $f3LabelCount = writer["LabelCount"], $f3CubicalCount = writer["CubicalCount"],
 		$f3NodeSowTag = "StmtNodes", $f3LeafSowTag = "NewLeaves", $f3LabelSowTag = "NewLabels", $f3CubicalTag = "NewCubical",
-		$f3StreamingProofQ = False,
+		$f3StreamingProofQ = False
+	},
+	Module[
+	{
+		includeProofs = writer["IncludeProofs"], bs = writer["BlockSizes"], maxDedupe = writer["MaxDedupeNodes"],
 		names = Keys[records], recs = Values[records], encoded, stmtRows, cubicalPairs, proofRows,
 		sLeaves1, sLabels1, sLeaves2, sLabels2, newLeaves, newLabels,
 		proofCount = writer["ProofNodeCount"], sNames, pNames, sIds, pIds,
 		nameToId = writer["NameToId"], startId = Length[writer["Names"]], batchHashes
 	},
 	If[TrueQ[writer["Closed"]], kernelFailure["WriterClosed", "The Format 3 writer is already closed.", {}]];
-	If[Length[records] == 0, Return[writer, Block]];
+	If[Length[records] == 0, Return[writer, Module]];
 	Do[nameToId[names[[i]]] = startId + i, {i, Length[names]}];
 	writer["NameToId"] = nameToId;
 	writer["Names"] = Join[writer["Names"], names];
@@ -2008,11 +2015,12 @@ writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Bl
 	flushWriterMetaAndDeps[writer, False];
 	writer["DirBuffer"] = Join[writer["DirBuffer"], Map[Function[e, {e["KindCode"], e["TypeRoot"], e["ValueRoot"], e["Flags"]}], encoded]];
 	writer
+	]
 ]
 
 remapStreamProofRef[val_Integer, stmtCount_Integer] := If[val > $streamProofTag, stmtCount + (val - $streamProofTag), val]
 
-remapStreamProofMatrix[mat_, stmtCount_Integer] := Block[{arr = Normal[mat], row, code},
+remapStreamProofMatrix[mat_, stmtCount_Integer] := Module[{arr = Normal[mat], row, code},
 	Developer`ToPackedArray[Table[
 		row = arr[[i]];
 		code = row[[1]];
@@ -2027,7 +2035,7 @@ remapStreamProofMatrix[mat_, stmtCount_Integer] := Block[{arr = Normal[mat], row
 	]]
 ]
 
-closeFormat3Writer[writer_Symbol] := catchKernelFailure @ Block[
+closeFormat3Writer[writer_Symbol] := catchKernelFailure @ Module[
 	{
 		file = writer["File"], stream = writer["MainStream"], bs = writer["BlockSizes"],
 		stmtCount = writer["StmtNodeCount"], proofCount = writer["ProofNodeCount"],
@@ -2038,7 +2046,7 @@ closeFormat3Writer[writer_Symbol] := catchKernelFailure @ Block[
 		base = writer["Base"], baseEnv, baseHashes, allHashes, rewriteIndex, contentHash,
 		meta, metaOffset, metaBytes, metaDigest, dirOffset, dirBytes, manOffset, manBytes, manDigest, headerBytes
 	},
-	If[TrueQ[writer["Closed"]], Return[File[file], Block]];
+	If[TrueQ[writer["Closed"]], Return[File[file], Module]];
 	writer["Closed"] = True;
 	WithCleanup[
 		Null,
@@ -2094,7 +2102,7 @@ closeFormat3Writer[writer_Symbol] := catchKernelFailure @ Block[
 		If[ proofCount > 0 && writer["ProofBlockInfo"] =!= {},
 			WithCleanup[
 				proofIn = OpenRead[writer["ProofTmp"], BinaryFormat -> True],
-				Block[{pRanges = {}, pDigests = {}},
+				Module[{pRanges = {}, pDigests = {}},
 					Do[
 						rawBytes = readExactBytes[proofIn, info[[1]], info[[2]]];
 						mat = BinaryDeserialize[rawBytes];
