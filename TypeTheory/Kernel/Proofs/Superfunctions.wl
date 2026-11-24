@@ -3445,7 +3445,7 @@ verifyAndFilterConsequence[environment_, coreP_, uParams_List, cand_Association,
 
 				(* Gate 1: Kernel-checked derivation P => C *)
 				implCore = coreImplication[coreP, coreC];
-				proof = enhancedProveCore[environment, implCore, uParams, 2.0];
+				proof = enhancedProveCore[environment, implCore, uParams, remainingBudget[5.0]];
 				If[ FailureQ[proof],
 					None,
 

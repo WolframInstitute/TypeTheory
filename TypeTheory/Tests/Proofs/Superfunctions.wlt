@@ -279,7 +279,7 @@ VerificationTest[
 
 VerificationTest[
 	With[{envF = TypeTheoryEnvironment[prelude, {TypeTheoryAxiom[involFn, NonNegativeIntegers -> NonNegativeIntegers]}]},
-		With[{res = TypeTheoryConsequences[ForAll[{Typed[x, NonNegativeIntegers]}, involFn[involFn[x]] == x], envF]},
+		With[{res = TypeTheoryConsequences[ForAll[{Typed[x, NonNegativeIntegers]}, involFn[involFn[x]] == x], envF, TimeConstraint -> 30]},
 			{
 				Length[res] >= 3,
 				AllTrue[res, Function[item, TrueQ[item["Verified"]] && theoremAcceptedQ[envF, item["Proof"]]]],
