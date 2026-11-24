@@ -544,6 +544,7 @@ loadFormat3Environment[file_String, check_] := Module[
 		]
 	];
 	Module[{lazyHandle},
+		ClearAttributes[lazyHandle, Temporary];
 		lazyHandle["Identifier"] = ++$lazySourceCounter;
 		lazyHandle["Path"] = file;
 		lazyHandle["ByteCount"] = fileSize;
@@ -982,7 +983,7 @@ lazyRecordHashes[source_Symbol] := Module[
 ]
 
 lazyMaterializeRecords[store_Symbol] := Module[{source = store["LazySource"], names, baseRecords, localRecords},
-	If[! lazySourceQ[source], Return[store["Records"], Module]];
+	If[! lazySourceQ[source], kernelFailure["SavedEnvironmentInvalid", "The lazy environment handle is no longer valid.", {}]];
 	names = lazyLocalNames[source];
 	baseRecords = AssociationMap[Function[n, constantRecord[source["Base"], n]], environmentNames[source["Base"]]];
 	localRecords = AssociationMap[Function[n, lazyConstantRecord[source, n, True]], names];
