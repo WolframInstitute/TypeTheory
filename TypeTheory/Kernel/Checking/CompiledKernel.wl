@@ -2699,28 +2699,60 @@ givenWithoutProofs[records_List, trusted_Integer] /; TrueQ[$omitGivenProofs] && 
 ]
 givenWithoutProofs[records_List, _Integer] := records
 
+(* When checking an overlay on top of a lazy Format 3 base with CSR DepBlocks, pull only the transitive
+   statement-dependency cone of the overlay declarations + natural-number registrations (zero proof I/O) *)
+lazyConeSelection[environment : TypeTheoryEnvironment[store_Symbol], trusted_Integer, natural_, equations_List] := Block[
+	{source = store["LazySource"], overlay, seedNames, coneIds, coneLocalNames, baseNames},
+	If[ ! lazySourceQ[source] || ! lazyHasDepsQ[source] || trusted =!= lazyEnvironmentCount[source],
+		Return[None, Block]
+	];
+	overlay = store["Overlay"];
+	seedNames = Join[
+		Catenate[Map[Function[rec, Join @@ recordDependencyNames[rec]], Values[overlay]]],
+		Catenate[Map[Function[eq, Join @@ recordDependencyNames[Last[eq]]], equations]],
+		If[ AssociationQ[natural],
+			Join[
+				Lookup[natural, {"Type", "Zero", "Successor"}],
+				Values[natural["Operations"]]
+			],
+			{}
+		]
+	];
+	coneIds = lazyDependencyCone[source, DeleteDuplicates[seedNames], False];
+	coneLocalNames = Map[Function[id, lazyLocalName[source, id]], coneIds];
+	baseNames = environmentNames[source["Base"]];
+	{Join[baseNames, coneLocalNames, Keys[overlay]], Length[baseNames] + Length[coneLocalNames]}
+]
+
 (* The equations of the registrations after the first trustedRegistrations go in as theorems after the environment's
    constants, under names no constant has (registrationEquationRecords): the kernel checks them as it checks any
    theorem, and a registration then need not compare them again. *)
 environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, capacityFactor_] := Catch[Block[
 	{
 		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $limbIndex = <||>, $termCount = 0, $flatCount = 0, $largeLiterals = <||>, $largeLiteralBase = None,
-		constantNames = environmentNames[environment], natural = naturalNumberSettings[environment], equations, names, records, seeded, constants, nodes, flat, capacity, large, order
+		natural = naturalNumberSettings[environment], equations, coneSelection, constantNames, effectiveTrusted, names, records, seeded, constants, nodes, flat, capacity, large, order
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];
 	equations = registrationEquationRecords[environment, trustedRegistrations + 1];
+	coneSelection = lazyConeSelection[environment, trusted, natural, equations];
+	If[ coneSelection === None,
+		constantNames = environmentNames[environment];
+		effectiveTrusted = trusted,
+		{constantNames, effectiveTrusted} = coneSelection
+	];
 	names = Join[constantNames, MapIndexed[Function[{equation, index}, HoldComplete @@ {registrationEquation[First[index]]}], equations]];
 	$constantIndex = AssociationThread[names -> Range[Length[names]]];
 	(* the constants of the large literals come after the names, where the natural numbers are declared to give them a type *)
 	If[AssociationQ[natural], $largeLiteralBase = Length[names]];
 	$nilRow = addLevelRow["Nil", {7, 0, 0}];
 	records = Join[
-		AssociationMap[Function[name, constantRecord[environment, name]], constantNames],
+		AssociationMap[Function[name, constantStatementRecord[environment, name]], Take[constantNames, UpTo[effectiveTrusted]]],
+		AssociationMap[Function[name, constantRecord[environment, name]], Drop[constantNames, UpTo[effectiveTrusted]]],
 		AssociationThread[Drop[names, Length[constantNames]] -> Map[Last, equations]]
 	];
 	seeded = seedRows[$compiledKernelSeed];
 	{constants, {nodes, flat}} = Reap[
-		With[{rows = Quiet[Check[constantRows[givenWithoutProofs[Values[records], trusted]], $Failed]]},
+		With[{rows = Quiet[Check[constantRows[givenWithoutProofs[Values[records], effectiveTrusted]], $Failed]]},
 			(* a record that lacks what its kind has, as a recursor without its rules, gives a message: not handled *)
 			If[rows === $Failed, notHandled[]];
 			If[Length[$largeLiterals] == 0, rows, Join[rows, constantRows[ConstantArray[largeLiteralRecord[natural], Length[$largeLiterals]]]]]
@@ -2729,7 +2761,7 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 	];
 	large = Function[n, HoldComplete @@ {largeLiteral[n]}] /@ Keys[$largeLiterals];
 	(* each is declared after the natural numbers, their zero and successor, before any record a literal can be in *)
-	order = Function[index, If[index <= trusted, -index, index]] /@ Range[Length[names]];
+	order = Function[index, If[index <= effectiveTrusted, -index, index]] /@ Range[Length[names]];
 	If[ large =!= {},
 		With[{position = Max[Lookup[$constantIndex, {natural["Type"], natural["Zero"], natural["Successor"]}]]},
 			order = Join[Take[order, position], Length[names] + Range[Length[large]], Drop[order, position]]
@@ -2769,6 +2801,7 @@ environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, ca
 		"Names" -> names,
 		"Records" -> records,
 		"EnvironmentConstants" -> Length[constantNames],
+		"EffectiveTrusted" -> effectiveTrusted,
 		"Equations" -> Map[Most, equations],
 		"LargeLiterals" -> Length[large]
 	|>
@@ -2822,7 +2855,14 @@ compiledKernelCheck[environment_, trusted_Integer, trustedRegistrations_Integer,
 			"Position" -> First[duplicate]
 		|>]]
 	];
-	checkedWithRechecks[function, input, recheck]
+	With[{mappedRecheck = If[recheck === None || Lookup[input, "EffectiveTrusted", trusted] === trusted,
+			recheck,
+			With[{et = input["EffectiveTrusted"]},
+				Function[conePos, Replace[recheck[trusted + (conePos - et)], n_Integer :> et + (n - trusted)]]
+			]
+		]},
+		checkedWithRechecks[function, input, mappedRecheck]
+	]
 ]
 
 (* The arena's verdict where it may leave records undecided: in an environment with a literal it does not hold, a record

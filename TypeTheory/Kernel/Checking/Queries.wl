@@ -299,8 +299,8 @@ typeOfTerm[term_TypeTheoryTerm] /; MatchQ[heldTerm[term], HoldComplete[Typed[_, 
 ]
 typeOfTerm[term_TypeTheoryTerm] := catchKernelFailure @ With[{environment = termEnvironment[term]},
 	coreToTypeTheoryTerm[environment, <||>, betaNormalize @ Replace[nameMeaning[environment, aliasResolvedName[environment, heldFromSyntax[termSyntax[term]]]], {
-		name_HoldComplete /; And[constantDeclaredQ[environment, name], constantRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
-			constantRecord[environment, name]["Type"],
+		name_HoldComplete /; And[constantDeclaredQ[environment, name], constantStatementRecord[environment, name]["Kind"] =!= "RewriteRule"] :>
+			constantStatementRecord[environment, name]["Type"],
 		_ :> Last @ checkedQueryTerm[environment, term, None, universeParameterNames[{termSyntax[term]}]]
 	}]]
 ]
@@ -616,7 +616,7 @@ declarationTerm[declaration_, expression_] := Replace[declarationEnvironment[dec
 }]
 
 TypeTheoryEnvironment /: Keys[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := ReleaseHold /@ environmentNames[environment]
-TypeTheoryEnvironment /: Length[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := Length[environmentNames[environment]]
+TypeTheoryEnvironment /: Length[environment : TypeTheoryEnvironment[_Symbol]?environmentQ] := environmentCount[environment]
 TypeTheoryEnvironment /: KeyExistsQ[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, name_] := constantDeclaredQ[environment, HoldComplete[name]]
 
 (* the declarations, in order; constructors and recursors come with their inductive type *)
@@ -681,10 +681,18 @@ registrationDeclaration[settings_Association, index_Integer] := ReleaseHold @ he
 TypeTheoryEnvironment /: Information[environment : TypeTheoryEnvironment[_Symbol]?environmentQ, property_String] := environmentInformation[environment, property]
 
 environmentInformation[_, "Properties"] := {"Constants", "Kinds", "Theorems", "Axioms", "Holes", "Annotations", "RewriteRules", "NaturalNumbers", "Rules", "Provenance", "Signature"}
+environmentNamesOfKind[environment : TypeTheoryEnvironment[store_Symbol], kind_String] := If[ lazySourceQ[store["LazySource"]],
+	Join[
+		lazyNamesOfKind[store["LazySource"], kind],
+		Select[Keys[store["Overlay"]], Function[name, store["Overlay"][name]["Kind"] === kind]]
+	],
+	Select[environmentNames[environment], Function[name, constantStatementRecord[environment, name]["Kind"] === kind]]
+]
+
 (* the theorems by name, each with its statement, in the order they were declared *)
 environmentInformation[environment_, "Theorems"] := Association[
-	Function[name, theoremKey[name] -> coreToTypeTheoryTerm[environment, <||>, constantRecord[environment, name]["Type"]]] /@
-		Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Theorem"]]
+	Function[name, theoremKey[name] -> coreToTypeTheoryTerm[environment, <||>, constantStatementRecord[environment, name]["Type"]]] /@
+		environmentNamesOfKind[environment, "Theorem"]
 ]
 
 (* The signature of an environment: its rules, its natural numbers, and each record's structural hash by name, in the
@@ -709,12 +717,12 @@ environmentSignature[environment_, records_Association] := <|
 theoremAsAxiomRecord[record_Association] := Join[<|"Kind" -> "Axiom"|>, KeyDrop[record, {"Kind", "Value"}]]
 
 theoremStatements[environment_] := Association[Map[
-	Function[name, name -> theoremAsAxiomRecord[constantRecord[environment, name]]],
-	Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Theorem"]]
+	Function[name, name -> theoremAsAxiomRecord[constantStatementRecord[environment, name]]],
+	environmentNamesOfKind[environment, "Theorem"]
 ]]
 
 signatureRecords[environment_] := Association[Map[
-	Function[name, With[{record = constantRecord[environment, name]},
+	Function[name, With[{record = constantStatementRecord[environment, name]},
 		name -> If[record["Kind"] === "Theorem", theoremAsAxiomRecord[record], record]
 	]],
 	environmentNames[environment]
@@ -724,8 +732,8 @@ signatureRecords[environment_] := Association[Map[
    non-theorem hashes and hash only the theorem statements; otherwise hash signatureRecords directly so proof Values are
    never walked and cubical environments always use one consistent format version across all records. *)
 signatureRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := If[
-	! TrueQ[environmentRules[environment]["Cubical"]] && AssociationQ[store["RecordHashes"]],
-	Join[store["RecordHashes"], recordFingerprints[theoremStatements[environment]]],
+	! TrueQ[environmentRules[environment]["Cubical"]] && (AssociationQ[store["RecordHashes"]] || lazySourceQ[store["LazySource"]]),
+	Join[environmentRecordHashes[environment], recordFingerprints[theoremStatements[environment]]],
 	recordFingerprints[signatureRecords[environment]]
 ]
 
@@ -733,11 +741,11 @@ signatureRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := If[
 theoremKey[HoldComplete[text_String]] := text
 theoremKey[held_HoldComplete] := HoldForm @@ held
 environmentInformation[environment_, "Constants"] := Keys[environment]
-environmentInformation[environment_, "Kinds"] := Counts[Function[name, constantRecord[environment, name]["Kind"]] /@ environmentNames[environment]]
+environmentInformation[environment_, "Kinds"] := environmentKindCounts[environment]
 environmentInformation[environment_, "Axioms"] :=
-	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Axiom"]]
+	ReleaseHold /@ environmentNamesOfKind[environment, "Axiom"]
 environmentInformation[environment_, "RewriteRules"] :=
-	ReleaseHold /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "RewriteRule"]]
+	ReleaseHold /@ environmentNamesOfKind[environment, "RewriteRule"]
 environmentInformation[environment_, "NaturalNumbers"] := Replace[
 	naturalNumberSettings[environment],
 	settings_Association :> <|Map[ReleaseHold, KeyTake[settings, {"Type", "Zero", "Successor"}]], "Operations" -> Map[ReleaseHold, settings["Operations"]]|>
@@ -747,7 +755,7 @@ environmentInformation[environment_, "Provenance"] := environmentProvenance[envi
 (* every open theorem with its holes, as a term's "Holes" gives those the term rests on *)
 environmentInformation[environment_, "Holes"] := holeGroups[
 	environment,
-	Association[Function[name, name -> constantRecord[environment, name]] /@ Select[environmentNames[environment], Function[name, constantRecord[environment, name]["Kind"] === "Hole"]]]
+	Association[Function[name, name -> constantStatementRecord[environment, name]] /@ environmentNamesOfKind[environment, "Hole"]]
 ]
 (* the annotation of each constant whose declaration gives one, by name, in the order they were declared; a hole's is
    among the holes *)
@@ -979,10 +987,29 @@ visitConstants[environment_, initialNames_List] := Block[
 			Scan[Function[rule, $closureAxioms[rule] = "RewriteRule"], rewriteRuleNames[environment, visitName]],
 			If[ ! KeyExistsQ[$closureVisited, visitName],
 				$closureVisited[visitName] = True;
-				visitStack = pushRecordDependencies[environment, visitName, constantRecord[environment, visitName], {{visitName, True}, visitStack}]
+				visitStack = pushVisitConstant[environment, visitName, {{visitName, True}, visitStack}]
 			]
 		]
 	]
+]
+
+pushVisitConstant[environment : TypeTheoryEnvironment[store_Symbol], name_HoldComplete, stack_] := Block[
+	{source = store["LazySource"], localId, kind, rec},
+	If[ lazySourceQ[source] && lazyHasDepsQ[source] && ! KeyExistsQ[store["Overlay"], name],
+		localId = lazyConstantIndex[source, name];
+		If[ localId > 0,
+			kind = lazyConstantKind[source, name];
+			If[ kind === "Axiom",
+				rec = lazyConstantRecord[source, name, False];
+				$closureAxioms[name] = If[propositionTypeQ[environment, rec["Type"]], "Proposition", "Signature"]
+			];
+			If[ kind === "Hole",
+				$closureHoles[name] = lazyConstantRecord[source, name, False]
+			];
+			Return[pushVisitNames[lazyConstantDepNames[source, localId, True], stack], Block]
+		]
+	];
+	pushRecordDependencies[environment, name, constantRecord[environment, name], stack]
 ]
 
 pushVisitNames[names_List, stack_] := Fold[
@@ -1193,9 +1220,12 @@ derivedKeyAgreesQ["Names", TypeTheoryEnvironment[store_Symbol], TypeTheoryEnviro
 derivedKeyAgreesQ["RewriteRuleIndex", TypeTheoryEnvironment[store_Symbol], TypeTheoryEnvironment[replayedStore_Symbol]] := store["RewriteRuleIndex"] === replayedStore["RewriteRuleIndex"]
 derivedKeyAgreesQ["OverloadIndex", TypeTheoryEnvironment[store_Symbol], TypeTheoryEnvironment[replayedStore_Symbol]] :=
 	Replace[store["OverloadIndex"], Except[_Association] -> <||>] === Replace[replayedStore["OverloadIndex"], Except[_Association] -> <||>]
-derivedKeyAgreesQ["Library", TypeTheoryEnvironment[store_Symbol], _] := Replace[store["Library"], {
+derivedKeyAgreesQ["Library", environment : TypeTheoryEnvironment[store_Symbol], _] := Replace[store["Library"], {
 	None -> True,
-	library_Symbol /; StringQ[library["LibraryName"]] && AssociationQ[library["Records"]] :> Take[store["Records"], UpTo[Length[library["Records"]]]] === library["Records"],
+	library_Symbol /; StringQ[library["LibraryName"]] :> With[{libEnv = TypeTheoryEnvironment[library], libNames = environmentNames[TypeTheoryEnvironment[library]]},
+		Take[environmentNames[environment], UpTo[Length[libNames]]] === libNames &&
+			AllTrue[libNames, Function[name, constantRecord[environment, name] === constantRecord[libEnv, name]]]
+	],
 	_ -> False
 }]
 derivedKeyAgreesQ["ContentHash", environment : TypeTheoryEnvironment[store_Symbol], _] := ! StringQ[store["ContentHash"]] || store["ContentHash"] === contentHashOf[environment]
@@ -1209,10 +1239,11 @@ environmentChecked[environment_, replayed_] := (
 	Replace[Select[$derivedStoreKeys, Function[key, ! derivedKeyAgreesQ[key, environment, replayed]]], {
 		{key_, ___} :> kernelFailure["DeclarationMismatch", "The `1` of the environment's store does not match what its records give.", {key}]
 	}];
+	lazyVerifyDeps[environment];
 	Success["EnvironmentChecked", <|
 		"MessageTemplate" -> messageTemplate["All `1` constants of the environment check again from their declarations."],
-		"MessageParameters" -> {Length[environmentNames[environment]]},
-		"Constants" -> Length[environmentNames[environment]]
+		"MessageParameters" -> {environmentCount[environment]},
+		"Constants" -> environmentCount[environment]
 	|>]
 )
 

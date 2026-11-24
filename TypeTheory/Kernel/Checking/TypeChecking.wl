@@ -244,12 +244,12 @@ cubicalSpineType[environment_, context_, term_] := If[ ! cubicalDeclaredQ[enviro
 	None,
 	Replace[applicationSpine[term], {
 		{constantReference[name_, levels_List], arguments_List} /; cubicalRole[environment, name] =!= None :>
-			cubicalApplicationType[environment, context, constantRecord[environment, name], levels, arguments],
+			cubicalApplicationType[environment, context, constantStatementRecord[environment, name], levels, arguments],
 		_ -> None
 	}]
 ]
 
-constantType[environment_, name_, levels_List] := constantTypeOf[environment, name, levels, constantRecord[environment, name]]
+constantType[environment_, name_, levels_List] := constantTypeOf[environment, name, levels, constantStatementRecord[environment, name]]
 
 constantTypeOf[environment_, name_, levels_, record_] := (
 	Which[
@@ -386,7 +386,7 @@ sortLevel[environment_, context_, type_] := Replace[
 structureLikeQ[environment_, name_HoldComplete] := And[
 	constantDeclaredQ[environment, name],
 	MatchQ[
-		constantRecord[environment, name],
+		constantStatementRecord[environment, name],
 		KeyValuePattern[{"Kind" -> "InductiveType", "Constructors" -> {_}, "NumberOfIndices" -> 0, "Recursive" -> False}]
 	]
 ]
@@ -402,10 +402,10 @@ projectionType[environment_, context_, structure_, index_, structureTerm_] := Bl
 	If[ ! MatchQ[projectedHead, constantReference[structure, _]] || ! structureLikeQ[environment, structure],
 		kernelFailure["ProjectionType", "The type of `1` is not the structure `2`.", {displayCoreTerm[environment, context, structureTerm], HoldForm @@ structure}]
 	];
-	projectedRecord = constantRecord[environment, structure];
+	projectedRecord = constantStatementRecord[environment, structure];
 	projectedFieldsType = Fold[
 		Function[{type, value}, instantiateLeadingBinder[environment, context, type, value]],
-		instantiateUniverseParameters[constantRecord[environment, First[projectedRecord["Constructors"]]]["Type"], projectedRecord["UniverseParameters"], Last[projectedHead]],
+		instantiateUniverseParameters[constantStatementRecord[environment, First[projectedRecord["Constructors"]]]["Type"], projectedRecord["UniverseParameters"], Last[projectedHead]],
 		projectedParameters
 	];
 	projectedFromProofQ = levelEquivalentQ[sortLevel[environment, context, projectedType], 0];
@@ -516,11 +516,11 @@ literalFolded[_, node_] := node
    structure applied to all its parameters and fields; None of any other value *)
 constructedFields[environment_, value_] := Replace[applicationSpine[value], {
 	{constantReference[constructor_, _], arguments_List} /; constructorOfStructureQ[environment, constructor, Length[arguments]] :>
-		With[{record = constantRecord[environment, constructor]}, {record["InductiveType"], Drop[arguments, record["NumberOfParameters"]]}],
+		With[{record = constantStatementRecord[environment, constructor]}, {record["InductiveType"], Drop[arguments, record["NumberOfParameters"]]}],
 	_ -> None
 }]
 
-constructorOfStructureQ[environment_, constructor_, count_Integer] := constantDeclaredQ[environment, constructor] && With[{record = constantRecord[environment, constructor]}, And[
+constructorOfStructureQ[environment_, constructor_, count_Integer] := constantDeclaredQ[environment, constructor] && With[{record = constantStatementRecord[environment, constructor]}, And[
 	Lookup[record, "Kind"] === "Constructor",
 	structureLikeQ[environment, record["InductiveType"]],
 	count == record["NumberOfParameters"] + record["NumberOfFields"]
@@ -540,7 +540,7 @@ reduceConstant[environment_, context_, term_, name_, levels_, arguments_] := con
    t + 0 is t and t + successor[s] is successor[t + s], so its offset stays readable *)
 constantReduct[environment_, context_, term_, name_, {}, {left_, right_}, None] /; $unfoldDefinitions && TrueQ[$foldedAddition] && registeredAdditionQ[environment, name] :=
 	additionReduct[environment, context, term, name, left, right]
-constantReduct[environment_, context_, term_, name_, levels_, arguments_, None] := reduceByKind[environment, context, term, name, levels, arguments, constantRecord[environment, name]]
+constantReduct[environment_, context_, term_, name_, levels_, arguments_, None] := reduceByKind[environment, context, term, name, levels, arguments, constantStatementRecord[environment, name]]
 constantReduct[_, _, _, _, _, _, result_] := result
 
 reduceByKind[environment_, context_, term_, name_, levels_, arguments_, record_] := Which[
@@ -652,12 +652,12 @@ unfoldDefinition[record_, levels_, arguments_] :=
 
 (* a projection of the constructor applied to its parameters and fields is that field *)
 reduceProjection[environment_, context_, term_, structure_, index_, structureTerm_, arguments_List] :=
-	projectedField[environment, term, index, arguments, constantRecord[environment, structure], applicationSpine[weakHeadNormalForm[environment, context, structureTerm]]]
+	projectedField[environment, term, index, arguments, constantStatementRecord[environment, structure], applicationSpine[weakHeadNormalForm[environment, context, structureTerm]]]
 
 projectedField[environment_, term_, index_, arguments_, record_, spine_] := Replace[spine, {
 	{constantReference[constructor_, _], constructorArguments_List} /; And[
 		record["Constructors"] === {constructor},
-		Length[constructorArguments] == record["NumberOfParameters"] + constantRecord[environment, constructor]["NumberOfFields"]
+		Length[constructorArguments] == record["NumberOfParameters"] + constantStatementRecord[environment, constructor]["NumberOfFields"]
 	] :> makeApplication[First @ Drop[constructorArguments, record["NumberOfParameters"] + index], arguments],
 	_ :> term
 }]
@@ -869,7 +869,7 @@ lazyDeltaStepOf[environment_, context_, a_, b_, definitionA_, definitionB_] := (
 
 (* {height, abbreviation} of the definition at the head of term, or None if no definition that unfolds is at its head *)
 headDefinition[environment_, term_] := Replace[First[applicationSpine[term]], {
-	constantReference[name_, _] :> With[{record = constantRecord[environment, name]},
+	constantReference[name_, _] :> With[{record = constantStatementRecord[environment, name]},
 		If[record["Kind"] === "Definition", {Lookup[record, "Height", 0], Lookup[record, "Hint", None] === "Abbreviation"}, None]
 	],
 	_ -> None
@@ -883,7 +883,7 @@ projectionFunctionQ[value_] := MatchQ[value, _lambdaAbstraction] &&
 (* the definition at the head of term unfolded, and reduced as far as it reduces without unfolding another *)
 unfoldedHead[environment_, context_, term_] := Replace[applicationSpine[term], {
 	{constantReference[name_, levels_], arguments_List} :>
-		reducedHeadWithoutUnfolding[environment, context, unfoldDefinition[constantRecord[environment, name], levels, arguments]]
+		reducedHeadWithoutUnfolding[environment, context, unfoldDefinition[constantStatementRecord[environment, name], levels, arguments]]
 }]
 
 normalFormsEqualQ[environment_, context_, a_, b_] := Which[
@@ -906,8 +906,8 @@ structureEtaSpineQ[environment_, context_, constructorApplication_, other_, {con
 		context,
 		constructorApplication,
 		other,
-		constantRecord[environment, constructor]["InductiveType"],
-		Drop[arguments, constantRecord[environment, constructor]["NumberOfParameters"]]
+		constantStatementRecord[environment, constructor]["InductiveType"],
+		Drop[arguments, constantStatementRecord[environment, constructor]["NumberOfParameters"]]
 	]
 structureEtaSpineQ[_, _, _, _, _] := False
 
@@ -919,7 +919,7 @@ structureFieldsEqualQ[environment_, context_, constructorApplication_, other_, s
 	]
 ]
 
-structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := structureConstructorRecordQ[environment, constantRecord[environment, constructor], numberOfArguments]
+structureConstructorQ[environment_, constructor_, numberOfArguments_Integer] := structureConstructorRecordQ[environment, constantStatementRecord[environment, constructor], numberOfArguments]
 
 structureConstructorRecordQ[environment_, record_, numberOfArguments_] := And[
 	record["Kind"] === "Constructor",
@@ -939,7 +939,7 @@ unitTypeEqualQ[environment_, context_, b_, type_] := Replace[First @ application
 	_ :> False
 }]
 
-unitStructureQ[environment_, structure_] := constantRecord[environment, First[constantRecord[environment, structure]["Constructors"]]]["NumberOfFields"] === 0
+unitStructureQ[environment_, structure_] := constantStatementRecord[environment, First[constantStatementRecord[environment, structure]["Constructors"]]]["NumberOfFields"] === 0
 
 etaEqualQ[environment_, context_, function : lambdaAbstraction[name_, domain_, body_, binder_], other_] := etaEqualAtQ[environment, context, function, other, freshFreeVariable[]]
 
@@ -1015,7 +1015,7 @@ fastPropositionTypeQ[environment_, type_] := Block[{propCursor = type, propArity
 ]
 
 fastConstantReturnPropositionQ[environment_, constantReference[constantName_, constantLevels_List], arity_Integer] /; constantDeclaredQ[environment, constantName] :=
-	fastRecordReturnPropositionQ[constantRecord[environment, constantName], constantLevels, arity]
+	fastRecordReturnPropositionQ[constantStatementRecord[environment, constantName], constantLevels, arity]
 fastConstantReturnPropositionQ[_, _, _] := Indeterminate
 
 fastRecordReturnPropositionQ[record_Association, levels_List, arity_Integer] :=

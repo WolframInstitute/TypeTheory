@@ -40,7 +40,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Uni
 
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
-<code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> reads the environment that <code>[Export]()["*file*.wxf", *env*]</code> saved, without checking its declarations again.
+<code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> and <code>[TypeTheoryEnvironment]()[[File]()["*file*.tte"]]</code> read an environment that [Export]() saved, without checking its declarations again; `.tte` files load constants and proofs lazily on demand.
 
 ## Details & Options
 
@@ -56,7 +56,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Uni
 - An environment is a handle to a store: a symbol whose definitions, its [DownValues](), hold the constants. The handle is small, so terms and proofs carry their environment with them, and a store lasts for the session. A library environment is built once a session, the first time it is asked for.
 - <code>[TypeTheoryCheck]()[*env*]</code> checks every declaration of *env* again from scratch.
 - <code>[TypeTheoryEnvironment]()[*env*, {*declaration1*, ...}, [Method]() -> "Compiled"]</code> adds the declarations without checking them, inductive types aside, and then checks them all at once with the compiled kernel (see [TypeTheoryCheck]()), which is faster for many declarations, as an imported library has. Where the compiled kernel cannot check them, or one does not check, the declarations are added again with each one checked, so the result is the same as without the option.
-- <code>[Export]()["*file*.wxf", *env*]</code> saves *env* in a file that holds each of its terms once, and only the constants beyond the library environment it extends, such as the prelude, which it names. A file reads back in a fraction of the time its declarations take to check.
+- <code>[Export]()["*file*.wxf", *env*]</code> saves *env* in a file that holds each of its terms once, and only the constants beyond the library environment it extends, such as the prelude, which it names. <code>[Export]()["*file*.tte", *env*]</code> (or `"FormatVersion" -> 3`) writes a single-file seekable lazy container whose constants, statements and trailing proof blocks are fetched on demand and verified per block by SHA-256; `"IncludeProofs" -> False` writes a statement-only cut whose stripped theorems become axioms with the same `"Signature"`, and `"Standalone" -> True` writes all constants without a base. A file reads back in a fraction of the time its declarations take to check.
 - Reading a file takes its declarations as checked. The option `"Check" -> True` checks every declaration again with [TypeTheoryCheck]() as it reads the file. A file saved by another version of TypeTheory reads only with `"Check" -> True`. The version is that of the paclet and its kernel's sources, not of the engine that runs them, so a file saved under one engine of the Wolfram Language reads under another.
 - A file is read without evaluating anything in it, and a file that holds anything but terms and plain data, or whose terms were changed out of order, is refused.
 - The library environments are read from files saved with the paclet, so loading the paclet does not check the prelude again.

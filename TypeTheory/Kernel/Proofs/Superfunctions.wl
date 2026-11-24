@@ -5950,11 +5950,11 @@ environmentUserContextForPrompt[environment_, coreStmt_] := Module[{libStore, ba
 		First[environment]["Library"],
 		None
 	];
-	baseNames = If[ MatchQ[libStore, _Symbol] && ListQ[libStore["Names"]],
-		libStore["Names"],
+	baseNames = If[ MatchQ[libStore, _Symbol] && environmentQ[TypeTheoryEnvironment[libStore]] && environmentCount[TypeTheoryEnvironment[libStore]] <= 50000,
+		environmentNames[TypeTheoryEnvironment[libStore]],
 		{}
 	];
-	allNames = environmentNames[environment];
+	allNames = If[environmentCount[environment] <= 50000, environmentNames[environment], {}];
 	userNames = Select[
 		Complement[allNames, baseNames],
 		Function[n, constantDeclaredQ[environment, n] && ! MemberQ[$standardPromptConstants, n]]

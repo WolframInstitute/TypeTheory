@@ -80,10 +80,14 @@ PackageScoped[rewriteRuleRecords]
 PackageScoped[rewriteRuleNames]
 PackageScoped[overloadingConstants]
 PackageScoped[environmentQ]
+PackageScoped[newLazyEnvironment]
 PackageScoped[constantRecord]
+PackageScoped[constantStatementRecord]
 PackageScoped[constantDeclaredQ]
 PackageScoped[addConstantRecords]
 PackageScoped[environmentNames]
+PackageScoped[environmentCount]
+PackageScoped[environmentKindCounts]
 PackageScoped[$environmentNames]
 PackageScoped[environmentNamed]
 PackageScoped[naturalNumberSettings]
@@ -110,7 +114,7 @@ TypeTheoryEnvironment[\"Cubical\"] gives cubical type theory, with paths as func
 TypeTheoryEnvironment[{declaration1, declaration2, ...}] checks the declarations in turn and gives the default environment, $TypeTheoryEnvironment, extended with them.\n\
 TypeTheoryEnvironment[environment, {declaration1, ...}] gives environment extended with the declarations; Append[environment, declaration] adds one.\n\
 TypeTheoryEnvironment[rules] gives the environment with no constants that follows the TypeTheoryRules rules, and TypeTheoryEnvironment[rules, {declaration1, ...}] extends it.\n\
-TypeTheoryEnvironment[File[\"file.wxf\"]] reads an environment that Export[\"file.wxf\", environment] saved, without checking its declarations again; \
+TypeTheoryEnvironment[File[\"file.wxf\"]] and TypeTheoryEnvironment[File[\"file.tte\"]] read an environment that Export saved, without checking its declarations again (.tte files load lazily on demand); \
 the option \"Check\" -> True checks them.\n\
 environment[name] gives the declaration that introduced the constant name. Keys, Length, KeyExistsQ, Normal and Information[environment, property] also work."
 
@@ -128,11 +132,15 @@ rewriteRuleRecords::usage = "rewriteRuleRecords[environment, HoldComplete[axiom]
 overloadingConstants::usage = "overloadingConstants[environment, HoldComplete[operation]] gives the constants {HoldComplete[name], ...} declared with \"Overloads\" -> operation, in the order they were declared."
 rewriteRuleNames::usage = "rewriteRuleNames[environment, HoldComplete[head]] gives the names {HoldComplete[rule], ...} of the rewrite rules of head, in the order they were declared."
 environmentQ::usage = "environmentQ[expr] gives True if expr is a TypeTheoryEnvironment handle to a store."
+newLazyEnvironment::usage = "newLazyEnvironment[base, lazySource, rules, rewriteRuleIndex, overloadIndex, naturalNumbers] builds a TypeTheoryEnvironment backed by a Format 3 lazy source."
 constantRecord::usage = "constantRecord[environment, HoldComplete[name]] gives the record of the constant name, or throws a kernel failure if it is not declared."
+constantStatementRecord::usage = "constantStatementRecord[environment, HoldComplete[name]] gives the record of name without decoding proof terms for Theorem or Opaque constants on a lazy Format 3 environment."
 constantDeclaredQ::usage = "constantDeclaredQ[environment, HoldComplete[name]] gives True if name is declared in environment."
 addConstantRecords::usage = "addConstantRecords[environment, <|HoldComplete[name] -> record, ...|>] gives a new environment with the records added; \
 it throws a kernel failure if a name is already declared."
 environmentNames::usage = "environmentNames[environment] gives the names {HoldComplete[name], ...} of the constants of environment, in the order they were declared."
+environmentCount::usage = "environmentCount[environment] gives the number of constants in environment in O(1) time."
+environmentKindCounts::usage = "environmentKindCounts[environment] gives <|kind -> count, ...|> for the constants of environment in O(1) time on lazy Format 3 environments."
 naturalNumberSettings::usage = "naturalNumberSettings[environment] gives the registered natural numbers of environment, or None."
 setNaturalNumberSettings::usage = "setNaturalNumberSettings[environment, settings] gives a new environment with settings as its natural numbers."
 withStoreCleanup::usage = "withStoreCleanup[body] evaluates body and removes every store created meanwhile except the stores of the environments in its value."
@@ -163,15 +171,39 @@ environmentQ[_] := False
    any definition was made, and each declaration makes some, so keeping one cost a declaration the length of the
    environment, while an Association is read whole. *)
 newEnvironment[base_, records_Association, naturalNumbers_] := Module[{store},
-	store["Records"] = Join[base["Records"], records];
-	store["Names"] := Keys[store["Records"]];
+	If[ MatchQ[base, _Symbol] && lazySourceQ[base["LazySource"]],
+		store["LazySource"] = base["LazySource"];
+		store["Overlay"] = Join[base["Overlay"], records];
+		store["Records"] := lazyMaterializeRecords[store];
+		store["Names"] := environmentNames[TypeTheoryEnvironment[store]];
+		store["SavedTable"] = None,
+		store["LazySource"] = None;
+		store["Records"] = Join[base["Records"], records];
+		store["Names"] := Keys[store["Records"]];
+		(* the table a file was read from, kept for saving the records it holds again; the records only grow *)
+		store["SavedTable"] = Replace[base["SavedTable"], Except[_Association] -> None]
+	];
 	store["Rules"] = base["Rules"];
 	store["RewriteRuleIndex"] = Merge[{Replace[base["RewriteRuleIndex"], Except[_Association] -> <||>], rewriteRuleIndexOf[records]}, Apply[Join]];
 	store["NaturalNumbers"] = naturalNumbers;
 	store["OverloadIndex"] = Merge[{Replace[base["OverloadIndex"], Except[_Association] -> <||>], overloadIndexOf[records]}, Apply[Join]];
 	store["Library"] = libraryOf[base];
-	(* the table a file was read from, kept for saving the records it holds again; the records only grow *)
-	store["SavedTable"] = Replace[base["SavedTable"], Except[_Association] -> None];
+	store["Identifier"] = ++$storeCounter;
+	Sow[store, $storeTag];
+	TypeTheoryEnvironment[store]
+]
+
+newLazyEnvironment[base : TypeTheoryEnvironment[baseStore_Symbol], lazySource_Symbol, rules_TypeTheoryRules, rewriteIndex_Association, overloadIndex_Association, naturalNumbers_] := Module[{store},
+	store["LazySource"] = lazySource;
+	store["Overlay"] = <||>;
+	store["Records"] := lazyMaterializeRecords[store];
+	store["Names"] := environmentNames[TypeTheoryEnvironment[store]];
+	store["Rules"] = rules;
+	store["RewriteRuleIndex"] = rewriteIndex;
+	store["NaturalNumbers"] = naturalNumbers;
+	store["OverloadIndex"] = overloadIndex;
+	store["Library"] = libraryOf[baseStore];
+	store["SavedTable"] = None;
 	store["Identifier"] = ++$storeCounter;
 	Sow[store, $storeTag];
 	TypeTheoryEnvironment[store]
@@ -233,12 +265,38 @@ SetTypeTheoryEnvironment[specification_] := Replace[TypeTheoryEnvironment[specif
 }]
 
 
-constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] :=
+constantRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := If[ lazySourceQ[store["LazySource"]],
+	Lookup[store["Overlay"], Key[name], lazyConstantRecord[store["LazySource"], name, True]],
 	Lookup[store["Records"], Key[name], kernelFailure["UnknownConstant", "`1` is not declared.", {HoldForm @@ name}]]
+]
 
-constantDeclaredQ[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := KeyExistsQ[store["Records"], name]
+constantStatementRecord[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := If[ lazySourceQ[store["LazySource"]],
+	Lookup[store["Overlay"], Key[name], lazyConstantRecord[store["LazySource"], name, False]],
+	Lookup[store["Records"], Key[name], kernelFailure["UnknownConstant", "`1` is not declared.", {HoldForm @@ name}]]
+]
 
-environmentNames[TypeTheoryEnvironment[store_Symbol]] := Keys[store["Records"]]
+constantDeclaredQ[TypeTheoryEnvironment[store_Symbol], name_HoldComplete] := If[ lazySourceQ[store["LazySource"]],
+	KeyExistsQ[store["Overlay"], name] || lazyConstantDeclaredQ[store["LazySource"], name],
+	KeyExistsQ[store["Records"], name]
+]
+
+environmentNames[TypeTheoryEnvironment[store_Symbol]] := If[ lazySourceQ[store["LazySource"]],
+	Join[lazyEnvironmentNames[store["LazySource"]], Keys[store["Overlay"]]],
+	Keys[store["Records"]]
+]
+
+environmentCount[TypeTheoryEnvironment[store_Symbol]] := If[ lazySourceQ[store["LazySource"]],
+	lazyEnvironmentCount[store["LazySource"]] + Length[store["Overlay"]],
+	Length[store["Records"]]
+]
+
+environmentKindCounts[TypeTheoryEnvironment[store_Symbol]] := If[ lazySourceQ[store["LazySource"]],
+	If[ Length[store["Overlay"]] == 0,
+		lazyKindCounts[store["LazySource"]],
+		Merge[{lazyKindCounts[store["LazySource"]], Counts[Lookup[Values[store["Overlay"]], "Kind"]]}, Total]
+	],
+	If[Length[store["Records"]] == 0, <||>, Counts[Lookup[Values[store["Records"]], "Kind"]]]
+]
 
 
 addConstantRecords[environment : TypeTheoryEnvironment[store_Symbol], records_Association] := With[
@@ -253,11 +311,31 @@ addConstantRecords[environment : TypeTheoryEnvironment[store_Symbol], records_As
 (* a rewrite rule is a record of its own, in the order of declarations; the new store lists it under its head *)
 addRewriteRuleRecord[environment_, name_HoldComplete, record_Association] := addConstantRecords[environment, <|name -> record|>]
 
-rewriteRuleRecords[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name, store["Records"][name]] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
+rewriteRuleRecords[environment : TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Function[name,
+	With[{record = constantStatementRecord[environment, name]},
+		If[ lazySourceQ[store["LazySource"]] && (record["Kind"] =!= "RewriteRule" || record["Head"] =!= head),
+			kernelFailure["SavedEnvironmentInvalid", "The rewrite-rule index of `1` does not match its record.", {HoldForm @@ name}]
+		];
+		record
+	]
+] /@ Lookup[store["RewriteRuleIndex"], Key[head], {}]
 
 rewriteRuleNames[TypeTheoryEnvironment[store_Symbol], head_HoldComplete] := Lookup[store["RewriteRuleIndex"], Key[head], {}]
 
-overloadingConstants[TypeTheoryEnvironment[store_Symbol], operation_HoldComplete] := Lookup[Replace[store["OverloadIndex"], Except[_Association] -> <||>], Key[operation], {}]
+overloadingConstants[environment : TypeTheoryEnvironment[store_Symbol], operation_HoldComplete] := With[
+	{names = Lookup[Replace[store["OverloadIndex"], Except[_Association] -> <||>], Key[operation], {}]},
+	If[ lazySourceQ[store["LazySource"]],
+		Scan[
+			Function[name,
+				If[ Lookup[constantStatementRecord[environment, name], "Overloads", None] =!= operation,
+					kernelFailure["SavedEnvironmentInvalid", "The overload index of `1` does not match its record.", {HoldForm @@ name}]
+				]
+			],
+			names
+		]
+	];
+	names
+]
 
 
 naturalNumberSettings[TypeTheoryEnvironment[store_Symbol]] := store["NaturalNumbers"]
@@ -347,18 +425,18 @@ recursionFailure[_, control_] := ReleaseHold[control]
 
 
 TypeTheoryEnvironment /: MakeBoxes[environment : TypeTheoryEnvironment[store_Symbol], format : StandardForm] /; environmentQ[environment] := With[
-	{records = Values[store["Records"]], naturalNumbers = store["NaturalNumbers"]},
+	{count = environmentCount[environment], kindCounts = environmentKindCounts[environment], naturalNumbers = store["NaturalNumbers"]},
 	BoxForm`ArrangeSummaryBox[
 		TypeTheoryEnvironment,
 		environment,
 		None,
 		{
-			BoxForm`SummaryItem[{"Constants: ", Length[records]}],
-			BoxForm`SummaryItem[{"Theorems: ", Count[records, KeyValuePattern["Kind" -> "Theorem"]]}]
+			BoxForm`SummaryItem[{"Constants: ", count}],
+			BoxForm`SummaryItem[{"Theorems: ", Lookup[kindCounts, "Theorem", 0]}]
 		},
 		{
-			BoxForm`SummaryItem[{"Inductive types: ", Count[records, KeyValuePattern["Kind" -> "InductiveType"]]}],
-			BoxForm`SummaryItem[{"Axioms: ", Count[records, KeyValuePattern["Kind" -> "Axiom"]]}],
+			BoxForm`SummaryItem[{"Inductive types: ", Lookup[kindCounts, "InductiveType", 0]}],
+			BoxForm`SummaryItem[{"Axioms: ", Lookup[kindCounts, "Axiom", 0]}],
 			BoxForm`SummaryItem[{"Natural numbers: ", If[naturalNumbers === None, "none", HoldForm @@ naturalNumbers["Type"]]}],
 			BoxForm`SummaryItem[{"Rules: ", First[store["Rules"]]["Name"]}]
 		},

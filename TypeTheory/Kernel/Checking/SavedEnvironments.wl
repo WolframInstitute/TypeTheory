@@ -60,8 +60,25 @@ PackageScoped[saveEnvironment]
 PackageScoped[environmentProvenance]
 PackageScoped[environmentContentHash]
 PackageScoped[contentHashOf]
+PackageScoped[contentHashFromRecords]
+PackageScoped[rememberContentHash]
+PackageScoped[environmentBase]
 PackageScoped[environmentRecordHashes]
 PackageScoped[recordFingerprints]
+PackageScoped[recordHashesOf]
+PackageScoped[rowFingerprints]
+PackageScoped[rowDepths]
+PackageScoped[valueFingerprints]
+PackageScoped[bytesFingerprints]
+PackageScoped[compositeTermQ]
+PackageScoped[heldDataQ]
+PackageScoped[inertQ]
+PackageScoped[nameQ]
+PackageScoped[binderQ]
+PackageScoped[leafTermQ]
+PackageScoped[levelQ]
+PackageScoped[annotationQ]
+PackageScoped[$pacletDirectory]
 PackageScoped[$kernelHash]
 PackageScoped[$trustedSources]
 PackageScoped[kernelSourcesHash]
@@ -103,7 +120,7 @@ $pacletDirectory = ParentDirectory[DirectoryName[$InputFileName], 2]
 $trustedSources = {
 	"Terms/CoreTerms.wl",
 	"Checking/CompiledKernel.wl", "Checking/Cubical.wl", "Checking/Declarations.wl", "Checking/Environment.wl", "Checking/Holes.wl",
-	"Checking/InductiveTypes.wl", "Checking/NaturalNumbers.wl", "Checking/Quantities.wl", "Checking/Queries.wl", "Checking/Quotients.wl",
+	"Checking/InductiveTypes.wl", "Checking/LazyEnvironments.wl", "Checking/NaturalNumbers.wl", "Checking/Quantities.wl", "Checking/Queries.wl", "Checking/Quotients.wl",
 	"Checking/Rules.wl", "Checking/SavedEnvironments.wl", "Checking/TypeChecking.wl"
 }
 
@@ -134,6 +151,14 @@ TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : 
 	saveEnvironment[Replace[file, File[path_] :> path], environment]
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "WXF"] :=
 	saveEnvironment[Replace[file, File[path_] :> path], environment]
+TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, options : (_Rule | _RuleDelayed) ...] /; ToLowerCase[FileExtension[file]] === "tte" :=
+	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
+TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "TTE", options : (_Rule | _RuleDelayed) ...] :=
+	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
+TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, options : (_Rule | _RuleDelayed) ..] /; OptionValue[FilterRules[{options}, "FormatVersion"], "FormatVersion"] === 3 :=
+	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
+TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "WXF", options : (_Rule | _RuleDelayed) ..] /; OptionValue[FilterRules[{options}, "FormatVersion"], "FormatVersion"] === 3 :=
+	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
 
 saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], fileContents, saveStream},
 	fileContents = savedContents[environment, saveBase];
@@ -183,7 +208,10 @@ environmentContents[environment : TypeTheoryEnvironment[store_Symbol], base_] :=
 (* the hash of all of an environment's contents, the same in every session for an environment with the same declarations *)
 environmentContentHash[environment : TypeTheoryEnvironment[store_Symbol]] := Replace[
 	store["ContentHash"],
-	_store :> (store["ContentHash"] = contentHashOf[environment])
+	_store :> (store["ContentHash"] = If[ lazySourceQ[store["LazySource"]],
+		contentHashFromRecords[environment, environmentRecordHashes[environment]],
+		contentHashOf[environment]
+	])
 ]
 
 (* The content hash is structural: the SHA-256 of the rules, the natural numbers, the rewrite-rule index and each record's
@@ -210,7 +238,10 @@ rememberContentHash[environment : TypeTheoryEnvironment[store_Symbol], recordHas
 (* every record's hash by name, kept once made: a base's, which reading a file saved over it joins its own to *)
 environmentRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := Replace[
 	store["RecordHashes"],
-	Except[_Association] :> (store["RecordHashes"] = freshContents[environment, None]["RecordHashes"])
+	Except[_Association] :> (store["RecordHashes"] = If[ lazySourceQ[store["LazySource"]],
+		Join[lazyRecordHashes[store["LazySource"]], recordFingerprints[store["Overlay"]]],
+		freshContents[environment, None]["RecordHashes"]
+	])
 ]
 
 (* The structural hash of records that are in no environment, as a theorem's read as an axiom of its statement: the
@@ -517,6 +548,7 @@ TypeTheoryEnvironment[File[file_String], options : OptionsPattern[loadEnvironmen
 	OptionValue[loadEnvironment, {options}, "Check"]
 ]
 
+loadEnvironment[file_String, check_] /; format3FileQ[file] := loadFormat3Environment[file, check]
 loadEnvironment[file_String, check_] := Block[{loadData = readEnvironmentFile[file], loadBase, loaded},
 	If[ loadData["KernelHash"] =!= $kernelHash && ! TrueQ[check],
 		kernelFailure[

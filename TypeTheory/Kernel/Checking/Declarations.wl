@@ -213,7 +213,7 @@ compiledDeclarations[environment_, declarations_List] := Replace[
 	catchKernelFailure[Block[{$deferKernelChecks = True, $deferRegistrationEquations = True}, $recheckedConstants = {}; deferredDeclarations[environment, declarations]]],
 	{
 		_Failure :> Fold[addDeclaration, environment, declarations],
-		extended_ :> Replace[compiledKernelCheck[extended, Length[environmentNames[environment]], registrationCount[environment], declarationRecheck[environment, declarations, extended]], {
+		extended_ :> Replace[compiledKernelCheck[extended, environmentCount[environment], registrationCount[environment], declarationRecheck[environment, declarations, extended]], {
 			failure_Failure /; TrueQ[failure["RegistrationEquation"]] :> Fold[addDeclaration, environment, declarations],
 			failure_Failure :> throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]],
 			None :> Fold[addDeclaration, environment, declarations],
@@ -233,9 +233,12 @@ compiledDeclarations[environment_, declarations_List] := Replace[
    declarations are not met in order, or the record checked is not the record the batch has. $recheckedConstants lists
    the constants given to this check in the last batch. *)
 declarationRecheck[environment_, declarations_List, extended_] := Module[
-	(* the declarations are kept in a variable: written into the function, their list would be walked at each call *)
-	{batch = declarations, names = environmentNames[extended], owners = declarationOwners[declarations], prefix = environment, added = 0, done = <||>},
-	Function[position, With[{name = Extract[names, position]},
+	(* the declarations are kept in a variable: written into the function, their list would be walked at each call;
+	   names is populated lazily only if a large-literal recheck actually triggers *)
+	{batch = declarations, names = None, owners = declarationOwners[declarations], prefix = environment, added = 0, done = <||>},
+	Function[position,
+		If[names === None, names = environmentNames[extended]];
+		With[{name = Extract[names, position]},
 		{index = Lookup[owners, Key[Lookup[constantRecord[extended, name], "InductiveType", name]], None]},
 		Which[
 			! IntegerQ[index], None,
@@ -254,7 +257,8 @@ declarationRecheck[environment_, declarations_List, extended_] := Module[
 					)
 				}]
 		]
-	]]
+		]
+	]
 ]
 
 $recheckedConstants = {}
