@@ -177,10 +177,12 @@ readExactBytes[stream_, offset_Integer, length_Integer] := Block[{raw},
 
 format3FileQ[file_String] := If[ ! FileExistsQ[file] || Quiet[FileByteCount[file]] < 8 + $format3HeaderSize,
 	False,
-	WithCleanup[
-		stream = Quiet[OpenRead[file, BinaryFormat -> True]],
-		If[! MatchQ[stream, _InputStream], False, Quiet[BinaryReadList[stream, "Byte", 8]] === $format3Magic],
-		If[MatchQ[stream, _InputStream], Quiet[Close[stream]]]
+	Block[{stream},
+		WithCleanup[
+			stream = Quiet[OpenRead[file, BinaryFormat -> True]],
+			If[! MatchQ[stream, _InputStream], False, Quiet[BinaryReadList[stream, "Byte", 8]] === $format3Magic],
+			If[MatchQ[stream, _InputStream], Quiet[Close[stream]]]
+		]
 	]
 ]
 
