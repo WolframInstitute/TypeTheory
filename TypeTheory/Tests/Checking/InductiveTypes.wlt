@@ -407,6 +407,87 @@ VerificationTest[
 	TestID -> "Shared-DAG-inductive-occurrence-checks-scale-and-still-reject-non-positive-occurrences"
 ]
 
+(* Parameterized shared-DAG inductive constructor: instantiating parameters across two depths collapses
+   distinct 35-deep diamonds (2^35 tree leaves) to structurally identical terms; hash-consing in
+   CoreTerms.wl keeps them sharing one pointer so eliminateNested and recursiveFieldData finish in
+   milliseconds while still rejecting a non-positive occurrence at the bottom of the diamond. *)
+VerificationTest[
+	Block[
+		{
+			base, u1, dagPairRef, natRef, app, depFn, cref, bv, buildDiamond, diamondDepth,
+			paramIndType, okField1, okField2, okCtorType, badField1, badField2, badCtorType,
+			okEnv, badEnv
+		},
+		base = TypeTheoryEnvironment[prelude, {
+			TypeTheoryAxiom[DagPair, TypeSpecifier[{TypeUniverse[1], TypeUniverse[1]} -> TypeUniverse[1]]]
+		}];
+		u1 = WolframInstitute`TypeTheory`PackageScope`universeSort[1];
+		app = WolframInstitute`TypeTheory`PackageScope`application;
+		depFn = WolframInstitute`TypeTheory`PackageScope`dependentFunctionType;
+		cref = WolframInstitute`TypeTheory`PackageScope`constantReference;
+		bv = WolframInstitute`TypeTheory`PackageScope`boundVariable;
+		dagPairRef = cref[HoldComplete[DagPair], {}];
+		natRef = cref[HoldComplete[NonNegativeIntegers], {}];
+		buildDiamond = Nest[Construct[app, Construct[app, dagPairRef, #], #] &, #1, #2] &;
+		diamondDepth = If[AssociationQ[WolframInstitute`TypeTheory`PackageScope`$termConstructionSites], 10, 35];
+		paramIndType = Construct[depFn, HoldComplete[A], u1, u1, "Explicit"];
+		(* Field 1 uses parameter A at depth 0 (bv[0]); Field 2 uses parameter A at depth 1 (bv[1]) *)
+		okField1 = buildDiamond[bv[0], diamondDepth];
+		okField2 = buildDiamond[bv[1], diamondDepth];
+		okCtorType = Construct[depFn, HoldComplete[A], u1,
+			Construct[depFn, HoldComplete[f1], okField1,
+				Construct[depFn, HoldComplete[f2], okField2,
+					Construct[app, cref[HoldComplete[OkParamDiamond], {}], bv[2]],
+					"Explicit"
+				],
+				"Explicit"
+			],
+			"Explicit"
+		];
+		badField1 = buildDiamond[Construct[depFn, HoldComplete[z], Construct[app, cref[HoldComplete[BadParamDiamond], {}], bv[0]], bv[1], "Explicit"], diamondDepth];
+		badField2 = buildDiamond[Construct[depFn, HoldComplete[z], Construct[app, cref[HoldComplete[BadParamDiamond], {}], bv[1]], bv[2], "Explicit"], diamondDepth];
+		badCtorType = Construct[depFn, HoldComplete[A], u1,
+			Construct[depFn, HoldComplete[f1], badField1,
+				Construct[depFn, HoldComplete[f2], badField2,
+					Construct[app, cref[HoldComplete[BadParamDiamond], {}], bv[2]],
+					"Explicit"
+				],
+				"Explicit"
+			],
+			"Explicit"
+		];
+		okEnv = TimeConstrained[
+			Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+				WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
+					base, HoldComplete[OkParamDiamond], {}, 1, paramIndType,
+					{HoldComplete[OkParamDiamondMake] -> okCtorType}
+				]
+			],
+			5,
+			$Failed
+		];
+		badEnv = TimeConstrained[
+			Quiet[Catch[
+				Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+					WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
+						base, HoldComplete[BadParamDiamond], {}, 1, paramIndType,
+						{HoldComplete[BadParamDiamondMake] -> badCtorType}
+					]
+				],
+				WolframInstitute`TypeTheory`PackageScope`$kernelFailureTag
+			]],
+			5,
+			$Failed
+		];
+		{
+			Head[okEnv] === TypeTheoryEnvironment && KeyExistsQ[okEnv, OkParamDiamond],
+			FailureQ[badEnv] && First[badEnv] === "NonPositiveOccurrence"
+		}
+	],
+	{True, True},
+	TestID -> "Parameterized-shared-DAG-constructor-stays-hash-consed-across-parameter-instantiation"
+]
+
 (* A nested inductive type whose parameter depends on an earlier constructor field must be refused with
    NestedParameters: looseBoundVariablesQ checks every parameter in the list. *)
 VerificationTest[

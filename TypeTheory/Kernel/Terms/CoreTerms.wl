@@ -73,6 +73,8 @@ PackageScoped[withoutQuantities]
 PackageScoped[liftBoundVariables]
 PackageScoped[looseBoundRange]
 PackageScoped[$looseBoundRangeCache]
+PackageScoped[withHashCons]
+PackageScoped[withFreshHashCons]
 PackageScoped[instantiateBoundVariable]
 PackageScoped[instantiateBoundVariables]
 PackageScoped[instantiateBoundVariablesProjecting]
@@ -129,6 +131,8 @@ withoutQuantities::usage = "withoutQuantities[term] gives term with the quantity
 liftBoundVariables::usage = "liftBoundVariables[term, amount, cutoff] adds amount to every bound variable index at least cutoff."
 looseBoundRange::usage = "looseBoundRange[term] gives one more than the largest index of a bound variable of term that no binder of term binds, or 0."
 $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loose bound ranges remembered while the kernel checks a declaration, or None."
+withHashCons::usage = "withHashCons[body] evaluates body with an active hash-consing table for term rebuilding, reusing any enclosing table."
+withFreshHashCons::usage = "withFreshHashCons[body] evaluates body with a fresh hash-consing table for term rebuilding."
 instantiateBoundVariable::usage = "instantiateBoundVariable[body, value] replaces the variable bound just outside body by value."
 instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ..., valuek}] replaces the k variables bound just outside body by the values at once, the innermost by valuek."
 instantiateBoundVariablesProjecting::usage = "instantiateBoundVariablesProjecting[body, values, fields] replaces the variables as instantiateBoundVariables[body, values] does, and each projection of a replaced variable whose entry of fields, aligned with values, is {HoldComplete[structure], {field1, ...}} by its field: the entry None leaves the variable's projections to be replaced as any other occurrence.\n\
@@ -230,35 +234,200 @@ SetAttributes[withRangeCache, HoldFirst]
 withRangeCache[body_] := If[AssociationQ[$looseBoundRangeCache], body, Block[{$looseBoundRangeCache = <||>}, body]]
 
 
+(* Bottom-up integer-ID hash-consing for term-rebuilding walks (lifting, substitution, abstraction).
+   When two distinct input subterms (for instance at different binder depths) collapse to structurally
+   identical outputs, memoization on {input, depth} alone allocates two distinct expression pointers;
+   a later Association lookup (such as occursQ) then hits the same hash bucket with different pointers
+   and falls back to unmemoized structural SameQ over the expanded tree, which is exponential on shared
+   DAGs. Keying each rebuilt node by its tag and integer child IDs guarantees that structurally equal
+   subterms share one canonical pointer, with O(1) integer-tuple keys and zero structural SameQ on
+   composite terms. *)
+$hashConsTable = None
+$hashConsLeaves = None
+$hashConsInterned = None
+$hashConsNextIdentifier = 0
+
+SetAttributes[withHashCons, HoldFirst]
+withHashCons[body_] := If[ AssociationQ[$hashConsTable],
+	body,
+	Block[{$hashConsTable = <||>, $hashConsLeaves = <||>, $hashConsNextIdentifier = 0}, body]
+]
+
+SetAttributes[withFreshHashCons, HoldFirst]
+withFreshHashCons[body_] := Block[{$hashConsTable = <||>, $hashConsLeaves = <||>, $hashConsNextIdentifier = 0}, body]
+
+hashConsLeafPair[leaf_] := Lookup[$hashConsLeaves, Key[leaf], $hashConsLeaves[leaf] = {leaf, ++$hashConsNextIdentifier}]
+
+hashConsRegister[key_, expression_] := $hashConsTable[key] = {expression, ++$hashConsNextIdentifier}
+
+hashConsApplication[{functionExpression_, functionId_}, {argumentExpression_, argumentId_}] := Lookup[
+	$hashConsTable,
+	Key[{1, functionId, argumentId}],
+	hashConsRegister[{1, functionId, argumentId}, Construct[application, functionExpression, argumentExpression]]
+]
+
+hashConsLambda[name_, {domainExpression_, domainId_}, {bodyExpression_, bodyId_}, binder_] := Lookup[
+	$hashConsTable,
+	Key[{2, name, domainId, bodyId, binder}],
+	hashConsRegister[{2, name, domainId, bodyId, binder}, Construct[lambdaAbstraction, name, domainExpression, bodyExpression, binder]]
+]
+
+hashConsDependentFunction[name_, {domainExpression_, domainId_}, {codomainExpression_, codomainId_}, binder_] := Lookup[
+	$hashConsTable,
+	Key[{3, name, domainId, codomainId, binder}],
+	hashConsRegister[{3, name, domainId, codomainId, binder}, Construct[dependentFunctionType, name, domainExpression, codomainExpression, binder]]
+]
+
+hashConsLocalDefinition[name_, {typeExpression_, typeId_}, {valueExpression_, valueId_}, {bodyExpression_, bodyId_}] := Lookup[
+	$hashConsTable,
+	Key[{4, name, typeId, valueId, bodyId}],
+	hashConsRegister[{4, name, typeId, valueId, bodyId}, Construct[localDefinition, name, typeExpression, valueExpression, bodyExpression]]
+]
+
+hashConsProjection[structure_, index_, {innerExpression_, innerId_}] := Lookup[
+	$hashConsTable,
+	Key[{5, structure, index, innerId}],
+	hashConsRegister[{5, structure, index, innerId}, Construct[projection, structure, index, innerExpression]]
+]
+
+hashConsCubical[branchPairs_List] := hashConsCubicalKey[Map[Last, branchPairs, {2}], Map[First, branchPairs, {2}]]
+hashConsCubicalKey[branchIds_List, branchExpressions_List] := Lookup[
+	$hashConsTable,
+	Key[{6, branchIds}],
+	hashConsRegister[{6, branchIds}, Construct[cubicalSystem, branchExpressions]]
+]
+
+(* Intern an unchanged subterm into the active hash-cons table so that any rebuilt subterm structurally
+   equal to it (for example a shifted bound variable matching an unchanged inner one) shares its pointer.
+   $hashConsInterned is scoped per top-level call and keyed ONLY by input subterms (never populated by
+   hashConsRegister with newly built output terms), so an unchanged input subterm never collides with a
+   structurally equal rebuilt term in $hashConsInterned. When every child of an unchanged composite kept
+   its original pointer and no canonical entry exists yet, the original term itself is registered. *)
+hashConsInternPair[term : (_boundVariable | _freeVariable | _metavariable | _universeSort | _constantReference | _naturalLiteral | _intervalUniverse)] :=
+	hashConsLeafPair[term]
+hashConsInternPair[term_] := Take[hashConsInternTracked[term], 2]
+
+hashConsInternTracked[term : (_boundVariable | _freeVariable | _metavariable | _universeSort | _constantReference | _naturalLiteral | _intervalUniverse)] :=
+	hashConsInternLeafAt[Lookup[$hashConsLeaves, Key[term], None], term]
+hashConsInternTracked[term_] := Lookup[$hashConsInterned, Key[term], $hashConsInterned[term] = hashConsInternComposite[term]]
+
+hashConsInternLeafAt[None, leaf_] := Append[$hashConsLeaves[leaf] = {leaf, ++$hashConsNextIdentifier}, True]
+hashConsInternLeafAt[existing_List, _] := Append[existing, False]
+
+hashConsInternComposite[term : application[function_, argument_]] :=
+	hashConsInternApplication[term, hashConsInternTracked[function], hashConsInternTracked[argument]]
+hashConsInternComposite[term : lambdaAbstraction[name_, domain_, body_, binder_]] :=
+	hashConsInternLambda[term, name, hashConsInternTracked[domain], hashConsInternTracked[body], binder]
+hashConsInternComposite[term : dependentFunctionType[name_, domain_, codomain_, binder_]] :=
+	hashConsInternDependentFunction[term, name, hashConsInternTracked[domain], hashConsInternTracked[codomain], binder]
+hashConsInternComposite[term : localDefinition[name_, type_, value_, body_]] :=
+	hashConsInternLocalDefinition[term, name, hashConsInternTracked[type], hashConsInternTracked[value], hashConsInternTracked[body]]
+hashConsInternComposite[term : projection[structure_, index_, inner_]] :=
+	hashConsInternProjection[term, structure, index, hashConsInternTracked[inner]]
+hashConsInternComposite[term : cubicalSystem[branches_List]] :=
+	hashConsInternCubical[term, Map[hashConsInternTracked, branches, {2}]]
+hashConsInternComposite[term_] := hashConsInternLeafAt[Lookup[$hashConsLeaves, Key[term], None], term]
+
+hashConsInternApplication[term_, {functionExpression_, functionId_, functionPreserved_}, {argumentExpression_, argumentId_, argumentPreserved_}] :=
+	hashConsInternApplicationAt[Lookup[$hashConsTable, Key[{1, functionId, argumentId}], None], {1, functionId, argumentId}, term, functionPreserved && argumentPreserved, functionExpression, argumentExpression]
+hashConsInternApplicationAt[None, key_, term_, True, _, _] := Append[$hashConsTable[key] = {term, ++$hashConsNextIdentifier}, True]
+hashConsInternApplicationAt[None, key_, _, False, functionExpression_, argumentExpression_] :=
+	Append[$hashConsTable[key] = {Construct[application, functionExpression, argumentExpression], ++$hashConsNextIdentifier}, False]
+hashConsInternApplicationAt[existing_List, _, _, _, _, _] := Append[existing, False]
+
+hashConsInternLambda[term_, name_, {domainExpression_, domainId_, domainPreserved_}, {bodyExpression_, bodyId_, bodyPreserved_}, binder_] :=
+	hashConsInternLambdaAt[Lookup[$hashConsTable, Key[{2, name, domainId, bodyId, binder}], None], {2, name, domainId, bodyId, binder}, term, domainPreserved && bodyPreserved, name, domainExpression, bodyExpression, binder]
+hashConsInternLambdaAt[None, key_, term_, True, _, _, _, _] := Append[$hashConsTable[key] = {term, ++$hashConsNextIdentifier}, True]
+hashConsInternLambdaAt[None, key_, _, False, name_, domainExpression_, bodyExpression_, binder_] :=
+	Append[$hashConsTable[key] = {Construct[lambdaAbstraction, name, domainExpression, bodyExpression, binder], ++$hashConsNextIdentifier}, False]
+hashConsInternLambdaAt[existing_List, _, _, _, _, _, _, _] := Append[existing, False]
+
+hashConsInternDependentFunction[term_, name_, {domainExpression_, domainId_, domainPreserved_}, {codomainExpression_, codomainId_, codomainPreserved_}, binder_] :=
+	hashConsInternDependentFunctionAt[Lookup[$hashConsTable, Key[{3, name, domainId, codomainId, binder}], None], {3, name, domainId, codomainId, binder}, term, domainPreserved && codomainPreserved, name, domainExpression, codomainExpression, binder]
+hashConsInternDependentFunctionAt[None, key_, term_, True, _, _, _, _] := Append[$hashConsTable[key] = {term, ++$hashConsNextIdentifier}, True]
+hashConsInternDependentFunctionAt[None, key_, _, False, name_, domainExpression_, codomainExpression_, binder_] :=
+	Append[$hashConsTable[key] = {Construct[dependentFunctionType, name, domainExpression, codomainExpression, binder], ++$hashConsNextIdentifier}, False]
+hashConsInternDependentFunctionAt[existing_List, _, _, _, _, _, _, _] := Append[existing, False]
+
+hashConsInternLocalDefinition[term_, name_, {typeExpression_, typeId_, typePreserved_}, {valueExpression_, valueId_, valuePreserved_}, {bodyExpression_, bodyId_, bodyPreserved_}] :=
+	hashConsInternLocalDefinitionAt[Lookup[$hashConsTable, Key[{4, name, typeId, valueId, bodyId}], None], {4, name, typeId, valueId, bodyId}, term, typePreserved && valuePreserved && bodyPreserved, name, typeExpression, valueExpression, bodyExpression]
+hashConsInternLocalDefinitionAt[None, key_, term_, True, _, _, _, _] := Append[$hashConsTable[key] = {term, ++$hashConsNextIdentifier}, True]
+hashConsInternLocalDefinitionAt[None, key_, _, False, name_, typeExpression_, valueExpression_, bodyExpression_] :=
+	Append[$hashConsTable[key] = {Construct[localDefinition, name, typeExpression, valueExpression, bodyExpression], ++$hashConsNextIdentifier}, False]
+hashConsInternLocalDefinitionAt[existing_List, _, _, _, _, _, _, _] := Append[existing, False]
+
+hashConsInternProjection[term_, structure_, index_, {innerExpression_, innerId_, innerPreserved_}] :=
+	hashConsInternProjectionAt[Lookup[$hashConsTable, Key[{5, structure, index, innerId}], None], {5, structure, index, innerId}, term, innerPreserved, structure, index, innerExpression]
+hashConsInternProjectionAt[None, key_, term_, True, _, _, _] := Append[$hashConsTable[key] = {term, ++$hashConsNextIdentifier}, True]
+hashConsInternProjectionAt[None, key_, _, False, structure_, index_, innerExpression_] :=
+	Append[$hashConsTable[key] = {Construct[projection, structure, index, innerExpression], ++$hashConsNextIdentifier}, False]
+hashConsInternProjectionAt[existing_List, _, _, _, _, _, _] := Append[existing, False]
+
+hashConsEntryIdentifier[entry_] := Extract[entry, 2]
+
+hashConsInternCubical[term_, branchTriples_List] := hashConsInternCubicalKey[
+	term,
+	{6, Map[hashConsEntryIdentifier, branchTriples, {2}]},
+	AllTrue[Flatten[branchTriples, 1], Last],
+	Map[First, branchTriples, {2}]
+]
+hashConsInternCubicalKey[term_, key_, preserved_, branchExpressions_] :=
+	hashConsInternCubicalAt[Lookup[$hashConsTable, Key[key], None], key, term, preserved, branchExpressions]
+hashConsInternCubicalAt[None, key_, term_, True, _] := Append[$hashConsTable[key] = {term, ++$hashConsNextIdentifier}, True]
+hashConsInternCubicalAt[None, key_, _, False, branchExpressions_] :=
+	Append[$hashConsTable[key] = {Construct[cubicalSystem, branchExpressions], ++$hashConsNextIdentifier}, False]
+hashConsInternCubicalAt[existing_List, _, _, _, _] := Append[existing, False]
+
+
 liftBoundVariables[term_, 0, _] := term
 liftBoundVariables[term_, amount_, cutoff_] := withRangeCache[
-	If[looseBoundRange[term] <= cutoff, term, Block[{$liftMemo = <||>}, liftShared[term, amount, cutoff]]]
+	If[ looseBoundRange[term] <= cutoff,
+		term,
+		withHashCons[First[liftBoundVariablesPair[term, amount, cutoff]]]
+	]
+]
+
+liftBoundVariablesPair[term_, 0, _] := Block[{$hashConsInterned = <||>}, hashConsInternPair[term]]
+liftBoundVariablesPair[term_, amount_, cutoff_] := Block[{$hashConsInterned = <||>},
+	If[ looseBoundRange[term] <= cutoff,
+		hashConsInternPair[term],
+		Block[{$liftMemo = <||>}, liftShared[term, amount, cutoff]]
+	]
 ]
 
 liftShared[term_, amount_, cutoff_] := If[ looseBoundRange[term] <= cutoff,
-	term,
+	hashConsInternPair[term],
 	Lookup[$liftMemo, Key[{term, cutoff}], $liftMemo[{term, cutoff}] = liftNode[term, amount, cutoff]]
 ]
 
-liftNode[boundVariable[index_], amount_, cutoff_] := boundVariable[If[index >= cutoff, index + amount, index]]
-liftNode[application[function_, argument_], amount_, cutoff_] := Construct[application, liftShared[function, amount, cutoff], liftShared[argument, amount, cutoff]]
+liftNode[boundVariable[index_], amount_, cutoff_] := hashConsLeafPair[boundVariable[If[index >= cutoff, index + amount, index]]]
+liftNode[application[function_, argument_], amount_, cutoff_] :=
+	hashConsApplication[liftShared[function, amount, cutoff], liftShared[argument, amount, cutoff]]
 liftNode[lambdaAbstraction[name_, domain_, body_, binder_], amount_, cutoff_] :=
-	Construct[lambdaAbstraction, name, liftShared[domain, amount, cutoff], liftShared[body, amount, cutoff + 1], binder]
+	hashConsLambda[name, liftShared[domain, amount, cutoff], liftShared[body, amount, cutoff + 1], binder]
 liftNode[dependentFunctionType[name_, domain_, codomain_, binder_], amount_, cutoff_] :=
-	Construct[dependentFunctionType, name, liftShared[domain, amount, cutoff], liftShared[codomain, amount, cutoff + 1], binder]
+	hashConsDependentFunction[name, liftShared[domain, amount, cutoff], liftShared[codomain, amount, cutoff + 1], binder]
 liftNode[localDefinition[name_, type_, value_, body_], amount_, cutoff_] :=
-	Construct[localDefinition, name, liftShared[type, amount, cutoff], liftShared[value, amount, cutoff], liftShared[body, amount, cutoff + 1]]
-liftNode[projection[structure_, index_, term_], amount_, cutoff_] := Construct[projection, structure, index, liftShared[term, amount, cutoff]]
-liftNode[cubicalSystem[branches_List], amount_, cutoff_] := Construct[cubicalSystem, Map[Function[part, liftShared[part, amount, cutoff]], branches, {2}]]
-liftNode[term_, _, _] := term
+	hashConsLocalDefinition[name, liftShared[type, amount, cutoff], liftShared[value, amount, cutoff], liftShared[body, amount, cutoff + 1]]
+liftNode[projection[structure_, index_, term_], amount_, cutoff_] :=
+	hashConsProjection[structure, index, liftShared[term, amount, cutoff]]
+liftNode[cubicalSystem[branches_List], amount_, cutoff_] :=
+	hashConsCubical[Map[liftBranchPart[amount, cutoff], branches, {2}]]
+liftNode[term_, _, _] := hashConsInternPair[term]
+
+liftBranchPart[amount_, cutoff_][part_] := liftShared[part, amount, cutoff]
 
 
 instantiateBoundVariable[body_, value_] := instantiateBoundVariables[body, {value}]
 
 (* the variables bound just outside body, innermost last, replaced at once by values, as beta reduction of a
    function of several arguments needs: body refers to the last value as boundVariable[0] *)
+instantiateBoundVariables[body_, {}] := body
 instantiateBoundVariables[body_, values_List] := withRangeCache[
-	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>, $substitutedFields = {}}, substituteShared[body, Reverse[values], 0]]]
+	If[ looseBoundRange[body] == 0,
+		body,
+		withHashCons[Block[{$substitutionMemo = <||>, $hashConsInterned = <||>, $substitutedFields = {}}, First[substituteShared[body, Reverse[values], 0]]]]
+	]
 ]
 
 (* Beta reduction with each projection of a value that is a structure's constructor applied in full taken at once:
@@ -272,7 +441,10 @@ $substitutedFields = {}
 
 instantiateBoundVariablesProjecting[body_, values_List, fields_List] := instantiateBoundVariablesProjecting[body, values, fields, None]
 instantiateBoundVariablesProjecting[body_, values_List, fields_List, fold_] := withRangeCache[
-	If[looseBoundRange[body] == 0, body, Block[{$substitutionMemo = <||>, $substitutedFields = Reverse[fields], $literalFold = fold}, substituteShared[body, Reverse[values], 0]]]
+	If[ looseBoundRange[body] == 0,
+		body,
+		withHashCons[Block[{$substitutionMemo = <||>, $hashConsInterned = <||>, $substitutedFields = Reverse[fields], $literalFold = fold}, First[substituteShared[body, Reverse[values], 0]]]]
+	]
 ]
 
 (* An application of a constant to two literals that this substitution builds is what fold gives of it, where the caller
@@ -282,82 +454,103 @@ instantiateBoundVariablesProjecting[body_, values_List, fields_List, fold_] := w
    argument and nowhere else, as $substitutedFields is; with None, as every other substitution has it, substitution is
    purely syntactic. *)
 $literalFold = None
-foldedApplication[node : application[application[_constantReference, _naturalLiteral], _naturalLiteral]] /; $literalFold =!= None := $literalFold[node]
-foldedApplication[node_] := node
+foldedApplicationPair[pair : {node : application[application[_constantReference, _naturalLiteral], _naturalLiteral], _}] /; $literalFold =!= None :=
+	Block[{$hashConsInterned = <||>}, hashConsInternPair[$literalFold[node]]]
+foldedApplicationPair[pair_] := pair
 
 (* values innermost first: boundVariable[depth + j] is the value at j + 1 *)
 substituteShared[term_, values_, depth_] := If[ looseBoundRange[term] <= depth,
-	term,
+	hashConsInternPair[term],
 	Lookup[$substitutionMemo, Key[{term, depth}], $substitutionMemo[{term, depth}] = substituteNode[term, values, depth]]
 ]
 
 substituteNode[boundVariable[index_], values_, depth_] := Which[
 	index < depth,
-		boundVariable[index],
+		hashConsLeafPair[boundVariable[index]],
 	index < depth + Length[values],
-		liftBoundVariables[values[[index - depth + 1]], depth, 0],
+		liftBoundVariablesPair[values[[index - depth + 1]], depth, 0],
 	True,
-		boundVariable[index - Length[values]]
+		hashConsLeafPair[boundVariable[index - Length[values]]]
 ]
 substituteNode[application[function_, argument_], values_, depth_] :=
-	foldedApplication[Construct[application, substituteShared[function, values, depth], substituteShared[argument, values, depth]]]
+	foldedApplicationPair[hashConsApplication[substituteShared[function, values, depth], substituteShared[argument, values, depth]]]
 substituteNode[lambdaAbstraction[name_, domain_, body_, binder_], values_, depth_] :=
-	Construct[lambdaAbstraction, name, substituteShared[domain, values, depth], substituteShared[body, values, depth + 1], binder]
+	hashConsLambda[name, substituteShared[domain, values, depth], substituteShared[body, values, depth + 1], binder]
 substituteNode[dependentFunctionType[name_, domain_, codomain_, binder_], values_, depth_] :=
-	Construct[dependentFunctionType, name, substituteShared[domain, values, depth], substituteShared[codomain, values, depth + 1], binder]
+	hashConsDependentFunction[name, substituteShared[domain, values, depth], substituteShared[codomain, values, depth + 1], binder]
 substituteNode[localDefinition[name_, type_, definedValue_, body_], values_, depth_] :=
-	Construct[localDefinition, name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
+	hashConsLocalDefinition[name, substituteShared[type, values, depth], substituteShared[definedValue, values, depth], substituteShared[body, values, depth + 1]]
 substituteNode[projection[structure_, index_, term_], values_, depth_] :=
-	Replace[substitutedField[structure, index, term, depth], None :> Construct[projection, structure, index, substituteShared[term, values, depth]]]
-substituteNode[cubicalSystem[branches_List], values_, depth_] := Construct[cubicalSystem, Map[Function[part, substituteShared[part, values, depth]], branches, {2}]]
-substituteNode[term_, _, _] := term
+	substituteProjectionResult[structure, index, term, values, depth, substitutedFieldPair[structure, index, term, depth]]
+substituteNode[cubicalSystem[branches_List], values_, depth_] :=
+	hashConsCubical[Map[substituteBranchPart[values, depth], branches, {2}]]
+substituteNode[term_, _, _] := hashConsInternPair[term]
+
+substituteProjectionResult[structure_, index_, term_, values_, depth_, None] :=
+	hashConsProjection[structure, index, substituteShared[term, values, depth]]
+substituteProjectionResult[_, _, _, _, _, fieldPair_] := fieldPair
+
+substituteBranchPart[values_, depth_][part_] := substituteShared[part, values, depth]
 
 (* the field of a projection of a replaced variable whose value is a constructor applied in full, lifted as the value
    would be; None for any other projection *)
-substitutedField[structure_, index_Integer, boundVariable[k_Integer], depth_] /; depth <= k < depth + Length[$substitutedFields] :=
+substitutedFieldPair[structure_, index_Integer, boundVariable[k_Integer], depth_] /; depth <= k < depth + Length[$substitutedFields] :=
 	Replace[Extract[$substitutedFields, k - depth + 1], {
-		{structure, fields_List} /; 0 <= index < Length[fields] :> liftBoundVariables[Extract[fields, index + 1], depth, 0],
+		{structure, fields_List} /; 0 <= index < Length[fields] :> liftBoundVariablesPair[Extract[fields, index + 1], depth, 0],
 		_ -> None
 	}]
-substitutedField[___] := None
+substitutedFieldPair[___] := None
 
 
-abstractFreeVariable[term_, id_] := Block[{$abstractionMemo = <||>}, abstractShared[term, id, 0]]
+abstractFreeVariable[term_, id_] := withHashCons[Block[{$abstractionMemo = <||>, $hashConsInterned = <||>}, First[abstractShared[term, id, 0]]]]
 
 abstractFreeVariables[term_, {}] := term
-abstractFreeVariables[term_, ids_List] := Block[{$abstractionMemo = <||>, $abstractionIndices = AssociationThread[ids, Reverse[Range[Length[ids]] - 1]]},
-	abstractManyShared[term, 0]
+abstractFreeVariables[term_, ids_List] := withHashCons[
+	Block[{$abstractionMemo = <||>, $hashConsInterned = <||>, $abstractionIndices = AssociationThread[ids, Reverse[Range[Length[ids]] - 1]]},
+		First[abstractManyShared[term, 0]]
+	]
 ]
 
-abstractManyShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _] := term
+abstractManyShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _] := hashConsLeafPair[term]
 abstractManyShared[term_, depth_] := Lookup[$abstractionMemo, Key[{term, depth}], $abstractionMemo[{term, depth}] = abstractManyAt[term, depth]]
 
-abstractManyAt[freeVariable[id_], depth_] := Replace[Lookup[$abstractionIndices, Key[id], None], {None -> freeVariable[id], index_Integer :> boundVariable[index + depth]}]
-abstractManyAt[application[function_, argument_], depth_] := Construct[application, abstractManyShared[function, depth], abstractManyShared[argument, depth]]
+abstractManyAt[freeVariable[id_], depth_] :=
+	hashConsLeafPair[Replace[Lookup[$abstractionIndices, Key[id], None], {None -> freeVariable[id], index_Integer :> boundVariable[index + depth]}]]
+abstractManyAt[application[function_, argument_], depth_] :=
+	hashConsApplication[abstractManyShared[function, depth], abstractManyShared[argument, depth]]
 abstractManyAt[lambdaAbstraction[name_, domain_, body_, binder_], depth_] :=
-	Construct[lambdaAbstraction, name, abstractManyShared[domain, depth], abstractManyShared[body, depth + 1], binder]
+	hashConsLambda[name, abstractManyShared[domain, depth], abstractManyShared[body, depth + 1], binder]
 abstractManyAt[dependentFunctionType[name_, domain_, codomain_, binder_], depth_] :=
-	Construct[dependentFunctionType, name, abstractManyShared[domain, depth], abstractManyShared[codomain, depth + 1], binder]
+	hashConsDependentFunction[name, abstractManyShared[domain, depth], abstractManyShared[codomain, depth + 1], binder]
 abstractManyAt[localDefinition[name_, type_, value_, body_], depth_] :=
-	Construct[localDefinition, name, abstractManyShared[type, depth], abstractManyShared[value, depth], abstractManyShared[body, depth + 1]]
-abstractManyAt[projection[structure_, index_, term_], depth_] := Construct[projection, structure, index, abstractManyShared[term, depth]]
-abstractManyAt[cubicalSystem[branches_List], depth_] := Construct[cubicalSystem, Map[Function[part, abstractManyShared[part, depth]], branches, {2}]]
-abstractManyAt[term_, _] := term
+	hashConsLocalDefinition[name, abstractManyShared[type, depth], abstractManyShared[value, depth], abstractManyShared[body, depth + 1]]
+abstractManyAt[projection[structure_, index_, term_], depth_] :=
+	hashConsProjection[structure, index, abstractManyShared[term, depth]]
+abstractManyAt[cubicalSystem[branches_List], depth_] :=
+	hashConsCubical[Map[abstractManyBranchPart[depth], branches, {2}]]
+abstractManyAt[term_, _] := hashConsInternPair[term]
 
-abstractShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _, _] := term
+abstractManyBranchPart[depth_][part_] := abstractManyShared[part, depth]
+
+abstractShared[term : (_boundVariable | _universeSort | _constantReference | _naturalLiteral | _metavariable | _intervalUniverse), _, _] := hashConsLeafPair[term]
 abstractShared[term_, id_, depth_] := Lookup[$abstractionMemo, Key[{term, depth}], $abstractionMemo[{term, depth}] = abstractAt[term, id, depth]]
 
-abstractAt[freeVariable[id_], id_, depth_] := boundVariable[depth]
-abstractAt[application[function_, argument_], id_, depth_] := Construct[application, abstractShared[function, id, depth], abstractShared[argument, id, depth]]
+abstractAt[freeVariable[id_], id_, depth_] := hashConsLeafPair[boundVariable[depth]]
+abstractAt[application[function_, argument_], id_, depth_] :=
+	hashConsApplication[abstractShared[function, id, depth], abstractShared[argument, id, depth]]
 abstractAt[lambdaAbstraction[name_, domain_, body_, binder_], id_, depth_] :=
-	Construct[lambdaAbstraction, name, abstractShared[domain, id, depth], abstractShared[body, id, depth + 1], binder]
+	hashConsLambda[name, abstractShared[domain, id, depth], abstractShared[body, id, depth + 1], binder]
 abstractAt[dependentFunctionType[name_, domain_, codomain_, binder_], id_, depth_] :=
-	Construct[dependentFunctionType, name, abstractShared[domain, id, depth], abstractShared[codomain, id, depth + 1], binder]
+	hashConsDependentFunction[name, abstractShared[domain, id, depth], abstractShared[codomain, id, depth + 1], binder]
 abstractAt[localDefinition[name_, type_, value_, body_], id_, depth_] :=
-	Construct[localDefinition, name, abstractShared[type, id, depth], abstractShared[value, id, depth], abstractShared[body, id, depth + 1]]
-abstractAt[projection[structure_, index_, term_], id_, depth_] := Construct[projection, structure, index, abstractShared[term, id, depth]]
-abstractAt[cubicalSystem[branches_List], id_, depth_] := Construct[cubicalSystem, Map[Function[part, abstractShared[part, id, depth]], branches, {2}]]
-abstractAt[term_, _, _] := term
+	hashConsLocalDefinition[name, abstractShared[type, id, depth], abstractShared[value, id, depth], abstractShared[body, id, depth + 1]]
+abstractAt[projection[structure_, index_, term_], id_, depth_] :=
+	hashConsProjection[structure, index, abstractShared[term, id, depth]]
+abstractAt[cubicalSystem[branches_List], id_, depth_] :=
+	hashConsCubical[Map[abstractBranchPart[id, depth], branches, {2}]]
+abstractAt[term_, _, _] := hashConsInternPair[term]
+
+abstractBranchPart[id_, depth_][part_] := abstractShared[part, id, depth]
 
 
 boundVariableOccursQ[boundVariable[index_], target_] := index == target

@@ -142,10 +142,10 @@ $definitionalEqualityCache = None
 SetAttributes[withKernelCaches, HoldFirst]
 withKernelCaches[body_] := If[ AssociationQ[$inferTypeCache],
 	body,
-	Block[
+	withHashCons[Block[
 		{$inferTypeCache = <||>, $uncheckedTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>, $universeInstantiationCache = <||>},
 		body
-	]
+	]]
 ]
 
 (* The types that definitional equality and reduction ask are inferred in infer-only mode: an
@@ -161,10 +161,10 @@ $inferOnly = False
 (* caches of their own, for a query whose results must not outlive it, as elaboration's, whose metavariables are assigned
    between its queries, and the check of what elaboration made, which reads nothing elaboration remembered *)
 SetAttributes[withFreshKernelCaches, HoldFirst]
-withFreshKernelCaches[body_] := Block[
+withFreshKernelCaches[body_] := withFreshHashCons[Block[
 	{$inferTypeCache = <||>, $uncheckedTypeCache = <||>, $weakHeadNormalFormCache = <||>, $definitionalEqualityCache = <||>, $looseBoundRangeCache = <||>, $universeInstantiationCache = <||>},
 	body
-]
+]]
 
 SetAttributes[withCheckedTerms, HoldFirst]
 withCheckedTerms[body_] := withKernelCaches[Block[{$termsChecked = True}, body]]

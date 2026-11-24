@@ -201,3 +201,130 @@ VerificationTest[
 	{True, True, True, True, True, True},
 	TestID -> "A-substitution-folds-only-where-it-is-given-a-fold"
 ]
+
+
+(* === hash-consing preservation on shared DAGs === *)
+
+(* When two distinct input subterms collapse to structurally identical outputs (across binder depths,
+   between shifted and unchanged bound variables, under lifting, or under abstraction), bottom-up
+   integer-ID hash-consing gives them one shared pointer so later Association lookups stay O(1)
+   instead of falling back to exponential tree-walking SameQ on a 2^30-leaf DAG. *)
+VerificationTest[
+	Block[
+		{
+			depFn = scoped["dependentFunctionType"],
+			cref = scoped["constantReference"],
+			lift = scoped["liftBoundVariables"],
+			absMany = scoped["abstractFreeVariables"],
+			diamond, diamondDepth, substRoot, substOut, substLeft, substRight,
+			shiftRoot, shiftOut, shiftLeft, shiftRight,
+			liftRoot, liftOut, liftLeft, liftRight,
+			absRoot, absOut, absLeft, absRight,
+			absManyRoot, absManyOut, absManyLeft, absManyRight,
+			fastEqualLookupQ
+		},
+		diamond[leaf_, depth_Integer] := Nest[application[#, #] &, leaf, depth];
+		diamondDepth = If[AssociationQ[scoped["$termConstructionSites"]], 10, 30];
+		fastEqualLookupQ[a_, b_] := TimeConstrained[
+			Block[{table = <|a -> True|>}, KeyExistsQ[table, b]],
+			2,
+			$Failed
+		];
+
+		(* 1. instantiateBoundVariables: depth-0 {bv[0], bv[1]} vs depth-1 {bv[1], bv[2]} collapse *)
+		substRoot = application[
+			diamond[application[boundVariable[0], boundVariable[1]], diamondDepth],
+			lambdaAbstraction[HoldComplete[x], universeSort[0], diamond[application[boundVariable[1], boundVariable[2]], diamondDepth], "Explicit"]
+		];
+		substOut = instantiateBoundVariables[substRoot, {freeVariable[2], freeVariable[1]}];
+		substLeft = First[substOut];
+		substRight = Extract[Last[substOut], 3];
+
+		(* 2. instantiateBoundVariables: shifted bv[1]->bv[0] at depth 0 vs unchanged bv[0] at depth 1 *)
+		shiftRoot = application[
+			diamond[application[cref[HoldComplete[f], {}], boundVariable[1]], diamondDepth],
+			lambdaAbstraction[HoldComplete[x], universeSort[0], diamond[application[cref[HoldComplete[f], {}], boundVariable[0]], diamondDepth], "Explicit"]
+		];
+		shiftOut = instantiateBoundVariables[shiftRoot, {freeVariable[9]}];
+		shiftLeft = First[shiftOut];
+		shiftRight = Extract[Last[shiftOut], 3];
+
+		(* 3. liftBoundVariables: lifted bv[1]->bv[2] at cutoff 1 vs unchanged bv[2] under two binders (cutoff 3) *)
+		liftRoot = application[
+			diamond[application[boundVariable[1], boundVariable[0]], diamondDepth],
+			lambdaAbstraction[HoldComplete[x], universeSort[0],
+				lambdaAbstraction[HoldComplete[y], universeSort[0],
+					diamond[application[boundVariable[2], boundVariable[0]], diamondDepth],
+					"Explicit"
+				],
+				"Explicit"
+			]
+		];
+		liftOut = lift[liftRoot, 1, 1];
+		liftLeft = First[liftOut];
+		liftRight = Extract[Extract[Last[liftOut], 3], 3];
+
+		(* 4. abstractFreeVariable: fv[5]->bv[0] collapses with existing bv[0] *)
+		absRoot = application[
+			diamond[application[freeVariable[5], cref[HoldComplete[c], {}]], diamondDepth],
+			diamond[application[boundVariable[0], cref[HoldComplete[c], {}]], diamondDepth]
+		];
+		absOut = abstractFreeVariable[absRoot, 5];
+		absLeft = First[absOut];
+		absRight = Last[absOut];
+
+		(* 5. abstractFreeVariables: {fv[5], fv[6]} -> {bv[1], bv[0]} collapses with existing {bv[1], bv[0]} *)
+		absManyRoot = application[
+			diamond[application[freeVariable[5], freeVariable[6]], diamondDepth],
+			diamond[application[boundVariable[1], boundVariable[0]], diamondDepth]
+		];
+		absManyOut = absMany[absManyRoot, {5, 6}];
+		absManyLeft = First[absManyOut];
+		absManyRight = Last[absManyOut];
+
+		{
+			fastEqualLookupQ[substLeft, substRight],
+			fastEqualLookupQ[shiftLeft, shiftRight],
+			fastEqualLookupQ[liftLeft, liftRight],
+			fastEqualLookupQ[absLeft, absRight],
+			fastEqualLookupQ[absManyLeft, absManyRight]
+		}
+	],
+	{True, True, True, True, True},
+	TestID -> "Hash-consing-preserves-pointer-sharing-across-rebuilds-on-large-shared-DAGs"
+]
+
+(* Lifting and multi-variable abstraction agree with plain walks on random terms *)
+VerificationTest[
+	Block[
+		{
+			lift = scoped["liftBoundVariables"],
+			absMany = scoped["abstractFreeVariables"],
+			naiveAbstractMany
+		},
+		naiveAbstractMany[term_, ids_List, depth_] := Replace[term, {
+			freeVariable[id_] :> Replace[FirstPosition[ids, id, None, {1}, Heads -> False], {{pos_} :> boundVariable[Length[ids] - pos + depth], _ :> freeVariable[id]}],
+			scoped["application"][function_, argument_] :> Construct[scoped["application"], naiveAbstractMany[function, ids, depth], naiveAbstractMany[argument, ids, depth]],
+			(head : scoped["lambdaAbstraction"] | scoped["dependentFunctionType"])[name_, domain_, body_, binder_] :>
+				Construct[head, name, naiveAbstractMany[domain, ids, depth], naiveAbstractMany[body, ids, depth + 1], binder],
+			scoped["localDefinition"][name_, type_, value_, body_] :>
+				Construct[scoped["localDefinition"], name, naiveAbstractMany[type, ids, depth], naiveAbstractMany[value, ids, depth], naiveAbstractMany[body, ids, depth + 1]],
+			scoped["projection"][structure_, index_, structureTerm_] :> Construct[scoped["projection"], structure, index, naiveAbstractMany[structureTerm, ids, depth]]
+		}];
+		BlockRandom[
+			SeedRandom[2027];
+			{
+				Select[
+					Table[{randomTerm[RandomInteger[{0, 4}]], RandomInteger[{0, 3}], RandomInteger[{0, 3}]}, {500}],
+					Function[case, lift @@ case =!= naiveLift @@ case]
+				],
+				Select[
+					Table[{randomTerm[RandomInteger[{0, 4}]], DeleteDuplicates[Table[RandomInteger[9], {RandomInteger[{0, 4}]}]]}, {500}],
+					Function[case, absMany @@ case =!= naiveAbstractMany[First[case], Last[case], 0]]
+				]
+			}
+		]
+	],
+	{{}, {}},
+	TestID -> "Lifting-and-abstraction-agree-with-plain-walks-on-random-terms"
+]
