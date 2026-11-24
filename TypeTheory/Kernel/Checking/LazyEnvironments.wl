@@ -175,13 +175,12 @@ readExactBytes[stream_, offset_Integer, length_Integer] := Block[{raw},
 	ByteArray[raw]
 ]
 
-format3FileQ[file_String] := If[ ! FileExistsQ[file] || Quiet[FileByteCount[file]] < $format3HeaderSize,
+format3FileQ[file_String] := If[ ! FileExistsQ[file] || Quiet[FileByteCount[file]] < 8 + $format3HeaderSize,
 	False,
-	Block[{stream = Quiet[OpenRead[file, BinaryFormat -> True]], magic},
-		If[! MatchQ[stream, _InputStream], Return[False, Block]];
-		magic = Quiet[BinaryReadList[stream, "Byte", 8]];
-		Quiet[Close[stream]];
-		magic === $format3Magic
+	WithCleanup[
+		stream = Quiet[OpenRead[file, BinaryFormat -> True]],
+		If[! MatchQ[stream, _InputStream], False, Quiet[BinaryReadList[stream, "Byte", 8]] === $format3Magic],
+		If[MatchQ[stream, _InputStream], Quiet[Close[stream]]]
 	]
 ]
 
@@ -244,7 +243,7 @@ poolStreamFor[source_Symbol] := Block[
 	stream
 ]
 
-readSourceRange[source_Symbol, offset_Integer, length_Integer] := Block[{path = source["Path"], expectedSize = source["ByteCount"], expectedDate = source["FileDate"], stream, bytes},
+readSourceRange[source_Symbol, offset_Integer, length_Integer] := Block[{path = source["Path"], expectedSize = source["ByteCount"], expectedDate = source["FileDate"], stream},
 	If[ offset < 8 || length < 0 || offset + length > expectedSize - $format3HeaderSize,
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {path}]
 	];
@@ -252,13 +251,14 @@ readSourceRange[source_Symbol, offset_Integer, length_Integer] := Block[{path = 
 		If[ Quiet[{FileByteCount[path], FileDate[path]}] =!= {expectedSize, expectedDate},
 			kernelFailure["SavedEnvironmentChangedOnDisk", "`1` was modified or removed on disk after it was opened.", {path}]
 		];
-		stream = Quiet[OpenRead[path, BinaryFormat -> True]];
-		If[ ! MatchQ[stream, _InputStream],
-			kernelFailure["SavedEnvironmentUnreadable", "`1` cannot be opened.", {path}]
-		];
-		bytes = readExactBytes[stream, offset, length];
-		Quiet[Close[stream]];
-		bytes,
+		WithCleanup[
+			stream = Quiet[OpenRead[path, BinaryFormat -> True]],
+			If[ ! MatchQ[stream, _InputStream],
+				kernelFailure["SavedEnvironmentUnreadable", "`1` cannot be opened.", {path}]
+			];
+			readExactBytes[stream, offset, length],
+			If[MatchQ[stream, _InputStream], Quiet[Close[stream]]]
+		],
 		readExactBytes[poolStreamFor[source], offset, length]
 	]
 ]
@@ -353,7 +353,7 @@ blankPackedKeys[held_, _] := held
 
 blankByteArrayValues[held : HoldComplete[association_Association]] /; AtomQ[Unevaluated[association]] := Fold[
 	Function[{data, key},
-		If[ MatchQ[Quiet[Extract[data, {1, Key[key]}, HoldComplete]], HoldComplete[_ByteArray]],
+		If[ MatchQ[Quiet[Extract[data, {1, Key[key]}, HoldComplete]], HoldComplete[b_ByteArray /; AtomQ[Unevaluated[b]]]],
 			ReplacePart[data, {1, Key[key]} -> 0],
 			data
 		]
@@ -491,26 +491,26 @@ loadFormat3Environment[file_String, check_] := Block[
 	If[ fileSize < 8 + $format3HeaderSize,
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
 	];
-	stream = Quiet[OpenRead[file, BinaryFormat -> True]];
-	If[ ! MatchQ[stream, _InputStream],
-		kernelFailure["SavedEnvironmentUnreadable", "`1` cannot be opened.", {file}]
+	WithCleanup[
+		stream = Quiet[OpenRead[file, BinaryFormat -> True]],
+		If[ ! MatchQ[stream, _InputStream],
+			kernelFailure["SavedEnvironmentUnreadable", "`1` cannot be opened.", {file}]
+		];
+		If[ Normal[readExactBytes[stream, 0, 8]] =!= $format3Magic,
+			kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
+		];
+		headerBytes = readExactBytes[stream, fileSize - $format3HeaderSize, $format3HeaderSize];
+		header = decodeFormat3Header[headerBytes, file];
+		If[ header["MetaOffset"] < 8 || header["MetaOffset"] + header["MetaLength"] > fileSize - $format3HeaderSize ||
+			header["ManifestOffset"] < 8 || header["ManifestOffset"] + header["ManifestLength"] > fileSize - $format3HeaderSize ||
+			header["SectionDirOffset"] < 8 || header["SectionDirOffset"] + header["SectionDirLength"] > fileSize - $format3HeaderSize,
+			kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
+		];
+		metaBytes = readExactBytes[stream, header["MetaOffset"], header["MetaLength"]];
+		manifestBytes = readExactBytes[stream, header["ManifestOffset"], header["ManifestLength"]];
+		sectionDirBytes = readExactBytes[stream, header["SectionDirOffset"], header["SectionDirLength"]],
+		If[MatchQ[stream, _InputStream], Quiet[Close[stream]]]
 	];
-	If[ Normal[readExactBytes[stream, 0, 8]] =!= $format3Magic,
-		Quiet[Close[stream]];
-		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
-	];
-	headerBytes = readExactBytes[stream, fileSize - $format3HeaderSize, $format3HeaderSize];
-	header = decodeFormat3Header[headerBytes, file];
-	If[ header["MetaOffset"] < 8 || header["MetaOffset"] + header["MetaLength"] > fileSize - $format3HeaderSize ||
-		header["ManifestOffset"] < 8 || header["ManifestOffset"] + header["ManifestLength"] > fileSize - $format3HeaderSize ||
-		header["SectionDirOffset"] < 8 || header["SectionDirOffset"] + header["SectionDirLength"] > fileSize - $format3HeaderSize,
-		Quiet[Close[stream]];
-		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
-	];
-	metaBytes = readExactBytes[stream, header["MetaOffset"], header["MetaLength"]];
-	manifestBytes = readExactBytes[stream, header["ManifestOffset"], header["ManifestLength"]];
-	sectionDirBytes = readExactBytes[stream, header["SectionDirOffset"], header["SectionDirLength"]];
-	Quiet[Close[stream]];
 	meta = deserializeHeldChecked[metaBytes, header["MetaSha256"], {}, file];
 	If[ ! AssociationQ[meta] || ! format3MetaQ[meta, header],
 		kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {file}]
@@ -532,7 +532,7 @@ loadFormat3Environment[file_String, check_] := Block[
 	];
 	loadBase = Replace[meta["Base"], {None :> emptyEnvironmentOf[meta["Rules"]], KeyValuePattern["Name" -> name_String] :> TypeTheoryEnvironment[name]}];
 	If[ ! environmentQ[loadBase] || environmentRules[loadBase] =!= meta["Rules"],
-		kernelFailure["SavedEnvironmentBase", "`1` extends the environment `2`, which this TypeTheory does not have.", {file, meta["Base"]["Name"]}]
+		kernelFailure["SavedEnvironmentBase", "`1` extends the environment `2`, which this TypeTheory does not have.", {file, Lookup[Replace[meta["Base"], Except[_Association] -> <||>], "Name", None]}]
 	];
 	If[ AssociationQ[meta["Base"]] && meta["Base"]["Hash"] =!= environmentContentHash[loadBase] && ! TrueQ[check],
 		kernelFailure[
@@ -1078,7 +1078,7 @@ recordDependencyNames[record_Association] := Block[{stmtDeps, proofDeps = {}},
 			proofDeps = recordTermConstants[record["Value"]];
 			recordTermConstants[record["Type"]],
 		"InductiveType",
-			Join[recordTermConstants[record["Type"]], Lookup[record, "Constructors", {}]],
+			Join[recordTermConstants[record["Type"]], Lookup[record, "Constructors", {}], Lookup[record, "Block", {}]],
 		"Constructor",
 			Join[recordTermConstants[record["Type"]], {record["InductiveType"]}],
 		"Recursor",
@@ -1091,7 +1091,10 @@ recordDependencyNames[record_Association] := Block[{stmtDeps, proofDeps = {}},
 		"RewriteRule",
 			Join[{record["Head"]}, recordTermConstants[record["LeftHandSide"]], recordTermConstants[record["RightHandSide"]]],
 		"Quotient",
-			Join[recordTermConstants[record["Type"]], DeleteCases[Lookup[record, {"QuotientType", "Introduction"}, None], None]],
+			Join[
+				recordTermConstants[record["Type"]],
+				DeleteCases[Join[Lookup[record, {"QuotientType", "Introduction", "Equality"}, None], Lookup[record, "QuotientNames", {}]], None]
+			],
 		"Cubical",
 			Join[recordTermConstants[record["Type"]], DeleteCases[{Lookup[record, "Sum", None]}, None]],
 		_,
@@ -1157,32 +1160,45 @@ resolveBlockSizes[Automatic] := $defaultBlockSizes
 resolveBlockSizes[custom_Association] := Join[$defaultBlockSizes, KeyTake[custom, Keys[$defaultBlockSizes]]]
 resolveBlockSizes[_] := $defaultBlockSizes
 
+$f3SharedStmtIndex = <||>
+$f3LeafCount = 0
+$f3LabelCount = 0
+$f3StreamingProofQ = False
+
+f3LookupNode[term_] := Lookup[$f3NodeIndex, Key[term], Lookup[$f3SharedStmtIndex, Key[term], 0]]
+
+f3InternLeaf[leaf_] := Lookup[$f3LeafIndex, Key[leaf], ($f3LeafCount++; Sow[leaf, $f3LeafSowTag]; $f3LeafIndex[leaf] = $f3LeafCount)]
+
+f3InternLabel[label_] := Lookup[$f3LabelIndex, Key[label], ($f3LabelCount++; Sow[label, $f3LabelSowTag]; $f3LabelIndex[label] = $f3LabelCount)]
+
 (* Node emission helper supporting both Format 2 codes 1..5 and code 6 for cubicalSystem *)
 format3EmitTerm[root_] := If[ ! compositeTermQ[root],
-	-Lookup[$f3LeafIndex, Key[root], $f3LeafIndex[root] = Length[$f3LeafIndex] + 1],
-	If[ KeyExistsQ[$f3NodeIndex, root],
-		Lookup[$f3NodeIndex, Key[root]],
-		Block[{stack = {{root, False}, None}, entry, cur, ready, row},
-			While[ stack =!= None,
-				entry = First[stack];
-				stack = Last[stack];
-				cur = First[entry];
-				ready = Last[entry];
-				If[ ! KeyExistsQ[$f3NodeIndex, cur],
-					If[ ready,
-						row = format3PackRow[cur];
-						Sow[row, $f3NodeSowTag];
-						$f3NodeIndex[cur] = ++$f3NodeCount,
-						stack = format3PushChildren[cur, {{cur, True}, stack}]
+	-f3InternLeaf[root],
+	With[{existing = f3LookupNode[root]},
+		If[ existing > 0,
+			existing,
+			Block[{stack = {{root, False}, None}, entry, cur, ready, row},
+				While[ stack =!= None,
+					entry = First[stack];
+					stack = Last[stack];
+					cur = First[entry];
+					ready = Last[entry];
+					If[ f3LookupNode[cur] == 0,
+						If[ ready,
+							row = format3PackRow[cur];
+							Sow[row, $f3NodeSowTag];
+							$f3NodeIndex[cur] = ++$f3NodeCount,
+							stack = format3PushChildren[cur, {{cur, True}, stack}]
+						]
 					]
-				]
-			];
-			Lookup[$f3NodeIndex, Key[root]]
+				];
+				f3LookupNode[root]
+			]
 		]
 	]
 ]
 
-format3PushChild[child_, stack_] := If[compositeTermQ[child] && ! KeyExistsQ[$f3NodeIndex, child], {{child, False}, stack}, stack]
+format3PushChild[child_, stack_] := If[compositeTermQ[child] && f3LookupNode[child] == 0, {{child, False}, stack}, stack]
 
 format3PushChildren[application[f_, a_], stack_] := format3PushChild[f, format3PushChild[a, stack]]
 format3PushChildren[(lambdaAbstraction | dependentFunctionType)[_, dom_, body_, _], stack_] := format3PushChild[dom, format3PushChild[body, stack]]
@@ -1192,11 +1208,11 @@ format3PushChildren[cubicalSystem[branches_List], stack_] := Fold[Function[{rest
 format3PushChildren[_, stack_] := stack
 
 format3Part[term_] := If[compositeTermQ[term],
-	Lookup[$f3NodeIndex, Key[term]],
-	-Lookup[$f3LeafIndex, Key[term], $f3LeafIndex[term] = Length[$f3LeafIndex] + 1]
+	f3LookupNode[term],
+	-f3InternLeaf[term]
 ]
 
-format3Label[label_] := Lookup[$f3LabelIndex, Key[label], $f3LabelIndex[label] = Length[$f3LabelIndex] + 1]
+format3Label[label_] := f3InternLabel[label]
 
 format3PackRow[application[f_, a_]] := {1, format3Part[f], format3Part[a], 0, 0}
 format3PackRow[lambdaAbstraction[name_, dom_, body_, binder_]] := {2, format3Label[name], format3Part[dom], format3Part[body], format3Label[binder]}
@@ -1204,6 +1220,9 @@ format3PackRow[dependentFunctionType[name_, dom_, cod_, binder_]] := {3, format3
 format3PackRow[localDefinition[name_, type_, val_, body_]] := {4, format3Label[name], format3Part[type], format3Part[val], format3Part[body]}
 format3PackRow[projection[struct_, index_, term_]] := {5, format3Label[struct], index, format3Part[term], 0}
 format3PackRow[cubicalSystem[branches_List]] := Block[{start = $f3CubicalCount + 1, pairs},
+	If[ TrueQ[$f3StreamingProofQ],
+		kernelFailure["UnsupportedStreamingCubicalProof", "Cubical system terms inside theorem proofs are not supported by the streaming Format 3 writer; use Export directly.", {}]
+	];
 	pairs = Map[format3Part, branches, {2}];
 	Scan[Function[pair, Sow[pair, $f3CubicalTag]], pairs];
 	$f3CubicalCount += Length[pairs];
@@ -1327,8 +1346,8 @@ saveFormat3Environment[file_String, environment : TypeTheoryEnvironment[store_Sy
 		standalone = TrueQ[OptionValue[saveFormat3Environment, {options}, "Standalone"]],
 		blockSizes = resolveBlockSizes[OptionValue[saveFormat3Environment, {options}, "BlockSizes"]],
 		saveBase, baseCount, allNames, localNames, localRecords,
-		$f3NodeIndex = <||>, $f3NodeCount = 0, $f3LeafIndex = <||>, $f3LabelIndex = <||>, $f3CubicalCount = 0,
-		$f3NodeSowTag, $f3CubicalTag,
+		$f3NodeIndex = <||>, $f3SharedStmtIndex = <||>, $f3NodeCount = 0, $f3LeafIndex = <||>, $f3LabelIndex = <||>, $f3LeafCount = 0, $f3LabelCount = 0, $f3CubicalCount = 0,
+		$f3NodeSowTag, $f3LeafSowTag, $f3LabelSowTag, $f3CubicalTag, $f3StreamingProofQ = False,
 		stmtPhase, encoded, stmtRows, cubicalPairs, proofPhase, proofRows,
 		leaves, labels, hasCubical, dirRows, recordHashes, allRecordHashes, contentHash,
 		localRewriteIndex, localOverloadIndex, kindCounts,
@@ -1407,137 +1426,139 @@ saveFormat3Environment[file_String, environment : TypeTheoryEnvironment[store_Sy
 	If[localNames =!= {}, flags = BitOr[flags, $format3FlagRecordHashes]];
 	If[! includeProofs, flags = BitOr[flags, $format3FlagStatementOnly]];
 	If[hasCubical, flags = BitOr[flags, $format3FlagCubical]];
-	stream = OpenWrite[file, BinaryFormat -> True];
-	(* Leading 8-byte magic header *)
-	writeAllBytes[stream, ByteArray[$format3Magic]];
-	(* 1. LeafBlocks *)
-	{sectionDir["LeafBlocks"], manifest["LeafBlocks"]} = writePartitionedBlocks[stream, leaves, blockSizes["Leaf"], Identity];
-	(* 2. LabelBlocks *)
-	{sectionDir["LabelBlocks"], manifest["LabelBlocks"]} = writePartitionedBlocks[stream, labels, blockSizes["Label"], Identity];
-	(* 3. Optional CubicalBlocks *)
-	If[ hasCubical,
-		{sectionDir["CubicalBlocks"], manifest["CubicalBlocks"]} = writePartitionedBlocks[stream, cubicalPairs, blockSizes["Cubical"], Developer`ToPackedArray]
-	];
-	(* 4. Statement NodeBlocks *)
-	{sectionDir["NodeBlocks"], manifest["NodeBlocks"]} = writePartitionedBlocks[stream, stmtRows, blockSizes["StmtNode"], Developer`ToPackedArray];
-	(* 5. RecordMetaBlocks *)
-	{sectionDir["RecordMetaBlocks"], manifest["RecordMetaBlocks"]} = writePartitionedBlocks[
-		stream,
-		Transpose[{localNames, Lookup[encoded, "Meta"]}],
-		blockSizes["RecordMeta"],
-		Function[chunk, <|"Names" -> chunk[[All, 1]], "Meta" -> chunk[[All, 2]]|>]
-	];
-	(* 6. RecordDirBlocks *)
-	{sectionDir["RecordDirBlocks"], manifest["RecordDirBlocks"]} = writePartitionedBlocks[stream, dirRows, blockSizes["RecordDir"], Developer`ToPackedArray];
-	(* 7. Two-level NameIndex *)
-	If[ localNames =!= {},
-		hashes62 = nameHashes62[localNames];
-		sortOrder = Ordering[Transpose[{hashes62, Range[Length[localNames]]}]];
-		sortedHashes = hashes62[[sortOrder]];
-		sortedIds = sortOrder;
-		sortedNames = localNames[[sortOrder]];
-		bucketChunks = Partition[Range[Length[localNames]], UpTo[blockSizes["NameBucket"]]];
-		coarseMax = Developer`ToPackedArray[Map[Function[idxs, sortedHashes[[Last[idxs]]]], bucketChunks]];
-		{sectionDir["NameIndexCoarse"], manifest["NameIndexCoarse"]} = writeBlockToStream[stream, coarseMax];
-		bucketRanges = {};
-		bucketDigests = {};
-		Do[
-			With[{res = writeBlockToStream[stream, <|
-					"Hashes" -> Developer`ToPackedArray[sortedHashes[[idxs]]],
-					"RecordIDs" -> Developer`ToPackedArray[sortedIds[[idxs]]],
-					"Names" -> sortedNames[[idxs]]
-				|>]},
-				AppendTo[bucketRanges, First[res]];
-				AppendTo[bucketDigests, Last[res]]
-			],
-			{idxs, bucketChunks}
+	WithCleanup[
+		stream = OpenWrite[file, BinaryFormat -> True],
+		(* Leading 8-byte magic header *)
+		writeAllBytes[stream, ByteArray[$format3Magic]];
+		(* 1. LeafBlocks *)
+		{sectionDir["LeafBlocks"], manifest["LeafBlocks"]} = writePartitionedBlocks[stream, leaves, blockSizes["Leaf"], Identity];
+		(* 2. LabelBlocks *)
+		{sectionDir["LabelBlocks"], manifest["LabelBlocks"]} = writePartitionedBlocks[stream, labels, blockSizes["Label"], Identity];
+		(* 3. Optional CubicalBlocks *)
+		If[ hasCubical,
+			{sectionDir["CubicalBlocks"], manifest["CubicalBlocks"]} = writePartitionedBlocks[stream, cubicalPairs, blockSizes["Cubical"], Developer`ToPackedArray]
 		];
-		sectionDir["NameIndexBuckets"] = Developer`ToPackedArray[bucketRanges];
-		manifest["NameIndexBuckets"] = ByteArray[Catenate[Normal /@ bucketDigests]]
-	];
-	(* 8. RecordHashBlocks *)
-	{sectionDir["RecordHashBlocks"], manifest["RecordHashBlocks"]} = writePartitionedBlocks[
-		stream,
-		Values[recordHashes],
-		blockSizes["RecordDir"],
-		Developer`ToPackedArray
-	];
-	(* 9. Optional CSR DepBlocks *)
-	If[ includeDeps && localNames =!= {},
-		With[{baseNames = Take[allNames, baseCount]},
-			nameToId = Join[AssociationThread[baseNames, -Range[Length[baseNames]]], AssociationThread[localNames, Range[Length[localNames]]]]
+		(* 4. Statement NodeBlocks *)
+		{sectionDir["NodeBlocks"], manifest["NodeBlocks"]} = writePartitionedBlocks[stream, stmtRows, blockSizes["StmtNode"], Developer`ToPackedArray];
+		(* 5. RecordMetaBlocks *)
+		{sectionDir["RecordMetaBlocks"], manifest["RecordMetaBlocks"]} = writePartitionedBlocks[
+			stream,
+			Transpose[{localNames, Lookup[encoded, "Meta"]}],
+			blockSizes["RecordMeta"],
+			Function[chunk, <|"Names" -> chunk[[All, 1]], "Meta" -> chunk[[All, 2]]|>]
 		];
-		depRanges = {};
-		depDigests = {};
-		Do[
-			With[{res = writeBlockToStream[stream, buildDepBlock[idxs, Lookup[encoded[[idxs]], "Effective"], nameToId]]},
-				AppendTo[depRanges, First[res]];
-				AppendTo[depDigests, Last[res]]
-			],
-			{idxs, Partition[Range[Length[localNames]], UpTo[blockSizes["RecordMeta"]]]}
+		(* 6. RecordDirBlocks *)
+		{sectionDir["RecordDirBlocks"], manifest["RecordDirBlocks"]} = writePartitionedBlocks[stream, dirRows, blockSizes["RecordDir"], Developer`ToPackedArray];
+		(* 7. Two-level NameIndex *)
+		If[ localNames =!= {},
+			hashes62 = nameHashes62[localNames];
+			sortOrder = Ordering[Transpose[{hashes62, Range[Length[localNames]]}]];
+			sortedHashes = hashes62[[sortOrder]];
+			sortedIds = sortOrder;
+			sortedNames = localNames[[sortOrder]];
+			bucketChunks = Partition[Range[Length[localNames]], UpTo[blockSizes["NameBucket"]]];
+			coarseMax = Developer`ToPackedArray[Map[Function[idxs, sortedHashes[[Last[idxs]]]], bucketChunks]];
+			{sectionDir["NameIndexCoarse"], manifest["NameIndexCoarse"]} = writeBlockToStream[stream, coarseMax];
+			bucketRanges = {};
+			bucketDigests = {};
+			Do[
+				With[{res = writeBlockToStream[stream, <|
+						"Hashes" -> Developer`ToPackedArray[sortedHashes[[idxs]]],
+						"RecordIDs" -> Developer`ToPackedArray[sortedIds[[idxs]]],
+						"Names" -> sortedNames[[idxs]]
+					|>]},
+					AppendTo[bucketRanges, First[res]];
+					AppendTo[bucketDigests, Last[res]]
+				],
+				{idxs, bucketChunks}
+			];
+			sectionDir["NameIndexBuckets"] = Developer`ToPackedArray[bucketRanges];
+			manifest["NameIndexBuckets"] = ByteArray[Catenate[Normal /@ bucketDigests]]
 		];
-		sectionDir["DepBlocks"] = Developer`ToPackedArray[depRanges];
-		manifest["DepBlocks"] = ByteArray[Catenate[Normal /@ depDigests]]
+		(* 8. RecordHashBlocks *)
+		{sectionDir["RecordHashBlocks"], manifest["RecordHashBlocks"]} = writePartitionedBlocks[
+			stream,
+			Values[recordHashes],
+			blockSizes["RecordDir"],
+			Developer`ToPackedArray
+		];
+		(* 9. Optional CSR DepBlocks *)
+		If[ includeDeps && localNames =!= {},
+			With[{baseNames = Take[allNames, baseCount]},
+				nameToId = Join[AssociationThread[baseNames, -Range[Length[baseNames]]], AssociationThread[localNames, Range[Length[localNames]]]]
+			];
+			depRanges = {};
+			depDigests = {};
+			Do[
+				With[{res = writeBlockToStream[stream, buildDepBlock[idxs, Lookup[encoded[[idxs]], "Effective"], nameToId]]},
+					AppendTo[depRanges, First[res]];
+					AppendTo[depDigests, Last[res]]
+				],
+				{idxs, Partition[Range[Length[localNames]], UpTo[blockSizes["RecordMeta"]]]}
+			];
+			sectionDir["DepBlocks"] = Developer`ToPackedArray[depRanges];
+			manifest["DepBlocks"] = ByteArray[Catenate[Normal /@ depDigests]]
+		];
+		(* 10. TRAILING ProofNodeBlocks *)
+		If[ proofRows =!= {},
+			{sectionDir["ProofNodeBlocks"], manifest["ProofNodeBlocks"]} = writePartitionedBlocks[stream, proofRows, blockSizes["ProofNode"], Developer`ToPackedArray]
+		];
+		(* 11. Meta *)
+		meta = <|
+			"Format" -> "TypeTheoryEnvironment",
+			"FormatVersion" -> 3,
+			"TypeTheoryVersion" -> PacletObject[File[$pacletDirectory]]["Version"],
+			"KernelHash" -> $kernelHash,
+			"Host" -> <|"VersionNumber" -> $VersionNumber, "ReleaseNumber" -> $ReleaseNumber, "Version" -> $Version|>,
+			"Rules" -> environmentRules[environment],
+			"Base" -> Replace[saveBase, {None -> None, {name_, baseEnv_} :> <|"Name" -> name, "Hash" -> environmentContentHash[baseEnv]|>}],
+			"NaturalNumbers" -> store["NaturalNumbers"],
+			"RewriteRuleIndex" -> localRewriteIndex,
+			"OverloadIndex" -> localOverloadIndex,
+			"KindCounts" -> kindCounts,
+			"BlockSizes" -> KeyTake[blockSizes, {"RecordDir", "NameBucket", "Cubical"}],
+			"Hash" -> contentHash
+		|>;
+		metaOffset = StreamPosition[stream];
+		metaBytes = BinarySerialize[meta, PerformanceGoal -> "Size"];
+		metaDigest = sha256Bytes[metaBytes];
+		writeAllBytes[stream, metaBytes];
+		(* 12. SectionDirectory *)
+		sectionDirOffset = StreamPosition[stream];
+		sectionDirBytes = BinarySerialize[sectionDir, PerformanceGoal -> "Size"];
+		sectionDirDigest = sha256Bytes[sectionDirBytes];
+		manifest["SectionDirectory"] = sectionDirDigest;
+		writeAllBytes[stream, sectionDirBytes];
+		(* 13. Manifest *)
+		manifestOffset = StreamPosition[stream];
+		manifestBytes = BinarySerialize[manifest, PerformanceGoal -> "Size"];
+		manifestDigest = sha256Bytes[manifestBytes];
+		writeAllBytes[stream, manifestBytes];
+		(* 14. Finalize 256-byte Footer/Header at EOF *)
+		headerBytes = encodeFormat3Header[<|
+			"Flags" -> flags,
+			"ConstantCount" -> Length[localNames],
+			"StmtNodeCount" -> Length[stmtRows],
+			"ProofNodeCount" -> Length[proofRows],
+			"LeafCount" -> Length[leaves],
+			"LabelCount" -> Length[labels],
+			"StmtNodeBlockSize" -> blockSizes["StmtNode"],
+			"ProofNodeBlockSize" -> blockSizes["ProofNode"],
+			"LeafBlockSize" -> blockSizes["Leaf"],
+			"LabelBlockSize" -> blockSizes["Label"],
+			"RecordMetaBlockSize" -> blockSizes["RecordMeta"],
+			"SectionDirOffset" -> sectionDirOffset,
+			"SectionDirLength" -> Length[sectionDirBytes],
+			"MetaOffset" -> metaOffset,
+			"MetaLength" -> Length[metaBytes],
+			"ManifestOffset" -> manifestOffset,
+			"ManifestLength" -> Length[manifestBytes],
+			"MetaSha256" -> metaDigest,
+			"ManifestSha256" -> manifestDigest
+		|>];
+		writeAllBytes[stream, headerBytes],
+		If[MatchQ[stream, _OutputStream], Quiet[Close[stream]]]
 	];
-	(* 10. TRAILING ProofNodeBlocks *)
-	If[ proofRows =!= {},
-		{sectionDir["ProofNodeBlocks"], manifest["ProofNodeBlocks"]} = writePartitionedBlocks[stream, proofRows, blockSizes["ProofNode"], Developer`ToPackedArray]
-	];
-	(* 11. Meta *)
-	meta = <|
-		"Format" -> "TypeTheoryEnvironment",
-		"FormatVersion" -> 3,
-		"TypeTheoryVersion" -> PacletObject[File[$pacletDirectory]]["Version"],
-		"KernelHash" -> $kernelHash,
-		"Host" -> <|"VersionNumber" -> $VersionNumber, "ReleaseNumber" -> $ReleaseNumber, "Version" -> $Version|>,
-		"Rules" -> environmentRules[environment],
-		"Base" -> Replace[saveBase, {None -> None, {name_, baseEnv_} :> <|"Name" -> name, "Hash" -> environmentContentHash[baseEnv]|>}],
-		"NaturalNumbers" -> store["NaturalNumbers"],
-		"RewriteRuleIndex" -> localRewriteIndex,
-		"OverloadIndex" -> localOverloadIndex,
-		"KindCounts" -> kindCounts,
-		"BlockSizes" -> KeyTake[blockSizes, {"RecordDir", "NameBucket", "Cubical"}],
-		"Hash" -> contentHash
-	|>;
-	metaOffset = StreamPosition[stream];
-	metaBytes = BinarySerialize[meta, PerformanceGoal -> "Size"];
-	metaDigest = sha256Bytes[metaBytes];
-	writeAllBytes[stream, metaBytes];
-	(* 12. SectionDirectory *)
-	sectionDirOffset = StreamPosition[stream];
-	sectionDirBytes = BinarySerialize[sectionDir, PerformanceGoal -> "Size"];
-	sectionDirDigest = sha256Bytes[sectionDirBytes];
-	manifest["SectionDirectory"] = sectionDirDigest;
-	writeAllBytes[stream, sectionDirBytes];
-	(* 13. Manifest *)
-	manifestOffset = StreamPosition[stream];
-	manifestBytes = BinarySerialize[manifest, PerformanceGoal -> "Size"];
-	manifestDigest = sha256Bytes[manifestBytes];
-	writeAllBytes[stream, manifestBytes];
-	(* 14. Finalize 256-byte Header at offset 0 *)
-	headerBytes = encodeFormat3Header[<|
-		"Flags" -> flags,
-		"ConstantCount" -> Length[localNames],
-		"StmtNodeCount" -> Length[stmtRows],
-		"ProofNodeCount" -> Length[proofRows],
-		"LeafCount" -> Length[leaves],
-		"LabelCount" -> Length[labels],
-		"StmtNodeBlockSize" -> blockSizes["StmtNode"],
-		"ProofNodeBlockSize" -> blockSizes["ProofNode"],
-		"LeafBlockSize" -> blockSizes["Leaf"],
-		"LabelBlockSize" -> blockSizes["Label"],
-		"RecordMetaBlockSize" -> blockSizes["RecordMeta"],
-		"SectionDirOffset" -> sectionDirOffset,
-		"SectionDirLength" -> Length[sectionDirBytes],
-		"MetaOffset" -> metaOffset,
-		"MetaLength" -> Length[metaBytes],
-		"ManifestOffset" -> manifestOffset,
-		"ManifestLength" -> Length[manifestBytes],
-		"MetaSha256" -> metaDigest,
-		"ManifestSha256" -> manifestDigest
-	|>];
-	writeAllBytes[stream, headerBytes];
-	Close[stream];
 	File[file]
 ]
 
@@ -1560,136 +1581,162 @@ cutFormat3StatementFile[sourceFile_String, targetFile_String] := catchKernelFail
 	meta = source["Meta"];
 	sectionDir = source["SectionDirectory"];
 	manifest = source["Manifest"];
-	outStream = OpenWrite[targetFile, BinaryFormat -> True];
-	writeAllBytes[outStream, ByteArray[$format3Magic]];
-	(* Copy verbatim all non-proof, non-RecordDir sections without decoding any term DAGs *)
-	copySection = Function[secName,
-		If[ KeyExistsQ[sectionDir, secName],
-			With[{entries = sectionDir[secName]},
-				If[ ListQ[entries] && Length[entries] == 2 && AllTrue[entries, IntegerQ],
-					With[{bytes = readSourceRange[source, First[entries], Last[entries]], digest = manifestDigestOf[source, secName, 1], off = StreamPosition[outStream]},
-						If[sha256Bytes[bytes] =!= digest, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {sourceFile}]];
-						writeAllBytes[outStream, bytes];
-						newSectionDir[secName] = {off, Length[bytes]};
-						newManifest[secName] = digest
-					],
-					Block[{ranges = {}, digests = {}},
-						Do[
-							With[{bytes = readSourceRange[source, entries[[i, 1]], entries[[i, 2]]], digest = manifestDigestOf[source, secName, i], off = StreamPosition[outStream]},
-								If[sha256Bytes[bytes] =!= digest, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {sourceFile}]];
-								writeAllBytes[outStream, bytes];
-								AppendTo[ranges, {off, Length[bytes]}];
-								AppendTo[digests, digest]
-							],
-							{i, Length[entries]}
-						];
-						newSectionDir[secName] = Developer`ToPackedArray[ranges];
-						newManifest[secName] = ByteArray[Catenate[Normal /@ digests]]
+	WithCleanup[
+		outStream = OpenWrite[targetFile, BinaryFormat -> True],
+		writeAllBytes[outStream, ByteArray[$format3Magic]];
+		(* Copy verbatim all non-proof, non-RecordDir sections without decoding any term DAGs *)
+		copySection = Function[secName,
+			If[ KeyExistsQ[sectionDir, secName],
+				With[{entries = sectionDir[secName]},
+					If[ ListQ[entries] && Length[entries] == 2 && AllTrue[entries, IntegerQ],
+						With[{bytes = readSourceRange[source, First[entries], Last[entries]], digest = manifestDigestOf[source, secName, 1], off = StreamPosition[outStream]},
+							If[sha256Bytes[bytes] =!= digest, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {sourceFile}]];
+							writeAllBytes[outStream, bytes];
+							newSectionDir[secName] = {off, Length[bytes]};
+							newManifest[secName] = digest
+						],
+						Block[{ranges = {}, digests = {}},
+							Do[
+								With[{bytes = readSourceRange[source, entries[[i, 1]], entries[[i, 2]]], digest = manifestDigestOf[source, secName, i], off = StreamPosition[outStream]},
+									If[sha256Bytes[bytes] =!= digest, kernelFailure["SavedEnvironmentInvalid", "`1` is not a saved environment, or it was changed.", {sourceFile}]];
+									writeAllBytes[outStream, bytes];
+									AppendTo[ranges, {off, Length[bytes]}];
+									AppendTo[digests, digest]
+								],
+								{i, Length[entries]}
+							];
+							newSectionDir[secName] = Developer`ToPackedArray[ranges];
+							newManifest[secName] = ByteArray[Catenate[Normal /@ digests]]
+						]
 					]
 				]
 			]
-		]
-	];
-	Scan[copySection, {"LeafBlocks", "LabelBlocks", "CubicalBlocks", "NodeBlocks", "RecordMetaBlocks", "NameIndexCoarse", "NameIndexBuckets"}];
-	(* Rewrite RecordDirBlocks: convert Theorem (4) and Opaque (3) to Axiom (1) with ValueRoot = 0 *)
-	dirBlockCount = Length[Lookup[sectionDir, "RecordDirBlocks", {}]];
-	Do[
-		mat = Normal[readRecordDirBlock[source, b]];
-		updated = Map[
-			Function[row, If[row[[1]] == 3 || row[[1]] == 4, {1, row[[2]], 0, row[[4]]}, row]],
-			mat
 		];
-		With[{res = writeBlockToStream[outStream, Developer`ToPackedArray[updated]]},
-			AppendTo[newDirRanges, First[res]];
-			AppendTo[newDirDigests, Last[res]]
-		],
-		{b, dirBlockCount}
-	];
-	If[ newDirRanges =!= {},
-		newSectionDir["RecordDirBlocks"] = Developer`ToPackedArray[newDirRanges];
-		newManifest["RecordDirBlocks"] = ByteArray[Catenate[Normal /@ newDirDigests]]
-	];
-	(* Update KindCounts: fold Theorem + Opaque counts into Axiom *)
-	newKindCounts = meta["KindCounts"];
-	With[{stripped = Lookup[newKindCounts, "Theorem", 0] + Lookup[newKindCounts, "Opaque", 0]},
-		newKindCounts = KeyDrop[newKindCounts, {"Theorem", "Opaque"}];
-		If[stripped > 0, newKindCounts["Axiom"] = Lookup[newKindCounts, "Axiom", 0] + stripped]
-	];
-	(* Recompute record hashes for stripped theorem/opaque statements only (zero proof decoding!) *)
-	cutHashes = Block[{localNames = lazyLocalNames[source], baseHashes = environmentRecordHashes[source["Base"]], existing, strippedNames},
-		existing = If[ BitAnd[header["Flags"], $format3FlagRecordHashes] =!= 0,
-			KeyDrop[lazyRecordHashes[source], Keys[baseHashes]],
-			recordFingerprints[AssociationMap[Function[n, lazyConstantRecord[source, n, False]], localNames]]
+		Scan[copySection, {"LeafBlocks", "LabelBlocks", "CubicalBlocks", "NodeBlocks", "RecordMetaBlocks", "NameIndexCoarse", "NameIndexBuckets"}];
+		(* Rewrite RecordDirBlocks: convert Theorem (4) and Opaque (3) to Axiom (1) with ValueRoot = 0 *)
+		dirBlockCount = Length[Lookup[sectionDir, "RecordDirBlocks", {}]];
+		Do[
+			mat = Normal[readRecordDirBlock[source, b]];
+			updated = Map[
+				Function[row, If[row[[1]] == 3 || row[[1]] == 4, {1, row[[2]], 0, row[[4]]}, row]],
+				mat
+			];
+			With[{res = writeBlockToStream[outStream, Developer`ToPackedArray[updated]]},
+				AppendTo[newDirRanges, First[res]];
+				AppendTo[newDirDigests, Last[res]]
+			],
+			{b, dirBlockCount}
 		];
-		strippedNames = Join[lazyNamesOfKind[source, "Theorem"], lazyNamesOfKind[source, "Opaque"]];
-		strippedNames = Intersection[strippedNames, localNames];
-		If[ strippedNames =!= {},
-			existing = Join[
-				existing,
-				recordFingerprints[AssociationMap[
-					Function[n, Join[<|"Kind" -> "Axiom"|>, KeyDrop[lazyConstantRecord[source, n, False], {"Kind", "Value"}]]],
-					strippedNames
-				]]
+		If[ newDirRanges =!= {},
+			newSectionDir["RecordDirBlocks"] = Developer`ToPackedArray[newDirRanges];
+			newManifest["RecordDirBlocks"] = ByteArray[Catenate[Normal /@ newDirDigests]]
+		];
+		(* Preserve statement-only CSR DepBlocks (empty ProofTargets) so CompiledKernel cone extraction stays O(cone) *)
+		If[ BitAnd[header["Flags"], $format3FlagDeps] =!= 0 && KeyExistsQ[sectionDir, "DepBlocks"],
+			Block[{depBlockCount = Length[sectionDir["DepBlocks"]], depRanges = {}, depDigests = {}, db, res},
+				Do[
+					db = readDepBlock[source, b];
+					res = writeBlockToStream[outStream, <|
+						"StmtOffsets" -> db["StmtOffsets"],
+						"StmtTargets" -> db["StmtTargets"],
+						"ProofOffsets" -> Developer`ToPackedArray[ConstantArray[1, Length[db["StmtOffsets"]]]],
+						"ProofTargets" -> Developer`ToPackedArray[{}]
+					|>];
+					AppendTo[depRanges, First[res]];
+					AppendTo[depDigests, Last[res]],
+					{b, depBlockCount}
+				];
+				If[ depRanges =!= {},
+					newSectionDir["DepBlocks"] = Developer`ToPackedArray[depRanges];
+					newManifest["DepBlocks"] = ByteArray[Catenate[Normal /@ depDigests]]
+				]
 			]
 		];
-		existing
+		(* Update KindCounts: fold Theorem + Opaque counts into Axiom *)
+		newKindCounts = meta["KindCounts"];
+		With[{stripped = Lookup[newKindCounts, "Theorem", 0] + Lookup[newKindCounts, "Opaque", 0]},
+			newKindCounts = KeyDrop[newKindCounts, {"Theorem", "Opaque"}];
+			If[stripped > 0, newKindCounts["Axiom"] = Lookup[newKindCounts, "Axiom", 0] + stripped]
+		];
+		(* Recompute record hashes for stripped theorem/opaque statements only (zero proof decoding!) *)
+		cutHashes = Block[{localNames = lazyLocalNames[source], baseHashes = environmentRecordHashes[source["Base"]], existing, strippedNames},
+			existing = If[ BitAnd[header["Flags"], $format3FlagRecordHashes] =!= 0,
+				KeyDrop[lazyRecordHashes[source], Keys[baseHashes]],
+				recordFingerprints[AssociationMap[Function[n, lazyConstantRecord[source, n, False]], localNames]]
+			];
+			strippedNames = Join[lazyNamesOfKind[source, "Theorem"], lazyNamesOfKind[source, "Opaque"]];
+			strippedNames = Intersection[strippedNames, localNames];
+			If[ strippedNames =!= {},
+				existing = Join[
+					existing,
+					recordFingerprints[AssociationMap[
+						Function[n, Join[<|"Kind" -> "Axiom"|>, KeyDrop[lazyConstantRecord[source, n, False], {"Kind", "Value"}]]],
+						strippedNames
+					]]
+				]
+			];
+			existing
+		];
+		If[ Length[cutHashes] > 0,
+			{newSectionDir["RecordHashBlocks"], newManifest["RecordHashBlocks"]} = writePartitionedBlocks[
+				outStream,
+				Values[cutHashes],
+				meta["BlockSizes"]["RecordDir"],
+				Developer`ToPackedArray
+			]
+		];
+		allCutHashes = Join[environmentRecordHashes[source["Base"]], cutHashes];
+		newHash = Hash[
+			BinarySerialize[<|
+				"Rules" -> meta["Rules"],
+				"NaturalNumbers" -> meta["NaturalNumbers"],
+				"RewriteRuleIndex" -> First[loaded]["RewriteRuleIndex"],
+				"Records" -> allCutHashes
+			|>],
+			"SHA256",
+			"HexString"
+		];
+		newFlags = BitOr[
+			BitAnd[header["Flags"], BitNot[$format3FlagProofs]],
+			BitOr[$format3FlagStatementOnly, If[Length[cutHashes] > 0, $format3FlagRecordHashes, 0]]
+		];
+		newMeta = Join[meta, <|"KindCounts" -> newKindCounts, "Hash" -> newHash|>];
+		metaOffset = StreamPosition[outStream];
+		metaBytes = BinarySerialize[newMeta, PerformanceGoal -> "Size"];
+		metaDigest = sha256Bytes[metaBytes];
+		writeAllBytes[outStream, metaBytes];
+		dirOffset = StreamPosition[outStream];
+		dirBytes = BinarySerialize[newSectionDir, PerformanceGoal -> "Size"];
+		newManifest["SectionDirectory"] = sha256Bytes[dirBytes];
+		writeAllBytes[outStream, dirBytes];
+		manOffset = StreamPosition[outStream];
+		manBytes = BinarySerialize[newManifest, PerformanceGoal -> "Size"];
+		manDigest = sha256Bytes[manBytes];
+		writeAllBytes[outStream, manBytes];
+		headerBytes = encodeFormat3Header[<|
+			"Flags" -> newFlags,
+			"ConstantCount" -> header["ConstantCount"],
+			"StmtNodeCount" -> header["StmtNodeCount"],
+			"ProofNodeCount" -> 0,
+			"LeafCount" -> header["LeafCount"],
+			"LabelCount" -> header["LabelCount"],
+			"StmtNodeBlockSize" -> header["StmtNodeBlockSize"],
+			"ProofNodeBlockSize" -> header["ProofNodeBlockSize"],
+			"LeafBlockSize" -> header["LeafBlockSize"],
+			"LabelBlockSize" -> header["LabelBlockSize"],
+			"RecordMetaBlockSize" -> header["RecordMetaBlockSize"],
+			"SectionDirOffset" -> dirOffset,
+			"SectionDirLength" -> Length[dirBytes],
+			"MetaOffset" -> metaOffset,
+			"MetaLength" -> Length[metaBytes],
+			"ManifestOffset" -> manOffset,
+			"ManifestLength" -> Length[manBytes],
+			"MetaSha256" -> metaDigest,
+			"ManifestSha256" -> manDigest
+		|>];
+		writeAllBytes[outStream, headerBytes],
+		If[MatchQ[outStream, _OutputStream], Quiet[Close[outStream]]]
 	];
-	If[ Length[cutHashes] > 0,
-		{newSectionDir["RecordHashBlocks"], newManifest["RecordHashBlocks"]} = writePartitionedBlocks[
-			outStream,
-			Values[cutHashes],
-			meta["BlockSizes"]["RecordDir"],
-			Developer`ToPackedArray
-		]
-	];
-	allCutHashes = Join[environmentRecordHashes[source["Base"]], cutHashes];
-	newHash = Hash[
-		BinarySerialize[<|
-			"Rules" -> meta["Rules"],
-			"NaturalNumbers" -> meta["NaturalNumbers"],
-			"RewriteRuleIndex" -> First[loaded]["RewriteRuleIndex"],
-			"Records" -> allCutHashes
-		|>],
-		"SHA256",
-		"HexString"
-	];
-	newFlags = BitOr[BitAnd[header["Flags"], BitNot[BitOr[$format3FlagProofs, $format3FlagDeps]]], BitOr[$format3FlagStatementOnly, $format3FlagRecordHashes]];
-	newMeta = Join[meta, <|"KindCounts" -> newKindCounts, "Hash" -> newHash|>];
-	metaOffset = StreamPosition[outStream];
-	metaBytes = BinarySerialize[newMeta, PerformanceGoal -> "Size"];
-	metaDigest = sha256Bytes[metaBytes];
-	writeAllBytes[outStream, metaBytes];
-	dirOffset = StreamPosition[outStream];
-	dirBytes = BinarySerialize[newSectionDir, PerformanceGoal -> "Size"];
-	newManifest["SectionDirectory"] = sha256Bytes[dirBytes];
-	writeAllBytes[outStream, dirBytes];
-	manOffset = StreamPosition[outStream];
-	manBytes = BinarySerialize[newManifest, PerformanceGoal -> "Size"];
-	manDigest = sha256Bytes[manBytes];
-	writeAllBytes[outStream, manBytes];
-	headerBytes = encodeFormat3Header[<|
-		"Flags" -> newFlags,
-		"ConstantCount" -> header["ConstantCount"],
-		"StmtNodeCount" -> header["StmtNodeCount"],
-		"ProofNodeCount" -> 0,
-		"LeafCount" -> header["LeafCount"],
-		"LabelCount" -> header["LabelCount"],
-		"StmtNodeBlockSize" -> header["StmtNodeBlockSize"],
-		"ProofNodeBlockSize" -> header["ProofNodeBlockSize"],
-		"LeafBlockSize" -> header["LeafBlockSize"],
-		"LabelBlockSize" -> header["LabelBlockSize"],
-		"RecordMetaBlockSize" -> header["RecordMetaBlockSize"],
-		"SectionDirOffset" -> dirOffset,
-		"SectionDirLength" -> Length[dirBytes],
-		"MetaOffset" -> metaOffset,
-		"MetaLength" -> Length[metaBytes],
-		"ManifestOffset" -> manOffset,
-		"ManifestLength" -> Length[manBytes],
-		"MetaSha256" -> metaDigest,
-		"ManifestSha256" -> manDigest
-	|>];
-	writeAllBytes[outStream, headerBytes];
-	Close[outStream];
 	File[targetFile]
 ]
 
@@ -1704,7 +1751,8 @@ Options[openFormat3Writer] = {
 	"NaturalNumbers" -> None,
 	"IncludeProofs" -> True,
 	"IncludeDependencies" -> True,
-	"BlockSizes" -> Automatic
+	"BlockSizes" -> Automatic,
+	"MaxDedupeNodes" -> 500000
 }
 
 openFormat3Writer[file_String, options : OptionsPattern[openFormat3Writer]] := catchKernelFailure @ Module[{writer},
@@ -1715,6 +1763,7 @@ openFormat3Writer[file_String, options : OptionsPattern[openFormat3Writer]] := c
 			includeProofs = TrueQ[OptionValue[openFormat3Writer, {options}, "IncludeProofs"]],
 			includeDeps = TrueQ[OptionValue[openFormat3Writer, {options}, "IncludeDependencies"]],
 			blockSizes = resolveBlockSizes[OptionValue[openFormat3Writer, {options}, "BlockSizes"]],
+			maxDedupe = Replace[OptionValue[openFormat3Writer, {options}, "MaxDedupeNodes"], Except[_Integer?Positive] -> 500000],
 			mainStream = OpenWrite[file, BinaryFormat -> True],
 			proofTmp = file <> ".proofs.tmp",
 			proofStream
@@ -1731,6 +1780,7 @@ openFormat3Writer[file_String, options : OptionsPattern[openFormat3Writer]] := c
 		writer["IncludeProofs"] = includeProofs;
 		writer["IncludeDependencies"] = includeDeps;
 		writer["BlockSizes"] = blockSizes;
+		writer["MaxDedupeNodes"] = maxDedupe;
 		writer["Closed"] = False;
 		writer["Names"] = {};
 		writer["NameToId"] = Replace[base, {
@@ -1742,14 +1792,15 @@ openFormat3Writer[file_String, options : OptionsPattern[openFormat3Writer]] := c
 		writer["RewriteRuleIndex"] = <||>;
 		writer["OverloadIndex"] = <||>;
 		writer["StmtNodeIndex"] = <||>;
-		writer["ProofNodeIndex"] = <||>;
 		writer["StmtNodeCount"] = 0;
 		writer["ProofNodeCount"] = 0;
 		writer["LeafIndex"] = <||>;
 		writer["LabelIndex"] = <||>;
+		writer["LeafCount"] = 0;
+		writer["LabelCount"] = 0;
 		writer["CubicalCount"] = 0;
-		writer["LeafFlushed"] = 0;
-		writer["LabelFlushed"] = 0;
+		writer["LeafBuffer"] = {};
+		writer["LabelBuffer"] = {};
 		writer["StmtNodeBuffer"] = {};
 		writer["ProofNodeBuffer"] = {};
 		writer["CubicalBuffer"] = {};
@@ -1868,12 +1919,15 @@ $streamProofTag = 2^40
 
 writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Block[
 	{
-		includeProofs = writer["IncludeProofs"], bs = writer["BlockSizes"],
-		$f3NodeIndex = writer["StmtNodeIndex"], $f3NodeCount = writer["StmtNodeCount"],
-		$f3LeafIndex = writer["LeafIndex"], $f3LabelIndex = writer["LabelIndex"], $f3CubicalCount = writer["CubicalCount"],
-		$f3NodeSowTag = "StmtNodes", $f3CubicalTag,
+		includeProofs = writer["IncludeProofs"], bs = writer["BlockSizes"], maxDedupe = writer["MaxDedupeNodes"],
+		$f3NodeIndex = writer["StmtNodeIndex"], $f3SharedStmtIndex = <||>, $f3NodeCount = writer["StmtNodeCount"],
+		$f3LeafIndex = writer["LeafIndex"], $f3LabelIndex = writer["LabelIndex"],
+		$f3LeafCount = writer["LeafCount"], $f3LabelCount = writer["LabelCount"], $f3CubicalCount = writer["CubicalCount"],
+		$f3NodeSowTag = "StmtNodes", $f3LeafSowTag = "NewLeaves", $f3LabelSowTag = "NewLabels", $f3CubicalTag = "NewCubical",
+		$f3StreamingProofQ = False,
 		names = Keys[records], recs = Values[records], encoded, stmtRows, cubicalPairs, proofRows,
-		proofCount = writer["ProofNodeCount"], newLeaves, newLabels, sNames, pNames, sIds, pIds,
+		sLeaves1, sLabels1, sLeaves2, sLabels2, newLeaves, newLabels,
+		proofCount = writer["ProofNodeCount"], sNames, pNames, sIds, pIds,
 		nameToId = writer["NameToId"], startId = Length[writer["Names"]], batchHashes
 	},
 	If[TrueQ[writer["Closed"]], kernelFailure["WriterClosed", "The Format 3 writer is already closed.", {}]];
@@ -1882,19 +1936,22 @@ writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Bl
 	writer["NameToId"] = nameToId;
 	writer["Names"] = Join[writer["Names"], names];
 	(* Phase 1: Statement nodes (uses ONLY StmtNodeIndex so statement rows never point to proof rows) *)
-	{encoded, {stmtRows, cubicalPairs}} = Reap[
+	{encoded, {stmtRows, cubicalPairs, sLeaves1, sLabels1}} = Reap[
 		Map[Function[rec, format3EncodeRecordStmt[rec, includeProofs]], recs],
-		{"StmtNodes", $f3CubicalTag}
+		{"StmtNodes", "NewCubical", "NewLeaves", "NewLabels"}
 	];
 	stmtRows = Replace[stmtRows, {{r_List} :> r, {} -> {}}];
 	cubicalPairs = Replace[cubicalPairs, {{p_List} :> p, {} -> {}}];
-	writer["StmtNodeIndex"] = $f3NodeIndex;
+	sLeaves1 = Replace[sLeaves1, {{l_List} :> l, {} -> {}}];
+	sLabels1 = Replace[sLabels1, {{l_List} :> l, {} -> {}}];
 	writer["StmtNodeCount"] = $f3NodeCount;
-	(* Phase 2: Proof nodes share StmtNodeIndex + ProofNodeIndex, but new proof entries stay in ProofNodeIndex *)
+	(* Phase 2: Proof nodes share StmtNodeIndex read-only ($f3SharedStmtIndex) + batch-local proof dedup ($f3NodeIndex = <||>) *)
+	$f3SharedStmtIndex = $f3NodeIndex;
+	$f3NodeIndex = <||>;
 	$f3NodeSowTag = "ProofNodes";
-	$f3NodeIndex = Join[$f3NodeIndex, writer["ProofNodeIndex"]];
+	$f3StreamingProofQ = True;
 	$f3NodeCount = $streamProofTag + proofCount;
-	{encoded, proofRows} = Reap[
+	{encoded, {proofRows, sLeaves2, sLabels2}} = Reap[
 		Map[
 			Function[entry,
 				If[ entry["DeferredProof"] =!= None,
@@ -1904,13 +1961,18 @@ writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Bl
 			],
 			encoded
 		],
-		"ProofNodes"
+		{"ProofNodes", "NewLeaves", "NewLabels"}
 	];
 	proofRows = Replace[proofRows, {{r_List} :> r, {} -> {}}];
-	writer["ProofNodeIndex"] = Select[$f3NodeIndex, Function[id, id > $streamProofTag]];
+	sLeaves2 = Replace[sLeaves2, {{l_List} :> l, {} -> {}}];
+	sLabels2 = Replace[sLabels2, {{l_List} :> l, {} -> {}}];
 	writer["ProofNodeCount"] = $f3NodeCount - $streamProofTag;
-	writer["LeafIndex"] = $f3LeafIndex;
-	writer["LabelIndex"] = $f3LabelIndex;
+	(* Bound dedup caches to MaxDedupeNodes so streaming stays O(batch) RAM & linear time *)
+	writer["StmtNodeIndex"] = If[Length[$f3SharedStmtIndex] > maxDedupe, <||>, $f3SharedStmtIndex];
+	writer["LeafIndex"] = If[Length[$f3LeafIndex] > maxDedupe, <||>, $f3LeafIndex];
+	writer["LabelIndex"] = If[Length[$f3LabelIndex] > maxDedupe, <||>, $f3LabelIndex];
+	writer["LeafCount"] = $f3LeafCount;
+	writer["LabelCount"] = $f3LabelCount;
 	writer["CubicalCount"] = $f3CubicalCount;
 	(* Compute batch record hashes independently from Effective records (format-2 structural fingerprints!) *)
 	batchHashes = recordFingerprints[AssociationThread[names, Lookup[encoded, "Effective"]]];
@@ -1931,33 +1993,11 @@ writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Bl
 		],
 		{i, Length[names]}
 	];
-	(* Flush full blocks incrementally to keep RAM bounded *)
-	newLeaves = Drop[Keys[$f3LeafIndex], writer["LeafFlushed"]];
-	If[ Length[newLeaves] >= bs["Leaf"],
-		With[{nFull = bs["Leaf"] * Quotient[Length[newLeaves], bs["Leaf"]]},
-			Do[
-				With[{res = writeBlockToStream[writer["MainStream"], chunk]},
-					writer["SectionDir"] = Append[writer["SectionDir"], "LeafBlocks" -> Append[writer["SectionDir"]["LeafBlocks"], First[res]]];
-					writer["Manifest"] = Append[writer["Manifest"], "LeafBlocks" -> Append[writer["Manifest"]["LeafBlocks"], Last[res]]]
-				],
-				{chunk, Partition[Take[newLeaves, nFull], bs["Leaf"]]}
-			];
-			writer["LeafFlushed"] += nFull
-		]
-	];
-	newLabels = Drop[Keys[$f3LabelIndex], writer["LabelFlushed"]];
-	If[ Length[newLabels] >= bs["Label"],
-		With[{nFull = bs["Label"] * Quotient[Length[newLabels], bs["Label"]]},
-			Do[
-				With[{res = writeBlockToStream[writer["MainStream"], chunk]},
-					writer["SectionDir"] = Append[writer["SectionDir"], "LabelBlocks" -> Append[writer["SectionDir"]["LabelBlocks"], First[res]]];
-					writer["Manifest"] = Append[writer["Manifest"], "LabelBlocks" -> Append[writer["Manifest"]["LabelBlocks"], Last[res]]]
-				],
-				{chunk, Partition[Take[newLabels, nFull], bs["Label"]]}
-			];
-			writer["LabelFlushed"] += nFull
-		]
-	];
+	(* Incrementally flush newly interned leaves, labels, cubical pairs, nodes, metadata, and deps *)
+	newLeaves = Join[sLeaves1, sLeaves2];
+	If[newLeaves =!= {}, writer["LeafBuffer"] = Join[writer["LeafBuffer"], newLeaves]; flushWriterBuffer[writer, writer["MainStream"], "LeafBlocks", "LeafBuffer", bs["Leaf"], Identity, False]];
+	newLabels = Join[sLabels1, sLabels2];
+	If[newLabels =!= {}, writer["LabelBuffer"] = Join[writer["LabelBuffer"], newLabels]; flushWriterBuffer[writer, writer["MainStream"], "LabelBlocks", "LabelBuffer", bs["Label"], Identity, False]];
 	If[cubicalPairs =!= {}, writer["CubicalBuffer"] = Join[writer["CubicalBuffer"], cubicalPairs]; flushWriterBuffer[writer, writer["MainStream"], "CubicalBlocks", "CubicalBuffer", bs["Cubical"], Developer`ToPackedArray, False]];
 	If[stmtRows =!= {}, writer["StmtNodeBuffer"] = Join[writer["StmtNodeBuffer"], stmtRows]; flushWriterBuffer[writer, writer["MainStream"], "NodeBlocks", "StmtNodeBuffer", bs["StmtNode"], Developer`ToPackedArray, False]];
 	If[proofRows =!= {}, writer["ProofNodeBuffer"] = Join[writer["ProofNodeBuffer"], proofRows]; flushWriterProofNodes[writer, False]];
@@ -1998,158 +2038,148 @@ closeFormat3Writer[writer_Symbol] := catchKernelFailure @ Block[
 	},
 	If[TrueQ[writer["Closed"]], Return[File[file], Block]];
 	writer["Closed"] = True;
-	(* Flush remaining leaves, labels, cubical, stmt nodes, meta, deps, proof nodes *)
-	remLeaves = Drop[Keys[writer["LeafIndex"]], writer["LeafFlushed"]];
-	If[ remLeaves =!= {},
-		Do[
-			res = writeBlockToStream[stream, chunk];
-			writer["SectionDir"] = Append[writer["SectionDir"], "LeafBlocks" -> Append[writer["SectionDir"]["LeafBlocks"], First[res]]];
-			writer["Manifest"] = Append[writer["Manifest"], "LeafBlocks" -> Append[writer["Manifest"]["LeafBlocks"], Last[res]]],
-			{chunk, Partition[remLeaves, UpTo[bs["Leaf"]]]}
-		]
-	];
-	remLabels = Drop[Keys[writer["LabelIndex"]], writer["LabelFlushed"]];
-	If[ remLabels =!= {},
-		Do[
-			res = writeBlockToStream[stream, chunk];
-			writer["SectionDir"] = Append[writer["SectionDir"], "LabelBlocks" -> Append[writer["SectionDir"]["LabelBlocks"], First[res]]];
-			writer["Manifest"] = Append[writer["Manifest"], "LabelBlocks" -> Append[writer["Manifest"]["LabelBlocks"], Last[res]]],
-			{chunk, Partition[remLabels, UpTo[bs["Label"]]]}
-		]
-	];
-	flushWriterBuffer[writer, stream, "CubicalBlocks", "CubicalBuffer", bs["Cubical"], Developer`ToPackedArray, True];
-	flushWriterBuffer[writer, stream, "NodeBlocks", "StmtNodeBuffer", bs["StmtNode"], Developer`ToPackedArray, True];
-	flushWriterMetaAndDeps[writer, True];
-	flushWriterProofNodes[writer, True];
-	If[writer["ProofStream"] =!= None, Close[writer["ProofStream"]]];
-	(* Write RecordDirBlocks with remapped proof ValueRoots *)
-	dirRows = Map[Function[row, {row[[1]], row[[2]], remapStreamProofRef[row[[3]], stmtCount], row[[4]]}], writer["DirBuffer"]];
-	{sectionDir["RecordDirBlocks"], manifest["RecordDirBlocks"]} = writePartitionedBlocks[stream, dirRows, bs["RecordDir"], Developer`ToPackedArray];
-	(* Copy accumulated section ranges & manifests *)
-	Scan[
-		Function[sec,
-			If[ writer["SectionDir"][sec] =!= {},
-				sectionDir[sec] = Developer`ToPackedArray[writer["SectionDir"][sec]];
-				manifest[sec] = ByteArray[Catenate[Normal /@ writer["Manifest"][sec]]]
-			]
-		],
-		{"LeafBlocks", "LabelBlocks", "CubicalBlocks", "NodeBlocks", "RecordMetaBlocks", "DepBlocks"}
-	];
-	(* Write NameIndex *)
-	If[ localNames =!= {},
-		hashes62 = nameHashes62[localNames];
-		sortOrder = Ordering[Transpose[{hashes62, Range[Length[localNames]]}]];
-		sortedHashes = hashes62[[sortOrder]];
-		sortedIds = sortOrder;
-		sortedNames = localNames[[sortOrder]];
-		bucketChunks = Partition[Range[Length[localNames]], UpTo[bs["NameBucket"]]];
-		coarseMax = Developer`ToPackedArray[Map[Function[idxs, sortedHashes[[Last[idxs]]]], bucketChunks]];
-		{sectionDir["NameIndexCoarse"], manifest["NameIndexCoarse"]} = writeBlockToStream[stream, coarseMax];
-		Do[
-			res = writeBlockToStream[stream, <|
-				"Hashes" -> Developer`ToPackedArray[sortedHashes[[idxs]]],
-				"RecordIDs" -> Developer`ToPackedArray[sortedIds[[idxs]]],
-				"Names" -> sortedNames[[idxs]]
-			|>];
-			AppendTo[bucketRanges, First[res]];
-			AppendTo[bucketDigests, Last[res]],
-			{idxs, bucketChunks}
+	WithCleanup[
+		Null,
+		(* Flush remaining leaves, labels, cubical, stmt nodes, meta, deps, proof nodes *)
+		flushWriterBuffer[writer, stream, "LeafBlocks", "LeafBuffer", bs["Leaf"], Identity, True];
+		flushWriterBuffer[writer, stream, "LabelBlocks", "LabelBuffer", bs["Label"], Identity, True];
+		flushWriterBuffer[writer, stream, "CubicalBlocks", "CubicalBuffer", bs["Cubical"], Developer`ToPackedArray, True];
+		flushWriterBuffer[writer, stream, "NodeBlocks", "StmtNodeBuffer", bs["StmtNode"], Developer`ToPackedArray, True];
+		flushWriterMetaAndDeps[writer, True];
+		flushWriterProofNodes[writer, True];
+		If[MatchQ[writer["ProofStream"], _OutputStream], Quiet[Close[writer["ProofStream"]]]];
+		(* Write RecordDirBlocks with remapped proof ValueRoots *)
+		dirRows = Map[Function[row, {row[[1]], row[[2]], remapStreamProofRef[row[[3]], stmtCount], row[[4]]}], writer["DirBuffer"]];
+		{sectionDir["RecordDirBlocks"], manifest["RecordDirBlocks"]} = writePartitionedBlocks[stream, dirRows, bs["RecordDir"], Developer`ToPackedArray];
+		(* Copy accumulated section ranges & manifests *)
+		Scan[
+			Function[sec,
+				If[ writer["SectionDir"][sec] =!= {},
+					sectionDir[sec] = Developer`ToPackedArray[writer["SectionDir"][sec]];
+					manifest[sec] = ByteArray[Catenate[Normal /@ writer["Manifest"][sec]]]
+				]
+			],
+			{"LeafBlocks", "LabelBlocks", "CubicalBlocks", "NodeBlocks", "RecordMetaBlocks", "DepBlocks"}
 		];
-		sectionDir["NameIndexBuckets"] = Developer`ToPackedArray[bucketRanges];
-		manifest["NameIndexBuckets"] = ByteArray[Catenate[Normal /@ bucketDigests]]
-	];
-	(* Write RecordHashBlocks *)
-	If[ writer["RecordHashList"] =!= {},
-		{sectionDir["RecordHashBlocks"], manifest["RecordHashBlocks"]} = writePartitionedBlocks[stream, writer["RecordHashList"], bs["RecordDir"], Developer`ToPackedArray]
-	];
-	(* Stream trailing ProofNodeBlocks from temp file, remapping proof-to-proof references to stmtCount + localProofId *)
-	If[ proofCount > 0 && writer["ProofBlockInfo"] =!= {},
-		proofIn = OpenRead[writer["ProofTmp"], BinaryFormat -> True];
-		Block[{pRanges = {}, pDigests = {}},
+		(* Write NameIndex *)
+		If[ localNames =!= {},
+			hashes62 = nameHashes62[localNames];
+			sortOrder = Ordering[Transpose[{hashes62, Range[Length[localNames]]}]];
+			sortedHashes = hashes62[[sortOrder]];
+			sortedIds = sortOrder;
+			sortedNames = localNames[[sortOrder]];
+			bucketChunks = Partition[Range[Length[localNames]], UpTo[bs["NameBucket"]]];
+			coarseMax = Developer`ToPackedArray[Map[Function[idxs, sortedHashes[[Last[idxs]]]], bucketChunks]];
+			{sectionDir["NameIndexCoarse"], manifest["NameIndexCoarse"]} = writeBlockToStream[stream, coarseMax];
 			Do[
-				rawBytes = readExactBytes[proofIn, info[[1]], info[[2]]];
-				mat = BinaryDeserialize[rawBytes];
-				remapped = remapStreamProofMatrix[mat, stmtCount];
-				res = writeBlockToStream[stream, remapped];
-				AppendTo[pRanges, First[res]];
-				AppendTo[pDigests, Last[res]],
-				{info, writer["ProofBlockInfo"]}
+				res = writeBlockToStream[stream, <|
+					"Hashes" -> Developer`ToPackedArray[sortedHashes[[idxs]]],
+					"RecordIDs" -> Developer`ToPackedArray[sortedIds[[idxs]]],
+					"Names" -> sortedNames[[idxs]]
+				|>];
+				AppendTo[bucketRanges, First[res]];
+				AppendTo[bucketDigests, Last[res]],
+				{idxs, bucketChunks}
 			];
-			sectionDir["ProofNodeBlocks"] = Developer`ToPackedArray[pRanges];
-			manifest["ProofNodeBlocks"] = ByteArray[Catenate[Normal /@ pDigests]]
+			sectionDir["NameIndexBuckets"] = Developer`ToPackedArray[bucketRanges];
+			manifest["NameIndexBuckets"] = ByteArray[Catenate[Normal /@ bucketDigests]]
 		];
-		Close[proofIn]
-	];
-	If[FileExistsQ[writer["ProofTmp"]], Quiet[DeleteFile[writer["ProofTmp"]]]];
-	(* Compute Meta["Hash"] matching Format 2 *)
-	baseEnv = Replace[base, {None -> None, name_String :> TypeTheoryEnvironment[name], env_?environmentQ :> env}];
-	baseHashes = If[baseEnv === None, <||>, environmentRecordHashes[baseEnv]];
-	allHashes = Join[baseHashes, AssociationThread[localNames, writer["RecordHashList"]]];
-	rewriteIndex = If[baseEnv === None, writer["RewriteRuleIndex"], Merge[{First[baseEnv]["RewriteRuleIndex"], writer["RewriteRuleIndex"]}, Apply[Join]]];
-	contentHash = Hash[
-		BinarySerialize[<|
+		(* Write RecordHashBlocks *)
+		If[ writer["RecordHashList"] =!= {},
+			{sectionDir["RecordHashBlocks"], manifest["RecordHashBlocks"]} = writePartitionedBlocks[stream, writer["RecordHashList"], bs["RecordDir"], Developer`ToPackedArray]
+		];
+		(* Stream trailing ProofNodeBlocks from temp file, remapping proof-to-proof references to stmtCount + localProofId *)
+		If[ proofCount > 0 && writer["ProofBlockInfo"] =!= {},
+			WithCleanup[
+				proofIn = OpenRead[writer["ProofTmp"], BinaryFormat -> True],
+				Block[{pRanges = {}, pDigests = {}},
+					Do[
+						rawBytes = readExactBytes[proofIn, info[[1]], info[[2]]];
+						mat = BinaryDeserialize[rawBytes];
+						remapped = remapStreamProofMatrix[mat, stmtCount];
+						res = writeBlockToStream[stream, remapped];
+						AppendTo[pRanges, First[res]];
+						AppendTo[pDigests, Last[res]],
+						{info, writer["ProofBlockInfo"]}
+					];
+					sectionDir["ProofNodeBlocks"] = Developer`ToPackedArray[pRanges];
+					manifest["ProofNodeBlocks"] = ByteArray[Catenate[Normal /@ pDigests]]
+				],
+				If[MatchQ[proofIn, _InputStream], Quiet[Close[proofIn]]]
+			]
+		];
+		(* Compute Meta["Hash"] matching Format 2 *)
+		baseEnv = Replace[base, {None -> None, name_String :> TypeTheoryEnvironment[name], env_?environmentQ :> env}];
+		baseHashes = If[baseEnv === None, <||>, environmentRecordHashes[baseEnv]];
+		allHashes = Join[baseHashes, AssociationThread[localNames, writer["RecordHashList"]]];
+		rewriteIndex = If[baseEnv === None, writer["RewriteRuleIndex"], Merge[{First[baseEnv]["RewriteRuleIndex"], writer["RewriteRuleIndex"]}, Apply[Join]]];
+		contentHash = Hash[
+			BinarySerialize[<|
+				"Rules" -> writer["Rules"],
+				"NaturalNumbers" -> writer["NaturalNumbers"],
+				"RewriteRuleIndex" -> rewriteIndex,
+				"Records" -> allHashes
+			|>],
+			"SHA256",
+			"HexString"
+		];
+		If[proofCount > 0, flags = BitOr[flags, $format3FlagProofs]];
+		If[TrueQ[writer["IncludeDependencies"]] && localNames =!= {}, flags = BitOr[flags, $format3FlagDeps]];
+		If[writer["RecordHashList"] =!= {}, flags = BitOr[flags, $format3FlagRecordHashes]];
+		If[! TrueQ[writer["IncludeProofs"]], flags = BitOr[flags, $format3FlagStatementOnly]];
+		If[writer["CubicalCount"] > 0, flags = BitOr[flags, $format3FlagCubical]];
+		meta = <|
+			"Format" -> "TypeTheoryEnvironment",
+			"FormatVersion" -> 3,
+			"TypeTheoryVersion" -> PacletObject[File[$pacletDirectory]]["Version"],
+			"KernelHash" -> $kernelHash,
+			"Host" -> <|"VersionNumber" -> $VersionNumber, "ReleaseNumber" -> $ReleaseNumber, "Version" -> $Version|>,
 			"Rules" -> writer["Rules"],
+			"Base" -> Replace[baseEnv, {None -> None, env_ :> <|"Name" -> First[env]["LibraryName"], "Hash" -> environmentContentHash[env]|>}],
 			"NaturalNumbers" -> writer["NaturalNumbers"],
-			"RewriteRuleIndex" -> rewriteIndex,
-			"Records" -> allHashes
-		|>],
-		"SHA256",
-		"HexString"
+			"RewriteRuleIndex" -> writer["RewriteRuleIndex"],
+			"OverloadIndex" -> writer["OverloadIndex"],
+			"KindCounts" -> writer["KindCounts"],
+			"BlockSizes" -> KeyTake[bs, {"RecordDir", "NameBucket", "Cubical"}],
+			"Hash" -> contentHash
+		|>;
+		metaOffset = StreamPosition[stream];
+		metaBytes = BinarySerialize[meta, PerformanceGoal -> "Size"];
+		metaDigest = sha256Bytes[metaBytes];
+		writeAllBytes[stream, metaBytes];
+		dirOffset = StreamPosition[stream];
+		dirBytes = BinarySerialize[sectionDir, PerformanceGoal -> "Size"];
+		manifest["SectionDirectory"] = sha256Bytes[dirBytes];
+		writeAllBytes[stream, dirBytes];
+		manOffset = StreamPosition[stream];
+		manBytes = BinarySerialize[manifest, PerformanceGoal -> "Size"];
+		manDigest = sha256Bytes[manBytes];
+		writeAllBytes[stream, manBytes];
+		headerBytes = encodeFormat3Header[<|
+			"Flags" -> flags,
+			"ConstantCount" -> Length[localNames],
+			"StmtNodeCount" -> stmtCount,
+			"ProofNodeCount" -> proofCount,
+			"LeafCount" -> writer["LeafCount"],
+			"LabelCount" -> writer["LabelCount"],
+			"StmtNodeBlockSize" -> bs["StmtNode"],
+			"ProofNodeBlockSize" -> bs["ProofNode"],
+			"LeafBlockSize" -> bs["Leaf"],
+			"LabelBlockSize" -> bs["Label"],
+			"RecordMetaBlockSize" -> bs["RecordMeta"],
+			"SectionDirOffset" -> dirOffset,
+			"SectionDirLength" -> Length[dirBytes],
+			"MetaOffset" -> metaOffset,
+			"MetaLength" -> Length[metaBytes],
+			"ManifestOffset" -> manOffset,
+			"ManifestLength" -> Length[manBytes],
+			"MetaSha256" -> metaDigest,
+			"ManifestSha256" -> manDigest
+		|>];
+		writeAllBytes[stream, headerBytes],
+		If[MatchQ[writer["ProofStream"], _OutputStream], Quiet[Close[writer["ProofStream"]]]];
+		If[MatchQ[stream, _OutputStream], Quiet[Close[stream]]];
+		If[FileExistsQ[writer["ProofTmp"]], Quiet[DeleteFile[writer["ProofTmp"]]]]
 	];
-	If[proofCount > 0, flags = BitOr[flags, $format3FlagProofs]];
-	If[TrueQ[writer["IncludeDependencies"]] && localNames =!= {}, flags = BitOr[flags, $format3FlagDeps]];
-	If[writer["RecordHashList"] =!= {}, flags = BitOr[flags, $format3FlagRecordHashes]];
-	If[! TrueQ[writer["IncludeProofs"]], flags = BitOr[flags, $format3FlagStatementOnly]];
-	If[writer["CubicalCount"] > 0, flags = BitOr[flags, $format3FlagCubical]];
-	meta = <|
-		"Format" -> "TypeTheoryEnvironment",
-		"FormatVersion" -> 3,
-		"TypeTheoryVersion" -> PacletObject[File[$pacletDirectory]]["Version"],
-		"KernelHash" -> $kernelHash,
-		"Host" -> <|"VersionNumber" -> $VersionNumber, "ReleaseNumber" -> $ReleaseNumber, "Version" -> $Version|>,
-		"Rules" -> writer["Rules"],
-		"Base" -> Replace[baseEnv, {None -> None, env_ :> <|"Name" -> First[env]["LibraryName"], "Hash" -> environmentContentHash[env]|>}],
-		"NaturalNumbers" -> writer["NaturalNumbers"],
-		"RewriteRuleIndex" -> writer["RewriteRuleIndex"],
-		"OverloadIndex" -> writer["OverloadIndex"],
-		"KindCounts" -> writer["KindCounts"],
-		"BlockSizes" -> KeyTake[bs, {"RecordDir", "NameBucket", "Cubical"}],
-		"Hash" -> contentHash
-	|>;
-	metaOffset = StreamPosition[stream];
-	metaBytes = BinarySerialize[meta, PerformanceGoal -> "Size"];
-	metaDigest = sha256Bytes[metaBytes];
-	writeAllBytes[stream, metaBytes];
-	dirOffset = StreamPosition[stream];
-	dirBytes = BinarySerialize[sectionDir, PerformanceGoal -> "Size"];
-	manifest["SectionDirectory"] = sha256Bytes[dirBytes];
-	writeAllBytes[stream, dirBytes];
-	manOffset = StreamPosition[stream];
-	manBytes = BinarySerialize[manifest, PerformanceGoal -> "Size"];
-	manDigest = sha256Bytes[manBytes];
-	writeAllBytes[stream, manBytes];
-	headerBytes = encodeFormat3Header[<|
-		"Flags" -> flags,
-		"ConstantCount" -> Length[localNames],
-		"StmtNodeCount" -> stmtCount,
-		"ProofNodeCount" -> proofCount,
-		"LeafCount" -> Length[writer["LeafIndex"]],
-		"LabelCount" -> Length[writer["LabelIndex"]],
-		"StmtNodeBlockSize" -> bs["StmtNode"],
-		"ProofNodeBlockSize" -> bs["ProofNode"],
-		"LeafBlockSize" -> bs["Leaf"],
-		"LabelBlockSize" -> bs["Label"],
-		"RecordMetaBlockSize" -> bs["RecordMeta"],
-		"SectionDirOffset" -> dirOffset,
-		"SectionDirLength" -> Length[dirBytes],
-		"MetaOffset" -> metaOffset,
-		"MetaLength" -> Length[metaBytes],
-		"ManifestOffset" -> manOffset,
-		"ManifestLength" -> Length[manBytes],
-		"MetaSha256" -> metaDigest,
-		"ManifestSha256" -> manDigest
-	|>];
-	writeAllBytes[stream, headerBytes];
-	Close[stream];
 	File[file]
 ]

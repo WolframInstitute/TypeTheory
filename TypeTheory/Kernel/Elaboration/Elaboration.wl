@@ -679,7 +679,7 @@ naturalNumberTypeForElaboration[syntax_] := Replace[naturalNumberSettings[$elabo
 (*Constants and applications*)
 
 
-constantWithFreshLevels[held_HoldComplete] := With[{record = constantRecord[$elaborationEnvironment, held]},
+constantWithFreshLevels[held_HoldComplete] := With[{record = constantStatementRecord[$elaborationEnvironment, held]},
 	If[record["Kind"] === "RewriteRule", elaborationFailure["`1` is a rewrite rule, not a term.", toSyntax @@ held]];
 	With[{levels = Table[newLevelMetavariable[], Length[record["UniverseParameters"]]]},
 		{constantReference[held, levels], instantiateUniverseParameters[record["Type"], record["UniverseParameters"], levels]}
@@ -690,7 +690,7 @@ constantWithLevels[constantSyntax_, levelSyntaxes_List] := With[{held = constant
 	If[ ! constantDeclaredQ[$elaborationEnvironment, held],
 		elaborationFailure["`1` is not a declared constant.", constantSyntax]
 	];
-	With[{record = constantRecord[$elaborationEnvironment, held], levels = elaborateLevel /@ levelSyntaxes},
+	With[{record = constantStatementRecord[$elaborationEnvironment, held], levels = elaborateLevel /@ levelSyntaxes},
 		If[ Length[levels] =!= Length[record["UniverseParameters"]],
 			elaborationFailure["`1` is given the wrong number of universe levels.", constantSyntax]
 		];
@@ -1177,7 +1177,7 @@ declaredHeadMeanings[head_] := With[{name = constantNameOfSyntax[head]}, Which[
    that names nothing is where Plus takes a natural number *)
 symbolicMisfitQ[meanings_List, arguments_List] := AnyTrue[
 	Transpose[{arguments, Range[Length[arguments]]}],
-	Function[pair, symbolicSyntaxQ[First[pair]] && AllTrue[meanings, Function[meaning, concreteDomainAtQ[explicitDomains[constantRecord[$elaborationEnvironment, meaning]["Type"]], Last[pair]]]]]
+	Function[pair, symbolicSyntaxQ[First[pair]] && AllTrue[meanings, Function[meaning, concreteDomainAtQ[explicitDomains[constantStatementRecord[$elaborationEnvironment, meaning]["Type"]], Last[pair]]]]]
 ]
 
 (* syntax that is an expression of the Wolfram Language and nothing else: a symbol that names nothing and has no value, as
@@ -1203,7 +1203,7 @@ languageSymbolQ[held : HoldComplete[symbol_Symbol]] := And[
 	! KeyExistsQ[$elaborationScope, held],
 	Context[Unevaluated[symbol]] === "System`",
 	With[{meanings = declaredHeadMeanings[syntaxSymbol[held]]},
-		meanings =!= {} && NoneTrue[meanings, Function[meaning, expressionTypeQ[constantRecord[$elaborationEnvironment, meaning]["Type"]]]]
+		meanings =!= {} && NoneTrue[meanings, Function[meaning, expressionTypeQ[constantStatementRecord[$elaborationEnvironment, meaning]["Type"]]]]
 	]
 ]
 
@@ -1215,7 +1215,7 @@ explicitDomains[_] := {}
 finalCodomain[dependentFunctionType[_, _, codomain_, _]] := finalCodomain[codomain]
 finalCodomain[type_] := type
 
-sortValuedQ[meaning_] := MatchQ[finalCodomain[constantRecord[$elaborationEnvironment, meaning]["Type"]], _universeSort]
+sortValuedQ[meaning_] := MatchQ[finalCodomain[constantStatementRecord[$elaborationEnvironment, meaning]["Type"]], _universeSort]
 
 (* a domain of a type of its own, which no expression is: no variable, and no expressions in it; past the domains, an
    argument the function does not take *)
@@ -1282,7 +1282,7 @@ variadicPiece[element_] := element
 sequenceResultQ[syntaxSymbol[held_]] /; KeyExistsQ[$elaborationScope, held] := sequenceCodomainQ[instantiateMetavariables[Last[$elaborationScope[held]]]]
 sequenceResultQ[syntaxString[name_]] /; KeyExistsQ[$elaborationScope, HoldComplete[name]] := sequenceCodomainQ[instantiateMetavariables[Last[$elaborationScope[HoldComplete[name]]]]]
 sequenceResultQ[syntax : syntaxSymbol[_] | syntaxString[_]] /; declaredConstantSyntaxQ[syntax] && ! overloadedNameQ[$elaborationEnvironment, constantNameOfSyntax[syntax]] :=
-	sequenceCodomainQ[constantRecord[$elaborationEnvironment, constantNameOfSyntax[syntax]]["Type"]]
+	sequenceCodomainQ[constantStatementRecord[$elaborationEnvironment, constantNameOfSyntax[syntax]]["Type"]]
 sequenceResultQ[_] := False
 
 sequenceCodomainQ[dependentFunctionType[_, _, codomain_, _]] := sequenceCodomainQ[codomain]
@@ -2050,7 +2050,7 @@ openedImplicitBinders[{term_, type_}, subgoals_List] := {term, type, subgoals}
 (* the coercions of the environment, in the order declared, worked out once per environment *)
 coercionsOf[environment_] := Lookup[$instanceIndex, Key[{environment, "Coercions"}], $instanceIndex[{environment, "Coercions"}] = Select[
 	environmentNames[environment],
-	Function[name, TrueQ[constantRecord[environment, name]["Coercion"]]]
+	Function[name, TrueQ[constantStatementRecord[environment, name]["Coercion"]]]
 ]]
 
 (* the constant a type applies, unfolding definitions to find one *)
@@ -2062,7 +2062,7 @@ instanceClass[type_] := Replace[First @ applicationSpine[type], {
 (* the instances of a class in the environment, in the order declared, worked out once per environment *)
 instancesOf[environment_, class_] := Lookup[$instanceIndex, Key[{environment, class}], $instanceIndex[{environment, class}] = Select[
 	environmentNames[environment],
-	Function[name, With[{record = constantRecord[environment, name]},
+	Function[name, With[{record = constantStatementRecord[environment, name]},
 		TrueQ[record["Instance"]] && MatchQ[First @ applicationSpine[typeConclusion[record["Type"]]], constantReference[class, _]]
 	]]
 ]]
@@ -2127,7 +2127,7 @@ explicitCore[_, _] := Throw[None, $notExplicitTag]
 
 (* a constant at the head of an application takes the arguments given, and no others *)
 explicitHead[syntaxApplication[syntaxSymbol[HoldComplete[Subscript]], {constant_, levels__}], _] := With[{name = explicitConstantName[constant]},
-	If[ Length[constantRecord[$elaborationEnvironment, name]["UniverseParameters"]] =!= Length[{levels}],
+	If[ Length[constantStatementRecord[$elaborationEnvironment, name]["UniverseParameters"]] =!= Length[{levels}],
 		Throw[None, $notExplicitTag]
 	];
 	constantReference[name, Function[level, elaborateLevel[level]] /@ {levels}]
@@ -2143,12 +2143,12 @@ explicitHead[syntax_, scope_] := explicitCore[syntax, scope]
 
 (* a declared constant named without universe levels, which elaboration fills in for a constant that has them *)
 explicitConstantReference[syntax_] := With[{name = explicitConstantName[syntax]},
-	If[constantRecord[$elaborationEnvironment, name]["UniverseParameters"] =!= {}, Throw[None, $notExplicitTag]];
+	If[constantStatementRecord[$elaborationEnvironment, name]["UniverseParameters"] =!= {}, Throw[None, $notExplicitTag]];
 	constantReference[name, {}]
 ]
 
 (* a constant on its own gets its leading implicit arguments, which only elaboration finds *)
-onItsOwn[reference_constantReference] /; leadingImplicitQ[constantRecord[$elaborationEnvironment, First[reference]]["Type"]] := Throw[None, $notExplicitTag]
+onItsOwn[reference_constantReference] /; leadingImplicitQ[constantStatementRecord[$elaborationEnvironment, First[reference]]["Type"]] := Throw[None, $notExplicitTag]
 onItsOwn[core_] := core
 
 (* what elaboration reads before it looks for a declared constant of the name: an overloaded name applied,
@@ -2196,7 +2196,7 @@ explicitArgumentsQ[headCore_, argumentCores_List, scope_] := Replace[
 	None :> unfoldedBindersQ[headCore, argumentCores, scope]
 ]
 
-explicitHeadType[constantReference[name_, _], _] := constantRecord[$elaborationEnvironment, name]["Type"]
+explicitHeadType[constantReference[name_, _], _] := constantStatementRecord[$elaborationEnvironment, name]["Type"]
 explicitHeadType[boundVariable[index_Integer], scope_] := Last[First[Drop[scope, index]]]
 explicitHeadType[lambda_lambdaAbstraction, _] := lambdaBinders[lambda]
 explicitHeadType[_, _] := None
@@ -2232,7 +2232,7 @@ unfoldedBindersFrom[context_, type_, {argument_, rest___}] := Replace[weakHeadNo
 
 (* a declared constant that names no overloaded meaning, which only elaboration decides *)
 explicitConstantName[syntax_] := With[{name = constantNameOfSyntax[syntax]},
-	If[ constantDeclaredQ[$elaborationEnvironment, name] && ! overloadedNameQ[$elaborationEnvironment, name] && constantRecord[$elaborationEnvironment, name]["Kind"] =!= "RewriteRule",
+	If[ constantDeclaredQ[$elaborationEnvironment, name] && ! overloadedNameQ[$elaborationEnvironment, name] && constantStatementRecord[$elaborationEnvironment, name]["Kind"] =!= "RewriteRule",
 		name,
 		Throw[None, $notExplicitTag]
 	]
@@ -2437,7 +2437,7 @@ restrictedQ[id_, allowed_List] := With[{context = Lookup[$metavariableContexts, 
 (* the term, an application of the definition name, computed as unfold computes it, or None *)
 unfoldedApplication[environment_, context_, name_, term_] := Replace[applicationSpine[term], {
 	{constantReference[name, levels_], arguments_} :> With[
-		{record = constantRecord[environment, name]},
+		{record = constantStatementRecord[environment, name]},
 		{value = instantiateUniverseParameters[record["Value"], record["UniverseParameters"], levels]},
 		{opened = openedFunction[value, 0]},
 		Which[
@@ -2456,7 +2456,7 @@ unfoldedApplication[environment_, context_, name_, term_] := Replace[application
 openedFunction[lambdaAbstraction[_, _, body_, _], count_Integer] := openedFunction[body, count + 1]
 openedFunction[body_, count_Integer] := {body, count}
 
-recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]], constantReference[recursor_, _] /; constantRecord[environment, recursor]["Kind"] === "Recursor"]
+recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]], constantReference[recursor_, _] /; constantStatementRecord[environment, recursor]["Kind"] === "Recursor"]
 
 (* A definition by structural recursion has a recursor applied to its parameters, motives and minor
    premises, no indices, and the major premise, one of the definition's count variables, which no
@@ -2465,7 +2465,7 @@ recursorApplicationQ[environment_, body_] := MatchQ[First[applicationSpine[body]
    fuel applied to s and i, which the recursor's own arguments do not mention. None for any other body. *)
 computedRecursion[environment_, context_, name_, levels_, {body_, count_Integer}, arguments_List] := With[
 	{spine = applicationSpine[body]},
-	{record = constantRecord[environment, First[First[spine]]]},
+	{record = constantStatementRecord[environment, First[First[spine]]]},
 	{own = record["NumberOfParameters"] + record["NumberOfMotives"] + record["NumberOfMinors"] + 1},
 	{recursorArguments = Take[Last[spine], UpTo[own]], further = Drop[Last[spine], UpTo[own]]},
 	If[ And[
@@ -2511,7 +2511,7 @@ refoldedRecursion[environment_, context_, name_, levels_, recursor_, recursorArg
    folds back, as total[Join[Prepend[l, x], m]] would leave the recursor of Join in the call of total on the rest *)
 definitionApplicationQ[environment_, context_, term_] := ! successorOffsetQ[environment, term] && MatchQ[
 	First[applicationSpine[reducedHeadWithoutUnfolding[environment, context, term]]],
-	constantReference[name_, _] /; constantRecord[environment, name]["Kind"] === "Definition"
+	constantReference[name_, _] /; constantStatementRecord[environment, name]["Kind"] === "Definition"
 ]
 
 (* x + k, for a literal k > 0 and the registered addition, is k successors of x to the kernel, which reduces a recursor on
@@ -2680,7 +2680,7 @@ elaborateGlueBranch[syntax_, _] := elaborationFailure["`1` is not a branch of a 
 
 (* {T, e} is the pair of the sum *)
 pairOfSyntax[syntaxApplication[syntaxSymbol[HoldComplete[List]], {first_, second_}]] := syntaxApplication[
-	toSyntax @@ First[constantRecord[$elaborationEnvironment, cubicalSum[$elaborationEnvironment]]["Constructors"]],
+	toSyntax @@ First[constantStatementRecord[$elaborationEnvironment, cubicalSum[$elaborationEnvironment]]["Constructors"]],
 	{first, second}
 ]
 pairOfSyntax[syntax_] := syntax
@@ -2906,7 +2906,7 @@ unifyUnfolded[a_, b_] := With[{unfoldedA = headUnfolded[a], unfoldedB = headUnfo
 ]
 
 headUnfolded[term_] := Replace[First[applicationSpine[term]], {
-	constantReference[name_, _] /; constantRecord[$elaborationEnvironment, name]["Kind"] === "Definition" :>
+	constantReference[name_, _] /; constantStatementRecord[$elaborationEnvironment, name]["Kind"] === "Definition" :>
 		unfoldedApplication[$elaborationEnvironment, $elaborationContext, name, term],
 	_ -> None
 }]

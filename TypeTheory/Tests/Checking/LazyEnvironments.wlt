@@ -74,7 +74,7 @@ rewriteFormat3File[srcFile_String, dstFile_String, transform_] := Module[
 	newDirOff = StreamPosition[outStream];
 	newManifest["SectionDirectory"] = sym["sha256Bytes"][newDirBytes];
 	BinaryWrite[outStream, newDirBytes];
-	newManBytes = BinarySerialize[newManifest, PerformanceGoal -> "Size"];
+	newManBytes = Lookup[newState, "RawManifestBytes", BinarySerialize[newManifest, PerformanceGoal -> "Size"]];
 	newManOff = StreamPosition[outStream];
 	newManDig = sym["sha256Bytes"][newManBytes];
 	BinaryWrite[outStream, newManBytes];
@@ -242,16 +242,20 @@ VerificationTest[
 
 
 VerificationTest[
-	Module[{fFull = tteFile["arith_standalone"], fOptCut = tteFile["opt_cut"], fZeroCut = tteFile["zero_cut"], loadedOpt, loadedZero},
+	Module[{fFull = tteFile["arith_standalone"], fOptCut = tteFile["opt_cut"], fZeroCut = tteFile["zero_cut"], loadedOpt, loadedZero, extCut},
 		Export[fOptCut, arithmetic, "Standalone" -> True, "IncludeProofs" -> False];
 		sym["cutFormat3StatementFile"][fFull, fZeroCut];
 		loadedOpt = TypeTheoryEnvironment[File[fOptCut]];
 		loadedZero = TypeTheoryEnvironment[File[fZeroCut]];
+		(* Overlay on statement-only cut uses preserved CSR DepBlocks for O(cone) CompiledKernel check *)
+		extCut = Append[loadedZero, TypeTheoryTheorem[CutExtThm, 1 + 1 == 2, "equalityReflexivity"[2]]];
 		{
 			Information[loadedOpt, "Signature"] === Information[arithmetic, "Signature"],
 			Information[loadedZero, "Signature"] === Information[arithmetic, "Signature"],
 			Lookup[Information[loadedOpt, "Kinds"], "Theorem", 0],
 			Lookup[Information[loadedZero, "Kinds"], "Theorem", 0],
+			sym["lazyHasDepsQ"][First[loadedZero]["LazySource"]],
+			Head[extCut] === TypeTheoryEnvironment,
 			TypeTheoryAxiomClosure[TypeTheoryTerm[TwoPlusTwo, loadedOpt]],
 			TypeTheoryAxiomClosure[TypeTheoryTerm[TwoPlusTwo, loadedZero]],
 			MatchQ[TypeTheoryCheck[loadedOpt], _Success],
@@ -259,8 +263,45 @@ VerificationTest[
 			FileByteCount[fZeroCut] < FileByteCount[fFull]
 		}
 	],
-	{True, True, 0, 0, <|TwoPlusTwo -> "Proposition"|>, <|TwoPlusTwo -> "Proposition"|>, True, True, True},
-	TestID -> "Statement-only-cuts-preserve-signature-convert-theorems-to-axioms-and-check"
+	{True, True, 0, 0, True, True, <|TwoPlusTwo -> "Proposition"|>, <|TwoPlusTwo -> "Proposition"|>, True, True, True},
+	TestID -> "Statement-only-cuts-preserve-signature-and-statement-DepBlocks-and-check"
+]
+
+(* Mutual inductive blocks and Quotients carry complete CSR DepBlocks for CompiledKernel cone extraction *)
+VerificationTest[
+	Module[{base, mutual, file = tteFile["mutual_quot"], loaded, extMutual, extQuot, proofReads},
+		base = TypeTheoryEnvironment["Integers"];
+		mutual = TypeTheoryEnvironment[base, {
+			TypeTheoryInductiveType[
+				{EvenNum -> TypeUniverse[1], OddNum -> TypeUniverse[1]},
+				{
+					evenZero -> EvenNum,
+					evenSucc -> (OddNum -> EvenNum),
+					oddSucc -> (EvenNum -> OddNum)
+				}
+			]
+		}];
+		Export[file, mutual, "Standalone" -> True];
+		loaded = TypeTheoryEnvironment[File[file]];
+		WolframInstitute`TypeTheory`PackageScope`$lazyProofBlockReadCount = 0;
+		(* Overlay referencing only EvenNum must pull OddNum sibling via Block deps; overlay on Integers pulls Quotient deps *)
+		extMutual = TypeTheoryEnvironment[loaded, {
+			TypeTheoryDefinition[twoEven, evenSucc[oddSucc[evenZero]]],
+			TypeTheoryTheorem[twoEvenEq, twoEven == evenSucc[oddSucc[evenZero]], "equalityReflexivity"[twoEven]]
+		}, Method -> "Compiled"];
+		extQuot = TypeTheoryEnvironment[loaded, {
+			TypeTheoryTheorem[intRefl, Typed[0, Integers] == Typed[0, Integers], "equalityReflexivity"[Typed[0, Integers]]]
+		}, Method -> "Compiled"];
+		proofReads = WolframInstitute`TypeTheory`PackageScope`$lazyProofBlockReadCount;
+		{
+			Head[extMutual] === TypeTheoryEnvironment,
+			Head[extQuot] === TypeTheoryEnvironment,
+			proofReads,
+			MatchQ[TypeTheoryCheck[loaded], _Success]
+		}
+	],
+	{True, True, 0, True},
+	TestID -> "Mutual-inductive-blocks-and-quotients-have-complete-DepBlocks-for-compiled-cone-checks"
 ]
 
 
@@ -281,7 +322,8 @@ VerificationTest[
 			"Rules" -> Information[arithmetic, "Rules"],
 			"Base" -> None,
 			"NaturalNumbers" -> First[arithmetic]["NaturalNumbers"],
-			"BlockSizes" -> smallBlocks
+			"BlockSizes" -> smallBlocks,
+			"MaxDedupeNodes" -> 32
 		];
 		allNames = sym["environmentNames"][arithmetic];
 		batchChunks = Partition[allNames, UpTo[23]];
@@ -421,6 +463,23 @@ VerificationTest[
 	],
 	{True, "SavedEnvironmentInvalid", {}},
 	TestID -> "Crafted-Format-3-SectionDirectory-carrying-code-is-refused-without-evaluating-it"
+]
+
+(* 4b. Crafted Manifest carrying unevaluated compound ByteArray[evilCall[...]] (even with valid SHA-256!) -> refused without running code *)
+VerificationTest[
+	Module[{bad = tteFile["bad_compound_bytearray"], calls = {}, res},
+		Block[{evilManCall},
+			SetAttributes[evilManCall, HoldAll];
+			evilManCall[x_] := AppendTo[calls, x];
+			rewriteFormat3File[tteFile["arith"], bad, Function[st,
+				Append[st, "RawManifestBytes" -> BinarySerialize[Unevaluated[Association["SectionDirectory" -> ByteArray[evilManCall[42]]]]]]
+			]];
+			res = TypeTheoryEnvironment[File[bad]];
+			{FailureQ[res], res["Tag"], calls}
+		]
+	],
+	{True, "SavedEnvironmentInvalid", {}},
+	TestID -> "Crafted-Format-3-Manifest-with-unevaluated-compound-ByteArray-is-refused-without-evaluating-it"
 ]
 
 (* 5. Forged DAG cycle / self-reference in NodeBlock (with valid SHA-256!) -> rejected by lazy DAG decoder *)
