@@ -558,7 +558,7 @@ A name of no library environment gives a [Failure]() that lists the names:
 TypeTheoryEnvironment["Integer"]
 ```
 
-<!-- => Failure["UnknownEnvironment", ...]: Integer is not the name of a library environment, which are {Prelude, Constructive, HomotopyTypeTheory, Integers, Rationals, Cubical, WolframLanguage}. -->
+<!-- => Failure["UnknownEnvironment", ...]: Integer is not the name of a library environment, which are {Prelude, Constructive, HomotopyTypeTheory, Integers, Rationals, Machine, MachineReals, Cubical, WolframLanguage, Wolfram23, ZFC}. -->
 
 ---
 
