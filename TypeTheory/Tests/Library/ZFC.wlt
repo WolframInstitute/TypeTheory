@@ -72,6 +72,37 @@ VerificationTest[
 	TestID -> "\"classElementFunction\"-carries-set.mm's-membership-to-sets"
 ]
 
+(* the axioms of set.mm, under their labels: the closure of each is the prelude's, and propositional calculus needs only
+   classical logic's choice of the prelude where set.mm uses ax-3 *)
+VerificationTest[
+	Map[
+		Function[name, Sort[Keys[TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, zfc}]]]],
+		{"ax-1", "ax-2", "ax-gen", "ax-12", "ax-3", "df-clab", "df-cleq", "ax-ext", "ax-rep", "ax-ac"}
+	],
+	{
+		{}, {}, {}, {"propositionalExtensionality", "quotientSoundness"},
+		{"choice", "propositionalExtensionality", "quotientSoundness"},
+		{"propositionalExtensionality", "quotientSoundness"},
+		{"propositionalExtensionality", "quotientSoundness"},
+		{"propositionalExtensionality", "quotientSoundness"},
+		{"choice", "propositionalExtensionality", "quotientSoundness"},
+		{"choice", "propositionalExtensionality", "quotientSoundness"}
+	},
+	TestID -> "The-axioms-of-set.mm-are-theorems-of-the-model"
+]
+
+VerificationTest[
+	MatchQ[
+		TypeTheoryCheck[
+			TypeTheoryTerm["ax-7", zfc],
+			TypeTheoryTerm[ForAll[{Typed[x, "Set"], Typed[y, "Set"], Typed[z, "Set"]}, Implies["setClass"[x] == "setClass"[y], Implies["setClass"[x] == "setClass"[z], "setClass"[y] == "setClass"[z]]]], zfc]
+		],
+		_Success
+	],
+	True,
+	TestID -> "\"ax-7\"-states-set.mm's-ax-7-about-classes-of-sets"
+]
+
 (* a forged extensionality: the theorem's statement with a proof of another statement, and an empty set
    claimed to have a member, are rejected *)
 VerificationTest[
@@ -82,11 +113,16 @@ VerificationTest[
 			Function[{Typed[a, "Set"], Typed[b, "Set"]}, "extensionality"[a, b]]
 		]}]],
 		FailureQ[TypeTheoryEnvironment[zfc, {TypeTheoryTheorem[
+			"forgedAxiom6",
+			ForAll[{Typed[x, "Set"], Typed[y, "Set"]}, "setClass"[x] == "setClass"[y]],
+			Function[{Typed[x, "Set"], Typed[y, "Set"]}, "ax-6"[x, y]]
+		]}]],
+		FailureQ[TypeTheoryEnvironment[zfc, {TypeTheoryTheorem[
 			"forgedMember",
 			Element["emptySet", "emptySet"],
 			"emptySetEmpty"["emptySet"]
 		]}]]
 	},
-	{True, True},
+	{True, True, True},
 	TestID -> "Forged-proofs-about-sets-are-rejected"
 ]
