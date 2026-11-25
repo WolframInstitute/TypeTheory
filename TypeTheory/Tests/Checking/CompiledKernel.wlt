@@ -1563,3 +1563,37 @@ VerificationTest[
 	{True, True, True, True},
 	TestID -> "Shared-DAG-capacity-failure-unwinds-immediately-without-exponential-spin"
 ]
+
+(* Amortized compaction/rollback threshold in compiledRunSettings: default 12-element settings get
+   settings[[14]] = Max[200000, Quotient[hCap - numNodes, 2]] so arenaReinsertScratch never rehashes
+   more surviving scratch nodes than it reclaims, explicit 14-element settings pass through unchanged,
+   and forged proofs are still rejected. *)
+VerificationTest[
+	If[ ! available,
+		{True, True, True, True},
+		Module[
+			{
+				honestEnv, forgedEnv, input, runSettings, customInput, customSettings, forgedCheck
+			},
+			honestEnv = TypeTheoryEnvironment[literalBase, {
+				TypeTheoryTheorem["amortOk", "squared"[7] == 49, "equalityReflexivity"[49]]
+			}, Method -> "Symbolic"];
+			forgedEnv = forge[honestEnv, HoldComplete["amortOk"], Function[record,
+				Association[record, "Value" -> First[TypeTheoryEnvironment[literalBase, {TypeTheoryTheorem["w", 50 == 50, "equalityReflexivity"[50]]}, Method -> "Symbolic"]]["Records"][HoldComplete["w"]]["Value"]]
+			]];
+			input = compiledPrivate["environmentInput"][honestEnv, Length[literalBase], 0, 1];
+			runSettings = Normal[compiledPrivate["compiledRunSettings"][input]];
+			customInput = Append[input, "Settings" -> Developer`ToPackedArray[Join[Normal[input["Settings"]], {0, 500}]]];
+			customSettings = Normal[compiledPrivate["compiledRunSettings"][customInput]];
+			forgedCheck = compiledPrivate["compiledCheckWith"][compiledPrivate["compiledKernelFunction"][], compiledPrivate["environmentInput"][forgedEnv, Length[literalBase], 0, 1], 1];
+			{
+				Length[runSettings] === 14 && runSettings[[14]] === Max[200000, Quotient[input["Settings"][[1]] - Length[input["Nodes"]], 2]],
+				customSettings[[14]] === 500,
+				MatchQ[compiledPrivate["compiledCheckWith"][compiledPrivate["compiledKernelFunction"][], input, 1], _Success],
+				FailureQ[forgedCheck] && forgedCheck["Tag"] === "TypeMismatch"
+			}
+		]
+	],
+	{True, True, True, True},
+	TestID -> "Amortized-compaction-threshold-scales-with-scratch-room-and-rejects-forgeries"
+]

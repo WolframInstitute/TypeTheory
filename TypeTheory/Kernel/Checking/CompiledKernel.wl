@@ -3155,10 +3155,22 @@ recursorRowQ[row_, flat_, constantCount_, flatCount_] := With[{count = row[[15]]
 	])
 ]
 
+(* Pass an amortized compaction/rollback threshold (half the scratch room, floor 200,000) when callers
+   do not specify settings[[14]] explicitly: arenaReinsertScratch rehashes all surviving scratch nodes
+   (hNodeMark + 1 .. baseNodes), so requiring each rollback/compaction to reclaim at least half the
+   scratch room guarantees reclaimed >= surviving (amortized O(1), preventing quadratic thrashing on
+   multi-million-node cones while letting genuine overflow hit eCapacity and trigger the 2x retry). *)
+compiledRunSettings[input_] := With[{settings = Normal[input["Settings"]], numNodes = Length[input["Nodes"]]},
+	If[ Length[settings] == 12,
+		Developer`ToPackedArray[Join[settings, {0, Max[200000, Quotient[settings[[1]] - numNodes, 2]]}]],
+		input["Settings"]
+	]
+]
+
 compiledCheckWith[_, input_, _] /; ! programInputQ[input] := None
 
 compiledCheckWith[function_, input_, capacityFactor_] := Block[{result},
-	result = function[input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], input["Settings"]];
+	result = function[input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], compiledRunSettings[input]];
 	Which[
 		! VectorQ[result, IntegerQ],
 			None,
