@@ -161,7 +161,9 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{res = TypeTheoryAssumptions[ForAll[{Typed[n, NonNegativeIntegers]}, n^2 <= 2^n], prelude]},
+	(* the proofs of both guards take 2-4 s each on a slow machine, more than the default 15 s leaves them after the
+	   other candidates *)
+	With[{res = TypeTheoryAssumptions[ForAll[{Typed[n, NonNegativeIntegers]}, n^2 <= 2^n], prelude, TimeConstraint -> 60]},
 		{
 			Length[res] >= 2,
 			AllTrue[res, Function[item, TrueQ[item["Verified"]] && theoremAcceptedQ[prelude, item["Proof"]] && AssociationQ[item["Witness"]]]],
@@ -173,6 +175,41 @@ VerificationTest[
 	],
 	{True, True, True, True, True, True},
 	TestID -> "Assumptions-finds-exact-and-tail-guards-for-n-squared-leq-2-to-n"
+]
+
+(* a candidate whose proof runs out of its first 2.5 s retries with twice its share of the time left, at least 5 s,
+   bounded by the deadline, and 10 s without a deadline; with a fixed 2.5 s, 4 <= n above was lost on a kernel where
+   its proof takes 2.9 s *)
+VerificationTest[
+	With[
+		{
+			retryAt = Function[{secondsLeft, candidatesLeft},
+				Block[{WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`$superfunctionDeadline = AbsoluteTime[] + secondsLeft},
+					WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`retryProofBudget[2.5, candidatesLeft]
+				]
+			]
+		},
+		{
+			9 < retryAt[10, 2] <= 10,
+			retryAt[10, 20],
+			retryAt[-1, 3],
+			retryAt[Infinity, 3]
+		}
+	],
+	{True, 5., 0.2, 10.},
+	TestID -> "Assumptions-retry-proof-budget-scales-with-the-time-left"
+]
+
+(* a proof search that runs out of its time says so, as the retry above needs: the time limit's abort could come back
+   as a plain abort, tagged "Aborted" *)
+VerificationTest[
+	With[{resolved = WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`resolveProposition[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[4 <= n, n^2 <= 2^n]], prelude]},
+		With[{result = WolframInstitute`TypeTheory`PackageScope`enhancedProveCore[resolved["Environment"], resolved["CoreStatement"], resolved["UniverseParameters"], 0.2]},
+			{FailureQ[result], First[result]}
+		]
+	],
+	{True, "TimedOut"},
+	TestID -> "Assumptions-proof-search-out-of-time-is-tagged-timed-out"
 ]
 
 VerificationTest[

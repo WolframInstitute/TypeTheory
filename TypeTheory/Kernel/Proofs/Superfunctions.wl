@@ -355,6 +355,15 @@ remainingBudget[fallback_ : 5] := If[ NumericQ[$superfunctionDeadline],
 	fallback
 ]
 
+(* The time a candidate's proof gets when it tries again after running out of floor seconds: twice its fair share of
+   what is left of the budget and at least twice floor, bounded by the deadline; without a deadline, four times floor.
+   Only the retry grows, so every answer the first pass finds stays found, and the time left over finds the slow
+   ones: 4 <= n => n^2 <= 2^n took 2.0 s on one kernel and 2.9 s on the next, and a fixed 2.5 s dropped it. *)
+retryProofBudget[floor_, candidatesLeft_Integer] := If[ NumericQ[$superfunctionDeadline],
+	remainingBudget[Max[2 * floor, 2 * ($superfunctionDeadline - AbsoluteTime[]) / Max[1, candidatesLeft]]],
+	4 * floor
+]
+
 SetAttributes[withSuperfunctionProgress, HoldAll]
 withSuperfunctionProgress[title_String, progressOpt_, timeBudget_, body_] := Module[{effectiveProgress, deadline},
 	effectiveProgress = Replace[progressOpt, {
@@ -848,8 +857,11 @@ applyEasyImplicationHypotheses[proof_TypeTheoryProof] := Module[{data, goal, cur
 ]
 
 
-(* Main enhanced prover: tries Automatic first, then specialized untrusted tactics, always kernel-verified. *)
-enhancedProveCore[environment_, coreStatement_, universeParameters_List, timeLimit_ : 5] := CheckAbort[
+(* Main enhanced prover: tries Automatic first, then specialized untrusted tactics, always kernel-verified. Running out of
+   timeLimit gives Failure["TimedOut", ...] however the time limit's abort arrives: code inside the search can catch it
+   and abort again, and that plain abort passes TimeConstrained to the CheckAbort here (4 <= n => n^2 <= 2^n, 2026-11-26),
+   so an abort that comes once the time is up counts as the time limit's. *)
+enhancedProveCore[environment_, coreStatement_, universeParameters_List, timeLimit_ : 5] := With[{started = AbsoluteTime[]}, CheckAbort[
 	TimeConstrained[
 		Module[{state, result},
 			state = newProofState[environment, coreStatement, universeParameters];
@@ -884,10 +896,15 @@ enhancedProveCore[environment_, coreStatement_, universeParameters_List, timeLim
 			]]]]]]
 		],
 		timeLimit,
-		Failure["TimedOut", <|"MessageTemplate" -> "Proof search timed out after `1` seconds.", "MessageParameters" -> {timeLimit}|>]
+		proofTimedOut[timeLimit]
 	],
-	Failure["Aborted", <|"MessageTemplate" -> "Proof search aborted.", "MessageParameters" -> {}|>]
-]
+	If[ AbsoluteTime[] - started >= 0.95 * timeLimit,
+		proofTimedOut[timeLimit],
+		Failure["Aborted", <|"MessageTemplate" -> "Proof search aborted.", "MessageParameters" -> {}|>]
+	]
+]]
+
+proofTimedOut[timeLimit_] := Failure["TimedOut", <|"MessageTemplate" -> "Proof search timed out after `1` seconds.", "MessageParameters" -> {timeLimit}|>]
 
 
 (* Refute a negated Boolean universal Not[ForAll[{b1 : Booleans, ...}, body]] directly inside enhancedProveCore *)
@@ -2445,7 +2462,7 @@ assumptionsFromOpenProof[TypeTheoryProof[data_Association], Hold[opts___]] := Mo
 SetAttributes[findAssumptions, HoldFirst]
 findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := Module[
 	{resolved, environment, coreStmt, uParams, methodOpt, timeBudget, maxItems, allowEquiv, includeOpen, llmEval, progressOpt,
-	 alreadyProved, unpacked, varContext, varIds, bodyCore, rawCandidates = {}, deduped, totalCands, verified = {}, ranked},
+	 alreadyProved, unpacked, varContext, varIds, bodyCore, rawCandidates = {}, deduped, totalCands, verified = {}, timedOut = {}, ranked},
 	resolved = resolveProposition[proposition, environmentSpec];
 	If[ FailureQ[resolved],
 		resolved,
@@ -2509,14 +2526,35 @@ findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := 
 								"Verifying assumption candidate " <> IntegerString[First[idx]] <> "/" <> IntegerString[totalCands] <> " in kernel...",
 								0.55 + 0.35 * (First[idx] / Max[1, totalCands])
 							];
-							With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen]},
-								If[ res =!= None,
-									AppendTo[verified, res]
+							With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen, Function[2.5]]},
+								Which[
+									AssociationQ[res], AppendTo[verified, res],
+									MatchQ[res, Missing["TimedOut"]], AppendTo[timedOut, cand]
 								]
 							]
 						]
 					],
 					deduped
+				];
+
+				(* Second pass: a candidate whose sufficiency proof ran out of time tries again with what is left of the budget *)
+				MapIndexed[
+					Function[{cand, idx},
+						With[{left = Length[timedOut] - First[idx] + 1},
+							If[ ! deadlineExceededQ[] && retryProofBudget[2.5, left] > 2.5,
+								reportProgress[
+									"Retrying assumption candidate " <> IntegerString[First[idx]] <> "/" <> IntegerString[Length[timedOut]] <> " with more time...",
+									0.90 + 0.05 * (First[idx] / Max[1, Length[timedOut]])
+								];
+								With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen, Function[retryProofBudget[2.5, left]]]},
+									If[ AssociationQ[res],
+										AppendTo[verified, res]
+									]
+								]
+							]
+						]
+					],
+					timedOut
 				];
 
 				(* Gate 4: Deduplication & Pareto weakness ranking *)
@@ -2558,8 +2596,10 @@ splitPropositionalImplication[environment_, context_, term_] := Replace[weakHead
 deduplicateRawAssumptionCandidates[candidates_List] := DeleteDuplicatesBy[candidates, Function[c, {c["Scope"], c["CoreAssumption"]}]]
 
 
-(* Gates 1, 2, 3 for a single assumption candidate *)
-verifyAndFilterAssumption[environment_, coreStmt_, varContext_, varIds_List, bodyCore_, uParams_List, cand_Association, allowEquiv_, includeOpen_] := Module[
+(* Gates 1, 2, 3 for a single assumption candidate: the verified item, None when a gate rejects it, or
+   Missing["TimedOut"] when its sufficiency proof ran out of time. proofBudget[] is that proof's time, reckoned when
+   the proof starts. *)
+verifyAndFilterAssumption[environment_, coreStmt_, varContext_, varIds_List, bodyCore_, uParams_List, cand_Association, allowEquiv_, includeOpen_, proofBudget_] := Module[
 	{scope = cand["Scope"], coreA = cand["CoreAssumption"], method = cand["Method"],
 	 targetBody, implCore, splitBody, proof, witness = None, isVacuous = False, isTrivial = False, equivCheck},
 
@@ -2599,9 +2639,9 @@ verifyAndFilterAssumption[environment_, coreStmt_, varContext_, varIds_List, bod
 						None,
 
 						(* Gate 1: Sufficiency (kernel proof of implication) *)
-						proof = enhancedProveCore[environment, implCore, uParams, 2.5];
+						proof = enhancedProveCore[environment, implCore, uParams, proofBudget[]];
 						If[ FailureQ[proof] && ! includeOpen,
-							None,
+							If[ MatchQ[proof, Failure["TimedOut", _]], Missing["TimedOut"], None ],
 
 							(* Gate 3: Non-triviality against semantic equivalence *)
 							If[ ! FailureQ[proof],
