@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W48 (November 23 to 29), in progress
 
-Versions 0.60.1 to 0.62.1.
+Versions 0.60.1 to 0.62.2.
 
 ### Added
 
@@ -16,6 +16,7 @@ Versions 0.60.1 to 0.62.1.
 
 ### Fixed
 
+- **Immediate failure unwinding on shared DAGs in the compiled kernel.** `arenaEnter` in `Checking/CompiledKernel.wl` now returns immediately whenever `hStatus != 0` (and `arenaInstUniv` skips `arenaUnivStore` on failure), preventing mid-walk `eCapacity` failures inside deep shared DAGs from unrolling sibling branches unmemoized instead of returning `eCapacity` to trigger the automatic `2x` capacity retry.
 - **Open large-literal natural-number arithmetic in the compiled kernel.** Registered natural-number definitions no longer force full delta reduction on their arguments while `arenaWhnfCore` runs without unfolding (`unfold == 0`), and binary literal evaluation checks the second (recursive) argument before the first, preventing open products such as `(x + 1) * 10^9` inside sums from unfolding one unit at a time to the recursion-depth limit.
 
 ### Performance
