@@ -1164,11 +1164,15 @@ resolveBlockSizes[custom_Association] := Join[$defaultBlockSizes, KeyTake[custom
 resolveBlockSizes[_] := $defaultBlockSizes
 
 $f3SharedStmtIndex = <||>
+$f3LocalNodeRow = None
 $f3LeafCount = 0
 $f3LabelCount = 0
 $f3StreamingProofQ = False
 
-f3LookupNode[term_] := Lookup[$f3NodeIndex, Key[term], Lookup[$f3SharedStmtIndex, Key[term], 0]]
+(* Two-level DAG deduplication for Format 3: $f3LocalNodeRow caches expression pointers within one record,
+   while $f3NodeIndex / $f3SharedStmtIndex deduplicate globally across records by flat 5-integer row tuples
+   (or {"c", pairs} for cubicalSystem), keeping zero composite WL terms in global index keys. *)
+f3LookupTuple[key_] := Lookup[$f3NodeIndex, Key[key], Lookup[$f3SharedStmtIndex, Key[key], 0]]
 
 f3InternLeaf[leaf_] := Lookup[$f3LeafIndex, Key[leaf], ($f3LeafCount++; Sow[leaf, $f3LeafSowTag]; $f3LeafIndex[leaf] = $f3LeafCount)]
 
@@ -1177,31 +1181,56 @@ f3InternLabel[label_] := Lookup[$f3LabelIndex, Key[label], ($f3LabelCount++; Sow
 (* Node emission helper supporting both Format 2 codes 1..5 and code 6 for cubicalSystem *)
 format3EmitTerm[root_] := If[ ! compositeTermQ[root],
 	-f3InternLeaf[root],
-	With[{existing = f3LookupNode[root]},
-		If[ existing > 0,
-			existing,
-			Block[{emitStack = {{root, False}, None}, emitEntry, emitCur, emitReady, emitRow},
-				While[ emitStack =!= None,
-					emitEntry = First[emitStack];
-					emitStack = Last[emitStack];
-					emitCur = First[emitEntry];
-					emitReady = Last[emitEntry];
-					If[ f3LookupNode[emitCur] == 0,
-						If[ emitReady,
-							emitRow = format3PackRow[emitCur];
-							Sow[emitRow, $f3NodeSowTag];
-							$f3NodeIndex[emitCur] = ++$f3NodeCount,
-							emitStack = format3PushChildren[emitCur, {{emitCur, True}, emitStack}]
-						]
-					]
-				];
-				f3LookupNode[root]
-			]
-		]
+	If[ AssociationQ[$f3LocalNodeRow],
+		format3EmitTermLocal[root],
+		Block[{$f3LocalNodeRow = <||>}, format3EmitTermLocal[root]]
 	]
 ]
 
-format3PushChild[child_, stack_] := If[compositeTermQ[child] && f3LookupNode[child] == 0, {{child, False}, stack}, stack]
+format3EmitTermLocal[root_] := If[ KeyExistsQ[$f3LocalNodeRow, root],
+	Lookup[$f3LocalNodeRow, Key[root]],
+	Block[{emitStack = {{root, False}, None}, emitEntry, emitCur, emitReady, emitRow, emitPairs, emitKey, emitExisting, emitStart},
+		While[ emitStack =!= None,
+			emitEntry = First[emitStack];
+			emitStack = Last[emitStack];
+			emitCur = First[emitEntry];
+			emitReady = Last[emitEntry];
+			If[ ! KeyExistsQ[$f3LocalNodeRow, emitCur],
+				If[ emitReady,
+					If[ Head[emitCur] === cubicalSystem,
+						emitPairs = Map[format3Part, First[emitCur], {2}];
+						emitKey = {"c", emitPairs};
+						emitExisting = f3LookupTuple[emitKey];
+						If[ emitExisting > 0,
+							$f3LocalNodeRow[emitCur] = emitExisting,
+							If[ TrueQ[$f3StreamingProofQ],
+								kernelFailure["UnsupportedStreamingCubicalProof", "Cubical system terms inside theorem proofs are not supported by the streaming Format 3 writer; use Export directly.", {}]
+							];
+							emitStart = $f3CubicalCount + 1;
+							Scan[Function[pair, Sow[pair, $f3CubicalTag]], emitPairs];
+							$f3CubicalCount += Length[emitPairs];
+							Sow[{6, emitStart, Length[emitPairs], 0, 0}, $f3NodeSowTag];
+							$f3NodeIndex[emitKey] = ++$f3NodeCount;
+							$f3LocalNodeRow[emitCur] = $f3NodeCount
+						],
+						emitRow = format3PackRow[emitCur];
+						emitExisting = f3LookupTuple[emitRow];
+						If[ emitExisting > 0,
+							$f3LocalNodeRow[emitCur] = emitExisting,
+							Sow[emitRow, $f3NodeSowTag];
+							$f3NodeIndex[emitRow] = ++$f3NodeCount;
+							$f3LocalNodeRow[emitCur] = $f3NodeCount
+						]
+					],
+					emitStack = format3PushChildren[emitCur, {{emitCur, True}, emitStack}]
+				]
+			]
+		];
+		Lookup[$f3LocalNodeRow, Key[root]]
+	]
+]
+
+format3PushChild[child_, stack_] := If[compositeTermQ[child] && ! KeyExistsQ[$f3LocalNodeRow, child], {{child, False}, stack}, stack]
 
 format3PushChildren[application[f_, a_], stack_] := format3PushChild[f, format3PushChild[a, stack]]
 format3PushChildren[(lambdaAbstraction | dependentFunctionType)[_, dom_, body_, _], stack_] := format3PushChild[dom, format3PushChild[body, stack]]
@@ -1211,7 +1240,7 @@ format3PushChildren[cubicalSystem[branches_List], stack_] := Fold[Function[{rest
 format3PushChildren[_, stack_] := stack
 
 format3Part[term_] := If[compositeTermQ[term],
-	f3LookupNode[term],
+	Lookup[$f3LocalNodeRow, Key[term]],
 	-f3InternLeaf[term]
 ]
 
@@ -1222,15 +1251,6 @@ format3PackRow[lambdaAbstraction[name_, dom_, body_, binder_]] := {2, format3Lab
 format3PackRow[dependentFunctionType[name_, dom_, cod_, binder_]] := {3, format3Label[name], format3Part[dom], format3Part[cod], format3Label[binder]}
 format3PackRow[localDefinition[name_, type_, val_, body_]] := {4, format3Label[name], format3Part[type], format3Part[val], format3Part[body]}
 format3PackRow[projection[struct_, index_, term_]] := {5, format3Label[struct], index, format3Part[term], 0}
-format3PackRow[cubicalSystem[branches_List]] := Module[{start = $f3CubicalCount + 1, pairs},
-	If[ TrueQ[$f3StreamingProofQ],
-		kernelFailure["UnsupportedStreamingCubicalProof", "Cubical system terms inside theorem proofs are not supported by the streaming Format 3 writer; use Export directly.", {}]
-	];
-	pairs = Map[format3Part, branches, {2}];
-	Scan[Function[pair, Sow[pair, $f3CubicalTag]], pairs];
-	$f3CubicalCount += Length[pairs];
-	{6, start, Length[pairs], 0, 0}
-]
 
 (* Encode non-Type/non-Value composite terms (Recursor rules, RewriteRule LHS/RHS) into termRef[row] *)
 format3EncodeMetaValue[value_] := Which[
@@ -1240,7 +1260,12 @@ format3EncodeMetaValue[value_] := Which[
 	True, value
 ]
 
-format3EncodeRecordStmt[record_Association, includeProofs_] := Module[
+format3EncodeRecordStmt[record_Association, includeProofs_] := If[ record["Kind"] === "Recursor",
+	Block[{$f3LocalNodeRow = <||>}, format3EncodeRecordStmtBody[record, includeProofs]],
+	format3EncodeRecordStmtBody[record, includeProofs]
+]
+
+format3EncodeRecordStmtBody[record_Association, includeProofs_] := Module[
 	{effective = record, kind, typeRoot = 0, meta, flags = 0},
 	If[ ! TrueQ[includeProofs] && MemberQ[{"Theorem", "Opaque"}, effective["Kind"]],
 		effective = Join[<|"Kind" -> "Axiom"|>, KeyDrop[effective, {"Kind", "Value"}]]
@@ -1344,7 +1369,7 @@ format3FingerprintRecord[entry_Association, leaves_List] := Module[
 
 saveFormat3Environment[file_String, environment : TypeTheoryEnvironment[store_Symbol], options : OptionsPattern[saveFormat3Environment]] := catchKernelFailure @ Block[
 	{
-		$f3NodeIndex = <||>, $f3SharedStmtIndex = <||>, $f3NodeCount = 0, $f3LeafIndex = <||>, $f3LabelIndex = <||>, $f3LeafCount = 0, $f3LabelCount = 0, $f3CubicalCount = 0,
+		$f3NodeIndex = <||>, $f3SharedStmtIndex = <||>, $f3LocalNodeRow = <||>, $f3NodeCount = 0, $f3LeafIndex = <||>, $f3LabelIndex = <||>, $f3LeafCount = 0, $f3LabelCount = 0, $f3CubicalCount = 0,
 		$f3NodeSowTag, $f3LeafSowTag, $f3LabelSowTag, $f3CubicalTag, $f3StreamingProofQ = False
 	},
 	Module[
@@ -1926,7 +1951,7 @@ $streamProofTag = 2^40
 
 writeFormat3Batch[writer_Symbol, records_Association] := catchKernelFailure @ Block[
 	{
-		$f3NodeIndex = writer["StmtNodeIndex"], $f3SharedStmtIndex = <||>, $f3NodeCount = writer["StmtNodeCount"],
+		$f3NodeIndex = writer["StmtNodeIndex"], $f3SharedStmtIndex = <||>, $f3LocalNodeRow = <||>, $f3NodeCount = writer["StmtNodeCount"],
 		$f3LeafIndex = writer["LeafIndex"], $f3LabelIndex = writer["LabelIndex"],
 		$f3LeafCount = writer["LeafCount"], $f3LabelCount = writer["LabelCount"], $f3CubicalCount = writer["CubicalCount"],
 		$f3NodeSowTag = "StmtNodes", $f3LeafSowTag = "NewLeaves", $f3LabelSowTag = "NewLabels", $f3CubicalTag = "NewCubical",

@@ -192,7 +192,7 @@ environmentBase[TypeTheoryEnvironment[store_Symbol]] := Replace[store["Library"]
 
 (* the contents of environment beyond base, its terms in a table of rows, sown as they are made *)
 environmentContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
-	{$nodeIndex = <||>, $nodeCount = 0, contentNames, contentRecords, contentNodes},
+	{$nodeTupleIndex = <||>, $localNodeRow = <||>, $nodeCount = 0, contentNames, contentRecords, contentNodes},
 	contentNames = Drop[environmentNames[environment], Replace[base, {None -> 0, {_, baseEnvironment_} :> Length[environmentNames[baseEnvironment]]}]];
 	{contentRecords, contentNodes} = Reap[AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], contentNames], $nodeTag];
 	<|
@@ -247,7 +247,7 @@ environmentRecordHashes[environment : TypeTheoryEnvironment[store_Symbol]] := Re
 (* The structural hash of records that are in no environment, as a theorem's read as an axiom of its statement: the
    records' terms in a table of their own, fingerprinted as an environment's are. *)
 recordFingerprints[<||>] := <||>
-recordFingerprints[records_Association] := Block[{$nodeIndex = <||>, $nodeCount = 0, printedRecords, printedNodes},
+recordFingerprints[records_Association] := Block[{$nodeTupleIndex = <||>, $localNodeRow = <||>, $nodeCount = 0, printedRecords, printedNodes},
 	{printedRecords, printedNodes} = Reap[Map[recordRefs, records], $nodeTag];
 	With[{packed = packedContents[<|"Nodes" -> Replace[printedNodes, {{nodes_List} :> nodes, {} -> {}}], "Records" -> printedRecords|>]},
 		If[ packed["FormatVersion"] === 1,
@@ -288,7 +288,7 @@ keptContents[environment : TypeTheoryEnvironment[store_Symbol], base_] := Block[
 				kernelFailure["SavedTableChanged", "The record of `1` is not the one read with the table it was saved in, so the environment is not written.", {HoldForm @@ First[changed]}]
 			];
 			addedNames = Drop[keptNames, Length[coveredNames]];
-			{addedRecords, addedNodes} = Block[{$nodeIndex = <||>, $nodeCount = Length[kept["Table"]]},
+			{addedRecords, addedNodes} = Block[{$nodeTupleIndex = <||>, $localNodeRow = <||>, $nodeCount = Length[kept["Table"]]},
 				Reap[AssociationMap[Function[name, recordRefs[constantRecord[environment, name]]], addedNames], $nodeTag]
 			];
 			addedNodes = Replace[addedNodes, {{nodes_List} :> nodes, {} -> {}}];
@@ -482,7 +482,16 @@ compiledRowDepths = With[{partColumns = {{1, 1, 0, 0}, {0, 1, 1, 0}, {0, 1, 1, 0
 compositeTermQ[_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection | _cubicalSystem] := True
 compositeTermQ[_] := False
 
-recordRefs[record_Association] := Map[valueRefs, record]
+(* Two-level DAG deduplication: non-recursor records share $localNodeRow across the batch so shared
+   DAG subterms from one import table are walked once, while each kernel-generated Recursor record
+   (whose terms were rebuilt by InductiveTypes.wl with distinct pointers) gets a fresh per-record
+   $localNodeRow so it never triggers cross-record structural SameQ against imported constructors or
+   other recursors. Global deduplication across all records happens via $nodeTupleIndex on flat
+   child-ID/leaf tuples (zero composite terms as keys). *)
+recordRefs[record_Association] := If[ record["Kind"] === "Recursor",
+	Block[{$localNodeRow = <||>}, Map[valueRefs, record]],
+	Map[valueRefs, record]
+]
 valueRefs[value_] := Which[
 	compositeTermQ[value], termRef[nodeRow[value]],
 	AssociationQ[value], Map[valueRefs, value],
@@ -492,27 +501,28 @@ valueRefs[value_] := Which[
 
 (* the row of a composite term, its own added after the rows of its parts, iteratively on a cons-list stack so deep
    terms never hit $RecursionLimit *)
-nodeRow[root_] := If[ KeyExistsQ[$nodeIndex, root],
-	Lookup[$nodeIndex, Key[root]],
-	Block[{nodeStack = {{root, False}, None}, stackEntry, currentNode, readyToEmit},
+nodeRow[root_] := If[ KeyExistsQ[$localNodeRow, root],
+	Lookup[$localNodeRow, Key[root]],
+	Block[{nodeStack = {{root, False}, None}, stackEntry, currentNode, readyToEmit, emittedNode, emittedRow},
 		While[ nodeStack =!= None,
 			stackEntry = First[nodeStack];
 			nodeStack = Last[nodeStack];
 			currentNode = First[stackEntry];
 			readyToEmit = Last[stackEntry];
-			If[ ! KeyExistsQ[$nodeIndex, currentNode],
+			If[ ! KeyExistsQ[$localNodeRow, currentNode],
 				If[ readyToEmit,
-					Sow[termNode[currentNode], $nodeTag];
-					$nodeIndex[currentNode] = ++$nodeCount,
+					emittedNode = termNode[currentNode];
+					emittedRow = Lookup[$nodeTupleIndex, Key[emittedNode], Sow[emittedNode, $nodeTag]; $nodeTupleIndex[emittedNode] = ++$nodeCount];
+					$localNodeRow[currentNode] = emittedRow,
 					nodeStack = pushNodeChildren[currentNode, {{currentNode, True}, nodeStack}]
 				]
 			]
 		];
-		Lookup[$nodeIndex, Key[root]]
+		Lookup[$localNodeRow, Key[root]]
 	]
 ]
 
-pushNodeChild[child_, stack_] := If[compositeTermQ[child] && ! KeyExistsQ[$nodeIndex, child], {{child, False}, stack}, stack]
+pushNodeChild[child_, stack_] := If[compositeTermQ[child] && ! KeyExistsQ[$localNodeRow, child], {{child, False}, stack}, stack]
 
 (* children pushed in reverse order so left-to-right post-order matches recursive traversal bit-for-bit *)
 pushNodeChildren[application[function_, argument_], stack_] :=
@@ -527,7 +537,7 @@ pushNodeChildren[cubicalSystem[branches_List], stack_] :=
 	Fold[Function[{rest, branch}, pushNodeChild[branch, rest]], stack, Reverse[Flatten[branches, 1]]]
 pushNodeChildren[_, stack_] := stack
 
-part[term_] := If[compositeTermQ[term], termRef[Lookup[$nodeIndex, Key[term]]], term]
+part[term_] := If[compositeTermQ[term], termRef[Lookup[$localNodeRow, Key[term]]], term]
 
 termNode[application[function_, argument_]] := {"a", part[function], part[argument]}
 termNode[lambdaAbstraction[name_, domain_, body_, binder_]] := {"l", name, part[domain], part[body], binder}

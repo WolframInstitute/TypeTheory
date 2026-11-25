@@ -2411,20 +2411,80 @@ levelRowOf[_] := notHandled[]
 levelListRow[{}] := $nilRow
 levelListRow[{first_, rest___}] := Lookup[$levelIndex, Key[{"List", first, rest}], addLevelRow[{"List", first, rest}, {6, levelRow[first], levelListRow[{rest}]}]]
 
-(* a term's row, its parts' rows sown before its own *)
-termRow[term_] := Lookup[$termIndex, Key[term], Sow[termRowOf[term], compiledKernelInput]; $termIndex[term] = ++$termCount]
+(* Two-level iterative term encoder: non-recursor records share $localCompiledTermRow across the batch so
+   shared DAG subterms from an import table are visited once, while each kernel-generated Recursor record
+   (whose terms were rebuilt by InductiveTypes.wl with distinct pointers) runs inside a fresh per-record
+   $localCompiledTermRow so it never triggers cross-record structural SameQ. Global deduplication across
+   all records happens via $termTupleIndex on flat 4-integer row tuples. *)
+compiledCompositeTermQ[_application | _lambdaAbstraction | _dependentFunctionType | _localDefinition | _projection] := True
+compiledCompositeTermQ[_] := False
 
-termRowOf[application[function_, argument_]] := {4, termRow[function], termRow[argument], 0}
-termRowOf[lambdaAbstraction[_, domain_, body_, _String]] := {5, termRow[domain], termRow[body], 0}
-termRowOf[dependentFunctionType[_, domain_, body_, _String]] := {6, termRow[domain], termRow[body], 0}
-termRowOf[localDefinition[_, type_, value_, body_]] := {7, termRow[type], termRow[value], termRow[body]}
-termRowOf[projection[structure_, index_Integer, term_]] := {9, Lookup[$constantIndex, Key[structure], notHandled[]], index, termRow[term]}
-termRowOf[boundVariable[index_Integer?NonNegative]] := {1, index, 0, 0}
-termRowOf[universeSort[level_]] := {2, levelRow[level], 0, 0}
-termRowOf[constantReference[name_, levels_List]] := {3, Lookup[$constantIndex, Key[name], notHandled[]], levelListRow[levels], 0}
-termRowOf[naturalLiteral[n_Integer]] /; 0 <= n < 2^62 := {8, n, 0, 0}
-termRowOf[naturalLiteral[n_Integer]] /; 2^62 <= n < 2^(30 $limbCap) := {11, limbChainRow[n], 0, 0}
-termRowOf[naturalLiteral[n_Integer]] /; n >= 2^(30 $limbCap) := largeLiteralRow[n]
+compiledLeafRow[leaf_] := Lookup[
+	$termIndex,
+	Key[leaf],
+	Block[{compiledLeafTuple = compiledLeafTupleOf[leaf]},
+		Lookup[$termTupleIndex, Key[compiledLeafTuple], Sow[compiledLeafTuple, compiledKernelInput]; $termTupleIndex[compiledLeafTuple] = ++$termCount]
+	]
+]
+
+compiledTermChildRow[term_] := If[compiledCompositeTermQ[term], Lookup[$localCompiledTermRow, Key[term]], compiledLeafRow[term]]
+
+termRow[root_] := If[ ! compiledCompositeTermQ[root],
+	compiledLeafRow[root],
+	If[ KeyExistsQ[$localCompiledTermRow, root],
+		Lookup[$localCompiledTermRow, Key[root]],
+		Block[
+			{
+				compiledTermStack = {{root, False}, None},
+				compiledTermEntry, compiledTermCurrent, compiledTermReady, compiledTermTuple, compiledTermRowId
+			},
+			While[ compiledTermStack =!= None,
+				compiledTermEntry = First[compiledTermStack];
+				compiledTermStack = Last[compiledTermStack];
+				compiledTermCurrent = First[compiledTermEntry];
+				compiledTermReady = Last[compiledTermEntry];
+				If[ ! KeyExistsQ[$localCompiledTermRow, compiledTermCurrent],
+					If[ compiledTermReady,
+						compiledTermTuple = compiledCompositeTupleOf[compiledTermCurrent];
+						compiledTermRowId = Lookup[$termTupleIndex, Key[compiledTermTuple], Sow[compiledTermTuple, compiledKernelInput]; $termTupleIndex[compiledTermTuple] = ++$termCount];
+						$localCompiledTermRow[compiledTermCurrent] = compiledTermRowId,
+						compiledTermStack = pushCompiledTermChildren[compiledTermCurrent, {{compiledTermCurrent, True}, compiledTermStack}]
+					]
+				]
+			];
+			Lookup[$localCompiledTermRow, Key[root]]
+		]
+	]
+]
+
+recursorTermRow[root_] := Block[{$localCompiledTermRow = <||>}, termRow[root]]
+
+pushCompiledTermChild[child_, stack_] := If[compiledCompositeTermQ[child] && ! KeyExistsQ[$localCompiledTermRow, child], {{child, False}, stack}, stack]
+
+pushCompiledTermChildren[application[function_, argument_], stack_] :=
+	pushCompiledTermChild[function, pushCompiledTermChild[argument, stack]]
+pushCompiledTermChildren[(lambdaAbstraction | dependentFunctionType)[_, domain_, body_, _String], stack_] :=
+	pushCompiledTermChild[domain, pushCompiledTermChild[body, stack]]
+pushCompiledTermChildren[localDefinition[_, type_, value_, body_], stack_] :=
+	pushCompiledTermChild[type, pushCompiledTermChild[value, pushCompiledTermChild[body, stack]]]
+pushCompiledTermChildren[projection[_, _Integer, term_], stack_] :=
+	pushCompiledTermChild[term, stack]
+pushCompiledTermChildren[_, _] := notHandled[]
+
+compiledCompositeTupleOf[application[function_, argument_]] := {4, compiledTermChildRow[function], compiledTermChildRow[argument], 0}
+compiledCompositeTupleOf[lambdaAbstraction[_, domain_, body_, _String]] := {5, compiledTermChildRow[domain], compiledTermChildRow[body], 0}
+compiledCompositeTupleOf[dependentFunctionType[_, domain_, body_, _String]] := {6, compiledTermChildRow[domain], compiledTermChildRow[body], 0}
+compiledCompositeTupleOf[localDefinition[_, type_, value_, body_]] := {7, compiledTermChildRow[type], compiledTermChildRow[value], compiledTermChildRow[body]}
+compiledCompositeTupleOf[projection[structure_, index_Integer, term_]] := {9, Lookup[$constantIndex, Key[structure], notHandled[]], index, compiledTermChildRow[term]}
+compiledCompositeTupleOf[_] := notHandled[]
+
+compiledLeafTupleOf[boundVariable[index_Integer?NonNegative]] := {1, index, 0, 0}
+compiledLeafTupleOf[universeSort[level_]] := {2, levelRow[level], 0, 0}
+compiledLeafTupleOf[constantReference[name_, levels_List]] := {3, Lookup[$constantIndex, Key[name], notHandled[]], levelListRow[levels], 0}
+compiledLeafTupleOf[naturalLiteral[n_Integer]] /; 0 <= n < 2^62 := {8, n, 0, 0}
+compiledLeafTupleOf[naturalLiteral[n_Integer]] /; 2^62 <= n < 2^(30 $limbCap) := {11, limbChainRow[n], 0, 0}
+compiledLeafTupleOf[naturalLiteral[n_Integer]] /; n >= 2^(30 $limbCap) := largeLiteralRow[n]
+compiledLeafTupleOf[_] := notHandled[]
 
 (* the most limbs of 30 bits a literal of the program has: one with more is a constant made for its value *)
 $limbCap = 1024
@@ -2435,7 +2495,6 @@ limbChainRow[n_Integer] := With[{limbs = Reverse[IntegerDigits[n, 2^30]]},
 ]
 
 limbRow[low_Integer, high_Integer, rest_Integer] := Lookup[$limbIndex, Key[{low, high, rest}], Sow[{12, low, high, rest}, compiledKernelInput]; $limbIndex[{low, high, rest}] = ++$termCount]
-termRowOf[_] := notHandled[]
 
 (* The rows of the seed's terms, the first rows, and the terms put in the index, where the walk of the records finds them.
    The leaves come first; then the rows of the other terms are made at once from the rows of their parts, which come
@@ -2621,8 +2680,8 @@ constantRows[records_List] := Block[{constantKinds = Lookup[$kindCodes, Lookup[r
 	constantTable = Transpose[Join[
 		{
 			constantKinds,
-			termRows[Lookup[records, "Type"]],
-			termRows[Lookup[records, "Value", Missing["NoValue"]]],
+			termRows[Lookup[records, "Type"], constantKinds],
+			termRows[Lookup[records, "Value", Missing["NoValue"]], constantKinds],
 			distinctRows[Function[parameters, levelListRow[levelParameter /@ parameters]], Lookup[records, "UniverseParameters"]],
 			Length /@ Lookup[records, "UniverseParameters"],
 			Lookup[records, "Height", 0],
@@ -2635,10 +2694,20 @@ constantRows[records_List] := Block[{constantKinds = Lookup[$kindCodes, Lookup[r
 	constantTable
 ]
 
-(* the rows of terms, those not yet in the index walked; a record without a value has 0 *)
-termRows[terms_List] := Block[{termRowValues = Lookup[$termIndex, terms, 0], walked},
+(* the rows of terms, those not yet in the seed index walked; recursors are kernel-generated (never from the
+   seed table) and bypass $termIndex so a recursor type never triggers structural SameQ against a seeded root *)
+termRows[terms_List, kinds_List] := Block[{termRowValues = ConstantArray[0, Length[terms]], seedEligible, walked},
+	If[ Length[$termIndex] > 0,
+		seedEligible = Pick[Range[Length[terms]], MapThread[Function[{kind, term}, kind =!= 7 && term =!= Missing["NoValue"]], {kinds, terms}]];
+		If[seedEligible =!= {}, termRowValues[[seedEligible]] = Lookup[$termIndex, terms[[seedEligible]], 0]]
+	];
 	walked = Pick[Range[Length[terms]], MapThread[Function[{row, term}, row === 0 && term =!= Missing["NoValue"]], {termRowValues, terms}]];
-	If[walked =!= {}, termRowValues[[walked]] = termRow /@ terms[[walked]]];
+	If[ walked =!= {},
+		termRowValues[[walked]] = MapThread[
+			Function[{term, kind}, If[kind === 7, recursorTermRow[term], termRow[term]]],
+			{terms[[walked]], kinds[[walked]]}
+		]
+	];
 	termRowValues
 ]
 
@@ -2666,10 +2735,10 @@ kindColumns[record_] := Switch[record["Kind"],
 			Boole[TrueQ[record["KLike"]]],
 			Boole[TrueQ[record["EliminationUniverse"]]],
 			Length[record["Rules"]],
-			flatAppend[Catenate[KeyValueMap[
+			flatAppend[Block[{$localCompiledTermRow = <||>}, Catenate[KeyValueMap[
 				Function[{constructor, rule}, {$constantIndex[constructor], rule["NumberOfParameters"], rule["NumberOfFields"], -termRow[rule["RightHandSide"]]}],
 				record["Rules"]
-			]]]
+			]]]]
 		},
 	"Quotient",
 		{$quotientRoleCodes[record["QuotientRole"]], $constantIndex[record["Introduction"]], 0, 0, 0, 0, 0, 0, 0}
@@ -2729,7 +2798,7 @@ lazyConeSelection[environment : TypeTheoryEnvironment[store_Symbol], trusted_Int
    theorem, and a registration then need not compare them again. *)
 environmentInput[environment_, trusted_Integer, trustedRegistrations_Integer, capacityFactor_] := Catch[Block[
 	{
-		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $limbIndex = <||>, $termCount = 0, $flatCount = 0, $largeLiterals = <||>, $largeLiteralBase = None,
+		$constantIndex, $levelIndex = <||>, $levelRows = <||>, $levelCount = 0, $parameterIndex = <||>, $nilRow, $termIndex = <||>, $termTupleIndex = <||>, $localCompiledTermRow = <||>, $limbIndex = <||>, $termCount = 0, $flatCount = 0, $largeLiterals = <||>, $largeLiteralBase = None,
 		natural = naturalNumberSettings[environment], equations, coneSelection, constantNames, effectiveTrusted, names, records, seeded, constants, nodes, flat, capacity, large, order
 	},
 	If[! MatchQ[environmentRules[environment], TypeTheoryRules[KeyValuePattern[{"Prop" -> True, "RewriteRules" -> False, "Quantities" -> False, "Cubical" -> False}]]], notHandled[]];

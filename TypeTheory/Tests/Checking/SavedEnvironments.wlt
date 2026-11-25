@@ -385,3 +385,82 @@ VerificationTest[
 	{TypeTheoryEnvironment, 1600, True, True, True, True},
 	TestID -> "Deep-terms-and-shared-DAG-subterms-save-and-reload-without-hitting-RecursionLimit"
 ]
+
+(* Cross-record pointer duplication between a constructor (original pointers) and its kernel-generated
+   recursor (rebuilt pointers): a 35-deep (2^35-leaf) shared-DAG parameterized inductive type must
+   compute Signature, export/reload Format 2 .wxf and Format 3 .tte with identical content hashes,
+   and encode unseeded CompiledKernel environmentInput without exponential SameQ fallback. *)
+VerificationTest[
+	Module[
+		{
+			base, u1, app, depFn, cref, bv, pairRef, buildDiamond, indType, f1, f2, ctorType,
+			env, sig, dir, wxfFile, tteFile, rawWxf, envWxf, envTte, envInput, inp
+		},
+		base = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+			TypeTheoryAxiom["PairType", TypeSpecifier[{TypeUniverse[1], TypeUniverse[1]} -> TypeUniverse[1]]]
+		}];
+		u1 = WolframInstitute`TypeTheory`PackageScope`universeSort[1];
+		app = WolframInstitute`TypeTheory`PackageScope`application;
+		depFn = WolframInstitute`TypeTheory`PackageScope`dependentFunctionType;
+		cref = WolframInstitute`TypeTheory`PackageScope`constantReference;
+		bv = WolframInstitute`TypeTheory`PackageScope`boundVariable;
+		pairRef = cref[HoldComplete["PairType"], {}];
+		buildDiamond = Nest[Construct[app, Construct[app, pairRef, #], #] &, #1, #2] &;
+		indType = Construct[depFn, HoldComplete[A], u1, u1, "Explicit"];
+		f1 = buildDiamond[bv[0], 35];
+		f2 = buildDiamond[bv[1], 35];
+		ctorType = Construct[depFn, HoldComplete[A], u1,
+			Construct[depFn, HoldComplete[x1], f1,
+				Construct[depFn, HoldComplete[x2], f2,
+					Construct[app, cref[HoldComplete["CrossRecDiamond"], {}], bv[2]],
+					"Explicit"
+				],
+				"Explicit"
+			],
+			"Explicit"
+		];
+		env = Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+			WolframInstitute`TypeTheory`PackageScope`declareInductiveType[
+				base, HoldComplete["CrossRecDiamond"], {}, 1, indType,
+				{HoldComplete["CrossRecDiamondMake"] -> ctorType}
+			]
+		];
+		dir = CreateDirectory[];
+		wxfFile = FileNameJoin[{dir, "cross.wxf"}];
+		tteFile = FileNameJoin[{dir, "cross.tte"}];
+		envInput = WolframInstitute`TypeTheory`Checking`CompiledKernel`Private`environmentInput;
+		{sig, inp} = TimeConstrained[
+			{
+				Information[env, "Signature"],
+				envInput[env, 0, 0, 1]
+			},
+			10,
+			{$Failed, $Failed}
+		];
+		TimeConstrained[
+			Export[wxfFile, env];
+			Export[tteFile, env],
+			10,
+			$Failed
+		];
+		rawWxf = First[BinaryDeserialize[ReadByteArray[wxfFile], HoldComplete]];
+		envWxf = TypeTheoryEnvironment[File[wxfFile]];
+		envTte = TypeTheoryEnvironment[File[tteFile]];
+		With[
+			{
+				result = {
+					AssociationQ[sig] && KeyExistsQ[sig["Records"], HoldComplete[InductiveRecursor["CrossRecDiamond"]]],
+					AssociationQ[inp] && Length[inp["Nodes"]] < 1000,
+					Length[rawWxf["Table"]] < 1000,
+					Information[envWxf, "Hash"] === Information[env, "Hash"],
+					Information[envTte, "Hash"] === Information[env, "Hash"],
+					Information[envTte, "Signature"] === sig
+				}
+			},
+			DeleteDirectory[dir, DeleteContents -> True];
+			result
+		]
+	],
+	{True, True, True, True, True, True},
+	TestID -> "Cross-record-constructor-and-recursor-shared-DAG-encodes-without-SameQ-explosion"
+]
