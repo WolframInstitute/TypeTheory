@@ -4,10 +4,10 @@ Name: TypeTheoryEnvironment
 Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/TypeTheoryEnvironment
-Keywords: [environment, declarations, constants, prelude, constructive, classical, kernel, theorem, axiom, definition, inductive type, library environment, integers, rationals, homotopy type theory, cubical, saved environment, compiled kernel]
+Keywords: [environment, declarations, constants, prelude, constructive, classical, kernel, theorem, axiom, definition, inductive type, library environment, integers, rationals, homotopy type theory, cubical, saved environment, compiled kernel, set theory, ZFC]
 SeeAlso: [SetTypeTheoryEnvironment, $TypeTheoryEnvironment, TypeTheoryTheorem, TypeTheoryAxiom, TypeTheoryDefinition, TypeTheoryInductiveType, TypeTheoryRules, TypeTheoryRewriteRule, TypeTheoryTerm, TypeTheoryCheck, TypeTheoryTranslate]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Universality]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Universality, ZermeloFraenkelSetTheory]
 ---
 
 ## Usage
@@ -38,6 +38,8 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Uni
 
 <code>[TypeTheoryEnvironment]()["Wolfram23"]</code> gives the prelude extended with Alex Smith's chain of emulations and the zero-axiom proof that Wolfram's 2-state, 3-color Turing machine is universal (`"conjecture0Finite"`, `"decodeTM"`, `"wolfram23Universal"`).
 
+<code>[TypeTheoryEnvironment]()["ZFC"]</code> gives the prelude with Zermelo-Fraenkel set theory with choice in Aczel's model: a set is a well-founded tree of sets, `"Set"`, with membership [Element](), and every axiom of ZFC is a theorem proved from the prelude's three axioms, with no axiom of its own.
+
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
 <code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> and <code>[TypeTheoryEnvironment]()[[File]()["*file*.tte"]]</code> read an environment that [Export]() saved, without checking its declarations again; `.tte` files load constants and proofs lazily on demand.
@@ -46,7 +48,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Uni
 
 - A declaration is one of [TypeTheoryAxiom](), [TypeTheoryDefinition](), [TypeTheoryTheorem](), [TypeTheoryInductiveType](), [TypeTheoryNaturalNumbers](), [TypeTheoryRewriteRule](), [TypeTheoryQuotients]() and [TypeTheoryCubical](). Each is checked by the kernel in the environment the declarations before it made, and the result is a new environment, or a [Failure]() for the first declaration that does not check, with none of them added.
 - A single declaration needs no list: <code>[TypeTheoryEnvironment]()[*declaration*]</code> and <code>[TypeTheoryEnvironment]()[*env*, *declaration*]</code> add one, and so does <code>[Append]()[*env*, *declaration*]</code>.
-- The library environments are named by strings: `"Prelude"`, `"Constructive"`, `"HomotopyTypeTheory"`, `"Integers"`, `"Rationals"`, `"Machine"`, `"MachineReals"`, `"Cubical"` and `"Wolfram23"`, and `"WolframLanguage"` is an old name of the prelude, from when the Wolfram Language's expressions were an environment of their own. Every function that takes an environment takes its name too, as in <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code> and <code>[TypeTheoryType]()[*term*, "HomotopyTypeTheory"]</code>. Any other name gives a [Failure]() tagged `"UnknownEnvironment"` that lists the names.
+- The library environments are named by strings: `"Prelude"`, `"Constructive"`, `"HomotopyTypeTheory"`, `"Integers"`, `"Rationals"`, `"Machine"`, `"MachineReals"`, `"Cubical"`, `"Wolfram23"` and `"ZFC"`, and `"WolframLanguage"` is an old name of the prelude, from when the Wolfram Language's expressions were an environment of their own. Every function that takes an environment takes its name too, as in <code>[TypeTheoryTerm]()[*term*, "Integers"]</code>, <code>[TypeTheoryProof]()[*statement*, "Integers", {...}]</code> and <code>[TypeTheoryType]()[*term*, "HomotopyTypeTheory"]</code>. Any other name gives a [Failure]() tagged `"UnknownEnvironment"` that lists the names.
 - The default environment, [$TypeTheoryEnvironment](), is the environment wherever none is given: declarations without one extend it, and a [TypeTheoryTerm]() or [TypeTheoryProof]() without one is in it. It is the prelude unless [SetTypeTheoryEnvironment]() set another. <code>[TypeTheoryEnvironment]()[[TypeTheoryEnvironment]()[], {*declaration1*, ...}]</code> starts from no constants instead.
 - Every environment carries the rules it was started with, which say what the kernel allows and computes: the prelude follows the calculus of inductive constructions, the HoTT environment Martin-Löf type theory with rewrite rules, and the cubical environment cubical type theory. Environments made from one follow its rules, and <code>[Information]()[*env*, "Rules"]</code> gives them.
 - The prelude is classical: it assumes `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`, and proves `"functionExtensionality"` and `"excludedMiddle"` from them. Its fourth axiom, [ExpressionEvaluate](), is the evaluation of the Wolfram Language. The constructive environment has none of these, so other axioms can be declared on it with [TypeTheoryAxiom]().
