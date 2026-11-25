@@ -24,6 +24,13 @@ SetEnvironment["TYPETHEORY_NOTEBOOK_BOXES" -> "True"]
 
 PacletDirectoryLoad[pacletDirectory]
 
+(* Each test file loads the paclet with Needs, which takes the highest version the paclet manager knows: an installed
+   release newer than this checkout would be tested in its place. The checkout's own code is loaded first, so each
+   file's Needs finds the context loaded, and the paclet finds its libraries and saved environments beside that code. *)
+Get[FileNameJoin[{pacletDirectory, "Kernel", "TypeTheory.wl"}]]
+
+Print["TypeTheory ", PacletObject[File[pacletDirectory]]["Version"], " from ", pacletDirectory]
+
 (* a file given relative to the repository root is made absolute, so that its line names it under the tests *)
 testFiles = If[ Length[$ScriptCommandLine] > 1,
 	Map[ExpandFileName, Rest[$ScriptCommandLine]],
