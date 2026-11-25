@@ -139,6 +139,7 @@ $program = Hold[{
 	kfn[arenaFailed, Function[{m}, If[m["Part", hStatus] != 0, 1, 0]]],
 	kfn[arenaEnter, Function[{m}, Module[{d = m["Part", hDepth] + 1},
 		m["SetPart", hDepth, d];
+		If[m["Part", hStatus] != 0, Return[0]];
 		If[d > m["Part", hMaxDepth], m["SetPart", hMaxDepth, d]];
 		If[d > m["Part", hDepthLimit], arenaFail[m, eDepth]; 0, 1]
 	]]],
@@ -958,6 +959,7 @@ $program = Hold[{
 			t == tProj, arenaMkProj[m, arenaF1Of[m, e], arenaF2Of[m, e], arenaInstUniv[m, arenaF3Of[m, e], params, levels]],
 			True, e
 		];
+		If[r == 0 || arenaFailed[m] == 1, Return[arenaLeave[m, 0]]];
 		slot = arenaUnivSlot[m, e, levels, params];
 		arenaUnivStore[m, slot, e, levels, params, r];
 		arenaLeave[m, r]

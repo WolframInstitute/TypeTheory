@@ -1496,3 +1496,70 @@ VerificationTest[
 	{True, True, True, True},
 	TestID -> "Open-large-literal-product-avoids-unfolding-cascade-and-rejects-forgeries"
 ]
+
+(* Failure unwinding on a deep shared DAG: hitting eCapacity mid-walk (arenaInst / arenaAbstMany on a
+   40-deep / 2^40-leaf binary DAG) must short-circuit immediately in arenaEnter rather than unrolling
+   the remaining DAG branches unmemoized; normal capacity succeeds and a forged proof is still rejected. *)
+VerificationTest[
+	If[ ! available,
+		{True, True, True, True},
+		Module[
+			{
+				app = WolframInstitute`TypeTheory`PackageScope`application,
+				lam = WolframInstitute`TypeTheory`PackageScope`lambdaAbstraction,
+				pi = WolframInstitute`TypeTheory`PackageScope`dependentFunctionType,
+				cref = WolframInstitute`TypeTheory`PackageScope`constantReference,
+				bvar = WolframInstitute`TypeTheory`PackageScope`boundVariable,
+				base, baseCount, elemRef, fRef, eqRef, reflRef, dag, stmtType, goodProof, badStmt,
+				dagEnv, forgedDag, input, tightSettings, tightRes, fullRes, forgedInput, forgedRes, t0, elapsed
+			},
+			base = TypeTheoryEnvironment[TypeTheoryEnvironment[], {
+				TypeTheoryAxiom["DagElem", TypeUniverse[1]],
+				TypeTheoryAxiom["dagBinOp", TypeSpecifier[{"DagElem", "DagElem"} -> "DagElem"]],
+				TypeTheoryAxiom["dagEq", ForAll[{Typed[a, "DagElem"], Typed[b, "DagElem"]}, TypeUniverse[0]]],
+				TypeTheoryAxiom["dagRefl", ForAll[{Typed[a, "DagElem"]}, "dagEq"[a, a]]]
+			}, Method -> "Symbolic"];
+			elemRef = Construct[cref, HoldComplete["DagElem"], {}];
+			fRef = Construct[cref, HoldComplete["dagBinOp"], {}];
+			eqRef = Construct[cref, HoldComplete["dagEq"], {}];
+			reflRef = Construct[cref, HoldComplete["dagRefl"], {}];
+			dag = Nest[Construct[app, Construct[app, fRef, #], #] &, Construct[bvar, 0], 40];
+			stmtType = Construct[pi, HoldComplete["x"], elemRef, Construct[pi, HoldComplete["y"], elemRef, Construct[app, Construct[app, eqRef, dag], dag], "Explicit"], "Explicit"];
+			goodProof = Construct[lam, HoldComplete["x"], elemRef, Construct[lam, HoldComplete["y"], elemRef, Construct[app, reflRef, dag], "Explicit"], "Explicit"];
+			badStmt = Construct[pi, HoldComplete["x"], elemRef, Construct[pi, HoldComplete["y"], elemRef, Construct[app, Construct[app, eqRef, dag], Construct[bvar, 1]], "Explicit"], "Explicit"];
+			dagEnv = Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+				WolframInstitute`TypeTheory`PackageScope`declareTheorem[base, HoldComplete["dagCapOk"], {}, stmtType, goodProof]
+			];
+			forgedDag = Block[{WolframInstitute`TypeTheory`PackageScope`$deferKernelChecks = True},
+				WolframInstitute`TypeTheory`PackageScope`declareTheorem[base, HoldComplete["dagCapBad"], {}, badStmt, goodProof]
+			];
+			baseCount = Length[Information[base, "Constants"]];
+			input = compiledPrivate["environmentInput"][dagEnv, baseCount, 0, 1];
+			tightSettings = Developer`ToPackedArray[ReplacePart[Normal[input["Settings"]], 1 -> Length[input["Nodes"]] + 25]];
+			t0 = AbsoluteTime[];
+			tightRes = TimeConstrained[
+				compiledPrivate["compiledKernelFunction"][][
+					input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], tightSettings
+				],
+				10,
+				{999}
+			];
+			elapsed = AbsoluteTime[] - t0;
+			fullRes = compiledPrivate["compiledKernelFunction"][][
+				input["Nodes"], input["Levels"], input["Constants"], input["Flat"], input["Order"], input["Settings"]
+			];
+			forgedInput = compiledPrivate["environmentInput"][forgedDag, baseCount, 0, 1];
+			forgedRes = compiledPrivate["compiledKernelFunction"][][
+				forgedInput["Nodes"], forgedInput["Levels"], forgedInput["Constants"], forgedInput["Flat"], forgedInput["Order"], forgedInput["Settings"]
+			];
+			{
+				tightRes[[1]] === 22,
+				elapsed < 5,
+				fullRes[[1]] === 0,
+				forgedRes[[1]] === 1
+			}
+		]
+	],
+	{True, True, True, True},
+	TestID -> "Shared-DAG-capacity-failure-unwinds-immediately-without-exponential-spin"
+]
