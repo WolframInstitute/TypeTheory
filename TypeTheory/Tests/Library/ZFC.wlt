@@ -19,7 +19,7 @@ VerificationTest[
 VerificationTest[
 	Map[
 		Function[name, Sort[Keys[TypeTheoryAxiomClosure[TypeTheoryTerm @@ {name, zfc}]]]],
-		{"extensionality", "elementOfPair", "elementOfUnion", "elementOfPower", "elementOfSeparation", "emptySetEmpty", "regularity"}
+		{"extensionality", "elementOfPair", "elementOfUnion", "elementOfPower", "elementOfSeparation", "emptySetEmpty", "regularity", "replacement", "infinity", "choiceAxiom"}
 	],
 	{
 		{"propositionalExtensionality", "quotientSoundness"},
@@ -28,9 +28,12 @@ VerificationTest[
 		{"choice", "propositionalExtensionality", "quotientSoundness"},
 		{"choice", "propositionalExtensionality", "quotientSoundness"},
 		{"choice", "propositionalExtensionality", "quotientSoundness"},
+		{"choice", "propositionalExtensionality", "quotientSoundness"},
+		{"choice", "propositionalExtensionality", "quotientSoundness"},
+		{"choice", "propositionalExtensionality", "quotientSoundness"},
 		{"choice", "propositionalExtensionality", "quotientSoundness"}
 	},
-	TestID -> "The-axioms-of-ZF-rest-on-the-prelude's-axioms-alone"
+	TestID -> "The-axioms-of-ZFC-rest-on-the-prelude's-axioms-alone"
 ]
 
 (* membership of classes of pre-sets computes: the class of x is a member of the class of "preSet"[α, f] when x is

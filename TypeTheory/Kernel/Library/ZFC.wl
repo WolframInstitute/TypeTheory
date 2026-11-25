@@ -20,7 +20,12 @@ Every construction is a range, "setRange"[α, F], the set of the values of a fun
 whose members "elementOfRange" gives; it takes a representative of each value by choice. With it:
 
 	"emptySet", "pairSet"[a, b], "unionSet"[a], "powerSet"[a], "separationSet"[a, P]
-	"extensionality", "regularity", "elementInduction"
+	"extensionality", "regularity", "elementInduction", "replacement", "infinity"
+
+"replacement" takes the chosen value of a functional relation at each member; "infinity" is set.mm's form, x in a
+set where every member is in another member, the range of the iterated singletons of x, "singletonIterate"[x, n]. "choiceAxiom" is set.mm's form of choice: for each
+nonempty w in x exactly one u in w shares a member of y with w, y being "choiceSet"[x], the pairs of each nonempty member
+with its chosen member; that the choice is unique rests on "elementIrreflexive" and "elementAsymmetric", from regularity.
 
 Classes are predicates on sets, the vocabulary of set.mm, Metamath's database of ZFC:
 
@@ -919,6 +924,334 @@ $zfcDeclarations = {
 						]
 					]]
 				]
+			]
+		]
+	],
+
+	(* replacement and infinity *)
+	(* replacement: the chosen values of a functional relation on the members of x *)
+	TypeTheoryTheorem[
+		"replacement",
+		ForAll[
+			{Typed[\[Psi], TypeSpecifier[{"Set", "Set"} -> TypeUniverse[0]]], Typed[x, "Set"]},
+			Implies[
+				ForAll[{Typed[w, "Set"]}, Exists[{Typed[y, "Set"]}, ForAll[{Typed[z, "Set"]}, Implies[\[Psi][z, w], z == y]]]],
+				Exists[{Typed[y, "Set"]}, ForAll[{Typed[z, "Set"]}, Equivalent[Element[z, y], Exists[{Typed[w, "Set"]}, And[Element[w, x], \[Psi][z, w]]]]]]
+			]
+		],
+		Function[
+			{
+				Typed[\[Psi], TypeSpecifier[{"Set", "Set"} -> TypeUniverse[0]]], Typed[x, "Set"],
+				Typed[functional, ForAll[{Typed[w, "Set"]}, Exists[{Typed[y, "Set"]}, ForAll[{Typed[z, "Set"]}, Implies[\[Psi][z, w], z == y]]]]]
+			},
+			With[
+				{
+					image = "setRange"[
+						Subtype[Function[{Typed[i, "setIndex"[x]]}, Exists[{Typed[z, "Set"]}, \[Psi][z, "setElement"[x, i]]]]],
+						Function[{Typed[s, Subtype[Function[{Typed[i, "setIndex"[x]]}, Exists[{Typed[z, "Set"]}, \[Psi][z, "setElement"[x, i]]]]]]}, ChosenWitness[s[[2]]]]
+					]
+				},
+				Typed[
+					"existsIntroduction"[image, Function[{Typed[z, "Set"]},
+						With[
+							{
+								range = "elementOfRange"[
+									Subtype[Function[{Typed[i, "setIndex"[x]]}, Exists[{Typed[v, "Set"]}, \[Psi][v, "setElement"[x, i]]]]],
+									Function[{Typed[s, Subtype[Function[{Typed[i, "setIndex"[x]]}, Exists[{Typed[v, "Set"]}, \[Psi][v, "setElement"[x, i]]]]]]}, ChosenWitness[s[[2]]]],
+									z
+								]
+							},
+							"equivalentIntroduction"[
+								Function[{Typed[m, Element[z, image]]},
+									"existsElimination"[range[[1]][m], Function[
+										{
+											Typed[s, Subtype[Function[{Typed[i, "setIndex"[x]]}, Exists[{Typed[v, "Set"]}, \[Psi][v, "setElement"[x, i]]]]]],
+											Typed[e, z == ChosenWitness[s[[2]]]]
+										},
+										Typed[
+											"existsIntroduction"[
+												"setElement"[x, s[[1]]],
+												"andIntroduction"[
+													"elementOfSet"[x, "setElement"[x, s[[1]]]][[2]][Typed["existsIntroduction"[s[[1]], "equalityReflexivity"["setElement"[x, s[[1]]]]], Exists[{Typed[j, "setIndex"[x]]}, "setElement"[x, s[[1]]] == "setElement"[x, j]]]],
+													Construct[
+														"equalitySubstitution", "Set", Function[{Typed[v, "Set"]}, \[Psi][v, "setElement"[x, s[[1]]]]],
+														ChosenWitness[s[[2]]], z, "equalitySymmetry"[e], "chosenWitnessProperty"[s[[2]]]
+													]
+												]
+											],
+											Exists[{Typed[w, "Set"]}, And[Element[w, x], \[Psi][z, w]]]
+										]
+									]]
+								],
+								Function[{Typed[m, Exists[{Typed[w, "Set"]}, And[Element[w, x], \[Psi][z, w]]]]},
+									"existsElimination"[m, Function[{Typed[w, "Set"], Typed[k, And[Element[w, x], \[Psi][z, w]]]},
+										"existsElimination"["elementOfSet"[x, w][[1]][k[[1]]], Function[{Typed[i, "setIndex"[x]], Typed[e, w == "setElement"[x, i]]},
+											With[{holds = Construct["equalitySubstitution", "Set", Function[{Typed[v, "Set"]}, \[Psi][z, v]], w, "setElement"[x, i], e, k[[2]]]},
+												With[{exists = Typed["existsIntroduction"[z, holds], Exists[{Typed[v, "Set"]}, \[Psi][v, "setElement"[x, i]]]]},
+													"existsElimination"[functional["setElement"[x, i]], Function[
+														{Typed[y, "Set"], Typed[unique, ForAll[{Typed[v, "Set"]}, Implies[\[Psi][v, "setElement"[x, i]], v == y]]]},
+														range[[2]][Typed[
+															"existsIntroduction"[
+																"subtype"[i, exists],
+																"equalityTransitivity"[unique[z, holds], "equalitySymmetry"[unique[ChosenWitness[exists], "chosenWitnessProperty"[exists]]]]
+															],
+															Exists[
+																{Typed[s, Subtype[Function[{Typed[j, "setIndex"[x]]}, Exists[{Typed[v, "Set"]}, \[Psi][v, "setElement"[x, j]]]]]]},
+																z == ChosenWitness[s[[2]]]
+															]
+														]]
+													]]
+												]
+											]
+										]]
+									]]
+								]
+							]
+						]
+					]],
+					Exists[{Typed[y, "Set"]}, ForAll[{Typed[z, "Set"]}, Equivalent[Element[z, y], Exists[{Typed[w, "Set"]}, And[Element[w, x], \[Psi][z, w]]]]]]
+				]
+			]
+		]
+	],
+	(* infinity, in the form of set.mm: x, its singleton, the singleton of that, and so on *)
+	TypeTheoryDefinition[
+		"singletonIterate",
+		Typed[
+			Function[{Typed[x, "Set"], Typed[n, NonNegativeIntegers]},
+				InductiveRecursor[NonNegativeIntegers][Function[{Typed[k, NonNegativeIntegers]}, "Set"], x, Function[{Typed[k, NonNegativeIntegers], Typed[r, "Set"]}, "pairSet"[r, r]], n]
+			],
+			TypeSpecifier[{"Set", NonNegativeIntegers} -> "Set"]
+		]
+	],
+	TypeTheoryTheorem[
+		"infinity",
+		ForAll[
+			{Typed[x, "Set"]},
+			Exists[{Typed[y, "Set"]}, And[Element[x, y], ForAll[{Typed[z, "Set"]}, Implies[Element[z, y], Exists[{Typed[w, "Set"]}, And[Element[z, w], Element[w, y]]]]]]]
+		],
+		Function[{Typed[x, "Set"]},
+			With[{range = Function[{Typed[c, "Set"]}, "elementOfRange"[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, "singletonIterate"[x, n]], c]]},
+				Typed[
+					"existsIntroduction"[
+						"setRange"[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, "singletonIterate"[x, n]]],
+						"andIntroduction"[
+							range[x][[2]][Typed["existsIntroduction"["zero", "equalityReflexivity"[x]], Exists[{Typed[n, NonNegativeIntegers]}, x == "singletonIterate"[x, n]]]],
+							Function[{Typed[z, "Set"], Typed[m, Element[z, "setRange"[NonNegativeIntegers, Function[{Typed[n, NonNegativeIntegers]}, "singletonIterate"[x, n]]]]]},
+								"existsElimination"[range[z][[1]][m], Function[{Typed[n, NonNegativeIntegers], Typed[e, z == "singletonIterate"[x, n]]},
+									Typed[
+										"existsIntroduction"[
+											"pairSet"["singletonIterate"[x, n], "singletonIterate"[x, n]],
+											"andIntroduction"[
+												"elementOfPair"["singletonIterate"[x, n], "singletonIterate"[x, n], z][[2]]["orIntroductionLeft"[e]],
+												range["pairSet"["singletonIterate"[x, n], "singletonIterate"[x, n]]][[2]][Typed[
+													"existsIntroduction"["successor"[n], "equalityReflexivity"["pairSet"["singletonIterate"[x, n], "singletonIterate"[x, n]]]],
+													Exists[{Typed[k, NonNegativeIntegers]}, "pairSet"["singletonIterate"[x, n], "singletonIterate"[x, n]] == "singletonIterate"[x, k]]
+												]]
+											]
+										],
+										Exists[{Typed[w, "Set"]}, And[Element[z, w], Element[w, "setRange"[NonNegativeIntegers, Function[{Typed[k, NonNegativeIntegers]}, "singletonIterate"[x, k]]]]]]
+									]
+								]]
+							]
+						]
+					],
+					Exists[{Typed[y, "Set"]}, And[Element[x, y], ForAll[{Typed[z, "Set"]}, Implies[Element[z, y], Exists[{Typed[w, "Set"]}, And[Element[z, w], Element[w, y]]]]]]]
+				]
+			]
+		]
+	],
+
+	(* choice, in the form of set.mm *)
+	TypeTheoryDefinition[
+		"orElimination",
+		Function[
+			{TypedImplicit[a, TypeUniverse[0]], TypedImplicit[b, TypeUniverse[0]], TypedImplicit[c, TypeUniverse[0]], Typed[h, Or[a, b]], Typed[l, Implies[a, c]], Typed[r, Implies[b, c]]},
+			InductiveRecursor[Or][Function[{Typed[o, Or[a, b]]}, c], l, r, h]
+		]
+	],
+	TypeTheoryTheorem[
+		"elementIrreflexive",
+		ForAll[{Typed[a, "Set"]}, Not[Element[a, a]]],
+		"elementInduction"[
+			Function[{Typed[a, "Set"]}, Not[Element[a, a]]],
+			Function[{Typed[a, "Set"], Typed[r, ForAll[{Typed[b, "Set"]}, Implies[Element[b, a], Not[Element[b, b]]]]], Typed[m, Element[a, a]]}, r[a, m, m]]
+		]
+	],
+	TypeTheoryTheorem[
+		"elementAsymmetric",
+		ForAll[{Typed[a, "Set"], Typed[b, "Set"]}, Implies[Element[a, b], Not[Element[b, a]]]],
+		"elementInduction"[
+			Function[{Typed[a, "Set"]}, ForAll[{Typed[b, "Set"]}, Implies[Element[a, b], Not[Element[b, a]]]]],
+			Function[
+				{
+					Typed[a, "Set"],
+					Typed[r, ForAll[{Typed[c, "Set"]}, Implies[Element[c, a], ForAll[{Typed[b, "Set"]}, Implies[Element[c, b], Not[Element[b, c]]]]]]],
+					Typed[b, "Set"], Typed[m, Element[a, b]], Typed[n, Element[b, a]]
+				},
+				r[b, n, a, n, m]
+			]
+		]
+	],
+	(* the chosen member of a set depends on the set alone *)
+	TypeTheoryTheorem[
+		"chosenElementCongruence",
+		ForAll[
+			{Typed[a, "Set"], Typed[b, "Set"]},
+			Implies[a == b, ForAll[{Typed[h, Exists[{Typed[q, "Set"]}, Element[q, a]]], Typed[k, Exists[{Typed[q, "Set"]}, Element[q, b]]]}, ChosenWitness[h] == ChosenWitness[k]]]
+		],
+		Function[{Typed[a, "Set"], Typed[b, "Set"], Typed[e, a == b]},
+			Construct[
+				"equalitySubstitution",
+				"Set",
+				Function[{Typed[c, "Set"]}, ForAll[{Typed[h, Exists[{Typed[q, "Set"]}, Element[q, a]]], Typed[k, Exists[{Typed[q, "Set"]}, Element[q, c]]]}, ChosenWitness[h] == ChosenWitness[k]]],
+				a,
+				b,
+				e,
+				Function[{Typed[h, Exists[{Typed[q, "Set"]}, Element[q, a]]], Typed[k, Exists[{Typed[q, "Set"]}, Element[q, a]]]}, "equalityReflexivity"[ChosenWitness[h]]]
+			]
+		]
+	],
+	(* the indices of the nonempty members of x, and the pairs of each with its chosen member *)
+	TypeTheoryDefinition[
+		"nonemptyIndex",
+		Typed[
+			Function[{Typed[x, "Set"]}, Subtype[Function[{Typed[i, "setIndex"[x]]}, Exists[{Typed[q, "Set"]}, Element[q, "setElement"[x, i]]]]]],
+			TypeSpecifier[{"Set"} -> TypeUniverse[1]]
+		]
+	],
+	TypeTheoryDefinition[
+		"choiceSet",
+		Typed[
+			Function[{Typed[x, "Set"]},
+				"setRange"["nonemptyIndex"[x], Function[{Typed[s, "nonemptyIndex"[x]]}, "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]]]]
+			],
+			TypeSpecifier[{"Set"} -> "Set"]
+		]
+	],
+	TypeTheoryTheorem[
+		"choiceAxiom",
+		ForAll[
+			{Typed[x, "Set"]},
+			Exists[{Typed[y, "Set"]}, ForAll[{Typed[z, "Set"], Typed[w, "Set"]}, Implies[
+				And[Element[z, w], Element[w, x]],
+				Exists[{Typed[v, "Set"]}, ForAll[{Typed[u, "Set"]}, Equivalent[
+					Exists[{Typed[t, "Set"]}, And[And[Element[u, w], Element[w, t]], And[Element[u, t], Element[t, y]]]],
+					u == v
+				]]]
+			]]]
+		],
+		Function[{Typed[x, "Set"]},
+			Typed[
+				"existsIntroduction"["choiceSet"[x], Function[{Typed[z, "Set"], Typed[w, "Set"], Typed[zw, And[Element[z, w], Element[w, x]]]},
+					With[{nonempty = Typed["existsIntroduction"[z, zw[[1]]], Exists[{Typed[q, "Set"]}, Element[q, w]]]},
+						Typed[
+							"existsIntroduction"[ChosenWitness[nonempty], Function[{Typed[u, "Set"]},
+								"equivalentIntroduction"[
+									(* a pair of the choice set holding u and w is the pair of w and its chosen member *)
+									Function[{Typed[k, Exists[{Typed[t, "Set"]}, And[And[Element[u, w], Element[w, t]], And[Element[u, t], Element[t, "choiceSet"[x]]]]]]},
+										"existsElimination"[k, Function[{Typed[t, "Set"], Typed[kt, And[And[Element[u, w], Element[w, t]], And[Element[u, t], Element[t, "choiceSet"[x]]]]]},
+											"existsElimination"[
+												"elementOfRange"["nonemptyIndex"[x], Function[{Typed[s, "nonemptyIndex"[x]]}, "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]]], t][[1]][kt[[2]][[2]]],
+												Function[{Typed[s, "nonemptyIndex"[x]], Typed[et, t == "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]]]},
+													With[
+														{
+															wInPair = Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[w, c]], t, "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]], et, kt[[1]][[2]]],
+															uInPair = Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[u, c]], t, "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]], et, kt[[2]][[1]]]
+														},
+														"orElimination"[
+															"elementOfPair"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]], w][[1]][wInPair],
+															(* w is the first of the pair: u is then w, a member of itself, or its chosen member *)
+															Function[{Typed[wa, w == "setElement"[x, s[[1]]]]},
+																"orElimination"[
+																	"elementOfPair"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]], u][[1]][uInPair],
+																	Function[{Typed[ua, u == "setElement"[x, s[[1]]]]},
+																		Typed[
+																			"falseElimination"["elementIrreflexive"[w, Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[c, w]], u, w, "equalityTransitivity"[ua, "equalitySymmetry"[wa]], kt[[1]][[1]]]]],
+																			u == ChosenWitness[nonempty]
+																		]
+																	],
+																	Function[{Typed[uca, u == ChosenWitness[s[[2]]]]},
+																		"equalityTransitivity"[uca, "equalitySymmetry"["chosenElementCongruence"[w, "setElement"[x, s[[1]]], wa, nonempty, s[[2]]]]]
+																	]
+																]
+															],
+															(* w is the chosen member of the first: either way a cycle of membership *)
+															Function[{Typed[wca, w == ChosenWitness[s[[2]]]]},
+																With[{wa = Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[c, "setElement"[x, s[[1]]]]], ChosenWitness[s[[2]]], w, "equalitySymmetry"[wca], "chosenWitnessProperty"[s[[2]]]]},
+																	"orElimination"[
+																		"elementOfPair"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]], u][[1]][uInPair],
+																		Function[{Typed[ua, u == "setElement"[x, s[[1]]]]},
+																			Typed[
+																				"falseElimination"["elementAsymmetric"[u, w, kt[[1]][[1]], Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[w, c]], "setElement"[x, s[[1]]], u, "equalitySymmetry"[ua], wa]]],
+																				u == ChosenWitness[nonempty]
+																			]
+																		],
+																		Function[{Typed[uca, u == ChosenWitness[s[[2]]]]},
+																			Typed[
+																				"falseElimination"["elementIrreflexive"[u, Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[u, c]], w, u, "equalityTransitivity"[wca, "equalitySymmetry"[uca]], kt[[1]][[1]]]]],
+																				u == ChosenWitness[nonempty]
+																			]
+																		]
+																	]
+																]
+															]
+														]
+													]
+												]
+											]
+										]]
+									],
+									(* the chosen member of w is in the pair of w's index *)
+									Function[{Typed[e, u == ChosenWitness[nonempty]]},
+										"existsElimination"["elementOfSet"[x, w][[1]][zw[[2]]], Function[{Typed[i, "setIndex"[x]], Typed[ew, w == "setElement"[x, i]]},
+											With[
+												{
+													ni = Typed[
+														"existsIntroduction"[z, Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[z, c]], w, "setElement"[x, i], ew, zw[[1]]]],
+														Exists[{Typed[q, "Set"]}, Element[q, "setElement"[x, i]]]
+													]
+												},
+												Typed[
+													"existsIntroduction"[
+														"pairSet"["setElement"[x, i], ChosenWitness[ni]],
+														"andIntroduction"[
+															"andIntroduction"[
+																Construct["equalitySubstitution", "Set", Function[{Typed[c, "Set"]}, Element[c, w]], ChosenWitness[nonempty], u, "equalitySymmetry"[e], "chosenWitnessProperty"[nonempty]],
+																"elementOfPair"["setElement"[x, i], ChosenWitness[ni], w][[2]]["orIntroductionLeft"[ew]]
+															],
+															"andIntroduction"[
+																"elementOfPair"["setElement"[x, i], ChosenWitness[ni], u][[2]]["orIntroductionRight"["equalityTransitivity"[e, "chosenElementCongruence"[w, "setElement"[x, i], ew, nonempty, ni]]]],
+																"elementOfRange"["nonemptyIndex"[x], Function[{Typed[s, "nonemptyIndex"[x]]}, "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]]], "pairSet"["setElement"[x, i], ChosenWitness[ni]]][[2]][
+																	Typed[
+																		"existsIntroduction"["subtype"[i, ni], "equalityReflexivity"["pairSet"["setElement"[x, i], ChosenWitness[ni]]]],
+																		Exists[{Typed[s, "nonemptyIndex"[x]]}, "pairSet"["setElement"[x, i], ChosenWitness[ni]] == "pairSet"["setElement"[x, s[[1]]], ChosenWitness[s[[2]]]]]
+																	]
+																]
+															]
+														]
+													],
+													Exists[{Typed[t, "Set"]}, And[And[Element[u, w], Element[w, t]], And[Element[u, t], Element[t, "choiceSet"[x]]]]]
+												]
+											]
+										]]
+									]
+								]
+							]],
+							Exists[{Typed[v, "Set"]}, ForAll[{Typed[u, "Set"]}, Equivalent[
+								Exists[{Typed[t, "Set"]}, And[And[Element[u, w], Element[w, t]], And[Element[u, t], Element[t, "choiceSet"[x]]]]],
+								u == v
+							]]]
+						]
+					]
+				]],
+				Exists[{Typed[y, "Set"]}, ForAll[{Typed[z, "Set"], Typed[w, "Set"]}, Implies[
+					And[Element[z, w], Element[w, x]],
+					Exists[{Typed[v, "Set"]}, ForAll[{Typed[u, "Set"]}, Equivalent[
+						Exists[{Typed[t, "Set"]}, And[And[Element[u, w], Element[w, t]], And[Element[u, t], Element[t, y]]]],
+						u == v
+					]]]
+				]]]
 			]
 		]
 	]
