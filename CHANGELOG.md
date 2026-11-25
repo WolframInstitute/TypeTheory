@@ -7,7 +7,7 @@ commits and releases that build one feature are one line.
 
 ## 2026-W48 (November 23 to 29), in progress
 
-Versions 0.60.1 to 0.62.2.
+Versions 0.60.1 to 0.62.3.
 
 ### Added
 
@@ -21,6 +21,7 @@ Versions 0.60.1 to 0.62.2.
 
 ### Performance
 
+- **Amortized compaction/rollback threshold in `Checking/CompiledKernel.wl`.** `compiledCheckWith` now passes `settings[[14]] = Max[200000, Quotient[hCap - numNodes, 2]]` via `compiledRunSettings` (outside `$program`, zero binary rebuild), guaranteeing that every scratch rollback or compaction reclaims at least as many nodes as `arenaReinsertScratch` rehashes and eliminating quadratic thrashing on multi-million-node proof cones.
 - **Two-level flat-tuple term encoding across serialization and compiled-kernel input.** `Checking/SavedEnvironments.wl`, `Checking/CompiledKernel.wl`, and `Checking/LazyEnvironments.wl` now deduplicate composite terms globally only by flat integer/leaf row tuples while isolating each kernel-generated `Recursor` record in a fresh per-record pointer cache (and bypassing seeded root lookups for recursors in `CompiledKernel.wl`). Non-recursor records still share one pointer cache across a batch so shared DAG subterms from an import table are visited once, eliminating cross-record structural `SameQ` explosions between imported constructors and rebuilt recursors during `Information[env, "Signature"]`, Format 2/3 saving, and compiled-kernel input preparation.
 - **Hash-consed term rebuilding in `Terms/CoreTerms.wl`.** Bottom-up integer-ID hash-consing (`withHashCons` / `withFreshHashCons`, scoped to kernel check caches in `Checking/TypeChecking.wl`) across bound-variable substitution, lifting, and free-variable abstraction keeps structurally equal rebuilt subterms sharing one canonical expression pointer (including across binder depths and between shifted and unchanged bound variables), preventing subsequent `Association`-memoized walks such as `occursQ` in `Checking/InductiveTypes.wl` from falling back to exponential structural `SameQ` on multi-billion-tree-node shared-DAG constructors.
 - **Large reflective proofs and deep telescopes in the compiled kernel.** The compiled kernel now computes natural-number literals up to 1,024 limbs of 30 bits (30,720 bits, up from 64 limbs / 1,920 bits), scales its walk memo table with the input size (up to `2^24`, with prime-mixed hashing and leaf fast-paths so deep bound-variable sharing never clusters into probe overflow), batches consecutive `lambda`, dependent-function and `let` telescopes in a single instantiation/abstraction pass, compacts transient reduction scratch inside long `whnf` and lazy-delta loops, rolls back dead scratch nodes and local-context entries at completed zero-root type-checking and definitional-equality boundaries (gated on 75% arena fill while preserving live `whnf`, `core` and `infer` cache entries for surviving scratch nodes across epochs), resets accumulated scratch between declarations at 65,536 nodes or 4,096 free variables, and retries capacity overflows in `2x` steps with a compact initial local-context table.
