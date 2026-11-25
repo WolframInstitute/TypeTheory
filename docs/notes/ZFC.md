@@ -1,9 +1,9 @@
 # ZFC in TypeTheory: Aczel's model, and set.mm's axioms as theorems
 
 `TypeTheoryEnvironment["ZFC"]` (`TypeTheory/Kernel/Library/ZFC.wl`) is the prelude with a model of ZFC. No declaration
-of the file is an axiom: every axiom of ZFC, and every axiom of set.mm, Metamath's database of ZFC, is a theorem proved
-from the prelude's three axioms, `"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`. The tests ask
-that the environment's axioms are the prelude's and give the closure of each axiom.
+of the file is an axiom: every axiom of ZFC is a theorem proved from the prelude's three axioms,
+`"propositionalExtensionality"`, `"quotientSoundness"` and `"choice"`. The tests ask that the environment's axioms are
+the prelude's and give the closure of each axiom.
 
 ## The model
 
@@ -27,56 +27,28 @@ indices, separation of a subtype, replacement of the subtype of the indices wher
 |---|---|---|
 | extensionality | `"extensionality"` | `"quotientSoundness"`, exactness by transport of a lifted predicate |
 | regularity | `"regularity"` | `"elementInduction"`: induction on pre-sets under `QuotientInduction`, then classically |
-| infinity (set.mm's form) | `"infinity"` | the range of `"singletonIterate"[x, n]` over the natural numbers |
+| infinity (x in a set where every member is in another member) | `"infinity"` | the range of `"singletonIterate"[x, n]` over the natural numbers |
 | replacement | `"replacement"` | the range of chosen values; functionality makes any value equal to the chosen one |
-| choice (set.mm's form) | `"choiceAxiom"` | the pairs `{w, c(w)}`; uniqueness from `"elementIrreflexive"`, `"elementAsymmetric"` and `"chosenElementCongruence"` (proof irrelevance) |
+| choice (one member of each nonempty member of x, unique) | `"choiceAxiom"` | the pairs `{w, c(w)}`; uniqueness from `"elementIrreflexive"`, `"elementAsymmetric"` and `"chosenElementCongruence"` (proof irrelevance) |
 
-## Classes and set.mm's vocabulary
+## Classes
 
-set.mm is a theory of classes: `x = y` is `( cv x ) = ( cv y )` and `x e. y` is `( cv x ) e. ( cv y )`. A class is a
-predicate, `"Class" = "Set" -> Prop`; `cv` is `"setClass"[x]`, the class of the members of `x`; `A = B` is `==` of
-classes; `A e. B` is `"classElement"[A, B]`, `Exists[{a}, A == "setClass"[a] && B[a]]`; `{ x | ph }` is
-`"classAbstraction"[Function[...]]`. The translation must be compositional (a special case for `x e. y` would break
-substitution), so set.mm's `x e. y` is `"classElement"["setClass"[x], "setClass"[y]]`, which is not `Element[x, y]` but
-equivalent to it. Two equalities of functions carry one to the other:
+A class is a predicate, `"Class" = "Set" -> Prop`: `"setClass"[x]` is the class of the members of `x`, `==` is equality
+of classes, `"classElement"[A, B]` is `Exists[{a}, A == "setClass"[a] && B[a]]`, `A` a set and a member of `B`, and
+`"classAbstraction"[P]` is the class `{x | P[x]}`. `"classElement"["setClass"[x], "setClass"[y]]` is not
+`Element[x, y]` but equivalent to it, and two equalities of functions carry statements about classes of sets to
+statements about sets:
 
 - `"classElementFunction"`: `(B, z) |-> "classElement"["setClass"[z], B]` equals `(B, z) |-> B[z]`;
 - `"setClassEqualFunction"`: `(x, y) |-> "setClass"[x] == "setClass"[y]` equals `(x, y) |-> x == y`.
 
-`setmmTheorem[label, statement, proof]` uses them: the held statement with every `"classElement"["setClass"[t], B]`
-replaced by `K[B, t]` is the motive of one `"equalitySubstitution"`, and with every `"setClass"[a] == "setClass"[b]` also
-replaced by `L[a, b]` that of a second; at the right-hand functions the statement is about `Element` and `==` of sets,
-which the model's theorem proves. So `"ax-pow"` is `"powerSet"` and `"elementOfPower"`, and so on.
+A statement in the class vocabulary with every `"classElement"["setClass"[t], B]` replaced by `K[B, t]` is the motive of
+one `"equalitySubstitution"` along the first, and with every `"setClass"[a] == "setClass"[b]` replaced by `L[a, b]` that
+of a second; at the right-hand functions it is a statement about `Element` and `==` of sets, which the model proves.
 
-## set.mm's axioms, under their labels
+## Metamath
 
-The axioms are stated exactly as MetamathLink translates them, in higher-order abstract syntax:
-
-- a setvar variable is a bound variable of type `"Set"`; a wff or class variable is a parameter, a function of the
-  setvar variables of the frame it has no `$d` with, in the order of the frame's floating hypotheses;
-- each essential hypothesis and the conclusion are closed over the frame's setvar variables:
-  `ForAll[{φ, ...}, Implies[ForAll[setvars, e1], ... ForAll[setvars, c]]]`;
-- the primitive connectives are native: `wn` `Not`, `wi` `Implies`, `wb` `Equivalent`, `wa` `And`, `wo` `Or`, `wal`
-  `ForAll`, `wex` `Exists`, `wtru` `True`, `wfal` `False`.
-
-`"ax-mp"`, `"ax-1"`..`"ax-3"`, `"df-bi"`, `"df-an"`, `"df-or"`, `"df-tru"`, `"df-fal"`, `"df-ex"`, `"ax-gen"`,
-`"ax-4"`..`"ax-13"`, `"df-clab"`, `"df-cleq"`, `"df-clel"`, `"ax-ext"`, `"ax-rep"`, `"ax-sep"`, `"ax-nul"`, `"ax-pow"`,
-`"ax-pr"`, `"ax-un"`, `"ax-reg"`, `"ax-inf"`, `"ax-ac"`. `"wsb"`, set.mm's substitution `[ t / x ] ph`, is defined as
-`df-sb` defines it, so that `df-clab` can be stated. The justification hypotheses of `df-sb`, `df-cleq` and `df-clel`
-are premises the proofs do not use. The intuitionistic axioms (`ax-1`, `ax-2`, `ax-gen`, `ax-4`, ...) need no axiom at
-all; `ax-3` and the definitions of the connectives need the classical ones.
-
-The axioms set.mm derives itself are not here: `ax-inf2` and the axioms of the complex numbers (`ax-cnex` ...
-`ax-pre-sup`) are proved by set.mm's own theorems `axinf2`, `axcnex` ... before it states them, and MetamathLink proves
-each axiom by its theorem. `ax-cc`, `ax-dc` and `ax-ac2` are proved after they are stated (`axcc` ...); `ax-groth`, the
-Tarski-Grothendieck axiom, needs an inaccessible cardinal and is not provable in this model.
-
-## MetamathLink
-
-The translation lives outside TypeTheory, in the MetamathLink paclet, as the Lean bridge lives in LeanLink. It reads a
-database with `ResourceFunction["MetamathImport"]`, parses statements with a grammar built from the syntax axioms,
-decodes compressed proofs, and builds proof terms that TypeTheory's kernel checks again. A `df-` axiom whose left side
-is a new syntax axiom applied to distinct variables becomes a `TypeTheoryDefinition` and a theorem proved by
-reflexivity. Where a proof applies an assertion with the same variable for two setvar variables (set.mm's bundled
-theorems), which in higher-order abstract syntax is another statement, MetamathLink proves the variant by the
-assertion's own proof with the variables merged.
+The classes are the vocabulary of set.mm, Metamath's database of ZFC, whose `x e. y` is `( cv x ) e. ( cv y )`. The
+MetamathLink paclet, kept outside TypeTheory as LeanLink is, states set.mm's axioms under their labels over this
+environment and proves each from the model's theorems by the substitutions above, with no axiom of its own, and
+translates set.mm's proofs to proof terms that TypeTheory's kernel checks.
