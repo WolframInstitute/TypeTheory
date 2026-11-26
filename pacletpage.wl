@@ -15,7 +15,7 @@ $docsDirectory = FileNameJoin[{$repoDirectory, "docs", "paclet", "en"}]
 
 $siteAccount = "wolframinstitute@wolframinstitute.org"
 
-$minimumPacletPage = "0.3.87"
+$minimumPacletPage = "0.3.98"
 
 $pacletPageResource = "https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/PacletPage"
 
@@ -173,6 +173,8 @@ $siteOptions = {
 	"FeedbackOptions" -> {"Domains" -> {"wolframinstitute.org"}, "Readers" -> {"nikm@wolfram.com"}},
 	"VersionLabel" -> True,
 	"Footer" -> True,
-	(* the index of the symbols on the right, which PacletPage turns off by default from 0.3.95 *)
-	"SymbolsRail" -> True
+	(* the symbols on the right, and their A-Z index open, which PacletPage leaves closed by default from 0.3.97
+	   past 24 symbols *)
+	"SymbolsRail" -> True,
+	"SymbolIndex" -> True
 }
