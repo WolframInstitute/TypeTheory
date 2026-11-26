@@ -42,7 +42,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, TheIntegers, Wolfram23Uni
 
 <code>[TypeTheoryEnvironment]()[*rules*]</code> gives the environment with no constants that follows the [TypeTheoryRules]() *rules*, and <code>[TypeTheoryEnvironment]()[*rules*, {*declaration1*, ...}]</code> extends it.
 
-<code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> and <code>[TypeTheoryEnvironment]()[[File]()["*file*.tte"]]</code> read an environment that [Export]() saved, without checking its declarations again; `.tte` files load constants and proofs lazily on demand.
+<code>[TypeTheoryEnvironment]()[[File]()["*file*.wxf"]]</code> and <code>[TypeTheoryEnvironment]()[[File]()["*file*.tte"]]</code> read an environment that [Export]() saved, without checking its declarations again; `.tte` files load constants and proofs lazily on demand. A `.tte` file is the format [TTE](paclet:WolframInstitute/TypeTheory/ref/format/TTE) of [Import]() and [Export](): <code>[Import]()[*file*, "TTE"]</code> reads it as well.
 
 ## Details & Options
 

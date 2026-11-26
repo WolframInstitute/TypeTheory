@@ -29,6 +29,7 @@ Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs 
 
 - [TypeTheoryEnvironment]() an environment of declared constants: the prelude extended with declarations, the constructive environment without its axioms, or one built from none
 - [SetTypeTheoryEnvironment]() makes an environment the default, [$TypeTheoryEnvironment](), of the terms, proofs and declarations that name none
+- <code>[TTE](paclet:WolframInstitute/TypeTheory/ref/format/TTE)</code> the file format of environments, one seekable file read lazily and checked block by block: <code>[Import]()[*file*, "TTE"]</code> and <code>[Export]()["*file*.tte", *env*]</code>
 - [TypeTheoryAxiom]() declares an axiom
 - [TypeTheoryDefinition]() declares a definition, an instance of a class or a coercion
 - [TypeTheoryTheorem]() declares a theorem with its proof
