@@ -75,6 +75,8 @@ PackageScoped[looseBoundRange]
 PackageScoped[$looseBoundRangeCache]
 PackageScoped[withHashCons]
 PackageScoped[withFreshHashCons]
+PackageScoped[$hashConsMode]
+PackageScoped[$hashConsTreeLimit]
 PackageScoped[instantiateBoundVariable]
 PackageScoped[instantiateBoundVariables]
 PackageScoped[instantiateBoundVariablesProjecting]
@@ -133,6 +135,8 @@ looseBoundRange::usage = "looseBoundRange[term] gives one more than the largest 
 $looseBoundRangeCache::usage = "$looseBoundRangeCache is the Association of loose bound ranges remembered while the kernel checks a declaration, or None."
 withHashCons::usage = "withHashCons[body] evaluates body with an active hash-consing table for term rebuilding, reusing any enclosing table."
 withFreshHashCons::usage = "withFreshHashCons[body] evaluates body with a fresh hash-consing table for term rebuilding."
+$hashConsMode::usage = "$hashConsMode is \"Adaptive\", \"On\" or \"Off\": a rebuild is hash-consed once its new nodes make a tree of more than $hashConsTreeLimit nodes, always, or never; TYPETHEORY_HASHCONS sets it."
+$hashConsTreeLimit::usage = "$hashConsTreeLimit is the size of the tree of new nodes past which a plain rebuild starts again hash-consed, in the mode \"Adaptive\"."
 instantiateBoundVariable::usage = "instantiateBoundVariable[body, value] replaces the variable bound just outside body by value."
 instantiateBoundVariables::usage = "instantiateBoundVariables[body, {value1, ..., valuek}] replaces the k variables bound just outside body by the values at once, the innermost by valuek."
 instantiateBoundVariablesProjecting::usage = "instantiateBoundVariablesProjecting[body, values, fields] replaces the variables as instantiateBoundVariables[body, values] does, and each projection of a replaced variable whose entry of fields, aligned with values, is {HoldComplete[structure], {field1, ...}} by its field: the entry None leaves the variable's projections to be replaced as any other occurrence.\n\
@@ -247,6 +251,19 @@ $hashConsLeaves = None
 $hashConsInterned = None
 $hashConsNextIdentifier = 0
 
+(* Hash-consing costs a lookup or two a node, about two microseconds, and pays only where structurally equal subterms
+   would otherwise be distinct expressions large enough that comparing them is costly: a proof's small checks spent most of
+   their time in it. So a rebuild (a call of liftBoundVariables, instantiateBoundVariables or abstractFreeVariables) is
+   first plain, each node built as it is, and carries the size of the tree its new nodes make, an unchanged subterm
+   counting nothing, since SameQ of two rebuilds stops at a subterm they share. Once that size passes $hashConsTreeLimit,
+   the rebuild starts again hash-consed in the scope in effect: two plain rebuilds that are equal compare in at most that
+   many steps, and a rebuild of a large shared DAG, a tree of 2^30 leaves held in thirty nodes, is hash-consed after a few
+   of them. TYPETHEORY_HASHCONS set to "On" hash-conses every rebuild, as 0.60.1 to 0.63.1 did, and "Off" none, for tests
+   of either. *)
+$hashConsMode = Replace[Environment["TYPETHEORY_HASHCONS"], Except["On" | "Off"] -> "Adaptive"]
+$hashConsTreeLimit = 30000
+$hashConsPlainLimit = None
+
 SetAttributes[withHashCons, HoldFirst]
 withHashCons[body_] := If[ AssociationQ[$hashConsTable],
 	body,
@@ -256,40 +273,69 @@ withHashCons[body_] := If[ AssociationQ[$hashConsTable],
 SetAttributes[withFreshHashCons, HoldFirst]
 withFreshHashCons[body_] := Block[{$hashConsTable = <||>, $hashConsLeaves = <||>, $hashConsNextIdentifier = 0}, body]
 
+SetAttributes[rebuildTerm, HoldFirst]
+rebuildTerm[rebuild_] := Switch[$hashConsMode,
+	"On", withHashCons[rebuild],
+	"Off", plainRebuild[rebuild, Infinity],
+	_, Replace[Catch[plainRebuild[rebuild, $hashConsTreeLimit], hashConsTreeLimitReached], hashConsTreeLimitReached :> withHashCons[rebuild]]
+]
+
+SetAttributes[plainRebuild, HoldFirst]
+plainRebuild[rebuild_, limit_] := Block[{$hashConsTable = None, $hashConsLeaves = None, $hashConsPlainLimit = limit}, rebuild]
+
+(* a node built plainly, with the size of the tree of new nodes under it and its own identifier, never reused *)
+hashConsPlainPair[expression_, size_] := If[ TrueQ[size > $hashConsPlainLimit],
+	Throw[hashConsTreeLimitReached, hashConsTreeLimitReached],
+	{expression, ++$hashConsNextIdentifier, size}
+]
+
+hashConsLeafPair[leaf_] /; ! AssociationQ[$hashConsLeaves] := hashConsPlainPair[leaf, 1]
 hashConsLeafPair[leaf_] := Lookup[$hashConsLeaves, Key[leaf], $hashConsLeaves[leaf] = {leaf, ++$hashConsNextIdentifier}]
 
 hashConsRegister[key_, expression_] := $hashConsTable[key] = {expression, ++$hashConsNextIdentifier}
 
+hashConsApplication[{functionExpression_, _, functionSize_}, {argumentExpression_, _, argumentSize_}] /; ! AssociationQ[$hashConsTable] :=
+	hashConsPlainPair[Construct[application, functionExpression, argumentExpression], 1 + functionSize + argumentSize]
 hashConsApplication[{functionExpression_, functionId_}, {argumentExpression_, argumentId_}] := Lookup[
 	$hashConsTable,
 	Key[{1, functionId, argumentId}],
 	hashConsRegister[{1, functionId, argumentId}, Construct[application, functionExpression, argumentExpression]]
 ]
 
+hashConsLambda[name_, {domainExpression_, _, domainSize_}, {bodyExpression_, _, bodySize_}, binder_] /; ! AssociationQ[$hashConsTable] :=
+	hashConsPlainPair[Construct[lambdaAbstraction, name, domainExpression, bodyExpression, binder], 1 + domainSize + bodySize]
 hashConsLambda[name_, {domainExpression_, domainId_}, {bodyExpression_, bodyId_}, binder_] := Lookup[
 	$hashConsTable,
 	Key[{2, name, domainId, bodyId, binder}],
 	hashConsRegister[{2, name, domainId, bodyId, binder}, Construct[lambdaAbstraction, name, domainExpression, bodyExpression, binder]]
 ]
 
+hashConsDependentFunction[name_, {domainExpression_, _, domainSize_}, {codomainExpression_, _, codomainSize_}, binder_] /; ! AssociationQ[$hashConsTable] :=
+	hashConsPlainPair[Construct[dependentFunctionType, name, domainExpression, codomainExpression, binder], 1 + domainSize + codomainSize]
 hashConsDependentFunction[name_, {domainExpression_, domainId_}, {codomainExpression_, codomainId_}, binder_] := Lookup[
 	$hashConsTable,
 	Key[{3, name, domainId, codomainId, binder}],
 	hashConsRegister[{3, name, domainId, codomainId, binder}, Construct[dependentFunctionType, name, domainExpression, codomainExpression, binder]]
 ]
 
+hashConsLocalDefinition[name_, {typeExpression_, _, typeSize_}, {valueExpression_, _, valueSize_}, {bodyExpression_, _, bodySize_}] /; ! AssociationQ[$hashConsTable] :=
+	hashConsPlainPair[Construct[localDefinition, name, typeExpression, valueExpression, bodyExpression], 1 + typeSize + valueSize + bodySize]
 hashConsLocalDefinition[name_, {typeExpression_, typeId_}, {valueExpression_, valueId_}, {bodyExpression_, bodyId_}] := Lookup[
 	$hashConsTable,
 	Key[{4, name, typeId, valueId, bodyId}],
 	hashConsRegister[{4, name, typeId, valueId, bodyId}, Construct[localDefinition, name, typeExpression, valueExpression, bodyExpression]]
 ]
 
+hashConsProjection[structure_, index_, {innerExpression_, _, innerSize_}] /; ! AssociationQ[$hashConsTable] :=
+	hashConsPlainPair[Construct[projection, structure, index, innerExpression], 1 + innerSize]
 hashConsProjection[structure_, index_, {innerExpression_, innerId_}] := Lookup[
 	$hashConsTable,
 	Key[{5, structure, index, innerId}],
 	hashConsRegister[{5, structure, index, innerId}, Construct[projection, structure, index, innerExpression]]
 ]
 
+hashConsCubical[branchPairs_List] /; ! AssociationQ[$hashConsTable] :=
+	hashConsPlainPair[Construct[cubicalSystem, Map[First, branchPairs, {2}]], 1 + Total[Map[Last, branchPairs, {2}], 2]]
 hashConsCubical[branchPairs_List] := hashConsCubicalKey[Map[Last, branchPairs, {2}], Map[First, branchPairs, {2}]]
 hashConsCubicalKey[branchIds_List, branchExpressions_List] := Lookup[
 	$hashConsTable,
@@ -303,6 +349,8 @@ hashConsCubicalKey[branchIds_List, branchExpressions_List] := Lookup[
    hashConsRegister with newly built output terms), so an unchanged input subterm never collides with a
    structurally equal rebuilt term in $hashConsInterned. When every child of an unchanged composite kept
    its original pointer and no canonical entry exists yet, the original term itself is registered. *)
+(* plainly, an unchanged subterm is itself, with an identifier of its own and no new nodes *)
+hashConsInternPair[term_] /; ! AssociationQ[$hashConsTable] := {term, ++$hashConsNextIdentifier, 0}
 hashConsInternPair[term : (_boundVariable | _freeVariable | _metavariable | _universeSort | _constantReference | _naturalLiteral | _intervalUniverse)] :=
 	hashConsLeafPair[term]
 hashConsInternPair[term_] := Take[hashConsInternTracked[term], 2]
@@ -383,7 +431,7 @@ liftBoundVariables[term_, 0, _] := term
 liftBoundVariables[term_, amount_, cutoff_] := withRangeCache[
 	If[ looseBoundRange[term] <= cutoff,
 		term,
-		withHashCons[First[liftBoundVariablesPair[term, amount, cutoff]]]
+		rebuildTerm[First[liftBoundVariablesPair[term, amount, cutoff]]]
 	]
 ]
 
@@ -426,7 +474,7 @@ instantiateBoundVariables[body_, {}] := body
 instantiateBoundVariables[body_, values_List] := withRangeCache[
 	If[ looseBoundRange[body] == 0,
 		body,
-		withHashCons[Block[{$substitutionMemo = <||>, $hashConsInterned = <||>, $substitutedFields = {}}, First[substituteShared[body, Reverse[values], 0]]]]
+		rebuildTerm[Block[{$substitutionMemo = <||>, $hashConsInterned = <||>, $substitutedFields = {}}, First[substituteShared[body, Reverse[values], 0]]]]
 	]
 ]
 
@@ -443,7 +491,7 @@ instantiateBoundVariablesProjecting[body_, values_List, fields_List] := instanti
 instantiateBoundVariablesProjecting[body_, values_List, fields_List, fold_] := withRangeCache[
 	If[ looseBoundRange[body] == 0,
 		body,
-		withHashCons[Block[{$substitutionMemo = <||>, $hashConsInterned = <||>, $substitutedFields = Reverse[fields], $literalFold = fold}, First[substituteShared[body, Reverse[values], 0]]]]
+		rebuildTerm[Block[{$substitutionMemo = <||>, $hashConsInterned = <||>, $substitutedFields = Reverse[fields], $literalFold = fold}, First[substituteShared[body, Reverse[values], 0]]]]
 	]
 ]
 
@@ -454,7 +502,7 @@ instantiateBoundVariablesProjecting[body_, values_List, fields_List, fold_] := w
    argument and nowhere else, as $substitutedFields is; with None, as every other substitution has it, substitution is
    purely syntactic. *)
 $literalFold = None
-foldedApplicationPair[pair : {node : application[application[_constantReference, _naturalLiteral], _naturalLiteral], _}] /; $literalFold =!= None :=
+foldedApplicationPair[pair : {node : application[application[_constantReference, _naturalLiteral], _naturalLiteral], __}] /; $literalFold =!= None :=
 	Block[{$hashConsInterned = <||>}, hashConsInternPair[$literalFold[node]]]
 foldedApplicationPair[pair_] := pair
 
@@ -502,10 +550,10 @@ substitutedFieldPair[structure_, index_Integer, boundVariable[k_Integer], depth_
 substitutedFieldPair[___] := None
 
 
-abstractFreeVariable[term_, id_] := withHashCons[Block[{$abstractionMemo = <||>, $hashConsInterned = <||>}, First[abstractShared[term, id, 0]]]]
+abstractFreeVariable[term_, id_] := rebuildTerm[Block[{$abstractionMemo = <||>, $hashConsInterned = <||>}, First[abstractShared[term, id, 0]]]]
 
 abstractFreeVariables[term_, {}] := term
-abstractFreeVariables[term_, ids_List] := withHashCons[
+abstractFreeVariables[term_, ids_List] := rebuildTerm[
 	Block[{$abstractionMemo = <||>, $hashConsInterned = <||>, $abstractionIndices = AssociationThread[ids, Reverse[Range[Length[ids]] - 1]]},
 		First[abstractManyShared[term, 0]]
 	]

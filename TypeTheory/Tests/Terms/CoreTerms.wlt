@@ -136,6 +136,30 @@ VerificationTest[
 	TestID -> "Substitution-agrees-with-a-plain-walk-on-random-terms"
 ]
 
+(* hash-consing is a matter of speed alone: plain rebuilding ("Off"), hash-consing every rebuild ("On") and plain rebuilds
+   that start again hash-consed once their new nodes make a tree of more than five ("Adaptive") give the same terms, and
+   the kernel accepts and refuses the same declarations *)
+VerificationTest[
+	Table[
+			Block[{WolframInstitute`TypeTheory`PackageScope`$hashConsMode = setting, WolframInstitute`TypeTheory`PackageScope`$hashConsTreeLimit = 5},
+				{
+					BlockRandom[
+						SeedRandom[2026];
+						Select[
+							Table[{randomTerm[RandomInteger[{0, 4}]], Table[randomTerm[RandomInteger[2]], {RandomInteger[{1, 3}]}]}, {300}],
+							Function[case, instantiateBoundVariables @@ case =!= naiveSubstitute[First[case], Reverse[Last[case]], 0]]
+						]
+					],
+					Head[TypeTheoryEnvironment["Prelude", {TypeTheoryTheorem["addZero", ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n]]]}]],
+					Head[TypeTheoryEnvironment["Prelude", {TypeTheoryTheorem["forged", ForAll[{Typed[n, NonNegativeIntegers]}, n + 1 == n], Function[{Typed[n, NonNegativeIntegers]}, "equalityReflexivity"[n]]]}]]
+				}
+			],
+			{setting, {"Off", "On", "Adaptive"}}
+		],
+	ConstantArray[{{}, TypeTheoryEnvironment, Failure}, 3],
+	TestID -> "Hash-consing-off-on-or-adaptive-gives-the-same-terms-and-verdicts"
+]
+
 VerificationTest[
 	abstractFreeVariable[lambdaAbstraction[HoldComplete[\[FormalX]], universeSort[0], application[freeVariable[5], boundVariable[0]], "Explicit"], 5],
 	lambdaAbstraction[HoldComplete[\[FormalX]], universeSort[0], application[boundVariable[1], boundVariable[0]], "Explicit"],
