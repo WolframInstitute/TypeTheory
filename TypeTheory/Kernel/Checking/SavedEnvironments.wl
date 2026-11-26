@@ -151,14 +151,15 @@ TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : 
 	saveEnvironment[Replace[file, File[path_] :> path], environment]
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "WXF"] :=
 	saveEnvironment[Replace[file, File[path_] :> path], environment]
+(* Format 3 is the TTE format of Import and Export, whose converter Formats/EnvironmentFiles.wl registers. Wolfram 15 takes a
+   registered format by its name, not by the extension of a file, so a .tte file and "FormatVersion" -> 3 name it here;
+   Export[file, environment, "TTE"] goes to the converter itself. *)
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, options : (_Rule | _RuleDelayed) ...] /; ToLowerCase[FileExtension[file]] === "tte" :=
-	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
-TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "TTE", options : (_Rule | _RuleDelayed) ...] :=
-	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
+	Export[file, environment, "TTE", Sequence @@ FilterRules[{options}, Except["FormatVersion"]]]
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, options : (_Rule | _RuleDelayed) ..] /; OptionValue[FilterRules[{options}, "FormatVersion"], "FormatVersion"] === 3 :=
-	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
+	Export[file, environment, "TTE", Sequence @@ FilterRules[{options}, Except["FormatVersion"]]]
 TypeTheoryEnvironment /: Export[file : (_String | File[_String]), environment : TypeTheoryEnvironment[_Symbol]?environmentQ, "WXF", options : (_Rule | _RuleDelayed) ..] /; OptionValue[FilterRules[{options}, "FormatVersion"], "FormatVersion"] === 3 :=
-	saveFormat3Environment[Replace[file, File[path_] :> path], environment, FilterRules[{options}, Options[saveFormat3Environment]]]
+	Export[file, environment, "TTE", Sequence @@ FilterRules[{options}, Except["FormatVersion"]]]
 
 saveEnvironment[file_String, environment_] := catchKernelFailure @ Block[{saveBase = environmentBase[environment], fileContents, saveStream},
 	fileContents = savedContents[environment, saveBase];

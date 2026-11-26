@@ -104,7 +104,8 @@ VerificationTest[
 		Export[tteFile["arith_standalone"], arithmetic, "Standalone" -> True],
 		Export[wxfFile["arith_f3"], arithmetic, "FormatVersion" -> 3]
 	},
-	{File[tteFile["arith"]], File[tteFile["arith_standalone"]], File[wxfFile["arith_f3"]]},
+	(* through the TTE format of Import and Export, Export gives the file name, as it does for every format *)
+	{tteFile["arith"], tteFile["arith_standalone"], wxfFile["arith_f3"]},
 	TestID -> "Export-writes-Format-3-by-extension-and-FormatVersion-option"
 ]
 
