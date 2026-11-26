@@ -282,6 +282,20 @@ VerificationTest[
 	TestID -> "A-recursion-too-deep-for-the-stack-is-a-failure"
 ]
 
+(* catchKernelFailure catches the recursion limit by its tag and lets every other throw and abort through as it was: a
+   time limit that runs out during a kernel call gives the fail value of its own TimeConstrained, where it gave $Aborted
+   (the abort was caught and raised again as a new one), and a forged theorem is still refused *)
+VerificationTest[
+	{
+		TimeConstrained[WolframInstitute`TypeTheory`PackageScope`catchKernelFailure[Pause[2]], 0.2, "fail value"],
+		TimeConstrained[TypeTheoryCheck[TypeTheoryEnvironment["Wolfram23"], Method -> "Symbolic"], 0.5, "fail value"],
+		Catch[WolframInstitute`TypeTheory`PackageScope`catchKernelFailure[Throw[7, "elsewhere"]], "elsewhere"],
+		Head[TypeTheoryEnvironment["Prelude", {TypeTheoryTheorem["forged", 1 == 2, "equalityReflexivity"[1]]}]]
+	},
+	{"fail value", "fail value", 7, Failure},
+	TestID -> "A-time-limit-around-a-kernel-call-gives-its-own-fail-value"
+]
+
 
 (* ::Section:: *)
 (*Judgments of Nederpelt and Geuvers*)

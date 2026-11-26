@@ -407,21 +407,20 @@ throwFailure[failure_Failure] := Throw[failure, $kernelFailureTag]
    deep, past the default limit. Wolfram 15's own stack ends well before 20000 calls: a unary recursion three hundred
    steps deep, reduced with that limit, ended the process at 12000. So a check runs with the limit $kernelRecursionLimit,
    which a two-hundred-step recursion stays under, and reaching it is a kernel failure, as the compiled kernel refuses a
-   term too deep for it, not a terminated evaluation: the limit is a throw, which CheckAll catches; any other throw or
-   abort goes on as it was. *)
+   term too deep for it, not a terminated evaluation: the limit is a throw, caught by its tag; any other throw or abort
+   goes on as it was. CheckAll would catch an abort too, and the abort it raised again was a new one, which an enclosing
+   TimeConstrained did not take for its own: TimeConstrained[TypeTheoryProof[...], t, fail] gave $Aborted. *)
 SetAttributes[catchKernelFailure, HoldFirst]
 catchKernelFailure[expr_] := Block[{$RecursionLimit = $kernelRecursionLimit},
-	Catch[Quiet[CheckAll[expr, recursionFailure], $RecursionLimit::reclim], $kernelFailureTag]
+	Catch[Quiet[Catch[expr, TerminatedEvaluation["RecursionLimit", ___], recursionFailure], $RecursionLimit::reclim], $kernelFailureTag]
 ]
 
 $kernelRecursionLimit = 8000
 
-recursionFailure[value_, Hold[]] := value
-recursionFailure[_, Hold[Throw[_, TerminatedEvaluation["RecursionLimit", ___]]]] := Failure["RecursionLimit", <|
+recursionFailure[_, _] := Failure["RecursionLimit", <|
 	"MessageTemplate" -> messageTemplate["The computation goes deeper than the kernel can recurse, `1` calls: a reduction this deep computes when its operation is registered, as TypeTheoryNaturalNumbers registers those of the natural numbers."],
 	"MessageParameters" -> {$kernelRecursionLimit}
 |>]
-recursionFailure[_, control_] := ReleaseHold[control]
 
 
 TypeTheoryEnvironment /: MakeBoxes[environment : TypeTheoryEnvironment[store_Symbol], format : StandardForm] /; environmentQ[environment] := With[
