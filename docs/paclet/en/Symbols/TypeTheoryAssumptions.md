@@ -27,6 +27,7 @@ RelatedTutorials: [AutomatedAnalysisAndDiscovery, TypeTheoryIntroduction, Progra
 - Each result is an [Association]() with `"Assumption"` (the discovered guard or global hypothesis as a [TypeTheoryTerm]()), `"Statement"` (the full guarded theorem), `"Proof"` (a finished, kernel-checked [TypeTheoryProof]() of `"Statement"`), `"Scope"` (`"Local"`, `"Global"` or `"GoalHole"`), `"Method"`, `"Witness"` (a non-vacuity witness when found), and `"Verified" -> True`.
 - Every candidate passes three quality gates before being returned: a kernel-checked proof of the guarded statement, a non-vacuity check rejecting contradictory assumptions such as [False](), and a non-triviality check rejecting assumptions identical to the conclusion (or proving the consequent while ignoring existing premises). Redundant stronger assumptions implied by simpler ones are pruned.
 - The offline heuristic portfolio combines symbolic domain abduction ([Reduce]()), tactic-residual lemma abduction, axiom-diff discovery (for example, excluded middle in `"Constructive"`), counterexample-guided refinement, and an algebraic property catalog for opaque operations.
+- [TimeConstraint]() bounds the whole search, and each step's own time limit scales with it: a candidate whose proof runs out of its first slice is tried again with the time left over. On a slower machine, a larger [TimeConstraint]() gives every step proportionally more time.
 - The following options can be given:
 
 | Option | Default | Description |

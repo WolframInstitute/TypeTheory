@@ -16,6 +16,13 @@ theoremAcceptedQ[env_, proof_TypeTheoryProof] :=
 	! FailureQ[TypeTheoryEnvironment[env, {TypeTheoryTheorem["checkedSuperfunctionTheorem", proof]}]]
 theoremAcceptedQ[___] := False
 
+(* whether one of the assumptions found reads as term, whichever environment handle it carries: an assumption over the
+   statement's variables (1 <= c) is open, so DefinitionallyEqualQ cannot compare it, and the handle is not the point *)
+SetAttributes[assumptionReadsQ, HoldRest]
+assumptionReadsQ[res_List, term_] := MemberQ[Map[heldSurfaceTerm, Lookup[res, "Assumption"]], HoldComplete[term]]
+heldSurfaceTerm[TypeTheoryTerm[term_, ___]] := HoldComplete[term]
+heldSurfaceTerm[_] := None
+
 
 (* ::Section:: *)
 (*Trust Boundary and Input Guards*)
@@ -167,8 +174,8 @@ VerificationTest[
 		{
 			Length[res] >= 2,
 			AllTrue[res, Function[item, TrueQ[item["Verified"]] && theoremAcceptedQ[prelude, item["Proof"]] && AssociationQ[item["Witness"]]]],
-			MemberQ[Lookup[res, "Assumption"], TypeTheoryTerm[4 <= n, prelude]],
-			MemberQ[Lookup[res, "Assumption"], TypeTheoryTerm[Not[n == 3], prelude]],
+			assumptionReadsQ[res, 4 <= n],
+			assumptionReadsQ[res, Not[n == 3]],
 			AnyTrue[Lookup[res, "Statement"], Function[s, DefinitionallyEqualQ[s, TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[4 <= n, n^2 <= 2^n]], prelude]]]],
 			AnyTrue[Lookup[res, "Statement"], Function[s, DefinitionallyEqualQ[s, TypeTheoryTerm[ForAll[{Typed[n, NonNegativeIntegers]}, Implies[Not[n == 3], n^2 <= 2^n]], prelude]]]]
 		}
@@ -200,6 +207,20 @@ VerificationTest[
 	TestID -> "Assumptions-retry-proof-budget-scales-with-the-time-left"
 ]
 
+(* every step's time limit scales with the budget: unchanged at the default 15 s, four times at 60 s, and four times
+   without a time limit, so that no step runs unbounded *)
+VerificationTest[
+	{
+		WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`superfunctionScale /@ {15, 60, 5, Infinity},
+		Block[{WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`$superfunctionScale = 4},
+			WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`budgetScaled[2.5]
+		],
+		WolframInstitute`TypeTheory`Proofs`Superfunctions`Private`budgetScaled[2.5]
+	},
+	{{1, 4, 1/3, 4}, 10., 2.5},
+	TestID -> "Assumptions-step-time-limits-scale-with-the-budget"
+]
+
 (* a proof search that runs out of its time says so, as the retry above needs: the time limit's abort could come back
    as a plain abort, tagged "Aborted" *)
 VerificationTest[
@@ -217,7 +238,7 @@ VerificationTest[
 		{
 			Length[res] >= 1,
 			AllTrue[res, Function[item, TrueQ[item["Verified"]] && theoremAcceptedQ[prelude, item["Proof"]]]],
-			MemberQ[Lookup[res, "Assumption"], TypeTheoryTerm[b <= a, prelude]],
+			assumptionReadsQ[res, b <= a],
 			AnyTrue[Lookup[res, "Statement"], Function[s, DefinitionallyEqualQ[s, TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[b <= a, Subtract[a, b] + b == a]], prelude]]]]
 		}
 	],
@@ -226,17 +247,19 @@ VerificationTest[
 ]
 
 VerificationTest[
-	With[{res = TypeTheoryAssumptions[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, Implies[a * c == b * c, a == b]], prelude]},
+	(* which candidates verify within the default 15 s depends on the machine's load: twice on a busy Mac neither guard
+	   came back *)
+	With[{res = TypeTheoryAssumptions[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, Implies[a * c == b * c, a == b]], prelude, TimeConstraint -> 60]},
 		{
 			Length[res] >= 1,
 			AllTrue[res, Function[item, TrueQ[item["Verified"]] && theoremAcceptedQ[prelude, item["Proof"]]]],
-			MemberQ[Lookup[res, "Assumption"], TypeTheoryTerm[1 <= c, prelude]] ||
-				MemberQ[Lookup[res, "Assumption"], TypeTheoryTerm[Not[c == 0], prelude]],
+			assumptionReadsQ[res, 1 <= c] ||
+				assumptionReadsQ[res, Not[c == 0]],
 			AnyTrue[Lookup[res, "Statement"], Function[s,
 				DefinitionallyEqualQ[s, TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, Implies[1 <= c, Implies[a * c == b * c, a == b]]], prelude]] ||
 				DefinitionallyEqualQ[s, TypeTheoryTerm[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers], Typed[c, NonNegativeIntegers]}, Implies[Not[c == 0], Implies[a * c == b * c, a == b]]], prelude]]
 			]],
-			! MemberQ[Lookup[res, "Assumption"], TypeTheoryTerm[a == b, prelude]]
+			! assumptionReadsQ[res, a == b]
 		}
 	],
 	{True, True, True, True, True},
@@ -264,7 +287,8 @@ VerificationTest[
 				TypeTheoryAxiom[algOp, algCarrier -> algCarrier -> algCarrier]
 			}]
 		},
-		With[{res = TypeTheoryAssumptions[ForAll[{Typed[x, algCarrier], Typed[y, algCarrier], Typed[z, algCarrier]}, algOp[algOp[x, y], z] == algOp[x, algOp[z, y]]], envOp]},
+		(* at half a processor the default 15 s found nothing: the catalog's checks need the larger budget's longer steps *)
+		With[{res = TypeTheoryAssumptions[ForAll[{Typed[x, algCarrier], Typed[y, algCarrier], Typed[z, algCarrier]}, algOp[algOp[x, y], z] == algOp[x, algOp[z, y]]], envOp, TimeConstraint -> 60]},
 			{
 				Length[res] >= 1,
 				First[res]["Method"],

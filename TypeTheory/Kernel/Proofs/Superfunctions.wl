@@ -359,6 +359,16 @@ remainingBudget[fallback_ : 5] := If[ NumericQ[$superfunctionDeadline],
    what is left of the budget and at least twice floor, bounded by the deadline; without a deadline, four times floor.
    Only the retry grows, so every answer the first pass finds stays found, and the time left over finds the slow
    ones: 4 <= n => n^2 <= 2^n took 2.0 s on one kernel and 2.9 s on the next, and a fixed 2.5 s dropped it. *)
+(* A step's time limit given as its value at the default budget of 15 s, scaled with the budget of the call: TimeConstraint
+   is then the one dial, and a slower machine given a larger budget gets it for every step, not only for the steps
+   bounded by the deadline. At the default budget the scale is 1; findAssumptions sets it, and without a time limit
+   it is 4, so that no step runs without a limit. *)
+$superfunctionScale = 1
+
+budgetScaled[seconds_] := seconds * $superfunctionScale
+
+superfunctionScale[timeBudget_] := If[ timeBudget < Infinity, timeBudget / 15, 4 ]
+
 retryProofBudget[floor_, candidatesLeft_Integer] := If[ NumericQ[$superfunctionDeadline],
 	remainingBudget[Max[2 * floor, 2 * ($superfunctionDeadline - AbsoluteTime[]) / Max[1, candidatesLeft]]],
 	4 * floor
@@ -2478,10 +2488,10 @@ findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := 
 		llmEval = OptionValue[TypeTheoryAssumptions, {opts}, "LLMEvaluator"];
 		progressOpt = OptionValue[TypeTheoryAssumptions, {opts}, ProgressReporting];
 
-		withSuperfunctionProgress["TypeTheoryAssumptions", progressOpt, timeBudget,
+		Block[{$superfunctionScale = superfunctionScale[timeBudget]}, withSuperfunctionProgress["TypeTheoryAssumptions", progressOpt, timeBudget,
 			(* If already provable, no extra assumptions are needed *)
 			reportProgress["Checking whether proposition is already provable...", 0.08];
-			alreadyProved = enhancedProveCore[environment, coreStmt, uParams, remainingBudget[1.5]];
+			alreadyProved = enhancedProveCore[environment, coreStmt, uParams, remainingBudget[budgetScaled[1.5]]];
 			If[ ! FailureQ[alreadyProved],
 				{},
 
@@ -2526,7 +2536,7 @@ findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := 
 								"Verifying assumption candidate " <> IntegerString[First[idx]] <> "/" <> IntegerString[totalCands] <> " in kernel...",
 								0.55 + 0.35 * (First[idx] / Max[1, totalCands])
 							];
-							With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen, Function[2.5]]},
+							With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen, Function[budgetScaled[2.5]]]},
 								Which[
 									AssociationQ[res], AppendTo[verified, res],
 									MatchQ[res, Missing["TimedOut"]], AppendTo[timedOut, cand]
@@ -2541,12 +2551,12 @@ findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := 
 				MapIndexed[
 					Function[{cand, idx},
 						With[{left = Length[timedOut] - First[idx] + 1},
-							If[ ! deadlineExceededQ[] && retryProofBudget[2.5, left] > 2.5,
+							If[ ! deadlineExceededQ[] && retryProofBudget[budgetScaled[2.5], left] > budgetScaled[2.5],
 								reportProgress[
 									"Retrying assumption candidate " <> IntegerString[First[idx]] <> "/" <> IntegerString[Length[timedOut]] <> " with more time...",
 									0.90 + 0.05 * (First[idx] / Max[1, Length[timedOut]])
 								];
-								With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen, Function[retryProofBudget[2.5, left]]]},
+								With[{res = verifyAndFilterAssumption[environment, coreStmt, varContext, varIds, bodyCore, uParams, cand, allowEquiv, includeOpen, Function[retryProofBudget[budgetScaled[2.5], left]]]},
 									If[ AssociationQ[res],
 										AppendTo[verified, res]
 									]
@@ -2562,7 +2572,7 @@ findAssumptions[HoldComplete[proposition_], environmentSpec_, Hold[opts___]] := 
 				ranked = rankAndDeduplicateAssumptions[environment, varContext, varIds, uParams, verified];
 				Take[ranked, UpTo[maxItems]]
 			]
-		]
+		]]
 	]
 ]
 
@@ -2619,7 +2629,7 @@ verifyAndFilterAssumption[environment_, coreStmt_, varContext_, varIds_List, bod
 				splitBody = If[scope === "Local", splitPropositionalImplication[environment, varContext, bodyCore], <|"Premises" -> {}, "Consequent" -> coreStmt|>];
 				If[ splitBody["Premises"] =!= {},
 					With[{directCheck = makeDependentFunctionType[varContext, varIds, coreImplication[coreA, splitBody["Consequent"]]]},
-						If[ coreA === splitBody["Consequent"] || ! FailureQ[enhancedProveCore[environment, directCheck, uParams, 0.4]],
+						If[ coreA === splitBody["Consequent"] || ! FailureQ[enhancedProveCore[environment, directCheck, uParams, budgetScaled[0.4]]],
 							isTrivial = True
 						]
 					]
@@ -2652,7 +2662,7 @@ verifyAndFilterAssumption[environment_, coreStmt_, varContext_, varIds_List, bod
 											coreImplication[coreStmt, coreA]
 										]
 									},
-									equivCheck = ! FailureQ[enhancedProveCore[environment, revImpl, uParams, 0.5]];
+									equivCheck = ! FailureQ[enhancedProveCore[environment, revImpl, uParams, budgetScaled[0.5]]];
 									If[ equivCheck && (! allowEquiv || coreComplexity[coreA] >= coreComplexity[targetBody]),
 										isTrivial = True
 									]
@@ -2694,18 +2704,18 @@ checkAssumptionNonVacuity[environment_, varContext_, varIds_List, coreA_, "Local
 		If[ exCore === None,
 			{False, None},
 
-			witProof = enhancedProveCore[environment, exCore, uParams, 0.8];
+			witProof = enhancedProveCore[environment, exCore, uParams, budgetScaled[0.8]];
 			If[ ! FailureQ[witProof],
 				{False, extractWitnessFromProof[environment, exCore, witProof]},
 
-				refProof = enhancedProveCore[environment, coreNegation[environment, exCore], uParams, 0.5];
+				refProof = enhancedProveCore[environment, coreNegation[environment, exCore], uParams, budgetScaled[0.5]];
 				{! FailureQ[refProof], None}
 			]
 		]
 	]
 ]
 checkAssumptionNonVacuity[environment_, _, _, coreA_, "Global", uParams_List] := Module[{refProof},
-	refProof = enhancedProveCore[environment, coreNegation[environment, coreA], uParams, 0.6];
+	refProof = enhancedProveCore[environment, coreNegation[environment, coreA], uParams, budgetScaled[0.6]];
 	{! FailureQ[refProof], None}
 ]
 
@@ -2749,7 +2759,7 @@ paretoRankGroup[environment_, varContext_, varIds_List, uParams_List, items_List
 								coreImplication[aI, aJ]
 							]
 						},
-						! FailureQ[enhancedProveCore[environment, impl, uParams, 0.8]]
+						! FailureQ[enhancedProveCore[environment, impl, uParams, budgetScaled[0.8]]]
 					]
 				]
 			],
@@ -2778,7 +2788,9 @@ paretoRankGroup[environment_, varContext_, varIds_List, uParams_List, items_List
 			{},
 			Range[n]
 		];
-		(* Score each survivor by how many other survivors strictly dominate (are strictly weaker than) it *)
+		(* Score each survivor by how many other survivors strictly dominate (are strictly weaker than) it; a tie goes to
+		   the earlier candidate, as SortBy would otherwise order tied items by their whole expressions, whose proofs name
+		   environment stores by counters that differ from session to session *)
 		kept = Function[idx,
 			With[
 				{
@@ -2789,7 +2801,7 @@ paretoRankGroup[environment_, varContext_, varIds_List, uParams_List, items_List
 						! First[Drop[First[Drop[impliesMatrix, other - 1]], idx - 1]]
 					]]
 				},
-				{domCount, item["Complexity"], If[item["Witness"] =!= None, 0, 1], item}
+				{domCount, item["Complexity"], If[item["Witness"] =!= None, 0, 1], idx, item}
 			]
 		] /@ dedupIndices;
 		Last /@ SortBy[kept, Most]
@@ -2815,13 +2827,13 @@ abduceSymbolicDomain[environment_, varContext_, varIds_List, bodyCore_, uParams_
 
 				domCond = And @@ MapThread[Function[{v, d}, If[d === NonNegativeIntegers, v >= 0, True]], {wlVars, Values[domains]}];
 				With[{wlDomain = If[MemberQ[Values[domains], Rationals], Reals, Integers]},
-					reduced = TimeConstrained[Quiet @ Reduce[domCond && wlCond, wlVars, wlDomain], 2, $Aborted];
+					reduced = TimeConstrained[Quiet @ Reduce[domCond && wlCond, wlVars, wlDomain], budgetScaled[2], $Aborted];
 					If[ (reduced === $Aborted || MatchQ[reduced, _Reduce] || ! FreeQ[reduced, _C]) && wlDomain === Integers,
-						reduced = TimeConstrained[Quiet @ Reduce[domCond && wlCond, wlVars, Reals], 2, $Aborted]
+						reduced = TimeConstrained[Quiet @ Reduce[domCond && wlCond, wlVars, Reals], budgetScaled[2], $Aborted]
 					]
 				];
 				If[ reduced =!= $Aborted && reduced =!= False && reduced =!= True && ! MatchQ[reduced, _Reduce],
-					With[{simplified = TimeConstrained[Quiet @ Simplify[reduced, domCond], 1.5, reduced]},
+					With[{simplified = TimeConstrained[Quiet @ Simplify[reduced, domCond], budgetScaled[1.5], reduced]},
 						rawWlCandidates = Join[
 							rawWlCandidates,
 							If[simplified =!= reduced && simplified =!= True && simplified =!= False, {simplified}, {}],
@@ -3143,7 +3155,7 @@ abduceLemmaResiduals[environment_, varContext_, varIds_List, bodyCore_, uParams_
 				],
 				Take[Reverse[matchingLemmas], UpTo[12]]
 			],
-			2.0
+			budgetScaled[2.0]
 		];
 		results
 	]
@@ -3268,7 +3280,7 @@ abduceAlgebraicProperties[environment_, coreStmt_, uParams_List] := Module[
 		singletons = Catenate[algebraicPropertiesForConstant[environment, #] & /@ opAxioms];
 		(* Check if any singleton already proves coreStmt; if not, also generate pairs *)
 		workingSingletons = Select[singletons, Function[cand,
-			! FailureQ[enhancedProveCore[environment, coreImplication[cand["CoreAssumption"], coreStmt], uParams, 0.8]]
+			! FailureQ[enhancedProveCore[environment, coreImplication[cand["CoreAssumption"], coreStmt], uParams, budgetScaled[0.8]]]
 		]];
 		If[ workingSingletons =!= {},
 			workingSingletons,
@@ -3569,9 +3581,11 @@ pruneSubsumedConsequences[environment_, uParams_List, items_List] := Module[{n =
 				First[Drop[items, i - 1]]["Complexity"] <= First[Drop[items, j - 1]]["Complexity"] + 4
 			]]
 		]];
-		KeyDrop[#, {"CoreConsequence", "Complexity"}] & /@ SortBy[
-			Function[idx, First[Drop[items, idx - 1]]] /@ survivors,
-			#["Complexity"] &
+		(* simplest first, a tie to the earlier candidate rather than to the order of the whole items, which name
+		   environment stores by session counters *)
+		KeyDrop[#, {"CoreConsequence", "Complexity"}] & /@ Map[
+			Function[idx, First[Drop[items, idx - 1]]],
+			SortBy[survivors, Function[idx, {First[Drop[items, idx - 1]]["Complexity"], idx}]]
 		]
 	]
 ]
