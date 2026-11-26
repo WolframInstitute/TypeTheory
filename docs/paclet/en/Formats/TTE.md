@@ -6,7 +6,7 @@ Context: WolframInstitute`TypeTheory`
 Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/ref/format/TTE
 Description: TypeTheory environment files, one seekable file per environment, read lazily and checked block by block.
-Keywords: [TTE, tte, Format 3, environment file, saved environment, lazy environment, Import, Export]
+Keywords: [TTE, tte, environment file, saved environment, lazy environment, Import, Export]
 SeeAlso: [TypeTheoryEnvironment, Information, Import, Export]
 RelatedGuides: [TypeTheory]
 ---
@@ -17,7 +17,7 @@ TTE is the file format of TypeTheory's environments: one file holds an environme
 
 ## Background & Context
 
-- Binary format, Format 3 of TypeTheory's saved environments. Format 2, a WXF file, holds an environment that is read whole.
+- Binary format. A WXF file, which <code>[Export]()["file.wxf", *env*]</code> writes, holds an environment that is read whole.
 - A file has a header, its metadata, an index of the names in two levels, and blocks of terms. Statements and values are in blocks of their own and proofs in blocks at the end, so a file of statements alone can be cut from one with proofs.
 - Every block has a SHA-256 digest in a manifest that the header binds. A block is checked when it is first read, and a file whose header or blocks have changed is refused.
 - Reading is lazy: opening a file reads its header and indexes, and a constant's terms are read when a query needs them.
@@ -173,7 +173,7 @@ Information[TypeTheoryEnvironment[File[file]], "Hash"] === Information[Import[fi
 
 <!-- => True -->
 
-A WXF file of the same environment, Format 2, has the same content hash:
+A WXF file of the same environment has the same content hash:
 
 ```wl
 wxf = FileNameJoin[{$TemporaryDirectory, "integers.wxf"}];
