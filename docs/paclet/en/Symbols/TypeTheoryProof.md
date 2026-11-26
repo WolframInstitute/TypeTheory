@@ -32,7 +32,7 @@ RelatedTutorials: [TypeTheoryIntroduction, ProgramsAndProofs]
 - The tactics run in turn. The first that does not apply gives its [Failure](), which says why, and the proof stops there.
 - With [Automatic]() in place of the tactics, the proof is <code>[TypeTheoryTactic]()[[Automatic]()]</code> applied to the statement: `"Assumption"`, `"Decide"`, `"Counterexample"`, `"Intuitionistic"` and `"Classical"` are tried on the statement as it stands, then its variables and hypotheses are introduced and `"Reflexivity"`, `"Assumption"`, `"Decide"`, `"Ring"`, `"LinearArithmetic"`, `"NonlinearArithmetic"`, `"PolynomialReduce"`, `"SumOfSquares"`, `"FindEquationalProof"`, `"Witness"`, `"Intuitionistic"` and `"Classical"` are tried on what is left, until one finishes the proof. A statement that none of them proves gives a [Failure]() tagged `"NoProofFound"`, whose `"Tried"` gives what each tactic gave. In a list of tactics, [Automatic]() stands for <code>[TypeTheoryTactic]()[[Automatic]()]</code>.
 - In a notebook a proof shows each open goal as its hypotheses over the goal, with the name of the constructor on goals that come from induction, as `case zero` or `case Prepend`. A finished proof shows `Proof complete`, with the number of holes the tactic `"Hole"` left. The display stands for the proof itself: copied, or evaluated again, it gives the [TypeTheoryProof]().
-- <code>*proof*["Goals"]</code> gives the open goals as <code>[TypeTheoryTerm]()[[RightTee]()[{[Typed]()[*x*, *type*], ...}, *goal*], *env*]</code>, each a statement in its own right, its hypotheses quantified. <code>*proof*["Term"]</code> gives the proof term built so far, with a hole for each open goal, `?1` for the first goal listed, `?2` for the second, each showing its goal on mouseover, the hypotheses and what is left to prove; <code>*proof*["Statement"]</code> gives the statement and <code>*proof*["Environment"]</code> the environment. The term of an unfinished proof is open: [TypeTheoryCheck](), [TypeTheoryAxiomClosure]() and [Information]() of it give a [Failure]() tagged `"OpenTerm"` that names its holes.
+- <code>*proof*["Goals"]</code> gives the open goals as <code>[TypeTheoryTerm]()[[RightTee]()[{[Typed]()[*x*, *type*], ...}, *goal*], *env*]</code>, each a statement in its own right, its hypotheses quantified. <code>*proof*["Term"]</code> gives the proof term built so far, with a hole for each open goal, `?1` for the first goal listed, `?2` for the second, each showing its goal on mouseover, the hypotheses and what is left to prove; <code>*proof*["Statement"]</code> gives the statement and <code>*proof*["Environment"]</code> the environment. <code>*proof*["Tactics"]</code> gives the tactics applied to the proof, in order, each as it was given, a term in place of a tactic as `"Exact"` takes it, so <code>[TypeTheoryProof]()[*statement*, *proof*["Tactics"]]</code> proves the statement again; the tactics that a tactic runs inside it, as [Automatic]() runs its portfolio, are not among them. <code>*proof*["Properties"]</code> lists the properties, and <code>[Information]()[*proof*, *property*]</code> gives each as <code>*proof*[*property*]</code> does. The term of an unfinished proof is open: [TypeTheoryCheck](), [TypeTheoryAxiomClosure]() and [Information]() of it give a [Failure]() tagged `"OpenTerm"` that names its holes.
 - Nothing a tactic does is trusted: <code>[TypeTheoryTheorem]()[*name*, *proof*]</code> has the kernel check the finished proof term before it declares the theorem. [TypeTheoryProofTree]() gives the derivation of a finished proof, each step a rule of natural deduction, a theorem or an induction.
 - The option `"UniverseParameters" -> {u, ...}` lists the universe parameters; [Automatic]() takes the symbols and strings in universe levels, in the order they appear, and makes each level that nothing in the statement decides one more, `"u_1"`, `"u_2"`, ….
 
@@ -326,6 +326,28 @@ proof["Statement"]
 ```
 
 <!-- => ∀_n∶ℕ 0 + n == n -->
+
+The tactics that built it, in order, which prove the statement again:
+
+```wl
+proof["Tactics"]
+```
+
+<!-- => {TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Induction", n], TypeTheoryTactic["Reflexivity"], TypeTheoryTactic["Introduce", k, ih], TypeTheoryTactic["Exact", "equalityCongruence"["successor", ih]]} -->
+
+```wl
+TypeTheoryProof[ForAll[{n}, 0 + n == n], proof["Tactics"]]["Term"] === proof["Term"]
+```
+
+<!-- => True -->
+
+The properties of a proof:
+
+```wl
+proof["Properties"]
+```
+
+<!-- => {"Statement", "Goals", "Term", "Tactics", "Environment", "ProofTree"} -->
 
 ## Options
 

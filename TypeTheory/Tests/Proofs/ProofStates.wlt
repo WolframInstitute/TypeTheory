@@ -58,6 +58,45 @@ VerificationTest[
 	TestID -> "TypeTheoryProof-refuses-arguments-out-of-order-and-a-pattern-starts-no-proof"
 ]
 
+(* a proof records the tactics applied to it, each as it was given, its arguments held; a term in place of a tactic is
+   recorded as "Exact" takes it, a tactic that fails records nothing, and the record proves the statement again. Automatic
+   records itself, not the tactics of its portfolio. proof[property] and Information[proof, property] agree *)
+VerificationTest[
+	Block[{n = 7},
+		With[
+			{
+				steps = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {"Introduce"[n], TypeTheoryTactic["Reflexivity"]}],
+				exact = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude, {"Introduce"[n], "equalityReflexivity"[n]}],
+				open = TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]],
+				automatic = TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, Automatic]
+			},
+			{
+				HoldForm @@ {steps["Tactics"]},
+				HoldForm @@ {exact["Tactics"]},
+				HoldForm @@ {open["Tactics"]},
+				FailureQ[TypeTheoryTactic["Exact", "trueIntroduction"][open]] && Length[open["Tactics"]] == 1,
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]["Tactics"],
+				HoldForm @@ {automatic["Tactics"]},
+				TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, 0 + n == n], prelude, automatic["Tactics"]]["Term"] === automatic["Term"],
+				steps["Properties"] === Information[steps, "Properties"],
+				AllTrue[steps["Properties"], Function[property, steps[property] === Information[steps, property]]]
+			}
+		]
+	],
+	{
+		HoldForm[{TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Reflexivity"]}],
+		HoldForm[{TypeTheoryTactic["Introduce", n], TypeTheoryTactic["Exact", "equalityReflexivity"[n]]}],
+		HoldForm[{TypeTheoryTactic["Introduce", n]}],
+		True,
+		{},
+		HoldForm[{TypeTheoryTactic[Automatic]}],
+		True,
+		True,
+		True
+	},
+	TestID -> "A-proof-records-its-tactics-and-gives-its-properties-both-ways"
+]
+
 VerificationTest[
 	TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]]["Goals"],
 	{TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]},

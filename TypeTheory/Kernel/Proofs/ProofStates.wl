@@ -16,7 +16,8 @@ fails, or leaves goals open.
 		"Root" -> id,                                   the metavariable of the whole proof
 		"Goals" -> {id, ...},                           the open goals, first goal first
 		"Metavariables" -> <|id -> <|"Context" -> context, "Type" -> type, "Case" -> None | HoldComplete[name]|>, ...|>,
-		"Assignments" -> <|id -> term, ...|>
+		"Assignments" -> <|id -> term, ...|>,
+		"Tactics" -> {tactic, ...}                      the tactics applied to the proof, in order
 	|>]
 
 A function introduced by a tactic is recorded as pendingAbstraction[context, {id, ...}, body], the
@@ -297,7 +298,8 @@ newProofState[environment_, statement_, universeParameters_List] := With[{root =
 		"Root" -> root,
 		"Goals" -> {root},
 		"Metavariables" -> <|root -> <|"Context" -> <||>, "Type" -> statement, "Case" -> None|>|>,
-		"Assignments" -> <||>
+		"Assignments" -> <||>,
+		"Tactics" -> {}
 	|>]
 ]
 
@@ -314,6 +316,15 @@ holesWithGoals[data_, term_] := ReplaceAll[term, MapIndexed[Function[{goal, posi
 holeRule[name_String, TypeTheoryTerm[goal_, ___]] := HoldPattern[Placeholder[name]] :> Placeholder[name, goal]
 holeRule[name_String, _] := HoldPattern[Placeholder[name]] :> Placeholder[name]
 TypeTheoryProof[data_Association]["Environment"] := data["Environment"]
+(* the tactics applied to the proof, in order, each as it was given: TypeTheoryProof[statement, proof["Tactics"]] proves
+   the statement again. A tactic that ran inside another, as the portfolio Automatic runs its own, is not one of them *)
+TypeTheoryProof[data_Association]["Tactics"] := Lookup[data, "Tactics", {}]
+TypeTheoryProof[data_Association]["ProofTree"] := TypeTheoryProofTree[TypeTheoryProof[data]]
+
+(* the properties of a proof, which proof[property] and Information[proof, property] give alike *)
+$proofProperties = {"Statement", "Goals", "Term", "Tactics", "Environment", "ProofTree"}
+TypeTheoryProof[_Association]["Properties"] := $proofProperties
+TypeTheoryProof /: Information[proof : TypeTheoryProof[_Association], property_String] /; MemberQ[Append[$proofProperties, "Properties"], property] := proof[property]
 
 (* each rule's two sides are built before any is used: a core term holds its parts, so nothing left to compute may go
    into one *)
@@ -409,11 +420,15 @@ goalDisplay[data_, goal_] := Quiet @ catchKernelFailure[goalTerm[data, goal]]
 (*Tactics*)
 
 
-(* a tactic by its name, or Automatic, the portfolio *)
-TypeTheoryTactic[name : _String | Automatic, arguments___][TypeTheoryProof[data_Association]] := catchKernelFailure @ Replace[data["Goals"], {
+(* a tactic by its name, or Automatic, the portfolio; the proof it gives records it after the tactics of the proof it
+   was applied to, whatever the tactics that ran inside it recorded *)
+(tactic : TypeTheoryTactic[name : _String | Automatic, arguments___])[TypeTheoryProof[data_Association]] := catchKernelFailure @ Replace[data["Goals"], {
 	{} :> kernelFailure["NoGoals", "The proof has no open goals.", {}],
-	{goal_, ___} :> withOpenGoals[data, proofState[runTactic[name, Hold[arguments], data, goal]]]
+	{goal_, ___} :> recordedTactic[withOpenGoals[data, proofState[runTactic[name, Hold[arguments], data, goal]]], Append[Lookup[data, "Tactics", {}], tactic]]
 }]
+
+recordedTactic[TypeTheoryProof[result_Association], tactics_List] := proofState[Append[result, "Tactics" -> tactics]]
+recordedTactic[other_, _] := other
 
 (* the open goals of the proof, as the metavariables a tactic's elaboration may meet, each with its type and hypotheses;
    a tactic's terms are not checked until it checks them, so the kernel's type queries check *)
