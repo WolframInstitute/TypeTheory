@@ -32,6 +32,7 @@ RelatedTutorials: [Elaboration, TypeTheoryIntroduction]
 | <code>[TypedImplicit]()[x, A]</code> | an implicit binder, filled in by elaboration; <code>[Annotation]()[[Typed]()[x, A], *kind*]</code> with `"StrictImplicit"` or `"InstanceImplicit"` gives the other kinds |
 | <code>[Exists]()[{[Typed]()[x, A]}, p]</code> | an existential statement |
 | <code>[ForAll]()[x, *condition*, B]</code>, <code>[Exists]()[x, *condition*, p]</code> | <code>[ForAll]()[x, [Implies]()[*condition*, B]]</code> and <code>[Exists]()[x, *condition* && p]</code>, as the Wolfram Language reads them |
+| <code>[ForAll]()[x, [Element]()[x, A], B]</code>, also <code>[Element]()[x \| y, A]</code> and <code>[Element]()[{x, y}, A]</code> | <code>[ForAll]()[[Typed]()[x, A], B]</code>: an [Element]() in the condition is the type of its variables, as the Wolfram Language writes a domain, and the rest of the condition stays one; [Exists]() alike |
 | <code>[Typed]()[e, A]</code> | `e`, checked against `A` |
 | <code>[With]()[{x = v}, b]</code> | `b` with `x` standing for `v` |
 | <code>[TypeUniverse]()[*level*]</code> | a universe |
@@ -188,6 +189,22 @@ TypeTheoryTerm[ForAll[n, n > 0, n >= 1]]
 ```
 
 <!-- => ∀_n,n > 0 n >= 1 -->
+
+---
+
+A domain, as the Wolfram Language writes one, is the type of the variable: [Element]() makes `n` an integer, so `<` and `2 n` are the integers':
+
+```wl
+TypeTheoryType[ForAll[n, Element[n, Integers], n < 2 n], "Integers"]
+```
+
+<!-- => Prop -->
+
+```wl
+Information[TypeTheoryTerm[ForAll[n, Element[n, Integers], n < 2 n], "Integers"], "Constants"]
+```
+
+<!-- => {Integers, "integerLess", "integerMultiplication", "integerOfNatural"} -->
 
 ---
 

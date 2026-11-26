@@ -355,10 +355,15 @@ elaborateSyntaxCases[syntax_, expected_] := Replace[syntax, {
 	syntaxApplication[syntaxSymbol[HoldComplete[ForAll | RightTee]], {binders_, body_}] :> elaborateForAll[listElements[binders], body],
 	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, body_}] :> elaborateSyntax[nestedExistential[listElements[binders], body], expected],
 	(* ForAll[x, condition, body] and Exists[x, condition, body] read as in the Wolfram Language: every x with the
-	   condition has the body, and some x has both *)
-	syntaxApplication[syntaxSymbol[HoldComplete[ForAll]], {binders_, condition_, body_}] :> elaborateForAll[listElements[binders], syntaxHead[Implies, {condition, body}]],
-	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, condition_, body_}] :>
-		elaborateSyntax[nestedExistential[listElements[binders], syntaxHead[And, {condition, body}]], expected],
+	   condition has the body, and some x has both; Element[x, A] in the condition is the type of x *)
+	syntaxApplication[syntaxSymbol[HoldComplete[ForAll]], {binders_, condition_, body_}] :> Replace[typedByCondition[listElements[binders], condition], {
+		{typed_, None} :> elaborateForAll[typed, body],
+		{typed_, rest_} :> elaborateForAll[typed, syntaxHead[Implies, {rest, body}]]
+	}],
+	syntaxApplication[syntaxSymbol[HoldComplete[Exists]], {binders_, condition_, body_}] :> Replace[typedByCondition[listElements[binders], condition], {
+		{typed_, None} :> elaborateSyntax[nestedExistential[typed, body], expected],
+		{typed_, rest_} :> elaborateSyntax[nestedExistential[typed, syntaxHead[And, {rest, body}]], expected]
+	}],
 	syntaxApplication[syntaxSymbol[HoldComplete[Implies]], {domain_, codomain_}] :> elaborateArrow[{domain}, codomain],
 	syntaxApplication[syntaxSymbol[HoldComplete[TypeSpecifier]], {syntaxApplication[syntaxSymbol[HoldComplete[Rule]], {domains_, codomain_}]}] :>
 		elaborateArrow[listElements[domains], codomain],
@@ -611,6 +616,39 @@ listLiteralSyntax[elements_List] := Fold[listedPiece, syntaxString["{}"], Revers
 listedPiece[syntaxString["{}"], splicedPiece[sequence_]] := syntaxApplication[syntaxString["listOfSequence"], {sequence}]
 listedPiece[rest_, splicedPiece[sequence_]] := syntaxHead[Join, {syntaxApplication[syntaxString["listOfSequence"], {sequence}], rest}]
 listedPiece[rest_, element_] := syntaxApplication[syntaxString["Prepend"], {element, rest}]
+
+(* The binders of a quantifier with a condition, typed by the conjuncts Element[x, A], Element[x | y, A] and
+   Element[{x, y}, A] of the condition whose variables are binders without a type, and the rest of the condition, or
+   None for nothing left: ForAll[n, Element[n, Integers], n < 2 n] is ForAll[Typed[n, Integers], n < 2 n], as the
+   Wolfram Language writes a domain. A variable a conjunct before has typed keeps the conjunct in the condition. Where
+   the environment declares Element, as "ZFC" declares the membership of sets, the condition is all a condition. *)
+typedByCondition[binders_List, condition_] := If[ declaredConstantSyntaxQ[syntaxSymbol[HoldComplete[Element]]],
+	{binders, condition},
+	Replace[Fold[conditionDomain[Cases[binders, syntaxSymbol[HoldComplete[_Symbol]]]], {<||>, {}}, conditionConjuncts[condition]], {
+		{domains_, rest_} :> {
+			Replace[binders, variable_ /; KeyExistsQ[domains, variable] :> syntaxHead[Typed, {variable, domains[variable]}], {1}],
+			conjunctionSyntax[rest]
+		}
+	}]
+]
+
+conditionDomain[untyped_List][{domains_Association, rest_List}, conjunct_] := Replace[elementMembers[conjunct], {
+	{members_List, domain_} /; SubsetQ[untyped, members] && DuplicateFreeQ[members] && Intersection[members, Keys[domains]] === {} :>
+		{Join[domains, Association[Thread[members -> domain]]], rest},
+	_ :> {domains, Append[rest, conjunct]}
+}]
+
+(* the variables and the domain of Element[x, A], Element[x | y, A] or Element[{x, y}, A], or None *)
+elementMembers[syntaxApplication[syntaxSymbol[HoldComplete[Element]], {syntaxApplication[syntaxSymbol[HoldComplete[Alternatives | List]], members_List], domain_}]] := {members, domain}
+elementMembers[syntaxApplication[syntaxSymbol[HoldComplete[Element]], {member_, domain_}]] := {{member}, domain}
+elementMembers[_] := None
+
+conditionConjuncts[syntaxApplication[syntaxSymbol[HoldComplete[And]], arguments_List]] := Catenate[conditionConjuncts /@ arguments]
+conditionConjuncts[condition_] := {condition}
+
+conjunctionSyntax[{}] := None
+conjunctionSyntax[{conjunct_}] := conjunct
+conjunctionSyntax[conjuncts_List] := syntaxHead[And, conjuncts]
 
 (* Exists[{x, y}, p] is Exists[{x}, Exists[{y}, p]], each Exists applied to a predicate *)
 nestedExistential[{binder_}, body_] := syntaxHead[Exists, {syntaxHead[Function, {syntaxHead[List, {binder}], body}]}]

@@ -350,6 +350,32 @@ VerificationTest[
 	TestID -> "ForAll-and-Exists-with-a-condition-read-as-in-the-Wolfram-Language"
 ]
 
+(* Element[x, A] in the condition of a quantifier, or Element[x | y, A] or Element[{x, y}, A], is the type of its
+   variables, as the Wolfram Language writes a domain; the rest of the condition stays one. A variable typed twice keeps
+   the second Element, which is no term, and where the environment declares Element, as "ZFC" declares the membership of
+   sets, the condition is membership *)
+VerificationTest[
+	{
+		Replace[WeakHeadNormalForm[TypeTheoryTerm[ForAll[n, Element[n, Naturals], 0 < n + 1]]], TypeTheoryTerm[term_, ___] :> HoldComplete[term]],
+		Replace[WeakHeadNormalForm[TypeTheoryTerm[ForAll[{a, b}, Element[a | b, Naturals] && a < b, a + 1 <= b]]], TypeTheoryTerm[term_, ___] :> HoldComplete[term]],
+		Replace[WeakHeadNormalForm[TypeTheoryTerm[Exists[n, Element[{n}, Naturals], n == 2]]], TypeTheoryTerm[term_, ___] :> HoldComplete[term]],
+		DefinitionallyEqualQ[TypeTheoryTerm[ForAll[n, Element[n, Integers], n < 2 n], "Integers"], TypeTheoryTerm[ForAll[Typed[n, Integers], n < 2 n], "Integers"]],
+		Information[TypeTheoryTerm[ForAll[{x, n}, Element[x, Integers] && Element[n, Naturals], x + n == n + x], "Integers"], "Constants"],
+		First[TypeTheoryType[TypeTheoryTerm[ForAll[n, Element[n, Integers] && Element[n, Rationals], n == n], "Rationals"]]],
+		Information[TypeTheoryTerm[ForAll[{Typed[a, "Set"]}, ForAll[x, Element[x, a], Element[x, a]]], "ZFC"], "Constants"]
+	},
+	{
+		HoldComplete[ForAll[{Typed[n, NonNegativeIntegers]}, 0 < n + 1]],
+		HoldComplete[ForAll[{Typed[a, NonNegativeIntegers], Typed[b, NonNegativeIntegers]}, Implies[a < b, a + 1 <= b]]],
+		HoldComplete[Exists[{Typed[n, NonNegativeIntegers]}, n == 2]],
+		True,
+		{Integers, NonNegativeIntegers, Equal, "integerAddition", "integerOfNatural"},
+		"ElaborationFailed",
+		{"Set", Element}
+	},
+	TestID -> "Element-in-the-condition-of-a-quantifier-is-the-type-of-its-variables"
+]
+
 (* a list written as a term is the list of its elements, as a list ending in {} shows *)
 VerificationTest[
 	{

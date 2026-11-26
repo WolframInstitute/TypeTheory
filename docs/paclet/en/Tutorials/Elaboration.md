@@ -191,6 +191,16 @@ TypeTheoryType[ForAll[{a}, a == a]]
 
 <!-- => Failure["ElaborationFailed", ...]: The type of the variable a is needed: write Typed[x, type]. -->
 
+A condition [Element]()`[x, A]` of a quantifier gives the type as the Wolfram Language writes a domain, here the integers', whose `<` the statement then uses; `Element[x | y, A]` and `Element[{x, y}, A]` type several variables, and the rest of a condition stays one:
+
+```wl
+TypeTheoryType[ForAll[n, Element[n, Integers], n < 2 n], "Integers"]
+```
+
+<!-- => Prop -->
+
+Where the environment declares [Element]() itself, as `"ZFC"` declares the membership of sets, the condition is a statement of that membership.
+
 A variable of a function takes its type from the type expected, where there is one: a function checked against a function type, a function applied to an argument, the motive and the cases of a recursor, whose type gives theirs. The term a recursor eliminates fixes the type of the variable it is, so doubling by recursion writes no type at all:
 
 ```wl
