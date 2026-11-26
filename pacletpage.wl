@@ -164,7 +164,10 @@ buildDocumentation[] := (
 	]]
 )
 
-$resourceOptions = {}
+(* the archive also as wolframinstitute/Paclets/WolframInstitute__TypeTheory-<version>.paclet, and the latest as
+   Paclets/WolframInstitute__TypeTheory.paclet: URLs that name the paclet, which the pages' install code uses, beside the
+   resource's own Resources/<id>/download/<version>/PacletArchive.paclet; as PureMath publishes its archive *)
+$resourceOptions = {"Archive" -> "Paclets"}
 
 (* Feedback sent through the site's form is readable by the site's owner, by signed-in
    wolframinstitute.org accounts, and by the readers listed. The site shows the paclet's version

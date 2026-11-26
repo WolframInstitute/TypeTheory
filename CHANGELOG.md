@@ -38,7 +38,7 @@ Versions 0.60.1 to 0.64.3.
 
 ### Documentation
 
-- **The site on PacletPage 0.3.98.** The site requires PacletPage 0.3.98, which lists Format pages such as ref/format/TTE and keys its page cache alike from any directory, and opens the A-Z index of the symbols on the right (`"SymbolIndex" -> True`), which 0.3.97 leaves closed by default past 24 symbols.
+- **The site on PacletPage 0.3.98.** The site requires PacletPage 0.3.98, which lists Format pages such as ref/format/TTE and keys its page cache alike from any directory, and opens the A-Z index of the symbols on the right (`"SymbolIndex" -> True`), which 0.3.97 leaves closed by default past 24 symbols. Each release also publishes its archive at a URL that names the paclet, `https://www.wolframcloud.com/obj/wolframinstitute/Paclets/WolframInstitute__TypeTheory-<version>.paclet`, and the latest at `.../Paclets/WolframInstitute__TypeTheory.paclet`, which the pages' install code uses.
 
 ## 2026-W47 (November 16 to 22)
 
