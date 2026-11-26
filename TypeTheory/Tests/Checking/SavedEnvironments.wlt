@@ -391,6 +391,8 @@ VerificationTest[
    compute Signature, export/reload Format 2 .wxf and Format 3 .tte with identical content hashes,
    and encode unseeded CompiledKernel environmentInput without exponential SameQ fallback. *)
 VerificationTest[
+	Block[{WolframInstitute`TypeTheory`PackageScope`$hashConsMode = "Adaptive"},
+	(* a test of hash-consing itself, in the mode it is for, whatever TYPETHEORY_HASHCONS a run sets *)
 	Module[
 		{
 			base, u1, app, depFn, cref, bv, pairRef, buildDiamond, indType, f1, f2, ctorType,
@@ -460,7 +462,7 @@ VerificationTest[
 			DeleteDirectory[dir, DeleteContents -> True];
 			result
 		]
-	],
+	]],
 	{True, True, True, True, True, True},
 	TestID -> "Cross-record-constructor-and-recursor-shared-DAG-encodes-without-SameQ-explosion"
 ]
