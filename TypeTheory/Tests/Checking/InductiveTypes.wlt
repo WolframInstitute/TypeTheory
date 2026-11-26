@@ -358,6 +358,8 @@ VerificationTest[
 VerificationTest[
 	Block[
 		{
+			(* a test of hash-consing itself, in the mode it is for, whatever TYPETHEORY_HASHCONS a run sets *)
+			WolframInstitute`TypeTheory`PackageScope`$hashConsMode = "Adaptive",
 			base, u1, dagPairRef, natRef, app, depFn, cref, csys, buildDiamond, diamondDepth,
 			okFieldType, badFieldType, okEnv, badEnv, occursFn, cubicalDiamondYes, cubicalDiamondNo
 		},
@@ -414,6 +416,8 @@ VerificationTest[
 VerificationTest[
 	Block[
 		{
+			(* a test of hash-consing itself, in the mode it is for, whatever TYPETHEORY_HASHCONS a run sets *)
+			WolframInstitute`TypeTheory`PackageScope`$hashConsMode = "Adaptive",
 			base, u1, dagPairRef, natRef, app, depFn, cref, bv, buildDiamond, diamondDepth,
 			paramIndType, okField1, okField2, okCtorType, badField1, badField2, badCtorType,
 			okEnv, badEnv

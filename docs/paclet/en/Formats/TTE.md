@@ -79,7 +79,7 @@ Import it back; the environment reads the file as queries need it:
 integers = Import[file, "TTE"]
 ```
 
-<!-- => TypeTheoryEnvironment summary box: the integers' constants -->
+<!-- => TypeTheoryEnvironment summary box: 374 constants, 144 theorems -->
 
 It is the environment that was written, with the same content hash:
 
@@ -91,6 +91,15 @@ Information[integers, "Hash"] === Information[TypeTheoryEnvironment["Integers"],
 
 ### Import Elements
 
+A TTE file of the integers:
+
+```wl
+file = FileNameJoin[{$TemporaryDirectory, "integers.tte"}];
+FileNameTake[Export[file, TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => "integers.tte" -->
+
 The elements of a TTE file:
 
 ```wl
@@ -99,26 +108,27 @@ Import[file, {"TTE", "Elements"}]
 
 <!-- => {"Constants", "Environment", "Hash", "Summary"} -->
 
-The names of its constants, read from its index:
+The names of its constants, read from its index, are those of the environment:
 
 ```wl
-Length[Import[file, {"TTE", "Constants"}]] === Length[Information[integers, "Constants"]]
+Length[Import[file, {"TTE", "Constants"}]] === Length[Information[TypeTheoryEnvironment["Integers"], "Constants"]]
 ```
 
 <!-- => True -->
 
 ### Export Options
 
-Without proofs, a file holds the statements alone:
+A TTE file of the integers with proofs, and one without:
 
 ```wl
+file = FileNameJoin[{$TemporaryDirectory, "integers.tte"}];
 statements = FileNameJoin[{$TemporaryDirectory, "integers-statements.tte"}];
-FileNameTake[Export[statements, TypeTheoryEnvironment["Integers"], "IncludeProofs" -> False]]
+FileNameTake /@ {Export[file, TypeTheoryEnvironment["Integers"]], Export[statements, TypeTheoryEnvironment["Integers"], "IncludeProofs" -> False]}
 ```
 
-<!-- => "integers-statements.tte" -->
+<!-- => {"integers.tte", "integers-statements.tte"} -->
 
-It is smaller than the file with proofs:
+The file without proofs is smaller:
 
 ```wl
 FileByteCount[statements] < FileByteCount[file]
@@ -129,7 +139,7 @@ FileByteCount[statements] < FileByteCount[file]
 and its theorems are read as axioms:
 
 ```wl
-Length[Information[Import[statements, "TTE"], "Axioms"]] > Length[Information[integers, "Axioms"]]
+Length[Information[Import[statements, "TTE"], "Axioms"]] > Length[Information[Import[file, "TTE"], "Axioms"]]
 ```
 
 <!-- => True -->
@@ -146,10 +156,19 @@ FileByteCount[standalone] > FileByteCount[file]
 
 ### Properties & Relations
 
+A TTE file of the integers:
+
+```wl
+file = FileNameJoin[{$TemporaryDirectory, "integers.tte"}];
+FileNameTake[Export[file, TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => "integers.tte" -->
+
 <code>[TypeTheoryEnvironment]()[[File]()[...]]</code> reads a TTE file as `Import` does:
 
 ```wl
-Information[TypeTheoryEnvironment[File[file]], "Hash"] === Information[integers, "Hash"]
+Information[TypeTheoryEnvironment[File[file]], "Hash"] === Information[Import[file, "TTE"], "Hash"]
 ```
 
 <!-- => True -->
@@ -159,12 +178,21 @@ A WXF file of the same environment, Format 2, has the same content hash:
 ```wl
 wxf = FileNameJoin[{$TemporaryDirectory, "integers.wxf"}];
 Export[wxf, TypeTheoryEnvironment["Integers"]];
-Information[TypeTheoryEnvironment[File[wxf]], "Hash"] === Information[integers, "Hash"]
+Information[TypeTheoryEnvironment[File[wxf]], "Hash"] === Information[Import[file, "TTE"], "Hash"]
 ```
 
 <!-- => True -->
 
 ### Possible Issues
+
+A TTE file of the integers:
+
+```wl
+file = FileNameJoin[{$TemporaryDirectory, "integers.tte"}];
+FileNameTake[Export[file, TypeTheoryEnvironment["Integers"]]]
+```
+
+<!-- => "integers.tte" -->
 
 Wolfram 15 takes a registered format by its name and not by the extension of a file, so `Import` names it:
 
@@ -172,15 +200,15 @@ Wolfram 15 takes a registered format by its name and not by the extension of a f
 Import[file]
 ```
 
-<!-- => $Failed, with Import::infer -->
+<!-- => $Failed -->
 
-A file changed after it was written is refused. `Import` gives `$Failed`, and <code>[TypeTheoryEnvironment]()[[File]()[...]]</code> the <code>[Failure]()</code> that says why:
+A file changed after it was written is refused: `Import` gives `$Failed`, and <code>[TypeTheoryEnvironment]()[[File]()[...]]</code> a <code>[Failure]()</code>, whose message names the file and says it is not a saved environment, or was changed. Its tag:
 
 ```wl
 forged = FileNameJoin[{$TemporaryDirectory, "forged.tte"}];
 BinaryWrite[forged, Join[ByteArray[ConstantArray[0, 64]], Drop[ReadByteArray[file], 64]]];
 Close[forged];
-TypeTheoryEnvironment[File[forged]]
+TypeTheoryEnvironment[File[forged]]["Tag"]
 ```
 
-<!-- => Failure[...]: the header of the file is not a TTE header -->
+<!-- => "SavedEnvironmentInvalid" -->

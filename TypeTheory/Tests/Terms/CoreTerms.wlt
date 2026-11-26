@@ -236,6 +236,8 @@ VerificationTest[
 VerificationTest[
 	Block[
 		{
+			(* a test of hash-consing itself, in the mode it is for, whatever TYPETHEORY_HASHCONS a run sets *)
+			WolframInstitute`TypeTheory`PackageScope`$hashConsMode = "Adaptive",
 			depFn = scoped["dependentFunctionType"],
 			cref = scoped["constantReference"],
 			lift = scoped["liftBoundVariables"],
