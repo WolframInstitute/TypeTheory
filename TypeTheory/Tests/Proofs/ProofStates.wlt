@@ -97,6 +97,23 @@ VerificationTest[
 	TestID -> "A-proof-records-its-tactics-and-gives-its-properties-both-ways"
 ]
 
+(* a tactic gives its name and its arguments, held, both ways *)
+VerificationTest[
+	Block[{n = 7},
+		With[{tactic = TypeTheoryTactic["Introduce", n, k]},
+			{
+				tactic["Properties"] === Information[tactic, "Properties"],
+				AllTrue[tactic["Properties"], Function[property, tactic[property] === Information[tactic, property]]],
+				tactic["Name"],
+				HoldForm @@ {tactic["Arguments"]},
+				TypeTheoryTactic[Automatic]["Name"]
+			}
+		]
+	],
+	{True, True, "Introduce", HoldForm[HoldComplete[n, k]], Automatic},
+	TestID -> "A-tactic-gives-its-name-and-arguments-both-ways"
+]
+
 VerificationTest[
 	TypeTheoryTactic["Introduce", n][TypeTheoryProof[ForAll[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]]["Goals"],
 	{TypeTheoryTerm[RightTee[{Typed[n, NonNegativeIntegers]}, n + 0 == n], prelude]},

@@ -204,6 +204,12 @@ SetAttributes[TypeTheoryTactic, SequenceHold]
 TypeTheoryTactic[name_String[arguments___]] := TypeTheoryTactic[name, arguments]
 TypeTheoryTactic[name_Symbol, arguments___] /; StringQ[name] := With[{evaluated = name}, TypeTheoryTactic[evaluated, arguments]]
 
+(* the name of a tactic and its arguments, held, which tactic[property] and Information[tactic, property] give alike *)
+TypeTheoryTactic[name : _String | Automatic, ___]["Name"] := name
+TypeTheoryTactic[_String | Automatic, arguments___]["Arguments"] := HoldComplete[arguments]
+TypeTheoryTactic[_String | Automatic, ___]["Properties"] := {"Name", "Arguments"}
+TypeTheoryTactic /: Information[tactic : TypeTheoryTactic[_String | Automatic, ___], property : "Name" | "Arguments" | "Properties"] := tactic[property]
+
 
 (* A proof state holds an Association, and patterns such as TypeTheoryProof[_Association] must not start
    a proof either, so a statement that is an Association or contains a pattern is not one. The statement is held,
