@@ -3,7 +3,7 @@
 PacletObject[<|
 	"Name" -> "WolframInstitute/TypeTheory",
 	"PublisherID" -> "WolframInstitute",
-	"Version" -> "0.63.1",
+	"Version" -> "0.64.0",
 	"WolframVersion" -> "15.0+",
 	"Description" -> "A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language",
 	"Creator" -> "Nikolay Murzin",
