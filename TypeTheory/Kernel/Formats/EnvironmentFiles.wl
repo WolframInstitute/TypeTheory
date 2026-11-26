@@ -9,6 +9,8 @@ ImportExport`RegisterExport, as Wolfram's formats are registered:
 
 	Import[file, "TTE"]                   the environment the file holds, read lazily
 	Import[file, {"TTE", element}]        the element "Environment", "Constants" or "Hash"
+	Import[file, "TTE", "Check" -> True]  the environment with every declaration checked again, as for a file that a
+	                                      TypeTheory with another kernel wrote
 	Export[file, environment, "TTE"]      the environment written, with the options of saveFormat3Environment
 
 This file decides nothing: Import reads with TypeTheoryEnvironment[File[file]], which checks the file's header and
@@ -49,7 +51,7 @@ $environmentFileExportOptions = {"IncludeProofs", "IncludeDependencies", "Standa
 
 (* Import and Export read a converter's failure only as $Failed, so a converter fails as Wolfram's own do, with the
    framework's message and $Failed; TypeTheoryEnvironment[File[file]] gives the Failure that says why *)
-importEnvironmentFile[file_String, ___] := Replace[TypeTheoryEnvironment[File[file]], {
+importEnvironmentFile[file_String, options___] := Replace[TypeTheoryEnvironment[File[file], Sequence @@ FilterRules[{options}, "Check"]], {
 	environment_?environmentQ :> {"Environment" -> environment},
 	_ :> (Message[Import::fmterr, "TTE"]; $Failed)
 }]
@@ -72,6 +74,7 @@ ImportExport`RegisterImport["TTE", importEnvironmentFile,
 	"AvailableElements" -> {"Environment", "Constants", "Hash"},
 	"DefaultElement" -> "Environment",
 	"BinaryFormat" -> True,
+	"Options" -> {"Check"},
 	"Extensions" -> {"*.tte"}
 ]
 
