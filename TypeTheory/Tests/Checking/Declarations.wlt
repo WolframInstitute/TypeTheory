@@ -412,3 +412,38 @@ VerificationTest[
 	{3, 3, 4, 3, "UndeclaredUniverseParameter", "UndeclaredUniverseParameter", "UndeclaredUniverseParameter", Null},
 	TestID -> "Deep-shared-DAG-definitions-compute-height-and-check-universe-parameters-without-expanding"
 ]
+
+(* the compiled path keeps no rule around the declarations, whose list goes into compiledDeclarations' right-hand side: a
+   definition whose value is a DAG of 2^40 leaves in forty nodes is checked at once, where the rules there were renamed
+   after a walk of the declarations as a tree, after the compiled kernel had checked them; a wrong one is still refused *)
+VerificationTest[
+	With[
+		{
+			application = WolframInstitute`TypeTheory`PackageScope`application,
+			constantReference = WolframInstitute`TypeTheory`PackageScope`constantReference,
+			catchKernelFailure = WolframInstitute`TypeTheory`PackageScope`catchKernelFailure,
+			compiledDeclarations = WolframInstitute`TypeTheory`PackageScope`compiledDeclarations,
+			base = TypeTheoryEnvironment[prelude, {
+				TypeTheoryAxiom["combine", NonNegativeIntegers -> NonNegativeIntegers -> NonNegativeIntegers],
+				TypeTheoryDefinition["baseZero", Typed[0, NonNegativeIntegers]]
+			}]
+		},
+		With[
+			{
+				combineRef = constantReference[HoldComplete["combine"], {}],
+				baseZeroRef = constantReference[HoldComplete["baseZero"], {}],
+				natRef = constantReference[HoldComplete[NonNegativeIntegers], {}],
+				booleanRef = constantReference[HoldComplete[Booleans], {}],
+				diamond = Function[{op, leaf}, Nest[Function[t, Construct[application, Construct[application, op, t], t]], leaf, 40]]
+			},
+			With[{dagValue = diamond[combineRef, baseZeroRef]},
+				{
+					TimeConstrained[Head[catchKernelFailure[compiledDeclarations[base, {TypeTheoryDefinition["compiledDag", Typed[dagValue, natRef], "UniverseParameters" -> {}]}]]], 60, "timed out"],
+					TimeConstrained[Head[catchKernelFailure[compiledDeclarations[base, {TypeTheoryDefinition["forgedDag", Typed[dagValue, booleanRef], "UniverseParameters" -> {}]}]]], 60, "timed out"]
+				}
+			]
+		]
+	],
+	{TypeTheoryEnvironment, Failure},
+	TestID -> "The-compiled-path-checks-a-DAG-of-2^40-leaves-without-walking-it"
+]

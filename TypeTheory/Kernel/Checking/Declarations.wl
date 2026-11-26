@@ -206,20 +206,25 @@ TypeTheoryEnvironment[environment_?environmentQ, declarations_List, OptionsPatte
    for the universes of their constructors' fields; then the compiled kernel checks every declaration added, in order. Where adding one fails, or the compiled kernel
    does not handle the environment, the declarations are added again with each one checked, so that a failure is
    that of the first declaration in order that does not check. *)
-compiledDeclarations[environment_, declarations_List] := Replace[
+(* Block and Which, not Replace with rules: the declarations go into this right-hand side as its value, and a rule
+   inside it is a scoping construct, whose variables the evaluator renames after walking the declarations as a tree, so a
+   proof shared as a DAG of billions of leaves took minutes after the compiled kernel had checked it (RH, reg-102) *)
+compiledDeclarations[environment_, declarations_List] := Block[{compiledExtended, compiledVerdict},
 	(* a registration among the declarations leaves to the compiled kernel the equations it checks: the declarations are
 	   kept only where its check succeeds, and where it refuses an equation they are added again one at a time, the
 	   registration comparing its equations itself and naming the one that fails *)
-	catchKernelFailure[Block[{$deferKernelChecks = True, $deferRegistrationEquations = True}, $recheckedConstants = {}; deferredDeclarations[environment, declarations]]],
-	{
-		_Failure :> Fold[addDeclaration, environment, declarations],
-		extended_ :> Replace[compiledKernelCheck[extended, environmentCount[environment], registrationCount[environment], declarationRecheck[environment, declarations, extended]], {
-			failure_Failure /; TrueQ[failure["RegistrationEquation"]] :> Fold[addDeclaration, environment, declarations],
-			failure_Failure :> throwFailure[Failure[failure["Tag"], KeyDrop[Last[failure], "Position"]]],
-			None :> Fold[addDeclaration, environment, declarations],
-			_Success :> extended
-		}]
-	}
+	compiledExtended = catchKernelFailure[Block[{$deferKernelChecks = True, $deferRegistrationEquations = True}, $recheckedConstants = {}; deferredDeclarations[environment, declarations]]];
+	If[ MatchQ[compiledExtended, _Failure],
+		Fold[addDeclaration, environment, declarations],
+		compiledVerdict = compiledKernelCheck[compiledExtended, environmentCount[environment], registrationCount[environment], declarationRecheck[environment, declarations, compiledExtended]];
+		Which[
+			MatchQ[compiledVerdict, _Failure] && TrueQ[compiledVerdict["RegistrationEquation"]], Fold[addDeclaration, environment, declarations],
+			MatchQ[compiledVerdict, _Failure], throwFailure[Failure[compiledVerdict["Tag"], KeyDrop[Last[compiledVerdict], "Position"]]],
+			compiledVerdict === None, Fold[addDeclaration, environment, declarations],
+			MatchQ[compiledVerdict, _Success], compiledExtended,
+			True, compiledVerdict
+		]
+	]
 ]
 
 (* The recheck of a record that the compiled kernel leaves undecided, in an environment with a literal it does not hold:
