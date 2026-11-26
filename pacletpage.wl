@@ -172,5 +172,8 @@ $resourceOptions = {}
 $siteOptions = {
 	"FeedbackOptions" -> {"Domains" -> {"wolframinstitute.org"}, "Readers" -> {"nikm@wolfram.com"}},
 	"VersionLabel" -> True,
-	"Footer" -> True
+	"Footer" -> True,
+	(* no letter index of the symbols on the right: past 24 symbols PacletPage 0.3.92 shows one letter's at a time; the
+	   guide page lists them all. Off by default from PacletPage's next release. *)
+	"SymbolsRail" -> False
 }
