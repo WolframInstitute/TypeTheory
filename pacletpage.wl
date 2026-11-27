@@ -15,7 +15,7 @@ $docsDirectory = FileNameJoin[{$repoDirectory, "docs", "paclet", "en"}]
 
 $siteAccount = "wolframinstitute@wolframinstitute.org"
 
-$minimumPacletPage = "0.3.100"
+$minimumPacletPage = "0.3.101"
 
 $pacletPageResource = "https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/PacletPage"
 
