@@ -7,7 +7,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/guide/TypeTheory
 Description: A proof engine for the Calculus of Inductive Constructions, written in the Wolfram Language with its own symbols.
 Keywords: [type theory, dependent types, Calculus of Inductive Constructions, proof assistant, proof checking, kernel, inductive types, tactics, classical logic, Booleans, decidability, lists, instances, type classes, coercions]
-RelatedTutorials: [TypeTheoryIntroduction, Elaboration, ProgramsAndProofs, AutomatedAnalysisAndDiscovery, TheWolframLanguage, PatternsAndRewriting, WolframLanguageTheorems, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, ZermeloFraenkelSetTheory, RulesAndComputation, Paradoxes, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory, Wolfram23Universality]
+RelatedTutorials: [TypeTheoryIntroduction, Elaboration, ProgramsAndProofs, AutomatedAnalysisAndDiscovery, TheWolframLanguage, PatternsAndRewriting, WolframLanguageTheorems, ThePrelude, InstancesAndCoercions, TheIntegers, TheRationals, ZermeloFraenkelSetTheory, RulesAndComputation, Paradoxes, Quantities, HomotopyTypeTheory, CubicalTypeTheory, MathlibInTypeTheory, RiemannHypothesis, Wolfram23Universality]
 Links: ["[LeanLink, whose LeanToTypeTheory and TypeTheoryToLean exchange proofs with Lean](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink)"]
 ---
 

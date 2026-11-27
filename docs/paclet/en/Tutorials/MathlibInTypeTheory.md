@@ -8,7 +8,7 @@ Paclet: WolframInstitute/TypeTheory
 URI: WolframInstitute/TypeTheory/tutorial/MathlibInTypeTheory
 Keywords: [Mathlib, Lean, LeanLink, import, export, natural numbers, divisibility, notation, tactics, induction, proof checking]
 RelatedGuides: [TypeTheory]
-RelatedTutorials: [TypeTheoryIntroduction, ThePrelude]
+RelatedTutorials: [TypeTheoryIntroduction, ThePrelude, RiemannHypothesis]
 ---
 
 [Mathlib](https://github.com/leanprover-community/mathlib4) is the mathematical library of [Lean 4](https://lean-lang.org/), whose type theory, the Calculus of Inductive Constructions, is TypeTheory's. [LeanLink](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink), the Wolfram Language link to Lean, reads Mathlib's compiled modules, and its [LeanToTypeTheory](https://www.wolframcloud.com/obj/wolframinstitute/LeanLink#ref/LeanToTypeTheory) imports a constant of Mathlib into a [TypeTheoryEnvironment]() together with every constant it depends on, from Mathlib and from Lean's own library. TypeTheory's kernel checks each of them again. Imported, Mathlib's definitions compute and its theorems are constants like any other, which tactics apply. This tutorial imports theorems about the natural numbers from Mathlib, gives them notation, computes with them, proves new theorems with them, and has Lean check those proofs.
