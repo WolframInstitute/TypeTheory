@@ -176,8 +176,6 @@ $siteOptions = {
 	"FeedbackOptions" -> {"Domains" -> {"wolframinstitute.org"}, "Readers" -> {"nikm@wolfram.com"}},
 	"VersionLabel" -> True,
 	"Footer" -> True,
-	(* the symbols on the right, and their A-Z index open, which PacletPage leaves closed by default from 0.3.97
-	   past 24 symbols *)
-	"SymbolsRail" -> True,
-	"SymbolIndex" -> True
+	(* the symbols on the right; their A-Z index is PacletPage's default, off until a reader turns it on with its button *)
+	"SymbolsRail" -> True
 }
