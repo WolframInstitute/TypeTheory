@@ -216,7 +216,7 @@ $displayedNaturalNumbers = Automatic
 
 SetAttributes[withDisplayEnvironment, HoldRest]
 withDisplayEnvironment[environment_, expression_] := Block[
-	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment], $displayedCoercions = coercionsOrNone[environment], $displayEnvironment = environment},
+	{$displayedNaturalNumbers = settingsOrNone[environment], $displayedOverloads = overloadsOrNone[environment], $displayEnvironment = environment},
 	expression
 ]
 
@@ -228,20 +228,21 @@ displayEnvironment[] := Replace[$displayEnvironment, Automatic :> defaultEnviron
 (* the constants declared with "Overloads" -> operation, which show as the operation does: <|HoldComplete[constant] -> operation|> *)
 $displayedOverloads = <||>
 
-(* the constants declared with "Coercion" -> True, which show as ↑x as the library's coercions do: <|HoldComplete[constant] -> True|>,
-   found once for each environment, which never changes *)
-$displayedCoercions = <||>
-
-coercionsOrNone[environment_] := Lookup[$coercionDisplays, Key[environment], With[{coercions = Quiet[declaredCoercions[environment]]},
-	If[AssociationQ[coercions], $coercionDisplays[environment] = coercions, <||>]
-]]
+(* whether a constant is declared with "Coercion" -> True, and shows as ↑x as the library's coercions do: read from its
+   record the first time it is shown, and kept for its environment, which never changes. Asking for every coercion of an
+   environment read every record, which a large lazy environment, as one read from a TTE file of a million constants,
+   reads only on demand: a term of it took minutes to show. Outside an environment's display, none shows so. *)
+displayedCoercionQ[name_HoldComplete] := With[{environment = $displayEnvironment},
+	environment =!= Automatic && Lookup[$coercionDisplays, Key[{environment, name}],
+		$coercionDisplays[{environment, name}] = TrueQ[Quiet[declaredCoercionQ[environment, name]]]
+	]
+]
+displayedCoercionQ[_] := False
 
 $coercionDisplays = <||>
 
-declaredCoercions[environment_?environmentQ] := AssociationMap[
-	Function[name, True],
-	Select[environmentNames[environment], Function[name, TrueQ[constantRecord[environment, name]["Coercion"]]]]
-]
+declaredCoercionQ[environment_?environmentQ, name_HoldComplete] := constantDeclaredQ[environment, name] && TrueQ[constantRecord[environment, name]["Coercion"]]
+declaredCoercionQ[_, _] := False
 
 overloadsOrNone[environment_] := Replace[
 	Quiet @ Association @ Catenate @ Map[
@@ -892,7 +893,7 @@ displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]),
 	displayApplication[syntaxSymbol[HoldComplete @@ {$displayedOverloads[displayedName[head]]}], arguments]
 displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; overloadedDisplayQ[head, 1] := prefixed["-", argument]
 (* a coercion declared with "Coercion" -> True shows as ↑x, as the library's do, unless the user gave it a notation *)
-displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; KeyExistsQ[$displayedCoercions, displayedName[head]] && ! userNotationQ[head] :=
+displayApplication[head : (syntaxSymbol[_HoldComplete] | syntaxString[_String]), {argument_}] /; displayedCoercionQ[displayedName[head]] && ! userNotationQ[head] :=
 	prefixed["\[UpArrow]", argument]
 (* a constant whose head has a notation of the user's, a rule of MakeBoxes or Format, is applied undecorated, so that
    the rule shows it. In TraditionalForm the boxes tell which notation there is (notationDisplay): the user's, or the
